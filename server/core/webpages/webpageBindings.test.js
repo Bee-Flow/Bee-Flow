@@ -1,16 +1,15 @@
 // @typecheck
 /**
- * core/webpages/webpageBindings — de statische scan achter "Doet iets in eigen
+ * core/webpages/webpageBindings — the static scan behind "Does something in own
  * code".
  *
- * Geen opslag en geen databank: `storageStore`, `webpageStore` en de grants
- * worden gemonkeypatcht. Wat hier vastligt is niet "de parser is slim", maar
- * wat de scan mag BEWEREN: een externe oproep wordt genoemd, een interne niet,
- * en alles wat niet te herleiden viel — een variabele URL, een uitgecommentari-
- * eerde regel, een XHR zonder letterlijk adres, onleesbare bestanden — komt
- * terug als `unresolved` of `scanned:false`, nooit als stilte.
+ * No storage and no database: `storageStore`, `webpageStore` and the grants
+ * are monkey-patched. What is fixed here is not "the parser is smart", but
+ * what the scan may ASSERT: an external call is named, an internal one is not,
+ * and everything that could not be traced — a variable URL, a commented-out
+ * line, an XHR without a literal address, unreadable files — comes back as `unresolved` or `scanned:false`, never as silence.
  *
- * Draaien: cd server && node --test --test-force-exit core/webpages/webpageBindings.test.js
+ * Run: cd server && node --test --test-force-exit core/webpages/webpageBindings.test.js
  */
 
 const test = require('node:test');
@@ -90,8 +89,8 @@ test('a template literal keeps the host it fixes and marks the rest', () => {
     assert.strictEqual(out.calls.length, 1);
     assert.strictEqual(out.calls[0].host, 'api.vendor.com');
     assert.strictEqual(out.calls[0].url, 'https://api.vendor.com/v1/…');
-    // De automation-scaffold krijgt het deel dat vaststaat, met `dynamic` erbij —
-    // een beletselteken hoort nooit in een echte URL terecht te komen.
+    // The automation scaffold gets the part that is fixed, with `dynamic` alongside —
+    // an ellipsis must never end up in a real URL.
     assert.strictEqual(out.calls[0].urlPrefix, 'https://api.vendor.com/v1/');
     assert.strictEqual(out.calls[0].dynamic, true);
 });
@@ -154,8 +153,8 @@ test('inline scripts in index.html are scanned with their real line numbers; <sc
     assert.strictEqual(out.calls.length, 1);
     assert.strictEqual(out.calls[0].source, 'index.html');
     assert.strictEqual(out.calls[0].line, 5);
-    // De inhoud van een externe <script src> kan deze scan niet lezen; er wordt
-    // dus ook niets over beweerd (geen call, geen unresolved).
+    // The content of an external <script src> cannot be read by this scan; so
+    // nothing is asserted about it either (no call, no unresolved).
     assert.strictEqual(out.unresolved, 0);
 });
 
@@ -242,9 +241,9 @@ test('a readable page without outbound calls is scanned:true with an empty list'
 // ── de extra bestanden: waar de meeste pagina's hun code hebben ───────
 
 test('BITE — a react-mui page keeps its whole app in src/, and the scan must read it', async () => {
-    // De drie slots zijn leeg (react-mui genereert de html en gebruikt het
-    // js-slot niet). Wie alleen readAllSlots leest, meldt hier "niets
-    // gevonden" over een pagina die naar een vreemde host post.
+    // The three slots are empty (react-mui generates the html and does not use
+    // the js slot). Whoever reads only readAllSlots reports "nothing
+    // found" here about a page that posts to a foreign host.
     const extras = [
         { path: 'src/main.jsx', text: 'import App from "./App.jsx";' },
         { path: 'src/App.jsx', text: 'export default function App(){\n  fetch("https://hooks.example.com/leak");\n}' },
@@ -296,14 +295,14 @@ test('the agent block reports the bound agent and stays internal-only', async ()
         assert.strictEqual(out.agent.known, true);
         assert.strictEqual(out.agent.agentId, 'ag_1');
         assert.strictEqual(out.agent.internalOnly, true);
-        // `supported` stond op false zolang <bf-agent> en <bf-form> niet
-        // bestonden. Sinds W4 bestaan ze, en dan is "dit kennen we nog niet"
-        // onwaar; het verschil tussen "geen" en "niet gekeken" draagt `scanned`.
+        // `supported` stood at false as long as <bf-agent> and <bf-form> did not
+        // exist. Since W4 they do exist, and then "we do not know this yet"
+        // is untrue; the difference between "none" and "not looked at" is carried by `scanned`.
         assert.strictEqual(out.agent.supported, true);
         assert.strictEqual(out.forms.supported, true);
         assert.strictEqual(out.forms.scanned, true);
-        // Deze pagina heeft geen enkel element, en dat is iets anders dan een
-        // pagina waarvan de bestanden niet te lezen waren.
+        // This page has no element at all, and that is something other than a
+        // page whose files could not be read.
         assert.deepStrictEqual(out.uses.targets.agent, []);
     });
 });

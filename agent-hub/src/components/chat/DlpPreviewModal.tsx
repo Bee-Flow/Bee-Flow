@@ -84,7 +84,7 @@ function LegacyDlpPreview({ pending, submit, submitting, error }: {
             >
                 <div className="px-5 py-4 border-b flex items-start gap-3 border-[var(--border-subtle)]">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 [background:rgba(234,88,12,0.12)]">
-                        <ShieldAlert className="w-5 h-5" style={{ color: '#ea580c' }} />
+                        <ShieldAlert className="w-5 h-5 [color:#ea580c]" />
                     </div>
                     <div className="flex-1 min-w-0">
                         <h3 id="dlp-preview-title" className="text-base font-semibold text-[var(--text-primary)]">

@@ -98,8 +98,7 @@ export default function SetupCard({
 
     return (
         <section
-            className={`flex flex-col gap-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-4 py-3.5 ${className}`}
-            style={{ boxShadow: 'var(--shadow-sm)' }}
+            className={`flex flex-col gap-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-4 py-3.5 ${className} [box-shadow:var(--shadow-sm)]`}
             data-testid={testId}
             data-step={active + 1}
             aria-label={t('compliance.setup_title', 'Setup — two minutes, four steps')}

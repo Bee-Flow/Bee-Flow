@@ -7,66 +7,64 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import { nOf } from '../KnowledgeStudio/plural';
 
 /**
- * Installaties — hoe vaak deze Oplossing is geïnstalleerd, en waarom dat getal
- * geen totaal is.
+ * Installations — how often this Solution has been installed, and why that number
+ * is not a total.
  *
- * ── Wat hier NIET staat, en dat is het ontwerp ─────────────────────────────
+ * ── What is NOT here, and that is the design ───────────────────────────
  *
- * Blueprints zijn strikt org-gescoopt. Dit scherm toont daarom uitsluitend
- * GETALLEN: hoeveel installaties in deze organisatie, en hoeveel elders op deze
- * instantie. Geen projectnaam, geen eigenaar, geen organisatienaam, geen
- * tijdstip — en met opzet ook geen uitsplitsing per organisatie, want bij één
- * installatie is een aggregaat over één organisatie geen aggregaat meer.
+ * Blueprints are strictly org-scoped. This screen therefore shows only NUMBERS:
+ * how many installations in this organisation, and how many elsewhere on this
+ * instance. No project name, no owner, no organisation name, no time — and
+ * deliberately no breakdown per organisation, because with a single installation,
+ * an aggregate over one organisation is no longer an aggregate.
  *
- * Dat is niet alleen een afspraak met de server: `readInstalls` bouwt het
- * antwoord uit een expliciete allow-list van twee velden, dus een kolom die
- * volgend jaar aan het antwoord wordt toegevoegd komt hier niet vanzelf op het
- * scherm terecht.
+ * That is not only an agreement with the server: `readInstalls` builds the answer
+ * from an explicit allow-list of two fields, so a column that is added to the
+ * answer next year does not automatically end up on this screen.
  *
- * ── Het getal is een ONDERGRENS, en dat staat er ──────────────────────────
+ * ── The number is a LOWER BOUND, and it says so ───────────────────────
  *
- * Geteld worden projecten OP DEZE INSTANTIE waarvan
- * `projects.installed_from_blueprint_id` naar een Blueprint van deze Oplossing
- * wijst. Dat is een installatie uit de galerij, of een installatie uit een
- * BESTAND waarvan de server heeft nagelopen dat het bestand werkelijk bij die
- * Blueprint hoort (install.verifyClaimedBlueprint). Wat er per definitie buiten
- * valt: een bestand dat iemand op zijn eigen self-host installeert, en een
- * installatie waarvan de herkomst niet vast te stellen was. "3 installaties"
- * zou dus een bewering zijn die niemand kan waarmaken; "minstens 3 op deze
- * instantie" is wat er te weten valt. Die zin staat er altijd bij als er een
- * getal staat — er is geen `complete: true` die hem kan weghalen.
+ * Counted are projects ON THIS INSTANCE whose
+ * `projects.installed_from_blueprint_id` points to a Blueprint of this Solution.
+ * That is an installation from the gallery, or an installation from a FILE whose
+ * origin the server has checked actually belongs to that Blueprint
+ * (install.verifyClaimedBlueprint). What falls outside it by definition: a file that
+ * someone installs on his own self-host, and an installation whose origin could not
+ * be established. “3 installations” would therefore be a claim nobody can
+ * substantiate; “at least 3 on this instance” is what can be known. That sentence
+ * always appears when there is a number — there is no `complete: true` that could
+ * remove it.
  *
- * ── Nul is een antwoord, onbekend is een ander antwoord ───────────────────
+ * ── Zero is an answer, unknown is a different answer ───────────────────
  *
- * Beide helften kunnen los onbekend zijn. Een onbekende helft wordt NOOIT nul —
- * dat is het verschil tussen "niemand gebruikt dit" en "we konden het niet
- * tellen", en op precies dat verschil besluit iemand of hij een Oplossing
- * weggooit.
+ * Both halves can be unknown separately. An unknown half is NEVER zero — that is
+ * the difference between “nobody uses this” and “we could not count it”, and
+ * someone decides on precisely that difference whether to discard a Solution.
  */
 
 /**
- * De telling van deze tab voor het tabblad-badge.
+ * The count of this tab for the tab badge.
  *
- * GEEN BADGE BIJ NUL, en dat is geen kosmetiek. Op een tabstrook past de zin
- * niet die het getal kwalificeert ("minstens zoveel, alleen op deze instantie").
- * Een getal groter dan nul overleeft dat: het is een ONDERGRENS, en een te lage
- * ondergrens blijft waar. Een "0" niet — die leest als "niemand gebruikt dit",
- * terwijl de teller een installatie op een andere instantie per definitie niet
- * ziet. Dus komt nul, net als onbekend, de tabstrook niet op; de tab zelf zegt
- * wél welke van de twee het is. Dezelfde vorm als `controlBadge` hiernaast, dat een lege
- * bevindingenlijst ook geen "0" geeft.
+ * NO BADGE AT ZERO, and that is not cosmetic. On a tab strip the sentence that
+ * qualifies the number (“at least this many, on this instance only”) does not fit.
+ * A number greater than zero survives that: it is a LOWER BOUND, and a lower bound
+ * that is too low remains true. A “0” does not — it reads as “nobody uses this”,
+ * while the counter by definition does not see an installation on another instance.
+ * So zero, like unknown, does not appear on the tab strip; the tab itself does say
+ * which of the two it is. The same shape as `controlBadge` next to it, which also
+ * gives no “0” for an empty list of findings.
  */
 export function installsBadge(remote: RemoteRead | null | undefined) {
     const { state, here, elsewhere } = readInstalls(remote);
     if (state !== 'ok') return { count: undefined };
-    // Eén onbekende helft maakt het TOTAAL onbekend: optellen alsof de andere
-    // nul was zou een verzonnen som op het tabblad zetten.
+    // One unknown half makes the TOTAL unknown: adding as if the other were zero
+    // would put an invented sum on the tab.
     if (here === null || elsewhere === null) return { count: undefined };
     const total = here + elsewhere;
     return { count: total > 0 ? total : undefined };
 }
 
-/** Eén helft van de telling: een grote kaart met getal, of de mededeling dat het er niet is. */
+/** One half of the count: a large card with a number, or the notice that it is not there. */
 interface HalfProps {
     count: number | null;
     label: string;
@@ -107,8 +105,8 @@ export default function SolutionInstallsTab({ remote }: { remote?: RemoteRead | 
         );
     }
 
-    // Geen antwoord is geen nul. Zonder deze regel leest een mislukte telling
-    // als "niemand heeft dit geïnstalleerd".
+    // No answer is not zero. Without this line, a failed count reads as
+    // “nobody has installed this”.
     if (state === 'unreadable') {
         return (
             <Strip tone="var(--error)" icon={AlertTriangle} testId="installs-unreadable">
@@ -139,8 +137,8 @@ export default function SolutionInstallsTab({ remote }: { remote?: RemoteRead | 
                 />
             </ul>
 
-            {/* Staat er altijd bij zodra er een getal staat: er bestaat geen
-                toestand waarin deze telling compleet is. */}
+            {/* Always stated whenever there is a number: there is no state in which
+                this count is complete. */}
             <Strip tone="var(--text-tertiary)" icon={Info} testId="installs-incomplete">
                 {t('solutions.installs_incomplete',
                     'These are at least this many — only installations on this instance are counted, and only where the install could be tied back to this Blueprint. A copy installed on another instance is invisible here.')}

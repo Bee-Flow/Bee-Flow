@@ -18,7 +18,7 @@ export default function ConnectHubBanner({ licensed = true, busy, onConnect }: C
             data-testid="connect-hub-banner"
         >
             <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 [background:rgba(245,158,11,0.12)]">
-                <Plug className="w-5 h-5" style={{ color: '#f59e0b' }} />
+                <Plug className="w-5 h-5 [color:#f59e0b]" />
             </div>
             <div className="min-w-0 flex-1">
                 <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('modules.connect_title')}</h3>

@@ -102,9 +102,9 @@ function createUserAppGate({ configStore, resolveOrgAllowList, webpageToolsAllow
                 orgEnabledIntegrations = await resolveOrgAllowList(org);
                 // NOTE: orgActiveSet (the org-admin "active integrations" subset) is
                 // intentionally NOT consulted here. That layer is a runtime override
-                // for tool dispatch — when an org hasn't populated it (the default
-                // on most installs incl. dev) it ends up as an empty Set which
-                // erroneously hides EVERY non-NC, non-exempt app. Palette is design-
+                // for tool dispatch: when an org has not populated it (the default
+                // on most installs incl. dev) it ends up as an empty Set, which
+                // erroneously hides EVERY non-NC, non-exempt app. The palette is design-
                 // time discovery; runtime still enforces all gates via
                 // getIntegrationTools. See plan: kijk-naar-het-ontwerp-sequential-wirth.
                 const userGroupIds = Array.isArray(currentUser.groups)

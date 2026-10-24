@@ -169,8 +169,7 @@ export default function QuestionnaireImport({ onImport, busy = false, className 
 
     return (
         <section
-            className={`rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-3.5 py-3 flex flex-col gap-2 text-xs ${className}`}
-            style={{ boxShadow: 'var(--shadow-sm)' }}
+            className={`rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-3.5 py-3 flex flex-col gap-2 text-xs ${className} [box-shadow:var(--shadow-sm)]`}
             data-testid={testId}
         >
             <div className="flex items-center gap-2">

@@ -6,8 +6,8 @@ vi.mock('../../../../utils/helpers', () => ({
     API_BASE: '',
     authFetch: (...args) => globalThis.__authFetch(...args),
 }));
-// De live feed wordt hier NIET uitgezet maar afgevangen: het gedrag dat deze
-// tests bewaken is juist wat er gebeurt als er een event binnenkomt.
+// The live feed is not switched off here but intercepted: the behaviour these
+// tests guard is precisely what happens when an event comes in.
 vi.mock('../../../../hooks/useProjectStream', () => ({
     default: (opts) => { globalThis.__stream = opts; },
 }));
@@ -31,16 +31,15 @@ vi.mock('../../../licensing/LicenseContext', () => ({
 import SolutionDetail from './SolutionDetail';
 
 /**
- * De naad tussen de Oplossing en de release-track: de twee nieuwe tabs en de
- * "update beschikbaar"-banner.
+ * The seam between the Solution and the release track: the two new tabs and the
+ * “update available” banner.
  *
- * DE BANNER IS DE REDEN DAT DIT BESTAND BESTAAT. Hij belooft iets over een
- * Blueprint van iemand anders, dus hij mag alleen spreken als die Blueprint in
- * de ORG-GESCOOPTE galerijlijst staat — dat is `listBlueprintsFor` aan de
- * serverkant, en de enige lijst die dit scherm daarover mag geloven. Een event
- * uit de feed is een SEIN, geen antwoord: het versienummer in de payload komt
- * nooit op het scherm, want een event kan over een Blueprint gaan die deze lezer
- * niet mag zien.
+ * THE BANNER IS THE REASON THIS FILE EXISTS. It promises something about someone
+ * else's Blueprint, so it may only speak if that Blueprint is in the ORG-SCOPED
+ * gallery list — that is `listBlueprintsFor` on the server side, and the only list
+ * this screen may believe about it. An event from the feed is a SIGNAL, not an
+ * answer: the version number in the payload never reaches the screen, because an
+ * event can concern a Blueprint this reader may not see.
  */
 
 const CLEAN = { findings: [], blocked: false, complete: true, unavailable: [], requires: { items: [], counts: {} } };
@@ -92,9 +91,9 @@ describe('the update banner', () => {
     });
 
     it('A BLUEPRINT OUTSIDE THIS READER\'S SCOPE PROMISES NOTHING', async () => {
-        // De galerijlijst is org-gescoopt en kent bp1 niet: verwijderd, of van
-        // een andere organisatie. Het scherm mag dan geen versie noemen — en
-        // ook niet zeggen dat alles bij is.
+        // The gallery list is org-scoped and does not know bp1: deleted, or from another
+        // organisation. The screen may then name no version — and also not say that
+        // everything is up to date.
         mockFetch({ blueprints: [{ id: 'bp_someone_else', version: 9 }] });
         const { findByTestId, queryByTestId } = render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
         await findByTestId('solution-update-unknown');
@@ -142,8 +141,8 @@ describe('blueprint.published on the live feed', () => {
         const { findByTestId, queryByTestId } = render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
         await findByTestId('solution-update-unknown');
 
-        // Het event noemt een versie 9. Dat getal mag NIET op het scherm komen —
-        // het antwoord komt uit de opnieuw gelezen, org-gescoopte lijst.
+        // The event mentions version 9. That number must NOT reach the screen —
+        // the answer comes from the re-read, org-scoped list.
         mockFetch({ blueprints: [{ id: 'bp1', version: 4 }] });
         await act(async () => {
             globalThis.__stream.onEvent('blueprint.published', { payload: { version: 9 }, targetId: 'bp1' });

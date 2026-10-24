@@ -141,7 +141,7 @@ export default function ActionStep({ step, user, saved, onState, onLaunch }: Act
             {!finished && step.launch?.navigateTo && (
                 <button type="button" onClick={() => onLaunch?.((step.launch as { navigateTo: string }).navigateTo)}
                     className="self-start inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] font-medium whitespace-nowrap transition-colors hover:bg-[var(--bg-tertiary)] [border:1px_solid_var(--border-default)] [background:var(--bg-card)]! [color:var(--text-primary)]!">
-                    <ExternalLink style={{ width: 13, height: 13 }} aria-hidden="true" />
+                    <ExternalLink className="w-[13px] h-[13px]" aria-hidden="true" />
                     {t(step.launch.labelKey, step.launch.labelFallback || 'Open the app')}
                 </button>
             )}
@@ -155,10 +155,10 @@ export default function ActionStep({ step, user, saved, onState, onLaunch }: Act
                         <div key={c.id} className="grid items-center gap-2.5"
                             style={{ gridTemplateColumns: '18px minmax(0,1fr) auto', padding: '9px 12px', borderTop: i === 0 ? 'none' : '1px solid var(--border-default)', background: current ? 'var(--bg-secondary)' : undefined }}>
                             {ok
-                                ? <CircleCheck style={{ width: 16, height: 16, color: 'var(--learn-complete)' }} aria-hidden="true" />
+                                ? <CircleCheck className="w-[16px] h-[16px] [color:var(--learn-complete)]" aria-hidden="true" />
                                 : current && !checkError
-                                    ? <LoaderCircle className="animate-spin" style={{ width: 16, height: 16, color: 'var(--accent-primary)' }} aria-hidden="true" />
-                                    : <Circle style={{ width: 16, height: 16, color: 'var(--text-tertiary)' }} aria-hidden="true" />}
+                                    ? <LoaderCircle className="animate-spin w-[16px] h-[16px] [color:var(--accent-primary)]" aria-hidden="true" />
+                                    : <Circle className="w-[16px] h-[16px] [color:var(--text-tertiary)]" aria-hidden="true" />}
                             <div className="min-w-0">
                                 <div className="font-medium" style={{ color: ok || current ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                                     {t(c.labelKey, c.labelFallback)}
@@ -182,7 +182,7 @@ export default function ActionStep({ step, user, saved, onState, onLaunch }: Act
                 })}
                 <div className="flex items-center gap-1.5 text-[11px] flex-wrap [padding:8px_12px] [border-top:1px_solid_var(--border-default)] [color:var(--text-tertiary)]! [background:var(--bg-secondary)]">
                     {finished ? (
-                        <><ShieldCheck style={{ width: 11, height: 11, color: 'var(--learn-complete)' }} aria-hidden="true" />
+                        <><ShieldCheck className="w-[11px] h-[11px] [color:var(--learn-complete)]" aria-hidden="true" />
                             <span className="text-[var(--learn-complete-ink)]">
                                 {status === 'passed'
                                     ? t('learn.action.verified', 'Verified — you built the real thing. That’s the whole point.')
@@ -191,14 +191,14 @@ export default function ActionStep({ step, user, saved, onState, onLaunch }: Act
                     ) : checkError ? (
                         <span>{t('learn.action.check_error_short', 'The check could not reach the app right now.')}</span>
                     ) : (
-                        <><Radio style={{ width: 11, height: 11, color: 'var(--learn-complete)' }} aria-hidden="true" />
+                        <><Radio className="w-[11px] h-[11px] [color:var(--learn-complete)]" aria-hidden="true" />
                             {t('learn.action.running', 'Check running')}{lastCheckAt && <> · {t('learn.action.last', 'last {time}').replace('{time}', fmtTime(lastCheckAt))}</>}</>
                     )}
                     {!finished && (
                         <span className="ml-auto inline-flex items-center gap-2.5">
                             <button type="button" onClick={() => doCheck(true)} disabled={checking}
                                 className="inline-flex items-center gap-1 underline decoration-[var(--border-default)] hover:decoration-current disabled:opacity-60 text-[var(--text-secondary)]">
-                                {checking ? <Loader2 className="animate-spin" style={{ width: 11, height: 11 }} /> : <RefreshCw style={{ width: 11, height: 11 }} aria-hidden="true" />}
+                                {checking ? <Loader2 className="animate-spin w-[11px] h-[11px]" /> : <RefreshCw className="w-[11px] h-[11px]" aria-hidden="true" />}
                                 {t('learn.action.check', 'Check my work')}
                             </button>
                             {offerHonor && (

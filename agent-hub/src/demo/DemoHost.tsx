@@ -264,7 +264,7 @@ function CloseDemoButton() {
             title="Close the demo"
             className="demo-close-btn [position:fixed] [top:10px] [right:10px] w-[44px] h-[44px] [z-index:2147483000] [display:flex] [align-items:center] [justify-content:center] [border-radius:999px] [border:1px_solid_rgba(255,255,255,0.25)] [background:rgba(15,23,42,0.62)] [color:#fff] [cursor:pointer] [padding:0] [box-shadow:0_4px_14px_rgba(0,0,0,0.35)]"
         >
-            <X aria-hidden="true" style={{ width: '52%', height: '52%' }} />
+            <X aria-hidden="true" className="w-[52%] h-[52%]" />
         </button>
     );
 }

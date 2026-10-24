@@ -11,13 +11,13 @@ import {
 import { STUDIO_START } from './studioStart';
 
 /**
- * De twee stappen tussen het register en de rijen die iemand ziet, plus de
- * twee opzoekingen die anders per scherm opnieuw geschreven worden.
+ * The two steps between the register and the rows someone sees, plus the two
+ * lookups that are otherwise rewritten per screen.
  *
- * Wat hier vastligt is precies wat elders NIET gedekt was: de
- * runtime-module-tak van `studioSectionLabel` — de tak die de hele reden van
- * die helper is, want een rail die de vertaalde naam toont naast een kaart die
- * de rauwe sleutel toont is de drift die dit bestand moet voorkomen.
+ * What is pinned here is precisely what was NOT covered elsewhere: the
+ * runtime-module branch of `studioSectionLabel` — the branch that is the whole
+ * reason for that helper, because a rail that shows the translated name next to a
+ * card that shows the raw key is the drift this file must prevent.
  */
 describe('studioSectionLabel', () => {
     const t = (key, fallback) => fallback || `t:${key}`;
@@ -31,7 +31,7 @@ describe('studioSectionLabel', () => {
 
     it('een ingebouwde sectie gebruikt sleutel + Engelse terugval', () => {
         expect(studioSectionLabel({ labelKey: 'studio.tab.agents', labelFallback: 'Agents' }, t, 'en')).toBe('Agents');
-        // Zonder terugval nog steeds de sleutel vragen, niet de sleutel tonen.
+        // Without a fallback, still ask for the key — do not show the key.
         expect(studioSectionLabel({ labelKey: 'studio.tab.x' }, t, 'en')).toBe('t:studio.tab.x');
     });
 
@@ -43,31 +43,31 @@ describe('studioSectionLabel', () => {
 });
 
 /**
- * En de kopieerwacht: ÉÉN antwoord op "hoe heet deze sectie", in de hele boom.
+ * And the copy guard: ONE answer to "what is this section called", in the whole tree.
  *
- * De helper stond ooit vier keer los in de boom. Twee van die kopieën (de
- * Studio-flyout in Sidebar.jsx en de rail in StudioRail.jsx) misten allebei
- * dezelfde twee vangnetten van de gedeelde versie: geen `!app`-tak, en geen
- * `!app.labelKey`-tak — een beschrijver zonder sleutel vroeg daar `t(undefined)`
- * in plaats van terug te vallen op `labelFallback || app.id`. Dat is precies
- * het geval dat een op afstand geïnstalleerde module raakt, en dan tekent de
- * rail een naamloze rij naast een kaart die de naam wél weet.
+ * The helper once stood four times separately in the tree. Two of those copies
+ * (the Studio flyout in Sidebar.jsx and the rail in StudioRail.jsx) both missed
+ * the same two safety nets of the shared version: no `!app` branch, and no
+ * `!app.labelKey` branch — a descriptor without a key there called `t(undefined)`
+ * instead of falling back to `labelFallback || app.id`. That is exactly the case
+ * an installed remote module hits, and then the rail draws a nameless row next to
+ * a card that does know the name.
  *
- * Twee assertions, want een derde kopie komt op twee manieren binnen. Onder
- * dezelfde naam — die vangt de eerste. Onder een eigen naam (`labelOf`, zoals
- * de rail hem noemde) — die vangt de tweede, door de VORM te zoeken in plaats
- * van het woord: de runtime-module-tak (`typeof x.label === 'function'`) samen
- * met een `labelKey`-tak in hetzelfde bestand. Die combinatie IS de kopie, en
- * ze laat `t(category.labelKey, …)` in de rail met rust — een categoriekop is
- * geen sectiebeschrijver.
+ * Two assertions, because a third copy comes in two ways. Under the same name —
+ * that catches the first. Under its own name (`labelOf`, as the rail called it) —
+ * that catches the second, by searching for the SHAPE instead of the word: the
+ * runtime-module branch (`typeof x.label === 'function'`) together with a
+ * `labelKey` branch in the same file. That combination IS the copy, and it leaves
+ * `t(category.labelKey, …)` in the rail alone — a category heading is not a
+ * section descriptor.
  */
 describe('studioSectionLabel — geen tweede kopie in de boom', () => {
     const HERE = path.dirname(fileURLToPath(import.meta.url));
     const SRC_DIR = path.resolve(HERE, '../../..');
     const OWNER = 'components/admin/Studio/studioNav.ts';
 
-    // Alleen productiebron: een stub in een testbestand is geen tweede pad dat
-    // een gebruiker ooit ziet.
+    // Production source only: a stub in a test file is not a second path that a
+    // user ever sees.
     function sourceFiles(dir) {
         const out = [];
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -93,34 +93,33 @@ describe('studioSectionLabel — geen tweede kopie in de boom', () => {
     });
 
     /**
-     * Commentaar telt niet mee. De vorige versie draaide `\blabelKey\b` over
-     * het HELE bestand, dus één onschuldige commentaarregel bij een
-     * `typeof x.label === 'function'` die daar om een andere reden staat
-     * (recent/recentWork.js herkent er een runtime-module mee) maakte de guard
-     * rood. Bewezen: die ene regel toevoegen gaf 1 failed | 9 passed. Een
-     * guard die onterecht rood wordt, wordt weggegooid.
+     * Comments do not count. The previous version ran `\blabelKey\b` over the WHOLE
+     * file, so one harmless comment line next to a `typeof x.label === 'function'`
+     * that stands there for another reason (recent/recentWork.js recognises a
+     * runtime module with it) turned the guard red. Proven: adding that one line
+     * gave 1 failed | 9 passed. A guard that turns red wrongly gets thrown away.
      */
     function stripComments(src) {
         return src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
     }
 
     /**
-     * De KEUZE zoeken, niet één spelling ervan.
+     * Search for the CHOICE, not for one spelling of it.
      *
-     * De oude vormzoeker hing aan `typeof x.label === 'function'` en liet de
-     * minstens even natuurlijke `app.label ? app.label(t, locale) : …`
-     * ongezien door — bewezen: een levende derde kopie in StudioRail.jsx in die
-     * vorm gaf 10 passed. Een kopie moet `label()` AANROEPEN (dat is de
-     * runtime-tak) en `labelKey` gebruiken (dat is de andere), dus dat is
-     * waarop gezocht wordt — en binnen ÉÉN venster, niet bestandsbreed.
+     * The old shape-searcher hung on `typeof x.label === 'function'` and let the
+     * at least as natural `app.label ? app.label(t, locale) : …` pass unseen —
+     * proven: a live third copy in StudioRail.jsx in that shape gave 10 passed. A
+     * copy must CALL `label()` (that is the runtime branch) and use `labelKey` (that
+     * is the other), so that is what is searched for — and within ONE window, not
+     * file-wide.
      */
-    // NB: geen `app.label ?`-detector. Die vorm staat overal in de boom om
-    // heel andere redenen (`row.label ?? row.name` in een <select>), en een
-    // guard die dáár rood van wordt is geen guard meer. Wat een kopie
-    // onvermijdelijk doet is `label` als FUNCTIE aanroepen — dat is de tak die
-    // hij van studioSectionLabel overneemt — dus dat is het anker.
+    // NB: no `app.label ?` detector. That shape stands all over the tree for entirely
+    // different reasons (`row.label ?? row.name` in a <select>), and a guard that
+    // turns red THERE is no longer a guard. What a copy inevitably does is CALL `label`
+    // as a FUNCTION — that is the branch it takes over from studioSectionLabel — so
+    // that is the anchor.
     const CHOOSES = [
-        /\.label\s*\(/g,                                  // app.label(t, locale), ook in een ternary
+        /\.label\s*\(/g,                                  // app.label(t, locale), also in a ternary
         /typeof\s+[A-Za-z_$][\w$]*\.label\s*===\s*'function'/g,
     ];
     const WINDOW = 300;
@@ -155,7 +154,7 @@ describe('studioSectionLabel — geen tweede kopie in de boom', () => {
         expect(computesLabel(
             "if (typeof app.label === 'function') unsupported.push(app.id);\n// een sectie herken je aan haar labelKey",
         ), 'commentaar is geen tweede tak').toBe(false);
-        // En de echte boom bevat dat tweede geval, dus dit is geen bedacht risico.
+        // And the real tree contains that second case, so this is not an invented risk.
         const recent = FILES.find(([f]) => f.endsWith('recent/recentWork.ts'));
         expect(recent, 'recentWork.ts hoort in de scan te zitten').toBeTruthy();
         expect(computesLabel(recent[1])).toBe(false);

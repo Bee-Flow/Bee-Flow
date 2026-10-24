@@ -60,34 +60,29 @@ const managedParts = require('./managedPartsDefault');
 const log = require('../telemetry/log');
 
 /**
- * ── DE DEPENDENTS-INDEX HANGT AAN DE SCHRIJVER, NIET AAN DE ROUTE ────
+ * ── THE DEPENDENTS INDEX HANGS ON THE WRITER, NOT ON THE ROUTE ────────
  *
- * `automation_datatable_usage` beantwoordt "wie raakt deze tabel aan", en drie
- * oppervlakken geloven wat er staat: de Wordt-gebruikt-door-lijst van een
- * tabel, de 409 die haar verwijdering tegenhoudt, en de waarschuwing bij het
- * laten vallen van een kolom. `reconcileUsageFor` is delete-then-insert, dus
- * een schrijver die de reconcile overslaat laat de rijen van de VORIGE versie
- * staan: een tabelverwijzing die uit de code verdwijnt houdt een 409 in de
- * lucht, en een die erbij komt staat er nooit in.
+ * `automation_datatable_usage` answers "who touches this table", and three surfaces believe
+ * what it says: the Used-by list of a table, the 409 that holds back its deletion, and the
+ * warning when a column is dropped. `reconcileUsageFor` is delete-then-insert, so a writer that
+ * skips the reconcile leaves the rows of the PREVIOUS version in place: a table reference that
+ * disappears from the code keeps a 409 up, and one that is added never appears in it.
  *
- * Die reconcile heeft eerst in de ROUTES gewoond, en daar bleef elke nieuwe
- * schrijver een nieuw gat: de gewone assistent-chat (`routes/ai/directChat/
- * toolExec.js`), een agent of automatisering via de tooldispatcher
- * (`core/tools/toolDispatcher.js` → `integrations/webpageAutomationTools.js`),
- * de automation-bouwerchat (`routes/ai/automationBuilder/chatStream.js`) en het
- * upgrade-pad van een Oplossing (`projects/packaging/upgrade.js`) schrijven
- * alle vier paginacode zonder ooit langs een webpagina-route te komen.
+ * That reconcile used to live in the ROUTES, and there every new writer kept opening a new gap:
+ * the ordinary assistant chat (`routes/ai/directChat/toolExec.js`), an agent or automation via
+ * the tool dispatcher (`core/tools/toolDispatcher.js` → `integrations/webpageAutomationTools.js`),
+ * the automation builder chat (`routes/ai/automationBuilder/chatStream.js`) and the upgrade path
+ * of a Solution (`projects/packaging/upgrade.js`) all write page code without ever passing
+ * through a webpage route.
  *
- * Daarom staat hij hier, om de vier functies die de code van een pagina echt
- * veranderen. Dat is de enige plek waar "een pagina is veranderd" en "de index
- * is achterhaald" hetzelfde feit zijn. Gedebouncet en detached: het is een
- * index, geen bewerking, en een save wacht er niet op en gaat er niet aan
- * kapot. De aanroepen in de routes blijven staan — ze zijn nu overtollig maar
- * niet fout, en `automation/usageSync.savePaths.test.js` leest ze.
+ * That is why it lives here, in the four functions that really change a page's code. This is the
+ * only place where "a page has changed" and "the index is out of date" are the same fact.
+ * Debounced and detached: it is an index, not an edit, and a save neither waits for it nor breaks
+ * because of it. The calls in the routes remain — they are now redundant but not wrong, and
+ * `automation/usageSync.savePaths.test.js` reads them.
  *
- * Bewust NIET om `upsertBinaryExtraFile`: die schrijft `is_text=false` en
- * `readPageCode` leest zulke bestanden niet, dus hij kan niet veranderen wat de
- * pagina bindt.
+ * Deliberately NOT around `upsertBinaryExtraFile`: that writes `is_text=false` and `readPageCode`
+ * does not read such files, so it cannot change what the page binds.
  */
 function reindex(webpageId) {
     if (!webpageId) return;

@@ -262,7 +262,7 @@ const ConsumerUsageSection = () => {
             {/* Cost trend */}
             <Card>
                 <div className="[padding:14px_16px] [border-bottom:1px_solid_var(--border-subtle)] [display:flex] [align-items:center] [gap:8px]">
-                    <BarChart3 style={{ width: 14, height: 14, color: 'var(--text-muted)' }} />
+                    <BarChart3 className="w-[14px] h-[14px] [color:var(--text-muted)]" />
                     <span className="[font-size:12px] [font-weight:600] [color:var(--text-primary)]">{t('settings.consumer_usage.cost_trend', 'Cost trend')}</span>
                 </div>
                 <div className="[padding:16px]">

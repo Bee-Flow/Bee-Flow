@@ -13,20 +13,19 @@ import UpgradeDialog, {
 } from './upgradeClient';
 
 /**
- * De upgrade-client: de banner, het plan, en de bevestiging.
+ * The upgrade client: the banner, the plan, and the confirmation.
  *
- * Drie dingen worden hier vastgepind, en alle drie zijn ze een belofte die dit
- * scherm niet mag breken:
+ * Three things are pinned here, and all three are a promise that this screen may
+ * not break:
  *
- *   1. HET PLAN ZEGT WAT ER MET JOUW AANPASSINGEN GEBEURT — en waar dat niet
- *      vast te stellen is, zegt het dát. Een tabel die "blijft staan" zonder
- *      meer zou beweren dat er gekeken is; dat is precies wat er NIET is
- *      gebeurd, want de upgrade vergelijkt tabellen en kennisbanken nooit.
- *   2. DE BANNER BELOOFT NIETS BUITEN DE SCOPE. De Blueprint moet in de
- *      org-gescoopte galerijlijst staan voordat er een versienummer op het
- *      scherm komt.
- *   3. DE CLIENT STUURT HET ID, NOOIT HET MANIFEST. Alleen dan draait er een
- *      `canRead` overheen aan de serverkant.
+ *   1. THE PLAN SAYS WHAT HAPPENS TO YOUR CHANGES — and where that cannot be
+ *      established, it says so. A table that “stays” without more would claim that
+ *      it was checked; that is exactly what did NOT happen, because the upgrade never
+ *      compares tables and knowledge bases.
+ *   2. THE BANNER PROMISES NOTHING OUTSIDE THE SCOPE. The Blueprint must be in the
+ *      org-scoped gallery list before a version number appears on the screen.
+ *   3. THE CLIENT SENDS THE ID, NEVER THE MANIFEST. Only then does a `canRead` run
+ *      over it on the server side.
  */
 
 const MANIFEST = {
@@ -62,7 +61,7 @@ const PLAN_BODY = {
 
 beforeEach(() => { globalThis.__authFetch = vi.fn(); });
 
-// ── 1. Het plan, en de rij die niet te bepalen is ──────────────────────────
+// ── 1. The plan, and the row that cannot be determined ──────────────────────────
 
 describe('the named rows', () => {
     it('maps the four server lists onto added / changed / stays / gone', () => {
@@ -75,15 +74,15 @@ describe('the named rows', () => {
 
     it('A TABLE THAT STAYS IS NOT A TABLE WE CHECKED — it lands on `undetermined`', () => {
         const rows = planRows(PLAN_BODY);
-        // Beide zijn soorten waarvoor de upgrade géén levende payload heeft, dus
-        // of de installateur ze zelf veranderde is hier niet vast te stellen.
+        // Both are kinds for which the upgrade has no live payload, so whether the
+        // installer changed them is not determinable here.
         expect(rows.undetermined.map(r => r.name).sort()).toEqual(['Handbook', 'Orders']);
         expect(rows.kept.map(r => r.name)).not.toContain('Orders');
     });
 
     it('a skip on a comparable kind whose reason does NOT mention editing falls back to undetermined', () => {
-        // Twee signalen moeten het eens zijn. Verandert de server zijn zin, dan
-        // belooft dit scherm minder in plaats van iets onwaars.
+        // Two signals must agree. If the server changes its sentence, then this screen
+        // promises less instead of something untrue.
         const rows = planRows({
             manifest: MANIFEST,
             plan: { skip: [{ ref: 'aut_1', kind: 'automation', why: 'held back for reasons' }] },
@@ -122,11 +121,11 @@ describe('the named rows', () => {
 
 describe('the plan as it is shown before the button', () => {
     it('states, in words, that these were not checked', () => {
-        // De groep vangt méér dan tabellen en kennisbanken: ook een
-        // vergelijkbare soort waarvan de server-`why` het woord "edited" niet
-        // draagt — een automatisering die niet te LEZEN was, bijvoorbeeld (upgrade.js
-        // zet die daar bewust neer in plaats van bij "door jou verwijderd").
-        // De toelichting mag dus geen uitspraak over tabellen alléén zijn.
+        // The group catches more than tables and knowledge bases: also a comparable kind
+        // whose server `why` does not carry the word “edited” — an automation that could
+        // not be READ, for example (upgrade.js deliberately puts it there rather than at
+        // “deleted by you”). The explanation may therefore not be a statement about
+        // tables ALONE.
         const { getByTestId } = render(<PlanBody rows={planRows(PLAN_BODY)} />);
         const note = getByTestId('upgrade-group-undetermined').textContent;
         expect(note).toMatch(/without checking whether you changed them/);
@@ -156,13 +155,13 @@ describe('may the banner promise anything', () => {
     });
 
     it('A BLUEPRINT THIS READER MAY NOT SEE IS UNKNOWN — never "available"', () => {
-        // `blueprints` is de org-gescoopte lijst. Een id dat er niet in staat is
-        // verwijderd óf van een andere organisatie, en in beide gevallen mag dit
-        // scherm er niets over beweren.
+        // `blueprints` is the org-scoped list. An id that is not in it has either been
+        // deleted or belongs to another organisation, and in both cases this screen may
+        // not claim anything about it.
         const out = updateAvailability({ installedFromBlueprintId: 'bp_other', installedVersion: 2, blueprints: listed });
         expect(out.state).toBe('unknown');
         expect(out.latestVersion).toBeNull();
-        // …en het id reist niet mee, dus er valt geen plan mee op te vragen.
+        // …and the id does not travel along, so no plan can be requested for it.
         expect(out.blueprintId).toBeNull();
     });
 
@@ -172,8 +171,8 @@ describe('may the banner promise anything', () => {
     });
 
     it('AN UNKNOWN INSTALLED VERSION IS UNKNOWN — the server\'s `|| 0` trap is not repeated', () => {
-        // isNewer zelf leest een ontbrekende versie als 0, waardoor elke v1
-        // "nieuwer" zou zijn. De banner eist eerst een gelezen getal.
+        // isNewer itself reads a missing version as 0, so every v1 would be “newer”.
+        // The banner first requires a read number.
         expect(isNewer({ installedVersion: undefined, blueprintVersion: 1 })).toBe(true);
         expect(updateAvailability({ installedFromBlueprintId: 'bp1', installedVersion: null, blueprints: [{ id: 'bp1', version: 1 }] }).state)
             .toBe('unknown');
@@ -194,8 +193,8 @@ describe('may the banner promise anything', () => {
     });
 
     it('the unknown state says so and offers no button', () => {
-        // Onbekend biedt geen knop: er valt niets bij te werken waarvan we niet
-        // weten of het er is.
+        // Unknown offers no button: there is nothing to update of which we do not know
+        // whether it exists.
         const { getByTestId, queryByTestId } = render(<UpdateBanner availability={{ state: 'unknown' }} />);
         expect(getByTestId('solution-update-unknown')).toBeTruthy();
         expect(queryByTestId('solution-update-open')).toBeNull();
@@ -225,8 +224,8 @@ describe('what travels to the server', () => {
             const [url, init] = globalThis.__authFetch.mock.calls[0];
             expect(url).toBe('/api/projects/p1/package/upgrade/plan');
             const body = JSON.parse(init.body);
-            // Alleen het id: dan beslist `canRead` op de server of deze lezer bij
-            // die Blueprint mag. Een meegestuurd manifest gaat daar langs.
+            // Only the id: then `canRead` on the server decides whether this reader may have
+            // that Blueprint. A manifest sent along would bypass that.
             expect(Object.keys(body)).toEqual(['blueprintId']);
             expect(body.manifest).toBeUndefined();
         });

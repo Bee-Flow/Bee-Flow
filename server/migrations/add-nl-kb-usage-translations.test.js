@@ -1,22 +1,19 @@
 /**
- * Guard bij de UITGEZETTE migratie `add-nl-kb-usage-translations` (Track Z).
+ * Guard on the SWITCHED-OFF migration `add-nl-kb-usage-translations` (Track Z).
  *
- * De migratie zaaide NL-waarden voor zeven `kb_detail.usage_*`-sleutels. Die
- * sleutels bestaan in GEEN van beide Engelse woordenboeken meer, dus de
- * migratie schreef bij elke boot DB-rijen voor sleutels die nergens worden
- * opgevraagd: onschadelijk, maar dood. De enige aanroeper
- * (stores/kb/schema.js, vroeger stores/knowledgeBases.js) is daarom uitgezet; het migratiebestand blijft
- * bewust op schijf staan zodat replay van de migratiereeks mogelijk blijft.
+ * The migration seeded NL values for seven `kb_detail.usage_*` keys. Those keys exist in NEITHER
+ * English dictionary any more, so the migration wrote DB rows at every boot for keys that are
+ * requested nowhere: harmless, but dead. The only caller
+ * (stores/kb/schema.js, formerly stores/knowledgeBases.js) has therefore been switched off; the migration
+ * file deliberately stays on disk so that replay of the migration sequence remains possible.
  *
- * Deze test is statisch (leest bestanden als TEKST, raakt geen DB) en bewijst
- * de drie feiten waar dat besluit op rust:
- *   a. geen van de zeven sleutels komt nog in een woordenboek voor — komt er
- *      ooit één terug, dan wordt deze test rood en is dat het signaal om de
- *      aanroep in stores/kb/schema.js weer aan te zetten;
- *   b. stores/kb/schema.js roept de migratie niet meer aan, maar noemt haar naam
- *      nog wél in een comment (dat houdt de orphan-guard in
- *      boot/bootMigrations.test.js groen);
- *   c. het migratiebestand bestaat nog en exporteert nog `up()`.
+ * This test is static (reads files as TEXT, touches no DB) and proves the three facts on which that
+ * decision rests:
+ *   a. none of the seven keys still occurs in a dictionary — should one ever return, this test turns
+ *      red and that is the signal to switch the call in stores/kb/schema.js back on;
+ *   b. stores/kb/schema.js no longer calls the migration, but still names its name in a comment (that keeps
+ *      the orphan guard in boot/bootMigrations.test.js green);
+ *   c. the migration file still exists and still exports `up()`.
  *
  * Run: node --test --test-reporter=tap migrations/add-nl-kb-usage-translations.test.js
  */
@@ -30,9 +27,9 @@ const MIGRATION_NAME = 'add-nl-kb-usage-translations';
 const MIGRATION_FILE = path.join(__dirname, `${MIGRATION_NAME}.js`);
 const KB_STORE_FILE = path.join(__dirname, '..', 'stores', 'kb', 'schema.js');
 
-// De Engelse woordenboeken. ALLEEN LEZEN — deze test schrijft er nooit in.
-// De serverkant is één bestand per namespace onder i18n/defaults/en/; de
-// frontendkopie wordt daaruit gegenereerd (scripts/gen-i18n-defaults.mjs).
+// The English dictionaries. READ ONLY — this test never writes to them.
+// The server side is one file per namespace under i18n/defaults/en/;
+// the frontend copy is generated from that (scripts/gen-i18n-defaults.mjs).
 const SERVER_DICT_DIR = path.join(__dirname, '..', 'i18n', 'defaults', 'en');
 const DICTIONARIES = [
     ...fs.readdirSync(SERVER_DICT_DIR)
@@ -44,9 +41,9 @@ const DICTIONARIES = [
 const read = (p) => fs.readFileSync(p, 'utf8');
 
 /**
- * De sleutels uit het NL_TRANSLATIONS-blok van de migratie zelf lezen, niet
- * een tweede keer overtypen: verandert de migratie van inhoud, dan verschuift
- * deze guard mee in plaats van een verouderde kopie te bewaken.
+ * Read the keys from the NL_TRANSLATIONS block of the migration itself, rather than
+ * retyping them a second time: if the migration changes its content, this guard moves
+ * along instead of guarding an outdated copy.
  */
 function migrationKeys() {
     const src = read(MIGRATION_FILE);
@@ -56,10 +53,10 @@ function migrationKeys() {
 }
 
 /**
- * Regelnummers (1-based) van alle regels die commentaar zijn: een `//`-regel,
- * of een regel binnen een `/* ... *\/`-blok. Line-based en dus deterministisch;
- * een JS-parser is hier niet nodig, want de enige vraag is of de aanroepregel
- * code of commentaar is.
+ * Line numbers (1-based) of all lines that are comments: a `//` line,
+ * or a line within a `/* ... *\/` block. Line-based and therefore deterministic;
+ * a JS parser is not needed here, because the only question is whether the calling line is
+ * code or comment.
  */
 function commentLines(src) {
     const out = new Set();

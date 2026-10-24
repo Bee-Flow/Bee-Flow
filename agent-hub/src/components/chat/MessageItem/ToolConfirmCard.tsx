@@ -1,39 +1,39 @@
 /**
- * De kaart bij een call die de agent NIET heeft uitgevoerd.
+ * The card for a call that the agent did NOT execute.
  *
- * De server houdt een call vast zodra er een mens ja moet zeggen
- * (`toolRoundExecutor` gate 2) en stuurt dan `tool_confirm`. Tot A4 was er
- * geen enkele client voor dat event: het werd wél opgeslagen op het bericht
- * (`assistantMsg.pendingToolCalls`) maar door niemand gelezen, dus het model
- * vertelde in proza dat het ergens op wachtte en er was niets om op te
- * klikken. Dit is die kaart.
+ * The server holds a call as soon as a human has to say yes
+ * (`toolRoundExecutor` gate 2) and then sends `tool_confirm`. Until A4 there was
+ * no client at all for that event. It WAS stored on the message
+ * (`assistantMsg.pendingToolCalls`) but read by nobody, so the model
+ * said in prose that it was waiting for something, and there was nothing to
+ * click on. This is that card.
  *
- * ── DRIE DINGEN DIE DEZE KAART NIET DOET ────────────────────────────
- *  1. Hij zegt nooit dat er iets gebeurd is. De kop is "wilde", niet "deed":
- *     de call is tegengehouden vóór dispatch, en dat is het enige wat vaststaat.
- *  2. Hij toont geen knoppen die niets doen. Zonder `onDecide` — een gewone
- *     chat, waar nog geen goedkeuringspad bestaat — is dit een MEDEDELING.
- *     Een grijze "Goedkeuren" die stilletjes niets doet is precies het soort
- *     vals-groen dat een testchat hoort te vinden, niet te maken.
- *  3. Hij verzint geen argumenten. `preview` is de door de server begrensde,
- *     platte weergave (previewToolArgs: 20 sleutels, 500 tekens, geneste
- *     waarden als typelabel). Wat daar niet in staat, staat hier niet.
+ * ── THREE THINGS THIS CARD DOES NOT DO ─────────────────────────────
+ *  1. It never says that anything happened. The heading is "wanted", not "did":
+ *     the call was held back before dispatch, and that is the only thing that is certain.
+ *  2. It shows no buttons that do nothing. Without `onDecide`, which is a normal
+ *     chat where no approval path exists yet, this is a NOTICE.
+ *     A grey "Approve" that quietly does nothing is exactly the kind of false green
+ *     that a test chat should find, not produce.
+ *  3. It does not invent arguments. `preview` is the server-bounded, flat
+ *     display (previewToolArgs: 20 keys, 500 characters, nested
+ *     values as a type label). What is not in there is not shown here either.
  *
- * ── DEZE KAART LANDT OOK IN EEN GEWONE CHAT ─────────────────────────
- * `pendingToolCalls` wordt gepersisteerd (finalizeTurn) en overleeft een
- * herlaadbeurt, dus deze kaart verschijnt óók in een gesprek van vorige maand
- * bij iemand die de agent alleen mag gebruiken. Dat is goed: "de agent wilde
- * dit en heeft het niet gedaan" is dáár even waar. Wat er NIET mag staan is de
- * uitweg die die lezer niet heeft — de tekst wees eerst naar de testchat van
- * de agent, een scherm waarvoor hij geen bewerkrecht heeft (`gateTestChatRequest`
- * weigert met 403) en dat sowieso in een ándere, efemere conceptconversatie
- * draait. De mededeling zegt nu alleen wat er gebeurd is.
+ * ── THIS CARD ALSO LANDS IN A NORMAL CHAT ───────────────────────────
+ * `pendingToolCalls` is persisted (finalizeTurn) and survives a reload, so this
+ * card also appears in a conversation from last month for someone who may only
+ * use the agent. That is good: "the agent wanted this and did not do it" is just
+ * as true there. What must NOT appear is a way out that this reader does not
+ * have. The text used to point to the agent's test chat, a screen for which he
+ * has no edit right (`gateTestChatRequest` refuses with 403) and which in any
+ * case runs in a different, ephemeral draft conversation. The notice now says
+ * only what happened.
  *
- * ── WAAR EEN BESLISSING OVER GAAT ───────────────────────────────────
- * Over ÉÉN actie, niet over een tool. De sleutel is `argsKey` — de server
- * hashte er naam-plus-argumenten in — dus "ja" op deze mail is geen "ja" op
- * de volgende mail met een ander adres. Vandaar dat de knoppen die sleutel
- * teruggeven en niet de toolnaam.
+ * ── WHAT A DECISION CONCERNS ─────────────────────────────────────
+ * One action, not a tool. The key is `argsKey`: the server hashed
+ * name-plus-arguments into it, so "yes" on this email is not a "yes" on the
+ * next email with a different address. That is why the buttons return that key
+ * and not the tool name.
  */
 
 import React from 'react';
@@ -72,11 +72,11 @@ function PreviewRow({ name, value }: { name: string; value: unknown }) {
 }
 
 /**
- * @param {object[]} calls      de `pendingToolCalls` van dit bericht
- * @param {Function} [onDecide] (argsKey, 'approve'|'decline', call) — weglaten
- *   waar een beslissing nergens heen kan; dan rendert de kaart als mededeling
- * @param {object} [decided]    { [argsKey]: 'approve'|'decline' } — wat er in
- *   deze sessie al geklikt is, zodat de knoppen niet terugspringen
+ * @param {object[]} calls      the `pendingToolCalls` of this message
+ * @param {Function} [onDecide] (argsKey, 'approve'|'decline', call). Omit it
+ *   where a decision has nowhere to go; then the card renders as a notice
+ * @param {object} [decided]    { [argsKey]: 'approve'|'decline' }: what has
+ *   already been clicked in this session, so the buttons do not jump back
  * @param {Function} t
  */
 export default function ToolConfirmCard({ calls, onDecide, decided = {}, t = (k: string, d: string) => d }: ToolConfirmCardProps) {
@@ -87,11 +87,10 @@ export default function ToolConfirmCard({ calls, onDecide, decided = {}, t = (k:
         <div className="my-3 space-y-2">
             {list.map((call: ToolConfirmCall, i: number) => {
                 const key = call.argsKey || call.callId || String(i);
-                // Stand EN herkomst, uit de ene lezing die het spoor ook
-                // gebruikt (`toolConfirmStatus.js`). De herkomst doet er hier
-                // toe: de server zegt dat een goedgekeurde call GEDRAAID heeft,
-                // een klik in deze sessie zegt dat hij bij het volgende bericht
-                // gaat draaien. Dat stond hier eerst allebei als "it ran".
+                // Status AND provenance, from the one reading that the trail also
+                // uses (`toolConfirmStatus.js`). The provenance matters here: the server
+                // says that an approved call HAS RUN, while a click in this session says
+                // that it will run with the next message. Both used to say "it ran" here.
                 const { status, by } = confirmDecisionOf(call, decided);
                 const entries = call.preview && typeof call.preview === 'object'
                     ? Object.entries(call.preview)
@@ -122,9 +121,9 @@ export default function ToolConfirmCard({ calls, onDecide, decided = {}, t = (k:
                                     : 'text-amber-500'}>
                                 {status === 'approved'
                                     ? (by === 'session'
-                                        // Geklikt, nog niet verstuurd: de call
-                                        // draait pas als het model hem bij het
-                                        // volgende bericht opnieuw voorstelt.
+                                        // Clicked, not yet sent: the call
+                                        // runs only when the model proposes it again with the
+                                        // next message.
                                         ? t('agent_studio.test.tool_confirm_approved_next', 'You approved this — it runs on your next message')
                                         : t('agent_studio.test.tool_confirm_approved', 'You approved this — it ran'))
                                     : status === 'declined'
@@ -175,9 +174,8 @@ export default function ToolConfirmCard({ calls, onDecide, decided = {}, t = (k:
                                     </span>
                                 </div>
                             ) : (
-                                // Geen pad om ja te zeggen ⇒ geen knop die dat
-                                // suggereert. Dit is de eerlijke helft van punt 2
-                                // in de kop hierboven.
+                                // No way to say yes, so no button that suggests it. This is the honest half
+                                // of point 2 in the heading above.
                                 <div className="px-4 py-2.5 border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[11px] text-[var(--text-tertiary)]">
                                     {t('agent_studio.test.tool_confirm_no_decision',
                                         'Nothing was done — this agent asks a person before actions like this.')}

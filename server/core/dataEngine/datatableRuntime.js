@@ -1,51 +1,45 @@
 /**
- * DE GEDEELDE DATATABLE-RUNNER — "lees/schrijf deze tabel, als deze persoon,
- * en alleen deze kolommen".
+ * THE SHARED DATATABLE RUNNER: "read/write this table, as this person, and only these columns".
  *
- * Er waren tot nu toe twee plekken die een datatable voor een principal
- * openden: `routes/datatables.js` (de Studio-UI, via `requireDatatableGrade` +
- * `metaAndFilter`) en `core/automationRunner/datatableResolve.js` (de runner).
- * Elke NIEUWE consument — de webpagina-brug hier, straks de datatable-tak van
- * App Studio (P3) — is een derde kopie van dezelfde twee beslissingen: in welke
- * tenant staat de tabel, en welke graad heeft deze persoon erop. Een kopie van
- * een autorisatiebeslissing is precies het soort code dat uit elkaar loopt
- * zonder dat iemand het merkt, dus die kopie komt er niet: dit is de ENE plek
- * die de compiler aanroept namens een consument.
+ * Until now there were two places that opened a datatable for a principal:
+ * `routes/datatables.js` (the Studio UI, via `requireDatatableGrade` + `metaAndFilter`) and
+ * `core/automationRunner/datatableResolve.js` (the runner). Every NEW consumer (the web page
+ * bridge here, and later the datatable branch of App Studio, P3) would be a third copy of the
+ * same two decisions: in which tenant does the table live, and which grade does this person have
+ * on it. A copy of an authorisation decision is exactly the kind of code that drifts apart
+ * without anyone noticing, so that copy does not come into existence: this is the ONE place that
+ * the compiler calls on behalf of a consumer.
  *
- * ── DRIE REGELS DIE HIER HARD STAAN ─────────────────────────────────
+ * ── THREE RULES THAT ARE HARD HERE ──────────────────────────────────
  *
- * 1. DE TENANT WORDT NOOIT GERADEN. De tabel wordt gezocht in de scopes die
- *    `datatableScopesFor(principal)` oplevert — de organisatie van de persoon
- *    en zijn eigen account, en nergens anders. Niet globaal zoeken en achteraf
- *    toetsen.
+ * 1. THE TENANT IS NEVER GUESSED. The table is looked up in the scopes that
+ *    `datatableScopesFor(principal)` yields: the organisation of the person and his
+ *    own account, and nowhere else. Not a global search checked afterwards.
  *
- * 2. DE GRAAD WORDT ELKE KEER OPNIEUW BEREKEND uit de tabelrij plus zijn
- *    grants (`gradeForPrincipal`). Geen cache, geen doorgegeven graad: een
- *    grant die gisteren is ingetrokken moet vandaag stoppen te werken.
+ * 2. THE GRADE IS RECALCULATED EVERY TIME from the table row plus its grants
+ *    (`gradeForPrincipal`). No cache, no passed-in grade: a grant revoked yesterday must
+ *    stop working today.
  *
- * 3. `allowColumns` IS VERPLICHT EN HEEFT GEEN "ALLES"-WAARDE. Elke lees- en
- *    schrijfaanroep noemt expliciet welke kolomsleutels de consument mag zien.
- *    De LEGE lijst betekent GEEN kolom (403), niet "alle" — dat is dezelfde
- *    afspraak die `normalizeBridgeGrants` op de opslagkant maakt, en wie hier
- *    `columns.length ? columns : ALLES` schrijft draait de versmalling in één
- *    regel om. Een ontbrekende `allowColumns` is een programmeerfout en gooit
- *    luid, want stil "alles" teruggeven is precies het lek dat deze parameter
- *    moet voorkomen.
+ * 3. `allowColumns` IS REQUIRED AND HAS NO "ALL" VALUE. Every read and write call names
+ *    explicitly which column keys the consumer may see. The EMPTY list means NO column (403),
+ *    not "all": this is the same agreement that `normalizeBridgeGrants` makes on the storage
+ *    side, and whoever writes `columns.length ? columns : ALL` here reverses the narrowing in
+ *    one line. A missing `allowColumns` is a programming error and throws loudly, because
+ *    silently returning "everything" is precisely the leak this parameter must prevent.
  *
- * De kolomlijst begrenst ook FILTEREN en SORTEREN, niet alleen de projectie.
- * Anders kan een pagina op een kolom filteren die hij niet mag lezen en de
- * waarde er binair uit halen — een orakel is net zo goed een lek als een
- * kolom in de uitvoer. `search` (vrij zoeken over alle tekstkolommen) wordt om
- * dezelfde reden helemaal niet aangeboden.
+ * The column list also bounds FILTERING and SORTING, not only the projection. Otherwise a page
+ * could filter on a column it may not read and extract the value bit by bit. An oracle is just
+ * as much a leak as a column in the output. `search` (free search over all text columns) is not
+ * offered at all, for the same reason.
  *
- * ── WAT HIER NIET IN ZIT ────────────────────────────────────────────
- * Alles wat over het VERZOEK gaat: authenticatie, rate limits, welke binding
- * er in `bridge_grants` staat, en of de lezer publiek of ingelogd is. Die
- * laatste is bewust geen parameter: een publieke lezer komt hier nooit langs
- * (zie services/webpageSnapshot.js — /w/<slug> is een statische snapshot), en
- * een vlag "publiek" zou uitnodigen hem ooit op false te zetten.
+ * ── WHAT IS NOT IN HERE ─────────────────────────────────────────────
+ * Everything about the REQUEST: authentication, rate limits, which binding is in
+ * `bridge_grants`, and whether the reader is public or logged in. That last one is deliberately
+ * not a parameter: a public reader never comes through here (see services/webpageSnapshot.js:
+ * /w/<slug> is a static snapshot), and a flag "public" would invite someone to set it to false
+ * one day.
  *
- * LAAG: core/. Mag stores/ en auth/ gebruiken (platform), kent geen feature.
+ * LAYER: core/. May use stores/ and auth/ (platform), knows no feature.
  */
 
 'use strict';
@@ -65,14 +59,13 @@ const PG = { dialect: 'pg' };
 const ROWS_PAGE_MAX = 500;
 
 /**
- * De velden die ALTIJD meekomen, náást de gebonden kolommen: de envelop
- * waarmee een rij te adresseren is. `id` om een rij te noemen, `updated_at`
- * omdat een wijziging zonder `expectedUpdatedAt` last-write-wins is.
+ * The fields that ALWAYS come along, next to the bound columns: the envelope with which a row
+ * can be addressed. `id` to name a row, `updated_at` because a change without `expectedUpdatedAt`
+ * is last-write-wins.
  *
- * Bewust een allow-list en niet "systeemkolommen minus een paar": `created_by`
- * is een gebruikers-id en `org_id` een tenant — persoonsgegevens die een
- * pagina die één kolom mag lezen niet gratis moet krijgen. Een kolom die er
- * volgend jaar bij komt lekt zo niet vanzelf mee.
+ * Deliberately an allow-list and not "system columns minus a few": `created_by` is a user id and
+ * `org_id` a tenant, personal data that a page allowed to read one column should not get for free.
+ * A column that is added next year does not leak along that way.
  */
 const ROW_ENVELOPE = Object.freeze(['id', 'updated_at']);
 
@@ -104,10 +97,10 @@ function passLockedRows(e) {
 }
 
 /**
- * De kolomlijst van deze aanroep, gevalideerd.
+ * The column list of this call, validated.
  *
- * Geen array → programmeerfout (luid). Wel een array maar leeg → een echte,
- * uitlegbare weigering: de binding noemt geen enkele kolom.
+ * Not an array → programming error (loud). An array but empty → a real, explainable refusal: the
+ * binding names no column at all.
  */
 function requireAllowColumns(allowColumns) {
     if (!Array.isArray(allowColumns)) {
@@ -122,11 +115,10 @@ function requireAllowColumns(allowColumns) {
 }
 
 /**
- * Zoek de tabel in de scopes van deze principal en bepaal zijn graad.
+ * Look up the table in the scopes of this principal and determine his grade.
  *
- * Geen graad → 404 (het bestaan van andermans tabel is niet af te tasten);
- * te lage graad → 403 (dan weet de beller al dat hij bestaat). Dezelfde
- * 404-vs-403-regel als routes/datatables.js.
+ * No grade → 404 (the existence of someone else's table cannot be probed); grade too low → 403
+ * (then the caller already knows that it exists). The same 404-vs-403 rule as routes/datatables.js.
  */
 async function resolveForPrincipal(datatableId, principal, { needed = 'viewer' } = {}) {
     if (typeof datatableId !== 'string' || !datatableId) {
@@ -168,7 +160,7 @@ async function resolveForPrincipal(datatableId, principal, { needed = 'viewer' }
     };
 }
 
-/** Spiegelt deze tabel een externe bron? (core/dataEngine/sources) */
+/** Does this table mirror an external source? (core/dataEngine/sources) */
 function isMirror(resolved) {
     return require('./sources').isSourceMirror(resolved?.table);
 }
@@ -192,9 +184,8 @@ function declaredKeys(resolved) {
 }
 
 /**
- * De doorsnede van "wat de binding toestaat" en "wat de tabel nog heeft".
- * Een kolom die de auteur inmiddels heeft weggegooid verdwijnt zo vanzelf,
- * zonder dat de aanroep kapotgaat.
+ * The intersection of "what the binding allows" and "what the table still has". A column that the
+ * author has meanwhile thrown away disappears this way, without the call breaking.
  */
 function effectiveColumns(resolved, allowColumns) {
     const declared = new Set(declaredKeys(resolved));
@@ -202,11 +193,10 @@ function effectiveColumns(resolved, allowColumns) {
 }
 
 /**
- * Knip één rij tot de envelop plus de toegestane kolommen.
+ * Trim one row to the envelope plus the allowed columns.
  *
- * Opbouwen uit een allow-list, nooit sleutels uit de rij verwijderen: een
- * kolom die volgend jaar aan de tabel wordt toegevoegd hoort dan niet vanzelf
- * in het antwoord te staan.
+ * Build it from an allow-list, never remove keys from the row: a column that is added to the table
+ * next year must then not end up in the answer by itself.
  */
 function projectRow(row, columns) {
     if (!row || typeof row !== 'object') return null;
@@ -223,7 +213,7 @@ function sortFields(sort) {
     return [];
 }
 
-/** Elk veld waarop gefilterd of gesorteerd wordt moet gebonden zijn. */
+/** Every field that is filtered or sorted on must be bound. */
 function assertFieldsBound(fields, columns) {
     const allowed = new Set(columns);
     for (const f of fields) {
@@ -236,17 +226,15 @@ function assertFieldsBound(fields, columns) {
 }
 
 /**
- * Een pagina rijen, keyset-gepagineerd, geprojecteerd op de gebonden kolommen.
+ * One page of rows, keyset-paginated, projected onto the bound columns.
  *
- * De projectie gebeurt NA de query: de compiler kent geen SELECT-lijst
- * (`SELECT *`), dus de databank levert de hele rij en deze functie is de plek
- * waar besloten wordt wat de server verlaat. Dat is geen excuus om hem over te
- * slaan — het is juist de reden dat hij hier staat en niet in een route.
+ * The projection happens AFTER the query: the compiler knows no SELECT list (`SELECT *`), so the
+ * database returns the whole row and this function is the place where it is decided what leaves
+ * the server. That is no excuse to skip it; it is precisely why it is here and not in a route.
  */
 async function readRows(resolved, { allowColumns, filters, match, sort, limit, cursor } = {}) {
-    // Een spiegel van een externe bron wordt op de achtergrond ververst
-    // zodra iemand ernaar kijkt en de kopie ouder is dan zijn schema
-    // (core/dataEngine/sources). Nooit van invloed op deze lezing.
+    // A mirror of an external source is refreshed in the background as soon as someone looks at it
+    // and the copy is older than its schema (core/dataEngine/sources). Never affects this read.
     if (isMirror(resolved)) {
         try {
             require('./sources').kickStale(resolved.table, { reason: 'view' });
@@ -254,15 +242,14 @@ async function readRows(resolved, { allowColumns, filters, match, sort, limit, c
     }
     const columns = effectiveColumns(resolved, requireAllowColumns(allowColumns));
     if (!columns.length) {
-        // De binding noemt alleen kolommen die niet (meer) bestaan.
+        // The binding names only columns that do not (or no longer) exist.
         throw refuse(403, 'no_columns_bound', 'This binding does not allow any column of that table');
     }
     const filterList = Array.isArray(filters) ? filters : [];
     assertFieldsBound(filterList.map(f => f && f.field), columns);
-    // `sort` mag een object OF een lijst zijn — resolvePrimarySort accepteert
-    // allebei en pakt bij een lijst de eerste. Alleen `sort.field` toetsen liet
-    // `sort: [{field:'geheim'}]` er dus ongezien langs, en dat is precies het
-    // orakel dat deze toets moet dichthouden.
+    // `sort` may be an object OR a list: resolvePrimarySort accepts both and takes the first
+    // entry of a list. Checking only `sort.field` let `sort: [{field:'geheim'}]` slip past
+    // unseen, and that is precisely the oracle this check must close.
     assertFieldsBound(sortFields(sort), columns);
 
     await require('../../stores/lib/sheetCrypto').assertQuery(resolved, [...filterList.map(f => f?.field), ...sortFields(sort)]);
@@ -280,14 +267,12 @@ async function readRows(resolved, { allowColumns, filters, match, sort, limit, c
 
     const out = await datatableDbStore.query(
         resolved.scopeKey, resolved.scopeKey, compiled.sql, compiled.params);
-    // LET OP bij het lezen van `nextCursor` hieronder: die codeert de waarde van
-    // het primaire sorteerveld van de laatste rij, en dat is bij de standaard
-    // sortering `created_at` — een systeemkolom die NIET in de projectie zit.
-    // De cursor is base64, niet versleuteld, dus een pagina kan die datum
-    // uitlezen. Aanvaard omdat de lezer sowieso viewer-graad op de hele tabel
-    // heeft; wie dat te ruim vindt, moet de cursor ondertekenen of de default
-    // sortering op een gebonden kolom zetten — niet de cursor stilletjes
-    // weglaten, want dan is pagina 2 onbereikbaar.
+    // NOTE when reading `nextCursor` below: it encodes the value of the primary sort field of the
+    // last row, and with the default sorting that is `created_at`, a system column that is NOT in
+    // the projection. The cursor is base64, not encrypted, so a page can read that date. Accepted
+    // because the reader has viewer grade on the whole table anyway; whoever finds that too loose
+    // must sign the cursor or set the default sort on a bound column. Do not quietly leave the
+    // cursor out, because then page 2 becomes unreachable.
     const sheetCrypto = require('../../stores/lib/sheetCrypto');
     const all = sheetCrypto.isSheet(resolved) ? await sheetCrypto.openRows(resolved.table.id, out?.rows || []) : (out?.rows || []);
     // compileRecordList vraagt bewust limit+1 op als cursorsonde; die extra rij
@@ -307,17 +292,16 @@ async function readRows(resolved, { allowColumns, filters, match, sort, limit, c
 }
 
 /**
- * Groepeer en tel — en daarmee: "welke waarden komen in deze kolom voor".
+ * Group and count, and with that: "which values occur in this column".
  *
- * Er was tot nu toe geen manier om dat namens een principal te vragen zonder
- * de hele tabel te lezen. `compileAggregate` kan het al (GROUP BY zonder
- * aggregaten geeft precies de distinct-waarden); wat ontbrak was deze plek,
- * met DEZELFDE begrenzing als `readRows`: de kolomlijst bindt ook wat je mag
- * groeperen en tellen. Anders is "groepeer op de kolom die ik niet mag lezen"
- * hetzelfde orakel dat `assertFieldsBound` bij filteren en sorteren dichthoudt.
+ * Until now there was no way to ask that on behalf of a principal without reading the whole table.
+ * `compileAggregate` can already do it (GROUP BY without aggregates gives exactly the distinct values);
+ * what was missing was this place, with the SAME bounding as `readRows`: the column list also binds
+ * what you may group and count. Otherwise "group by the column I may not read" is the same oracle
+ * that `assertFieldsBound` keeps closed for filtering and sorting.
  *
- * De toegangsfilter gaat in de WHERE, vóór de GROUP BY (invariant van de
- * compiler) — een rij die deze persoon niet mag zien telt dus ook niet mee.
+ * The access filter goes into the WHERE, before the GROUP BY (invariant of the compiler): a row that
+ * this person may not see does not count either.
  */
 async function aggregateRows(resolved, { allowColumns, groupBy, aggregates, filters, match, sort, limit } = {}) {
     const columns = effectiveColumns(resolved, requireAllowColumns(allowColumns));
@@ -328,7 +312,7 @@ async function aggregateRows(resolved, { allowColumns, groupBy, aggregates, filt
     const aggs = Array.isArray(aggregates) ? aggregates : [];
     const filterList = Array.isArray(filters) ? filters : [];
     assertFieldsBound(groups.map(g => g && g.field), columns);
-    // `count(*)` heeft geen veld; alleen een echte kolomnaam wordt getoetst.
+    // `count(*)` has no field; only a real column name is checked.
     assertFieldsBound(aggs.map(a => (a && a.field !== '*' ? a && a.field : null)), columns);
     assertFieldsBound(filterList.map(f => f && f.field), columns);
     assertFieldsBound(sortFields(sort), columns);
@@ -352,11 +336,10 @@ async function aggregateRows(resolved, { allowColumns, groupBy, aggregates, filt
 }
 
 /**
- * De waarden van een schrijfactie, getoetst aan de binding.
+ * The values of a write action, checked against the binding.
  *
- * Een niet-gebonden kolom wordt GEWEIGERD, niet stil weggelaten: een pagina die
- * denkt dat ze een veld heeft opgeslagen terwijl dat niet zo is, is erger dan
- * een pagina die een foutmelding krijgt.
+ * A non-bound column is REFUSED, not quietly left out: a page that thinks it has saved a field while
+ * that is not so is worse than a page that gets an error message.
  */
 function assertValuesBound(values, columns) {
     if (!values || typeof values !== 'object' || Array.isArray(values)) {
@@ -373,8 +356,8 @@ async function insertRow(resolved, { allowColumns, values } = {}) {
     const columns = effectiveColumns(resolved, requireAllowColumns(allowColumns));
     const clean = await require('../../stores/lib/sheetCrypto').sealValues(resolved, assertValuesBound(values, columns));
     accessFilter.assertCanWrite(resolved.meta, resolved.grade, 'create');
-    // Een spiegel: de rij gaat éérst naar Nextcloud, de kopie volgt uit wat
-    // Nextcloud antwoordde. Dezelfde weigeringen (status/code/safe) als hier.
+    // A mirror: the row goes FIRST to Nextcloud, and the copy follows from what Nextcloud answered.
+    // The same refusals (status/code/safe) as here.
     if (isMirror(resolved)) {
         const r = await mirrorWrites(resolved).insertRow(mirrorCtx(resolved), clean);
         return { id: r.id };
@@ -383,8 +366,8 @@ async function insertRow(resolved, { allowColumns, values } = {}) {
     try {
         compiled = queryCompiler.compileInsert(resolved.meta, clean, {
             createdBy: resolved.principal?.userId || null,
-            // NULL op een persoonlijke tabel, en dat klopt: die rij hoort bij geen
-            // organisatie. Hier ctx-org invullen zou de rij gedeeld laten lijken.
+            // NULL on a personal table, and that is right: that row belongs to no organisation.
+            // Filling in the ctx org here would make the row look shared.
             orgId: resolved.table.organizationId,
             dialect: 'pg',
         });
@@ -434,9 +417,9 @@ async function updateRow(resolved, { allowColumns, rowId, values, expectedUpdate
     } catch (e) { throw passLockedRows(e); }
     const out = await datatableDbStore.exec(resolved.scopeKey, resolved.scopeKey, upd.sql, upd.params);
 
-    // Altijd teruglezen: bij succes heeft de beller de nieuwe `updated_at` nodig
-    // voor zijn VOLGENDE wijziging, en bij mislukking is de rij zelf het verschil
-    // tussen "iemand anders was je voor" en "hij bestaat niet (meer) voor jou".
+    // Always read back: on success the caller needs the new `updated_at` for ITS NEXT change,
+    // and on failure the row itself is the difference between "someone else was there before you"
+    // and "it no longer exists for you".
     const probe = queryCompiler.compileGetById(resolved.meta, rowId, filter, PG);
     const found = await datatableDbStore.query(resolved.scopeKey, resolved.scopeKey, probe.sql, probe.params);
     const rawRow = (found?.rows || [])[0] || null;

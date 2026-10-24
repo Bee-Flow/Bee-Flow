@@ -19,21 +19,21 @@ import ActionsSection from './ActionsSection';
 import { ScreenValuesContext } from '../editor/ScreenValuesContext';
 
 /**
- * "Testen met scherm-invoer" — de testknop naast een Automation-actie.
+ * “Testing with screen input” — the test button next to an Automation action.
  *
- * Hij POSTte alleen de STATISCHE waarden uit de mapping. Alles wat aan een
- * formulierveld hing kwam als `undefined` aan, viel uit de JSON, en de automatisering
- * begon met een lege `trigger.output` — waarna de run er uitzag als een kapotte
- * stap. Twee dingen moeten nu kloppen, en het tweede is niet minder belangrijk
- * dan het eerste:
+ * It POSTed only the STATIC values from the mapping. Anything hooked to a form
+ * field came through as `undefined`, fell out of the JSON, and the automation
+ * began with an empty `trigger.output` — after which the run looked like a broken
+ * step. Two things must now be right, and the second is no less important
+ * than the first:
  *
- *   1. de payload draagt wat er OP DIT MOMENT in het formulier staat;
- *   2. wat niet meegaat — bestandsvelden voorop — staat op het scherm, vóór en
- *      na de klik. Wie test met de helft van de invoer en dat niet weet, trekt
- *      de verkeerde conclusie over de automation.
+ *   1. the payload carries what is CURRENTLY in the form;
+ *   2. what is not sent along — file fields first — is shown on screen, before and
+ *      after the click. Whoever tests with half the input and doesn't know that
+ *      draws the wrong conclusion about the automation.
  *
- * En de uitslag is niet een blok JSON om zelf te ontcijferen: de run gaat open
- * in de builder.
+ * And the outcome is not a block of JSON to decipher yourself: the run opens
+ * in the builder.
  */
 
 const authFetch = vi.fn();
@@ -144,8 +144,8 @@ describe('de payload draagt wat er op het scherm staat', () => {
     });
 
     it('stuurt het bestandsveld NIET mee, hoe gevuld het scherm ook is', async () => {
-        // De browser heeft alleen een descriptor, en alleen de app-brug kan die
-        // uitpakken — deze route niet. Meesturen zou een halve waarheid zijn.
+        // The browser only has a descriptor, and only the app bridge can unpack it —
+        // this route cannot. Sending it along would be a half truth.
         renderActions({ values: { title: 'x', upload: { kind: 'studio_attachment', fileId: 'f1' } } });
         await pressTest();
         await waitFor(() => expect(sentPayload()).not.toHaveProperty('doc'));
@@ -165,8 +165,8 @@ describe('wat niet meegaat wordt gezegd, niet verzwegen', () => {
     });
 
     it('noemt na de run ook wat op dat moment ontbrak', async () => {
-        // `ref` wijst naar een veld dat het formulier niet meer heeft. Zonder
-        // melding komt dat aan als "de stap doet niets".
+        // `ref` points to a field the form no longer has. Without
+        // a message this arrives as “the step does nothing”.
         renderActions({ values: { title: 'x' } });
         await pressTest();
         expect(await screen.findByText(/ref \(renamed\) — the form has no field by that name/i)).toBeTruthy();

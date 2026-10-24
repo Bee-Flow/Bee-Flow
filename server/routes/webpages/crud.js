@@ -28,15 +28,14 @@ const { worded, bodyOf, choice, idList, NO_QUERY } = require('./schemas');
 const { FRAMEWORKS, RUNTIMES } = require('../../integrations/webpageFramework');
 const log = require('../../telemetry/log');
 
-// ── Wat een pagina mag dragen ───────────────────────────────────────
+// ── What a page may carry ───────────────────────────────────────────
 //
-// `framework` en `runtime` zijn enums, en dat is de reden dat deze twee hier
-// bovenaan staan. Het stond er als `FRAMEWORKS.includes(framework) ? framework
-// : DEFAULT_NEW_FRAMEWORK`: wie in de bouwbalk React koos en één letter
-// verkeerd verstuurde ('raect', 'react-MUI'), kreeg een pagina die als
-// `vanilla` werd gebouwd — met een 200 die zei dat de pagina er was. De keuze
-// wordt één keer geschreven, bij het maken, en is daarna alleen via de
-// instellingen terug te draaien.
+// `framework` and `runtime` are enums, and that is the reason these two stand at the
+// top here. It stood there as `FRAMEWORKS.includes(framework) ? framework :
+// DEFAULT_NEW_FRAMEWORK`: whoever chose React in the build bar and sent one letter
+// wrong ('raect', 'react-MUI') got a page that was built as `vanilla` — with a 200
+// that said the page was there. The choice is written once, at creation, and
+// afterwards can only be reverted via the settings.
 const FRAMEWORK_TEXT = `Kies een framework: ${FRAMEWORKS.join(' of ')}.`;
 const RUNTIME_TEXT = `Kies een runtime-niveau: ${RUNTIMES.join(' of ')}.`;
 
@@ -63,9 +62,9 @@ const UpdateBody = bodyOf({
     name: worded('Een naam is tekst.').trim().max(200, 'Een naam is hoogstens 200 tekens.').optional(),
     description: worded('Een omschrijving is tekst.').nullish(),
     instructions: worded('Instructies zijn tekst.').nullish(),
-    // Een bewust open configuratieblok: hier staan de framework/runtime-keuze
-    // én wat latere schermen erbij zetten. resolveFramework() leest er bij het
-    // LEZEN alsnog alleen de woorden uit die het kent.
+    // A deliberately open configuration block: this is where the framework/runtime choice
+    // and what later screens add go. resolveFramework() still reads only the words it
+    // knows from it when READING.
     settings: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'settings is een object.' }) }).optional(),
     knowledgeBaseIds: idList('knowledgeBaseIds is een lijst met kennisbank-id\'s.').optional(),
     html: worded(SLOT_TEXT).optional(),
@@ -132,11 +131,10 @@ function register(router) {
                 .grantAutomation({ webpageId, userId, automationId: s.id, label: s.name });
         }
 
-        // Een verse pagina heeft doorgaans nog geen tabel te indexeren, maar
-        // create_webpage kan wél slots vullen (een sjabloon, een brief). De
-        // reconcile hoort daarom óók hier: pas op de EERSTE save beginnen zou
-        // betekenen dat een pagina die nooit meer wordt bewerkt nooit in de
-        // index verschijnt.
+        // A fresh page usually has no table to index yet, but create_webpage CAN fill slots
+        // (a template, a brief). The reconcile therefore belongs here too: starting only on
+        // the FIRST save would mean that a page that is never edited again would never
+        // appear in the index.
         webpageUsageSync.reconcileWebpageUsageDetached(webpageId);
 
         const webpage = await webpageStore.getWebpage(webpageId, userId);
@@ -273,25 +271,21 @@ function register(router) {
             const hasExistingContent = wp.htmlSize + wp.cssSize + wp.jsSize > 0;
             if (hasExistingContent) {
                 try {
-                    // PER BRON. Zonder dit zette elke AI-beurt de klok van deze
-                    // arm stil (de AI-arm schrijft er één per beurt), en kreeg een
-                    // bewerking die iemand met de hand maakte structureel geen
-                    // eigen terugzetpunt meer.
+                    // PER SOURCE. Without this, every AI turn froze the clock of this arm (the AI arm
+                    // writes one per turn), and an edit that someone made by hand structurally no
+                    // longer got its own restore point.
                     const should = await webpageStore.shouldAutoVersion(id, 'manual');
                     if (should) {
-                        // Het regelverschil van de bewerking die hierna wordt
-                        // weggeschreven. De OUDE bytes moeten daarvoor gelezen
-                        // worden — dat kost hooguit één ronde per pagina per
-                        // debounce-venster (5 minuten), want alleen dán komen we
-                        // hier. Lezen vóór writeSlot hieronder, anders meten we
-                        // de nieuwe tekst tegen zichzelf.
+                        // The line difference of the edit that is written away next. The OLD bytes must be
+                        // read for that — that costs at most one round per page per debounce window
+                        // (5 minutes), because only then do we come here. Read before writeSlot below,
+                        // otherwise we would measure the new text against itself.
                         const changed = Object.keys(slotUpdates);
                         let lineDelta = null;
                         try {
-                            // EERST vragen of er überhaupt te lezen valt.
-                            // `readSlot` antwoordt met '' als de opslag weg is, en
-                            // dan zou de hele nieuwe tekst als aanwinst worden
-                            // geboekt tegen een oude kant die nooit gelezen is.
+                            // FIRST ask whether there is anything to read at all.
+                            // `readSlot` answers '' when the storage is gone, and then the whole new text
+                            // would be booked as a gain against an old side that was never read.
                             if (!webpageStore.slotsAreReadable()) {
                                 throw new Error('object storage unavailable');
                             }
@@ -304,9 +298,8 @@ function register(router) {
                         } catch (dErr) {
                             log.warn('[Webpages] Auto-version line delta unavailable:', dErr.message);
                         }
-                        // "Auto-save" zei alleen dát er iets gebeurde. Deze rij
-                        // hoort bij een bewerking die iemand met de hand in de
-                        // Code-tab maakte; dat is wat er in de lijst staat.
+                        // "Auto-save" only said THAT something happened. This row belongs to an edit that
+                        // someone made by hand in the Code tab; that is what is shown in the list.
                         await webpageStore.createVersion(userId, id, versionFacts.MANUAL_EDIT_SUMMARY, {
                             htmlSha: wp.htmlSha,
                             cssSha: wp.cssSha,
@@ -340,9 +333,9 @@ function register(router) {
         if (!ok && Object.keys(slotUpdates).length === 0) {
             return res.status(400).json({ error: 'No fields to update' });
         }
-        // Onvoorwaardelijk, niet alleen bij gewijzigde slots: de reconcile is
-        // gedebouncet en detached, en "alleen bij een slot-wijziging" zou een
-        // pagina die één keer buiten de index viel daar nooit meer in krijgen.
+        // Unconditionally, not only on changed slots: the reconcile is debounced and detached,
+        // and "only on a slot change" would mean that a page which once fell out of the index
+        // would never get back in.
         webpageUsageSync.reconcileWebpageUsageDetached(id);
         res.json({ success: true });
     });

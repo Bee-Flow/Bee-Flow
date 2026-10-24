@@ -33,13 +33,13 @@ export default function useKnowledgeBases({ knowledgeBaseIds, setKnowledgeBaseId
     };
     const [allKbs, setAllKbs] = useState<KnowledgeBaseRow[]>([]);
     /**
-     * Is die lijst er ECHT, of ging de lezing stuk? (A2 stap 2.)
+     * Is that list REALLY there, or did the read fail? (A2 step 2.)
      *
-     * `allKbs` bleef bij een fout op `[]` staan en de catch was leeg, dus
-     * "deze organisatie heeft geen kennisbanken" en "ik kon het niet vragen"
-     * zagen er identiek uit. Voor de oude picker was dat hooguit vervelend;
-     * de Kennis-kaart TEKENT dat verschil ("niets gekoppeld" versus een
-     * waarschuwing met een opnieuw-knop), dus het moet hier te lezen zijn.
+     * `allKbs` stayed at `[]` on an error, and the catch was empty, so "this
+     * organisation has no knowledge bases" and "I could not ask" looked identical.
+     * For the old picker that was at most annoying. The Knowledge card DRAWS that
+     * difference ("nothing linked" versus a warning with a retry button), so it must
+     * be readable here.
      */
     const [kbsState, setKbsState] = useState<ReadState>(READ.LOADING);
     /**
@@ -62,11 +62,10 @@ export default function useKnowledgeBases({ knowledgeBaseIds, setKnowledgeBaseId
             setAllKbs(body);
             setKbsState(READ.OK);
         } catch (_) {
-            // `allKbs` blijft staan op wat er stond (de oude picker rendert
-            // hem nog), maar de TOESTAND is wat consumenten volgen: de
-            // Kennis-kaart leest bij READ.ERROR geen namen meer uit deze
-            // lijst. Half-verse namen naast een waarschuwing zijn erger dan
-            // geen namen — je kunt niet zien welke helft nog klopt.
+            // `allKbs` stays at what it was (the old picker still renders it), but the STATE is
+            // what consumers follow: the Knowledge card no longer reads names from this list
+            // on READ.ERROR. Half-fresh names next to a warning are worse than no names,
+            // because you cannot see which half is still correct.
             setKbsState(READ.ERROR);
         }
     }, []);

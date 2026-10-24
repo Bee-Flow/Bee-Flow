@@ -109,33 +109,29 @@ async function execStopError(step, ctx, runState) {
 }
 
 /**
- * `return_to_app` — end the run and hand the Studio App that started it a
- * short instruction set: which screen to open, what to say, what to refresh.
+ * `return_to_app`: end the run and hand the Studio App that started it a short
+ * instruction set: which screen to open, what to say, what to refresh.
  *
- * ── GEEN NIEUW KANAAL ───────────────────────────────────────────────────────
- * De app-runtime pollt de run al (useActionRunner's pollRun). Het antwoord van
- * die poll draagt `_appEffects` als ZUSTERVELD naast `output` — gebouwd uit de
- * output van DEZE stap, want die staat al in de run-stappen die de brug toch
- * uitleest (appStudio/actionExecutor/automationBridge.deriveAppEffects).
+ * ── NO NEW CHANNEL ──────────────────────────────────────────────────────
+ * The app runtime already polls the run (useActionRunner's pollRun). The answer of that
+ * poll carries `_appEffects` as a SIBLING next to `output`, built from the output of THIS
+ * step, which is in the run steps the bridge reads anyway
+ * (appStudio/actionExecutor/automationBridge.deriveAppEffects).
  *
- * Daarom staat het effectenobject onder een `_`-sleutel in de output en niet
- * los ernaast: bindingen dalen alleen af in `output.*` van een gewone stap, en
- * `deriveFinalOutput` slaat een return_to_app-rij over — anders zou het
- * effectenobject de plaats innemen van de echte data waar elke bestaande
- * `actionResult`-binding aan hangt.
+ * That is why the effects object sits under an `_` key in the output and not loose next to
+ * it: bindings only descend into `output.*` of an ordinary step, and `deriveFinalOutput`
+ * skips a return_to_app row. Otherwise the effects object would take the place of the real
+ * data to which every existing `actionResult` binding is attached.
  *
- * ── EEN GENEGEERD EFFECT IS NOOIT STIL ──────────────────────────────────────
- * Wat hier niet naar een effect te vertalen valt — een scherm dat niet gekozen
- * is, een toast die tot niets interpoleert, een `refresh` buiten het
- * vocabulaire — wordt WEGGELATEN uit `_appEffects` én vastgelegd in
- * `output._ignored` (de stap-rij die de runweergave toont) plus een regel op
- * `_templateWarnings`. Een instructie die de bezoeker nooit ziet, is precies
- * het probleem dat deze stap moest oplossen; hem stil laten verdwijnen zou dat
- * probleem verplaatsen in plaats van oplossen.
+ * ── AN IGNORED EFFECT IS NEVER SILENT ────────────────────────────────────
+ * What cannot be translated into an effect here (a screen that was not chosen, a toast that
+ * interpolates to nothing, a `refresh` outside the vocabulary) is LEFT OUT of `_appEffects`
+ * and recorded in `output._ignored` (the step row that the run view shows), plus a line in
+ * `_templateWarnings`. An instruction that the visitor never sees is precisely the problem
+ * this step had to solve; letting it vanish quietly would move that problem rather than solve it.
  *
- * Het object wordt uit een ALLOW-LIST opgebouwd, nooit door sleutels van de
- * stap te verwijderen: een veld dat volgend jaar aan een stap wordt toegevoegd
- * mag niet vanzelf mee de browser in reizen.
+ * The object is built from an ALLOW-LIST, never by deleting keys from the step: a field that
+ * is added to a step next year must not travel into the browser along with it.
  */
 async function execReturnToApp(step, ctx, runState) {
     const { interpolateTemplate } = require('../automationModel/bind');
@@ -190,10 +186,9 @@ async function execReturnToApp(step, ctx, runState) {
         else drop('refresh', `${JSON.stringify(step.refresh)} is not something the app knows how to refresh`);
     }
 
-    // Wat de app doet als de terugkeer zélf niet uitvoerbaar is. ONBEKEND
-    // VERSMALT: zowel een waarde buiten het vocabulaire als een ontbrekende
-    // waarde wordt 'stay' — de bezoeker blijft staan waar hij staat. Een
-    // gegokte navigatie naar een foutscherm is de duurdere fout.
+    // What the app does if the return itself cannot be executed. UNKNOWN NARROWS:
+    // both a value outside the vocabulary and a missing value become 'stay': the visitor
+    // stays where he is. A guessed navigation to an error screen is the more expensive mistake.
     if (step.onError !== undefined && step.onError !== null && !RETURN_TO_APP_ON_ERROR_MODES.has(step.onError)) {
         drop('onError', `${JSON.stringify(step.onError)} is not a fallback the app knows — it stays where it is`);
     }

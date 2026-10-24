@@ -23,7 +23,7 @@ export default function RemoveModuleDialog({ module, busy, onCancel, onConfirm }
             disableEscapeClose={busy}
             title={
                 <span className="flex items-center gap-2">
-                    <Trash2 className="w-4 h-4" style={{ color: '#ef4444' }} aria-hidden="true" />
+                    <Trash2 className="w-4 h-4 [color:#ef4444]" aria-hidden="true" />
                     {t('modules.remove_confirm_title', { name: module.name })}
                 </span>
             }

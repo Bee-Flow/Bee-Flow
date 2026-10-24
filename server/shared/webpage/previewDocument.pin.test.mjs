@@ -129,11 +129,11 @@ async function renderAll() {
 
 const PINNED = {
     web: {
-        vanillaLive: '0461d67c81a54039',
-        vanillaBare: 'b2451205e8ea0dd8',
-        vanillaNoHead: 'ed4f9fd25eb0f7ea',
-        reactLive: '454a009b6ce69534',
-        reactBroken: '454501693247cced',
+        vanillaLive: 'a00a9ab18fff0d72',
+        vanillaBare: '99680a4279198926',
+        vanillaNoHead: '4f0fff26e6dbfbc2',
+        reactLive: 'a9e279f3086cc9a2',
+        reactBroken: '9b5680e09f627f47',
         reactEmpty: '5ca6d14a9ca5aba5',
         reactStreaming: '7af19c87d23833d3',
     },

@@ -187,13 +187,12 @@ test('a grant with an unknown grade is ignored rather than trusted', () => {
         'owner is derived, never granted — a stray row must not confer it');
 });
 
-// ── de graadrekenkunde zelf ─────────────────────────────────────────────────
+// ── the grade arithmetic itself ─────────────────────────────────────────────
 //
-// narrowGrade is uit effectiveGradeForRun getrokken toen App Studio dezelfde
-// regel nodig had (een app die een Studio-tabel toont versmalt de graad van de
-// eigenaar met het plafond van de app-rol van de kijker). Eén implementatie,
-// dus hier gepind: twee kopieën van "het minimum, nooit de unie" lopen uit
-// elkaar, en de kopie die drift is de kopie waar niemand naar kijkt.
+// narrowGrade was pulled out of effectiveGradeForRun when App Studio needed the same rule (an app
+// that shows a Studio table narrows the grade of the owner with the ceiling of the viewer's app
+// role). One implementation, so pinned here: two copies of "the minimum, never the union" drift
+// apart, and the copy that drifts is the copy nobody looks at.
 
 test('narrowGrade geeft het MINIMUM, en is symmetrisch', () => {
     assert.strictEqual(narrowGrade('owner', 'editor'), 'editor');
@@ -204,9 +203,9 @@ test('narrowGrade geeft het MINIMUM, en is symmetrisch', () => {
 });
 
 test('narrowGrade laat ONBEKEND versmallen tot een weigering, niet tot de laagste graad', () => {
-    // `null` en `'viewer'` zijn verschillende antwoorden: alleen het eerste is
-    // een weigering. rank(null) is -1 en zou ook al het minimum zijn — het gaat
-    // erom dat het ANTWOORD null blijft en geen graadnaam wordt.
+    // `null` and `'viewer'` are different answers: only the first is a refusal. rank(null) is -1 and
+    // would also already be the minimum — the point is that the ANSWER stays null and does not become
+    // a grade name.
     assert.strictEqual(narrowGrade(null, 'owner'), null);
     assert.strictEqual(narrowGrade('owner', null), null);
     assert.strictEqual(narrowGrade(null, null), null);

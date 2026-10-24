@@ -1,36 +1,19 @@
 /**
- * WAT ER UIT DIT TRANSCRIPT KWAM — de pure helft van het zijpaneel
- * (Meeting Notes artboard 1b, plan M4 stap 2).
+ * WHAT CAME OUT OF THIS TRANSCRIPT — the pure half of the side panel (Meeting Notes artboard 1b, plan M4 step 2).
  *
- * Stap 1 gaf elke regel een popover: van hier wordt een zin een actie, een
- * besluit, een kennisregel, een tabelrij. Dit paneel is de andere kant van die
- * knop — wat er inmiddels úít deze vergadering is gehaald, naast het
- * transcript waar het uit komt.
+ * Step 1 gave each line a popover: from here a sentence becomes an action, a decision, a knowledge rule, a table row. This panel is the other side of that button — what has by now been taken OUT of this meeting, next to the transcript it comes from.
  *
- * ── NIETS HIER TELT IETS DAT AL GETELD WORDT ────────────────────────
- * De actiepunten, besluiten en open vragen komen uit `buildFollowUpStats`
- * (lib/insightsMetrics.js) — dezelfde functie die de Inzichten-tab voedt. De
- * sprekers komen uit `buildInsightsModel().people`, precies de data die
- * PeopleTab tekent. Dit bestand voegt daar twéé dingen aan toe die nergens
- * anders bestaan, en verder niets:
+ * ── NOTHING HERE COUNTS SOMETHING THAT IS ALREADY COUNTED ───────────
+ * The action items, decisions and open questions come from `buildFollowUpStats` (lib/insightsMetrics.js) — the same function that feeds the Insights tab. The speakers come from `buildInsightsModel().people`, precisely the data that PeopleTab draws. This file adds two things to that which exist nowhere else, and nothing more:
  *
- *   1. welke kennisbanken regels uit dit transcript bevatten, uit de
- *      usage-rijen die de server al levert;
- *   2. of het aantal herkende sprekers achterblijft bij de aanwezigenlijst.
+ *   1. which knowledge bases contain lines from this transcript, from the usage rows the server already supplies;
+ *   2. whether the number of recognised speakers lags behind the attendee list.
  *
- * ── "LEEG" EN "ONLEESBAAR" ZIJN TWEE ANTWOORDEN ─────────────────────
- * Beide functies hieronder hebben een expliciete onbekend-toestand, en die
- * versmalt altijd. Een kb-scan die niet kon draaien mag nooit lezen als "er
- * staat niets van deze vergadering in een kennisbank", en een vraag stellen
- * over een sprekerlijst die niet geladen is ("was Marijke erbij?") is erger
- * dan geen vraag stellen: hij noemt een naam op grond van niets.
+ * ── "EMPTY" AND "UNREADABLE" ARE TWO ANSWERS ──────────────────────
+ * Both functions below have an explicit unknown state, and that always narrows. A KB scan that could not run must never be read as "nothing from this meeting is in a knowledge base", and asking a question about a speaker list that was not loaded ("was Marijke there?") is worse than asking no question: it names a name on the basis of nothing.
  *
- * ── DE GATE ZIT IN HET MODEL, NIET IN DE OPMAAK ─────────────────────
- * `buildInsightsModel` bouwt `people` helemaal niet als de organisatie
- * per-persoonsstatistiek uit heeft staan. Dit paneel leest dat model en gaat
- * er niet omheen: `buildSpeakerCheck` krijgt de gate mee en noemt met de gate
- * dicht géén naam — alleen twee aantallen, dezelfde versmalling die
- * `topics.blocks` al doet (duur blijft, toeschrijving verdwijnt).
+ * ── THE GATE LIVES IN THE MODEL, NOT IN THE FORMATTING ──────────────
+ * `buildInsightsModel` does not build `people` at all when the organisation has per-person statistics switched off. This panel reads that model and does not go around it: `buildSpeakerCheck` receives the gate, and with the gate closed it names no name — only two counts, the same narrowing that `topics.blocks` already does (duration stays, attribution disappears).
  */
 
 import { buildSilentAttendees } from './insightsMetrics';
@@ -38,11 +21,11 @@ import type { InsightsModel } from '../detail/insights/insights.types';
 
 /** De drie antwoorden op "hebben we iedereen herkend?". */
 export const SPEAKER_CHECK = Object.freeze({
-    /** Een van de twee lijsten kon niet gelezen worden — niets vragen. */
+    /** One of the two lists could not be read — ask nothing. */
     UNKNOWN: 'unknown',
     /** Even veel sprekers als aanwezigen, of geen aanwezigenlijst om mee te vergelijken. */
     COMPLETE: 'complete',
-    /** Minder herkende sprekers dan aanwezigen — hier hoort de vraag. */
+    /** Fewer recognised speakers than attendees — this is where the question belongs. */
     GAP: 'gap',
 });
 
@@ -50,35 +33,26 @@ export const SPEAKER_CHECK = Object.freeze({
 export const KNOWLEDGE_LINES = Object.freeze({
     /** De usage-fetch loopt nog. */
     LOADING: 'loading',
-    /** De scan kon niet draaien én leverde niets op — we weten het niet. */
+    /** The scan could not run AND yielded nothing — we do not know. */
     UNKNOWN: 'unknown',
     /** Een antwoord. `partial` zegt of er iets ongecontroleerd bleef. */
     READY: 'ready',
 });
 
-/** Namen uit een lijst, of `null` als het geen lijst is (onleesbaar ≠ leeg). */
+/** Names from a list, or `null` if it is not a list (unreadable ≠ empty). */
 function readNames(value: string | (string | number | null)[] | undefined) {
     if (!Array.isArray(value)) return null;
     return value.map((v) => (typeof v === 'string' ? v.trim() : '')).filter(Boolean);
 }
 
 /**
- * "2 kennisregels → Sales" — welke kennisbanken stukken van dit transcript
- * bevatten.
+ * "2 knowledge rules → Sales" — which knowledge bases contain pieces of this transcript.
  *
- * Leest de rijen van de ENE usage-fetch die MeetingDetail al doet
- * (`useUsage('meeting', id)`), niet een tweede request: de balk onder de tags,
- * de Gebruikt-door-tab, de verwijderbevestiging en dit paneel horen hetzelfde
- * te zeggen over dezelfde vergadering. De server telt de gefileerde regels per
- * kennisbank (`lineCount`, core/meetingNotes/meetingUsage.js); hier wordt niets
- * hergeteld.
+ * Reads the rows of the ONE usage fetch that MeetingDetail already makes (`useUsage('meeting', id)`), not a second request: the bar under the tags, the Used-by tab, the deletion confirmation and this panel must say the same thing about the same meeting. The server counts the filed rules per knowledge base (`lineCount`, core/meetingNotes/meetingUsage.js); nothing is recounted here.
  *
- * `lineCount` is óók wat een gefileerde regel onderscheidt van een kb die deze
- * vergadering via een TAG verzamelt. Die tweede is een andere bewering — "alles
- * met dit label komt hier terecht" — en hoort in de outputs-balk, niet in
- * "hieruit gehaald".
+ * `lineCount` is also what distinguishes a filed rule from a kb that gathers this meeting via a TAG. The second is another claim — "everything with this label ends up here" — and belongs in the outputs bar, not in "taken out of this".
  *
- * @param {Array|null|undefined} usage rijen uit useUsage; `null` = nog niet geladen
+ * @param {Array|null|undefined} usage rows from useUsage; `null` = not yet loaded
  * @param {{unchecked?: string[], error?: any}} [opts]
  * @returns {{state: string, partial: boolean, rows: Array, total: number}}
  */
@@ -100,8 +74,8 @@ export function buildKnowledgeLines(usage: (UsageRow | null)[] | null | undefine
         (r) => r && r.kind === 'kb' && Number.isInteger(r.lineCount) && (r.lineCount as number) > 0,
     );
     const total = rows.reduce((n, r) => n + ((r as UsageRow).lineCount as number), 0);
-    // De kb-scan kon niet (volledig) draaien. Met rijen erbij is dat "minstens
-    // dit"; zonder rijen is het geen nul maar een onbekende.
+    // The kb scan could not run (fully). With rows this is "at least this";
+    // without rows it is not a zero but an unknown.
     const blind = !!error || (Array.isArray(unchecked) && unchecked.includes('kb'));
     if (blind && rows.length === 0) {
         return { state: KNOWLEDGE_LINES.UNKNOWN, partial: true, rows: [], total: 0 };
@@ -110,26 +84,17 @@ export function buildKnowledgeLines(usage: (UsageRow | null)[] | null | undefine
 }
 
 /**
- * "Tweede spreker niet herkend — was X aanwezig?"
+ * "Second speaker not recognised — was X present?"
  *
- * DRIE toestanden, en de derde is de reden dat dit een functie is en geen
- * `speakers.length < attendees.length` in de opmaak. Minder sprekers dan
- * aanwezigen kan namelijk ook betekenen dat er helemaal geen diarisatie te
- * lezen viel — een notitie zonder segmenten, een provider die geen sprekers
- * levert, een mislukte pass. Dan is er geen tekort maar een gat in wat we
- * weten, en een vraag die iemands naam noemt is daar het slechtste antwoord op.
+ * THREE states, and the third is the reason this is a function and not a `speakers.length < attendees.length` in the formatting. Fewer speakers than attendees can namely also mean that no diarisation was readable at all — a note without segments, a provider that supplies no speakers, a failed pass. Then there is no shortfall but a gap in what we know, and a question that names someone's name is the worst possible answer to that.
  *
- * De sprekerslijst is `model.talk.speakers`: wie er in de SEGMENTEN aan het
- * woord is. Bewust niet de opgeslagen `meeting.speakers`-roster — daar kan een
- * naam in staan die in het transcript nergens iets zegt, en die zou dan een
- * echte niet-herkende spreker wegstrepen.
+ * The speaker list is `model.talk.speakers`: who has the floor in the SEGMENTS. Deliberately not the stored `meeting.speakers` roster — that may contain a name that says nothing in the transcript, and it would then strike off a real unrecognised speaker.
  *
- * @param {object} meeting detail-payload (alleen `attendees` wordt gelezen)
- * @param {object|null} model resultaat van buildInsightsModel (null = te weinig spraak)
+ * @param {object} meeting detail payload (only `attendees` is read)
+ * @param {object|null} model result of buildInsightsModel (null = too little speech)
  * @param {{perPersonEnabled?: boolean}} [opts]
  * @returns {{state: string, speakerCount: number|null, attendeeCount: number|null,
- *            names: string[]|null}} `names` is null zodra er geen naam genoemd
- *          mag worden — met de gate dicht, of buiten de GAP-toestand.
+ *            names: string[]|null}} `names` is null as soon as no name may be stated — with the gate closed, or outside the GAP state.
  */
 export function buildSpeakerCheck(meeting: { attendees?: string | (string | number | null)[] } | null | undefined, model: InsightsModel | null, { perPersonEnabled = true } = {}) {
     const attendees = readNames(meeting?.attendees);

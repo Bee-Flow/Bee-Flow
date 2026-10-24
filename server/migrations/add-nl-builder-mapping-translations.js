@@ -23,7 +23,7 @@
  */
 
 const NL_TRANSLATIONS = {
-    // ── Een stap per item, ook voor een lijst binnen een lijst ──────────────
+    // ── One step per item, also for a list within a list ────────────────────
     'automations.builder.run_for_each': 'Deze stap uitvoeren voor elk…',
     'automations.builder.item_word': 'item',
     'automations.builder.list_changed_runs': 'Draait nu één keer per {item}.',

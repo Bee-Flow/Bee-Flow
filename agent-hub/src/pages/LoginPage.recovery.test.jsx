@@ -427,11 +427,11 @@ describe('following an invite', () => {
         expect(callTo('/auth/invite/legacy-token')).toBeTruthy();
     });
 
-    // wrat: `?invite=` puts the page into signup mode from the very first
-    // render, before anything has been validated. A dead link therefore opens
-    // the signup wizard anyway and the expiry message is shown INSIDE it, on
-    // top of a form the visitor can never submit. Hoort in stage L16 te
-    // veranderen (dood invite → terug naar het aanmeldformulier).
+    // Issue: `?invite=` puts the page into signup mode from the very first render, before
+    // anything has been validated. A dead link therefore opens the signup wizard
+    // anyway, and the expiry message is shown INSIDE it, on top of a form the visitor
+    // can never submit. To be changed in stage L16 (dead invite leads back to the
+    // sign-in form).
     it('opens the signup wizard on a dead invite link and puts the expiry message in it', async () => {
         route('/auth/invite', () => fail(404, { error: 'gone' }));
         window.history.replaceState({}, '', '/?invite=dead-token');

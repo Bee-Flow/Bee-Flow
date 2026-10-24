@@ -6,15 +6,13 @@ const { pickMatcher, matchMeetingProcessedFilter } = require('./filters');
 const { applyDslFilter, matchFilter } = require('../triggers/dslFilters');
 
 /**
- * meeting-notes.meeting.processed — het tagfilter, en wat een LEGE tagfilter
- * betekent.
+ * meeting-notes.meeting.processed — the tag filter, and what an EMPTY tag filter means.
  *
- * Alles loopt hier via `pickMatcher(provider, event)` en niet rechtstreeks
- * langs de functie: dat is de enige koppeling die dispatch.js legt, en een
- * matcher die bestaat maar niet gekozen wordt is precies de fout die dit
- * event al eerder onzichtbaar hield.
+ * Everything here runs via `pickMatcher(provider, event)` and not directly through the function: that is the
+ * only link that dispatch.js makes, and a matcher that exists but is not chosen is precisely the fault that this
+ * event already kept hidden earlier.
  *
- * Draai: node --test --test-force-exit automation/triggerBus/filters.meetingNotes.test.js
+ * Run: node --test --test-force-exit automation/triggerBus/filters.meetingNotes.test.js
  */
 
 const pick = () => pickMatcher('meeting-notes', 'meeting.processed');
@@ -29,19 +27,19 @@ test('het event heeft een EIGEN matcher — de ondiepe val is er echt', () => {
     const m = pick();
     assert.notStrictEqual(m, matchFilter, 'meeting.processed valt niet terug op matchFilter');
 
-    // Waarom dat nodig is: de ondiepe matcher vergelijkt de GEVRAAGDE lijst
-    // met de payload-array (`want.includes(got)`), dus een tagfilter matchte
-    // daar nooit. Zonder deze regel is de rest van dit bestand betekenisloos.
+    // Why that is necessary: the shallow matcher compares the REQUESTED list with the payload array
+    // (`want.includes(got)`), so a tag filter never matched there. Without this rule the rest of this file
+    // is meaningless.
     assert.strictEqual(matchFilter(note(), { tags: ['sales'] }), false,
         'de fallback zou dit filter nog steeds weigeren');
     assert.strictEqual(m(note(), { tags: ['sales'] }), true);
 });
 
-// ── de lege verzameling ──────────────────────────────────────────────
+// ── the empty collection ──────────────────────────────────────────────
 //
-// Vastgelegde keuze: geen tags = ELKE afgeronde meeting. De drie manieren
-// waarop "geen tags" in een opgeslagen filter kan staan moeten alle drie
-// hetzelfde doen, anders hangt het gedrag af van welk scherm het schreef.
+// Recorded choice: no tags = EVERY completed meeting. The three ways that
+// "no tags" can be stored in a saved filter must all do the same thing,
+// otherwise the behaviour depends on which screen wrote it.
 
 test('geen tagfilter, in al zijn vormen, laat ELKE afgeronde meeting door', () => {
     const m = pick();
@@ -52,9 +50,9 @@ test('geen tagfilter, in al zijn vormen, laat ELKE afgeronde meeting door', () =
 });
 
 test('een lege tagfilter betekent NIET "geen enkele meeting"', () => {
-    // Het spiegelbeeld van de test hierboven, apart opgeschreven omdat dit de
-    // beslissing zelf is en niet een gevolg ervan: wie hem omdraait naar
-    // "geen enkele" krijgt hier een rode test met de reden erbij.
+    // The mirror image of the test above, written down separately because this is
+    // the decision itself and not a consequence of it: whoever flips it to "none"
+    // gets a red test here, with the reason attached.
     assert.strictEqual(pick()(note(), { tags: [] }), true,
         'leeg = geen beperking; "vuur nooit" vraagt niemand aan een trigger, die zet de regel uit');
 });
@@ -86,12 +84,12 @@ test('vergelijken gaat exact en hoofdlettergevoelig, net als de meeting_tag-kenn
 
 test('een onleesbare tagverzameling versmalt — leeg en onleesbaar zijn niet hetzelfde', () => {
     const m = pick();
-    // Geen array = we weten niet welke tags de notitie draagt. Wie een tag
-    // vraagt, krijgt hem dan niet.
+    // No array = we do not know which tags the note carries. Whoever asks for a tag
+    // does not get it then.
     assert.strictEqual(m(note({ tags: 'sales' }), { tags: ['sales'] }), false);
     assert.strictEqual(m(note({ tags: undefined }), { tags: ['sales'] }), false);
-    // Maar wie NIETS vraagt, beperkt ook niets — daar verschilt "onleesbaar"
-    // van "leeg" niet, want er is geen bewering om aan te toetsen.
+    // But whoever asks for NOTHING restricts nothing either — there "unreadable"
+    // and "empty" do not differ, because there is no claim to test against.
     assert.strictEqual(m(note({ tags: 'sales' }), {}), true);
     assert.strictEqual(m(note({ tags: undefined }), { tags: [] }), true);
 });
@@ -110,10 +108,10 @@ test('reprocessed: weglaten = alle drie de aanleidingen', () => {
 });
 
 test('reprocessed:false vraagt een NIEUWE notitie — en de payload laat de sleutel weg', () => {
-    // De emit zet `reprocessed` alleen bij een herverwerking. De ondiepe
-    // matcher las dat als `undefined !== false` en weigerde dus élke eerste
-    // ingest: een filter dat nooit vuurde in plaats van een filter dat het
-    // gewone geval doorlaat.
+    // The emit sets `reprocessed` only on a reprocessing. The shallow
+    // matcher read that as `undefined !== false` and therefore refused every
+    // first ingest: a filter that never fired instead of one that lets the
+    // normal case through.
     const m = pick();
     assert.strictEqual(matchFilter(note(), { reprocessed: false }), false, 'de fallback weigerde dit');
     assert.strictEqual(m(note(), { reprocessed: false }), true);
@@ -147,8 +145,8 @@ test('uitsluiten hoeft geen eigen sleutel: none[] werkt bovenop deze matcher', (
 });
 
 test('een filter met alleen DSL-sleutels beperkt de tags niet', () => {
-    // De DSL-sleutels worden gestript voor ze bij de matcher komen; wat
-    // overblijft is `{}` en dat betekent hier "elke meeting".
+    // The DSL keys are stripped before they reach the matcher; what remains is `{}`,
+    // and here that means "every meeting".
     const out = applyDslFilter(note({ tags: [] }), { none: [{ tags: ['geheim'] }] }, pick());
     assert.strictEqual(out, true);
 });
@@ -158,15 +156,15 @@ test('de matcher is ook los te gebruiken (geëxporteerd voor hergebruik en tests
     assert.strictEqual(matchMeetingProcessedFilter, pick());
 });
 
-// ── een sleutel die deze matcher niet kent, VERSMALT ─────────────────
+// ── a key this matcher does not know, NARROWS ─────────────────
 
 test('een onbekende filtersleutel maakt het filter niet leeg — hij versmalt', () => {
     const m = pick();
     const payload = note({ tags: ['inkoop', 'geheim'] });
-    // Vormen die in het wild voorkomen (meetingUsage.js noemt tagIncludes met
-    // naam). Vóór deze matcher vuurden ze NOOIT; leeg-is-alles plus genegeerde
-    // sleutels zou er "ALTIJD" van maken, en elke run overhandigt een
-    // notitie-id aan wat er ook achter hangt.
+    // Shapes that occur in the wild (meetingUsage.js names tagIncludes with a
+    // name). Before this matcher they NEVER fired; empty-means-everything plus
+    // ignored keys would turn that into "ALWAYS", and every run would hand a note
+    // id to whatever hangs behind it.
     assert.strictEqual(m(payload, { tagIncludes: 'sales' }), false);
     assert.strictEqual(m(payload, { tag: 'sales' }), false);
     assert.strictEqual(m(payload, { tagsAny: ['sales'] }), false);
@@ -193,9 +191,9 @@ test('in none[] kan de submatcher NEE zeggen op een sleutel die hij niet kent', 
 });
 
 test('payload-tags worden NIET getrimd — de kennisbron doet dat ook niet', () => {
-    // ' sales' en 'sales' zijn voor `armMeetingSources` twee tags. Een matcher
-    // die trimt zou vuren op een notitie die de kennisbron niet arm: twee
-    // verschillende antwoorden op "heeft deze meeting tag X".
+    // ' sales' and 'sales' are two tags for `armMeetingSources`. A matcher that
+    // trims would fire on a note that the knowledge source does not arm: two
+    // different answers to "does this meeting have tag X".
     const m = pick();
     assert.strictEqual(m(note({ tags: [' sales'] }), { tags: ['sales'] }), false);
     assert.strictEqual(m(note({ tags: ['sales'] }), { tags: [' sales'] }), true, 'de FILTERwaarde is wel een formulierveld');

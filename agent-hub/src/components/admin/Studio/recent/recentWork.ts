@@ -5,7 +5,7 @@ import {
 import type { RecentStatusCode } from '../../../../utils/studioRecentSources';
 import type { RecentPayload } from '../../../../utils/studioRecentSources.types';
 
-/** Het woord, de inkt en (voor de twee "geen status"-gevallen) de uitleg bij een statuscode. */
+/** The word, the ink and (for the two "no status" cases) the explanation of a status code. */
 export interface StatusLabel {
     key: string;
     fallback: string;
@@ -14,7 +14,7 @@ export interface StatusLabel {
     hintFallback?: string;
 }
 
-/** Een sectie zoals resolveStudioNav haar geeft; runtime-modules dragen ook een `label()`. */
+/** A section as resolveStudioNav yields it; runtime modules also carry a `label()`. */
 interface RecentSection {
     id?: string;
     kind?: string | null;
@@ -62,69 +62,67 @@ export interface RecentWork {
 }
 
 /**
- * "Laatst bewerkt" op het Startscherm van Studio — het MODEL (Track H3).
+ * "Recently edited" on the Studio start screen — the MODEL (Track H3).
  *
- * Eén lijst over alle secties heen, samengevoegd uit de negen bronnen die
- * utils/studioRecentSources.js al beschrijft. Dat register wordt hier NIET
- * overgeschreven: de URL, de envelope-uitpakker, de veldmapper én de
- * statuslezer komen daarvandaan. Een tweede lijst met endpoints ernaast is
- * precies de variant die na een half jaar een ander antwoord geeft dan de
- * flyout in de zijbalk.
+ * One list across all sections, merged from the nine sources that
+ * utils/studioRecentSources.js already describes. That register is NOT
+ * overwritten here: the URL, the envelope unpacker, the field mapper and the
+ * status reader all come from there. A second list of endpoints next to it is
+ * precisely the variant that, after half a year, gives a different answer than
+ * the flyout in the sidebar.
  *
- * ── Het model komt van actionChecks/attentionChecks ─────────────────────────
+ * ── The model comes from actionChecks/attentionChecks ───────────────────────
  *
- *   - NETWERK ZIT ALLEEN in fetchSection; oordelen is een pure functie op een
- *     gewoon object, apart geëxporteerd en apart getest;
- *   - elke sectie draait in zijn eigen catch: één lijst die omvalt noemt zijn
- *     eigen gat en sleept de lijst niet mee;
- *   - het resultaat draagt DRIE waarden, geen twee: gevonden / niets gevonden
- *     / niet kunnen kijken (search.js's errors[], completeness.js's
- *     unavailable[]). `complete` is het enige recht om "nog niets bewerkt" te
- *     zeggen.
+ *   - NETWORK ONLY LIVES IN fetchSection; judging is a pure function on a
+ *     plain object, exported separately and tested separately;
+ *   - each section runs in its own catch: one list that falls over names its
+ *     own gap and does not drag the list along;
+ *   - the result carries THREE values, not two: found / nothing found /
+ *     could not look (search.js's errors[], completeness.js's
+ *     unavailable[]). `complete` is the only right to say "nothing edited yet".
  *
- * ── Geen rechten-gok in de client ───────────────────────────────────────────
+ * ── No permission guess in the client ───────────────────────────────────────
  *
- * Er staat bewust GEEN permissiegate per bron in dit bestand. /agents/all
- * eist manage_agents, maar een client die dat zelf beoordeelt verbergt de
- * sectie vroeg of laat voor iemand die het recht wél heeft (RunsStudio houdt
- * dezelfde regel: de server is de autoriteit en weigert in woorden). Dus
- * vragen we het, en LEZEN we het antwoord:
+ * There is deliberately NO permission gate per source in this file. /agents/all
+ * requires manage_agents, but a client that judges that itself hides the
+ * section early or late for someone who does have the right (RunsStudio keeps
+ * the same rule: the server is the authority and refuses in words). So we ask,
+ * and we READ the answer:
  *
- *   403            de server weigert → `skipped`. Niet van jou, dus ook geen
- *                  gat: er is niets verloren dat jij had kunnen zien
- *   401 / 5xx /    we hebben niet kunnen kijken → `unavailable`, en dat staat
- *   onleesbaar     op het scherm
+ *   403            the server refuses → `skipped`. Not yours, so also no
+ *                  gap: nothing was lost that you could have seen
+ *   401 / 5xx /    we could not look → `unavailable`, and that shows on the
+ *   unreadable     screen
  *
- * Een sectie die de gate van het Studio-register al niet haalt (`locked`)
- * wordt niet eens gevraagd — die staat er als bordje, niet als deur.
+ * A section that already fails the gate of the Studio register (`locked`) is
+ * not even asked for — it appears as a sign, not as a door.
  *
- * ── Waarom NIET rankStudioItems ─────────────────────────────────────────────
+ * ── Why NOT rankStudioItems ─────────────────────────────────────────────────
  *
- * utils/studioRecents.js rangschikt eerst op "door jou geopend op dit
- * apparaat" en pas daarna op updatedAt. Dat is het goede antwoord op "waar
- * was ik mee bezig" in de zijbalkflyout, en het VERKEERDE antwoord op een
- * kop die "Laatst bewerkt" heet: een agent die je vanochtend alleen opende
- * zou boven een tabel staan waar vandaag echt in geschreven is. Deze lijst
- * sorteert dus op updatedAt, één betekenis per kop.
+ * utils/studioRecents.js ranks first on "opened by you on this device" and only
+ * then on updatedAt. That is the right answer to "what was I working on" in the
+ * sidebar flyout, and the WRONG answer to a heading called "Recently edited": an
+ * agent you only opened this morning would stand above a table that was really
+ * written to today. This list therefore sorts on updatedAt, one meaning per
+ * heading.
  *
- * ── Wat dit kost ────────────────────────────────────────────────────────────
+ * ── What this costs ────────────────────────────────────────────────────────
  *
- * Maximaal negen verzoeken, ÉÉN keer, bij het openen van Start — geen timer.
- * De rail pollt de aantallen al elke 30s; een tweede poller die dezelfde
- * lijsten elke halve minuut ophaalt zou dat veelvoudig maken. Alleen secties
- * die deze persoon kan openen worden gevraagd.
+ * At most nine requests, ONCE, when Start is opened — no timer. The rail already
+ * polls the counts every 30s; a second poller that fetches the same lists every
+ * half minute would multiply that. Only sections this person can open are asked.
  */
 
-/** Zoveel rijen toont de lijst. Een "recente" lijst is een greep, geen inventaris. */
+/** How many rows the list shows. A "recent" list is a sample, not an inventory. */
 export const RECENT_LIMIT = 8;
 
 /**
- * Het woord bij een statuscode, plus de inkt waarin het staat.
+ * The word for a status code, plus the ink it is set in.
  *
- * De twee onderste zijn geen status maar de twee manieren waarop er geen is
- * (zie RECENT_STATUS in studioRecentSources.js). Ze krijgen bewust dezelfde
- * neutrale inkt als "concept": een groen vinkje op een rij die geen status
- * meldt is precies de verzonnen geruststelling die deze lijst niet mag geven.
+ * The bottom two are not a status but the two ways in which there is none
+ * (see RECENT_STATUS in studioRecentSources.js). They deliberately get the same
+ * neutral ink as "draft": a green tick on a row that reports no status is exactly
+ * the invented reassurance this list must not give.
  */
 export const STATUS_LABELS: Readonly<Record<string, StatusLabel>> = Object.freeze({
     [RECENT_STATUS.FAILED]: { key: 'studio.recent.status_failed', fallback: 'Failed', tone: 'var(--error)' },
@@ -147,7 +145,7 @@ export const STATUS_LABELS: Readonly<Record<string, StatusLabel>> = Object.freez
     },
 });
 
-/** Het label bij een code; nooit undefined, want er staat altijd een woord op de rij. */
+/** The label for a code; never undefined, because there is always a word on the row. */
 export function statusLabel(status: string): StatusLabel {
     return STATUS_LABELS[status] || STATUS_LABELS[RECENT_STATUS.UNKNOWN];
 }
@@ -155,24 +153,22 @@ export function statusLabel(status: string): StatusLabel {
 /* ── De bronnen die deze persoon mag vragen ───────────────────────────────── */
 
 /**
- * De secties waaruit deze lijst wordt opgebouwd, afgeleid uit de twee
- * registers: `sections` (de al gegate rijen uit studioNav.js) doorsneden met
+ * The sections this list is built from, derived from the two registers:
+ * `sections` (the already-gated rows from studioNav.js) intersected with
  * STUDIO_RECENT_SOURCES.
  *
- * Vier soorten secties vallen af, en ze zijn niet hetzelfde:
- *   - `locked`      → skipped. Een bordje, geen deur; er valt niets te lezen
- *   - ingebouwd, geen bron → stil. Formulieren en Runs hebben er bewust geen:
- *                     een formulier IS een automation (en komt dus via aiTasks
- *                     binnen), en een run is een gebeurtenis, geen ding dat
- *                     iemand bewerkt
- *   - RUNTIME-MODULE, geen bron → NIET stil. Een op afstand geïnstalleerde
- *                     module staat wél in `sections` maar heeft geen
- *                     endpoint-contract dat deze lijst kan lezen. Zwijgen zou
- *                     betekenen dat iemand die alleen daarin werkt "Nothing
- *                     edited yet" te zien krijgt met `complete: true` — een
- *                     geruststelling over werk dat we niet gevraagd hebben.
- *                     Ze gaan dus naar `unsupported`, met naam
- *   - geen id/URL   → stil; een descriptor zonder segment kan nergens heen
+ * Four kinds of section drop out, and they are not the same:
+ *   - `locked`      → skipped. A sign, not a door; there is nothing to read
+ *   - built-in, no source → silent. Forms and Runs deliberately have none:
+ *                     a form IS an automation (and so arrives via aiTasks),
+ *                     and a run is an event, not a thing someone edits
+ *   - RUNTIME MODULE, no source → NOT silent. An installed-remote module IS in
+ *                     `sections` but has no endpoint contract this list can
+ *                     read. Staying silent would mean that someone who works
+ *                     only in it sees "Nothing edited yet" with `complete: true`
+ *                     — a reassurance about work we never asked about. So they
+ *                     go to `unsupported`, by name
+ *   - no id/URL   → silent; a descriptor without a segment has nowhere to go
  */
 export function recentSourcesFor(sections: ReadonlyArray<RecentSection | null | undefined> | null | undefined): {
     asked: RecentAsk[];
@@ -209,7 +205,7 @@ export function recentSourcesFor(sections: ReadonlyArray<RecentSection | null | 
 
 /* ── De pure evaluator ────────────────────────────────────────────────────── */
 
-/** Een leesbare tijdstempel in ms, of null. NaN is geen tijd. */
+/** A readable timestamp in ms, or null. NaN is not a time. */
 export function timeOf(updatedAt: string | null | undefined): number | null {
     if (!updatedAt) return null;
     const t = new Date(updatedAt).getTime();
@@ -217,15 +213,15 @@ export function timeOf(updatedAt: string | null | undefined): number | null {
 }
 
 /**
- * Eén payload → rijen die het scherm kan tekenen.
+ * One payload → rows the screen can draw.
  *
- * Rij voor rij door de mapper van het register, zodat de RUWE rij (waar de
- * status op zit) en de genormaliseerde rij (waar naam en omschrijving op
- * zitten) bij elkaar blijven; normaliseRecentRows gooit rijen zonder id weg,
- * dus een index-koppeling over de hele lijst zou stilletjes verschuiven.
+ * Row by row through the mapper of the register, so the RAW row (where the
+ * status lives) and the normalised row (where name and description live) stay
+ * together; normaliseRecentRows throws away rows without an id, so an index
+ * link across the whole list would silently shift.
  *
- * Een body die geen array oplevert is GEEN lege sectie maar een antwoord dat
- * deze client niet kan lezen — `whole: false`, en de caller noemt het gat.
+ * A body that does not yield an array is NOT an empty section but an answer
+ * this client cannot read — `whole: false`, and the caller names the gap.
  */
 export function evaluateRecentSection(section: RecentAsk, payload: RecentPayload): { entries: RecentEntry[]; whole: boolean } {
     const source = STUDIO_RECENT_SOURCES[section?.sectionId];
@@ -247,8 +243,8 @@ export function evaluateRecentSection(section: RecentAsk, payload: RecentPayload
             updatedAt: item.updatedAt || null,
             at: timeOf(item.updatedAt),
             status: recentStatusOf(section.sectionId, row),
-            // Dezelfde vorm als attentionLink.attentionPath: een rij die
-            // nergens heen kan navigeert liever niet dan naar /null.
+            // Same shape as attentionLink.attentionPath: a row that cannot go anywhere
+            // would rather not navigate than navigate to /null.
             path: `studio/${section.urlSegment}/${encodeURIComponent(item.id)}`,
         });
     }
@@ -256,12 +252,11 @@ export function evaluateRecentSection(section: RecentAsk, payload: RecentPayload
 }
 
 /**
- * Alles wat gevonden is, nieuwste eerst, afgekapt op `limit`.
+ * Everything that was found, newest first, cut off at `limit`.
  *
- * Rijen zonder leesbare tijdstempel staan achteraan: ze kunnen niet in een
- * volgorde die "laatst bewerkt" heet, en weggooien zou werk verbergen. Bij
- * een gelijke tijd beslist de sleutel, zodat twee renders van dezelfde data
- * niet van volgorde wisselen.
+ * Rows without a readable timestamp go at the back: they cannot be placed in an
+ * order called "recently edited", and throwing them away would hide work. On an
+ * equal time the key decides, so two renders of the same data do not swap order.
  */
 export function mergeRecentEntries(
     lists: ReadonlyArray<ReadonlyArray<RecentEntry | null | undefined> | null | undefined> | null | undefined,
@@ -280,22 +275,21 @@ export function mergeRecentEntries(
 
 /* ── Het netwerk ──────────────────────────────────────────────────────────── */
 
-/** Het ENIGE netwerk in deze module. Gooit bij alles wat geen leesbaar antwoord is. */
+/** The ONLY network call in this module. Throws on anything that is not a readable answer. */
 async function fetchSection(section: RecentAsk): Promise<{ refused: boolean; payload: RecentPayload }> {
     const res = await authFetch(`${API_BASE}${section.url}`);
-    // De server weigert in woorden: dit is niet van jou, en dus geen gat.
+    // The server refuses in words: this is not yours, and therefore not a gap.
     if (res.status === 403) return { refused: true, payload: null };
-    // 401 hoort hier NIET bij: een verlopen sessie is "niet kunnen kijken",
-    // niet "niet van jou", en een lijst die daarop leeg oogt liegt.
+    // 401 does NOT belong here: an expired session is "could not look", not "not yours", and a list that looks empty on that is lying.
     if (!res.ok) throw new Error(`GET ${section.url} → ${res.status}`);
     return { refused: false, payload: await res.json() };
 }
 
 /**
- * Eén sectie tot een oordeel. GOOIT NOOIT — de drie antwoorden:
- *   geweigerd   → geen rijen, geen gat
- *   gelezen     → de rijen die erin zaten
- *   gevallen    → geen rijen, en een gat met de naam van de sectie
+ * One section to a verdict. NEVER THROWS — the three answers:
+ *   refused     → no rows, no gap
+ *   read        → the rows that were in it
+ *   fell over   → no rows, and a gap with the name of the section
  */
 export async function runRecentSection(section: RecentAsk): Promise<RecentSectionResult> {
     try {
@@ -309,19 +303,19 @@ export async function runRecentSection(section: RecentAsk): Promise<RecentSectio
 }
 
 /**
- * De hele lijst. Lost op naar
+ * The whole list. Resolves to
  *
  *   { items, unavailable, skipped, complete }
  *
- * `items`        de `limit` nieuwste rijen over alle gevraagde secties heen
- * `unavailable`  elke sectie die niet gelezen kon worden — het scherm noemt ze
- * `skipped`      secties die niet van deze persoon zijn (gelockt of 403):
- *                geen gat, en geen reden om een waarschuwing te tonen die
- *                iedereen elke dag ziet en daarom leert negeren
- * `unsupported`  secties waarvoor deze build geen lijst kan lezen
- * `complete`     geen enkel gat, geen onbeantwoorde poort en geen onleesbare
- *                sectie — het enige recht om "nog niets bewerkt" te zeggen in
- *                plaats van "we konden niet overal kijken"
+ * `items`        the `limit` newest rows across all requested sections
+ * `unavailable`  every section that could not be read — the screen names them
+ * `skipped`      sections that are not this person's (locked or 403):
+ *                no gap, and no reason to show a warning that everyone sees
+ *                every day and therefore learns to ignore
+ * `unsupported`  sections for which this build cannot read a list
+ * `complete`     no single gap, no unanswered gate and no unreadable
+ *                section — the only right to say "nothing edited yet" instead
+ *                of "we could not look everywhere"
  */
 export async function runRecentWork(
     sections: ReadonlyArray<RecentSection | null | undefined> | null | undefined,
@@ -331,35 +325,35 @@ export async function runRecentWork(
     const results = await Promise.all(asked.map((section) => runRecentSection(section)));
     const unavailable = results.filter((r) => r.gap).map((r) => r.sectionId).sort();
     const refused = results.filter((r) => r.refused).map((r) => r.sectionId);
-    // DE POORTEN ZELF ZIJN EEN ANTWOORD DAT KAN ONTBREKEN.
+    // THE GATES THEMSELVES ARE AN ANSWER THAT CAN BE MISSING.
     //
-    // resolveStudioNav LAAT een gegate sectie helemaal weg zolang het
-    // entitlements-antwoord er niet is of omviel (studioApps.jsx:138-141;
-    // studioNav.js zet lockReason dan bewust op () => null, want een licentie
-    // die nog laadt mag niet als "hogere plan nodig" op het scherm komen).
-    // Zo'n sectie staat dus NIET in `sections`, en deze functie kan haar niet
-    // missen. Zonder deze vlag is het gevolg dat we zeven lijsten nooit vragen
-    // en er "Nothing edited yet" met `complete: true` overheen zetten — een
-    // schone gezondheidsverklaring over lijsten die nooit gevraagd zijn, in de
-    // gewone laadseconde van élke opening. Onbekend versmalt: geen recht op de
-    // geruststelling zolang de poorten geen antwoord hebben.
+    // resolveStudioNav LEAVES a gated section out entirely for as long as the
+    // entitlements answer is missing or has fallen away (studioApps.jsx:138-141;
+    // studioNav.js deliberately sets lockReason to () => null then, because a
+    // licence that is still loading must not appear on screen as "higher plan
+    // needed"). Such a section is therefore NOT in `sections`, and this function
+    // cannot miss it. Without this flag the result is that we never ask for seven
+    // lists and lay "Nothing edited yet" with `complete: true` over them — a clean
+    // health statement about lists that were never asked for, in the ordinary
+    // loading second of EVERY opening. Unknown narrows: no right to the
+    // reassurance as long as the gates have no answer.
     const gateGap = gatesResolved ? [] : ['gates'];
     return {
         items: mergeRecentEntries(results.map((r) => r.entries), limit),
         unavailable: [...gateGap, ...unavailable],
         skipped: [...new Set([...locked, ...refused])].sort(),
-        // Secties die deze build niet kan lezen. Geen gat (er is niets stuk)
-        // en geen geheim (ze staan met naam op het scherm), maar ook geen
-        // reden om te zeggen dat er niets bewerkt is.
+        // Sections this build cannot read. Not a gap (nothing is broken)
+        // and not a secret (they are shown by name on the screen), but also no
+        // reason to say that nothing has been edited.
         unsupported,
         complete: unavailable.length === 0 && gateGap.length === 0 && unsupported.length === 0,
     };
 }
 
 /**
- * De soorten op deze lijst die geen status melden, in de volgorde waarin ze
- * op het scherm staan. Het scherm zet er één zin onder; zonder die zin is een
- * rij zonder statuswoord een lege plek zonder uitleg.
+ * The kinds on this list that report no status, in the order they appear on
+ * the screen. The screen puts one sentence under it; without that sentence a
+ * row without a status word is an empty spot with no explanation.
  */
 export function statuslessKinds(
     items: ReadonlyArray<Partial<Pick<RecentEntry, 'status' | 'kind' | 'sectionId'>> | null | undefined> | null | undefined,

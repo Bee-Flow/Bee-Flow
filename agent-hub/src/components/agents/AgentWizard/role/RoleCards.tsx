@@ -11,30 +11,27 @@ import WhoCard from './WhoCard';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 
 /**
- * De vijf kaarten van de tab "Rol" (Agents-artboard 1c, A3 deel A) — de eerste
- * schrijver van `agents.persona` aan de clientkant.
+ * The five cards of the "Rol" tab (Agents artboard 1c, A3 part A): the first
+ * writer of `agents.persona` on the client side.
  *
- * GESTUURD, GEEN EIGEN STAAT: er gaat een persona in, er komt een VOLLEDIGE
- * nieuwe persona uit `onChange`. De ouder hangt hem in `stateRef.current.persona`
- * en laat de autosave hem meesturen. Halve objecten zijn hier onmogelijk, en dat
- * is met opzet: `PUT /agents/:id` leest een ONTBREKEND veld als "laat de kolom
- * staan", dus een patch met alleen `who` erin zou een bullet die iemand net
- * weghaalde stilzwijgend terugzetten.
+ * CONTROLLED, NO OWN STATE: a persona comes in, a COMPLETE new persona goes out via
+ * `onChange`. The parent holds it in `stateRef.current.persona` and lets the autosave
+ * send it along. Half objects are impossible here, and that is deliberate:
+ * `PUT /agents/:id` reads a MISSING field as "keep the column", so a patch with only `who`
+ * in it would silently put back a bullet that someone had just removed.
  *
- * ── DRIE TOESTANDEN, DRIE SCHERMEN ──────────────────────────────────
- *   nog niet gelezen   één regel, geen kaarten. Vijf lege vakken tekenen
- *                      terwijl de lezing loopt is een bewering.
- *   niet te lezen      een waarschuwing. `GET /agents/:id` geeft de persona
- *                      alléén mee met `?draft=1` én bewerkrecht — anders
- *                      strippen `parseConfig`/`_stripPersona` de kolom er
- *                      juist uit. "Afwezig" betekent hier dus ONBEKEND, en
- *                      onbekend is geen lege rol.
- *   `mode: 'free'`     de vijf kaarten staan er wél, maar alleen-lezen. De
- *                      vrije tekst IS het prompt; deze velden beschrijven hem.
- *                      De weg terug is een expliciete AI-parse
- *                      (`POST /agents/:id/persona/parse`), nooit een stille
- *                      terugvertaling — vandaar dat de knop alleen verschijnt
- *                      als de ouder er een handler voor meegeeft.
+ * ── THREE STATES, THREE SCREENS ──────────────────────────────────
+ *   not read yet       one line, no cards. Drawing five empty boxes while the read
+ *                      is still running is a claim.
+ *   not readable       a warning. `GET /agents/:id` only returns the persona with
+ *                      `?draft=1` AND edit rights; otherwise `parseConfig`/`_stripPersona`
+ *                      strip the column out. "Absent" here therefore means UNKNOWN,
+ *                      and unknown is not an empty role.
+ *   `mode: 'free'`     the five cards are there, but read-only. The free text IS the
+ *                      prompt; these fields describe it. The way back is an explicit
+ *                      AI parse (`POST /agents/:id/persona/parse`), never a silent
+ *                      back-translation, which is why the button only appears if the
+ *                      parent passes a handler for it.
  */
 
 /** De strook onder de kaarten: overstappen naar één vrije instructie. */
@@ -54,9 +51,9 @@ function FreeFooter({ t, onOpenFree }: { t: TranslateFn; onOpenFree: () => void 
             >
                 {t('agent_studio.role.free_footer_action', 'Open as free instruction')}
             </button>
-            {/* Het artboard schrijft hier "de vakken blijven synchroon". Dat is
-                niet waar: de richting is één kant op (velden → prompt) en terug
-                gaat alleen via een expliciete parse. Zie personaPrompt.js. */}
+            {/* The artboard says here "the boxes stay in sync". That is
+                not true: the direction is one way (fields → prompt), and back
+                only happens via an explicit parse. See personaPrompt.js. */}
             <span className="text-[var(--text-tertiary)]">
                 {t('agent_studio.role.free_footer_note', 'That text becomes what the agent runs; these fields stay behind as a description of it, and reading them back is a separate step.')}
             </span>
@@ -65,17 +62,16 @@ function FreeFooter({ t, onOpenFree }: { t: TranslateFn; onOpenFree: () => void 
 }
 
 /**
- * De banner boven de kaarten wanneer de agent in vrije modus staat.
+ * The banner above the cards when the agent is in free mode.
  *
- * TWEE ZINNEN, EN HET VERSCHIL IS HET MEERDERHEIDSGEVAL. "De velden beschrijven
- * hem" klopt voor een agent die ooit in velden geschreven is en daarna naar
- * vrije tekst ging. Voor élke agent van vóór A1c klopt het niet: `personaOf`
- * geeft daar `{mode:'free', freeText: system_prompt}` met álle velden leeg, en
- * dan stond er een banner die zegt dat de vakken hem beschrijven boven vijf
- * kaarten die "Nothing written down yet." zeggen — over een agent die
- * aantoonbaar een rol, een toon en regels heeft. Die velden zijn niet LEEG maar
- * NOG NIET AFGELEID, en de afleiding is de expliciete parse waar de knop
- * hiernaast voor is.
+ * TWO SENTENCES, AND THE DIFFERENCE IS THE MAJORITY CASE. "The fields describe
+ * it" is true for an agent that was once written in fields and then moved to free
+ * text. For EVERY agent from before A1c it is not true: `personaOf` returns
+ * `{mode:'free', freeText: system_prompt}` there with ALL fields empty, and then
+ * there was a banner saying the boxes describe it, above five cards that say
+ * "Nothing written down yet.", about an agent that demonstrably has a role, a tone
+ * and rules. Those fields are not EMPTY but NOT YET DERIVED, and the derivation is
+ * the explicit parse that the button next to it is for.
  */
 function FreeBanner({ t, onBackToFields, describes }: { t: TranslateFn; onBackToFields: (() => void) | null; describes: boolean }) {
     return (
@@ -102,7 +98,7 @@ function FreeBanner({ t, onBackToFields, describes }: { t: TranslateFn; onBackTo
     );
 }
 
-/** Nog niet gelezen / niet te lezen — nooit vijf lege kaarten. */
+/** Not read yet / not readable: never five empty cards. */
 function RoleUnknown({ t, state }: { t: TranslateFn; state: string }) {
     if (state === READ.LOADING) {
         return (
@@ -122,18 +118,18 @@ function RoleUnknown({ t, state }: { t: TranslateFn; state: string }) {
 }
 
 /**
- * Welke van de drie schermen dit wordt.
+ * Which of the three screens this becomes.
  *
- * DE PERSONA WINT VAN DE TOESTAND. Stond er `personaState === READ.ERROR` vóór
- * de leesbaarheidstest, dan verdween een rol die we WEL hadden zodra de tweede
- * lezing (`GET /agents/:id?draft=1`) mislukte — terwijl de aanroeper juist
- * `persona={agent?.persona ?? conceptFacts.persona}` samenstelt en die eerste
- * helft prima leesbaar kan zijn. Een gelezen rol tonen is nooit fout.
+ * THE PERSONA WINS FROM THE STATE. If `personaState === READ.ERROR` came before
+ * the readability test, a role we DID have disappeared as soon as the second read
+ * (`GET /agents/:id?draft=1`) failed, while the caller composes
+ * `persona={agent?.persona ?? conceptFacts.persona}` and that first half can
+ * perfectly well be readable. Showing a role that was read is never wrong.
  *
- * En andersom: is er NIETS leesbaars, dan is dat "onbekend", niet "leeg" —
- * `READ.OK` met een gestripte kolom hoort dezelfde waarschuwing te geven als
- * `READ.ERROR`, want in allebei de gevallen weten we het niet. Alleen LOADING
- * krijgt zijn eigen scherm, omdat daar nog een antwoord onderweg is.
+ * And the other way round: if there is NOTHING readable, that is "unknown", not
+ * "empty". `READ.OK` with a stripped column should give the same warning as
+ * `READ.ERROR`, because in both cases we do not know. Only LOADING gets its own
+ * screen, because there an answer is still on its way.
  */
 function roleScreen({ readable, personaState }: { readable: boolean; personaState: string }): 'cards' | 'loading' | 'unreadable' {
     if (readable) return 'cards';
@@ -178,15 +174,15 @@ export default function RoleCards({
         if (!rejected) write(patchPersona(p, { [field]: list }));
         return rejected;
     };
-    // Geeft de afwijzingscode door aan de kaart. Een bewerking die stilletjes
-    // niets doet is erger dan een bewerking die zegt waarom.
+    // Passes the refusal code on to the card. An edit that silently
+    // does nothing is worse than an edit that says why.
     const editIn = (field: 'does' | 'doesNot') => (i: number, text: string) => {
         const { list, rejected } = editBullet(p[field], i, text);
         if (!rejected) write(patchPersona(p, { [field]: list }));
         return rejected;
     };
     const removeFrom = (field: 'does' | 'doesNot') => (i: number) => write(patchPersona(p, { [field]: removeBullet(p[field], i) }));
-    // Zegt de banner de waarheid? Alleen als er ook echt iets in de velden staat.
+    // Is the banner telling the truth? Only if there is actually something in the fields.
     const describes = !!(p.who || p.tone.chips.length || p.tone.text || p.does.length || p.doesNot.length);
 
     return (

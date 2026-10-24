@@ -6,18 +6,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
-// De routinelijst komt normaal uit één gedeeld verzoek per sessie
-// (editor/automationTitles.js). Hier is hij data, zodat elke test zijn eigen
-// oplossing/stappen kan neerzetten zonder een fetch te hoeven timen.
+// The routine list normally comes from one shared request per session (editor/automationTitles.js).
+// Here it is data, so that each test can set up its own solution and steps without having to time a fetch.
 const AUTOMATION_ROWS = { current: {} };
 vi.mock('./automationTitles', () => ({
     useAutomationRows: () => AUTOMATION_ROWS.current,
     useAutomationTitles: () => ({}),
 }));
 
-// AutomationPicker zelf blijft ECHT — de opdracht is dat "+ Add an automation" de
-// BESTAANDE kiezer opent en er geen tweede bij komt, en dat kun je alleen zien
-// door hem te laten renderen. Alleen zijn datalaag is een stub.
+// AutomationPicker itself stays REAL — the assignment is that "+ Add an automation" opens the EXISTING
+// picker and that no second one appears, and you can only see that by letting it render. Only its data
+// layer is a stub.
 const listAutomations = vi.fn(async () => ({ automations: [{ id: 'aut_new', title: 'Weekly digest', isActive: true }] }));
 vi.mock('../../../../../hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations, createAutomation: vi.fn() }),
@@ -27,10 +26,9 @@ import LogicaTab, { pendingCountOf, runCountOf } from './LogicaTab';
 import { authFetch } from '../../../../../utils/helpers';
 
 /**
- * De statuskolom is de plek waar dit scherm kan gaan liegen: beide tellingen
- * zijn kijkergescoopt en allebei kunnen ze mislukken. "0" en "ik mocht niet
- * kijken" moeten dus verschillende dingen op het scherm opleveren, en de zin
- * moet zeggen wát er geteld is (24 uur, van jou) in plaats van "vandaag".
+ * The status column is where this screen can start lying: both counts are scoped to the viewer, and both
+ * can fail. "0" and "I was not allowed to look" must therefore produce different things on screen, and the
+ * sentence must say WHAT is being counted (24 hours, by you) instead of "today".
  */
 
 const ok = (body) => ({ ok: true, status: 200, json: async () => body });
@@ -270,11 +268,10 @@ describe('Automations van deze app — afgeleid, en alleen als beide dingen klop
     });
 
     it('zegt in de kop dat het JOUW automatiseringen zijn — de lijst is kijkergescoopt', async () => {
-        // De rijen komen van GET /api/automation → getAutomationsForUser
-        // (`WHERE user_id = $1`). De nachtelijke automatisering van een collega, in
-        // dezelfde oplossing en op dezelfde tabel, staat er niet in — en een lege
-        // sectie is niet te onderscheiden van "die zijn er niet". Versmallen mag;
-        // er "Automations in this solution" boven zetten niet.
+        // The rows come from GET /api/automation → getAutomationsForUser (`WHERE user_id = $1`). A colleague's
+        // nightly automation, in the same solution and on the same table, is not in them — and an empty section
+        // is not distinguishable from "there are none". Narrowing is allowed; putting "Automations in this
+        // solution" above it is not.
         renderTab({ definition: boundDef() });
         const section = document.querySelector('[data-logic-automations]');
         expect(within(section).getByText('Your automations in this solution')).toBeInTheDocument();
@@ -283,8 +280,8 @@ describe('Automations van deze app — afgeleid, en alleen als beide dingen klop
     });
 
     it('ontdubbelt: een automatisering die al aan een knop hangt komt er niet nóg eens bij', async () => {
-        // Zonder `wiredAutomationIds` zou dezelfde automation twee keer op het
-        // scherm staan — één keer bij de knop, één keer in deze sectie.
+        // Without `wiredAutomationIds` the same automation would appear twice on screen — once at the button, once
+        // in this section.
         const def = definitionWith([
             { id: 'nd_grid', type: 'data_grid', props: { source: { kind: 'records', tableId: 'tbl_a' } } },
             { id: 'nd_b', type: 'button', props: { text: 'Run' }, onClick: 'act_run' },

@@ -1,12 +1,10 @@
 /**
- * Wat de server bij het opslaan terugmeldt, in één vorm.
+ * What the server reports back on save, in one shape.
  *
- * Stond als privéfunctie in EditorHeader.jsx en had daar één lezer: de
- * save-pill. De Logica-tab heeft dezelfde lijst nodig — hij hangt elke melding
- * aan de RIJ waar hij over gaat, zodat "deze knop doet niets" te lezen is waar
- * de knop staat en niet alleen achter een pill bovenin. Twee kopieën van deze
- * normalisatie zouden twee antwoorden op dezelfde vraag worden, dus staat hij
- * hier en importeren beide hem.
+ * This stood as a private function in EditorHeader.jsx and had one reader there: the save pill. The Logic tab
+ * needs the same list: it attaches each notice to the ROW it is about, so that "this button does nothing" can
+ * be read where the button stands, and not only behind a pill at the top. Two copies of this normalisation would
+ * become two answers to the same question, so it lives here and both import it.
  */
 
 // Sentinel role keys and other internal markers (e.g. the "hidden from
@@ -56,11 +54,9 @@ export function toSaveNotices(payload: SavePayload | null | undefined): SaveNoti
                 message,
                 hint,
                 path: typeof entry.path === 'string' ? entry.path : '',
-                // De code was er altijd al en werd hier weggegooid. De
-                // Logica-tab kiest ERop welke melding bij welke rij hoort
-                // (component.control_inert bij een knop, form.no_submit_action
-                // bij een formulier), dus een tekstmatch zou de enige andere
-                // manier zijn — en die breekt zodra iemand de zin herschrijft.
+                // The code was always there and was thrown away here. The Logic tab chooses BY it which notice belongs to
+                // which row (component.control_inert on a button, form.no_submit_action on a form), so a text match
+                // would be the only other way — and that breaks as soon as someone rewrites the sentence.
                 code: typeof entry.code === 'string' ? entry.code : '',
             });
         }

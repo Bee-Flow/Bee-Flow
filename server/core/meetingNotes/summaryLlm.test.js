@@ -41,8 +41,8 @@ stub('../llm/llmClient', {
         if (/List the FIRST NAMES/.test(sys)) return { content: extractionResponse };
         if (/Divide the transcript into/.test(sys)) return { content: chaptersResponse };
         if (/structured artifacts/.test(sys)) {
-            // Een omgevallen smart-tier (time-out, 500, geen model) — de derde
-            // uitkomst, en de enige die niets mag mogen wissen.
+            // A fallen-over smart tier (time-out, 500, no model): the third outcome, and the only
+            // one that must not be allowed to wipe anything.
             if (artifactsThrow) throw artifactsThrow;
             return { content: artifactsResponse };
         }
@@ -178,10 +178,9 @@ test('extractMeetingArtifacts validates due dates, defaults open, and filters pe
     // rest, so an unmarked producer would leave that rule leaning on the
     // `ai-<n>` id namespace alone.
     assert.ok(artifacts.actionItems.every((i) => i.source === 'ai'), 'extracted items are marked as the AI\'s');
-    // M4: en het model legt zijn EIGEN tekst vast als ijkpunt. Zonder deze
-    // stempel kan de merge een met de hand gecorrigeerde tekst niet
-    // onderscheiden van een tekst die het model deze keer anders formuleerde,
-    // en zet "Opnieuw" de correctie stilletjes terug.
+    // M4: and the model records its OWN text as a reference point. Without this stamp the merge cannot
+    // tell a text that a person corrected by hand from a text that the model phrased differently this time,
+    // and "Regenerate" silently puts the correction back.
     assert.ok(artifacts.actionItems.every((i) => i.aiText === i.text), 'de extractor legt zijn eigen tekst vast');
 
     // Empty-text decision dropped; ids assigned.
@@ -193,13 +192,12 @@ test('extractMeetingArtifacts validates due dates, defaults open, and filters pe
 });
 
 test('an unparseable reply is reported as a FAILED pass, not as an empty meeting', async () => {
-    // These used to be the same answer, and a caller that overwrites on the
-    // strength of it erased everything the last good pass had found.
+    // These used to be the same answer, and a caller that overwrites on the strength of it erased
+    // everything the last good pass had found.
     //
-    // Het onderscheid zat eerst in een VLAG naast vier lege lijsten, en dat is
-    // precies wat een schrijver vergeet mee te nemen. Nu draagt de waarde het:
-    // een mislukte pass heeft helemaal GEEN lijsten, dus er valt niets uit te
-    // lezen om overheen te schrijven.
+    // The distinction used to sit in a FLAG beside four empty lists, and that is exactly what a writer forgets
+    // to take along. Now the value carries it: a failed pass has NO lists at all, so there is nothing to read
+    // off in order to overwrite it.
     artifactsResponse = 'sorry, no JSON today';
     const artifacts = await extractMeetingArtifacts('[X] 00:00 - 00:05: hoi', 'nl', null);
     assert.strictEqual(artifacts, ARTIFACTS_FAILED, 'de ene gedeelde mislukt-waarde');
@@ -212,9 +210,8 @@ test('an unparseable reply is reported as a FAILED pass, not as an empty meeting
 });
 
 test('an extractor whose LLM call THROWS reports the same failed pass', async () => {
-    // De derde uitkomst langs de andere weg: time-out, 500, geen model. Ook
-    // hier geen lege lijsten — een aanroeper die dit wegschrijft zou
-    // actiepunten, besluiten én vragen van een afgeronde notitie wissen.
+    // The third outcome by the other route: time-out, 500, no model. Here too no empty lists: a caller that
+    // writes this away would wipe action items, decisions and questions of a completed note.
     artifactsThrow = new Error('smart tier timed out after 540000ms');
     try {
         const artifacts = await extractMeetingArtifacts('[X] 00:00 - 00:05: hoi', 'nl', null);
@@ -227,13 +224,11 @@ test('an extractor whose LLM call THROWS reports the same failed pass', async ()
 });
 
 test('een AFGEKAPT antwoord is ook een mislukte pass, geen halfvolle vergadering', async () => {
-    // De vierde uitkomst, en de gevaarlijkste: het model raakt het
-    // output-tokenplafond midden in "decisions". parseJsonObject redt dan de
-    // sleutels die nog compleet waren en sluit het object zelf af — en de
-    // sleutels die het niet haalden zijn simpelweg WEG. Vóór deze fix maakte
-    // `asArray` daar lege lijsten van, zei de poort JA, en wiste één druk op
-    // "Opnieuw" alle opgeslagen AI-besluiten en -vragen van precies de lange
-    // vergadering die het plafond raakte.
+    // The fourth outcome, and the most dangerous: the model hits the output-token ceiling in the middle of
+    // "decisions". parseJsonObject then salvages the keys that were still complete and closes the object
+    // itself, and the keys that it did not reach are simply GONE. Before this fix, `asArray` turned those
+    // into empty lists, the gate said YES, and a single press on "Regenerate" wiped all stored AI decisions
+    // and questions of precisely the long meeting that hit the ceiling.
     artifactsResponse = '{"actionItems": [{"text": "Offerte sturen", "assignee": "Tom", "timestamp": "00:02"}], "decisions": [{"text": "Budget goedge';
     const artifacts = await extractMeetingArtifacts('[X] 00:00 - 00:05: hoi', 'nl', null);
     assert.strictEqual(artifacts, ARTIFACTS_FAILED, 'afgekapt = niet gelezen, dus de mislukt-waarde');
@@ -243,10 +238,9 @@ test('een AFGEKAPT antwoord is ook een mislukte pass, geen halfvolle vergadering
 });
 
 test('een compleet antwoord dat een sleutel WEGLAAT is nog steeds een geslaagde pass', async () => {
-    // De keerzijde, zodat de regel hierboven niet stiekem "elk onvolledig
-    // antwoord faalt" wordt: dit antwoord is heel (geen salvage), het model
-    // noemt alleen `decisions` niet. Dat is het model dat zegt "geen
-    // besluiten", en dat MAG een verouderde lijst opruimen.
+    // The flip side, so that the rule above does not quietly become "every incomplete answer fails": this answer
+    // is whole (no salvage), the model simply does not mention `decisions`. That is the model saying "no
+    // decisions", and that MAY clear an outdated list.
     artifactsResponse = JSON.stringify({ actionItems: [], questions: [], tags: [] });
     const artifacts = await extractMeetingArtifacts('[X] 00:00 - 00:05: hoi', 'nl', null);
     assert.strictEqual(artifacts.ok, true);

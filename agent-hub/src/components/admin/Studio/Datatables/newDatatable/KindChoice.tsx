@@ -62,7 +62,7 @@ export default function KindChoice({ kind, setKind, managed, nextcloud, spreadsh
                         checked={nextcloud}
                         onChange={() => setKind('nextcloud_table')}
                         kind="datatable"
-                        icon={<Cloud className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--type-data)' }} aria-hidden="true" />}
+                        icon={<Cloud className="w-3.5 h-3.5 shrink-0 [color:var(--type-data)]" aria-hidden="true" />}
                         title={t('datatables.kind_nextcloud', 'A table from Nextcloud')}
                         blurb={t('datatables.kind_nextcloud_blurb', 'A copy of a Nextcloud Tables table or view, kept in step with it. Rows changed here are changed in Nextcloud; the columns are Nextcloud’s.')}
                         disabled={!!linkable && !linkable.connected}
@@ -75,7 +75,7 @@ export default function KindChoice({ kind, setKind, managed, nextcloud, spreadsh
                         checked={spreadsheet}
                         onChange={() => setKind('spreadsheet_file')}
                         kind="datatable"
-                        icon={<FileSpreadsheet className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--type-data)' }} aria-hidden="true" />}
+                        icon={<FileSpreadsheet className="w-3.5 h-3.5 shrink-0 [color:var(--type-data)]" aria-hidden="true" />}
                         title={t('datatables.kind_spreadsheet', 'A spreadsheet from your files')}
                         blurb={t('datatables.kind_spreadsheet_blurb', 'A copy of a sheet in Google Drive, OneDrive or Nextcloud, kept in step with the file. Rows changed here are written to the file; the columns are the sheet’s header row.')}
                         disabled={!ssConnected}

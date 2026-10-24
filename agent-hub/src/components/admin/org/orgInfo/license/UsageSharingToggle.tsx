@@ -22,7 +22,7 @@ export default function UsageSharingToggle<T extends OrgUsageData>({ orgData, se
             </div>
             <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] flex items-start gap-3">
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 [background:rgba(16,185,129,0.12)]">
-                    <Users className="w-4 h-4" style={{ color: '#10b981' }} />
+                    <Users className="w-4 h-4 [color:#10b981]" />
                 </div>
                 <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-medium text-[var(--text-primary)]">{t('org.share_usage_label', 'Share AI usage across the organisation')}</p>

@@ -17,4 +17,8 @@ export function TranslationProvider({ children }: { children: React.ReactNode })
     return <>{children}</>;
 }
 
+export function ensureI18nDefaults(): Promise<void> {
+    return Promise.resolve();
+}
+
 export default useTranslation;

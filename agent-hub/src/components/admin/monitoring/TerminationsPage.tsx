@@ -64,7 +64,7 @@ function TypeBadge({ type }: TypeBadgeProps) {
             padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600,
             background: meta.color + '15', color: meta.color, border: `1px solid ${meta.color}30`,
         }}>
-            <Icon style={{ width: 11, height: 11 }} />
+            <Icon className="w-[11px] h-[11px]" />
             {typeLabel(t, type)}
         </span>
     );
@@ -88,7 +88,7 @@ function LargeInputBadge() {
                 background: COLORS.amber + '15', color: COLORS.amber, border: `1px solid ${COLORS.amber}30`,
                 marginLeft: 6,
             }}>
-            <FileWarning style={{ width: 10, height: 10 }} />
+            <FileWarning className="w-[10px] h-[10px]" />
             {t('admin_monitoring.term_large_input', 'Large input')}
         </span>
     );
@@ -269,7 +269,7 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
                 {/* Filter row */}
                 <div className="[display:flex] [gap:8px] [margin-bottom:14px] [flex-wrap:wrap] [align-items:center]">
                     <div className="[display:flex] [align-items:center] [gap:6px] [padding:5px_10px] [border-radius:8px] [background:var(--bg-primary,#0f0f1a)] [border:1px_solid_var(--border-default,rgba(255,255,255,0.08))] [flex:0_1_220px]">
-                        <Search style={{ width: 12, height: 12, color: 'var(--text-muted, #888)' }} />
+                        <Search className="w-[12px] h-[12px] [color:var(--text-muted,#888)]" />
                         <input
                             value={search}
                             onChange={e => setSearch(e.target.value)}
@@ -278,14 +278,14 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
                         />
                     </div>
                     <div style={filterSelectWrapper}>
-                        <Filter style={{ width: 12, height: 12, color: 'var(--text-muted, #888)' }} />
+                        <Filter className="w-[12px] h-[12px] [color:var(--text-muted,#888)]" />
                         <select value={filterType} onChange={e => setFilterType(e.target.value)} style={filterSelectStyle}>
                             <option value="">{t('admin_monitoring.term_all_types', 'All types')}</option>
                             {TYPE_ORDER.map(ty => <option key={ty} value={ty}>{typeLabel(t, ty)}</option>)}
                         </select>
                     </div>
                     <div style={filterSelectWrapper}>
-                        <Bot style={{ width: 12, height: 12, color: 'var(--text-muted, #888)' }} />
+                        <Bot className="w-[12px] h-[12px] [color:var(--text-muted,#888)]" />
                         <select value={filterAgent} onChange={e => setFilterAgent(e.target.value)} style={filterSelectStyle}>
                             <option value="">{t('admin_monitoring.term_all_agents', 'All agents')}</option>
                             {agentOptions.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
@@ -377,7 +377,7 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
                                             background: COLORS.amber + '12', border: `1px solid ${COLORS.amber}30`,
                                             fontSize: 11, color: COLORS.amber, display: 'flex', gap: 6, alignItems: 'flex-start',
                                         }}>
-                                            <FileWarning style={{ width: 12, height: 12, marginTop: 1, flexShrink: 0 }} />
+                                            <FileWarning className="w-[12px] h-[12px] [margin-top:1px] [flex-shrink:0]" />
                                             <span>
                                                 <strong>{t('admin_monitoring.term_likely_large', 'Likely caused by large input.')}</strong>{' '}
                                                 {r.attachment_bytes >= LARGE_ATTACHMENT_BYTES_THRESHOLD

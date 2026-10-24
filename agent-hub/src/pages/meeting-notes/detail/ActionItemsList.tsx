@@ -150,7 +150,7 @@ function ActionItemRow({ item, editing, draft, onDraftChange, onToggle, onStartE
                     borderColor: item.done ? 'var(--accent-primary)' : 'var(--border-default)',
                 }}
             >
-                {item.done && <Check className="w-3 h-3" style={{ color: 'var(--accent-primary-fg)' }} aria-hidden="true" />}
+                {item.done && <Check className="w-3 h-3 [color:var(--accent-primary-fg)]" aria-hidden="true" />}
             </button>
             <div className="flex-1 min-w-0">
                 {editing ? (
@@ -228,14 +228,13 @@ function ActionItemMeta({ item, onSeek, meeting, onSetDestination, t }: ActionIt
 }
 
 /**
- * "Bewaard" — de nieuwste AI-pass leverde dit punt niet meer op, maar het is
- * blijven staan omdat iemand het had afgevinkt of de tekst had overgetypt.
+ * "Kept": the newest AI pass no longer produced this point, but it has stayed because
+ * someone ticked it off or retyped the text.
  *
- * De server kan zo'n punt niet meer herkennen in de verse lijst (zie
- * `anchorKey` in server/core/meetingNotes/actionItems.js) en weggooien-en-
- * opnieuw-aanmaken zou de menselijke invoer alsnog wissen. Dus blijft het
- * staan — en dan moet de kaart dat ZEGGEN, anders beweert hij dat de AI dit
- * zojuist heeft opgeleverd.
+ * The server can no longer recognise such a point in the fresh list (see `anchorKey`
+ * in server/core/meetingNotes/actionItems.js), and throw-away-and-create-again would
+ * wipe the human input after all. So it stays, and then the card must SAY that,
+ * otherwise it claims that the AI has just produced it.
  */
 function KeptChip({ t }: { t: TranslateFn }) {
     return (

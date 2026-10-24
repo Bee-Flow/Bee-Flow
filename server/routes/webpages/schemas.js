@@ -1,23 +1,22 @@
 // @typecheck
 /**
- * De zod-woordenschat waaruit de verzoekschema's van deze router zijn gebouwd.
+ * The zod vocabulary from which the request schemas of this router are built.
  *
- * Elke body hieronder is `.strict()`, en op deze router is dat het hele punt:
- * een sleutel die niemand las viel van het lijstje af, onder een 200 die
- * eruitzag als "opgeslagen". Op drie plekken deed hij meer dan dat — hij
- * WISTE iets (de chatgeschiedenis), of maakte een gepubliceerde pagina weer
- * privé zonder het te zeggen.
+ * Every body below is `.strict()`, and on this router that is the whole point:
+ * a key that nobody read dropped off the list, under a 200 that looked like "saved".
+ * In three places it did more than that — it WIPED something (the chat history), or made
+ * a published page private again without saying so.
  *
- * Drie vallen zitten hier één keer dicht zodat geen enkele route ze heropent:
+ * Three traps are closed here once, so that no single route reopens them:
  *
- *   • `worded()` — zonder `required_error` antwoordt zod op een ontbrekend
- *     veld met het kale woord "Required", en dat mag een beller nooit lezen.
- *   • enums — `invalid_type_error` dekt alleen een verkeerd TYPE, nooit een
- *     verkeerde WAARDE. Elke enum hier draagt daarom een `errorMap`; zie de
- *     kop van core/http/validate.js.
- *   • `flag()` — het "ja" op de query string. Een URL draagt geen booleans,
- *     dus beide spellingen die een client echt verstuurt tellen, en al het
- *     andere is een 400 in plaats van stilzwijgend "nee".
+ *   • `worded()` — without `required_error` zod answers a missing field with the
+ *     bare word "Required", and a caller must never read that.
+ *   • enums — `invalid_type_error` only covers a wrong TYPE, never a wrong VALUE.
+ *     Every enum here therefore carries an `errorMap`; see the header of
+ *     core/http/validate.js.
+ *   • `flag()` — the "yes" in the query string. A URL carries no booleans, so both
+ *     spellings that a client really sends count, and everything else is a 400
+ *     instead of silently "no".
  */
 
 'use strict';
@@ -25,7 +24,7 @@
 const { z, onUnknownKeys, typeError } = require('../../utils/zod');
 const { worded, choice } = require('../../core/http/schemaParts');
 
-/** Een body die óók geen body accepteert: Express 5 laat `req.body` dan undefined. */
+/** A body that also accepts no body: Express 5 then leaves `req.body` undefined. */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape).strict(),
@@ -36,7 +35,7 @@ const flag = (message) => choice(['true', '1', 'false', '0'], message)
     .transform((v) => v === 'true' || v === '1')
     .optional();
 
-/** Tekst die een mens typt: getrimd, niet leeg. */
+/** Text that a person types: trimmed, not empty. */
 const text = (message, max = 2000) => worded(message).trim().min(1, message).max(max, message);
 
 /** Een geheel getal op de query string. */

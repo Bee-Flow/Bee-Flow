@@ -103,9 +103,7 @@ const FromGmeetBody = bodyOf({
     event_id: worded('event_id is het id van een agendapunt.').trim().min(1).optional(),
     meeting_code: worded('meeting_code is de code van een Meet-vergadering.').trim().min(1).optional(),
     meet_link: worded('meet_link is een Meet-link.').trim().min(1).optional(),
-    // Stond er zonder enige controle en reist door tot in de transcriptie:
-    // een verkeerd gespelde sleutel liet een Engelse opname in de
-    // standaardtaal transcriberen, en dat is aan het antwoord niet te zien.
+    // Was set without any check and carried through into the transcription: a misspelled key let an English recording be transcribed in the default language, and that cannot be seen from the answer.
     language: worded('language is een taalcode.').trim().min(1).optional(),
     title: worded('Een titel is tekst.').optional(),
     context_terms: worded('context_terms is tekst.').optional(),
@@ -127,10 +125,7 @@ router.get('/gmeet-meetings', requireAuth, validate({ query: NO_QUERY }), async 
     const { listUpcomingMeetMeetings } = require('../../core/meetingNotes/gmeetCalendar');
     const meetings = await listUpcomingMeetMeetings({ session, windowHours: 48 });
 
-    // De per-vergadering keuze komt uit meeting_prefs (M5). `excluded` is de
-    // EFFECTIEVE stand van de schakelaar in de Gepland-lijst, dus inclusief
-    // de 1-op-1-standaard; de globale autoImport-schakelaar telt daar
-    // bewust niet in mee (fallback: true) — die staat al in de statuschip.
+    // The per-meeting choice comes from meeting_prefs (M5). `excluded` is the EFFECTIVE state of the switch in the Scheduled list, so including the 1-on-1 default; the global autoImport switch deliberately does not count in there (fallback: true) — it is already in the status chip.
     const meetingPrefs = require('../../stores/meetingPrefsStore');
     const prefs = await meetingPrefs.loadMeetingPrefs({ provider: 'gmeet', userId, orgId: userOrgId });
 
@@ -145,11 +140,7 @@ router.get('/gmeet-meetings', requireAuth, validate({ query: NO_QUERY }), async 
         // Zie de Talk-variant: de tags van de AFSPRAAK, read-only op het scherm.
         const tags = prefs.tagsFor(ids);
         const excluded = !decision.record;
-        // Bij Meet is de agenda de ENIGE bron voor het deelnemersaantal —
-        // er is geen live telling zoals bij Talk, want er wordt niets
-        // gestart maar geoogst. De uitkomst is hier dus altijd beslist, en
-        // dat zegt de route expliciet: het scherm mag geen "we kijken nog"
-        // tonen bij een provider die niet meer gaat kijken.
+        // With Meet, the calendar is the ONLY source for the participant count — there is no live count as with Talk, because nothing is started here but harvested. The outcome here is therefore always decided, and the route says so explicitly: the screen may not show "we are still looking" for a provider that is no longer going to look.
         const recordDecided = true;
         const organizerSelf = m.organizerSelf === true;
         let importedNoteId = null;
@@ -182,11 +173,7 @@ router.get('/gmeet-meetings', requireAuth, validate({ query: NO_QUERY }), async 
     res.json({
         connection,
         autoImport: settings.autoImport,
-        // De voetregel moet kunnen zeggen dat DEZE knop ook Meets EIGEN
-        // auto-opname kan aanzetten — en Meet kondigt een lopende opname
-        // altijd aan bij alle deelnemers. Zonder dit veld eindigde de zin
-        // op "They are not notified" terwijl de knop eronder precies dat
-        // wél kon veroorzaken. `hasSettingsScope` zit al in `connection`.
+        // The footer line must be able to say that THIS button can also switch on Meet's OWN auto-recording — and Meet always announces an ongoing recording to all participants. Without this field the sentence ended on "They are not notified" while the button beneath it could cause exactly that. `hasSettingsScope` is already in `connection`.
         autoRecordConfig: settings.autoRecordConfig === true,
         count: out.length,
         meetings: out,
@@ -203,9 +190,7 @@ router.patch('/gmeet-meetings/:eventId', requireAuth, validate({ body: GmeetPref
     const eventId = req.params.eventId;
     const { record, meetingCode, applyToSeries, organizerSelf } = req.body;
     const { resolveGmeetNotesSettings } = require('../../core/meetingNotes/gmeetNotesSettings');
-    // Schrijft de voorkeur van DEZE gebruiker (meeting_prefs); een andere
-    // deelnemer aan dezelfde vergadering houdt zijn eigen rij.
-    // `applyToSeries` zet hem ook op de meetingCode — de hele serie.
+    // Writes the preference of THIS user (meeting_prefs); another participant in the same meeting keeps their own row. `applyToSeries` also sets it on the meetingCode — the whole series.
     const meetingPrefs = require('../../stores/meetingPrefsStore');
     await meetingPrefs.setRecord({
         provider: 'gmeet',
@@ -217,11 +202,7 @@ router.patch('/gmeet-meetings/:eventId', requireAuth, validate({ body: GmeetPref
         record,
     });
 
-    // Wat er NA de schrijf geldt, niet wat er gevraagd werd. Eén FALSE
-    // wint — een org-brede rij, of de serie-rij op de meetingCode terwijl
-    // je één occurrence aanzette. Zonder dit antwoordde de route `record:
-    // true`, sprong de rij op "Record", en stond hij bij de volgende load
-    // weer op "Skip" zonder dat het scherm iets had uitgelegd.
+    // What applies AFTER the write, not what was asked. One FALSE wins — an org-wide row, or the series row on the meetingCode while you switched one occurrence on. Without this, the route answered `record: true`, the row jumped to "Record", and at the next load it stood on "Skip" again without the screen having explained anything.
     const patchOrgId = await resolveUserOrgFromReq(req);
     const after = await meetingPrefs.loadMeetingPrefs({ provider: 'gmeet', userId, orgId: patchOrgId });
     const opinion = after.opinionFor(meetingPrefs.gmeetIds({ eventId, meetingCode: meetingCode || null }));

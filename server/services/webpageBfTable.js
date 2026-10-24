@@ -1,122 +1,80 @@
 /**
- * Het `bf-*`-vocabulaire → STATISCHE HTML, voor de publieke snapshot.
+ * The `bf-*` vocabulary → STATIC HTML, for the public snapshot.
  *
- * ── WAAROM DIT EEN ANDER PAD IS, EN GEEN VARIANT ────────────────────
+ * ── WHY THIS IS A DIFFERENT PATH, AND NOT A VARIANT ────────────────────
  *
- * Voor een ingelogde lezer haalt de pagina zijn rijen zelf op via
- * `window.beeflowTables` (routes/webpagesPreviewTables.js), als DIE BEZOEKER,
- * met diens eigen graad. Op `/w/<slug>` bestaat dat mechanisme niet: een
- * publieke share is een script-vrije, door DOMPurify gehaalde snapshot en de
- * anonieme brug kent alleen /ai/chat en /ai/stream. Er is dus niemand om "als"
- * te lezen en geen JS om het mee te doen.
+ * For a logged-in reader the page fetches its rows itself via
+ * `window.beeflowTables` (routes/webpagesPreviewTables.js), as THAT VISITOR,
+ * with their own grade. On `/w/<slug>` that mechanism does not exist: a public share is a script-free snapshot passed through DOMPurify, and the anonymous bridge only knows /ai/chat and /ai/stream. So there is nobody to read "as" and no JS to do it with.
  *
- * Daarom worden de elementen hier, op het moment van publiceren, ÉÉN keer
- * uitgeklapt tot gewone HTML — vóór DOMPurify, zodat wat er overblijft
- * doodgewone opmaak is en het `bf-*`-element zelf verdwijnt.
+ * That is why the elements here are, at the moment of publishing, expanded ONCE into plain HTML — before DOMPurify, so that what remains is
+ * ordinary markup and the `bf-*` element itself disappears.
  *
- * ── TWEE SOORTEN ELEMENT, EN ALLEBEI MOETEN ZE IETS ACHTERLATEN ─────
+ * ── TWO KINDS OF ELEMENT, AND BOTH MUST LEAVE SOMETHING BEHIND ─────
  *
- * `VANILLA_HANDLING` hieronder spreekt zich over élk element uit, in twee
- * standen:
+ * `VANILLA_HANDLING` below speaks for EVERY element, in two modes:
  *
- *   expand  — het element leest data (`bf-table`, `bf-stat`) en wordt hier tot
- *             gewone opmaak gerenderd uit `publicColumns`;
- *   inert   — het element heeft JS nodig (`bf-button`, `bf-form`, `bf-agent`)
- *             en er draait hier geen JS. Het wordt uitgeklapt tot een blok dat
- *             ZELF vertelt dat het in de gepubliceerde kopie niet werkt.
+ *   expand  — the element reads data (`bf-table`, `bf-stat`) and is rendered here to
+ *             plain markup from `publicColumns`;
+ *   inert   — the element needs JS (`bf-button`, `bf-form`, `bf-agent`)
+ *             and no JS runs here. It is expanded into a block that SAYS ITSELF that it does not work in the published copy.
  *
- * Die tweede stand is de hele reden dat deze module over meer dan tabellen
- * gaat. Zonder uitklappen pakt DOMPurify een onbekend element stilzwijgend uit
- * (`KEEP_CONTENT: true`, en `ADD_TAGS` bevat alleen `iframe`): van
- * `<bf-button run="a1">Send</bf-button>` blijft letterlijk `Send` over — de
- * tag weg, de attributen weg, geen waarschuwing, geen spoor. De lezer ziet dan
- * een pagina waar een knop hoorde te staan, zonder te weten dat er iets weg is.
- * Zetten we het element wél door de sanitizer heen (via `ADD_TAGS`), dan staat
- * er een knop die niets doet en dat ook niet zegt. Allebei fout, en om dezelfde
- * reden: dood mag, stil niet.
+ * That second mode is the whole reason this module is about more than tables. Without expanding,
+ * DOMPurify silently unwraps an unknown element (`KEEP_CONTENT: true`, and `ADD_TAGS` contains only `iframe`): from
+ * `<bf-button run="a1">Send</bf-button>` literally `Send` remains — the tag gone, the attributes gone, no warning, no trace. The reader then sees
+ * a page where a button should have stood, without knowing that something is missing. If we keep the element and pass it through the sanitiser (via `ADD_TAGS`), there is a button that does nothing and does not say so. Both wrong, for the same reason: dead is allowed, silent is not.
  *
- * `assertCoversVocabulary` gooit op REQUIRE-tijd als een element in de
- * handelingstabel ontbreekt, en `assertHandlingIsWorkable` als een tabel-ingang
- * niet waar te maken is (een `expand` zonder uitklapper, een `inert` zonder
- * tekst). Een element toevoegen zonder hier te beslissen laat de server dus
- * niet meer starten.
+ * `assertCoversVocabulary` throws at REQUIRE time if an element is missing from the action table, and `assertHandlingIsWorkable` if a table entry cannot be made good (an `expand` without an expander, an `inert` without
+ * text). So adding an element without deciding here stops the server from starting.
  *
- * ── DE POORT IS `publicColumns`, EN ALLEEN DIE ──────────────────────
+ * ── THE GATE IS `publicColumns`, AND ONLY THAT ──────────────────────
  *
- * Niet `columns`. `columns` zegt wat de PAGINA intern mag lezen;
- * `publicColumns` zegt wat er naar buiten mag, en de normalizer knipt dat al
- * tot een deelverzameling van `columns`. Leeg betekent GEEN kolom — er bestaat
- * met opzet geen waarde die "alles" zegt — dus een auteur die niets heeft
- * aangewezen publiceert niets. Dat is de default, en dat hoort het te blijven:
- * een lege lijst mag nooit "dan maar alle kolommen" gaan betekenen.
+ * Not `columns`. `columns` says what the PAGE may read internally;
+ * `publicColumns` says what may go outward, and the normaliser already trims that
+ * to a subset of `columns`. Empty means NO column — there is deliberately no value that says "all" — so an author who has designated nothing publishes nothing. That is the default, and it should stay that way: an empty list must never come to mean "then all columns after all".
  *
- * Dat geldt voor `bf-stat` net zo hard als voor `bf-table`, en op twee manieren
- * tegelijk. Een som over een kolom die niet in `publicColumns` staat publiceert
- * die kolom alsnog — samengevat, maar het is dezelfde data — dus die kolom moet
- * er zelf in staan. En een tabel zónder publieke kolom publiceert ook geen
- * `count`: hoeveel rijen er zijn is een uitspraak over die tabel, en over een
- * tabel waarvan niets publiek is doen we geen uitspraken.
+ * That holds for `bf-stat` just as hard as for `bf-table`, and in two ways at once. A sum over a column not in `publicColumns` would still publish that column — summarised, but it is the same data — so that column must itself be listed. And a table with NO public column does not publish a `count` either: how many rows there are is a statement about that table, and about a table of which nothing is public we make no statements.
  *
- * De rijen worden gelezen ALS DE EIGENAAR van de pagina. Dat is hier juist wél
- * goed: publiceren is een expliciete daad van de auteur, en wat hij publiceert
- * is een uittreksel van data die hij zelf mag zien. Een anonieme lezer heeft
- * geen graad, dus er valt niets anders te vragen. Precies daarom is de poort
- * eng: alleen de kolommen die de auteur bij "Openbaar zetten" heeft aangewezen.
+ * The rows are read AS THE OWNER of the page. That is actually right here: publishing is an explicit act by the author, and what he publishes is an excerpt of data that he himself may see. An anonymous reader has no grade, so there is nothing else to ask. Precisely for that reason the gate is narrow: only the columns the author designated under "Make public".
  *
- * ── ALLES WAT MISGAAT RENDERT NIETS ─────────────────────────────────
- * Niet gebonden, geen publieke kolommen, geen graad (meer), databank plat, of
- * een tabel die niet in één leesbeurt past: in al die gevallen komt er een leeg
- * blok terug, nooit het onbewerkte element en nooit een breder antwoord dan
- * gevraagd. "Onbekend" versmalt — en een getal dat over de helft van de rijen
- * gaat is erger dan geen getal.
+ * ── EVERYTHING THAT GOES WRONG RENDERS NOTHING ───────────────────────
+ * Unbound, no public columns, no grade (any more), database down, or a table that does not fit in one read: in all those cases an empty block comes back, never the unprocessed element and never a broader answer than asked. "Unknown" narrows — and a number that covers half the rows is worse than no number.
  *
- * ── DE DEFINITIE STAAT HIER NIET ────────────────────────────────────
+ * ── THE DEFINITION IS NOT STORED HERE ───────────────────────────────
  *
- * De tagnamen, de attributen (`source`, met `datatable` als oudere schrijfwijze,
- * `limit`, `agg`, …), de bovengrens en de teksten van de inerte meldingen komen
- * uit core/webpages/bfElements.js. Deze module houdt daar met opzet geen kopie
- * van: dat is precies de drift die W4 bestaat om te voorkomen. Zie de kop van
- * die module voor de vier sloten.
+ * The tag names, the attributes (`source`, with `datatable` as the older spelling, `limit`, `agg`, …), the upper bound and the texts of the inert notices come from core/webpages/bfElements.js. This module deliberately keeps no copy of that: that is precisely the drift that W4 exists to prevent. See the header of that module for the four locks.
  *
- * ── DE NAAM VAN DIT BESTAND LOOPT ACHTER ────────────────────────────
+ * ── THE NAME OF THIS FILE LAGS BEHIND ───────────────────────────────
  *
- * Het heet `webpageBfTable` omdat `bf-table` er als eerste in landde. Het is
- * inmiddels de uitklapper van het hele vocabulaire; de bestandsnaam is bewust
- * niet meegewijzigd om een hernoeming niet met deze stap te verweven.
+ * It is called `webpageBfTable` because `bf-table` landed in it first. It is by now the expander for the whole vocabulary; the file name was deliberately not changed, so that a rename is not interwoven with this step.
  */
 'use strict';
 
 const { JSDOM } = require('jsdom');
 
-// Als namespace, niet gedestructureerd: dan is één module één aanspreekpunt en
-// blijft de aanroep op de leesplek zichtbaar (en te vervangen in een test).
+// As a namespace, not destructured: then one module is one point of contact and
+// the call stays visible at the read site (and replaceable in a test).
 const bridgeGrants = require('../stores/webpage/bridgeGrants');
 const datatableAccess = require('../auth/datatableAccess');
 const datatableRuntime = require('../core/dataEngine/datatableRuntime');
 const bfElements = require('../core/webpages/bfElements');
 const log = require('../telemetry/log');
 
-/** De definities waar deze module over gaat. Eén plek, geen tweede lijst. */
+/** The definitions this module is about. One place, not a second list. */
 const TABLE = bfElements.getBfElement('bf-table');
 const STAT = bfElements.getBfElement('bf-stat');
 
 /**
- * Wat de VANILLA publieke snapshot met elk element van het vocabulaire doet.
+ * What the VANILLA public snapshot does with each element of the vocabulary.
  *
- *   expand  — deze module rendert hem hier en nu tot statische HTML uit
+ *   expand  — this module renders it here and now to static HTML from
  *             `publicColumns`;
- *   inert   — hij heeft JS nodig en dat is er hier niet, dus hij wordt
- *             uitgeklapt tot een blok dat ZELF meldt dat het niet werkt. De
- *             tekst van die melding staat in het vocabulaire
- *             (`surfaces.vanillaSnapshot.notice`), niet hier.
+ *   inert   — it needs JS and there is none here, so it is expanded into a block that itself reports that it does not work. The
+ *             text of that notice is in the vocabulary
+ *             (`surfaces.vanillaSnapshot.notice`), not here.
  *
- * Er is geen derde stand. Elk element in de registry SPREEKT ZICH AL UIT over
- * deze plek (`surfaces.vanillaSnapshot.state`), dus "nog niet bediend" zou hier
- * altijd een tegenspraak met die uitspraak zijn — en juist die tegenspraak is
- * onzichtbaar in de uitvoer: het element wordt dan niet uitgeklapt, DOMPurify
- * pakt hem zwijgend uit, en de pagina mist iets zonder dat iemand het merkt.
- * `assertHandlingIsWorkable` legt de tabel daarom naast de registry en gooit op
- * require-tijd bij het minste verschil.
+ * There is no third mode. Every element in the registry ALREADY SPEAKS for
+ * this place (`surfaces.vanillaSnapshot.state`), so "not yet handled" would here always be a contradiction with that statement — and precisely that contradiction is invisible in the output: the element is then not expanded, DOMPurify silently unwraps it, and the page is missing something without anyone noticing. `assertHandlingIsWorkable` therefore sets the table beside the registry and throws at require time on the slightest difference.
  */
 const VANILLA_HANDLING = Object.freeze({
     'bf-table': 'expand',
@@ -127,33 +85,28 @@ const VANILLA_HANDLING = Object.freeze({
 });
 bfElements.assertCoversVocabulary('services/webpageBfTable (vanilla snapshot)', VANILLA_HANDLING);
 
-/** Bovengrens per publieke tabel — een snapshot is een pagina, geen export. */
+/** Upper bound per public table — a snapshot is a page, not an export. */
 const PUBLIC_ROWS_MAX = bfElements.attributeSpec('bf-table', 'limit').max;
 const PUBLIC_CELL_MAX = 500;
 
 /**
- * Hoeveel rijen een `bf-stat` hoogstens optelt.
+ * How many rows a `bf-stat` adds up at most.
  *
- * Er is (nog) geen `readAggregate` op datatableRuntime, dus een som wordt
- * uitgerekend over de rijen die één leesbeurt oplevert. `readRows` klemt zelf op
- * `ROWS_PAGE_MAX`, dus verder vragen heeft geen zin — en past de tabel er niet
- * in, dan komt er GEEN getal (`hasMore` → leeg blok). Een getal dat over de
- * eerste 500 van 5000 rijen gaat, is niet "ongeveer goed": het is fout, en het
- * ziet er precies zo betrouwbaar uit als een goed getal.
+ * There is (as yet) no `readAggregate` on datatableRuntime, so a sum is calculated over the rows that one read yields. `readRows` itself clamps on `ROWS_PAGE_MAX`, so asking further is pointless — and if the table does not fit in it, then NO number comes (`hasMore` → empty block). A number that covers the first 500 of 5000 rows is not "roughly right": it is wrong, and it looks exactly as reliable as a correct number.
  */
 const PUBLIC_STAT_ROWS_MAX = STAT.reads.rowsMax;
 if (PUBLIC_STAT_ROWS_MAX > datatableRuntime.ROWS_PAGE_MAX) {
-    // Startfout, geen stille klem: als de registry meer rijen belooft dan één
-    // leesbeurt levert, is `hasMore` altijd waar en publiceert deze pagina nooit
-    // meer een getal — zonder dat iemand ziet waarom.
+    // Startup error, not a silent clamp: if the registry promises more rows than one
+    // read delivers, `hasMore` is always true and this page never publishes a number again
+    // — without anyone seeing why.
     throw new Error(`[WebpageBfTable] bf-stat vraagt ${PUBLIC_STAT_ROWS_MAX} rijen, maar één leesbeurt levert er `
         + `hoogstens ${datatableRuntime.ROWS_PAGE_MAX}.`);
 }
 
-/** De aggregaties die `bf-stat` kent — uit het vocabulaire, niet uit een lijst hier. */
+/** The aggregations that `bf-stat` knows — from the vocabulary, not from a list here. */
 const STAT_AGGREGATIONS = bfElements.attributeSpec('bf-stat', 'agg').values;
 
-/** Wat er in een inert blok wordt uitgeschakeld: alles wat bedienbaar oogt. */
+/** What gets disabled in an inert block: everything that looks operable. */
 const CONTROLS = 'button,input,select,textarea';
 
 /** Eén cel als tekst. Nooit HTML: alles gaat via textContent. */
@@ -174,28 +127,14 @@ function labelFor(meta, key) {
 }
 
 /**
- * Een leeg blok — wat er staat als er niets te tonen valt.
+ * An empty block — what is there when there is nothing to show.
  *
- * De reden-code gaat NIET het element in. Hij stond hier als
- * `data-bf-table="<reden>"`, en dat overleeft de sanitizer: DOMPurify laat
- * `data-*` staan (`ALLOW_DATA_ATTR` staat aan, en SANITIZE_HTML_CONFIG in
- * services/webpageSnapshot.js zet hem niet uit). De code kwam dus letterlijk in
- * de opgeslagen bytes terecht en was op /w/<slug> in de bron te lezen — een
- * anonieme bezoeker las 'unavailable' (de auteur mag de tabel niet meer lezen)
- * of 'read-failed' (de databank lag plat) precies uit elkaar, en zag 'empty'
- * verspringen zodra de tabel zijn eerste rij kreeg, want de reconciler
- * herschrijft de snapshot bij elke tabelmutatie.
+ * The reason code does NOT go into the element. It used to stand here as
+ * `data-bf-table="<reason>"`, and that survives the sanitiser: DOMPurify leaves `data-*` alone (`ALLOW_DATA_ATTR` is on, and SANITIZE_HTML_CONFIG in services/webpageSnapshot.js does not turn it off). The code therefore literally ended up in the stored bytes and could be read in the source on /w/<slug> — an anonymous visitor could tell 'unavailable' (the author may no longer read the table) and 'read-failed' (the database was down) apart, and saw 'empty' change as soon as the table got its first row, because the reconciler rewrites the snapshot on every table mutation.
  *
- * "Leeg" en "onleesbaar" moeten uit elkaar te houden blijven — dat is de reden
- * dat er meerdere codes zijn — maar aan de BEHEERDERSKANT, niet in wat naar
- * buiten gaat. Daarom staat de code nu in het log en is het blok zelf voor
- * elke reden hetzelfde.
+ * "Empty" and "unreadable" must stay distinct — that is why there are several codes — but on the ADMIN side, not in what goes outward. That is why the code now sits in the log and the block itself is the same for every reason.
  *
- * LET OP het verschil met een INERT blok hieronder. Een leeg blok hoort bij een
- * element dat hier wél had kunnen werken maar niets te tonen had; dat is een
- * toestand van de DATA en die gaat een anonieme lezer niet aan. Een inert blok
- * hoort bij een element dat hier per definitie niet werkt; dat is een
- * eigenschap van de GEPUBLICEERDE KOPIE en die moet de lezer juist wél zien.
+ * NOTE the difference with an INERT block below. An empty block belongs to an element that could have worked here but had nothing to show; that is a state of the DATA and not the anonymous reader's concern. An inert block belongs to an element that by definition does not work here; that is a property of the PUBLISHED COPY, and the reader must indeed see it.
  */
 function emptyBlock(document, def, reason) {
     const div = document.createElement('div');
@@ -248,9 +187,9 @@ function limitOf(attrs) {
  */
 function gateFor(source, ctx) {
     const binding = ctx.bindings.find(b => b && b.datatableId === source) || null;
-    // "We konden de bindingen niet lezen" is iets anders dan "deze tabel is niet
-    // gebonden", ook al is het blok in beide gevallen leeg: het eerste is een
-    // storing die je wilt zien, het tweede een keuze van de auteur.
+    // "We could not read the bindings" is something other than "this table is not
+    // bound", even though the block is empty in both cases: the first is a fault you want to
+    // see, the second a choice by the author.
     if (!binding) return { reason: ctx.grantsUnreadable ? 'bindings-unreadable' : 'not-bound' };
     // DE POORT. Niet `columns`: wat intern leesbaar is, is niet wat publiek mag.
     const publicColumns = Array.isArray(binding.publicColumns) ? binding.publicColumns : [];
@@ -262,9 +201,9 @@ function gateFor(source, ctx) {
 }
 
 /**
- * Waarom een lezing mislukte, zonder dat het verschil naar buiten lekt.
- * Geweigerd (graad weg) en onbereikbaar (databank plat) krijgen een ANDERE code
- * — in het LOG, want de bytes zijn voor beide gelijk.
+ * Why a read failed, without the difference leaking outward.
+ * Refused (access gone) and unreachable (database down) get a DIFFERENT code
+ * — in the LOG, because the bytes are the same for both.
  */
 function readFailureReason(err) {
     const reason = (err && err.safe === true) ? 'unavailable' : 'read-failed';
@@ -276,8 +215,8 @@ function readFailureReason(err) {
 
 /** Eén `<bf-table>`. Antwoordt altijd met een node — nooit met een uitzondering. */
 async function renderTableElement(document, el, ctx) {
-    // Attribuutnamen (en de oudere schrijfwijze `datatable`) komen uit het
-    // vocabulaire, niet uit een tweede lijst hier.
+    // Attribute names (and the older spelling `datatable`) come from the
+    // vocabulary, not from a second list here.
     const attrs = bfElements.readAttributes(TABLE.tag, el);
     const missing = bfElements.missingAttributes(TABLE.tag, attrs);
     if (missing.length) return emptyBlock(document, TABLE, `no-${missing[0]}`);
@@ -292,8 +231,8 @@ async function renderTableElement(document, el, ctx) {
             limit: limitOf(attrs),
         });
         if (!out.rows.length) return emptyBlock(document, TABLE, 'empty');
-        // `out.columns` is de doorsnede met wat de tabel nog heeft, dus een
-        // inmiddels verwijderde kolom levert geen lege kolomkop op.
+        // `out.columns` is the intersection with what the table still has, so a
+        // column that has since been deleted yields no empty column header.
         return renderTable(document, { columns: out.columns, meta: resolved.meta, rows: out.rows });
     } catch (err) {
         return emptyBlock(document, TABLE, readFailureReason(err));
@@ -301,12 +240,11 @@ async function renderTableElement(document, el, ctx) {
 }
 
 /**
- * Eén getal uit een gebonden tabel.
+ * One number from a bound table.
  *
- * Alleen `count` raakt geen enkele kolom aan; de vier andere wél, en die kolom
- * moet daarom zélf publiek zijn. Niet-getallen worden overgeslagen (een lege cel
- * is geen nul), en blijft er dan niets over, dan komt er geen getal in plaats
- * van een 0 die als een echt antwoord leest.
+ * Only `count` touches no column; the other four do, and that column
+ * must therefore itself be public. Non-numbers are skipped (an empty cell
+ * is not zero), and if nothing remains, then no number — not a 0 that reads as a real answer.
  */
 const AGGREGATIONS = Object.freeze({
     count: (rows) => rows.length,
@@ -317,14 +255,11 @@ const AGGREGATIONS = Object.freeze({
 });
 
 /**
- * Elke aggregatie die het vocabulaire kent, moet hier een uitvoering hebben.
+ * Every aggregation that the vocabulary knows must have an implementation here.
  *
- * Zonder deze toets was `AGGREGATIONS` een TWEEDE lijst naast
- * `STAT_AGGREGATIONS`: een zesde aggregatie in de registry kwam dan door de
- * poort (hij staat immers in `values`), viel hier door de bodem en werd een leeg
- * blok met de code 'no-number' — niet te onderscheiden van "er viel niets op te
- * tellen". Twee heel verschillende dingen, één leeg blok, één misleidend log.
- * Nu is het een startfout, net als de andere twee sloten in dit bestand.
+ * Without this check `AGGREGATIONS` was a SECOND list next to
+ * `STAT_AGGREGATIONS`: a sixth aggregation in the registry then got through the gate (it is after all in `values`), fell through the floor here and became an empty block with the code 'no-number' — indistinguishable from "there was nothing to count". Two very different things, one empty block, one misleading log.
+ * It is now a startup error, like the other two locks in this file.
  */
 function assertAggregationsAreImplemented(declared = STAT_AGGREGATIONS, implemented = AGGREGATIONS) {
     const names = Object.keys(implemented);
@@ -340,10 +275,9 @@ assertAggregationsAreImplemented();
 
 function aggregate(agg, rows, column) {
     const fn = AGGREGATIONS[agg];
-    // Kan niet: de poort liet alleen verklaarde aggregaties door en
-    // assertAggregationsAreImplemented gooide op require-tijd als er een miste.
-    // Maar "onbekende aggregatie" mag nooit hetzelfde antwoord worden als "er
-    // viel niets op te tellen".
+    // Cannot happen: the gate let through only declared aggregations, and
+    // assertAggregationsAreImplemented threw at require time if one was missing.
+    // But "unknown aggregation" must never become the same answer as "there was nothing to count".
     if (!fn) return null;
     if (agg === 'count') return fn(rows);
     const numbers = [];
@@ -358,9 +292,8 @@ function aggregate(agg, rows, column) {
 }
 
 /**
- * Het getal als tekst. Bewust NIET `toLocaleString`: de taal van de server is
- * niet de taal van de lezer, en een snapshot die per omgeving anders wordt
- * opgeschreven laat de reconciler bij elke herschrijving andere bytes opleveren.
+ * The number as text. Deliberately NOT `toLocaleString`: the server's language is not
+ * the reader's language, and a snapshot that is written differently per environment makes the reconciler produce different bytes on every rewrite.
  */
 function formatStatValue(n) {
     if (!Number.isFinite(n)) return '';
@@ -391,14 +324,14 @@ async function renderStatElement(document, el, ctx) {
     if (missing.length) return emptyBlock(document, STAT, `no-${missing[0]}`);
     // `effectiveAttributes` vult de verklaarde default in (`agg` → count).
     const eff = bfElements.effectiveAttributes(STAT.tag, attrs);
-    // Een aggregatie die het vocabulaire niet kent is geen "dan maar count":
-    // dat zou een ander getal opleveren dan er gevraagd is.
+    // An aggregation the vocabulary does not know is not "then just count":
+    // that would produce a different number than was asked for.
     if (!STAT_AGGREGATIONS.includes(eff.agg)) return emptyBlock(document, STAT, 'bad-agg');
 
     const gate = gateFor(eff.source, ctx);
     if (gate.reason) return emptyBlock(document, STAT, gate.reason);
-    // DE POORT, tweede beurt. Een som over een kolom die niet publiek is,
-    // publiceert die kolom alsnog — samengevat, maar het is dezelfde data.
+    // THE GATE, second round. A sum over a column that is not public
+    // publishes that column after all — summarised, but it is the same data.
     if (eff.agg !== 'count' && !gate.publicColumns.includes(eff.column)) {
         return emptyBlock(document, STAT, 'column-not-public');
     }
@@ -409,12 +342,12 @@ async function renderStatElement(document, el, ctx) {
             allowColumns: gate.publicColumns,
             limit: PUBLIC_STAT_ROWS_MAX,
         });
-        // Past de tabel niet in één leesbeurt, dan gaat dit getal over een deel
-        // van de rijen — en dat is niet te zien aan het getal. Liever niets.
+        // If the table does not fit in one read, this number covers part
+        // of the rows — and that is not visible from the number. Rather nothing.
         if (out.hasMore) return emptyBlock(document, STAT, 'too-many-rows');
-        // De kolom bestond bij het binden nog wel, maar staat niet meer in de
-        // tabel: `out.columns` is de doorsnede. Optellen over `undefined` zou
-        // hier een 0 opleveren die als een echt antwoord leest.
+        // The column still existed at binding time, but is no longer in the
+        // table: `out.columns` is the intersection. Summing over `undefined` would
+        // yield a 0 here that reads as a real answer.
         if (eff.agg !== 'count' && !out.columns.includes(eff.column)) {
             return emptyBlock(document, STAT, 'column-gone');
         }
@@ -426,7 +359,7 @@ async function renderStatElement(document, el, ctx) {
     }
 }
 
-/** De uitklappers, op tagnaam. Elke `expand` in VANILLA_HANDLING moet er een hebben. */
+/** The expanders, by tag name. Every `expand` in VANILLA_HANDLING must have one. */
 const EXPANDERS = Object.freeze({
     [TABLE.tag]: renderTableElement,
     [STAT.tag]: renderStatElement,
@@ -446,25 +379,24 @@ function disabledButton(document, label) {
 }
 
 /**
- * De VORM van een inert element, per soort.
+ * The SHAPE of an inert element, per kind.
  *
- * Alles wat de auteur zelf in het element schreef blijft staan — dat is van hem
- * — maar niets ervan mag er nog bedienbaar uitzien. Een lege plek en een levend
- * ogende knop zijn allebei fout; een zichtbaar uitgeschakelde knop met een
- * melding eronder is het antwoord.
+ * Everything the author wrote inside the element stays — that is his — but
+ * nothing of it may still look operable. An empty place and a lively-looking button
+ * are both wrong; a visibly disabled button with a notice beneath it is the answer.
  *
- * Nooit een `<form>`: DOMPurify heeft `form` in FORBID_TAGS staan en
- * `KEEP_CONTENT` laat de velden dan los staan — een half formulier zonder knop.
+ * Never a `<form>`: DOMPurify has `form` in FORBID_TAGS and
+ * `KEEP_CONTENT` then leaves the fields standing — a half form without a button.
  */
 const INERT_BODY = Object.freeze({
     'bf-button': (document, box, el, attrs) => {
-        // De tekst IN het element is bij deze soort het label, geen opmaak.
+        // The text INSIDE the element is the label for this kind, not markup.
         box.appendChild(disabledButton(document, attrs.label || (el.textContent || '').trim()));
     },
     'bf-form': (document, box, el, attrs) => {
         moveChildren(el, box);
-        // Alleen een knop als de auteur er een tekst voor gaf; er is geen
-        // Engelse standaardtekst om te verzinnen, en de melding zegt het al.
+        // Only a button if the author gave it a text; there is no
+        // English default text to invent, and the notice already says so.
         if (attrs['submit-label']) box.appendChild(disabledButton(document, attrs['submit-label']));
     },
     'bf-agent': (document, box, el, attrs) => {
@@ -479,17 +411,17 @@ const INERT_BODY = Object.freeze({
 });
 
 /**
- * Een element dat in de vanilla snapshot niets kan doen, ZICHTBAAR uitgeschakeld.
+ * An element that can do nothing in the vanilla snapshot, VISIBLY disabled.
  *
- * De melding is de enige tekst in deze module die de LEZER te zien krijgt, en
- * ze staat daarom niet hier maar in het vocabulaire — dezelfde zin die de
- * publieke brug op een react-share toont.
+ * The notice is the only text in this module that the READER gets to see, and
+ * it is therefore not here but in the vocabulary — the same sentence the
+ * public bridge shows on a react share.
  */
 function inertBlock(document, def, el) {
     const box = document.createElement('div');
-    // De tagnaam als CSS-klasse, net als bij een uitgeklapte tabel: de auteur
-    // schreef hem zelf, dus hij verklapt niets, en het is de enige haak die zijn
-    // eigen stijlblad heeft om dit blok mee te herkennen.
+    // The tag name as a CSS class, just as with an expanded table: the author
+    // wrote it himself, so it reveals nothing, and it is the only hook that his
+    // own stylesheet has to recognise this block by.
     box.setAttribute('class', `bf-inert ${def.tag}`);
     const attrs = bfElements.readAttributes(def.tag, el);
     const body = INERT_BODY[def.tag];
@@ -507,25 +439,24 @@ function inertBlock(document, def, el) {
 }
 
 /**
- * Wat de REGISTRY over deze plek zegt → wat deze module dan moet doen.
+ * What the REGISTRY says about this place → what this module must then do.
  *
- * De registry beslist wat er van een element overblijft; deze module voert dat
- * uit. Daarom is dit een vertaaltabel van twee ingangen en geen tweede mening:
- * "hier statisch" betekent uitklappen, "hier inert" betekent een zichtbaar
- * uitgeschakeld blok. De twee andere toestanden (`live`, `refused`) gaan over
- * andere plekken; komt er hier ooit een te staan, dan is dat een startfout en
- * geen stilte.
+ * The registry decides what remains of an element; this module carries that
+ * out. That is why this is a translation table of two entries and not a second opinion:
+ * "static here" means expand, "inert here" means a visibly disabled block. The two other states (`live`, `refused`) concern
+ * other places; if one ever appears here, that is a startup error
+ * and not silence.
  */
 const REQUIRED_HANDLING = Object.freeze({ static: 'expand', inert: 'inert' });
 
 /**
- * De handelingstabel moet WAAR TE MAKEN zijn, niet alleen volledig.
+ * The action table must be WORKABLE, not just complete.
  *
- * Draait op require-tijd, om dezelfde reden als `assertCoversVocabulary`. Drie
- * fouten, alle drie onzichtbaar in de uitvoer en hier alle drie een startfout:
- * een handeling die de registry tegenspreekt (het element wordt dan niet
- * uitgeklapt en DOMPurify pakt hem zwijgend uit), een `expand` zonder
- * uitklapper, en een `inert` zonder melding.
+ * Runs at require time, for the same reason as `assertCoversVocabulary`. Three
+ * errors, all three invisible in the output and here all three a startup error:
+ * an action that contradicts the registry (the element is then not
+ * expanded and DOMPurify silently strips it), an `expand` without
+ * an expander, and an `inert` without a notice.
  */
 function assertHandlingIsWorkable(handling = VANILLA_HANDLING, expanders = EXPANDERS, bodies = INERT_BODY) {
     const problems = [];
@@ -548,10 +479,10 @@ function assertHandlingIsWorkable(handling = VANILLA_HANDLING, expanders = EXPAN
             problems.push(`${tag} staat op "inert", maar draagt geen melding — dan is de inertie net zo stil `
                 + 'als wanneer DOMPurify hem had uitgepakt');
         }
-        // Spiegelbeeld van de expand-kant hierboven. Zonder deze regel was
-        // INERT_BODY een TWEEDE, ongecontroleerde lijst: een nieuw inert element
-        // kreeg dan wél zijn melding maar geen VORM — geen uitgeschakelde knop,
-        // geen uitgeschakeld veld — en niets dat zei dat die er hoorde te zijn.
+        // The mirror image of the expand side above. Without this rule
+        // INERT_BODY was a SECOND, unchecked list: a new inert element
+        // then got its notice but no SHAPE — no disabled button,
+        // no disabled field — and nothing said that one should be there.
         if (verdict === 'inert' && !bodies[tag]) {
             problems.push(`${tag} staat op "inert", maar INERT_BODY zegt niets over zijn vorm; dan blijft er `
                 + 'alleen de melding staan en is niet te zien dat hier een knop of een veld hoorde');
@@ -568,23 +499,22 @@ function assertHandlingIsWorkable(handling = VANILLA_HANDLING, expanders = EXPAN
 assertHandlingIsWorkable();
 
 /**
- * `<bf-table … />` sluiten, want HTML doet dat niet.
+ * Closing `<bf-table … />`, because HTML does not do that.
  *
- * Een custom element KAN in HTML niet zelfsluitend zijn: de parser leest
- * `<bf-table source="t"/>` als een gewone openingstag en stopt de HELE rest van
- * het document erin als kinderen. `el.replaceWith(...)` gooit die kinderen
- * daarna weg — dus alles wat na het element stond, verdween uit de gepubliceerde
- * pagina zonder één waarschuwing. Bij `<bf-form/>` gebeurt het omgekeerde en net
- * zo fout: de hele pagina wordt het inerte blok in getrokken en elk formulier-
- * element erin uitgeschakeld.
+ * A custom element CANNOT be self-closing in HTML: the parser reads
+ * `<bf-table source="t"/>` as an ordinary opening tag and puts the WHOLE rest of the document
+ * inside it as children. `el.replaceWith(...)` then throws those children
+ * away — so everything that came after the element disappeared from the published
+ * page without one warning. With `<bf-form/>` the reverse happens and just as
+ * wrongly: the whole page is pulled into the inert block and every form
+ * element in it is disabled.
  *
- * `/>` is precies de gewoonte die een taalmodel meebrengt uit JSX, en de
- * bouwer-prompt vertelt het model sinds W4 actief om deze elementen te
- * schrijven. Daarom herstellen we de schrijfwijze in plaats van erop te
- * vertrouwen.
+ * `/>` is exactly the habit a language model brings from JSX, and the
+ * builder prompt has actively told the model since W4 to write these
+ * elements. That is why we repair the spelling instead of relying on it.
  *
- * Alleen `bf-*`-openingstags, en de scanner respecteert aanhalingstekens, zodat
- * `label="a/b"` geen valse sluiting oplevert.
+ * Only `bf-*` opening tags, and the scanner respects quotation marks, so
+ * `label="a/b"` gives no false closing.
  */
 function closeSelfClosingBfTags(src) {
     const re = new RegExp(bfElements.BF_TAG_SCAN.source, 'gi');
@@ -593,8 +523,8 @@ function closeSelfClosingBfTags(src) {
     let m;
     while ((m = re.exec(src)) !== null) {
         const tag = String(m[1] || '').toLowerCase();
-        // Alleen elementen die we kennen: een onbekende tag laten we onaangeraakt
-        // (we kunnen hem toch niet eerlijk vervangen) en hij wordt apart gemeld.
+        // Only elements we know: an unknown tag we leave untouched
+        // (we cannot replace it honestly anyway) and it is reported separately.
         if (!bfElements.isKnownBfTag(tag)) continue;
         let i = m.index + m[0].length;
         let quote = null;
@@ -627,12 +557,12 @@ function closeSelfClosingBfTags(src) {
 async function expandBfElements(html, { webpageId, ownerId } = {}) {
     const src = typeof html === 'string' ? html : '';
 
-    // Onbekende `bf-*`-elementen HOORBAAR maken. DOMPurify pakt een onbekend
-    // element zonder één waarschuwing uit (KEEP_CONTENT: true, ADD_TAGS kent
-    // alleen `iframe`), dus `<bf-widget x="1">Klik</bf-widget>` wordt letterlijk
-    // `Klik` — tag weg, attributen weg, geen spoor. Wie wil weten dát er iets
-    // onbekends stond, moet het hiervóór tellen. Aanraken doen we ze niet: wat
-    // we niet kennen, kunnen we ook niet eerlijk vervangen.
+    // Make unknown `bf-*` elements AUDIBLE. DOMPurify strips an unknown
+    // element without a single warning (KEEP_CONTENT: true, ADD_TAGS knows
+    // only `iframe`), so `<bf-widget x="1">Click</bf-widget>` becomes literally
+    // `Click` — tag gone, attributes gone, no trace. Whoever wants to know THAT something
+    // unknown stood there must count them before this. Touching them we do not: what
+    // we do not know, we cannot honestly replace either.
     const scan = bfElements.scanBfTags(src);
     for (const tag of scan.unknown) {
         log.warn('[WebpageBfTable] unknown bf-* element in a published page, it will be stripped silently:', tag);
@@ -644,10 +574,10 @@ async function expandBfElements(html, { webpageId, ownerId } = {}) {
     const dom = new JSDOM(closeSelfClosingBfTags(src));
     const { document } = dom.window;
     const selector = scan.known.join(',');
-    // `<template>` telt mee. `querySelectorAll` kijkt NIET in `template.content`
-    // (dat is een eigen document-fragment), dus een element daarin werd hier
-    // overgeslagen en verdween daarna spoorloos in DOMPurify: het enige geval
-    // waarin een BEKEND element net zo stil weg was als een onbekend.
+    // `<template>` counts. `querySelectorAll` does NOT look inside `template.content`
+    // (that is its own document fragment), so an element in there was skipped here and
+    // then vanished without trace in DOMPurify: the only case in which a KNOWN element went
+    // as silently missing as an unknown one.
     const roots = [document];
     for (let i = 0; i < roots.length; i++) {
         for (const tpl of roots[i].querySelectorAll('template')) roots.push(tpl.content);
@@ -655,9 +585,9 @@ async function expandBfElements(html, { webpageId, ownerId } = {}) {
     const elements = roots.flatMap(root => [...root.querySelectorAll(selector)]);
     if (!elements.length) return src;
 
-    // De grants en de principal worden pas gelezen als er echt een element is
-    // dat data nodig heeft: een pagina met alleen een `bf-button` hoort geen
-    // enkele tabelbinding op te vragen.
+    // The grants and the principal are only read when there really is an element that
+    // needs data: a page with only a `bf-button` should not request any
+    // table binding at all.
     const ctx = {
         webpageId, ownerId, loaded: false, bindings: [], principal: null,
         grantsUnreadable: false, principalUnreadable: false,
@@ -665,12 +595,12 @@ async function expandBfElements(html, { webpageId, ownerId } = {}) {
 
     for (const el of elements) {
         const def = bfElements.getBfElement(el.tagName);
-        // Kan niet: querySelectorAll draaide op precies deze lijst. Maar een
-        // ontbrekende definitie mag nooit een stille verdwijning worden.
+        // Cannot happen: querySelectorAll ran on exactly this list. But a
+        // missing definition must never become a silent disappearance.
         if (!def) continue;
-        // De handelingstabel IS de dispatch, niet een verklaring ernaast: zo kan
-        // er geen element zijn dat op "inert" staat en toch wordt uitgeklapt
-        // omdat er toevallig een uitklapper voor bestaat.
+        // The action table IS the dispatch, not an explanation alongside it: that way
+        // there can be no element that is marked "inert" and yet gets expanded
+        // merely because an expander happens to exist for it.
         const expander = VANILLA_HANDLING[def.tag] === 'expand' ? EXPANDERS[def.tag] : null;
         if (expander) {
             await loadDataContext(ctx);
@@ -689,12 +619,12 @@ async function loadDataContext(ctx) {
     let grants = null;
     try { grants = await bridgeGrants.getBridgeGrants(ctx.webpageId); }
     catch (err) {
-        // NIET stil naar "niets gebonden". De reconciler herschrijft de snapshot
-        // bij ELKE tabelmutatie, dus één databankhikje hier zou de pagina
-        // opnieuw publiceren met een lege tabel, en het enige spoor zou
-        // 'not-bound' zeggen — niet te onderscheiden van een pagina die nooit
-        // een binding had. "Leeg" en "onleesbaar" blijven uit elkaar, aan de
-        // BEHEERDERSKANT; de bytes die naar buiten gaan zijn voor beide gelijk.
+        // NOT silently to "nothing bound". The reconciler rewrites the snapshot
+        // on EVERY table mutation, so one database hiccup here would republish the page
+        // with an empty table, and the only trace would say
+        // 'not-bound' — indistinguishable from a page that never
+        // had a binding. "Empty" and "unreadable" stay apart, on the
+        // ADMIN side; the bytes that go outward are the same for both.
         log.error('[WebpageBfTable] could not read the page bindings:', err && err.message);
         ctx.grantsUnreadable = true;
         grants = null;
@@ -715,8 +645,8 @@ module.exports = {
     expandBfElements,
     PUBLIC_ROWS_MAX,
     PUBLIC_STAT_ROWS_MAX,
-    // De beslissing van DEZE plek over het hele vocabulaire; de drifttest legt
-    // hem naast core/webpages/bfElements.js.
+    // This place's decision about the whole vocabulary; the drift test sets
+    // it beside core/webpages/bfElements.js.
     VANILLA_HANDLING,
     // test-only
     _closeSelfClosingBfTags: closeSelfClosingBfTags,

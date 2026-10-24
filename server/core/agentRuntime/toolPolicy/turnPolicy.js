@@ -68,10 +68,10 @@ function buildToolPolicy({ agentConfig, tools, unattended = false, automationCon
         // precisely the one whose name must not then sail through gate 1 into
         // the dispatcher's own automation lookup.
         if (hasOverride) sawOverride = true;
-        // Een override mag VERSMALLEN, nooit verbreden: de sends-regel is de
-        // bodem. Een automatisering die verstuurt blijft 'ask', ook als de opgeslagen
-        // grant 'direct' zegt — anders zet één veld in de kiezer de hele
-        // bevestigingsplicht op verzendende automations uit.
+        // An override may NARROW, never widen: the sends rule is the floor.
+        // An automation that sends stays 'ask', even if the stored grant says 'direct';
+        // otherwise one field in the picker would switch off the confirmation duty
+        // on sending automations entirely.
         const baseConfirm = confirmForTool(name, toolsConfig);
         const confirm = (hasOverride && !(baseConfirm === 'ask' && overrideConfirm === 'direct'))
             ? overrideConfirm

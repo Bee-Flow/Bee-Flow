@@ -137,13 +137,13 @@ function AddAppForm({ webpageId, catalog, onGranted, onError }: AddAppFormProps)
                 >
                     <option value="">{t('webpages.apps.choose_app', 'Choose an app…')}</option>
                     {/*
-                      * DRIE standen, niet twee. `available === null` betekent
-                      * "de statuscontrole is niet gelukt" — daar heeft dit
-                      * paneel al een eigen banner voor (discovery_failed) en de
-                      * pil hiernaast zegt "Status unknown". Zo'n app UITZETTEN
-                      * en er "not connected" bij schrijven vertelt de auteur
-                      * dat hij een koppeling moet gaan maken die er misschien
-                      * gewoon is, en laat hem intussen niet kiezen.
+                      * THREE states, not two. `available === null` means
+                      * "the status check did not succeed" — this panel already
+                      * has its own banner for that (discovery_failed), and the
+                      * pill beside it says "Status unknown". Switching such an
+                      * app OFF and writing "not connected" beside it tells the
+                      * author that he must create a connection that may well
+                      * simply exist, and meanwhile does not let him choose it.
                       */}
                     {apps.map(a => (
                         <option key={a.id} value={a.id} disabled={a.available === false}>
@@ -303,9 +303,9 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }: Webpag
     // (or any future change) returns a fresh object per render — the exact
     // loop the hook's own useMemo warns about.
     const { t } = useTranslation();
-    // Zelfde reden als apiRef hierboven: zonder TranslationProvider is t bij
-    // elke render een nieuwe functie, en in de deps van load() zou dat het
-    // laad-effect eindeloos opnieuw laten vuren.
+    // The same reason as apiRef above: without a TranslationProvider, t is a new
+    // function on every render, and in the deps of load() that would fire the
+    // load effect endlessly.
     const tRef = React.useRef(t);
     tRef.current = t;
     const apiRef = React.useRef<AutomationApi | null>(null);
@@ -429,11 +429,10 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }: Webpag
                     <section className="flex flex-col gap-1">
                         <span className="text-[11px] font-medium text-[var(--vsc-fg-muted)]">{t('webpages.apps.section_apps', 'Apps')}</span>
                         {grantedIntegrations.length === 0 ? (
-                            // `grants` blijft null als de lezing omviel, en dan
-                            // is deze lijst leeg zonder dat er iets geteld is.
-                            // "No apps yet" is een bewering; de auteur zou vijf
-                            // verleende koppelingen niet zien en ze dus ook niet
-                            // kunnen intrekken.
+                            // `grants` stays null if the read failed, and then this list is empty without
+                            // anything having been counted. "No apps yet" is a claim: the author
+                            // would not see five granted connections and therefore could not revoke
+                            // them either.
                             <p className="text-[11px]" style={{ color: grants ? 'var(--vsc-fg-muted)' : '#d97706' }} data-testid="apps-empty">
                                 {grants
                                     ? t('webpages.apps.none_yet', 'No apps yet. Add one so the page can read or act in tools you already use.')
@@ -444,7 +443,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }: Webpag
                                 key={g.tool}
                                 className="group flex items-center gap-2 px-2 py-1.5 rounded border border-[var(--vsc-border)] bg-[var(--vsc-editor-bg)]"
                             >
-                                <Plug size={13} className="shrink-0" style={{ color: 'var(--vsc-fg-muted)' }} />
+                                <Plug size={13} className="shrink-0 [color:var(--vsc-fg-muted)]" />
                                 <div className="min-w-0 flex-1">
                                     <div className="truncate" title={g.tool}>
                                         {g.label || (g.tool || '').replace(/_/g, ' ')}
@@ -519,7 +518,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }: Webpag
                                 key={g.automationId}
                                 className="group flex items-center gap-2 px-2 py-1.5 rounded border border-[var(--vsc-border)] bg-[var(--vsc-editor-bg)]"
                             >
-                                <Workflow size={13} className="shrink-0" style={{ color: 'var(--vsc-fg-muted)' }} />
+                                <Workflow size={13} className="shrink-0 [color:var(--vsc-fg-muted)]" />
                                 <span className="min-w-0 flex-1 truncate" title={g.automationId}>
                                     {g.label || g.automationId}
                                 </span>

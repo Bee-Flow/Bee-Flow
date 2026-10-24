@@ -3,17 +3,13 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
- * De strip + de legenda van de Code-tab.
+ * The strip + the legend of the Code tab.
  *
- * `api()` is gemockt; de fixture spiegelt de `elements`-sectie van
- * GET /api/webpages/:id/bindings (server: core/webpages/webpageBindings.js).
+ * `api()` is mocked; the fixture mirrors the `elements` section of GET /api/webpages/:id/bindings (server: core/webpages/webpageBindings.js).
  *
- * Wat hier vastligt is wat dit scherm mag BEWEREN. De harde regel: een pagina
- * waarvan de markeringen niet konden worden berekend mag er niet uitzien als
- * een pagina zonder koppelingen. Die twee zinnen moeten dus verschillend zijn,
- * en beide standen worden hieronder apart getoetst.
+ * What is fixed here is what this screen may CLAIM. The hard rule: a page whose markers could not be computed may not look like a page without bindings. Those two sentences must therefore differ, and both states are tested separately below.
  *
- * Draaien: cd agent-hub && ./node_modules/.bin/vitest run src/pages/webpages/WebpageCodeStrip.test.jsx
+ * Run: cd agent-hub && ./node_modules/.bin/vitest run src/pages/webpages/WebpageCodeStrip.test.jsx
  */
 
 const api = vi.fn();
@@ -105,8 +101,8 @@ describe('de legenda', () => {
 
         expect(await screen.findByText('Highlighted = Studio link')).toBeInTheDocument();
         expect(screen.getByText(/Data table · 1/)).toBeInTheDocument();
-        // Een familie die niet voorkomt, staat er ook niet — de legenda is een
-        // uitleg van wat er staat, geen woordenlijst.
+        // A family that does not occur is not there either — the legend is an
+        // explanation of what is there, not a word list.
         expect(screen.queryByText(/Automation ·/)).not.toBeInTheDocument();
     });
 
@@ -123,8 +119,8 @@ describe('de legenda', () => {
         render(<Harness />);
 
         expect(await screen.findByText(/could not be worked out/)).toBeInTheDocument();
-        // En NIET de zin die hoort bij een pagina die gewoon geen koppelingen
-        // heeft: dat is precies het verschil dat deze legenda beschermt.
+        // And NOT the sentence that belongs to a page that simply has no bindings:
+        // that is precisely the difference this legend protects.
         expect(screen.queryByText(/Nothing in this code links to Studio/)).not.toBeInTheDocument();
     });
 
@@ -185,11 +181,11 @@ describe('useBfMarks', () => {
     });
 
     it('BIJT — de ALLEREERSTE render staat al op "aan het lezen", niet op "niets gevonden"', () => {
-        // Via de hook zelf, want de DOM kan dit niet bewijzen: `render()` laat
-        // de effecten meteen lopen, dus in een test is de laadstand er altijd
-        // al. In de browser is dat niet zo — daar schildert React vóór het
-        // effect, en die ene frame zou de legenda anders laten beweren dat de
-        // markering niet kon worden berekend terwijl er nog niet is gekeken.
+        // Via the hook itself, because the DOM cannot prove this: `render()` runs the
+        // effects immediately, so in a test the loading state is always already past.
+        // In the browser that is not so — there React paints BEFORE the effect, and
+        // that one frame would otherwise let the legend claim that the markers could
+        // not be computed while nobody had yet looked.
         api.mockReturnValue(new Promise(() => {}));
         const seen = [];
         function Probe() {
@@ -204,9 +200,9 @@ describe('useBfMarks', () => {
     });
 
     it('BIJT — uitgeschakeld blijft niet hangen op "aan het uitzoeken"', () => {
-        // De Code-tab is dicht: niets ophalen. Maar "niet ophalen" mag geen
-        // eeuwige laadstand worden — dan zou de strip bij het openen van een
-        // pagina zonder id blijven draaien.
+        // The Code tab is closed: fetch nothing. But "do not fetch" may not become an
+        // eternal loading state — then the strip would keep spinning when a page
+        // without an id is opened.
         render(<Harness enabled={false} />);
 
         expect(api).not.toHaveBeenCalled();
@@ -256,7 +252,7 @@ describe('fileDecorations', () => {
     });
 });
 
-/* ── sluitronde: wat het publiceren met deze koppelingen doet ──────────── */
+/* ── closing round: what publishing does with these bindings ──────────── */
 
 describe('WebpageCodeStrip — niet elke koppeling overleeft het publiceren', () => {
     const BUTTON = {
@@ -265,10 +261,9 @@ describe('WebpageCodeStrip — niet elke koppeling overleeft het publiceren', ()
     };
 
     it('telt in de legenda hoeveel er bij publiceren stoppen', async () => {
-        // Drie van de vijf elementen zijn op een gepubliceerde pagina inert (daar
-        // draait geen JS). Dit scherm is het enige dat de koppelingen laat zien,
-        // dus het hoort ook dat verschil te laten zien in plaats van alles als
-        // een gelijkwaardige "Studio link" te tekenen.
+        // Three of the five elements are inert on a published page (no JS runs there).
+        // This screen is the only one that shows the bindings, so it must also show
+        // that difference, instead of drawing everything as an equal "Studio link".
         api.mockResolvedValue(elements({ marks: [MARK, BUTTON], counts: { total: 2, known: 2, unknown: 0 } }));
         render(<Harness />);
         const note = await screen.findByTestId('legend-inert-on-publish');
@@ -289,8 +284,8 @@ describe('WebpageCodeStrip — niet elke koppeling overleeft het publiceren', ()
         const decos = fileDecorations({ marks: [BUTTON], fileKey: 'html', t });
         const hover = decos[0].options.hoverMessage.value;
         expect(hover).toMatch(/Once published/);
-        // Precies de zin uit de gespiegelde registry — dus dezelfde die de lezer
-        // op /w/<slug> te zien krijgt, en niet een tweede formulering hier.
+        // Exactly the sentence from the mirrored registry — the same one the reader
+        // sees at /w/<slug>, and not a second wording here.
         const { BF_ELEMENTS } = await import('../../utils/bfElements');
         const notice = BF_ELEMENTS.find(e => e.tag === 'bf-button').surfaces.vanillaSnapshot.notice;
         expect(hover).toContain(notice);
@@ -300,9 +295,9 @@ describe('WebpageCodeStrip — niet elke koppeling overleeft het publiceren', ()
         const { BF_FAMILIES } = await import('./bfDecorations');
         const { familyLabel } = await import('./WebpageCodeStrip');
         for (const family of BF_FAMILIES) {
-            // Terugvallen op de kale sleutel is zichtbaar lelijk in plaats van
-            // stil, maar het blijft een tweede, met de hand bijgehouden lijst —
-            // deze test dwingt af dat een nieuwe familie er ook een naam krijgt.
+            // Falling back to the bare key is visibly ugly instead of silent, but it remains
+            // a second, hand-maintained list — this test enforces that a new family also
+            // gets a name.
             expect(familyLabel((k, f) => f, family), `${family} heeft geen naam`).not.toBe(family);
         }
     });

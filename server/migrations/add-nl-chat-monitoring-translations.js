@@ -9,26 +9,28 @@
  * Word choices, so later edits stay consistent:
  * - "Chat signals" is "Chatsignalen". The purpose is always checking whether
  *   the Privacy Shield works; nothing here calls it monitoring people.
- * - Legal terms as a Dutch DPO writes them: verwerkingsgrondslag,
- *   gerechtvaardigd belang (with "belangenafweging" for the balancing test),
- *   ondernemingsraad, instemming, vervangende toestemming van de
- *   kantonrechter, cao, personeelsvertegenwoordiging, DPIA, FG (functionaris
- *   gegevensbescherming), toezichthouder, voorafgaande raadpleging,
- *   privacyverklaring, Verwerkingsregister, bewaartermijn. Articles are cited
+ * - Legal terms as a Dutch DPO writes them: verwerkingsgrondslag (legal basis),
+ *   gerechtvaardigd belang (legitimate interest; with "belangenafweging" for the balancing test),
+ *   ondernemingsraad (works council), instemming (consent), vervangende toestemming van de
+ *   kantonrechter (substitute consent from the sub-district judge), cao (collective labour agreement),
+ *   personeelsvertegenwoordiging (staff representation), DPIA, FG (functionaris
+ *   gegevensbescherming = data protection officer), toezichthouder (supervisory authority),
+ *   voorafgaande raadpleging (prior consultation), privacyverklaring (privacy statement),
+ *   Verwerkingsregister (processing register), bewaartermijn (retention period). Articles are cited
  *   the Dutch way: "art. 6 lid 1 sub f AVG", "art. 27 lid 1 sub l WOR".
  * - Informal "je" throughout, also in the notice text and the embed.
  * - Product names stay as the Dutch UI shows them: Privacy Shield (het),
  *   Usage & Monitoring, Swarm, Bee Flow.
- * - The objection switch is "Tel mijn chatberichten niet mee"; the notice
- *   text and the "missing" label quote it word for word.
+ * - The objection switch is "Tel mijn chatberichten niet mee" (don't count my chat messages);
+ *   the notice text and the "missing" label quote it word for word.
  *
  * SAME_AS_ENGLISH lists the keys whose Dutch is the English text itself
  * ("<5"). They are not seeded: t() already falls back to English, and a
  * seeded copy could not be told apart from a forgotten translation if the
  * English is reworded later.
  *
- * Idempotent: only fills keys that are missing, so a workspace that curated
- * its own wording keeps it. ADD, NEVER RENAME. Auto-runs from server boot
+ * Idempotent: only fills keys that are missing, so a workspace that curated its
+ * own wording keeps it. ADD, NEVER RENAME. Auto-runs from server boot
  * (boot/bootMigrations.js). Manual usage:
  *   node server/migrations/add-nl-chat-monitoring-translations.js
  */

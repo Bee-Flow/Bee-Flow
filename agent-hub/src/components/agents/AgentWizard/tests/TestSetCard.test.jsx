@@ -1,16 +1,13 @@
 /**
- * De testset-kaart (A4 deel D).
+ * The test-set card (A4 part D).
  *
- * Wat hier bewaakt wordt is niet de opmaak maar wat de kaart BEWEERT:
+ * What is guarded here is not the layout but what the card CLAIMS:
  *
- *   • "11 / 12 goed" staat er alleen na een afgeronde run. Nooit gedraaid,
- *     niet gelezen en halverwege omgevallen krijgen alle drie hun eigen zin en
- *     geen van drieën een getal;
- *   • de faalregel zegt WAAROM, en een `blocked` of `error` wordt niet als
- *     fout van de agent getekend;
- *   • een weigering ("geen model ingericht om te beoordelen") is een
- *     weigering, geen rode test — en ze laat de telling met rust;
- *   • een knop die nergens heen kan staat er niet.
+ *   • "11 / 12 passed" appears only after a completed run. Never run, not read, and
+ *     halfway failed each get their own sentence, and none of the three gets a number;
+ *   • the failure line says WHY, and a `blocked` or `error` is not drawn as a fault of the agent;
+ *   • a refusal ("no model set up to judge") is a refusal, not a red test, and it leaves the count alone;
+ *   • a button that has nowhere to go does not appear.
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/tests/TestSetCard.test.jsx
  */
@@ -72,7 +69,7 @@ describe('TestSetCard — de telling', () => {
         expect(score).toHaveAttribute('data-state', 'never');
         expect(score.textContent).toMatch(/Not run yet/);
         expect(document.body.textContent).not.toMatch(/0 of 12/);
-        // De set zelf wordt wél geteld — dat is een feit over de vragen.
+        // The set itself IS counted: that is a fact about the questions.
         expect(screen.getByTestId('agent-tests-question-count').textContent).toBe('12 questions');
     });
 
@@ -193,10 +190,10 @@ describe('TestSetCard — een weigering is geen mislukte test', () => {
         const notice = screen.getByTestId('agent-tests-refusal');
         expect(notice).toHaveAttribute('data-kind', 'no_grader');
         expect(notice.textContent).toMatch(/nothing was tested/i);
-        // En niet als rood resultaat: geen faalregel, geen getal.
+        // And not as a red result: no failure line, no number.
         expect(screen.queryByTestId('agent-tests-fail-line')).toBeNull();
         expect(screen.getByTestId('agent-tests-score')).toHaveAttribute('data-state', 'never');
-        // Opnieuw proberen helpt hier niet, dus die knop staat er niet.
+        // Trying again does not help here, so that button is not there.
         expect(screen.queryByTestId('agent-tests-refusal-retry')).toBeNull();
     });
 

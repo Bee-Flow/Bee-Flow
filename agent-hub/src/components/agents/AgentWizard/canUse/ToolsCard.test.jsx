@@ -7,14 +7,12 @@ import { ACT_AS, CONFIRM, automationRows, toolRows } from './toolGrants';
 import ToolsCard from './ToolsCard';
 
 /**
- * De Tools-kaart. Wat hier gepind wordt is niet de opmaak maar de drie
- * versmallingen die de kaart met de runtime deelt — verstuurt ⇒ vergrendeld,
- * onbekend ⇒ óók vergrendeld, geen leen-grant ⇒ geen eigenaar-optie — plus de
- * regel dat een mislukte catalogus geen lege kaart oplevert.
+ * The Tools card. What is pinned here is not the layout but the three narrowings that the card shares with
+ * the runtime: sent ⇒ locked, unknown ⇒ also locked, no lent grant ⇒ no owner option. Plus the rule that a
+ * failed catalogue yields no empty card.
  */
 
-// De echte vertaler interpoleert `{placeholder}`; de tests hangen op die
-// getallen, dus deze doet dat ook.
+// The real translator interpolates `{placeholder}`. The tests rely on those numbers, so this one does too.
 const t = (key, fallback, vars) => {
     let out = fallback ?? key;
     if (vars) for (const [k, v] of Object.entries(vars)) out = out.split(`{${k}}`).join(String(v));
@@ -106,9 +104,8 @@ describe('ToolsCard — de rijen', () => {
         expect(onOpenChooser).toHaveBeenCalledWith({ section: 'apps', appId: 'gmail' });
     });
 
-    // A2-1: `browse_web` zit achter een docker-probe. "Deze installatie heeft
-    // hem niet" is iets anders dan "jij hebt hem niet verbonden", en de kaart
-    // mag alleen de zin zeggen die waar is.
+    // A2-1: `browse_web` sits behind a docker probe. "This installation does not have it" is something other
+    // than "you have not connected it", and the card may only say the sentence that is true.
     it('zegt bij een app die de INSTALLATIE mist niet dat de gebruiker hem niet verbond', () => {
         const browser = {
             id: 'browser-fetch', label: 'Browse Web', available: false, actionsKnown: true,
@@ -241,16 +238,15 @@ describe('ToolsCard — in wiens naam', () => {
 });
 
 /**
- * A2-2 — de capsule en de runtime over DEZELFDE toestand.
+ * A2-2: the capsule and the runtime over the SAME state.
  *
- * `A2_2_CURATED` staat er letterlijk zo ook in
- * server/core/agentRuntime/toolPolicy.test.js, waar hij de invoer is van
- * `mayLendOwnerConnection`. Daar is het antwoord sinds A2-2 "niet lenen"; hier
- * moet het scherm dat zeggen in plaats van stil van gedrag te veranderen.
+ * `A2_2_CURATED` appears literally in the same form in server/core/agentRuntime/toolPolicy.test.js, where it
+ * is the input of `mayLendOwnerConnection`. There the answer since A2-2 is "do not lend". Here the screen must
+ * say that, instead of silently changing behaviour.
  */
 const A2_2_CURATED = Object.freeze({
-    // De eigenaar heeft alleen Gmail gecureerd. Over Drive heeft hij nooit iets
-    // gezegd, terwijl zijn Google-verbinding wél uitgeleend is.
+    // The owner has curated only Gmail. He never said anything about Drive, while his Google connection has in
+    // fact been lent out.
     gmail: { actions: ['gmail_search'], actAs: 'viewer' },
 });
 
@@ -266,14 +262,14 @@ describe('ToolsCard — de geleende verbinding zonder opgeslagen keuze (A2-2)', 
         expect(drive.getByTestId('agent-tool-actas').textContent).toContain('As: the person asking');
         const notice = drive.getByTestId('agent-tool-lending-unset');
         expect(notice.textContent).toContain('no longer borrows it');
-        // Drive verstuurt niets, dus de eigenaar kan het alsnog kiezen — en
-        // dan hoort die weg er ook bij te staan.
+        // Drive does not send anything, so the owner can still choose it, and then that way out should be listed
+        // there as well.
         expect(notice.textContent).toContain('Choose “As: you”');
     });
 
     it('laat de remedie weg waar de eigenaar hem niet kan kiezen', () => {
-        // Gmail verstuurt, dus "As: you" is er niet — een uitweg noemen die de
-        // kiezer weigert is dezelfde belofte-zonder-dekking als het gat zelf.
+        // Gmail sends, so "As: you" is not there. Naming a way out that the picker refuses is the same
+        // promise-without-cover as the gap itself.
         renderCard({
             rows: rowsFor({
                 toolsConfig: { 'google-drive': { actions: '*', actAs: 'viewer' } },
@@ -297,9 +293,8 @@ describe('ToolsCard — de geleende verbinding zonder opgeslagen keuze (A2-2)', 
     });
 
     it('noemt op de UNCURATED-rij ook alleen een remedie die bestaat', () => {
-        // De zustertak had de uitweg IN de zin gebakken, zonder de
-        // `canActAsOwner`-poort: op Gmail (verstuurt) noemde de kaart een
-        // menu-item dat er niet is en dat de opslag sowieso terugdraait.
+        // The sister branch had the way out BAKED INTO the sentence, without the `canActAsOwner` gate. On Gmail
+        // (which sends) the card named a menu item that does not exist and that the save rolls back anyway.
         renderCard({
             rows: rowsFor({ toolsConfig: null, lentApps: new Set(['gmail', 'google-drive']), lendingEnabled: true }),
         });
@@ -313,9 +308,8 @@ describe('ToolsCard — de geleende verbinding zonder opgeslagen keuze (A2-2)', 
     });
 
     it('zegt niets over lenen zolang de RUNTIME-lezing onbekend is', () => {
-        // De meldingen gaan over wat er nú gebeurt als iemand de agent draait,
-        // en dat leest de gepubliceerde config. Kon de server dat niet zeggen
-        // (`runtimeCurated: null`), dan is elke van de twee zinnen een gok.
+        // The notices are about what happens NOW when someone runs the agent, and that is read from the published
+        // config. If the server could not say that (`runtimeCurated: null`), then each of the two sentences is a guess.
         renderCard({
             rows: rowsFor({
                 toolsConfig: A2_2_CURATED, runtimeCurated: null,
@@ -327,10 +321,8 @@ describe('ToolsCard — de geleende verbinding zonder opgeslagen keuze (A2-2)', 
     });
 
     it('volgt de RUNTIME en niet de draft: gepubliceerd ongecureerd leent nog steeds', () => {
-        // De draft is al gecureerd (de eigenaar vinkte iets aan, nog niet
-        // gepubliceerd) terwijl de live agent nog ongecureerd draait — en dus
-        // nog steeds leent. De kaart hoorde dat te zeggen in plaats van
-        // "hij leent niet meer".
+        // The draft is already curated (the owner ticked something, not yet published) while the live agent still
+        // runs uncurated, and therefore still lends. The card should say that, instead of "it no longer lends".
         renderCard({
             rows: rowsFor({
                 toolsConfig: A2_2_CURATED, runtimeCurated: false,
@@ -374,7 +366,7 @@ describe('ToolsCard — wat er niet gelezen kon worden', () => {
     it('zegt het apart wanneer de beschikbaarheid niet berekend kon worden', () => {
         renderCard({ catalogDegraded: true });
         expect(screen.getByTestId('agent-tools-degraded')).toBeTruthy();
-        // Geen enkele rij mag dan "niet verbonden" beweren.
+        // No single row may then claim "not connected".
         expect(screen.queryByText(/Not connected for you/)).toBeNull();
     });
 

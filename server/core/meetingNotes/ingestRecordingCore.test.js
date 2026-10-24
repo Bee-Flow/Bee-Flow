@@ -45,8 +45,8 @@ const fx = {
     },
     summary: 'Samenvatting van de meeting.',
     aiTitle: 'AI titel',
-    // Het standaardsjabloon van de eigenaar (null = geen). Bepaalt de
-    // sjabloonstempel op de notitie.
+    // The default template of the owner (null = none). Determines the template
+    // stamp on the note.
     defaultTemplate: null,
     actionItems: [{ text: 'Doe iets', assignee: 'Tom' }],
     artifactsFailed: false,  // de artefactpass viel om / was niet te parsen
@@ -100,9 +100,9 @@ const MOCKS = {
         generateMeetingSummary: async () => fx.summary,
         generateMeetingTitle: async () => fx.aiTitle,
         extractMeetingArtifacts: async () => (fx.artifactsFailed
-            // De ECHTE gedeelde mislukt-waarde, niet een zelfbedachte vorm:
-            // een stub die zijn eigen 'mislukt' verzint bewijst niets over
-            // wat de pijplijn met de echte doet.
+            // The REAL shared failure value, not a self-invented form:
+            // a stub that invents its own 'failed' proves nothing about
+            // what the pipeline does with the real one.
             ? realHelpers.ARTIFACTS_FAILED
             : {
                 actionItems: fx.actionItems,
@@ -285,10 +285,10 @@ test('parity: talk ingest produces the pre-refactor createTranscription payload 
         // stored its attendees.
         attendees: ['Tom Smit', 'Sanne'],
         source: 'talk', sourceUri: 'talk://orgA/tok123/rec.mp4', talkRoomToken: 'tok123',
-        // Met welk sjabloon de samenvatting geschreven is. Zonder
-        // standaardsjabloon is dat NIETS — de ingebouwde eerste-generatieprompt
-        // is geen van de vijf ingebouwde sjablonen, dus er valt niets waars
-        // over te melden en er wordt niets beweerd.
+        // With which template the summary was written. Without a default
+        // template that is NOTHING: the built-in first-generation prompt is
+        // none of the five built-in templates, so there is nothing true to
+        // report about it and nothing is claimed.
         summaryTemplateId: null, summaryTemplateVersion: null,
     });
 
@@ -569,9 +569,9 @@ test('core: het standaardsjabloon van de eigenaar stempelt de notitie', async ()
 });
 
 test('core: zonder standaardsjabloon stempelt de ingest niets', async () => {
-    // De ingebouwde eerste-generatieprompt is geen van de vijf ingebouwde
-    // sjablonen. 'builtin:general' stempelen zou een sjabloon noemen dat deze
-    // tekst niet geschreven heeft.
+    // The built-in first-generation prompt is none of the five built-in
+    // templates. Stamping 'builtin:general' would name a template that did not
+    // write this text.
     resetFx();
     fx.defaultTemplate = null;
     await ingestNextcloudRecording({
@@ -586,20 +586,18 @@ test('core: zonder standaardsjabloon stempelt de ingest niets', async () => {
 });
 
 
-// ── EEN MISLUKTE ARTEFACTPASS IS GEEN LEGE VERGADERING ───────────────
+// ── A FAILED ARTIFACT PASS IS NOT AN EMPTY MEETING ─────────────────
 //
-// Deze schrijver gaf `artifacts.actionItems/decisions/questions` rauw door.
-// Op een mislukte pass — een omgevallen of onparseerbare smart-tier — leverde
-// dat een AFGERONDE notitie op die beweert dat er niets is afgesproken, zonder
-// één woord op het scherm. De vergadering kan uren zijn geweest; niemand kan
-// aan de notitie zien dat de pass nooit gedraaid heeft, dus niemand drukt op
-// 'Opnieuw'. buildPipelineNotices is precies het kanaal daarvoor — dezelfde
-// plek waar een engine-fallback en een afgekapte transcriptie al staan.
+// This writer passed `artifacts.actionItems/decisions/questions` through raw. On a failed pass (a
+// fallen-over or unparseable smart tier) that yielded a COMPLETED note that claims nothing was agreed,
+// without a single word on the screen. The meeting may have lasted hours; nobody can see from the note
+// that the pass never ran, so nobody presses "Regenerate". buildPipelineNotices is precisely the channel
+// for that: the same place where an engine fallback and a truncated transcription already stand.
 
 test('core: een mislukte artefactpass zegt dat op de notitie en claimt geen lege vergadering', async () => {
     resetFx();
     fx.artifactsFailed = true;
-    fx.autoTags = ['planning'];   // mag NIET uit een mislukte pass komen
+    fx.autoTags = ['planning'];   // must NOT come from a failed pass
 
     await ingestNextcloudRecording({
         userId: 'u1', session: { user: { id: 'u1' } }, orgId: 'orgA',
@@ -613,12 +611,11 @@ test('core: een mislukte artefactpass zegt dat op de notitie en claimt geen lege
     // taal van de vergadering.
     assert.match(p.summary, /actiepunten/i, 'de notitie meldt de mislukte pass');
     assert.ok(p.summary.includes(fx.summary), 'de samenvatting zelf blijft staan');
-    // Niets wordt als resultaat van de pass geclaimd — en dat moet je kunnen
-    // ZIEN. Deze asserties stonden er als `p.actionItems || []`, en
-    // `undefined || []` is `[]`: ze slaagden dus ook als de poort helemaal
-    // niet had gestaan en `artifacts.actionItems` (undefined bij een mislukte
-    // pass) rauw was doorgegeven. Precies het `|| []`-patroon dat deze fix
-    // elders afschaft. Zonder terugval is een ontbrekende sleutel een fout.
+    // Nothing is claimed as the result of the pass, and that must be VISIBLE. These assertions stood as
+    // `p.actionItems || []`, and `undefined || []` is `[]`: they therefore also passed if the gate had
+    // not been there at all and `artifacts.actionItems` (undefined on a failed pass) had been passed
+    // through raw. Precisely the `|| []` pattern that this fix abolishes elsewhere. Without a fallback, a
+    // missing key is an error.
     for (const key of ['actionItems', 'decisions', 'questions', 'tags']) {
         assert.ok(key in p, `${key} hoort geschreven te worden, ook (juist) als lege lijst`);
         assert.deepStrictEqual(p[key], [], `${key}: een pass die niet gedraaid heeft claimt niets`);

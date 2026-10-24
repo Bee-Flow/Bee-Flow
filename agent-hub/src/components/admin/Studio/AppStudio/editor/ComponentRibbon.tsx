@@ -553,8 +553,7 @@ function CategoryChip({ icon, label, entries, disabled, onAdd }: CategoryChipPro
                 align="left"
                 role="menu"
                 minWidth={200}
-                className="py-1"
-                style={{ background: 'var(--bg-secondary)' }}
+                className="py-1 [background:var(--bg-secondary)]!"
             >
                 {entries.map(({ type, entry }) => {
                     const EntryIcon = entry?.icon;

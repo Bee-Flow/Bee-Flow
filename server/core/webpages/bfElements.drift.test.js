@@ -1,41 +1,38 @@
 /**
- * Drifttest — houdt de DRIE plekken waar het `bf-*`-vocabulaire leeft aan
+ * Drift test — keeps the THREE places where the `bf-*` vocabulary lives in step with
  * core/webpages/bfElements.js.
  *
- * ── WAAROM DEZE TEST BESTAAT ────────────────────────────────────────
+ * ── WHY THIS TEST EXISTS ────────────────────────────────────────────
  *
- * services/reactBundleServer.js draagt al jaren de regel "⚠️ KEEP IN SYNC met
- * agent-hub/src/utils/buildWebpagePreview.ts … moeten byte-identiek blijven",
- * en niets dwingt dat af. Het resultaat staat er vandaag: `window.beeflowAI`
- * heeft in reactBundleServer.js de namen `complete`/`ground`/`generate`, die in
- * geen van de twee andere brugbestanden bestaan, en mist de vier namen
- * (`chat`/`chatJSON`/`stream`/`ask`) die er wél zijn. Een pagina die
- * `beeflowAI.chat(...)` aanroept in de headless render krijgt daar een
- * TypeError. Een commentaarregel houdt niets tegen; een test die opsomt wel.
+ * services/reactBundleServer.js has for years carried the rule "⚠️ KEEP IN SYNC with
+ * agent-hub/src/utils/buildWebpagePreview.ts … must remain byte-identical", and nothing
+ * enforces it. The result is there today: `window.beeflowAI` in reactBundleServer.js has the names
+ * `complete`/`ground`/`generate`, which exist in neither of the other two bridge files, and it lacks the four
+ * names (`chat`/`chatJSON`/`stream`/`ask`) that are there. A page that calls
+ * `beeflowAI.chat(...)` in the headless render gets a
+ * TypeError there. A comment line holds nothing back; a test that enumerates does.
  *
- * ── WAT DIT KAN BEWIJZEN ────────────────────────────────────────────
+ * ── WHAT THIS CAN PROVE ─────────────────────────────────────────────
  *
- * Dat alle drie de plekken dezelfde NAMEN dragen, dezelfde attributen kennen,
- * en per plek hetzelfde OORDEEL uitspreken over wat er van een element
- * overblijft — en dat er nergens een tweede, met de hand geschreven lijst is
- * ontstaan waar de eerste vanaf kan drijven.
+ * That all three places carry the same NAMES, know the same attributes,
+ * and per place pronounce the same JUDGEMENT about what remains of an element — and that
+ * nowhere a second, hand-written list has come into being from which the first could drift.
  *
- * ── WAT DIT NIET KAN BEWIJZEN ───────────────────────────────────────
+ * ── WHAT THIS CANNOT PROVE ──────────────────────────────────────────
  *
- * Dat drie implementaties zich hetzelfde GEDRAGEN. Deze test legt lijsten naast
- * elkaar. Of de uitklapper straks werkelijk een zichtbaar uitgeschakelde knop
- * tekent in plaats van een lege plek, moet die uitklapper zelf komen bewijzen,
- * met een test op zijn uitvoer.
+ * That three implementations BEHAVE the same. This test puts lists side by side.
+ * Whether the dropdown will actually draw a visibly disabled button instead of an empty
+ * spot must be proven by that dropdown itself, with a test on its output.
  *
- * ── DE VIER SLOTEN, EN WAAR ZE HIER WORDEN GECONTROLEERD ────────────
+ * ── THE FOUR LOCKS, AND WHERE THEY ARE CHECKED HERE ─────────────────
  *
- *   (a) de twee serverplekken kunnen geen kopie houden  → "geen tweede lijst"
- *   (b) de publieke brug is afgeleid, niet verklaard    → "publieke brug"
- *   (c) de vanilla snapshot moet beslissen              → "vanilla snapshot"
- *       (die bijt bovendien op require-tijd: assertCoversVocabulary gooit)
- *   (d) de client-spiegel is gegenereerd                → "client-spiegel"
+ *   (a) the two server places cannot keep a copy           → "no second list"
+ *   (b) the public bridge is derived, not declared         → "public bridge"
+ *   (c) the vanilla snapshot must decide                   → "vanilla snapshot"
+ *       (which moreover bites at require time: assertCoversVocabulary throws)
+ *   (d) the client mirror is generated                     → "client mirror"
  *
- * Draaien: cd server && node --test --test-force-exit core/webpages/bfElements.drift.test.js
+ * Run: cd server && node --test --test-force-exit core/webpages/bfElements.drift.test.js
  */
 
 const test = require('node:test');
@@ -56,10 +53,9 @@ const CLIENT = path.join(REPO, 'agent-hub', 'src', 'utils');
 /** De gegenereerde spiegel: de enige plek waar de client het vocabulaire opsomt. */
 const MIRROR = path.join(CLIENT, 'bfElements.ts');
 /**
- * De client-bestanden die uit de spiegel horen te lezen in plaats van zelf te
- * weten: de twee composers plus de RUNTIME die het vocabulaire uitvoert. Die
- * laatste hing eerder alleen aan een frontendtest; hij hoort ook hier, want dit
- * is de plek die de hele boom bewaakt.
+ * The client files that should read from the mirror instead of knowing for themselves: the two
+ * composers plus the RUNTIME that executes the vocabulary. The latter hung before only on a frontend
+ * test; it belongs here too, because this is the place that guards the whole tree.
  */
 const CLIENT_COMPOSERS = [
     path.join(CLIENT, 'composeWebpageDocument.ts'),
@@ -72,33 +68,32 @@ const STUB_BRIDGE = path.join(REPO, 'server', 'services', 'reactBundleServer.js'
 const NOTICE_ENGINE = path.join(REPO, 'server', 'services', 'bfBridgeNotices.js');
 
 /**
- * Elke bekende tagnaam als heel woord — waarmee een handgeschreven lijst opvalt.
+ * Every known tag name as a whole word — which a hand-written list gives away.
  *
- * De lookarounds sluiten een koppelteken uit, want de frontend gebruikt al
- * CSS-klassen als `bf-table-colhead` en een keyframe `bf-form-spin`. Die hebben
- * niets met het vocabulaire te maken en mogen geen vals alarm geven.
+ * The lookarounds exclude a hyphen, because the frontend already uses CSS classes such as
+ * `bf-table-colhead` and a keyframe `bf-form-spin`. Those have nothing to do with the vocabulary
+ * and must not give a false alarm.
  */
 const TAG_WORD = new RegExp(`(?<![-\\w])(?:${bf.BF_TAGS.join('|')})(?![-\\w])`, 'g');
 
 /** Regeleindes gelijktrekken: de checkout kan CRLF dragen, de generator niet. */
 function readSource(file) {
     const raw = fs.readFileSync(file, 'utf8');
-    // Geen claim over gedrag: een sanity-guard tegen een pad dat stil een lege
-    // string oplevert, waarna elke vergelijking hieronder vacuous groen zou
-    // zijn. De echte drift-claims in dit bestand lopen via de andere
-    // richting — de agent-hub-bestanden zijn hier niet ge-require't (client-
-    // runtime), en de serverbruggen worden elders in dit bestand ECHT
-    // gedraaid (buildPublicBridgeScript/buildStubBridgeScript, vm.runInContext).
+    // No claim about behaviour: a sanity guard against a path that silently yields an
+    // empty string, after which every comparison below would be vacuously green. The real drift claims in this file run
+    // via the other direction — the agent-hub files are not required here (client
+    // runtime), and the server bridges are elsewhere in this file REALLY
+    // run (buildPublicBridgeScript/buildStubBridgeScript, vm.runInContext).
     assert.ok(raw.length > 500, `sanity: ${path.basename(file)} is gelezen en niet leeg`);
     return raw.replace(/\r\n/g, '\n');
 }
 
-/** Het gegenereerde blok uit de client-spiegel, inclusief zijn markers. */
+/** The generated block from the client mirror, including its markers. */
 function mirrorBlock() {
     const src = readSource(MIRROR);
     const start = src.indexOf(bf.CLIENT_MIRROR_BEGIN);
     const end = src.indexOf(bf.CLIENT_MIRROR_END);
-    // Een hernoemde marker moet ROOD worden, niet stil een lege sectie opleveren.
+    // A renamed marker must go RED, not silently yield an empty section.
     assert.ok(start !== -1, 'agent-hub/src/utils/bfElements.ts draagt de beginmarker van de spiegel');
     assert.ok(end !== -1, 'agent-hub/src/utils/bfElements.ts draagt de eindmarker van de spiegel');
     assert.ok(end > start, 'de eindmarker staat na de beginmarker');
@@ -121,9 +116,9 @@ test('client-spiegel — het blok in agent-hub/src/utils/bfElements.ts IS de reg
 });
 
 test('client-spiegel — elk element uit de registry staat er ook echt in', () => {
-    // Tweede richting, met een eigen extractie: als de gelijkheidstest hierboven
-    // ooit op een lege string tegen een lege string zou uitkomen, valt dat hier
-    // door de sanity-assert alsnog op.
+    // Second direction, with its own extraction: if the equality test above
+    // ever matched an empty string against an empty string, the sanity assert here
+    // catches that anyway.
     const { block } = mirrorBlock();
     const named = new Set(block.match(TAG_WORD) || []);
     assert.ok(named.size > 3, 'sanity: er zijn tagnamen uit de spiegel gehaald');
@@ -141,9 +136,9 @@ test('geen tweede lijst — de spiegel bevat niets BUITEN het gegenereerde blok'
 });
 
 test('geen tweede lijst — de client-composers weten zelf geen tagnaam', () => {
-    // Beide composers horen uit ./bfElements.js te lezen. Schrijft er één een
-    // naam zelf op, dan is er een tweede lijst — en dat is exact hoe het
-    // beeflowAI-oppervlak van reactBundleServer.js uit de pas is gaan lopen.
+    // Both composers must read from ./bfElements.js. If one of them writes a
+    // name itself, there is a second list — and that is exactly how the
+    // beeflowAI surface of reactBundleServer.js got out of step.
     for (const file of CLIENT_COMPOSERS) {
         const src = readSource(file);
         const strays = (maskCode(src).literals
@@ -157,14 +152,12 @@ test('geen tweede lijst — de client-composers weten zelf geen tagnaam', () => 
 // ── (b) de publieke brug + (a) geen tweede lijst ──────────────────────
 
 /**
- * Elke plek waar een BRUG het vocabulaire uitzendt, met de bouwer erbij.
+ * Every place where a BRIDGE broadcasts the vocabulary, with the builder next to it.
  *
- * Twee, en dat is de kern van de reparatie die deze ronde deed: de brug uit
- * publicBridgeScript.js wordt ALLEEN geïnjecteerd als de auteur publieke AI
- * heeft aangezet (default uit), terwijl de stub uit reactBundleServer.js in ELK
- * react-document zit — de publieke share én het plaatje dat de bouwer-AI ziet.
- * Zonder deze tweede rij was het eerlijk-falen-mechanisme dode code op het
- * standaardpad.
+ * Two, and that is the core of the repair this round made: the bridge from
+ * publicBridgeScript.js is ONLY injected when the author has turned on public AI
+ * (default off), while the stub from reactBundleServer.js sits in EVERY react document — the public share and the picture that the builder-AI sees.
+ * Without this second row the honest-failure mechanism was dead code on the default path.
  */
 const BRIDGES = [
     ['publieke AI-brug (reactShare)', 'reactShare',
@@ -196,9 +189,9 @@ test('elke brug noemt elk element, met de weigering van ZIJN eigen plek erbij', 
 });
 
 test('de twee plekken lenen elkaars zin NIET', () => {
-    // Dezelfde stub bedient de publieke share en het plaatje van de eigen pagina
-    // van de auteur. "op een gedeelde link" zou daar liegen over een pagina die
-    // ingelogd gewoon werkt, dus elke plek draagt zijn eigen tekst.
+    // The same stub serves the public share and the picture of the author's own page.
+    // "on a shared link" would be a lie there about a page that works normally
+    // when logged in, so each place carries its own text.
     const share = bf.bridgeVocabulary('reactShare');
     const render = bf.bridgeVocabulary('headlessRender');
     for (const tag of bf.BF_TAGS) {
@@ -214,11 +207,11 @@ test('de twee plekken lenen elkaars zin NIET', () => {
 
 test('publieke brug — de uitgezonden brug noemt elk element, met zijn weigering erbij', () => {
     const script = buildPublicBridgeScript({ token: 't0ken', apiBase: 'https://example.test' });
-    // Dezelfde lookarounds als TAG_WORD hierboven, en om dezelfde reden: `\b`
-    // ziet een koppelteken als woordgrens, dus een ATTRIBUUTnaam als
-    // `data-bf-state` (de markering die de brug op een geweigerd element zet,
-    // en die de client-runtime ook gebruikt) zou als "onbekend element bf-state"
-    // worden aangezien. Een attribuutnaam is geen tagnaam.
+    // The same lookarounds as TAG_WORD above, and for the same reason: `\b`
+    // sees a hyphen as a word boundary, so an ATTRIBUTE name such as
+    // `data-bf-state` (the marking the bridge puts on a refused element,
+    // and which the client runtime also uses) would be taken for "unknown element bf-state".
+    // An attribute name is not a tag name.
     const named = new Set(script.match(/(?<![-\w])bf-[a-z][a-z0-9-]*(?![-\w])/g) || []);
     assert.ok(named.size >= bf.BF_TAGS.length, 'sanity: de brug noemt bf-elementen');
 
@@ -239,11 +232,11 @@ test('publieke brug — de uitgezonden brug noemt elk element, met zijn weigerin
 });
 
 /**
- * De uitgezonden brug DRAAIEN, in een sandbox met net genoeg browser eromheen.
+ * RUN the broadcast bridge, in a sandbox with just enough browser around it.
  *
- * De brug is gegenereerde tekst, en een regex erover zegt alleen dat er een
- * regel staat die er goed uitziet. Wat de pagina merkt is wat `beeflowBf`
- * ANTWOORDT — dus wordt het script hier uitgevoerd en bevraagd.
+ * The bridge is generated text, and a regex over it only says that there is a
+ * line there that looks right. What the page notices is what `beeflowBf`
+ * ANSWERS — so the script is executed here and queried.
  */
 function runBridge(script) {
     const code = script.replace(/^[\s\S]*?<script[^>]*>/, '').replace(/<\/script>\s*$/, '');
@@ -251,8 +244,8 @@ function runBridge(script) {
         nodeType: 9, readyState: 'complete',
         addEventListener() {}, querySelectorAll() { return []; },
     };
-    // Geen customElements: de define-lus is niet wat hier wordt gevraagd, en
-    // een halve elementregistratie zou alleen ruis toevoegen.
+    // No customElements: the define loop is not what is asked for here, and
+    // a half element registration would only add noise.
     const sandbox = { document, fetch: async () => ({ ok: true, json: async () => ({}) }) };
     sandbox.window = sandbox;
     vm.runInContext(code, vm.createContext(sandbox));
@@ -267,9 +260,9 @@ test('publieke brug — een onbekend element komt er als "unknown" uit, niet als
     assert.strictEqual(bridge.beeflowBf.reason('bf-nope'), 'Unknown Bee Flow element bf-nope',
         'en de reden spreekt dat uit in plaats van null terug te geven');
 
-    // De tegenproef: een element dat de brug WEL kent draagt het oordeel van
-    // deze plek, niet 'unknown'. Zonder deze regel zou een brug die overal
-    // 'unknown' zegt hierboven groen zijn.
+    // The counter-proof: an element that the bridge DOES know carries the judgement of
+    // this place, not 'unknown'. Without this line a bridge that says 'unknown' everywhere
+    // would be green above.
     for (const [tag, entry] of Object.entries(bf.bridgeVocabulary('reactShare'))) {
         assert.strictEqual(bridge.beeflowBf.state(tag), entry.state, `${tag} draagt het oordeel van reactShare`);
         assert.strictEqual(bridge.beeflowBf.reason(tag), entry.message, `${tag} zegt ook waarom`);
@@ -289,9 +282,8 @@ test('geen tweede lijst — geen enkel brugbestand schrijft zelf een tagnaam', (
 });
 
 test('de bruggen delen ÉÉN motor — er is geen tweede kopie van het mechanisme', () => {
-    // Het decoratiemechanisme stond eerst alleen in publicBridgeScript.js. Toen
-    // bleek dat de stub het ook moest hebben, was overtikken de voor de hand
-    // liggende fout — en precies de drift die dit bestand bestrijdt.
+    // The decoration mechanism was at first only in publicBridgeScript.js. When
+    // it turned out the stub had to have it too, copying it over was the obvious mistake — and precisely the drift this file fights.
     const engine = readSource(NOTICE_ENGINE);
     assert.ok(engine.includes('function bfDecorate'),
         'sanity: de motor draagt het decoratiemechanisme');
@@ -305,9 +297,9 @@ test('de bruggen delen ÉÉN motor — er is geen tweede kopie van het mechanism
 });
 
 test('elke brug-plek uit de registry heeft ook echt een brug', () => {
-    // Andere richting: een plek toevoegen aan BRIDGE_SURFACES zonder hem hier te
-    // laten uitzenden, zou een plek opleveren waarvan de teksten nergens
-    // terechtkomen — zichtbaar in de registry, onzichtbaar op de pagina.
+    // The other direction: adding a place to BRIDGE_SURFACES without having it
+    // broadcast here would yield a place whose texts end up nowhere — visible in the
+    // registry, invisible on the page.
     const covered = new Set(BRIDGES.map(([, surface]) => surface));
     assert.deepStrictEqual([...covered].sort(), [...bf.BRIDGE_SURFACES].sort(),
         'BRIDGE_SURFACES en de bruggen die deze test bouwt lopen uit elkaar');
@@ -326,23 +318,23 @@ test('vanilla snapshot — webpageBfTable spreekt zich over ELK element uit', ()
         assert.ok(['expand', 'inert'].includes(verdict),
             `${tag}: "${verdict}" is geen geldige beslissing (expand of inert)`);
     }
-    // Wat JS nodig heeft KAN daar niet worden uitgeklapt; wat het niet nodig
-    // heeft hoort niet als inert te worden weggeschreven. De handelingstabel mag
-    // dus niet in tegenspraak zijn met het vocabulaire.
+    // What JS needs CANNOT be expanded there; what it does not need
+    // must not be written away as inert. The action table may therefore not
+    // contradict the vocabulary.
     for (const tag of bf.tagsNeedingJs()) {
         assert.notStrictEqual(handling[tag], 'expand',
             `${tag} heeft JS nodig; in een script-vrije snapshot valt daar niets aan uit te klappen`);
     }
-    // Sanity: de tabel is de oudste uitklapper en de enige die deze test bij
-    // naam kent. Staat hier iets anders, dan is de uitklapper stukgegaan.
+    // Sanity: the table is the oldest expander and the only one this test knows by
+    // name. If something else is here, the expander has broken.
     assert.strictEqual(handling['bf-table'], 'expand',
         'bf-table hoort server-side te worden uitgeklapt');
 });
 
 test('vanilla snapshot — het require-tijd-slot bijt echt', () => {
-    // Niet de tabel van webpageBfTable zelf: dat zou hetzelfde nog eens zijn.
-    // Dit toetst het MECHANISME waardoor die module niet meer laadt zodra
-    // iemand een element toevoegt zonder er daar iets over te zeggen.
+    // Not the table of webpageBfTable itself: that would be the same thing once more.
+    // This tests the MECHANISM by which that module no longer loads as soon as
+    // someone adds an element without saying anything about it there.
     assert.throws(
         () => bf.assertCoversVocabulary('services/webpageBfTable (vanilla snapshot)', ['bf-table']),
         /webpageBfTable/,
@@ -351,10 +343,9 @@ test('vanilla snapshot — het require-tijd-slot bijt echt', () => {
 });
 
 test('vanilla snapshot — wat JS nodig heeft staat nergens als "uitklapbaar" opgeschreven', () => {
-    // De regel zelf, hier vanaf de kant van de consument bekeken: in de vanilla
-    // snapshot draait geen JS, dus geen enkel element met needsJs mag daar een
-    // andere toestand dan 'inert' dragen — en 'inert' moet een zichtbare tekst
-    // hebben, anders is de inertie precies zo stil als DOMPurify hem maakt.
+    // The rule itself, seen here from the consumer's side: in the vanilla
+    // snapshot no JS runs, so no element with needsJs may carry any state there other than
+    // 'inert' — and 'inert' must have visible text, otherwise the inertness is exactly as silent as DOMPurify makes it.
     for (const tag of bf.tagsNeedingJs()) {
         const vanilla = bf.getBfElement(tag).surfaces.vanillaSnapshot;
         assert.strictEqual(vanilla.state, 'inert', `${tag} kan in een script-vrije snapshot niets doen`);
@@ -367,23 +358,22 @@ test('vanilla snapshot — wat JS nodig heeft staat nergens als "uitklapbaar" op
 // ── het vocabulaire zelf blijft één lijst ─────────────────────────────
 
 test('de registry is de enige plek in de serverbron die een tagnaam opschrijft', () => {
-    // Een sweep over de hele serverkant. Alleen STRINGLITERALEN tellen: een
-    // tagnaam in commentaar is documentatie, een tagnaam in code is een lijst.
-    // Een identifier kan geen koppelteken dragen, dus een tag KAN in JS alleen
-    // in een string staan — het onderscheid is daarmee volledig.
+    // A sweep over the whole server side. Only STRING LITERALS count: a
+    // tag name in a comment is documentation, a tag name in code is a list.
+    // An identifier cannot carry a hyphen, so in JS a tag CAN only be in
+    // a string — the distinction is therefore complete.
     //
-    // Het scheiden gebeurt met de maskeerder uit webpageBindings.js, die W3
-    // uitdrukkelijk voor dit doel exporteert. Zijn bekende blinde vlek (een
-    // regex-literal met een quote erin) kan hier alleen een VALS ALARM geven,
-    // nooit een gemist geval: hij ziet dan te veel als string, niet te weinig.
+    // The separation is done with the masker from webpageBindings.js, which W3
+    // explicitly exports for this purpose. Its known blind spot (a regex literal with a quote
+    // in it) can here only give a FALSE ALARM, never a missed case: it sees too much as string, not too little.
     const allowed = new Map([
         ['core/webpages/bfElements.js', 'de registry zelf — hier hoort het vocabulaire te staan'],
         ['services/webpageBfTable.js', 'de handelingstabel die deze consument MOET uitspreken'],
-        // Beide hieronder schrijft .claude/handoff/curriculum/generate.mjs uit de
-        // lessen. De tagnamen staan er in PROZA voor de lezer ("de vijf Studio-
-        // elementen zijn bf-table, …"), niet in een lijst die code leest: loopt
-        // zo'n naam achter, dan is dat een verouderde lestekst, geen tweede
-        // vocabulaire. Bijwerken gebeurt in de les, daarna generate.mjs.
+        // Both below are written by .claude/handoff/curriculum/generate.mjs from the
+        // lessons. The tag names stand there in PROSE for the reader ("the five Studio
+        // elements are bf-table, …"), not in a list that code reads: if such a
+        // name lags behind, that is an outdated lesson text, not a second
+        // vocabulary. Updating happens in the lesson, then generate.mjs.
         ['i18n/defaults/en/learn.js', 'vertaalkopij — de gegenereerde learn.*-lesteksten noemen de elementen bij naam'],
         ['learning/catalog.generated.js', 'gegenereerd uit de curriculum-lessen — lesinhoud (rubrics), geen lijst die code leest'],
     ]);
@@ -416,8 +406,8 @@ test('de registry is de enige plek in de serverbron die een tagnaam opschrijft',
         + 'achterlopen op core/webpages/bfElements.js; lees de naam daaruit, of zet het bestand bewust op de '
         + '`allowed`-lijst hierboven met de reden erbij.',
     );
-    // Zonder deze regel zou een kapotte maskeerder of een verkeerd pad een
-    // groene test opleveren die niets heeft gelezen.
+    // Without this line a broken masker or a wrong path would produce a
+    // green test that has read nothing.
     assert.ok(
         maskCode(fs.readFileSync(path.join(server, 'services', 'webpageBfTable.js'), 'utf8'))
             .literals.some(l => String(l.value || '').includes('bf-table')),

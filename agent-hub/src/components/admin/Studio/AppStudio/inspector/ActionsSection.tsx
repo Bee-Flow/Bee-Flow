@@ -122,10 +122,10 @@ function skipSentence(t: (key: string | undefined, fallbackOrParams?: string | T
                 '{name} — the form has no field by that name, so nothing was sent for it.',
                 { name },
             );
-        // De automatisering vráágt de parameter, maar er is geen regel die zegt waar
-        // hij vandaan komt. Een andere zin dan "nothing is wired to it": daar
-        // is er een regel die leeg of onbegrijpelijk is, hier is er geen regel
-        // — en dat is precies wat de driftbalk erboven al aanbiedt op te lossen.
+        // The automation ASKS for the parameter, but there is no rule saying where it
+        // comes from. A different sentence than “nothing is wired to it”: there is
+        // a rule that is empty or incomprehensible; here there is no rule at all —
+        // and that is exactly what the drift bar above already offers to resolve.
         case SKIP_REASONS.NO_MAPPING:
             return t(
                 'app_studio.inspector.test_skip_no_mapping',

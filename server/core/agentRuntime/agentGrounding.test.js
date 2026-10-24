@@ -1,20 +1,19 @@
 /**
- * Waar een agent op gegrond is — de regel achter drie lezers.
+ * What an agent is grounded on — the rule behind three readers.
  *
- * Deze functie is de ENIGE plek waar staat wanneer een agent "uit het hoofd
- * antwoordt". Studio's "Vraagt aandacht" maakt er een aandachtspunt van,
- * GET /agents/all hangt hem als `grounding` aan elke rij, de kaartvoet van
- * het overzicht rendert hem, en `personaPrompt.applyPersonaToConfig` stelt via
- * `hasKnowledgeSource` de smallere helft van dezelfde vraag. Wat hier getest
- * wordt is dus wat die schermen zeggen, en dat ze het over dezelfde agent niet
- * oneens kunnen zijn.
+ * This function is the ONLY place where it is determined when an agent "answers from memory".
+ * Studio's "Needs attention" turns it into an attention point, GET /agents/all attaches it as
+ * `grounding` to each row, the footer of the overview renders it, and
+ * `personaPrompt.applyPersonaToConfig` states the narrower half of the same question via
+ * `hasKnowledgeSource`. What is tested here is therefore what those screens say, and they
+ * cannot disagree about the same agent.
  *
- * Drie waarden per as, en de derde draagt het gewicht: `null` = niet te lezen.
- * Elke test hieronder die op `null` staat, staat op het verschil tussen "deze
- * agent heeft geen kennisbank" (een bewering met een opdracht eraan vast) en
- * "ik kon zijn bedrading niet lezen" (dat niet).
+ * Three values per axis, and the third carries the weight: `null` = not readable.
+ * Every test below that stands on `null` stands on the difference between "this agent has
+ * no knowledge base" (a claim with an obligation attached) and "I could not read its wiring"
+ * (that is not).
  *
- * Draaien: cd server && node --test --test-reporter=tap core/agentRuntime/agentGrounding.test.js
+ * Run: cd server && node --test --test-reporter=tap core/agentRuntime/agentGrounding.test.js
  */
 
 'use strict';
@@ -32,10 +31,10 @@ test('een kennisbank maakt hem gegrond', () => {
 });
 
 test('de camelCase-spelling is GEEN bron — knowledgeSearch leest hem niet', () => {
-    // core/agentRuntime/knowledgeSearch.js doet `agent.config?.knowledge_base_ids
-    // || []` en kent geen camelCase-tak. Een rij die alleen `knowledgeBaseIds`
-    // draagt levert daar nul doorzochte kennisbanken op, dus hem hier meetellen
-    // zou een agent "gegrond" noemen die elke beurt niets doorzoekt.
+    // core/agentRuntime/knowledgeSearch.js does `agent.config?.knowledge_base_ids
+    // || []` and has no camelCase branch. A row that carries only `knowledgeBaseIds`
+    // yields zero searched knowledge bases there, so counting it here would call an agent
+    // "grounded" that searches nothing on every turn.
     assert.deepStrictEqual(groundedOn({ knowledgeBaseIds: ['kb1'] }),
         { kb: false, tables: false });
     assert.strictEqual(groundedOn({ knowledge_base_ids: [], knowledgeBaseIds: ['kb1'] }).kb, false);
@@ -55,12 +54,12 @@ test('een tabelgrant is óók een bron — die telde vroeger niet mee', () => {
 });
 
 test('websearch is GEEN as — het veld dat hem zou aanzetten stuurt niets', () => {
-    // Nagegaan in de bron: toolStackAssembly.js geeft de agentconfig door aan
-    // getIntegrationTools, dat er alleen `config.tools` uit leest. Welke apps
-    // een agent krijgt hangt aan `enabled_apps_user_<id>` plus AUTO_ENABLED_APPS
-    // (waar 'agent-search' in staat) plus `searchAvailable`. En de R4-backfill
-    // in stores/agent/initSchema.js heeft 'agent-search' in ELKE oudere rij
-    // gezet. Een as hierop zou in beide richtingen liegen.
+    // Checked in the source: toolStackAssembly.js passes the agent config on to
+    // getIntegrationTools, which reads only `config.tools` from it. Which apps
+    // an agent gets hangs on `enabled_apps_user_<id>` plus AUTO_ENABLED_APPS
+    // (where 'agent-search' is listed) plus `searchAvailable`. And the R4 backfill
+    // in stores/agent/initSchema.js set 'agent-search' on EVERY older row. An axis
+    // on this would lie in both directions.
     assert.deepStrictEqual(groundedOn({ enabledIntegrations: ['gmail', 'agent-search'] }),
         { kb: false, tables: false });
     assert.strictEqual(groundingVerdict(groundedOn({ enabledIntegrations: ['agent-search'] })),
@@ -131,18 +130,18 @@ test('groundingOf is de vorm die over de API reist', () => {
 // ── de smallere helft: de kennispoort van personaPrompt ─────────────────────
 
 test('hasKnowledgeSource is de KB-as alleen — een tabel is er geen', () => {
-    // `strictKnowledge` wordt in contextBuilder.js een CRITICAL OPERATIONAL
-    // CONSTRAINT die weigeren afdwingt zodra er geen KNOWLEDGE BASE RESULTS
-    // staan, en die sectie bouwt knowledgeSearch.js alleen uit
-    // config.knowledge_base_ids. Een tabel-agent die hier meetelde zou dus
-    // ALLES gaan weigeren — ook vragen over zijn eigen tabel.
+    // `strictKnowledge` becomes in contextBuilder.js a CRITICAL OPERATIONAL
+    // CONSTRAINT that enforces refusals as soon as there are no KNOWLEDGE BASE RESULTS,
+    // and that section is built by knowledgeSearch.js only from
+    // config.knowledge_base_ids. A table agent that counted here would therefore refuse
+    // EVERYTHING — including questions about its own table.
     assert.strictEqual(hasKnowledgeSource({ knowledge_base_ids: ['kb1'] }), true);
     assert.strictEqual(hasKnowledgeSource({ tools: { datatables: { t1: {} } } }), false);
     assert.strictEqual(hasKnowledgeSource({ knowledgeBaseIds: ['kb1'] }), false);
 });
 
 test('een onleesbare config is voor de kennispoort AFWEZIG, nooit aanwezig', () => {
-    // Onbekend versmalt, en versmallen is hier: de vlag niet aanzetten.
+    // Unknown narrows, and narrowing here means: do not switch the flag on.
     assert.strictEqual(hasKnowledgeSource({ knowledge_base_ids: 'kb1' }), false);
     assert.strictEqual(hasKnowledgeSource('niet te lezen'), false);
     assert.strictEqual(hasKnowledgeSource(null), false);

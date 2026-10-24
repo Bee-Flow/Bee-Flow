@@ -1,116 +1,107 @@
 // @typecheck
 /**
- * webpageBindings — wat de pagina ZELF doet.
+ * webpageBindings — what the page ITSELF does.
  *
- * De kolom "Laat gebeuren" van "Data & koppelingen" beantwoordt een andere
- * vraag dan de kaarten ernaast. Die gaan over wat de pagina LEEST; dit gaat
- * over wat ze LAAT GEBEUREN. Tot het `bf-*`-vocabulaire bestaat (W4) is dat
- * oppervlak nog leeg — knoppen, formulieren en het Agent-blok krijgen daar hun
- * elementen — en toont de kolom de bestaande brug-grants plus dit ene stuk:
+ * The column "Lets happen" of "Data & connections" answers a different question than the cards next to it. Those are about what the page READS; this is about
+ * what it LETS HAPPEN. Until the `bf-*` vocabulary exists (W4) that surface is still empty — buttons, forms and the Agent block get their
+ * elements there — and the column shows the existing bridge grants plus this one piece:
  *
- *   "DOET IETS IN EIGEN CODE" — een statische scan van ALLE eigen tekstbestanden
- *   van de pagina op `fetch(` en `XMLHttpRequest` naar een host die niet van
- *   deze installatie is. Zo'n oproep gaat om de automatiseringen heen: hij staat niet in
- *   Runs, kent geen goedkeuring en niemand ziet hem terug. De kaart biedt
- *   daarom "Maak er een automation van" aan, die een `http_request`-automation met
- *   diezelfde URL scaffoldt.
+ *   "DOES SOMETHING IN OWN CODE" — a static scan of ALL own text files
+ *   of the page for `fetch(` and `XMLHttpRequest` to a host that does not belong to
+ *   this installation. Such a call bypasses the automations: it is not in
+ *   Runs, knows no approval and nobody sees it back. The card therefore
+ *   offers "Make an automation of it", which scaffolds an `http_request`-automation with
+ *   that same URL.
  *
- * ── DE TWEEDE LEZER: DE MARKERINGEN IN DE CODE-TAB ──────────────────
+ * ── THE SECOND READER: THE MARKINGS IN THE CODE TAB ─────────────────
  *
- * Sinds W4 leest deze module dezelfde bestanden nóg een keer, met een andere
- * vraag: op WELKE REGEL staat een `bf-*`-element? Dat is `scanBfElements`, en
- * de Code-tab tekent er zijn Monaco-markeringen mee.
+ * Since W4 this module reads the same files once more, with a different
+ * question: on WHICH LINE stands a `bf-*` element? That is `scanBfElements`, and
+ * the Code tab draws its Monaco markings with it.
  *
- * Waarom hier en niet in de frontend: een tweede regex in de client zou een
- * tweede lezing van hetzelfde vocabulaire zijn — precies de drift die
- * core/webpages/bfElements.js bestaat om te voorkomen. De namen én het patroon
- * waarmee ze in markup worden herkend komen daarom uit de registry; dit bestand
- * schrijft geen enkele tagnaam op.
+ * Why here and not in the frontend: a second regex in the client would be a second
+ * reading of the same vocabulary — precisely the drift that
+ * core/webpages/bfElements.js exists to prevent. The names and the pattern by which they are
+ * recognized in markup therefore come from the registry; this file writes no tag name.
  *
- * Dezelfde drie standen gelden: onleesbare bestanden geven `scanned:false`, en
- * de Code-tab MOET dat verschil tonen. Een pagina zonder markeringen mag er
- * niet uitzien als een pagina zonder koppelingen.
+ * The same three states apply: unreadable files give `scanned:false`, and
+ * the Code tab MUST show that difference. A page without markings may not
+ * look like a page without bindings.
  *
- * ── DE DERDE LEZER: DE USAGE-INDEX ──────────────────────────────────
+ * ── THE THIRD READER: THE USAGE INDEX ───────────────────────────────
  *
- * Uit diezelfde markeringen komt `collectUses`: WELKE tabel, WELKE automatisering,
- * WELKE agent hangt er via een element aan deze pagina? Dat is wat de
- * middenkolom toont en wat "Wordt gebruikt door" straks omdraait.
+ * From those same markings comes `collectUses`: WHICH table, WHICH automation,
+ * WHICH agent hangs on this page via an element? That is what the middle column
+ * shows and what "Used by" will reverse.
  *
- * De families komen uit de registry (`binding.kind`), niet uit een lijst hier —
- * dit bestand schrijft geen tagnaam en geen familienaam op. En de index telt
- * alleen wat hij ECHT kan aanwijzen; alles daaromheen komt terug als
- * `unresolved`, met de reden erbij:
+ * The families come from the registry (`binding.kind`), not from a list here —
+ * this file writes no tag name and no family name. And the index counts only
+ * what it CAN actually point to; everything around it comes back as
+ * `unresolved`, with the reason:
  *
- *   built-at-runtime      het adres stond er als uitdrukking (`source={id}` in
- *                         JSX, `${…}` in een template). De pagina bouwt het
- *                         terwijl ze draait, dus hier valt het niet te lezen;
- *   no-target             een verplicht attribuut ontbreekt;
- *   page-binding-unknown  het element valt terug op de binding van de PAGINA,
- *                         en die is er niet;
- *   page-binding-unreadable  idem, maar de grants waren niet te LEZEN. Dat is
- *                         een storing en geen keuze van de auteur, dus die twee
- *                         mogen niet op dezelfde reden uitkomen;
- *   unknown-fallback      het vocabulaire kent een terugval waarvoor deze
- *                         module geen antwoord heeft. Dan is er iets aan de
- *                         registry toegevoegd zonder het hier te beantwoorden —
- *                         en dat mag geen element stil uit de index laten
- *                         vallen.
+ *   built-at-runtime      the address stood there as an expression (`source={id}` in
+ *                         JSX, `${…}` in a template). The page builds it
+ *                         while it runs, so it cannot be read here;
+ *   no-target             a required attribute is missing;
+ *   page-binding-unknown  the element falls back to the binding of the PAGE, and that is
+ *                         not there;
+ *   page-binding-unreadable  idem, but the grants could not be READ. That is
+ *                         a malfunction and not a choice of the author, so those two
+ *                         may not come out for the same reason;
+ *   unknown-fallback      the vocabulary knows a fallback for which this
+ *                         module has no answer. Then something was added to the
+ *                         registry without answering it here — and that may not silently drop an element from the index.
  *
- * Een verzonnen id is het ENIGE antwoord dat we niet mogen geven: `{id}` als
- * datatable-id ziet er in een usage-index precies zo echt uit als `tbl_1`, en
- * hoort daarna nergens meer bij.
+ * An invented id is the ONLY answer that we may not give: `{id}` as a datatable id
+ * looks exactly as real in a usage index as `tbl_1`, and afterwards belongs nowhere.
  *
- * ── "ALLE BESTANDEN" IS NIET "DE DRIE SLOTS" ────────────────────────
+ * ── "ALL FILES" IS NOT "THE THREE SLOTS" ───────────────────────────
  *
- * De drie slots (`index.html` / `style.css` / `script.js`) zijn NIET het hele
- * project, en voor de meeste pagina's zijn ze niet eens de hoofdmoot. Een
- * react-mui-project — en dat is sinds `integrations/webpageFramework.js`
- * (`DEFAULT_NEW_FRAMEWORK`) wat élke NIEUWE pagina wordt — schrijft zijn hele
- * app als EXTRA bestanden onder `src/` (`src/main.jsx`, `src/App.jsx`, …); de
- * html wordt bij het renderen gegenereerd en het js-slot blijft leeg. Ook een
- * vanilla-project mag `modules/state.js` of `about.html` naast de slots zetten.
+ * The three slots (`index.html` / `style.css` / `script.js`) are NOT the whole project, and for most
+ * pages they are not even the main part. A react-mui project — and that is, since `integrations/webpageFramework.js`
+ * (`DEFAULT_NEW_FRAMEWORK`), what EVERY NEW page becomes — writes its whole app as
+ * EXTRA files under `src/` (`src/main.jsx`, `src/App.jsx`, …); the
+ * html is generated at render time and the js slot stays empty. A vanilla project may
+ * also put `modules/state.js` or `about.html` next to the slots.
  *
- * Wie hier alleen `readAllSlots` leest, leest dus drie lege strings en meldt
- * doodleuk "niets gevonden" over code die hij nooit heeft gezien. Daarom haalt
- * `readPageCode` de tekst-extra's erbij, en dragen ze in de uitslag hun eigen
- * pad als `source`, zodat de auteur weet WELK bestand hij moet openen.
+ * Whoever reads only `readAllSlots` here reads three empty strings and cheerfully reports "nothing
+ * found" about code he has never seen. Therefore `readPageCode` also fetches the text extras, and they carry
+ * their own path as `source` in the result, so that the author knows WHICH file to open.
  *
- * ── DIT IS EEN LEESHULP, GEEN BEVEILIGING ───────────────────────────
+ * ── THIS IS A READING AID, NOT A SECURITY MEASURE ──────────────────
  *
- * Lees dat letterlijk. De scan leest tekst; hij voert niets uit en begrijpt
- * geen JavaScript. Alles hieronder ontsnapt eraan:
+ * Read that literally. The scan reads text; it executes nothing and does not understand
+ * JavaScript. Everything below escapes it:
  *
- *   - `window[atob('ZmV0Y2g=')](url)`, `const f = fetch; f(url)`, een oproep uit
- *     een `<script src>` van elders, `import()`, `<img src>`, `<form action>`,
- *     `navigator.sendBeacon`, een WebSocket;
- *   - een URL die uit een variabele komt (`fetch(endpoint)`);
- *   - een regex-literal die de mini-parser hieronder als string leest;
- *   - een extra bestand dat de opslag als BINAIR kent (`isText` false): daar
- *     valt geen tekst uit te lezen, dus wat erin staat blijft buiten beeld.
+ *   - `window[atob('ZmV0Y2g=')](url)`, `const f = fetch; f(url)`, a call from
+ *     a `<script src>` elsewhere, `import()`, `<img src>`, `<form action>`,
+ *     `navigator.sendBeacon`, a WebSocket;
+ *   - a URL that comes from a variable (`fetch(endpoint)`);
+ *   - a regex literal that the mini parser below reads as a string;
+ *   - an extra file that the storage knows as BINARY (`isText` false): no text
+ *     can be read from there, so what is in it stays out of view.
  *
- * Daarom mag geen enkele consument van deze module "deze pagina doet niets"
- * zeggen. De uitkomst kent drie standen en die MOETEN verschillend blijven:
+ * That is why no consumer of this module may say "this page does nothing". The outcome has three
+ * states and they MUST remain different:
  *
- *   scanned:false          de bestanden waren niet te lezen — onbekend;
- *   unresolved > 0         er is iets gevonden dat niet te herleiden was;
- *   calls: [] + scanned    er is gekeken en niets gevonden — wat nog steeds
- *                          niet hetzelfde is als "er gebeurt niets".
+ *   scanned:false          the files were not readable — unknown;
+ *   unresolved > 0         something was found that could not be traced;
+ *   calls: [] + scanned    it was looked at and nothing was found — which still is
+ *                          not the same as "nothing happens".
  *
- * Wat de parser kwijtraakt komt terug als `unresolved`, niet als stilte: het
- * aantal `fetch(` / `new XMLHttpRequest` in de RUWE tekst wordt vergeleken met
- * wat er in de gemaskeerde tekst is overgebleven, en het verschil wordt
- * gerapporteerd als "niet te controleren". Dat telt een uitgecommentarieerde
- * `fetch(` mee als onbekend — een hinderlijke maar veilige kant op: de andere
- * kant is een echte oproep die de scan stil laat verdwijnen.
+ * What the parser loses comes back as `unresolved`, not as silence: the number of
+ * `fetch(` / `new XMLHttpRequest` in the RAW text is compared with what is left in the
+ * masked text, and the difference is reported as "not checkable". That counts a
+ * commented-out `fetch(` as unknown — an annoying but safe direction: the other
+ * direction is a real call that the scan silently makes disappear.
  *
- * ── WAT "VAN ONS" IS ────────────────────────────────────────────────
+ * ── WHAT "OURS" IS ─────────────────────────────────────────────────
  *
- * Alleen een relatieve URL en de expliciet geconfigureerde eigen host tellen
- * als intern. Elke andere host is extern, óók als hij van Bee Flow zou kunnen
- * zijn: een valse waarschuwing is hinderlijk, een verzwegen uitgaande oproep is
- * een gat. Er staat met opzet geen `beeflow.nl` hardgecodeerd in de lijst — op
- * een self-hosted installatie is dat wél een derde partij.
+ * Only a relative URL and the explicitly configured own host count as
+ * internal. Every other host is external, also if it could be from Bee Flow: a
+ * false warning is annoying, a concealed outgoing call is a gap. There is deliberately no
+ * `beeflow.nl` hard-coded in the list — on a self-hosted installation that is a
+ * third party.
  */
 'use strict';
 
@@ -124,36 +115,32 @@ const log = require('../../telemetry/log');
 const MAX_REPORTED_CALLS = 20;
 
 /**
- * Hoeveel gemarkeerde regels we hoogstens uitschrijven.
+ * How many marked lines we write out at most.
  *
- * Ruimer dan MAX_REPORTED_CALLS omdat dit een ANDERE consument heeft: de
- * Code-tab tekent er markeringen mee in de editor, en een pagina die er meer
- * heeft dan dit krijgt een deel van zijn regels niet gemarkeerd. Wat er afvalt
- * wordt geteld (`truncated`), zodat de legenda het kan zeggen in plaats van
- * stil minder te tonen.
+ * Higher than MAX_REPORTED_CALLS because this has a DIFFERENT consumer: the
+ * Code tab draws markings with it in the editor, and a page that has more
+ * than this gets some of its lines unmarked. What falls away is
+ * counted (`truncated`), so that the legend can say so instead of silently showing less.
  */
 const MAX_REPORTED_MARKS = 300;
 
-/** Hoever we voorbij een `<bf-…` naar attributen zoeken. */
+/** How far beyond a `<bf-…` we look for attributes. */
 const MAX_OPEN_TAG_LENGTH = 4096;
 
 /** Attributen uit de ruwe tekst van één openingstag. */
 const RE_ATTRIBUTE = /([A-Za-z_:][-\w:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'`=<>]+))/g;
 
 /**
- * Een waarde die de pagina TER PLEKKE bouwt: `source={id}` (JSX) of een
- * `${…}` in een template-literal. Er staat wél iets, maar niet iets dat hier te
- * lezen valt.
+ * A value that the page builds ON THE SPOT: `source={id}` (JSX) or a
+ * `${…}` in a template literal. Something stands there, but not something that can be read here.
  *
- * Dit onderscheid moet bestaan omdat het alternatief erger is dan stilte: zonder
- * deze toets belandt de tekst `{id}` als DATATABLE-ID in de usage-index, waar ze
- * er precies zo echt uitziet als `tbl_1` en nooit meer bij een tabel hoort.
- * "Niet te lezen" is een antwoord; een verzonnen id is dat niet.
+ * This distinction must exist because the alternative is worse than silence: without this
+ * check the text `{id}` lands as DATATABLE ID in the usage index, where it looks exactly as real as
+ * `tbl_1` and never belongs to a table again. "Not readable" is an answer; an invented id is not.
  *
- * De toets is BEGINT-MET-`{`, niet begint-en-eindigt: `run={`auto_${n}`}` levert
- * bij het uitlezen van de tag maar één teken op (de attribuutlezer stopt bij het
- * backtick), en juist zo'n half gelezen waarde is degene die anders als id
- * doorglipt. Een echt id begint nooit met een accolade.
+ * The check is BEGINS-WITH-`{`, not begins-and-ends: `run={`auto_${n}`}` yields
+ * only one character when the tag is read (the attribute reader stops at the backtick), and precisely such a half-read
+ * value is the one that otherwise slips through as id. A real id never begins with a brace.
  */
 const RE_EXPRESSION_VALUE = /^\{|\$\{/;
 
@@ -161,16 +148,16 @@ function isExpressionValue(value) {
     return typeof value === 'string' && RE_EXPRESSION_VALUE.test(value.trim());
 }
 
-/** Schema's die geen netwerkoproep naar een vreemde host zijn. */
+/** Schemes that are not a network call to a foreign host. */
 const NON_NETWORK_SCHEMES = /^(data|blob|javascript|mailto|tel|about):/i;
 
-/** Extra bestanden die als markup worden gelezen: alleen hun inline scripts. */
+/** Extra files that are read as markup: only their inline scripts. */
 const MARKUP_FILE = /\.(html?|svg|xml)$/i;
 
 /** Methodenamen die een `.open(` tot een XHR-oproep maken. */
 const XHR_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']);
 
-/** Plaatshouder rond het indexnummer van een stringliteral in de gemaskeerde tekst. */
+/** Placeholder around the index number of a string literal in the masked text. */
 const MARK = '\u0001';
 
 const RE_FETCH = /\bfetch\s*\(/g;
@@ -179,10 +166,9 @@ const RE_LITERAL_AFTER_PAREN = new RegExp(`^\\s*${MARK}(\\d+)${MARK}`);
 const RE_XHR_OPEN = new RegExp(`\\.open\\s*\\(\\s*${MARK}(\\d+)${MARK}\\s*,\\s*${MARK}(\\d+)${MARK}`, 'g');
 
 /**
- * De host van deze installatie, uit dezelfde env-variabelen als de
- * share-URL-bouwer (`services/webpageSnapshot.js`). Geen default: zonder
- * configuratie is er geen host waarvan we ZEKER weten dat hij van ons is, en
- * onbekend hoort hier te versmallen naar "extern".
+ * The host of this installation, from the same environment variables as the
+ * share URL builder (`services/webpageSnapshot.js`). No default: without configuration there is no host
+ * of which we are CERTAIN that it is ours, and unknown should narrow here to "external".
  */
 function ownHosts() {
     const hosts = new Set();
@@ -194,22 +180,20 @@ function ownHosts() {
 }
 
 /**
- * De code van de pagina, met een EXPLICIETE leesbaarheidsvlag.
+ * The code of the page, with an EXPLICIT readability flag.
  *
- * `webpageStore.readAllSlots` geeft lege strings terug als de objectopslag niet
- * beschikbaar is — niet te onderscheiden van een pagina zonder script. Daarom
- * wordt `storageStore.isAvailable()` hier apart gevraagd: zonder opslag is het
- * antwoord "onbekend", nooit "leeg".
+ * `webpageStore.readAllSlots` gives empty strings back when the object storage is
+ * not available — not distinguishable from a page without script. Therefore
+ * `storageStore.isAvailable()` is asked for here separately: without storage the answer is "unknown",
+ * never "empty".
  *
- * Dezelfde regel geldt voor de extra bestanden (zie de kop): lukt het opsommen
- * of het lezen daarvan niet, dan is de HELE uitslag onleesbaar. Een pagina
- * waarvan we de helft van de bestanden niet konden ophalen mag geen "niets
- * gevonden" opleveren — onbekend versmalt.
+ * The same rule applies to the extra files (see the header): if listing or reading them
+ * fails, then the WHOLE outcome is unreadable. A page of which we could not fetch half of
+ * the files may not yield "nothing found".
  *
- * `css` gaat mee sinds W4. De oproepscan doet er niets mee, maar de
- * elementscan moet ELK tekstbestand dat de editor toont hebben gezien: een slot
- * dat niet wordt gelezen kan geen markering opleveren, en dat is niet te
- * onderscheiden van "hier staat niets".
+ * `css` has been included since W4. The call scan does nothing with it, but the
+ * element scan must have seen EVERY text file that the editor shows: a slot that is
+ * not read cannot yield a marking, and that is not distinguishable from "nothing is here".
  *
  * @returns {Promise<{readable:boolean, html:string, css:string, js:string, extras:Array<{path:string,text:string}>}>}
  */
@@ -228,8 +212,8 @@ async function readPageCode(userId, webpageId) {
         const metas = await webpageStore.listExtraFiles(webpageId);
         for (const meta of (Array.isArray(metas) ? metas : [])) {
             if (!meta || !meta.path) continue;
-            // Binaire extra's (plaatjes, fonts) zijn geen scriptbron; ze staan
-            // als blinde vlek in de kop.
+            // Binary extras (images, fonts) are not script source; they stand
+            // as a blind spot in the header.
             if (!meta.isText) continue;
             const res = await webpageStore.readExtraFile({ webpageId, userId, path: meta.path });
             if (!res || typeof res.text !== 'string') return unreadable;
@@ -249,16 +233,16 @@ async function readPageCode(userId, webpageId) {
 // ── mini-parser ───────────────────────────────────────────────────────
 
 /**
- * Vervang commentaar en stringliteralen door plaatshouders, zodat een `//` of
- * een quote IN een URL de scan niet in de war stuurt.
+ * Replace comments and string literals with placeholders, so that a `//` or
+ * a quote IN a URL does not confuse the scan.
  *
- * Regelnummers blijven kloppen: commentaar wordt spatie-voor-spatie vervangen
- * met behoud van newlines, en een meerregelige template krijgt zijn newlines
- * achter de plaatshouder aan. Kolommen schuiven wél op — die gebruiken we niet.
+ * Line numbers remain correct: comments are replaced character for character
+ * with spaces while newlines are kept, and a multi-line template gets its newlines
+ * after the placeholder. Columns do shift — we do not use those.
  *
- * Regex-literalen worden NIET herkend (`/['"]/` wordt als stringstart gelezen).
- * Dat is de bekende blinde vlek; het vangnet in `scanSource` maakt er
- * `unresolved` van in plaats van stilte.
+ * Regex literals are NOT recognized (`/['"]/` is read as a string start).
+ * That is the known blind spot; the safety net in `scanSource` turns it into
+ * `unresolved` instead of silence.
  */
 function maskCode(text) {
     const literals = [];
@@ -292,8 +276,8 @@ function maskCode(text) {
                 const d = text[j];
                 if (d === '\\') { value += text[j + 1] === undefined ? '' : text[j + 1]; j += 2; continue; }
                 if (d === quote) { j++; break; }
-                // Een niet-afgesloten gewone string loopt niet door over een
-                // regeleinde heen — anders slokt één losse quote de rest op.
+                // An unterminated ordinary string does not run on over a line ending — otherwise
+                // one stray quote would swallow the rest.
                 if (quote !== '`' && d === '\n') break;
                 if (quote === '`' && d === '$' && text[j + 1] === '{') { hasSubstitution = true; value += '${'; j += 2; continue; }
                 value += d;
@@ -312,23 +296,21 @@ function maskCode(text) {
 }
 
 /**
- * Alleen COMMENTAAR wegpoetsen, teken voor teken, met behoud van lengte.
+ * Strip ONLY COMMENTS, character for character, keeping the length.
  *
- * `maskCode` hierboven kan dit niet doen: die maskeert óók stringliteralen, en
- * juist een string moet blijven staan — `el.innerHTML = '<bf-button run="a1">'`
- * is een echt element dat de pagina neerzet. Andersom is uitgecommentarieerde
- * code géén koppeling: de auteur zag een gemarkeerde regel met een adres erbij
- * op code die uit staat, en de usage-index beweerde dat de pagina die tabel
- * gebruikt.
+ * `maskCode` above cannot do this: that one also masks string literals, and
+ * precisely a string must stay — `el.innerHTML = '<bf-button run="a1">'`
+ * is a real element that the page puts down. Conversely, commented-out
+ * code is NOT a binding: the author saw a marked line with an address next to it
+ * on code that is switched off, and the usage index claimed that the page uses that table.
  *
- * Lengte én regeleindes blijven gelijk, zodat elke index in de uitvoer nog
- * precies naar dezelfde plek in de invoer wijst — de markeringen dragen
- * regelnummers, dus dat is niet onderhandelbaar.
+ * Length AND line endings stay equal, so that every index in the output still points
+ * to exactly the same place in the input — the markings carry line numbers, so that is not negotiable.
  *
  * @param {string} text
- * @param {'html'|'css'|'js'|null} kind  taal; iets anders maskeert niets, want
- *   raden wat commentaar is in een onbekend formaat kan alleen maar te veel
- *   wegpoetsen — en een element te weinig tellen is erger dan er een te veel.
+ * @param {'html'|'css'|'js'|null} kind  language; anything else masks nothing, because
+ *   guessing what is a comment in an unknown format can only strip too much —
+ *   and counting an element too few is worse than counting one too many.
  */
 function maskComments(text, kind) {
     const src = String(text || '');
@@ -351,8 +333,8 @@ function maskComments(text, kind) {
         return out;
     }
 
-    // css en js delen `/* … */`; js heeft `//` erbij en moet strings ontzien,
-    // anders knipt een `//` in "https://…" de rest van de regel weg.
+    // css and js share `/* … */`; js additionally has `//` and must spare strings,
+    // otherwise a `//` in "https://…" cuts off the rest of the line.
     const stringAware = kind === 'js';
     while (i < n) {
         const c = src[i];
@@ -391,7 +373,7 @@ function maskComments(text, kind) {
     return out;
 }
 
-/** De taal van een bestand, voor `maskComments`. Onbekend → niet maskeren. */
+/** The language of a file, for `maskComments`. Unknown → do not mask. */
 function commentKindOf(source, slot) {
     if (slot === 'html' || slot === 'css' || slot === 'js') return slot;
     const name = String(source || '').toLowerCase();
@@ -409,7 +391,7 @@ function lineAt(masked, index) {
     return line;
 }
 
-/** Het deel van een literal dat vaststaat: alles vóór de eerste `${`. */
+/** The part of a literal that is fixed: everything before the first `${`. */
 function fixedPrefixOf(literal) {
     const raw = String(literal.value || '');
     if (!literal.hasSubstitution) return { text: raw.trim(), dynamic: false };
@@ -418,11 +400,11 @@ function fixedPrefixOf(literal) {
 }
 
 /**
- * Waar gaat deze URL heen?
+ * Where does this URL go?
  *
  * @returns {{verdict:'internal'|'external'|'unknown', host?:string}}
- *   'unknown' betekent "niet vast te stellen" en telt als `unresolved` — nooit
- *   als intern, want dan zou de oproep uit beeld verdwijnen.
+ *   'unknown' means "not determinable" and counts as `unresolved` — never
+ *   as internal, because then the call would disappear from view.
  */
 function classifyUrl(prefix, dynamic, hosts) {
     const raw = String(prefix || '');
@@ -434,11 +416,11 @@ function classifyUrl(prefix, dynamic, hosts) {
     } else if (raw.startsWith('//')) {
         try { host = new URL(`https:${raw}`).host.toLowerCase(); } catch { return { verdict: 'unknown' }; }
     } else if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) {
-        // Een schema dat we niet kennen (ws:, chrome-extension:, …).
+        // A scheme that we do not know (ws:, chrome-extension:, …).
         return { verdict: 'unknown' };
     } else {
-        // Relatief. Alleen een prefix die de oorsprong al vastlegt is zeker
-        // intern; `${base}/x` (lege prefix) of `api${x}` niet.
+        // Relative. Only a prefix that already fixes the origin is certainly
+        // internal; `${base}/x` (empty prefix) or `api${x}` is not.
         if (raw.startsWith('/') && !raw.startsWith('//')) return { verdict: 'internal' };
         if (raw.startsWith('./') || raw.startsWith('../')) return { verdict: 'internal' };
         return dynamic ? { verdict: 'unknown' } : { verdict: 'internal' };
@@ -478,13 +460,13 @@ function scanSource(text, source, lineOffset, hosts) {
         found.push({
             kind,
             method,
-            // Wat er staat, niet wat wij ervan maken: de auteur moet zijn eigen
-            // regel herkennen. Een template houdt een beletselteken als staart.
+            // What stands there, not what we make of it: the author must recognize
+            // his own line. A template keeps an ellipsis as its tail.
             url: dynamic ? `${prefix}…` : prefix,
-            // Het deel dat ECHT vaststaat, zonder beletselteken: dat is wat er
-            // in een gescaffolde automatisering mag belanden. `dynamic` zegt erbij dat
-            // de pagina de rest van het adres ter plekke bouwde, zodat niemand
-            // die automatisering voor compleet aanziet.
+            // The part that is REALLY fixed, without the ellipsis: that is what may end up
+            // in a scaffolded automation. `dynamic` says alongside it that
+            // the page built the rest of the address on the spot, so that nobody
+            // regards that automation as complete.
             urlPrefix: prefix,
             dynamic,
             host: verdict.host,
@@ -493,9 +475,9 @@ function scanSource(text, source, lineOffset, hosts) {
         });
     };
 
-    // fetch(<literal>) — alles wat niet direct met een literal begint is een
-    // uitdrukking en dus niet te herleiden. De methode blijft null: `{method:
-    // 'POST'}` staat in het tweede argument en wordt hier NIET geraden.
+    // fetch(<literal>) — everything that does not begin directly with a literal is an
+    // expression and thus not traceable. The method stays null: `{method:
+    // 'POST'}` stands in the second argument and is NOT guessed here.
     const fetchRe = new RegExp(RE_FETCH.source, 'g');
     let m;
     let fetchSeen = 0;
@@ -506,9 +488,9 @@ function scanSource(text, source, lineOffset, hosts) {
         else unresolved++;
     }
 
-    // XMLHttpRequest: alleen `.open('METHOD', '<url>')` levert een adres op.
-    // Elke `new XMLHttpRequest` waar geen zo'n paar bij hoort telt als niet te
-    // herleiden — anders zou een XHR met een variabele URL verdwijnen.
+    // XMLHttpRequest: only `.open('METHOD', '<url>')` yields an address.
+    // Every `new XMLHttpRequest` without such a pair counts as not traceable —
+    // otherwise an XHR with a variable URL would disappear.
     const xhrInstances = countRaw(masked, RE_NEW_XHR);
     let xhrResolved = 0;
     if (/\bXMLHttpRequest\b/.test(masked)) {
@@ -523,10 +505,10 @@ function scanSource(text, source, lineOffset, hosts) {
     }
     if (xhrInstances > xhrResolved) unresolved += xhrInstances - xhrResolved;
 
-    // Vangnet: staat er in de RUWE tekst meer dan de parser als code heeft
-    // gezien, dan zat het in commentaar, in een string, of in iets dat de
-    // parser verkeerd las. Dat verschil is niet te onderscheiden, dus het gaat
-    // naar `unresolved` — "niet gecontroleerd", nooit "niets gevonden".
+    // Safety net: if the RAW text contains more than the parser has seen as code,
+    // then it sat in a comment, in a string, or in something that the
+    // parser misread. That difference is not distinguishable, so it goes to
+    // `unresolved` — "not checked", never "nothing found".
     unresolved += Math.max(0, countRaw(text, RE_FETCH) - fetchSeen);
     unresolved += Math.max(0, countRaw(text, RE_NEW_XHR) - xhrInstances);
 
@@ -540,8 +522,8 @@ function inlineScripts(html) {
     const re = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
     let m;
     while ((m = re.exec(html)) !== null) {
-        // Een `<script src=…>` heeft geen inhoud die wij kunnen lezen; zijn
-        // gedrag valt buiten de scan (en dat zegt de kaart erbij).
+        // A `<script src=…>` has no content that we can read; its
+        // behaviour falls outside the scan (and the card says so).
         if (/\bsrc\s*=/i.test(m[1] || '')) continue;
         const before = html.slice(0, m.index + m[0].indexOf('>') + 1);
         out.push({ text: m[2] || '', lineOffset: (before.match(/\n/g) || []).length });
@@ -560,12 +542,11 @@ function scanOutboundCalls({ html = '', js = '', extras = [] } = {}) {
     for (const frag of inlineScripts(html)) {
         results.push(scanSource(frag.text, 'index.html', frag.lineOffset, hosts));
     }
-    // Extra bestanden dragen hun eigen pad als bron. Een markup-bestand levert
-    // alleen zijn inline `<script>`-blokken op — net als `index.html` hierboven
-    // en met dezelfde grens; al het andere tekstbestand wordt als scriptbron
-    // gelezen, ook `.json` of `.css`: staat er een `fetch(` in die de parser
-    // niet kan thuisbrengen, dan is `unresolved` het juiste antwoord en stilte
-    // het verkeerde.
+    // Extra files carry their own path as source. A markup file yields
+    // only its inline `<script>` blocks — just like `index.html` above
+    // and with the same limit; all other text files are read as script
+    // source, including `.json` or `.css`: if a `fetch(` stands in there that the parser
+    // cannot place, then `unresolved` is the right answer and silence the wrong one.
     for (const file of (Array.isArray(extras) ? extras : [])) {
         if (!file || typeof file.text !== 'string') continue;
         const source = String(file.path || 'extra file');
@@ -601,7 +582,7 @@ function scanOutboundCalls({ html = '', js = '', extras = [] } = {}) {
     };
 }
 
-/** De drie standen van de scan in één vorm, zodat de client niet hoeft te raden. */
+/** The three states of the scan in one form, so that the client does not have to guess. */
 function codeSection(scan) {
     if (!scan) return { scanned: false, calls: [], externalCount: 0, unresolved: 0, internal: 0 };
     return { scanned: true, ...scan };
@@ -610,11 +591,11 @@ function codeSection(scan) {
 // ── de elementscan: WAAR staat een bf-element? ────────────────────────
 
 /**
- * De ruwe attribuuttekst van één openingstag, vanaf `from` tot de `>`.
+ * The raw attribute text of one opening tag, from `from` up to the `>`.
  *
- * Quotes tellen mee, zodat een `>` IN een attribuutwaarde de tag niet vroeg
- * afkapt. Een niet-afgesloten tag stopt bij de volgende `<` of bij de
- * bovengrens — er wordt hier niets gerepareerd, alleen gelezen.
+ * Quotes count, so that a `>` IN an attribute value does not cut the tag short early.
+ * An unclosed tag stops at the next `<` or at the upper bound — nothing is repaired
+ * here, only read.
  */
 function openTagText(src, from) {
     const stop = Math.min(src.length, from + MAX_OPEN_TAG_LENGTH);
@@ -635,17 +616,17 @@ function parseAttributes(text) {
     let m;
     while ((m = re.exec(text)) !== null) {
         const name = String(m[1]).toLowerCase();
-        // Eerste schrijfwijze wint; een tweede keer hetzelfde attribuut is wat
-        // de browser ook negeert.
+        // The first spelling wins; a second time the same attribute is what
+        // the browser also ignores.
         if (out[name] === undefined) out[name] = m[2] ?? m[3] ?? m[4] ?? '';
     }
     return out;
 }
 
 /**
- * De waarde zoals de auteur hem SCHREEF voor het attribuut dat de binding
- * draagt. Via de registry, want dat attribuut mag ook onder een oudere
- * schrijfwijze staan (`datatable` naast `source`).
+ * The value as the author WROTE it for the attribute that carries the binding.
+ * Via the registry, because that attribute may also stand under an older
+ * spelling (`datatable` beside `source`).
  */
 function writtenBindingValue(tag, attrs, from) {
     for (const [name, value] of Object.entries(attrs)) {
@@ -655,25 +636,24 @@ function writtenBindingValue(tag, attrs, from) {
 }
 
 /**
- * Eén bestand: waar staat een `bf-*`-element, en wat bindt het?
+ * One file: where does a `bf-*` element stand, and what does it bind?
  *
- * Het patroon komt uit de registry (`BF_TAG_SCAN`) — dit bestand kent geen
- * enkele tagnaam en geen eigen idee van hoe een element eruitziet.
+ * The pattern comes from the registry (`BF_TAG_SCAN`) — this file knows no
+ * single tag name and no own idea of what an element looks like.
  *
  * @param {string} text
- * @param {string} source  de naam die de auteur ziet ('index.html', 'src/App.jsx')
- * @param {string|null} slot  'html'|'css'|'js' voor een van de drie slots, anders null
+ * @param {string} source  the name that the author sees ('index.html', 'src/App.jsx')
+ * @param {string|null} slot  'html'|'css'|'js' for one of the three slots, otherwise null
  */
 function scanBfElementsIn(text, source, slot) {
     const marks = [];
     const unknown = [];
     if (!text) return { marks, total: 0, unknown };
 
-    // Uitgecommentarieerde code is geen koppeling. `maskComments` houdt lengte
-    // en regeleindes gelijk, dus elke index hieronder wijst nog naar dezelfde
-    // plek in het ORIGINEEL — en de attributen worden ook uit de gemaskeerde
-    // tekst gelezen, zodat een half in commentaar staand element niet alsnog
-    // een adres oplevert.
+    // Commented-out code is not a binding. `maskComments` keeps length
+    // and line endings equal, so every index below still points to the same
+    // place in the ORIGINAL — and the attributes are also read from the masked
+    // text, so that an element half inside a comment does not yield an address after all.
     text = maskComments(text, commentKindOf(source, slot));
 
     const re = new RegExp(bfElements.BF_TAG_SCAN.source, 'gi');
@@ -693,10 +673,10 @@ function scanBfElementsIn(text, source, slot) {
         const info = bfElements.inspectBfElement(tag, attrs);
         const def = bfElements.getBfElement(tag);
         if (!info.known && !unknown.includes(tag)) unknown.push(tag);
-        // Stond er op de plek van het adres een UITDRUKKING? Dan is het adres
-        // niet te lezen — en dat is iets anders dan een ontbrekend attribuut,
-        // want de auteur heeft het wél opgeschreven. `missing` blijft dus leeg
-        // en `targetId` wordt `null`, met `dynamic` als het verschil.
+        // Was there an EXPRESSION in the place of the address? Then the address
+        // is not readable — and that is something other than a missing attribute,
+        // because the author DID write it down. So `missing` stays empty
+        // and `targetId` becomes `null`, with `dynamic` as the distinction.
         const dynamic = info.binding
             ? isExpressionValue(writtenBindingValue(tag, attrs, info.binding.from))
             : false;
@@ -706,19 +686,19 @@ function scanBfElementsIn(text, source, slot) {
             line,
             tag,
             known: info.known,
-            // De FAMILIE is waar het element aan hangt, niet wat het heet: de
-            // Code-tab tint erop. Hij komt uit de DEFINITIE, niet uit de
-            // ingevulde binding: een `<bf-table>` zonder `source` is nog steeds
-            // een tabelelement, en de familie op `null` zetten omdat de auteur
-            // het adres vergat, zou "ik weet niet WELKE tabel" niet te
-            // onderscheiden maken van "dit hangt aan geen enkele tabel".
-            // `null` betekent dus: dit SOORT element bindt niets.
+            // The FAMILY is what the element hangs on, not what it is called: the
+            // Code tab tints on it. It comes from the DEFINITION, not from the
+            // filled-in binding: a `<bf-table>` without `source` is still
+            // a table element, and setting the family to `null` because the author
+            // forgot the address would make "I do not know WHICH table" indistinguishable
+            // from "this hangs on no table at all".
+            // `null` therefore means: this KIND of element binds nothing.
             family: (def && def.binding) ? def.binding.kind : null,
             targetId: (info.binding && !dynamic) ? info.binding.id : null,
             dynamic,
             fallback: (def && def.binding) ? (def.binding.fallback || null) : null,
-            // `null` bij een onbekend element — "er ontbreekt niets" is een
-            // uitspraak die je daarover niet kunt doen (zie missingAttributes).
+            // `null` for an unknown element — "nothing is missing" is a
+            // statement that you cannot make about it (see missingAttributes).
             missing: info.missing,
             reason: info.reason,
         });
@@ -727,12 +707,12 @@ function scanBfElementsIn(text, source, slot) {
 }
 
 /**
- * Waar staan de `bf-*`-elementen van deze pagina? Puur: geef de tekst mee.
+ * Where do the `bf-*` elements of this page stand? Pure: pass the text along.
  *
- * Elk tekstbestand dat de editor kan openen wordt gelezen — de drie slots én
- * de extra's. Een react-mui-pagina heeft haar elementen in `src/*.jsx` staan,
- * en een element dat niet wordt gelezen levert geen markering op; dat zou niet
- * te onderscheiden zijn van een pagina zonder koppelingen.
+ * Every text file that the editor can open is read — the three slots and
+ * the extras. A react-mui page has its elements standing in `src/*.jsx`,
+ * and an element that is not read yields no marking; that would not be
+ * distinguishable from a page without bindings.
  *
  * @returns {{marks:Array, counts:{total:number,known:number,unknown:number},
  *            unknownTags:string[], truncated:number}}
@@ -766,7 +746,7 @@ function scanBfElements({ html = '', css = '', js = '', extras = [] } = {}) {
             unknown: all.filter(mk => !mk.known).length,
         },
         unknownTags,
-        // Wat er niet meer bij kon, wordt geteld en niet verzwegen.
+        // What could no longer fit is counted and not hidden.
         truncated: Math.max(0, all.length - marks.length),
     };
 }
@@ -789,11 +769,11 @@ function elementsSection(scan) {
 // ── de usage-index: welke tabel, welke automatisering, welke agent ───────────
 
 /**
- * De families die het vocabulaire kent, uit de registry.
+ * The families that the vocabulary knows, from the registry.
  *
- * Er staat hier met opzet geen `['datatable','automation','agent']`: dat zou een
- * tweede lijst zijn, en een familie die daaraan wordt toegevoegd zou dan stil
- * uit de index vallen in plaats van er als lege lijst in te staan.
+ * Deliberately not `['datatable','automation','agent']` here: that would be a
+ * second list, and a family added to it would then silently drop
+ * out of the index instead of appearing in it as an empty list.
  */
 function bindingKinds() {
     const kinds = [];
@@ -803,7 +783,7 @@ function bindingKinds() {
     return kinds;
 }
 
-/** Elke terugval die het vocabulaire kent — waar de aanroeper een antwoord voor moet hebben. */
+/** Every fallback that the vocabulary knows — for which the caller must have an answer. */
 function declaredFallbacks() {
     const out = [];
     for (const def of bfElements.BF_ELEMENTS) {
@@ -814,17 +794,16 @@ function declaredFallbacks() {
 }
 
 /**
- * Het antwoord op één terugval, door het PAD uit de registry te volgen.
+ * The answer to one fallback, by FOLLOWING THE PATH from the registry.
  *
- * Een terugval is een pad in de brug-grants (`bridge_grants.agent`), dus het
- * antwoord staat daar ook echt. Dit pad volgen in plaats van er een tabelletje
- * "welke terugval betekent wat" naast te leggen: zo'n tabelletje zou bij een
- * TWEEDE terugval het antwoord van de eerste geven, en dat is een verkeerd id —
- * het enige antwoord dat we niet mogen geven.
+ * A fallback is a path in the bridge grants (`bridge_grants.agent`), so the
+ * answer really is there. Following this path instead of setting a little table
+ * "which fallback means what" beside it: such a little table would give the answer of the first
+ * to a SECOND fallback, and that is a wrong id — the one answer that we may not give.
  *
- * De grants dragen hun id als `<iets>Id` (`agentId`, `datatableId`). Vindt deze
- * functie er geen, dan is het antwoord `null` en blijft het element
- * `unresolved`: niet te bepalen, nooit geraden.
+ * The grants carry their id as `<something>Id` (`agentId`, `datatableId`). If this
+ * function finds none, the answer is `null` and the element remains
+ * `unresolved`: not determinable, never guessed.
  */
 function fallbackIdFromGrants(path, grants) {
     const parts = String(path || '').split('.');
@@ -847,29 +826,27 @@ function emptyTargets() {
 }
 
 /**
- * Wat hangt er via een `bf-*`-ELEMENT aan deze pagina?
+ * What hangs via a `bf-*` ELEMENT on this page?
  *
- * Twee dingen die uit elkaar moeten blijven, en dat is de hele reden dat deze
- * functie bestaat naast de markeringen:
+ * Two things that must stay apart, and that is the whole reason this function exists alongside the markings:
  *
- *   targets     wat we KUNNEN aanwijzen — per familie een lijst met, per id,
- *               de plekken waar hij wordt gebruikt;
- *   unresolved  een element dat wél iets bindt, maar waarvan niet te zeggen is
- *               wát. Dat is geen "niets": een pagina met drie knoppen waarvan de
- *               automation-id ter plekke wordt gebouwd, is geen pagina zonder
- *               automations.
+ *   targets     what we CAN point to — per family a list with, per id,
+ *               the places where it is used;
+ *   unresolved  an element that does bind something, but of which it is not
+ *               determinable WHAT. That is not "nothing": a page with three buttons of which
+ *               the automation id is built on the spot is not a page without automations.
  *
- * @param {object|null} scan          de uitslag van `scanBfElements`
+ * @param {object|null} scan          the result of `scanBfElements`
  * @param {object} args
- * @param {Object<string,string|null>} args.fallbackIds  antwoord per terugval uit
- *   de registry (`bridge_grants.agent` → de agent van de pagina). Een terugval
- *   die hier ontbreekt is `unknown-fallback` — nooit een stille weglating.
+ * @param {Object<string,string|null>} args.fallbackIds  answer per fallback from
+ *   the registry (`bridge_grants.agent` → the agent of the page). A fallback
+ *   that is missing here is `unknown-fallback` — never a silent omission.
  */
 /**
- * "Dit veld was niet te lezen" — als waarde, niet als afwezigheid.
+ * "This field could not be read" — as value, not as absence.
  *
- * `null` betekent hier "de pagina heeft er geen"; dit betekent "we weten het
- * niet". Een Symbol, zodat geen enkel echt id ermee kan botsen.
+ * `null` means here "the page has none"; this means "we do not know". A Symbol,
+ * so that no real id can collide with it.
  */
 const FALLBACK_UNREADABLE = Symbol('fallback-unreadable');
 
@@ -879,8 +856,8 @@ function collectUses(scan, { fallbackIds = {} } = {}) {
     const unresolved = [];
 
     for (const mark of (scan && Array.isArray(scan.marks) ? scan.marks : [])) {
-        // Een onbekend element staat al in `unknownTags`; er valt niets van te
-        // binden omdat we niet weten wat het zou binden.
+        // An unknown element is already in `unknownTags`; there is nothing to bind
+        // from it because we do not know what it would bind.
         if (!mark.known || !mark.family) continue;
         const where = { tag: mark.tag, source: mark.source, line: mark.line };
         const miss = (reason) => unresolved.push({
@@ -910,9 +887,9 @@ function collectUses(scan, { fallbackIds = {} } = {}) {
         if (!perKind.has(mark.family)) perKind.set(mark.family, new Map());
         const byId = perKind.get(mark.family);
         const entry = byId.get(id) || { id, fromPage: false, elements: [] };
-        // "Kwam dit id (ook) van de pagina zelf?" — dat verschil hoort de kolom
-        // te tonen: een agent die nergens genoemd staat, hangt aan de PAGINA en
-        // verdwijnt zodra die binding wordt losgemaakt.
+        // "Did this id (also) come from the page itself?" — that distinction the column
+        // should show: an agent that is named nowhere hangs on the PAGE and disappears
+        // as soon as that binding is detached.
         entry.fromPage = entry.fromPage || fromPage;
         entry.elements.push(where);
         byId.set(id, entry);
@@ -932,12 +909,12 @@ function usesSection(scan, opts) {
 }
 
 /**
- * Het model achter de kolom "Laat gebeuren".
+ * The model behind the column "Lets happen".
  *
  * @param {object} args
  * @param {string} args.webpageId
- * @param {string} args.userId  de EIGENAAR (de route is eigenaar-only, net als
- *                              de grants ernaast: dit toont code-inhoud)
+ * @param {string} args.userId  the OWNER (the route is owner-only, just like
+ *                              the grants beside it: this shows code content)
  */
 async function describePageActions({ webpageId, userId }) {
     const code = await readPageCode(userId, webpageId);
@@ -951,45 +928,44 @@ async function describePageActions({ webpageId, userId }) {
         grants = await bridgeGrants.getBridgeGrants(webpageId);
         agentId = grants && grants.agent && grants.agent.agentId ? grants.agent.agentId : null;
     } catch {
-        // Onleesbare grants zijn geen "geen agent": dat verschil draagt `known`,
-        // zodat de kaart kan zwijgen in plaats van te beweren.
+        // Unreadable grants are not "no agent": that difference is carried by `known`,
+        // so that the card can stay silent instead of asserting.
         agentKnown = false;
     }
 
-    // Het antwoord op ELKE terugval die het vocabulaire kent — vandaag één: een
-    // `<bf-agent>` zonder eigen id draait de agent van de PAGINA. De lijst komt
-    // uit de registry en het antwoord uit de grants zelf, dus een tweede
-    // terugval krijgt vanzelf zijn eigen antwoord in plaats van dat van de
-    // eerste. Onleesbare grants geven `null`, en dat is iets anders dan "er is
-    // er geen": het element blijft dan `unresolved` in plaats van te verdwijnen.
+    // The answer to EVERY fallback that the vocabulary knows — today one: a
+    // `<bf-agent>` without its own id runs the agent of the PAGE. The list comes
+    // from the registry and the answer from the grants themselves, so a second
+    // fallback gets its own answer automatically instead of that of the
+    // first. Unreadable grants give `null`, and that is something other than "there is
+    // none": the element then remains `unresolved` instead of disappearing.
     const fallbackIds = {};
     for (const path of declaredFallbacks()) {
-        // FALLBACK_UNREADABLE, niet `null`: allebei leverden ze `null` op, en dan
-        // kreeg "deze pagina heeft geen agent gebonden" dezelfde reden als "de
-        // grants waren niet te lezen". Het commentaar hierboven beloofde dat
-        // verschil; binnen `uses` bestond het niet.
+        // FALLBACK_UNREADABLE, not `null`: both of them yielded `null`, and then
+        // "this page has no agent bound" got the same reason as "the
+        // grants could not be read". The comment above promised that
+        // distinction; within `uses` it did not exist.
         fallbackIds[path] = agentKnown ? fallbackIdFromGrants(path, grants) : FALLBACK_UNREADABLE;
     }
 
     return {
         code: codeSection(scan),
-        // Waar de `bf-*`-elementen staan, per bestand en per regel. De Code-tab
-        // tekent hier zijn markeringen mee; `scanned:false` betekent dáár dat de
-        // legenda moet zeggen dat de markering niet kon worden berekend.
+        // Where the `bf-*` elements stand, per file and per line. The Code tab
+        // draws its markings with this; `scanned:false` means there that the
+        // legend must say that the marking could not be computed.
         elements: elementsSection(elements),
         // WELKE tabel, WELKE automatisering, WELKE agent — per familie, met de plekken
         // erbij. Dit is wat de middenkolom toont en wat de usage-index omdraait.
         uses: usesSection(elements, { fallbackIds }),
-        // De elementen ZELF staan in `elements.marks`, elk met zijn `tag`; deze
-        // twee velden zeggen alleen nog wat de kolom over dat soort mag
-        // beweren. Ze bestonden als "dit kennen we nog niet"-plaatshouders;
-        // sinds `<bf-form>` en `<bf-agent>` echt bestaan is dat niet meer waar,
-        // en `scanned` draagt nu het verschil tussen "geen" en "niet gekeken".
+        // The elements THEMSELVES stand in `elements.marks`, each with its `tag`; these
+        // two fields only say what the column may claim about that kind. They used to exist as
+        // "we do not know this yet" placeholders; since `<bf-form>` and `<bf-agent>` really exist that is no longer true,
+        // and `scanned` now carries the difference between "none" and "not looked at".
         forms: { supported: true, scanned: elements !== null },
-        // Het Agent-blok is INTERN-ONLY: `ai.ask` is bewust uit de anonieme
-        // bridge gehouden (services/publicShareBridge.js kent alleen /ai/chat en
-        // /ai/stream), dus een publieke share draait het nooit. De kaart zegt
-        // dat erbij in plaats van het blok stil niets te laten doen.
+        // The Agent block is INTERNAL-ONLY: `ai.ask` is deliberately kept out of the anonymous
+        // bridge (services/publicShareBridge.js knows only /ai/chat and /ai/stream), so
+        // a public share never runs it. The card says so
+        // instead of letting the block silently do nothing.
         agent: {
             known: agentKnown,
             agentId: agentKnown ? agentId : null,

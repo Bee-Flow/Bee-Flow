@@ -9,18 +9,7 @@ import AccessAuditPage from './AccessAuditPage';
 // FALLBACK rather than the key is deliberate here: the redaction tests below
 // are about what a row does and does not say to a person reading it, and a
 // screen full of dotted key names cannot answer that.
-vi.mock('../../../../hooks/useTranslation', () => {
-    const useTranslation = () => ({
-        t: (key, fallback, params) => {
-            let out = typeof fallback === 'string' ? fallback : key;
-            for (const [k, v] of Object.entries(params || {})) out = out.split(`{${k}}`).join(String(v));
-            return out;
-        },
-        locale: 'en',
-        resolvedLocale: 'en',
-    });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const FAILED_UNKNOWN = {
     id: '1',

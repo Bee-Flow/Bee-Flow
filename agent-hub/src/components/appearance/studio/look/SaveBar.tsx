@@ -101,7 +101,7 @@ function StatusPill({ dirty, saving, error }: Pick<Props, 'dirty' | 'saving' | '
         <span
             className="text-xs inline-flex items-center gap-1.5 text-[var(--text-muted)]"
         >
-            <Check className="w-3.5 h-3.5" style={{ color: '#10b981' }} /> {t('appearance.save_bar_all_changes_saved', 'All changes saved')}
+            <Check className="w-3.5 h-3.5 [color:#10b981]" /> {t('appearance.save_bar_all_changes_saved', 'All changes saved')}
         </span>
     );
 }

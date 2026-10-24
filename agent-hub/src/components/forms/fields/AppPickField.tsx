@@ -80,7 +80,7 @@ export default function AppPickField({ field, value, disabled, onChange, onSearc
                     key={p.recordId}
                     className="flex items-center gap-2 px-3 py-2 border text-sm [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:var(--bg-card,var(--bg-secondary))] [color:var(--text-primary)]!"
                 >
-                    <Check size={14} aria-hidden="true" style={{ color: 'var(--app-primary)', flexShrink: 0 }} />
+                    <Check size={14} aria-hidden="true" className="[color:var(--app-primary)] [flex-shrink:0]" />
                     <span className="min-w-0 flex-1 truncate">{p.title || p.recordId}</span>
                     <button
                         type="button"

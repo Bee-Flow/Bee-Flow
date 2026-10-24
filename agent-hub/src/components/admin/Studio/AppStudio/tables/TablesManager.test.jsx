@@ -181,14 +181,13 @@ describe('TablesManager', () => {
 });
 
 /**
- * DE TWEE TABELSOORTEN op het scherm.
+ * THE TWO TABLE KINDS on screen.
  *
- * Een tabel met eigen opslag en een tabel die haar rijen uit een
- * Studio-datatabel haalt (model.tables[].source) gedragen zich verschillend —
- * kolommen bewerken doet daar niets, rijen zijn hier niet te bewerken, en een
- * alleen-lezen koppeling kan geen formulier dragen. Twee rijen die er identiek
- * uitzien en zich anders gedragen laten de gebruiker de regels niet afleiden;
- * dan gaat hij het aan zichzelf wijten. Dus: zichtbaar verschil.
+ * A table with its own storage and a table that takes its rows from a Studio
+ * datatable (model.tables[].source) behave differently — editing columns does
+ * nothing there, rows cannot be edited here, and a read-only link cannot carry
+ * a form. Two rows that look identical and behave differently leave the user
+ * unable to derive the rules, and he then blames himself. So: a visible difference.
  */
 const LINKED = {
     id: 'tbl_b', key: 'orders', name: 'Orders',
@@ -202,8 +201,8 @@ function withLinked(source = LINKED.source) {
     studioAppsApi.getSchema.mockResolvedValue({
         model: { modelVersion: 1, tables: [linked, TABLE] }, modelVersion: 3,
     });
-    // Beide tabellen bestaan serverzijdig, zodat de generatoren zichtbaar zijn
-    // en de knopkeuze echt over de SOORT gaat en niet over "nog niet opgeslagen".
+    // Both tables exist server-side, so the generators are visible and the
+    // button choice is really about the KIND and not about “not yet saved”.
     authFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ tables: [linked, TABLE] }) });
 }
 

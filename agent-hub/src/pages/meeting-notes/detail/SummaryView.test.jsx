@@ -89,11 +89,10 @@ describe('SummaryView regenerate menu', () => {
     });
 });
 
-// ── "Sjabloon (v4)" — met welk sjabloon is deze samenvatting geschreven ──
+// ── "Template (v4)": with which template this summary was written ──
 //
-// De regel is een uitspraak over de tekst die eronder staat. Hij verschijnt
-// alleen als hij waar te maken is; in elk ander geval zwijgt hij, en er wordt
-// nooit een versienummer verzonnen.
+// The rule is a statement about the text beneath it. It appears only if it can be made
+// good. In any other case it stays silent, and a version number is never invented.
 
 describe('SummaryView sjabloonstempel', () => {
     beforeEach(() => cleanup());
@@ -113,9 +112,8 @@ describe('SummaryView sjabloonstempel', () => {
     });
 
     it('toont de versie van de NOTITIE, niet die van het sjabloon van nu', () => {
-        // Het sjabloon staat inmiddels op 9; deze samenvatting is met 2
-        // geschreven. "v9" zeggen zou een uitspraak over het verleden zijn,
-        // afgelezen aan het heden.
+        // The template is now at 9. This summary was written with 2. Saying "v9" would be a
+        // statement about the past, read off the present.
         const templates = { ...TEMPLATES, custom: [{ id: 'u1', scope: 'user', name: 'My board style', version: 9 }] };
         const el = show({ summaryTemplateId: 'u1', summaryTemplateVersion: 2 }, templates);
         expect(el.textContent).toBe('Template: My board style (v2)');
@@ -134,33 +132,31 @@ describe('SummaryView sjabloonstempel', () => {
     });
 
     it('een onvindbaar sjabloon noemt geen naam, met de versie die wél bekend is', () => {
-        // Onvindbaar in de lijst van DEZE lezer. Of het sjabloon verwijderd is
-        // of alleen onzichtbaar voor hem, weet dit scherm niet — dus wordt er
-        // geen van beide beweerd.
+        // Not findable in the list of THIS reader. Whether the template has been deleted or is
+        // merely invisible to him, this screen does not know, so neither is claimed.
         const el = show({ summaryTemplateId: 'tpl-weg', summaryTemplateVersion: 3 });
         expect(el.textContent).toBe('Template: not available to you (v3)');
     });
 
     it('zwijgt zolang de sjabloonlijst nog niet binnen is', () => {
-        // "Bestaat niet meer" zeggen over een sjabloon dat er gewoon is, is
-        // erger dan even niets zeggen.
+        // Saying "no longer exists" about a template that is simply there is worse than saying
+        // nothing.
         expect(show({ summaryTemplateId: 'u1', summaryTemplateVersion: 4 }, null)).toBeNull();
     });
 });
 
-// ── De gedeelde notitie: het sjabloon van een ÁNDER ──────────────────────
+// ── The shared note: a template of SOMEONE ELSE ─────────────────────────
 //
-// `GET /api/summary-templates` levert per LEZER: zijn eigen user-scope
-// sjablonen plus de org/groepen waar hij in zit. Een collega die een
-// gepubliceerde notitie opent krijgt Ann's persoonlijke sjabloon dus nooit in
-// die lijst — niet omdat het weg is, maar omdat het niet van hem is. De regel
-// mag daar geen verwijdering van maken.
+// `GET /api/summary-templates` supplies, per READER, his own user-scope templates plus
+// the org and groups he belongs to. A colleague who opens a published note therefore
+// never gets Ann's personal template in that list, not because it is gone but because
+// it is not his. The rule may not make a deletion of that.
 
 describe('SummaryView sjabloonstempel — gedeelde notitie', () => {
     beforeEach(() => cleanup());
 
-    // Bob's lijst: zijn eigen sjabloon en het org-sjabloon. Ann's persoonlijke
-    // 'ann-tpl' staat er niet in, want dat is user-scope van Ann.
+    // Bob's list: his own template and the org template. Ann's personal 'ann-tpl' is not in
+    // it, because that is Ann's user scope.
     const BOBS_TEMPLATES = {
         builtins: TEMPLATES.builtins,
         custom: [

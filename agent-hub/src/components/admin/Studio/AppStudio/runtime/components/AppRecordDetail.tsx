@@ -166,8 +166,7 @@ export default function AppRecordDetail({ node }: NodeProps<RecordDetailProps>) 
                         return (
                             <div
                                 key={`${g.name}-${field.key}-${i}`}
-                                className={`flex ${isFile ? 'items-center' : 'items-baseline'} justify-between gap-3 py-1.5 min-w-0`}
-                                style={{ borderBottom: '1px solid var(--app-hairline, var(--border-default))' }}
+                                className={`flex ${isFile ? 'items-center' : 'items-baseline'} justify-between gap-3 py-1.5 min-w-0 [border-bottom:1px_solid_var(--app-hairline,var(--border-default))]`}
                             >
                                 <dt className="shrink-0 text-xs text-[var(--text-secondary)]">
                                     {field.label || field.key}

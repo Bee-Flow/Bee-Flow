@@ -65,10 +65,9 @@ const { makeFinding } = require('../../core/findings/finding');
 const {
     buildCompleteness, emptyKnowledgeBaseFinding,
 } = require('../../projects/completeness');
-// Het criterium van bron 2, en de ENIGE plek waar het staat. De kaartvoet van
-// het agentoverzicht (A5) leest hetzelfde antwoord via het veld `grounding`
-// op GET /agents/all; zie de kop van dat bestand voor waarom het geen tweede
-// implementatie mag worden.
+// The criterion of source 2, and the ONLY place where it stands. The card footer of
+// the agent overview (A5) reads the same answer via the field `grounding`
+// on GET /agents/all; see the header of that file for why it may not become a second implementation.
 const { groundedOn, groundingVerdict } = require('../../core/agentRuntime/agentGrounding');
 const {
     moduleActive, licenceAllows, capability, permission, userIdOf,
@@ -285,29 +284,24 @@ function evaluateAppValidation(data = {}) {
  * A warning, not an error: plenty of good agents need no knowledge base, so the
  * row says what to do and stays out of the way.
  *
- * ── HET CRITERIUM STAAT NIET HIER ──────────────────────────────────────────
- * `groundedOn` (core/agentRuntime/agentGrounding.js) beantwoordt de vraag, en
- * de kaartvoet van het agentoverzicht (A5) stelt hem aan diezelfde functie.
- * Twee kopieën van deze regel zouden betekenen dat het overzicht iets anders
- * zegt dan dit scherm over dezelfde agent.
+ * ── THE CRITERION DOES NOT LIVE HERE ────────────────────────────────────
+ * `groundedOn` (core/agentRuntime/agentGrounding.js) answers the question, and the
+ * card footer of the agent overview (A5) asks it of that same function.
+ * Two copies of this rule would mean that the overview says something different
+ * from this screen about the same agent.
  *
- * Sinds die verhuizing telt de regel ook TABELGRANTS mee: een agent met alleen
- * `config.tools.datatables` werd hier gemeld als "antwoordt uit het model
- * alleen", en dat was onwaar — datatableTools.js geeft hem echt iets om in te
- * kijken. Dat is een VERKLEINING van deze lijst, geen verbreding.
+ * Since that move the rule also counts TABLE GRANTS: an agent with only
+ * `config.tools.datatables` used to be reported here as "answers from the model
+ * alone", and that was untrue — datatableTools.js really gives it something to look things up in. That is a NARROWING of this list, not a widening.
  *
- * WEBSEARCH is met opzet GEEN as. `config.enabledIntegrations` wordt door niets
- * in het chatpad gelezen (toolStackAssembly geeft de config door, maar
- * getIntegrationTools kijkt alleen naar `config.tools`; welke apps een agent
- * krijgt hangt aan de GEBRUIKER plus AUTO_ENABLED_APPS plus een geconfigureerde
- * zoekprovider), en de R4-backfill heeft `agent-search` in élke oudere rij
- * gezet. Een as daarop had deze lijst leeggemaakt zonder dat er één agent
- * gegronder was geworden. Zie de kop van agentGrounding.js.
+ * WEB SEARCH is deliberately NOT an axis: `config.enabledIntegrations` is read by nothing
+ * in the chat path (toolStackAssembly passes the config along, but getIntegrationTools only looks at `config.tools`; which apps an agent
+ * gets depends on the USER plus AUTO_ENABLED_APPS plus a configured search provider), and the R4 backfill has set `agent-search` in EVERY older row.
+ * An axis on that would have emptied this list without a single agent having become grounded. See the header of agentGrounding.js.
  *
- * En een as die niet te lezen was is een GAT, geen lege bron: `asArray` maakte
- * van een `knowledge_base_ids` die geen lijst is stilletjes `[]` en dus een
- * beschuldiging. `groundedOn` geeft daar `null`, en die belandt hieronder in
- * `agents:config` — dezelfde uitkomst als een config die niet parseerde.
+ * And an axis that could not be read is a GAP, not an empty source: `asArray` silently made
+ * `[]` out of a `knowledge_base_ids` that is not a list, which is an accusation. `groundedOn` returns `null` there, and that lands below in
+ * `agents:config` — the same outcome as a config that did not parse.
  */
 function evaluateAgentNoKb(data = {}) {
     const { gaps, miss } = gapCollector();
@@ -323,7 +317,7 @@ function evaluateAgentNoKb(data = {}) {
         const verdict = groundingVerdict(groundedOn(config));
         if (verdict === 'grounded') continue;
         if (verdict === null) {
-            // Een as die niet te lezen was — zie de docblock hierboven.
+            // An axis that could not be read — see the docblock above.
             miss('agents:config');
             continue;
         }
@@ -473,12 +467,10 @@ function evaluateKbSourceError(data = {}) {
     const { gaps, miss } = gapCollector();
     for (const g of asArray(data.gaps)) miss(g);
     const findings = [];
-    // GEEN telling is geen NUL. De store levert bewust alleen de bases MÉT
-    // fouten, dus een ontbrekende sleutel in een bestaande Map is een echte
-    // nul; een ontbrekende MAP is een antwoord dat er nooit was, en daar een
-    // schone verklaring over kennisbronnen op bouwen is precies de fout die
-    // deze bestanden moeten uitsluiten. De loader gooit vandaag netjes — deze
-    // regel staat er zodat de PURE functie op zichzelf ook klopt.
+    // NO count is not a ZERO. The store deliberately delivers only the bases WITH
+    // errors, so a missing key in an existing Map is a real zero; a missing MAP is an answer that never existed, and building a clean statement
+    // about knowledge sources on top of that is exactly the error that these files must exclude. The loader throws neatly today — this line is there so that the
+    // PURE function is also correct on its own.
     const isCountMap = data.errorCounts instanceof Map
         || (data.errorCounts && typeof data.errorCounts === 'object');
     if (!isCountMap) {
@@ -506,35 +498,29 @@ function evaluateKbSourceError(data = {}) {
 // ── Loaders — the ONLY place a store is touched ────────────────────────────
 
 /**
- * De kennisbanken waar deze beller IETS AAN KAN DOEN, één keer per verzoek.
+ * The knowledge bases on which this caller can DO SOMETHING, once per request.
  *
- * Twee bronnen vragen erom (lege-in-gebruik en mislukte bronnen) en de
- * zichtbaarheidsketen zelf staat in ./shared.js, waar counts.js en search.js
- * hem ook uit lezen — één antwoord op "welke kennisbanken ziet deze persoon",
- * niet drie kopieën die uit elkaar groeien.
+ * Two sources ask for it (empty-in-use and failed sources), and the visibility chain itself is in ./shared.js, from which counts.js and search.js
+ * also read it — one answer to "which knowledge bases does this person see", not three copies that grow apart.
  *
- * Daarbovenop staat een tweede zeef, en die is de reden dat deze functie niet
- * gewoon `visibleKnowledgeBasesFor` heet. Beide rijen dragen een opdracht die
- * BEHEERrechten vereist ("Add a document…", "Open the knowledge base and check
- * its sources"): routes/knowledgeBases/detail.js laat GET door op canAccessKB,
- * maar zet PATCH/DELETE en de bronnen achter manage_knowledge + canManageKB.
- * Een gewoon lid met leestoegang tot een gedeelde lege basis kreeg zo een rij
- * met een knop die er voor hem niet is — hij kan hem niet oplossen en de rij
- * blijft staan tot iemand anders het doet. Dat is precies de ruis waar de
- * apps-bron hieronder al tegen zeeft (canWriteStudioApp), met dezelfde reden.
+ * On top of that sits a second sieve, and that is the reason this function is not simply called `visibleKnowledgeBasesFor`. Both rows carry an instruction that
+ * requires MANAGEMENT rights ("Add a document…", "Open the knowledge base and check
+ * its sources"): routes/knowledgeBases/detail.js lets GET through on canAccessKB,
+ * but puts PATCH/DELETE and the sources behind manage_knowledge + canManageKB.
+ * An ordinary member with read access to a shared empty base got a row with a button that is not there for him — he cannot resolve it and the row
+ * stays until someone else does. That is exactly the noise that the apps source below already sieves against (canWriteStudioApp), for the same reason.
  *
- * Gedeeld via de `once`-memo van het verzoek, en dat koppelt de twee OORDELEN
- * niet: elke bron draait in zijn eigen try/catch, dus een storing hier maakt
- * ze allebei unavailable — wat exact waar is.
+ * Shared via the `once` memo of the request, and that does not couple the two JUDGMENTS:
+ * each source runs in its own try/catch, so a fault here makes them both unavailable — which is exactly right.
  */
 function knowledgeBasesToActOn(req, d, ctx) {
     return ctx.once('knowledgeBases', async () => {
         const userId = userIdOf(req);
         const visible = asArray(await visibleKnowledgeBasesFor(req, d));
-        // Strikt: een onleesbare org-lezing is geen "lid van niets".
+        // Strict: an unreadable org read is not "member of nothing".
         const orgIds = await d.auth.resolveUserOrgIds(req, { strict: true });
-        // `permission` gooit als de rechtenlezing degraded is — dan weten we
-        // niet wie dit mag beheren, en dat is een gat, geen lege lijst.
+        // `permission` throws if the rights read is degraded — then we do not
+        // know who may manage this, and that is a gap, not an empty list.
         const hasManage = await permission(d, req, 'manage_knowledge');
         return visible.filter(kb => d.kbStore.canUserManageKB(kb, userId, orgIds, hasManage));
     });
@@ -597,12 +583,10 @@ const SOURCES = [
         gate: (req, d) => permission(d, req, 'manage_agents'),
         load: async (req, d) => {
             const { gaps, miss } = gapCollector();
-            // STRIKT. `resolveUserOrgIds` slikt een storing in de userStore en
-            // geeft dan een LEGE Set — niet te onderscheiden van "lid van geen
-            // enkele organisatie", waar de tak hieronder een hard "gekeken, en
-            // er is er geen" van zou maken. permissions.js:832-866 zegt dat in
-            // zijn eigen kop: onleesbaar is geen lege lijst, en alleen wie erom
-            // vraagt merkt het.
+            // STRICT. `resolveUserOrgIds` swallows a fault in the userStore and then
+            // gives an EMPTY Set — indistinguishable from "member of no
+            // organisation at all", where the branch below would make a firm "checked, and there are none" of it. permissions.js:832-866 says so in
+            // its own header: unreadable is not an empty list, and only whoever asks for it notices.
             let orgIds;
             try {
                 orgIds = await d.auth.resolveUserOrgIds(req, { strict: true });

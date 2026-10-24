@@ -42,41 +42,37 @@ function buildReactBundle({ entry = REACT_ENTRY, files }) {
  * buildBridgeHeadScripts — that returns '' when tokens are missing, leaving the
  * bridges undefined.)
  *
- * ── DIT IS DE BRUG DIE ALTIJD DRAAIT ────────────────────────────────
+ * ── THIS IS THE BRIDGE THAT ALWAYS RUNS ────────────────────────────
  *
- * composeReactDoc bakt deze in ELK react-document: de publieke share én het
- * plaatje dat de bouwer-AI van de pagina te zien krijgt. De AI-brug uit
- * services/publicBridgeScript.js komt er alleen bij als de auteur publieke AI
- * heeft aangezet, en dat staat default UIT. Daarom hoort het EERLIJK-FALEN-
- * mechanisme voor de bf-elementen hier en niet daar: anders is op het
- * standaardpad elk element een leeg vak zonder één woord uitleg.
+ * composeReactDoc bakes this into EVERY react document: the public share and the picture the builder AI of the page gets to see. The AI bridge from
+ * services/publicBridgeScript.js is only added when the author has turned on public AI, and that is default OFF. That is why the FAIL-HONESTLY
+ * mechanism for the bf elements belongs HERE and not there: otherwise on the default path every element is an empty box without a single word of explanation.
  *
- * `surface` zegt WELKE plek dit is, want de twee liegen elkaars zin: op het
- * plaatje van de auteur zou "op een gedeelde link" onwaar zijn. De teksten
- * komen uit core/webpages/bfElements.js; hier staat geen enkele tagnaam.
+ * `surface` says WHICH place this is, because the two contradict each other's sentence: on the author's picture "on a shared link" would be untrue. The texts
+ * come from core/webpages/bfElements.js; not a single tag name appears here.
  *
- * @param {string} [surface='headlessRender'] een van bfElements.BRIDGE_SURFACES
+ * @param {string} [surface='headlessRender'] one of bfElements.BRIDGE_SURFACES
  */
 function buildStubBridgeScript(surface = 'headlessRender') {
     return `<script>(function(){
   var noop = function(){ return Promise.resolve(); };
   window.beeflowDB = { query:function(){return Promise.resolve([]);}, exec:function(){return Promise.resolve({changes:0});}, batch:function(){return Promise.resolve([]);} };
   window.beeflowApp = { call:function(){return Promise.resolve({});} };
-  // Alle namen die de twee andere bruggen kennen, plus de drie die alleen hier
-  // ooit hebben bestaan. Een naam die hier ontbreekt is een TypeError op een
-  // pagina die hem wél op de andere plekken mag aanroepen — precies de drift die
-  // dit bestand jarenlang als voorbeeld heeft gediend.
+  // All names the two other bridges know, plus the three that only ever
+  // existed here. A name missing here is a TypeError on a page that may
+  // call it in the other places: exactly the drift this file served as an
+  // example of for years.
   function noAsk(){ return Promise.reject(new Error("beeflowAI.ask is not available here")); }
   window.beeflowAI = {
     complete:noop, ground:noop, generate:noop,
     chat:noop, chatJSON:noop, stream:noop, ask:noAsk
   };
-  // run() WEIGERT, net als beeflowTables hieronder: een no-op die RESOLVET laat
-  // een zelfgebouwde knop succes melden zonder dat er iets is gedraaid.
+  // run() REFUSES, like beeflowTables below: a no-op that RESOLVES lets a
+  // hand-built button report success without anything having run.
   function noRun(){ return Promise.reject(new Error("beeflowAutomations.run is not available here")); }
   window.beeflowAutomations = { run:noRun, list:function(){return Promise.resolve([]);} };
-  // Een weigering, geen lege lijst: "geen rijen" en "hier is geen tabelbrug"
-  // moeten verschillend blijven (zie services/publicBridgeScript.js).
+  // A refusal, not an empty list: "no rows" and "there is no table bridge
+  // here" must stay distinct (see services/publicBridgeScript.js).
   function noTables(){ return Promise.reject(new Error("beeflowTables is not available here")); }
   window.beeflowTables = { query:noTables, insert:noTables, update:noTables };${buildBfNoticeScript(surface)}
   try { window.beeflowIntegrations = new Proxy({}, { get:function(){ return noop; } }); }

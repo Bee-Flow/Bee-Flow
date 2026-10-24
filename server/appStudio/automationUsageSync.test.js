@@ -1,30 +1,26 @@
 /**
- * De schrijver van `automation_usage` voor een STUDIO-APP (P4 deel C).
+ * The writer of `automation_usage` for a STUDIO APP (P4 part C).
  *
- * Wat hier vastligt is niet "hij schrijft rijen", maar de drie manieren waarop
- * een reconciler op een gedeelde index stil fout gaat — dezelfde drie als bij
- * W5, want het is dezelfde vorm:
+ * What is fixed here is not "it writes rows", but the three ways in which a
+ * reconciler on a shared index silently goes wrong — the same three as for W5,
+ * because it is the same shape:
  *
- *   1. WISSEN OP EEN MISLUKTE SCAN. `reconcileAutomationUsage` is
- *      delete-then-insert: een lege lijst is geen "niets gevonden" maar een
- *      opdracht om alles weg te gooien. Kan de app-rij of haar definitie niet
- *      gelezen worden, dan MOET er niets geschreven worden — anders leest de
- *      capsule na één storing "wordt nergens gebruikt", en dat is precies de
- *      zin waarop iemand een automatisering verwijdert die een knop in productie
- *      aanzet.
- *   2. EEN SLEUTEL DIE MEEBEWEEGT. `ref_id` is de halve primaire sleutel. Een
- *      sequence-stap heeft geen id, dus zijn POSITIE zou de enige andere
- *      sleutel zijn — en een positie schuift op zodra iemand er een stap
- *      boven zet. De ACTIE is de sleutel.
- *   3. EEN VERWIJDERDE APP DIE RIJEN ACHTERLAAT. Er is geen FK naar
- *      `studio_apps`, dus alleen een expliciete purge ruimt ze op — en een
- *      pass die de app niet meer vindt mag niet alsnog schrijven, ook niet als
- *      hij al aan het lezen was toen de purge langskwam.
+ *   1. WIPING ON A FAILED SCAN. `reconcileAutomationUsage` is delete-then-insert: an
+ *      empty list is not "nothing found" but an instruction to throw everything away.
+ *      If the app row or its definition cannot be read, then NOTHING may be written —
+ *      otherwise the capsule would read "is used nowhere" after one glitch, and that is
+ *      exactly the sentence on which someone deletes an automation that switches on a
+ *      button in production.
+ *   2. A KEY THAT MOVES ALONG. `ref_id` is half the primary key. A sequence step has no
+ *      id, so its POSITION would be the only other key — and a position shifts as soon
+ *      as someone puts a step above it. The ACTION is the key.
+ *   3. A DELETED APP THAT LEAVES ROWS BEHIND. There is no FK to `studio_apps`, so only
+ *      an explicit purge cleans them up — and a pass that no longer finds the app must
+ *      not write anyway, even if it was already reading when the purge came by.
  *
- * Plus de reden dat de index breder is dan "wat je kunt indrukken": een actie
- * die aan een automatisering hangt maar aan geen enkele knop telt WEL mee, met
- * `wired:false`. Een rij te veel maakt een verwijdering luidruchtiger, een rij
- * te weinig maakt hem stil.
+ * Plus the reason why the index is broader than "what you can press": an action that
+ * hangs off an automation but off no button at all DOES count, with `wired:false`. One
+ * row too many makes a deletion louder, one row too few makes it silent.
  *
  * Run: cd server && node --test --test-reporter=tap appStudio/automationUsageSync.test.js
  */
@@ -49,7 +45,7 @@ function silentLog() {
     return { warn: (m) => lines.warn.push(String(m)), log: (m) => lines.log.push(String(m)), lines };
 }
 
-/** Een app-store die één rij kent. `row: null` = de app bestaat niet. */
+/** An app store that knows one row. `row: null` = the app does not exist. */
 function appStore(row) {
     return { getStudioApp: async () => (typeof row === 'function' ? row() : row) };
 }
@@ -184,11 +180,10 @@ test('een definitie die geen definitie is levert een lege lijst en gooit niet', 
 });
 
 /**
- * De twee lopen over de schermen — `collectReferencedActions` (de validator, die
- * alleen ids geeft) en `collectActionSites` (deze module, die de knop erbij
- * zoekt) — moeten hetzelfde vocabulaire kennen. Deze fixture bevat élke
- * bedradingsvorm die de validator kent; loopt er één uit, dan is dat hier
- * meteen zichtbaar in plaats van als een lege capsule.
+ * The two walks over the screens — `collectReferencedActions` (the validator, which gives
+ * only ids) and `collectActionSites` (this module, which finds the button for it) — must
+ * know the same vocabulary. This fixture contains EVERY wiring shape that the validator
+ * knows; if one drops out, that is visible here immediately instead of as an empty capsule.
  */
 test('de knoppenloop kent exact dezelfde bedradingsvormen als de validator', () => {
     const screens = [{
@@ -221,30 +216,26 @@ test('de knoppenloop kent exact dezelfde bedradingsvormen als de validator', () 
 });
 
 /**
- * DE TWEEDE LOOP — EN DIE WAS NERGENS VERGELEKEN.
+ * THE SECOND WALK — AND THAT ONE WAS COMPARED NOWHERE.
  *
- * De test hierboven vergelijkt de SCHERM-loop. De STAPPEN-loop
- * (`automationsInAction`) heeft zijn eigen spiegel: `containsStepKind` in
- * appStudio/validate/stepKindChecks.js. Die had vijf ingangen — `steps`, `then`,
- * `else`, `cases[].steps` én `default` — en de scan hier had er vier: een
- * automatisering die alleen in de `default`-tak van een switch stond, draaide wel
- * (browser: `execSteps(hit ? hit.steps : step.default)`; server:
- * actionSequence.js) en kwam nooit in de index. De capsule zei dan "No app
- * button runs this automation yet" op precies het scherm waarop iemand besluit
- * hem te verwijderen.
+ * The test above compares the SCREEN walk. The STEPS walk (`automationsInAction`) has its
+ * own mirror: `containsStepKind` in appStudio/validate/stepKindChecks.js. That one had five
+ * entries — `steps`, `then`, `else`, `cases[].steps` and `default` — and the scan here had
+ * four: an automation that stood only in the `default` branch of a switch ran fine (browser:
+ * `execSteps(hit ? hit.steps : step.default)`; server: actionSequence.js) and never came
+ * into the index. The capsule then said "No app button runs this automation yet" on exactly
+ * the screen where someone decides to delete it.
  *
- * Vandaar twee bewijzen naast elkaar: de vorm (welke velden de recursie
- * afdaalt, uit de bron gelezen) en het gedrag (een fixture met een automatisering in
- * élke tak).
+ * Hence two proofs side by side: the shape (which fields the recursion descends into, read
+ * from the source) and the behaviour (a fixture with an automation in EVERY branch).
  */
 test('de stappen-loop daalt in exact dezelfde takken af als containsStepKind', () => {
     const fs = require('node:fs');
     const path = require('node:path');
     const readSrc = (rel) => fs.readFileSync(path.resolve(__dirname, rel), 'utf8');
-    // De velden die een recursieve AANROEP als argument krijgen. Op de aanroep
-    // gematcht, niet op elke `step.<veld>` in het venster: een commentaarregel
-    // die een tak nóemt zou de vergelijking anders groen houden nadat de
-    // aanroep zelf is weggehaald.
+    // The fields that a recursive CALL receives as argument. Matched on the call, not on every
+    // `step.<field>` in the window: a comment line that NAMES a branch would otherwise keep
+    // the comparison green after the call itself has been removed.
     const branchesOf = (src, fnName, callee) => {
         const i = src.indexOf(fnName);
         assert.notStrictEqual(i, -1, `${fnName} niet gevonden — de scan is stuk`);
@@ -300,8 +291,8 @@ test('een app-rij die niet te lezen is laat de index staan en zegt het luid', as
 });
 
 test('een definitie die geen canonieke definitie is laat de index staan', async () => {
-    // De store parseert met een `{}`-terugval, dus onleesbaar en leeg zien er
-    // bij de aanroeper identiek uit. Alleen de VORM kan ze scheiden.
+    // The store parses with a `{}` fallback, so unreadable and empty look identical to the
+    // caller. Only the SHAPE can tell them apart.
     for (const definition of [{}, null, 'kapot', [], { actions: {} }]) {
         const log = silentLog();
         const store = fakeStore();
@@ -450,7 +441,7 @@ test('het detached pad wacht niet, gooit niet, en dekt een reeks saves met één
     await new Promise(r => setTimeout(r, 40));
     assert.strictEqual(store.calls.reconcile.length, 1, 'één pass voor de hele reeks');
 
-    // En na het vuren zet een nieuwe save gewoon een nieuwe timer.
+    // And after it fires, a new save simply sets a new timer.
     sync.reconcileAppAutomationUsageDetached('app_debounce', deps);
     await new Promise(r => setTimeout(r, 40));
     assert.strictEqual(store.calls.reconcile.length, 2);
@@ -474,20 +465,19 @@ test('zonder id doet niets iets', async () => {
     assert.deepStrictEqual(store.calls, { reconcile: [], purge: [] });
 });
 
-// ── de UNIE van draft en published ───────────────────────────────────
+// ── the UNION of draft and published ─────────────────────────────────
 //
-// De vraag die de capsule beantwoordt is "wie breekt er als ik dit weggooi", en
-// dat gaat over PRODUCTIE. Bezoekers draaien de GEPUBLICEERDE kopie
-// (routes/studioAppsRun.js), de auteur bewerkt de werkende definitie. Alleen de
-// draft indexeren gaat op precies één moment fout, en dat is het gevaarlijkste
-// dat er is: de eigenaar haalt de knop midden in een herontwerp uit het scherm,
-// publiceert nog niet, de autosave herindexeert — en de capsule zegt vanaf dat
-// moment met volle zekerheid "No app button runs this automation yet" terwijl de
-// LIVE app die knop nog heeft.
+// The question the capsule answers is "who breaks if I throw this away", and that is
+// about PRODUCTION. Visitors run the PUBLISHED copy (routes/studioAppsRun.js), the author
+// edits the working definition. Indexing only the draft goes wrong at exactly one moment,
+// and that is the most dangerous one there is: the owner takes the button off the screen
+// in the middle of a redesign, does not publish yet, the autosave re-indexes — and from that
+// moment the capsule says with full certainty "No app button runs this automation yet" while
+// the LIVE app still has that button.
 
-// Eigen naam: de helpers bovenaan dit bestand heten al `screenWithButton`, en
-// een tweede functiedeclaratie met dezelfde naam OVERSCHRIJFT de eerste voor
-// het hele bestand — inclusief de tests die er al op leunden.
+// Own name: the helpers at the top of this file are already called `screenWithButton`, and a
+// second function declaration with the same name OVERWRITES the first for the whole file —
+// including the tests that already lean on it.
 const unionDef = (actionId, automationId, label = null) => ({
     schemaVersion: 2,
     screens: [{
@@ -506,7 +496,7 @@ test('een knop die alleen nog GEPUBLICEERD bestaat telt gewoon mee', async () =>
             id: APP, userId: OWNER,
             // De auteur heeft de knop net uit de draft gehaald…
             definition: { schemaVersion: 2, screens: [], actions: {} },
-            // …maar de live app draait hem nog.
+            // …but the live app still runs it.
             publishedDefinition: unionDef('act_live', 'auto_live'),
         }),
     });

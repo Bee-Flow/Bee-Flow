@@ -233,8 +233,7 @@ function SourceRow({ t, rel, source, last, canManage, onOpen, onRefresh, onRenam
                             <Ellipsis className="w-3.5 h-3.5" aria-hidden="true" />
                         </button>
                         <AnchoredMenu open={menuOpen} onClose={() => setMenuOpen(false)} anchorRef={menuRef} align="right" width={200} role="menu"
-                            className="py-1"
-                            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                            className="py-1 [background:var(--bg-card)]! [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                         >
                             <MenuItem onClick={() => { setMenuOpen(false); onRefresh?.(source); }}>
                                 {t('knowledge.sources.refresh_now', 'Refresh now')}

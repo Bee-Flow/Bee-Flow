@@ -24,22 +24,7 @@ vi.mock('../../../../../../utils/helpers', () => ({
 // interpolation. A mock that drops the params renders "Filter on {person}"
 // for every row, so nothing on this pane can be told apart by name — and the
 // filter labels are exactly how a keyboard or screen-reader user picks one.
-vi.mock('../../../../../../hooks/useTranslation', () => ({
-    useTranslation: () => ({
-        t: (key, fallbackOrParams, paramsArg) => {
-            const hasStringFallback = typeof fallbackOrParams === 'string';
-            const params = hasStringFallback ? paramsArg : fallbackOrParams;
-            let out = hasStringFallback ? fallbackOrParams : key;
-            if (params && typeof params === 'object') {
-                for (const [k, v] of Object.entries(params)) {
-                    out = out.replace(new RegExp(`\\{${k}\\}`, 'g'), () => String(v));
-                }
-            }
-            return out;
-        },
-    }),
-    __esModule: true,
-}));
+vi.mock('../../../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 let licensed = true;
 vi.mock('../../../../../licensing/LicenseContext', () => ({

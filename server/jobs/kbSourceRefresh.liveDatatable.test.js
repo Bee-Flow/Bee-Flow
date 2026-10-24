@@ -21,10 +21,9 @@ const assert = require('node:assert');
 const { onDatatableChanged, armStaleLiveSources } = require('./kbSourceRefresh');
 const { syncSource } = require('../core/kb/sources/index');
 
-// ../stores/datatableStore is sinds de opsplitsing een FACADE met zijn
-// onderdelen in stores/datatableStore/. De beweringen hieronder gaan over de
-// AANROEPER, dus lees de hele module als één tekst — alleen de facade lezen
-// zou elke slice leeg maken en deze bestandsbeweringen stil groen laten worden.
+// ../stores/datatableStore has, since the split, been a FACADE with its parts in stores/datatableStore/.
+// The assertions below are about the CALLER, so read the whole module as one text — reading only the facade
+// would empty every slice and make these file assertions silently green.
 function datatableStoreSource() {
     const fs = require('node:fs');
     const nodePath = require('node:path');
@@ -85,9 +84,8 @@ test('the write path debounces, so 400 row writes are one pass', async () => {
     // Not a claim about this function — about the caller. datatableStore holds
     // one timer per table and drops every bump inside it.
     const src = datatableStoreSource();
-    // Tot het EINDE van de functie, niet n tekens ver: het lichaam groeit (er
-    // hangt sinds W3 stap 4 een tweede luisteraar aan dezelfde melding) en een
-    // vast venster zou dan iets missen dat er wel degelijk staat.
+    // To the END of the function, not n characters along: the body grows (since W3 step 4 a second listener
+    // hangs on the same notification) and a fixed window would then miss something that is there.
     const start = src.indexOf('function notifyDatatableChanged');
     const end = src.indexOf('\n}', start);
     const fn = src.slice(start, end);

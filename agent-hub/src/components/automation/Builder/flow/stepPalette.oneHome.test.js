@@ -46,9 +46,8 @@ describe('stepPalette — one home per command', () => {
     it('keeps the deciders, the loop, the shield, the two endings and the note in Flow control', () => {
         const flow = buildStepGroups({ catalog }).find(g => g.key === 'flow');
         const ids = flow.sections.find(s => s.key === 'flow_control').items.map(i => i.id);
-        // De twee manieren waarop een run eindigt staan naast elkaar: slecht
-        // (stop_error) en goed (return_to_app, terug naar de app die hem
-        // startte). De annotatie blijft als laatste — dat is geen stroomstap.
+        // The two ways a run ends stand next to each other: bad (stop_error) and good (return_to_app,
+        // back to the app that started it). The annotation stays last, because that is not a flow step.
         expect(ids).toEqual(['route', 'loop', 'code', 'http_request', 'privacy_shield', 'stop_error', 'return_to_app', 'note']);
     });
 

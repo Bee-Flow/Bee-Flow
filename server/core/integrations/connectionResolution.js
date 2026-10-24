@@ -25,11 +25,10 @@ const log = require('../../telemetry/log');
 const INTEGRATION_TO_PROVIDER = {
     gmail: 'google', google_calendar: 'google', google_drive: 'google',
     google_docs: 'google', google_contacts: 'google', google_keep: 'google',
-    // Sheets en Slides draaien op hetzelfde Google-OAuth-token als de rest;
-    // zonder deze twee viel `providerForTool` terug op de integratienaam zelf
-    // ('google_sheets'), en dan matcht een uitgeleende `google`-verbinding hem
-    // nooit — de kaart bood de eigenaar-optie niet aan voor twee apps die
-    // uitsluitend op een persoonlijke verbinding werken.
+    // Sheets and Slides run on the same Google OAuth token as the rest; without these two
+    // `providerForTool` fell back to the integration name itself ('google_sheets'), and then a
+    // lent `google` connection never matched it: the card did not offer the owner option for two
+    // apps that work exclusively on a personal connection.
     google_sheets: 'google', google_slides: 'google',
     google_groups: 'google', maps: 'google',
     outlook: 'microsoft', ms_calendar: 'microsoft', ms_contacts: 'microsoft', onedrive: 'microsoft',

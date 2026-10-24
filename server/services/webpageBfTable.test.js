@@ -1,13 +1,12 @@
 // @typecheck
 /**
- * services/webpageBfTable — de PUBLIEKE kant van een tabelbinding.
+ * services/webpageBfTable — the PUBLIC side of a table binding.
  *
- * Geen databank: de grant-lezer, de principal-resolver en de runner worden
- * gemonkeypatcht. Wat hier getoetst wordt is de poort zelf: dat er precies
- * `publicColumns` naar buiten gaat en niets meer, dat alles wat misgaat een
- * leeg blok oplevert, en dat een waarde uit een rij nooit als HTML landt.
+ * No database: the grant reader, the principal resolver and the runner are monkeypatched. What is tested here is the gate itself: that exactly
+ * `publicColumns` goes outward and nothing more, that everything that goes wrong yields an
+ * empty block, and that a value from a row never lands as HTML.
  *
- * Draaien: cd server && node --test --test-force-exit services/webpageBfTable.test.js
+ * Run: cd server && node --test --test-force-exit services/webpageBfTable.test.js
  */
 
 const test = require('node:test');
@@ -29,9 +28,8 @@ function withPatches(patches, fn) {
 }
 
 /**
- * Vangt op wat emptyBlock naar het log schrijft. De reden-code van een leeg
- * blok hoort DAAR te staan — en nergens in de uitvoer, want die uitvoer gaat
- * ongewijzigd (data-* overleeft DOMPurify) naar een anonieme lezer op /w/<slug>.
+ * Catches what emptyBlock writes to the log. The reason code of an empty
+ * block belongs THERE — and nowhere in the output, because that output goes unchanged (data-* survives DOMPurify) to an anonymous reader on /w/<slug>.
  */
 async function withLog(fn) {
     const lines = [];
@@ -41,7 +39,7 @@ async function withLog(fn) {
     finally { console.warn = orig; }
 }
 
-/** De reden-code staat in het log en nergens in de bytes die naar buiten gaan. */
+/** The reason code is in the log and nowhere in the bytes that go outward. */
 function assertReasonLoggedNotPublished({ out, lines }, reason) {
     assert.strictEqual(/data-bf-table/.test(out), false,
         'een reden-code mag niet in de publieke snapshot staan');
@@ -160,9 +158,9 @@ test('BITE — zero rows logs "empty" but publishes the same block as every othe
         assertReasonLoggedNotPublished(res, 'empty');
         emptyHtml = res.out;
     });
-    // Een lege tabel en een niet-gebonden tabel geven dezelfde bytes: de
-    // snapshot verklapt niet dat de tabel nul rijen heeft in plaats van iets
-    // anders, en verspringt dus ook niet zichtbaar bij de eerste rij.
+    // An empty table and an unbound table give the same bytes: the
+    // snapshot does not reveal that the table has zero rows rather than
+    // something else, and so it does not visibly change on the first row either.
     await withPatches(stubs({ tables: [] }), async () => {
         const res = await withLog(() => bfTable.expandBfElements(DOC, { webpageId: 'wp1', ownerId: OWNER }));
         assert.strictEqual(res.out, emptyHtml,
@@ -195,10 +193,10 @@ test('the row limit is clamped to the public maximum, whatever the element asks 
 });
 
 test('BITE — een onbekend bf-element wordt gemeld, niet stil doorgelaten', async () => {
-    // DOMPurify pakt `<bf-widget>` straks zonder één waarschuwing uit
-    // (KEEP_CONTENT: true, ADD_TAGS kent alleen `iframe`): de tag verdwijnt, de
-    // attributen verdwijnen, de tekst blijft staan. Wie wil weten DÁT er iets
-    // onbekends in een gepubliceerde pagina stond, moet het hiervóór tellen.
+    // DOMPurify will unwrap `<bf-widget>` without a single warning
+    // (KEEP_CONTENT: true, ADD_TAGS knows only `iframe`): the tag disappears, the
+    // attributes disappear, the text remains. Whoever wants to know THAT something
+    // unknown stood in a published page must count it before this.
     let asked = false;
     await withPatches([[bridgeGrants, 'getBridgeGrants', async () => { asked = true; return {}; }]], async () => {
         const src = '<html><body><bf-widget action="x">Klik</bf-widget></body></html>';

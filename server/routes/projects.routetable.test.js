@@ -174,17 +174,16 @@ const EXPECTED = [
     // other members' entities.
     'POST /:id/package/upgrade/plan [featureGate,requireProjectRoleMw,validateRequest,requireSolutionProject]',
     'POST /:id/package/upgrade [featureGate,requireProjectRoleMw,validateRequest,requireSolutionProject]',
-    // De publicatiegeschiedenis: één rij per uitgave, met per entiteit wat er
-    // in die versie veranderde. Eigenaar, en niet lager — wie dit leest leest
-    // de inhoudsopgave van élke versie die er ooit is geweest, ook van
-    // entiteiten die er nu niet meer in zitten. Dezelfde rol als exporteren.
+    // The publication history: one row per release, with per entity what
+    // changed in that version. Owner, and not lower — whoever reads this reads
+    // the table of contents of EVERY version that has ever existed, also of
+    // entities that are no longer in it. The same role as export, for the same reason.
     'GET /:id/package/releases [featureGate,requireProjectRoleMw,requireSolutionProject]',
     'GET /:id/package/releases/:releaseId [featureGate,requireProjectRoleMw,validateRequest,requireSolutionProject]',
-    // Hoe vaak deze Oplossing is geïnstalleerd: twee getallen, in de eigen
-    // organisatie en elders op deze instantie. De ENIGE plek waar een
-    // Blueprint-antwoord over de org-grens heen kijkt, en daarom op de
-    // eigenaarsrol van het BRONPROJECT — wie hier binnenkomt is per definitie
-    // iemand uit de organisatie die de Blueprint gemaakt heeft.
+    // How often this Solution has been installed: two numbers, in one's own
+    // organisation and elsewhere on this instance. The ONLY place where a Blueprint answer looks across the org boundary, and therefore
+    // on the owner role of the SOURCE PROJECT — whoever comes in here is by definition
+    // someone from the organisation that made the Blueprint.
     'GET /:id/package/installs [featureGate,requireProjectRoleMw,requireSolutionProject]',
     // Install creates a project rather than acting on one, so it carries no
     // project role — only the licence gate and the mount's own.

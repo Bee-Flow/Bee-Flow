@@ -1,31 +1,28 @@
 /**
- * webpage_versions: het NUMMER, de MAKER en het REGELVERSCHIL (W4).
+ * webpage_versions: the NUMBER, the MAKER and the LINE DIFFERENCE (W4).
  *
- * ── WAT HIER OP HET SPEL STAAT ──────────────────────────────────────────────
+ * ── WHAT IS AT STAKE HERE ───────────────────────────────────────────────────
  *
- * "v14" moet iets betekenen. Twee dingen kunnen dat kapotmaken:
+ * "v14" has to mean something. Two things can make that break:
  *
- *   1. TWEE SCHRIJVERS, ÉÉN NUMMER. Het nummer wordt in de INSERT berekend
- *      (`COALESCE(MAX(seq),0)+1`). Onder READ COMMITTED — de stand van deze
- *      pool — zien twee gelijktijdige saves hetzelfde maximum. De unieke index
- *      (webpage_id, seq) uit schema.js maakt van de tweede een 23505; deze
- *      store hoort dan OPNIEUW te proberen in plaats van de fout door te laten
- *      of, erger, het duplicaat te schrijven.
- *   2. EEN GETAL DAT NIETS MEET. `line_delta` en `seq` zijn NULL op elke rij
- *      van vóór hun kolom. Wie die met `|| 0` afvlakt, laat de lijst "v0" en
- *      "0 regels gewijzigd" zeggen over rijen waar niets van bekend is.
+ *   1. TWO WRITERS, ONE NUMBER. The number is computed in the INSERT
+ *      (`COALESCE(MAX(seq),0)+1`). Under READ COMMITTED — the setting of this pool —
+ *      two concurrent saves see the same maximum. The unique index (webpage_id, seq)
+ *      from schema.js turns the second into a 23505; this store then has to TRY AGAIN
+ *      rather than let the error through or, worse, write the duplicate.
+ *   2. A NUMBER THAT MEASURES NOTHING. `line_delta` and `seq` are NULL on every row from
+ *      before their column. Whoever flattens those with `|| 0` makes the list say "v0" and
+ *      "0 lines changed" about rows where nothing is known.
  *
- * ── WAT DEZE TEST WEL EN NIET KAN BEWIJZEN ──────────────────────────────────
+ * ── WHAT THIS TEST CAN AND CANNOT PROVE ─────────────────────────────────────
  *
- * WEL: dat de store het nummer in één statement berekent, dat hij op 23505
- * opnieuw probeert met een VERS maximum, dat hij na een reeks botsingen luid
- * faalt, en dat maker en regelverschil precies zo worden vastgelegd en
- * teruggelezen als hierboven beschreven.
+ * CAN: that the store computes the number in one statement, that it retries on 23505 with a
+ * FRESH maximum, that after a series of collisions it fails loudly, and that maker and line
+ * difference are recorded and read back exactly as described above.
  *
- * NIET: dat Postgres de index werkelijk afdwingt. Er draait hier geen database
- * — `../../db` is vervangen. Dat de index bestaat, staat in schema.js en wordt
- * hieronder als BRONTEKST gecontroleerd; dat hij zijn werk doet is Postgres'
- * verantwoordelijkheid en niet in een unittest te tonen.
+ * CANNOT: that Postgres actually enforces the index. No database runs here — `../../db` is
+ * replaced. That the index exists is stated in schema.js and is checked below as SOURCE TEXT;
+ * that it does its job is Postgres' responsibility and not something a unit test can show.
  *
  * Run: node --test --test-force-exit stores/webpage/versions.seq.test.js
  */
@@ -48,7 +45,7 @@ const versionRows = [
         seq: 7, actor_user_id: 'alice', line_delta: -3,
     },
     {
-        // Een rij van vóór W4: geen nummer, geen maker, geen regelverschil.
+        // A row from before W4: no number, no maker, no line difference.
         id: 'v-legacy', webpage_id: 'wp1', summary: 'Auto-save', source: 'manual',
         html_sha256: '', css_sha256: '', js_sha256: '', content_length: 0,
         seq: null, actor_user_id: null, line_delta: null,
@@ -168,11 +165,10 @@ test('een ANDERE databasefout wordt niet als botsing behandeld', async () => {
 });
 
 test('de unieke index staat in het schema — zonder hem is de herkansing zinloos', () => {
-    // Genuinely textual, zoals de bestandskop al zegt: er draait hier geen
-    // Postgres, dus dat de index BESTAAT is het enige dat een unittest kan
-    // tonen — dat hij zijn werk doet is Postgres' verantwoordelijkheid.
-    // De hele racestrategie leunt op 23505. Zonder deze index schrijft de
-    // tweede schrijver gewoon een duplicaat en botst er nooit iets.
+    // Genuinely textual, as the file header already says: no Postgres runs here, so that the
+    // index EXISTS is the only thing a unit test can show — that it does its job is Postgres'
+    // responsibility. The entire race strategy leans on 23505. Without this index the second
+    // writer simply writes a duplicate and nothing ever collides.
     const src = fs.readFileSync(path.join(__dirname, 'schema.js'), 'utf8');
     assert.match(src, /CREATE UNIQUE INDEX IF NOT EXISTS idx_webpage_versions_seq[\s\S]{0,120}webpage_versions\(webpage_id, seq\)/,
         'stores/webpage/schema.js moet (webpage_id, seq) uniek maken');
@@ -280,11 +276,11 @@ test('de lijst vraagt de drie kolommen op en ordent op nummer binnen dezelfde ti
 });
 
 test('de LIJST draagt nummer, maker en regelverschil — niet alleen de query ernaar', async () => {
-    // De test hierboven leest alleen de SQL-TEKST. Dat is precies wat er misging:
-    // je kon `...mapVersionFacts(r)` uit `getVersions` verwijderen en alles bleef
-    // groen — terwijl de hele Geschiedenis-tab dan omvalt (geen v-nummer, elke
-    // maker "Unknown", geen regelverschil). De routetests zien het niet, want
-    // die stubben `getVersions` en leveren de rijen al gemapt aan.
+    // The test above reads only the SQL TEXT. That is exactly what went wrong: you could delete
+    // `...mapVersionFacts(r)` from `getVersions` and everything stayed green — while the whole
+    // History tab then fell over (no v-number, every maker "Unknown", no line difference). The
+    // route tests do not see it, because they stub `getVersions` and supply the rows already
+    // mapped.
     reset();
     listRows = [
         {

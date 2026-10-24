@@ -1,24 +1,24 @@
 /**
- * Het bf-*-elementvocabulaire, zoals de CLIENT het kent.
+ * The bf-* element vocabulary, as the CLIENT knows it.
  *
- * Het vocabulaire leeft op drie plekken: deze client-kant (de preview en een
- * ingelogde lezer, via composeWebpageDocument.js en buildWebpagePreview.js),
- * server/services/publicBridgeScript.js (de publieke react-share) en
- * server/services/webpageSnapshot.js (de snapshot die vóór DOMPurify uitklapt).
- * De twee serverplekken requiren server/core/webpages/bfElements.js rechtstreeks.
- * Dit bestand kan dat niet — het is ESM-frontendcode buiten die build, dezelfde
- * reden waarom publicBridgeScript.js en reactBundleServer.js hun eigen kopie van
- * de client-brug houden — dus staat hier een SPIEGEL.
+ * The vocabulary lives in three places: this client side (the preview and a logged-in
+ * reader, via composeWebpageDocument.js and buildWebpagePreview.js),
+ * server/services/publicBridgeScript.js (the public react-share) and
+ * server/services/webpageSnapshot.js (the snapshot that expands before DOMPurify).
+ * The two server places require server/core/webpages/bfElements.js directly.
+ * This file cannot do that — it is ESM frontend code outside that build, the same
+ * reason why publicBridgeScript.js and reactBundleServer.js keep their own copy of
+ * the client bridge — so here there is a MIRROR.
  *
- * Die spiegel wordt NIET met de hand bijgehouden. Ze is gegenereerd, en
- * server/core/webpages/bfElements.drift.test.js legt het blok hieronder teken
- * voor teken naast renderClientMirror(); wijkt het af, dan zet de foutmelding de
- * vervangende tekst erbij. Regenereren:
+ * That mirror is NOT maintained by hand. It is generated, and
+ * server/core/webpages/bfElements.drift.test.js compares the block below character
+ * for character with renderClientMirror(); if it differs, the error message gives
+ * the replacement text. Regenerate:
  *
  *   cd server && node -e "console.log(require('./core/webpages/bfElements').renderClientMirror())"
  *
- * Dit is de datastructuur, niet de weergave: de renderer die eruit leest komt in
- * de volgende stap. Wat elk veld betekent, staat in de kop van de servermodule.
+ * This is the data structure, not the rendering: the renderer that reads from it
+ * comes in the next step. What each field means is in the header of the server module.
  */
 /** One attribute of an element, as the registry describes it. */
 export interface BfAttributeDef {
@@ -56,10 +56,10 @@ export interface BfElementDef {
     };
 }
 
-// >>> BF-ELEMENTS: BEGIN GEGENEREERDE SPIEGEL <<<
-// Gegenereerd uit server/core/webpages/bfElements.js — NIET met de hand
-// bijwerken. bfElements.drift.test.js vergelijkt dit blok teken voor teken
-// met renderClientMirror() en zet de vervangende tekst in zijn foutmelding.
+// >>> BF-ELEMENTS: BEGIN GENERATED MIRROR <<<
+// Generated from server/core/webpages/bfElements.js — do NOT edit by
+// hand. bfElements.drift.test.js compares this block character by character
+// with renderClientMirror() and puts the replacement text in its failure message.
 export const BF_ELEMENTS = [
     {
         "tag": "bf-table",
@@ -330,4 +330,4 @@ export const BF_ELEMENTS = [
         }
     }
 ];
-// >>> BF-ELEMENTS: EINDE GEGENEREERDE SPIEGEL <<<
+// >>> BF-ELEMENTS: END GENERATED MIRROR <<<

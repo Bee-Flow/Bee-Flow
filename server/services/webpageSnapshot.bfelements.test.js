@@ -1,32 +1,32 @@
 /**
- * services/webpageSnapshot — wat er van het `bf-*`-vocabulaire in de VANILLA
- * publieke snapshot overblijft.
+ * services/webpageSnapshot — what remains of the `bf-*` vocabulary in the VANILLA
+ * public snapshot.
  *
- * De buurtest van webpageSnapshot.reactshare.test.js, die dezelfde writer van de
- * ANDERE kant bekijkt (welk slot krijgt de bytes). Hier gaat het om de bytes
- * zelf: wat ziet een anonieme bezoeker op /w/<slug>?
+ * The neighbourhood test of webpageSnapshot.reactshare.test.js, which looks at the same writer from the
+ * OTHER side (which slot receives the bytes). Here it is about the bytes
+ * themselves: what does an anonymous visitor see on /w/<slug>?
  *
- * ── WAT DEZE TEST BEWAAKT ───────────────────────────────────────────
+ * ── WHAT THIS TEST GUARDS ───────────────────────────────────────────
  *
- * Twee regels, en ze wijzen tegengesteld:
+ * Two rules, and they point in opposite directions:
  *
- *   1. `publicColumns` is DE poort en de ENIGE poort. `bf-stat` vat data samen,
- *      en een samenvatting van een kolom is nog steeds die kolom — dus de kolom
- *      waarover wordt gerekend moet zélf publiek zijn, en een tabel zonder
- *      publieke kolom levert ook geen `count` op.
- *   2. Wat in deze snapshot niet kan werken, moet dat ZELF zeggen. Er draait
- *      hier geen JS, dus `bf-button` / `bf-form` / `bf-agent` zijn dood — en
- *      "dood" mag, "stil" niet.
+ *   1. `publicColumns` is THE gate and the ONLY gate. `bf-stat` summarises data,
+ *      and a summary of a column is still that column — so the column being summed
+ *      must itself be public, and a table without a public
+ *      column yields no `count` either.
+ *   2. What cannot work in this snapshot must SAY so itself. There is no JS
+ *      running here, so `bf-button` / `bf-form` / `bf-agent` are dead — and
+ *      "dead" is allowed, "silent" is not.
  *
- * Regel 2 is niet met een expander-uitvoer alleen te bewijzen: alles gaat daarna
- * nog door DOMPurify heen, en juist dáár verdwijnen dingen zonder waarschuwing
- * (`KEEP_CONTENT: true`, `ADD_TAGS` kent alleen `iframe`, en `form` staat in
- * FORBID_TAGS). Daarom draait elke uitvoer hieronder door de ECHTE
- * `webpageSnapshot.sanitizeHtml` voordat er iets over wordt beweerd. Een
- * meldingsblok dat de sanitizer niet overleeft, is precies zo stil als geen
- * meldingsblok.
+ * Rule 2 cannot be proven with expander output alone: everything then still goes
+ * through DOMPurify, and that is exactly where things vanish without warning
+ * (`KEEP_CONTENT: true`, `ADD_TAGS` knows only `iframe`, and `form` is in
+ * FORBID_TAGS). That is why every output below runs through the REAL
+ * `webpageSnapshot.sanitizeHtml` before anything is claimed about it. A
+ * notice block that the sanitiser does not survive is exactly as silent as no
+ * notice block at all.
  *
- * Draaien: cd server && node --test --test-force-exit services/webpageSnapshot.bfelements.test.js
+ * Run: cd server && node --test --test-force-exit services/webpageSnapshot.bfelements.test.js
  */
 
 const test = require('node:test');
@@ -49,7 +49,7 @@ function withPatches(patches, fn) {
     });
 }
 
-/** Vangt het log op; reden-codes horen daar te staan en nergens anders. */
+/** Captures the log; reason codes belong there and nowhere else. */
 async function withLog(fn) {
     const lines = [];
     const warn = console.warn;
@@ -102,7 +102,7 @@ async function publish(html, patches = stubs()) {
     });
 }
 
-/** Geen enkel `bf-*`-element mag de snapshot in — uitgeklapt of niet. */
+/** No single `bf-*` element may get into the snapshot — expanded or not. */
 function assertNoBfElementsLeft(html) {
     assert.strictEqual(/<\s*bf-/i.test(html), false,
         'een bf-element dat de sanitizer haalt, wordt daar zwijgend uitgepakt; het hoort hiervoor al weg te zijn');
@@ -130,9 +130,9 @@ test('bf-stat computes sum, avg, min and max over a public column', async () => 
 });
 
 test('BITE — a sum over a column that is NOT public publishes nothing and never reads the table', async () => {
-    // `margin` staat wél in de binding (`columns`) maar niet in `publicColumns`.
-    // Een som over die kolom publiceert die kolom alsnog — samengevat, maar het
-    // is dezelfde data — dus de poort moet hier dicht, en wel VOOR de lezing.
+    // `margin` is in the binding (`columns`) but not in `publicColumns`.
+    // A sum over that column would publish that column after all — summarised, but
+    // it is the same data — so the gate must close here, and BEFORE the read.
     let read = false;
     const res = await publish(
         STAT_DOC('source="tbl_1" agg="sum" column="margin"'),
@@ -146,9 +146,9 @@ test('BITE — a sum over a column that is NOT public publishes nothing and neve
 });
 
 test('BITE — an empty publicColumns publishes no count either, and reads nothing', async () => {
-    // "Leeg betekent GEEN kolom" moet ook gelden voor een getal dat geen kolom
-    // noemt: hoeveel rijen er zijn is een uitspraak over die tabel, en over een
-    // tabel waarvan niets publiek is doen we geen uitspraken.
+    // "Empty means NO column" must also apply to a number that names no column:
+    // how many rows there are is a statement about that table, and about a
+    // table of which nothing is public we make no statements.
     let read = false;
     const res = await publish(
         STAT_DOC('source="tbl_1"'),
@@ -160,8 +160,8 @@ test('BITE — an empty publicColumns publishes no count either, and reads nothi
 });
 
 test('BITE — a stat over a table that does not fit in one read publishes nothing', async () => {
-    // Een som over de eerste 500 van 5000 rijen is niet "ongeveer goed": hij is
-    // fout, en aan het getal is dat niet te zien.
+    // A sum over the first 500 of 5000 rows is not "roughly right": it is
+    // wrong, and the number does not show that.
     const res = await publish(STAT_DOC('source="tbl_1" agg="sum" column="price"'), stubs({ hasMore: true }));
     assert.strictEqual(/bf-stat-value/.test(res.clean), false);
     assert.ok(res.lines.some(l => l.includes('too-many-rows')));
@@ -182,7 +182,7 @@ test('a stat without a source, and one without a column for a real aggregation, 
 });
 
 test('a column full of text yields no number rather than a zero', async () => {
-    // Een 0 leest als een echt antwoord. "Er valt hier niets op te tellen" niet.
+    // A 0 reads as a real answer. "There is nothing to add up here" does not.
     const rows = [{ id: 'r1', name: 'Basic', price: 'n/a' }, { id: 'r2', name: 'Plus', price: '' }];
     const res = await publish(STAT_DOC('source="tbl_1" agg="sum" column="price"'), stubs({ rows }));
     assert.strictEqual(/bf-stat-value/.test(res.clean), false);
@@ -202,25 +202,25 @@ test('a refused read and an outage look identical from the outside', async () =>
 // ── de drie die hier niets kunnen ─────────────────────────────────────
 
 test('BITE — bf-button becomes a visibly disabled button with a notice, not a bare word', async () => {
-    // Zonder uitklappen maakt DOMPurify hier letterlijk `Send order` van: tag
-    // weg, attributen weg, geen waarschuwing. De lezer ziet dan losse tekst waar
-    // een knop hoorde te staan.
+    // Without expanding, DOMPurify literally turns this into `Send order`: tag
+    // gone, attributes gone, no warning. The reader then sees loose text where
+    // a button should have stood.
     const { clean } = await publish('<html><body><bf-button run="a1">Send order</bf-button></body></html>');
     const notice = bfElements.getBfElement('bf-button').surfaces.vanillaSnapshot.notice;
     assert.match(clean, /<div class="bf-inert bf-button">/);
     assert.match(clean, /<button type="button" disabled="">Send order<\/button>/);
     assert.ok(clean.includes(notice), `de melding "${notice}" moet de sanitizer overleven`);
     assertNoBfElementsLeft(clean);
-    // De vergelijking die het punt maakt: zónder uitklappen blijft er niets over
-    // waaruit een lezer kan opmaken dat hier iets stond.
+    // The comparison that makes the point: without expanding, nothing remains
+    // from which a reader could tell that something had stood here.
     const raw = webpageSnapshot.sanitizeHtml('<bf-button run="a1">Send order</bf-button>');
     assert.strictEqual(raw.trim(), 'Send order');
     assert.strictEqual(raw.includes(notice), false);
 });
 
 test('BITE — bf-form keeps its fields, disables every one of them, and never emits a <form>', async () => {
-    // `form` staat in FORBID_TAGS van de sanitizer en KEEP_CONTENT laat de velden
-    // dan los staan — een half formulier zonder knop. Dus: geen <form>.
+    // `form` is in the sanitiser's FORBID_TAGS and KEEP_CONTENT then leaves the fields
+    // standing — a half form without a button. So: no <form>.
     const { clean } = await publish(
         '<html><body><bf-form automation="a1" submit-label="Send">'
         + '<input name="email" type="email"><textarea name="msg"></textarea>'
@@ -245,8 +245,8 @@ test('BITE — bf-agent keeps what the author wrote and says the assistant is no
 });
 
 test('BITE — every element that needs JS carries its own notice through the sanitizer', async () => {
-    // De regel zelf, over het hele vocabulaire in plaats van per element: geen
-    // enkel JS-element mag stil verdwijnen, wat er ook aan wordt toegevoegd.
+    // The rule itself, over the whole vocabulary instead of per element: no
+    // single JS element may vanish silently, whatever is added to it.
     const tags = bfElements.tagsNeedingJs();
     assert.ok(tags.length >= 3, 'sanity: er zijn elementen die JS nodig hebben');
     for (const tag of tags) {
@@ -259,8 +259,8 @@ test('BITE — every element that needs JS carries its own notice through the sa
 });
 
 test('a page with only inert elements never reads a single binding', async () => {
-    // Een knop heeft geen tabel nodig; dan hoort er ook geen grant te worden
-    // opgevraagd en geen principal te worden opgelost.
+    // A button needs no table; then no grant should be requested
+    // and no principal resolved either.
     let asked = false;
     let resolved = false;
     await withPatches([
@@ -302,11 +302,11 @@ test('BITE — all five elements on one page: two carry data, three carry a noti
 // ── sluitronde: wat er nog stil kon verdwijnen ────────────────────────
 
 test('een zelfsluitend geschreven element slokt de rest van de pagina niet op', async () => {
-    // Een custom element KAN in HTML niet zelfsluitend zijn: de parser leest
-    // `<bf-table … />` als een openingstag en stopt de hele rest van het
-    // document erin als kinderen — die daarna met `replaceWith` wegvallen. De
-    // bouwer-prompt vertelt het model sinds W4 actief om deze elementen te
-    // schrijven, en `/>` is precies de gewoonte die het uit JSX meebrengt.
+    // A custom element CANNOT be self-closing in HTML: the parser reads
+    // `<bf-table … />` as an opening tag and puts the whole rest of the
+    // document inside it as children — which then drop out with `replaceWith`. The
+    // builder prompt has actively told the model since W4 to write these
+    // elements, and `/>` is exactly the habit it brings from JSX.
     const doc = '<html><body><bf-table source="tbl_1"/><h2>Rest of page</h2><p>tail</p></body></html>';
     const { clean } = await publish(doc);
     assert.match(clean, /<table class="bf-table">/);
@@ -324,9 +324,9 @@ test('een zelfsluitend formulier trekt niet de hele pagina zijn inerte blok in',
 });
 
 test('een element in een <template> verdwijnt niet spoorloos', async () => {
-    // `querySelectorAll` kijkt niet in `template.content`, dus dit element werd
-    // overgeslagen — en DOMPurify pakte het daarna zonder waarschuwing uit. Het
-    // enige geval waarin een BEKEND element net zo stil weg was als een onbekend.
+    // `querySelectorAll` does not look inside `template.content`, so this element was
+    // skipped — and DOMPurify then unwrapped it without a warning. The
+    // only case in which a KNOWN element went as silently missing as an unknown one.
     const doc = '<html><body><template><bf-button run="a1">Go</bf-button></template></body></html>';
     const { clean } = await publish(doc);
     assert.ok(clean.includes(bfElements.getBfElement('bf-button').surfaces.vanillaSnapshot.notice));
@@ -335,10 +335,10 @@ test('een element in een <template> verdwijnt niet spoorloos', async () => {
 
 test('"niet gebonden" en "de bindingen waren niet te lezen" krijgen een eigen reden in het log', async () => {
     const patches = stubs();
-    // Zelfde bytes naar buiten (een anonieme lezer mag dat verschil niet zien),
-    // maar aan de beheerderskant moet het uit elkaar te houden blijven: de
-    // reconciler herschrijft de snapshot bij ELKE tabelmutatie, dus één
-    // databankhikje zou de pagina stil opnieuw publiceren met een lege tabel.
+    // Same bytes outward (an anonymous reader must not be able to see that
+    // difference), but on the admin side it must stay distinguishable: the
+    // reconciler rewrites the snapshot on EVERY table mutation, so one
+    // database hiccup would silently republish the page with an empty table.
     const broken = patches.map(([obj, key, value]) => (
         key === 'getBridgeGrants' ? [obj, key, async () => { throw new Error('db down'); }] : [obj, key, value]
     ));
@@ -369,10 +369,9 @@ test('een cel wordt afgekapt, zodat één rij geen pagina wordt', async () => {
 });
 
 test('de handelingstabel moet ook een VORM voor elk inert element hebben', () => {
-    // Spiegelbeeld van de expand-kant. Zonder deze richting was INERT_BODY een
-    // tweede, ongecontroleerde lijst: een nieuw inert element kreeg wel zijn
-    // melding maar geen uitgeschakelde knop of veld, en niets zei dat die er
-    // hoorde te zijn.
+    // The mirror image of the expand side. Without this direction INERT_BODY was a
+    // second, unchecked list: a new inert element got its notice but no
+    // disabled button or field, and nothing said that one should be there.
     assert.throws(
         () => bfTable._assertHandlingIsWorkable(bfTable.VANILLA_HANDLING, undefined, {}),
         /INERT_BODY zegt niets over zijn vorm/,

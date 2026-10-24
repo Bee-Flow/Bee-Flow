@@ -77,7 +77,7 @@ export default function CourseView({
                 )}
                 actions={!locked && next && (
                     <PrimaryButton onClick={() => onStartLesson(next.lesson.id)} data-testid="course-continue">
-                        <Play style={{ width: 13, height: 13 }} aria-hidden="true" />
+                        <Play className="w-[13px] h-[13px]" aria-hidden="true" />
                         {t('learn.course.continue_with', 'Continue with lesson {n}').replace('{n}', String(next.index))}
                     </PrimaryButton>
                 )}
@@ -86,7 +86,7 @@ export default function CourseView({
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 text-[12px] [padding:28px]">
                 {locked && (
                     <div className="flex items-center gap-2 rounded-[10px] text-[12px] [padding:10px_12px] [border:1px_dashed_var(--text-tertiary)] [color:var(--text-secondary)]!">
-                        <Lock style={{ width: 13, height: 13, flexShrink: 0 }} aria-hidden="true" />{lockedReason}
+                        <Lock className="w-[13px] h-[13px] [flex-shrink:0]" aria-hidden="true" />{lockedReason}
                     </div>
                 )}
 
@@ -187,7 +187,7 @@ function LessonRow({ t, locale, lesson, entry, isComplete, isMastered, isNext, l
                     <RowAction t={t} isComplete={isComplete} isNext={isNext} docked={docked} locked={locked} onStart={onStart} />
                     <button type="button" onClick={onToggle} aria-expanded={open} aria-label={t('learn.table.details', 'Lesson details')}
                         className="grid place-items-center rounded-md w-6 h-6 hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">
-                        {open ? <ChevronUp style={{ width: 14, height: 14 }} /> : <ChevronDown style={{ width: 14, height: 14 }} />}
+                        {open ? <ChevronUp className="w-[14px] h-[14px]" /> : <ChevronDown className="w-[14px] h-[14px]" />}
                     </button>
                 </div>
             </div>
@@ -218,27 +218,27 @@ function RowAction({ t, isComplete, isNext, docked, locked, onStart }: RowAction
     if (isComplete) {
         return (
             <SecondaryButton small onClick={() => onStart()} disabled={locked}>
-                <RotateCcw style={{ width: 12, height: 12 }} aria-hidden="true" />{t('learn.table.replay', 'Again')}
+                <RotateCcw className="w-[12px] h-[12px]" aria-hidden="true" />{t('learn.table.replay', 'Again')}
             </SecondaryButton>
         );
     }
     if (isNext) {
         return (
             <PrimaryButton small onClick={() => onStart()} disabled={locked}>
-                <Play style={{ width: 12, height: 12 }} aria-hidden="true" />{t('learn.play', 'Play')}
+                <Play className="w-[12px] h-[12px]" aria-hidden="true" />{t('learn.play', 'Play')}
             </PrimaryButton>
         );
     }
     if (docked) {
         return (
             <SecondaryButton small onClick={() => onStart({ layout: 'docked' })} disabled={locked}>
-                <PanelRight style={{ width: 12, height: 12 }} aria-hidden="true" />{t('learn.beside_app', 'Beside the app')}
+                <PanelRight className="w-[12px] h-[12px]" aria-hidden="true" />{t('learn.beside_app', 'Beside the app')}
             </SecondaryButton>
         );
     }
     return (
         <SecondaryButton small onClick={() => onStart()} disabled={locked}>
-            <Play style={{ width: 12, height: 12 }} aria-hidden="true" />{t('learn.play', 'Play')}
+            <Play className="w-[12px] h-[12px]" aria-hidden="true" />{t('learn.play', 'Play')}
         </SecondaryButton>
     );
 }
@@ -292,8 +292,8 @@ function LessonSteps({ t, lesson, stripe, showPractice, reviewBuilding, onPracti
                         title={t('learn.practice.button_title', 'A fresh round of AI-generated questions on this lesson')}
                         className="inline-flex items-center gap-1 font-medium transition hover:underline disabled:opacity-40 text-[var(--accent-primary)]">
                         {reviewBuilding
-                            ? <Loader2 className="animate-spin" style={{ width: 11, height: 11 }} aria-hidden="true" />
-                            : <Sparkles style={{ width: 11, height: 11 }} aria-hidden="true" />}
+                            ? <Loader2 className="animate-spin w-[11px] h-[11px]" aria-hidden="true" />
+                            : <Sparkles className="w-[11px] h-[11px]" aria-hidden="true" />}
                         {t('learn.practice.button', 'Practice')}
                     </button>
                 )}
@@ -310,8 +310,8 @@ interface StatusGlyphProps {
 }
 
 function StatusGlyph({ isMastered, isComplete, isNext, t }: StatusGlyphProps) {
-    if (isMastered) return <CircleCheck style={{ width: 16, height: 16, color: 'var(--learn-mastered)', flexShrink: 0 }} aria-label={t('learn.mastery.chip', 'Mastered')} />;
-    if (isComplete) return <CircleCheck style={{ width: 16, height: 16, color: 'var(--learn-complete)', flexShrink: 0 }} aria-label={t('learn.state.complete', 'complete')} />;
-    if (isNext) return <CircleDot style={{ width: 16, height: 16, color: 'var(--accent-primary)', flexShrink: 0 }} aria-label={t('learn.table.next', 'Next')} />;
-    return <Circle style={{ width: 16, height: 16, color: 'var(--text-tertiary)', flexShrink: 0 }} aria-hidden="true" />;
+    if (isMastered) return <CircleCheck className="w-[16px] h-[16px] [color:var(--learn-mastered)] [flex-shrink:0]" aria-label={t('learn.mastery.chip', 'Mastered')} />;
+    if (isComplete) return <CircleCheck className="w-[16px] h-[16px] [color:var(--learn-complete)] [flex-shrink:0]" aria-label={t('learn.state.complete', 'complete')} />;
+    if (isNext) return <CircleDot className="w-[16px] h-[16px] [color:var(--accent-primary)] [flex-shrink:0]" aria-label={t('learn.table.next', 'Next')} />;
+    return <Circle className="w-[16px] h-[16px] [color:var(--text-tertiary)] [flex-shrink:0]" aria-hidden="true" />;
 }

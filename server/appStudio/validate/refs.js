@@ -66,45 +66,39 @@ function checkTableRef(tableId, path, ctx, label, codePrefix = 'binding') {
 }
 
 /**
- * De TWEEDE tabelsoort — naast checkTableRef hierboven, niet in plaats daarvan.
+ * The SECOND kind of table — alongside checkTableRef above, not instead of it.
  *
- * checkTableRef beantwoordt één vraag: "kent het model deze tabel?". Een
- * modeltabel kan haar rijen echter uit een STUDIO-DATATABEL halen
- * (model.tables[].source = {kind:'datatable', datatableId, mode}), en dan is er
- * een tweede verwijzing die los kan raken: de datatabel zelf. Een tabel zonder
- * `source` bezit haar eigen opslag en gaat hier ongemoeid door — de bestaande
- * soort blijft precies werken zoals hij werkte.
+ * checkTableRef answers one question: "does the model know this table?". A model table can however
+ * fetch its rows from a STUDIO DATATABLE (model.tables[].source = {kind:'datatable', datatableId,
+ * mode}), and then there is a second reference that can come loose: the datatable itself. A table
+ * without `source` owns its own storage and passes through here undisturbed — the existing kind
+ * keeps working exactly as it worked.
  *
- * Een datatableId die nergens naar wijst wordt BIJ NAAM gemeld. Stil overslaan
- * levert een app op die valideert, publiceert, draait en een leeg scherm laat
- * zien; dat wordt pas opgemerkt als iemand de gegevens nodig heeft, en dan is
- * er niets dat vertelt wáár het misging.
+ * A datatableId that points nowhere is reported BY NAME. Silently skipping it yields an app that
+ * validates, publishes, runs and shows an empty screen; that is noticed only when someone needs the
+ * data, and then nothing says WHERE it went wrong.
  *
- * De ladder is dezelfde als checkRef: zonder ctx.knownDatatables (de aanroeper
- * heeft geen lijst) een WAARSCHUWING met de id erin — onbekend, niet stil —;
- * mét een lijst een harde fout via pushDataRef. Een lijst raden mag niet: een
- * datatabel kan in de organisatie-scope staan terwijl de eigenaar alleen zijn
- * persoonlijke lijst meestuurt, en dan zou een werkende app worden afgekeurd.
+ * The ladder is the same as checkRef: without ctx.knownDatatables (the caller has no list) a WARNING
+ * with the id in it — unknown, not silent —; with a list a hard error via pushDataRef. Guessing a
+ * list is not allowed: a datatable may sit in the organisation scope while the owner sends only his
+ * personal list, and then a working app would be rejected.
  *
- * De vorm van `source` hoort bij het datamodel-contract (dataModel/
- * modelValidate.js) en is daar al afgewezen als hij niet klopt. Hier wordt hij
- * NIET nog eens gerepareerd maar wel nog eens gemeld: dit pad krijgt het model
- * van een aanroeper, en een model dat langs de contractpoort is gekomen zonder
- * gecanonicaliseerd te zijn mag geen tabel opleveren die stilzwijgend als
- * "eigen opslag" wordt gelezen.
+ * The form of `source` belongs to the data model contract (dataModel/modelValidate.js) and is already
+ * rejected there if it is wrong. Here it is NOT repaired again but it IS reported again: this path
+ * receives a model from a caller, and a model that got past the contract gate without being
+ * canonicalised may not yield a table that is silently read as "own storage".
  */
 function checkTableSource(tableId, path, ctx, label, { codePrefix = 'binding' } = {}) {
-    // Alleen in datamodel-modus, en alleen voor een id dat ergens op slaat —
-    // een ontbrekende of kapotte tableId is al door checkTableRef gemeld.
+    // Only in data-model mode, and only for an id that means something — a missing or broken tableId
+    // is already reported by checkTableRef.
     if (!ctx.dataTableSources || typeof tableId !== 'string' || !tableId) return;
     const source = ctx.dataTableSources.get(tableId);
     if (source === undefined || source === null) return; // de bestaande soort
 
-    // `path` blijft OVERAL het pad van de verwijzing zelf (de binding, de stap).
-    // Het `source`-blok staat in het datamodel, niet in de definitie, dus
-    // '<binding>.source.datatableId' zou een pad zijn dat nergens bestaat en dat
-    // de editor niet kan aanwijzen. Wat er kapot is, staat in het bericht; waar
-    // de auteur het kan repareren, staat in het pad.
+    // `path` remains EVERYWHERE the path of the reference itself (the binding, the step). The `source`
+    // block sits in the data model, not in the definition, so '<binding>.source.datatableId' would be
+    // a path that exists nowhere and that the editor cannot point to. What is broken is stated in the
+    // message; where the author can repair it is stated in the path.
     const what = label || 'Data reference';
     const via = `via table ${JSON.stringify(tableId)}`;
     const bad = (message, hint) => pushDataRef(ctx, {
@@ -122,9 +116,9 @@ function checkTableSource(tableId, path, ctx, label, { codePrefix = 'binding' } 
         );
         return;
     }
-    // Twee waarden, en een derde is een fout. Hem hier stil als 'read' lezen zou
-    // een typefout ('readWrite') veranderen in een recht dat niemand heeft
-    // aangevraagd, en de auteur zou nergens zien dat zijn keuze is genegeerd.
+    // Two values, and a third is an error. Reading it silently as 'read' would turn a typo ('readWrite')
+    // into a permission that nobody has requested, and the author would see nowhere that their choice
+    // was ignored.
     if (!TABLE_SOURCE_MODES.includes(source.mode)) {
         bad(
             `${what} reads a linked table (${via}) whose mode ${JSON.stringify(source.mode)} is not a mode.`,
@@ -158,32 +152,29 @@ function checkTableSource(tableId, path, ctx, label, { codePrefix = 'binding' } 
 }
 
 /**
- * MAG deze verwijzing rijen VERANDEREN? — de derde vraag, naast checkTableRef
- * ("kent het model deze tabel") en checkTableSource ("bestaat de koppeling nog").
+ * MAY this reference CHANGE rows? — the third question, alongside checkTableRef ("does the model know
+ * this table") and checkTableSource ("does the link still exist").
  *
- * `mode` legde tot nu toe alleen de VORM vast: het datamodel-contract keurde een
- * derde waarde af en daar bleef het bij. De regel zelf — read betekent lezen —
- * werd pas bij het DRAAIEN afgedwongen (appStudio/datatableSource.js). Gevolg:
- * een create_record/update_record/delete_record-stap of een ai_extract-writeTo
- * op een read-koppeling valideerde schoon, publiceerde schoon, en faalde daarna
- * bij elke klik van een gebruiker met 403. De auteur hoort dat bij het
- * publiceren te horen, niet de gebruiker bij het invullen.
+ * Until now `mode` fixed only the SHAPE: the data-model contract rejected a third value and that was
+ * that. The rule itself — read means read — was enforced only at RUN time (appStudio/datatableSource.js).
+ * Consequence: a create_record/update_record/delete_record step or an ai_extract writeTo on a read link
+ * validated cleanly, published cleanly, and then failed with 403 on every click of a user. The author
+ * should hear that at publication, not the user while filling in.
  *
- * Dit is GEEN kruisverwijzing waarvoor een lijst van buiten nodig is: de mode
- * staat in het model dat deze aanroep zelf heeft meegekregen. Vandaar een harde
- * fout langs pushDataRef — in een draftsave gedemoteerd zoals elke andere
- * datamodel-bevinding, bij publiceren blokkerend.
+ * This is NOT a cross-reference for which a list from outside is needed: the mode is in the model that
+ * this call itself received. Hence a hard error via pushDataRef — demoted to a warning in a draft save
+ * as with every other data-model finding, blocking at publication.
  *
- * Een ONBEKENDE mode telt hier als niet-schrijfbaar. Hem als readwrite lezen zou
- * een typefout in een recht veranderen; checkTableSource meldt hem apart als
- * kapot, dus er staat dan één bericht over de vorm en één over het gevolg.
+ * An UNKNOWN mode counts here as not writable. Reading it as readwrite would turn a typo into a
+ * permission; checkTableSource reports it separately as broken, so there is one message about the form
+ * and one about the consequence.
  */
 function checkTableWritable(tableId, path, ctx, label, { codePrefix = 'binding' } = {}) {
     if (!ctx.dataTableSources || typeof tableId !== 'string' || !tableId) return;
     const source = ctx.dataTableSources.get(tableId);
-    if (source === undefined || source === null) return; // eigen opslag: de app beslist
-    // Een `source` die geen object is, of een onbekende kind, is al gemeld door
-    // checkTableSource. Hier telt alleen: hij is niet schrijfbaar.
+    if (source === undefined || source === null) return; // own storage: the app decides
+    // A `source` that is not an object, or an unknown kind, has already been reported by
+    // checkTableSource. Here only one thing counts: it is not writable.
     const mode = isObject(source) ? source.mode : null;
     if (mode === WRITABLE_TABLE_SOURCE_MODE) return;
     pushDataRef(ctx, {
@@ -275,13 +266,11 @@ function checkFieldRef(tableId, fieldKey, path, ctx, label, { codePrefix = 'bind
     if (!ctx.dataTables || typeof tableId !== 'string' || !tableId) return;
     const fields = ctx.dataTables.get(tableId);
     if (!fields) return;
-    // Een tabel die haar rijen uit een Studio-datatabel haalt, bezit haar
-    // kolomlijst niet: die staat in de datatabel en kan daar veranderen zonder
-    // dat dit model iets merkt. Wat hier in `fields` staat is hooguit een kopie,
-    // en een kopie die achterloopt zou een werkende binding afkeuren. Dus niet
-    // hier beoordelen — dezelfde afweging als bij een dynamische groupBy in
-    // bindings.js: de server keurt de kolom af als hij niet bestaat, met de
-    // echte kolomlijst in de hand.
+    // A table that fetches its rows from a Studio datatable does not own its column list: that is in the
+    // datatable and can change there without this model noticing. What is in `fields` here is at most a
+    // copy, and a copy that lags behind would reject a working binding. So do not judge it here — the
+    // same consideration as with a dynamic groupBy in bindings.js: the server rejects the column if it
+    // does not exist, with the real column list in hand.
     if (ctx.dataTableSources && ctx.dataTableSources.get(tableId)) return;
     if (typeof fieldKey !== 'string' || !fieldKey) return; // structural error reported by the caller
     if (fields.has(fieldKey)) return;

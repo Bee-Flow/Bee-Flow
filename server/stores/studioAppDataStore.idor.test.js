@@ -97,6 +97,7 @@ const mockDb = {
         release() {},
     }),
 };
+mockDb.withTransaction = require('../testUtils/txFake').withTransactionVia(() => mockDb.getClient());
 const mockDbStore = { applyMigration: async () => ({ applied: 0 }) };
 
 const Module = require('module');

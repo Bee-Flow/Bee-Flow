@@ -214,7 +214,7 @@ export default function CanUseCard({
                                 onClick={() => { setMenuOpen(false); setShowApps(true); }}
                                 className="w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition"
                             >
-                                <AppWindow size={13} aria-hidden="true" style={{ color: 'var(--kind-app)' }} />
+                                <AppWindow size={13} aria-hidden="true" className="[color:var(--kind-app)]" />
                                 {t('skills_studio.canuse.browse_apps', 'Browse apps…')}
                             </button>
                             <MenuStatus

@@ -65,8 +65,8 @@ export const GeneratedAudio = ({ msg }: { msg: ChatMessage }) => {
     const albumArt = msg.images && msg.images.length > 0
         ? (resolveUrl((msg.images as GeneratedImage[])[0].url) || `data:${(msg.images as GeneratedImage[])[0].mimeType};base64,${(msg.images as GeneratedImage[])[0].data}`)
         : null;
-    // Merknamen — die vertalen niet, en dat is de reden dat ze hier als
-    // gewone strings staan in plaats van achter een sleutel.
+    // Brand names: those do not translate, and that is the reason they stand here as plain strings instead of
+    // behind a key.
     const sourceLabel: Record<string, string> = {
         'elevenlabs_music': 'ElevenLabs Music',
         'elevenlabs_tts': 'ElevenLabs TTS',

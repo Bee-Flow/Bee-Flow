@@ -36,10 +36,9 @@ require.cache[registryPath] = {
             return [...REGISTRY_ENTRIES, ...INLINE_ENTRIES];
         },
         loadTools: (entry) => TOOLS_BY_APP[entry.app] || [],
-        // Zoals de ECHTE bron: `loadTools` gooit nooit, en de storing komt als
-        // WAARDE terug. Een app in `LOAD_FAILS_FOR` laadt niet — dat is iets
-        // anders dan een app zonder tools, en de index hoort dat verschil te
-        // zien (zonder deze functie kon hij het niet).
+        // As in the REAL source: `loadTools` never throws, and the fault comes back as a VALUE. An app in `LOAD_FAILS_FOR` does not
+        // load — that is something other than an app without tools, and the index should see that difference (without this
+        // function it could not).
         loadToolsResult: (entry) => (LOAD_FAILS_FOR.has(entry.app)
             ? { tools: [], ok: false, reason: 'require_failed' }
             : { tools: TOOLS_BY_APP[entry.app] || [], ok: true, reason: null }),
@@ -66,9 +65,8 @@ const REGISTRY_ENTRIES = [
     { app: 'google-drive', label: 'Google Drive' },
     { app: 'kb-search', label: 'Knowledge Base' },
 ];
-// Een app die zijn tools INLINE injecteert (achter een docker-probe, een
-// adminvlag, een entitlement) en dus tot nu toe in geen enkele lijst stond die
-// de kiezer leest. `grantsRequireEntry` is wat dat gat dichttrekt.
+// An app that injects its tools INLINE (behind a docker probe, an admin flag, an entitlement) and therefore until now stood
+// on no list that the picker reads. `grantsRequireEntry` is what closes that gap.
 const INLINE_ENTRIES = [
     { app: 'browser-fetch', label: 'Browse Web', grantsRequireEntry: true, availability: 'installation' },
 ];
@@ -132,13 +130,11 @@ test('an explicit list narrows to exactly those actions; an empty list grants no
     assert.ok(P.isToolAllowed('set_reminder', cfg));
 });
 
-// ── Apps de kiezer nooit kon tonen (A2-1) ───────────────────────────
-// `browse_web` wordt INLINE geregistreerd, achter een docker-probe. Hij stond
-// daardoor in geen enkele lijst die de kiezer leest, en gleed als "niemand
-// claimt deze naam" langs isToolAllowed — ook bij een agent die tot één
-// Gmail-actie was versmald. De doorlaat voor niet-toe-te-schrijven namen
-// bestaat voor `set_reminder` en voor MCP/custom-tools die hun eigen id
-// dragen; hij bestaat niet voor een app die er gewoon is.
+// ── Apps the picker could never show (A2-1) ───────────────────────────
+// `browse_web` is registered INLINE, behind a docker probe. Therefore it stood on no list that the picker reads, and slipped
+// past isToolAllowed as "nobody claims this name" — also for an agent that had been narrowed to a single Gmail action. The
+// pass-through for names that cannot be attributed exists for `set_reminder` and for MCP/custom tools that carry their own
+// id; it does not exist for an app that is simply there.
 
 test('browse_web is een APP-tool, geen naamloze — de kiezer en de runtime kennen hem allebei', () => {
     assert.strictEqual(P.appIdForTool('browse_web'), 'browser-fetch');
@@ -156,8 +152,8 @@ test('een agent gecureerd tot één Gmail-actie krijgt GEEN browser', () => {
     assert.ok(P.isToolAllowed(
         { function: { name: 'tuya_list_devices' }, _mcp: { serverId: 'tuya' } }, curated,
     ));
-    // En de geen-migratie-regel blijft staan voor apps die de kiezer WEL altijd
-    // toonde: over Drive is niets gezegd, dus Drive houdt zijn toolbelt.
+    // And the no-migration rule stays in force for apps that the picker DID always show: nothing was said about Drive, so Drive
+    // keeps its tool belt.
     assert.ok(P.isToolAllowed('drive_search', curated));
     assert.ok(P.isToolAllowed('drive_upload_file', curated));
 });
@@ -171,28 +167,23 @@ test('een inline app die de eigenaar WEL koos werkt gewoon, en versmalt gewoon',
 });
 
 test('een entry ZONDER actielijst gunt een inline app niets — de kaart schrijft die entries', () => {
-    // Dit was gepind als gewenst gedrag ("een entry zonder actielijst is nog
-    // steeds een genoemde app — dat is de hele app") en dat is in het product
-    // onwaar: de Tools-kaart zet zulke entries neer bij twee VERSMALLENDE
-    // gebaren. `setAppConfirm` schrijft `{confirm}` en `setAppActAs` schrijft
-    // `{actAs}`, allebei zonder `actions` — en dan gaf deze laag een volledige
-    // headless browser aan een agent die tot `gmail_search` was gecureerd.
+    // This was pinned as desired behaviour ("an entry without an action list is still a named app — that is the whole app"), and
+    // in the product that is untrue: the Tools card writes such entries for two NARROWING gestures. `setAppConfirm` writes
+    // `{confirm}` and `setAppActAs` writes `{actAs}`, both without `actions` — and then this layer gave a full headless browser
+    // to an agent that had been curated down to `gmail_search`.
     const curated = { gmail: { actions: ['gmail_search'] } };
     for (const entry of [{}, { confirm: 'ask' }, { actAs: 'viewer' }, { actions: null }]) {
         const cfg = { ...curated, 'browser-fetch': entry };
         assert.ok(!P.isToolAllowed('browse_web', cfg),
             `een entry zonder uitgeschreven acties (${JSON.stringify(entry)}) is geen ja`);
     }
-    // En de gewone apps merken er niets van: daar is zwijgen wél een keuze,
-    // want de kiezer heeft ze altijd kunnen tonen.
+    // And the ordinary apps notice nothing: there silence is a choice, because the picker has always been able to show them.
     assert.ok(P.isToolAllowed('drive_search', { ...curated, 'google-drive': { confirm: 'ask' } }));
 });
 
 test('normalisatie schrijft de verbreding niet de RIJ in', () => {
-    // `applyConfigValidation` schrijft de geklemde map terug, dus wat hier
-    // uitkomt is wat er blijft staan. Een ontbrekende actiesleutel mag daar
-    // geen `'*'` worden: dat maakt van "de eigenaar zei niets" een
-    // uitgeschreven "de eigenaar gaf alles".
+    // `applyConfigValidation` writes the clamped map back, so what comes out here is what stays. A missing action key may not
+    // become `'*'` there: that would turn "the owner said nothing" into a written-out "the owner gave everything".
     const { tools } = P.normaliseToolsConfig({
         tools: { gmail: { actions: ['gmail_search'] }, 'browser-fetch': { confirm: 'ask' } },
     });
@@ -206,8 +197,8 @@ test('een agent die NIEMAND cureerde houdt zijn browser — dit is geen stille m
         assert.ok(P.isToolAllowed('browse_web', cfg),
             'geen curatie betekent dat de rechtenlaag niet eens meekijkt');
     }
-    // Een LEGE gereserveerde sectie is geen curatie (hasCuratedGrants), maar
-    // een gevulde wel — en dan telt de regel ook voor de inline app.
+    // An EMPTY reserved section is not curation (hasCuratedGrants), but a filled one is — and then the rule also applies to the
+    // inline app.
     assert.ok(!P.isToolAllowed('browse_web', { automations: { a1: {} } }));
 });
 
@@ -882,11 +873,9 @@ function withBrokenRegistry(fn) {
 }
 
 /**
- * Draai `fn` met de MODULE van één app onleesbaar — de vorm die de echte bron
- * produceert. `loadTools` gooit namelijk nooit: hij vangt zijn eigen fout en
- * geeft `[]` terug, dus de "degraded" tak die op een throw wachtte was in
- * productie onbereikbaar. Zonder deze test is de hele verdediging groen op iets
- * dat nooit gebeurt.
+ * Run `fn` with the MODULE of one app unreadable — the shape that the real source produces. `loadTools` namely never throws:
+ * it catches its own error and returns `[]`, so the "degraded" branch that waited for a throw was unreachable in production.
+ * Without this test the whole defence is green on something that never happens.
  */
 function withUnloadableApp(appId, fn) {
     const lines = [];
@@ -927,9 +916,8 @@ test('een app die NIET LAADT degradeert de attributie — leeg is geen antwoord'
 test('een app die niet laadt sluit ook het browse_web-gat niet weer open', () => {
     const curated = { gmail: { actions: ['gmail_search'] } };
     withUnloadableApp('browser-fetch', () => {
-        // De DECLARATIE wordt gelezen vóór de module (zie `_buildAppIndex`),
-        // dus die blijft staan ook als de tools niet laden — de smalste van de
-        // twee lezingen.
+        // The DECLARATION is read before the module (see `_buildAppIndex`), so it stays in place even when the tools do not load —
+        // the narrower of the two readings.
         assert.strictEqual(P.appRequiresExplicitGrant('browser-fetch'), true);
         assert.strictEqual(P.appIdForTool('browse_web'), null, 'de naam is nu ongeattribueerd');
         assert.ok(!P.isToolAllowed('browse_web', curated),
@@ -938,17 +926,15 @@ test('een app die niet laadt sluit ook het browse_web-gat niet weer open', () =>
 });
 
 test('een verzendende tool leent NOOIT de verbinding van de eigenaar', () => {
-    // De regel stond al in normaliseToolsConfig en op de kaart, maar niet in de
-    // poort zelf — en daar gold hij dus niet op de wijdste tak: de agent die
-    // niemand cureerde. Die leende `gmail_compose` van de eigenaar uit aan
-    // iedereen die de agent draaide.
+    // The rule was already in normaliseToolsConfig and on the card, but not in the gate itself — and there it did not apply on the
+    // widest branch: the agent that nobody curated. That one lent `gmail_compose` of the owner out to everyone who ran the agent.
     for (const cfg of [null, {}, { tools: {} }, { tools: { gmail: 'nope' } }]) {
         assert.strictEqual(P.mayLendOwnerConnection('gmail_compose', cfg), false,
             'geen curatie is geen vrijbrief om te versturen onder andermans naam');
         assert.strictEqual(P.mayLendOwnerConnection('gmail_search', cfg), true,
             'lezen leent onveranderd — dit is geen stille migratie');
     }
-    // En op een gecureerde agent kan geen opgeslagen ja eromheen.
+    // And on a curated agent no stored yes may be wrapped around it.
     assert.strictEqual(
         P.mayLendOwnerConnection('gmail_compose', { tools: { gmail: { actions: '*', actAs: 'owner' } } }),
         false, 'ook een opgeslagen "owner" praat zich er niet uit');
@@ -1167,12 +1153,10 @@ test('the lending gate obeys a recorded actAs, and only a recorded one', () => {
     assert.strictEqual(P.mayLendOwnerConnection('gmail_search', curated), false,
         'and "as the person asking" is a refusal both dispatch sites have to honour');
 
-    // Een app ZONDER entry in een gecureerde map leende hier tot A2-2 wél —
-    // "geen beslissing opgeschreven", net als bij `actions`, waar dat alles
-    // gunt. Bij een IDENTITEIT-vraag mag dat niet: de kaart tekende voor
-    // diezelfde toestand "as the person asking" en de runtime gaf ondertussen
-    // de verbinding van de eigenaar weg. Nu is alleen een OPGESLAGEN ja een ja
-    // — zie de test hieronder voor de hele redenering.
+    // An app WITHOUT an entry in a curated map used to borrow here until A2-2 — "no decision written down", just as with `actions`,
+    // where that grants everything. For an IDENTITY question that may not happen: the card drew "as the person asking" for exactly
+    // that state, and the runtime meanwhile gave away the owner's connection. Now only a STORED yes is a yes — see the test below
+    // for the whole reasoning.
     assert.strictEqual(P.mayLendOwnerConnection('kb_search', curated), false,
         'nothing is recorded for the Knowledge Base, and nothing recorded is not a yes');
     assert.strictEqual(P.mayLendOwnerConnection('set_reminder', curated), true,
@@ -1185,19 +1169,15 @@ test('the lending gate obeys a recorded actAs, and only a recorded one', () => {
     assert.strictEqual(P.mayLendOwnerConnection('gmail_search', { tools: { gmail: { actAs: 'OWNER' } } }), false);
 });
 
-// ── A2-2: het scherm en de runtime moeten over DEZELFDE toestand hetzelfde
-// zeggen ─────────────────────────────────────────────────────────────
-// De Tools-kaart tekent "As: the person asking" zodra er geen `actAs` is
-// opgeslagen (canUse/toolGrants.js: `storedActAsOf` → null ⇒ ACT_AS.VIEWER),
-// terwijl deze poort voor een app ZONDER entry `true` gaf en de runtime dus de
-// verbinding van de EIGENAAR uitleende. Die twee mogen niet naast elkaar
-// bestaan, en het scherm is de kant die klopt: een leenpoort die opengaat
-// omdat er niets is opgeschreven, is precies het fail-open dat deze laag
-// uitsluit.
+// ── A2-2: the screen and the runtime must say the SAME thing about the SAME state ─────────────────────────────────────
+// The Tools card draws "As: the person asking" as soon as no `actAs` is stored (canUse/toolGrants.js: `storedActAsOf` → null ⇒
+// ACT_AS.VIEWER), while this gate gave `true` for an app WITHOUT an entry and the runtime therefore lent out the connection of
+// the OWNER. Those two may not exist side by side, and the screen is the side that is right: a lending gate that opens because
+// nothing has been written down is precisely the fail-open that this layer excludes.
 //
-// De config hieronder is LETTERLIJK dezelfde als in
+// The config below is LITERALLY the same as in
 // agent-hub/src/components/agents/AgentWizard/canUse/ToolsCard.test.jsx
-// (A2_2_CURATED) — één toestand, twee kanten, één antwoord.
+// (A2_2_CURATED) — one state, two sides, one answer.
 const A2_2_CURATED = Object.freeze({
     tools: {
         // De eigenaar heeft alleen Gmail gecureerd. Over Drive en de
@@ -1223,16 +1203,13 @@ test('an app with NO entry does not borrow the owner connection: only a stored y
         }),
         true, 'a recorded "as you" is the whole point of the lend grant');
 
-    // Een `actAs` die niemand kan lezen is geen ja. Normalisatie schrijft er
-    // een geldige op elke entry die zij uitgeeft, dus dit is alleen een map
-    // die daar nooit langs is geweest — en onleesbaar versmalt hier, net als
-    // bij `actions` en bij `columns`.
+    // An `actAs` that nobody can read is not a yes. Normalisation writes a valid one on every entry that it hands out, so this is
+    // only a map that never went through there — and it narrows here when unreadable, just as with `actions` and `columns`.
     assert.strictEqual(P.mayLendOwnerConnection('gmail_search', { tools: { gmail: { actions: ['gmail_search'] } } }), false);
     assert.strictEqual(P.mayLendOwnerConnection('gmail_search', { tools: { gmail: { actAs: 'OWNER' } } }), false);
 
-    // En de opt-in-grens blijft ongemoeid: een agent die niemand gecureerd
-    // heeft leent precies zoals vóór deze laag. Dat is de enige plek waar
-    // "geen opgeslagen ja" nog leent, en de kaart zegt dat daar ook.
+    // And the opt-in boundary remains untouched: an agent that nobody has curated lends exactly as before this layer. That is the
+    // only place where "no stored yes" still lends, and the card says so there too.
     for (const cfg of [{}, { tools: {} }, { tools: { gmail: 'nope' } }, { tools: { automations: {} } }]) {
         assert.strictEqual(P.mayLendOwnerConnection('drive_search', cfg), true);
     }

@@ -153,23 +153,22 @@ describe('skillModel — what may be offered as a callable tool', () => {
     });
 
     /**
-     * De volgorde is het punt, niet de drie spellingen.
+     * The ORDER is the point, not the three spellings.
      *
-     * `trigger_type` is een gedenormaliseerde kolom met DEFAULT 'manual', en
-     * ELKE rij uit GET /api/automation draagt hem (rowMappers zet hem altijd).
-     * Met de kolom vooraan was de derde spelling — de enige die de runtime
-     * zelf leest (agentCallableTools: `definition.trigger.kind`) — op dat
-     * endpoint onbereikbaar. Die drift is geen theorie: POST leidt de kolom
-     * niet af uit de definitie (PUT wel, sinds BFSF-318), dus een automatisering die
-     * compleet in één POST aankomt houdt trigger_type='manual' tot iemand hem
-     * opnieuw opslaat.
+     * `trigger_type` is a denormalised column with DEFAULT 'manual', and EVERY row
+     * from GET /api/automation carries it (rowMappers always sets it). With the
+     * column first, the third spelling — the only one the runtime reads itself
+     * (agentCallableTools: `definition.trigger.kind`) — was unreachable on that
+     * endpoint. That drift is no theory: POST does not derive the column from the
+     * definition (PUT does, since BFSF-318), so an automation that arrives complete
+     * in one POST keeps trigger_type='manual' until someone saves it again.
      */
     it('leest de DEFINITIE eerst — de kolom kan achterlopen, de definitie is wat de runtime aanroept', () => {
         expect(isAgentCallable({
             triggerType: 'manual',
             definition: { trigger: { kind: 'agent_call' } },
         }), 'de kolom staat nog op manual, de runtime roept hem wél aan').toBe(true);
-        // En andersom: een definitie die géén agent_call zegt, wint ook.
+        // And the other way round: a definition that does NOT say agent_call wins too.
         expect(isAgentCallable({
             triggerType: 'agent_call',
             definition: { trigger: { kind: 'schedule' } },
@@ -177,9 +176,8 @@ describe('skillModel — what may be offered as a callable tool', () => {
     });
 
     it('zegt "not counted" in plaats van "not linked yet" als de server een soort niet kon tellen', () => {
-        // getUsageSummary slikt een ontbrekende automations-tabel; sinds deze
-        // stap zegt hij dát ook, en de regel eronder mag dan niet beweren dat
-        // er niets aan gekoppeld is.
+        // getUsageSummary swallows a missing automations table; since this step
+        // it says so too, and the line below may not claim that nothing is linked to it.
         const skill = { id: 's1', name: 'x', steps: [{ id: '1', text: 'a' }] };
         expect(usageSubline(skill, { agents: 0, automations: 0, automationsUnchecked: true }, t)).toBe('not counted');
         expect(usageSubline(skill, { agents: 0, automations: 0 }, t)).toBe('not linked yet');

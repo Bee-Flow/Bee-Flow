@@ -34,6 +34,7 @@
  */
 
 const express = require('express');
+const { fetchConfiguredEndpoint } = require('../core/http/configuredEndpointFetch');
 const { z, typeError } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
 const log = require('../telemetry/log');
@@ -401,10 +402,8 @@ router.post('/:id/export/nextcloud', requireAuth, requireNotebookOwner, validate
         let walked = '';
         for (const seg of folderSegments) {
             walked += '/' + encodeURIComponent(seg);
-            const mkRes = await fetch(`${davRoot}${walked}`, {
-                method: 'MKCOL',
-                headers: { 'Authorization': auth },
-                signal: AbortSignal.timeout(15000),
+            const mkRes = await fetchConfiguredEndpoint(`${davRoot}${walked}`, {
+                redirect: 'follow', method: 'MKCOL', headers: { 'Authorization': auth }, signal: AbortSignal.timeout(15000),
             });
             if (mkRes.status === 401) throw new HttpError(502, 'nextcloud_auth_rejected', 'Nextcloud rejected credentials. Re-save your app password.');
             if (mkRes.status !== 201 && mkRes.status !== 405 /* already exists */) {
@@ -419,7 +418,7 @@ router.post('/:id/export/nextcloud', requireAuth, requireNotebookOwner, validate
         const fileName = `${safeBase}.pdf`;
         const targetUrl = `${davRoot}${walked}/${encodeURIComponent(fileName)}`;
 
-        const headRes = await fetch(targetUrl, { method: 'HEAD', headers: { 'Authorization': auth }, signal: AbortSignal.timeout(10000) });
+        const headRes = await fetchConfiguredEndpoint(targetUrl, { redirect: 'follow', method: 'HEAD', headers: { 'Authorization': auth }, signal: AbortSignal.timeout(10000) });
         let finalUrl = targetUrl;
         let finalName = fileName;
         if (headRes.status === 200) {
@@ -428,7 +427,7 @@ router.post('/:id/export/nextcloud', requireAuth, requireNotebookOwner, validate
             finalUrl = `${davRoot}${walked}/${encodeURIComponent(finalName)}`;
         }
 
-        const putRes = await fetch(finalUrl, {
+        const putRes = await fetchConfiguredEndpoint(finalUrl, { redirect: 'follow',
             method: 'PUT',
             headers: { 'Authorization': auth, 'Content-Type': 'application/pdf' },
             body: pdfBuffer,

@@ -19,8 +19,8 @@ const { licenseMock, entitlementsMock, attentionRun, recentRun, authFetchMock, a
     aiPanelSpy: vi.fn(),
 }));
 
-// Het beschrijf-paneel praat met POST /api/studio/ai/route en heeft zijn eigen
-// test; hier telt alleen dat dit scherm het draagt en waarmee het het voedt.
+// The describe panel talks to POST /api/studio/ai/route and has its own test;
+// here it only matters that this screen carries it and with what it feeds it.
 vi.mock('./studioAi/DescribeItPanel', async () => {
     const { createElement } = await import('react');
     return {
@@ -46,17 +46,14 @@ vi.mock('./recent/recentWork', async (importOriginal) => ({
     runRecentWork: (...args) => recentRun(...args),
 }));
 
-// De kaart onderaan leest GET /api/studio/counts één keer bij het monteren.
-// Hier alleen afgevangen: haar eigen gedrag staat in map/StudioMap.test.jsx.
+// The card at the bottom reads GET /api/studio/counts once on mount. Only
+// intercepted here: its own behaviour is in map/StudioMap.test.jsx.
 vi.mock('../../../utils/helpers', async (importOriginal) => ({
     ...(await importOriginal()),
     authFetch: (...args) => authFetchMock(...args),
 }));
 
-vi.mock('../../../hooks/useTranslation', () => {
-    const useTranslation = () => ({ t: (key, fallback) => fallback || key, locale: 'en' });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 vi.mock('../../../moduleRuntime/registry', () => ({ useRuntimeStudioApps: () => [] }));
 vi.mock('../../licensing/LicenseContext', () => ({
     useLicenseContext: () => ({ hasFeature: (f) => licenseMock.hasFeature(f), deploymentMode: 'cloud' }),
@@ -123,7 +120,7 @@ describe('StudioStart', () => {
         expect(screen.getByTestId('studio-home-header')).toBeTruthy();
         expect(screen.getByTestId('new-menu-trigger')).toBeTruthy();
         expect((await screen.findByTestId('studio-home-makers')).textContent).toBe('Nothing you can see here yet');
-        // Geteld op de server, niet uit de lijsten op dit scherm afgeleid.
+        // Counted on the server, not derived from the lists on this screen.
         expect(authFetchMock.mock.calls.some(([url]) => String(url).endsWith('/api/studio/counts'))).toBe(true);
     });
 
@@ -138,8 +135,8 @@ describe('StudioStart', () => {
         expect(asked).toContain('skills');
         expect(asked).not.toContain('approvals');
 
-        // En met een Community-org reist de LOCK mee, zodat het paneel geen
-        // soort kan aanbieden die dit scherm er zelf als bordje neerzet.
+        // And with a Community org the LOCK travels along, so the panel cannot offer a
+        // kind that this screen itself puts up as a sign.
         cleanup();
         aiPanelSpy.mockReset();
         entitlementsMock.can = () => false;
@@ -197,17 +194,17 @@ describe('StudioStart', () => {
         renderStart();
         await screen.findByTestId('studio-attention');
         const countCalls = authFetchMock.mock.calls.filter(([url]) => url.includes('/api/studio/counts'));
-        // Twee lezingen op één scherm zijn niet alleen een verzoek te veel:
-        // ze kunnen uiteenlopen, en dan staat er een makersgetal uit een
-        // antwoord dat de kaart tegelijk "niet gelezen" noemt.
+        // Two reads on one screen are not just one request too many: they can diverge, and
+        // then a makers number stands from an answer that the card simultaneously calls
+        // “not read”.
         expect(countCalls).toHaveLength(1);
     });
 
     it('belooft "Laatst bewerkt" niets zolang de poorten geen antwoord hebben', async () => {
-        // Met een entitlements-fout LAAT resolveStudioNav de zeven gegate
-        // secties helemaal weg — ze staan dan noch in `unavailable` noch in
-        // `skipped`, en zonder deze vlag print het scherm "Nothing edited yet"
-        // over zeven lijsten die nooit gevraagd zijn.
+        // With an entitlements error, resolveStudioNav omits the seven gated sections
+        // entirely — they are then neither in `unavailable` nor in `skipped`, and without
+        // this flag the screen prints “Nothing edited yet” over seven lists that were
+        // never asked for.
         entitlementsMock.error = new Error('entitlements down');
         entitlementsMock.can = () => false;
         renderStart();

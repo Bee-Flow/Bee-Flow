@@ -1,87 +1,86 @@
 // @typecheck
 /**
- * `automation_usage` — WIE DRAAIT DEZE AUTOMATISERING? (P4 deel C)
+ * `automation_usage` — WHO RUNS THIS AUTOMATION? (P4 part C)
  *
- * De spiegel van `automation_datatable_usage`: die beantwoordt "wie raakt deze
- * TABEL aan", deze beantwoordt "wie drukt op deze AUTOMATION". Vandaag is er één
- * soort gebruiker — een knop in een Studio-app (`consumer_kind = 'app'`) — en
- * de tabel is zo gevormd dat er later een webpagina of een agent bij kan
- * zonder hem te hervormen.
+ * The mirror of `automation_datatable_usage`: that answers "who touches this
+ * TABLE", this answers "who presses this AUTOMATION". Today there is one kind of
+ * user — a button in a Studio app (`consumer_kind = 'app'`) — and the
+ * table is shaped so that a web page or an agent can join later
+ * without reshaping it.
  *
- * ── WAAROM EEN EIGEN TABEL, EN NIET EEN VELD IN DE BESTAANDE INDEX ───
+ * ── WHY ITS OWN TABLE, AND NOT A FIELD IN THE EXISTING INDEX ───────
  *
- * `automation_datatable_usage` is per TABEL-DOEL gekeyd, en dat is een FK, geen
- * conventie: `datatable_id TEXT NOT NULL REFERENCES datatables(id) ON DELETE
- * CASCADE`. Drie gevolgen, elk op zich al fataal voor hergebruik:
+ * `automation_datatable_usage` is keyed per TABLE TARGET, and that is an FK, not a
+ * convention: `datatable_id TEXT NOT NULL REFERENCES datatables(id) ON DELETE
+ * CASCADE`. Three consequences, each of them on its own fatal for reuse:
  *
- *   1. De INSERT is gegrendeld op de datatable-rij (`INSERT … SELECT … FROM
- *      datatables d WHERE d.id = $6`). Zonder rij in `datatables` schrijft hij
- *      NUL rijen en noemt zichzelf geslaagd — de stille poort die deze hele
- *      familie juist moet dichthouden.
- *   2. De scope komt van de TABEL, niet van de gebruiker. Zonder tabel is er
- *      geen scope-bron.
- *   3. De CASCADE hangt aan `datatables`. Een app→automation-rij moet verdwijnen
- *      als de APP of de AUTOMATION weg is — een andere levensduur.
+ *   1. The INSERT is gated on the datatable row (`INSERT … SELECT … FROM
+ *      datatables d WHERE d.id = $6`). Without a row in `datatables` it writes
+ *      ZERO rows and calls itself successful — the silent gate that this whole
+ *      family exists to keep closed.
+ *   2. The scope comes from the TABLE, not from the user. Without a table there is
+ *      no scope source.
+ *   3. The CASCADE hangs on `datatables`. An app→automation row must disappear
+ *      when the APP or the AUTOMATION is gone — a different lifetime.
  *
- * Daar komt de deploy-reden bij die in de kop van datatableStore.js staat: die
- * DDL draait bij elke module-load op elke replica onder een rolling deploy met
- * automatische `rollout undo`, dus die tabel wordt niet hervormd. Vandaar deze.
+ * Add to that the deploy reason stated in the header of datatableStore.js: that
+ * DDL runs at every module load on every replica during a rolling deploy with
+ * automatic `rollout undo`, so that table is not reshaped. Hence this one.
  *
- * ── DE SLEUTEL: (soort, gebruiker, verwijzing, automation) ──────────────
+ * ── THE KEY: (kind, user, reference, automation) ────────────────────
  *
- * `ref_id` is de ACTIE (`act:<actionId>`), niet de stap. Een sequence-stap
- * heeft geen id — `containsStepKind` in appStudio/validate/actions.js loopt hem
- * op POSITIE af — en een positie als halve primaire sleutel is precies wat W5
- * verbiedt: hij schuift bij elke bewerking op, de reconcile schrijft een nieuwe
- * rij en de index groeit tot hij niets meer betekent. Een actie-id is stabiel
- * (validate.js dwingt `act_xxxx` af), dus één rij per (app, actie, automation).
+ * `ref_id` is the ACTION (`act:<actionId>`), not the step. A sequence step
+ * has no id — `containsStepKind` in appStudio/validate/actions.js walks it
+ * by POSITION — and a position as half of the primary key is exactly what W5
+ * forbids: it shifts with every edit, the reconcile writes a new
+ * row and the index grows until it means nothing. An action id is stable
+ * (validate.js enforces `act_xxxx`), so one row per (app, action, automation).
  *
- * `automation_id` zit IN de sleutel omdat één actie twee automatiseringen kan draaien
- * (twee `run_automation`-stappen in dezelfde sequence). Zonder dat zou de
- * tweede de eerste overschrijven en zou één van de twee automatiseringen zichzelf als
- * ongebruikt zien.
+ * `automation_id` is IN the key because one action can run two automations
+ * (two `run_automation` steps in the same sequence). Without that the
+ * second would overwrite the first and one of the two automations would see
+ * itself as unused.
  *
- * ── DE INSERT IS GEGRENDELD OP DE EIGENAAR ───────────────────────────
+ * ── THE INSERT IS GATED ON THE OWNER ────────────────────────────────
  *
- * Dit is de belangrijkste regel in dit bestand. `INSERT … SELECT … FROM
- * automations a WHERE a.id = $x AND a.user_id = $ownerUserId` — de rij komt er
- * alleen als de automatisering ECHT bestaat en van dezelfde persoon is als de app.
+ * This is the most important rule in this file. `INSERT … SELECT … FROM
+ * automations a WHERE a.id = $x AND a.user_id = $ownerUserId` — the row only comes
+ * in if the automation REALLY exists and belongs to the same person as the app.
  *
- * Waarom eigendom en niets ruimers: een app draait een automatisering ACTS-AS-OWNER
+ * Why ownership and nothing broader: an app runs an automation ACTS-AS-OWNER
  * (`appStudio/actionExecutor/automationBridge.js`: "a post-wiring transfer must
- * never let the app run someone else's automation acts-as-owner"), en die brug
- * weigert bij `automation.userId !== app.userId`. Een verwijzing over de
- * eigenaarsgrens heen kán dus niet draaien; hem tóch indexeren zou de eigenaar
- * van de automatisering de NAAM van andermans app tonen ("gebruikt door 1 knop" van
- * iemand die hij niet kent) op grond van een koppeling die bij de eerste klik
- * weigert. Onbekend versmalt, dus: geen rij.
+ * never let the app run someone else's automation acts-as-owner"), and that bridge
+ * refuses when `automation.userId !== app.userId`. A reference across the owner
+ * boundary therefore cannot run; indexing it anyway would show the automation's
+ * owner the NAME of someone else's app ("used by 1 button" from a person they do not
+ * know), on the basis of a link that refuses at the first click. Unknown narrows,
+ * so: no row.
  *
- * En omdat de guard in de INSERT zit en niet bij de aanroeper, is "wie is de
- * eigenaar" één feit uit één rij: `owner_user_id` en `organization_id` worden
- * van de automatisering gelezen, nooit van de aanroeper gekopieerd — dezelfde regel
- * die `reconcileUsageFor` op de datatable-scope toepast.
+ * And because the guard sits in the INSERT and not at the caller, "who is the
+ * owner" is one fact from one row: `owner_user_id` and `organization_id` are
+ * read from the automation, never copied from the caller — the same rule
+ * that `reconcileUsageFor` applies to the datatable scope.
  *
- * Het gevolg voor de aanroeper: een NIET-lege lijst die NUL rijen schrijft is
- * geen geslaagde reconcile maar een eigendoms- of bestaansprobleem, en de
- * reconciler hoort dat te zeggen (zie automationUsageSync.js).
+ * The consequence for the caller: a NON-empty list that writes ZERO rows is
+ * not a successful reconcile but an ownership or existence problem, and the
+ * reconciler should say so (see automationUsageSync.js).
  *
- * ── ER IS GEEN FK, DUS ER MOET GEPURGED WORDEN ───────────────────────
+ * ── THERE IS NO FK, SO THERE MUST BE PURGING ────────────────────────
  *
- * `automations` en `studio_apps` horen bij andere stores; een FK tussen store-
- * schema's die elk hun eigen boot-DDL draaien is precies de volgorde-afhanke-
- * lijkheid die geen van beide kan garanderen. Dus twee purge-paden:
- * `purgeUsageForConsumer` als de APP weg is, `purgeUsageOfAutomation` als de
- * AUTOMATION weg is. Beide worden aangeroepen vanaf het delete-pad; welke
- * bestanden dat zijn staat in appStudio/automationUsage.savePaths.test.js.
+ * `automations` and `studio_apps` belong to other stores; an FK between store
+ * schemas that each run their own boot DDL is exactly the ordering dependency that
+ * neither can guarantee. So two purge paths: `purgeUsageForConsumer` if the APP
+ * is gone, `purgeUsageOfAutomation` if the AUTOMATION is gone. Both are called from the delete
+ * path; which files those are is stated in appStudio/automationUsage.savePaths.test.js.
  *
  * ── DDL VIA runDdl ───────────────────────────────────────────────────
  *
- * De ladderregel (boot/bootMigrations.test.js): een nieuwe kolom of tabel hoort
- * in de idempotente boot-DDL van zijn eigen store, en dan via `runDdl`
- * (stores/lib/_ddl.js) — niet in een los migratiebestand en niet in een
- * `DO $$ … EXCEPTION WHEN OTHERS THEN NULL`-blok, want dat slikt een
- * statement-timeout net zo hard in als "bestond al". De claim staat als
- * COLUMN_LADDERS-entry in die test.
+ * The ladder rule (boot/bootMigrations.test.js): a new column or table belongs
+ * in the idempotent boot DDL of its own store, and then via `runDdl`
+ * (stores/lib/_ddl.js) — not in a loose migration file and not in a
+ * `DO $$ … EXCEPTION WHEN OTHERS THEN NULL` block, because that swallows a
+ * statement timeout just as hard as "already existed". The claim is stated as a
+ * COLUMN_LADDERS entry in that test.
  */
 
 'use strict';
@@ -91,9 +90,9 @@ const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
 
 /**
- * Wat een automatisering kan aanzetten. Vandaag alleen een app-knop. Een soort
- * toevoegen betekent zijn reconciler op ELK save-pad van die soort zetten —
- * appStudio/automationUsage.savePaths.test.js houdt die lijst bij.
+ * What an automation can switch on. Today only an app button. Adding a kind
+ * means putting its reconciler on EVERY save path of that kind —
+ * appStudio/automationUsage.savePaths.test.js keeps that list.
  */
 const CONSUMER_KINDS = Object.freeze(['app']);
 
@@ -120,25 +119,25 @@ const initDB = makeStoreInit('AutomationUsageStore', async () => {
             updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             PRIMARY KEY (consumer_kind, consumer_id, ref_id, automation_id)
         )`,
-        // "Wie gebruikt DEZE automation" is de hete vraag (de capsule, en straks
-        // de poort voor een verwijdering), dus die krijgt zijn eigen index.
+        // "Who uses THIS automation" is the hot question (the capsule, and later
+        // the gate for a deletion), so it gets its own index.
         `CREATE INDEX IF NOT EXISTS idx_automation_usage_automation ON automation_usage(automation_id)`,
         // En de andere kant: alles van één app opruimen of vervangen.
         `CREATE INDEX IF NOT EXISTS idx_automation_usage_consumer ON automation_usage(consumer_kind, consumer_id)`,
-        // ── HET DERDE ANTWOORD: "NOG NOOIT GEKEKEN" ──────────────────
+        // ── THE THIRD ANSWER: "NEVER CHECKED" ─────────────────────────
         //
-        // `automation_usage` kan alleen rijen tonen. Nul rijen betekent daar
-        // twee volstrekt verschillende dingen: "geen enkele knop draait deze
-        // automation" en "deze index is voor die app nog nooit gebouwd". Op de
-        // dag van uitrol is dat tweede waar voor ÉLKE bestaande app — de tabel
-        // wordt leeg aangelegd en vult zich alleen als iemand een app opslaat —
-        // en dan leest elke automation-eigenaar "No app button runs this automatisering
-        // yet" over knoppen die gewoon draaien. Dat is een uitspraak over de
-        // wereld, gedaan op een tabel die nog nooit is gevuld.
+        // `automation_usage` can only show rows. Zero rows there means two
+        // completely different things: "no button at all runs this
+        // automation" and "this index has never been built for that app yet". On the
+        // day of rollout that second one is true for EVERY existing app — the table is
+        // created empty and only fills when someone saves an app —
+        // and then every automation owner reads "No app button runs this automation
+        // yet" about buttons that do run. That is a statement about the
+        // world, made on a table that has never been filled.
         //
-        // Vandaar deze bijhoudtabel: één rij per gebruiker (vandaag: per app)
-        // die ooit is geïndexeerd. Zij maakt "leeg" en "onbekend" scheidbaar,
-        // en zij is de werklijst van de backfill.
+        // Hence this bookkeeping table: one row per user (today: per app)
+        // that has ever been indexed. It makes "empty" and "unknown" distinguishable,
+        // and it is the work list of the backfill.
         `CREATE TABLE IF NOT EXISTS automation_usage_indexed (
             consumer_kind   TEXT NOT NULL,
             consumer_id     TEXT NOT NULL,
@@ -146,24 +145,24 @@ const initDB = makeStoreInit('AutomationUsageStore', async () => {
             PRIMARY KEY (consumer_kind, consumer_id)
         )`,
     ]);
-    // runDdl meldt SQLSTATE-fouten terug in plaats van te gooien. Hier is dat
-    // niet genoeg: op een half aangelegd schema geeft élke lees stil een lege
-    // lijst terug, en leeg betekent hier "geen enkele knop draait deze
-    // automation" — precies de bewering die niemand mag doen zonder tabel.
+    // runDdl reports SQLSTATE errors back instead of throwing. Here that is
+    // not enough: on a half-built schema every read silently returns an empty
+    // list, and empty means here "no button at all runs this
+    // automation" — precisely the claim that nobody may make without a table.
     if (res.failures.length) {
         throw new Error(`automation_usage DDL faalde (${res.failures.map(f => f.code).join(', ')}) — zie de [DDL:automationUsageStore]-regels`);
     }
 });
 
 /**
- * De tabellen die `listUsageOfAutomation` mag LEFT JOINen, één keer gepolst.
+ * The tables that `listUsageOfAutomation` may LEFT JOIN, polled once.
  *
- * `studio_apps` hoort bij een store die zijn DDL bij EERSTE GEBRUIK aanlegt, dus
- * op een verse installatie kan hij ontbreken tot iemand App Studio opent — en
- * een JOIN naar een niet-bestaande relatie is een 500 op de capsule. Zelfde
- * `to_regclass`-truc als `datatableStore.consumerJoins`: onthouden zodra hij er
- * is, tot dan één goedkope query per aanroep. Ontbreekt hij, dan komen de rijen
- * terug met een lege titel — nooit met minder rijen.
+ * `studio_apps` belongs to a store that creates its DDL at FIRST USE, so
+ * on a fresh installation it can be missing until someone opens App Studio — and
+ * a JOIN to a non-existent relation is a 500 on the capsule. Same
+ * `to_regclass` trick as `datatableStore.consumerJoins`: remembered once it is
+ * there, until then one cheap query per call. If it is missing, the rows come
+ * back with an empty title — never with fewer rows.
  */
 let _joinable = null;
 async function consumerJoins() {
@@ -180,12 +179,12 @@ function mapRow(r) {
         consumerKind: r.consumer_kind,
         consumerId: r.consumer_id,
         consumerTitle: r.app_title || null,
-        // De EIGENAAR VAN DE AUTOMATISERING, niet van de app. De kolom heet
-        // `owner_user_id` en wordt bij de INSERT van `automations.user_id`
-        // gelezen; hij heette hier `consumerOwner`, wat hem las als een
-        // app-eigendomscontrole terwijl het een verouderingsfilter op de
-        // automation-eigenaar is. Wie de APP mag openen is een andere vraag, en
-        // die wordt in de route beantwoord (`canOpen`), niet afgeleid.
+        // The OWNER OF THE AUTOMATION, not of the app. The column is called
+        // `owner_user_id` and is read at the INSERT from `automations.user_id`;
+        // it used to be called `consumerOwner` here, which read it as an
+        // app-ownership check while it is a staleness filter on the
+        // automation owner. Who may OPEN the APP is a different question, and
+        // that is answered in the route (`canOpen`), not derived.
         automationOwner: r.owner_user_id || null,
         refId: r.ref_id,
         // `ref_id` is `act:<actionId>`; het scherm leest liever het kale id.
@@ -200,25 +199,25 @@ function mapRow(r) {
 }
 
 /**
- * Zet de index gelijk aan wat ÉÉN gebruiker (vandaag: één app) nu aan automations
- * noemt. Delete-then-insert op `(consumer_kind, consumer_id)`.
+ * Sets the index equal to what ONE user (today: one app) now names in automations.
+ * Delete-then-insert on `(consumer_kind, consumer_id)`.
  *
- * DE AANROEPER MOET WETEN: een lege `entries` WIST alles van deze gebruiker.
- * Dat is de bedoeling — een app die zijn laatste knop weghaalt hoort uit de
- * index te verdwijnen — maar het betekent ook dat een MISLUKTE scan hier nooit
- * als lege lijst mag binnenkomen. Die regel hoort bij de reconciler
- * (appStudio/automationUsageSync.js, regel 1), niet hier: deze laag kan het
- * verschil tussen "niets gevonden" en "niet kunnen kijken" niet zien.
+ * THE CALLER MUST KNOW: an empty `entries` WIPES everything of this user.
+ * That is the intent — an app that removes its last button should disappear
+ * from the index — but it also means that a FAILED scan must never come in here as
+ * an empty list. That rule belongs to the reconciler
+ * (appStudio/automationUsageSync.js, line 1), not here: this layer cannot see
+ * the difference between "nothing found" and "could not look".
  *
  * @param {'app'} consumerKind
- * @param {string} consumerId          de studio_apps-id
- * @param {string} ownerUserId         de EIGENAAR van die app — de INSERT eist
- *   dat de automatisering van dezelfde persoon is; zie de kop.
+ * @param {string} consumerId          the studio_apps id
+ * @param {string} ownerUserId         the OWNER of that app — the INSERT requires
+ *   that the automation belongs to the same person; see the header.
  * @param {Array<{automationId:string, refId:string, screenId?:string|null,
  *                nodeId?:string|null, label?:string|null, wired?:boolean}>} entries
- * @returns {Promise<number>} rijen die ECHT zijn geschreven — niet hoeveel er
- *   werden aangeboden. Een niet-lege lijst die 0 schrijft betekent: de automatisering
- *   bestaat niet (meer), of hij is van iemand anders.
+ * @returns {Promise<number>} rows that were ACTUALLY written — not how many
+ *   were offered. A non-empty list that writes 0 means: the automation
+ *   does not exist (any more), or it belongs to someone else.
  */
 async function reconcileAutomationUsage(consumerKind, consumerId, ownerUserId, entries) {
     await initDB();
@@ -257,11 +256,11 @@ async function reconcileAutomationUsage(consumerKind, consumerId, ownerUserId, e
             );
             written += r?.rowCount || 0;
         }
-        // In DEZELFDE transactie als de delete-then-insert: "deze app is
-        // bekeken" en "dit is wat zij aanzet" zijn hetzelfde feit, en een
-        // markering zonder rijen (of andersom) zou precies het onderscheid
-        // kapotmaken dat zij moet dragen. Nul geschreven rijen is óók een
-        // geldige uitslag — een app die niets aanzet is gewoon geïndexeerd.
+        // In the SAME transaction as the delete-then-insert: "this app has been
+        // looked at" and "this is what it switches on" are the same fact, and a
+        // marker without rows (or the reverse) would break exactly the distinction it
+        // has to carry. Zero rows written is also a valid outcome — an app that
+        // switches on nothing is simply indexed.
         await client.query(
             `INSERT INTO automation_usage_indexed (consumer_kind, consumer_id)
              VALUES ($1, $2)
@@ -273,17 +272,17 @@ async function reconcileAutomationUsage(consumerKind, consumerId, ownerUserId, e
 }
 
 /**
- * Is de index compleet genoeg dat "geen rijen" iets betekent?
+ * Is the index complete enough for "no rows" to mean something?
  *
- * Waar: elke app die vandaag bestaat is minstens één keer geïndexeerd. Onwaar:
- * er is er minstens één die nog nooit is bekeken, en dan mag geen enkel scherm
- * "wordt nergens gebruikt" beweren — die knop kan in die app zitten.
+ * True: every app that exists today has been indexed at least once. False:
+ * there is at least one that has never been looked at, and then no screen may
+ * claim "used nowhere" — that button may be in that app.
  *
- * `studio_apps` hoort bij een store die zijn DDL bij EERSTE GEBRUIK aanlegt,
- * dus op een verse installatie kan de tabel ontbreken. Dan is er ook geen app
- * die ongeïndexeerd kan zijn: `complete: true`, `pending: 0`. Onbekend versmalt
- * hier dus NAAR compleet, en dat is geen uitzondering op de regel maar de regel
- * zelf — zonder apps kan er geen knop zijn die we missen.
+ * `studio_apps` belongs to a store that creates its DDL at FIRST USE, so
+ * on a fresh installation the table may be missing. Then there is also no app
+ * that can be unindexed: `complete: true`, `pending: 0`. Unknown therefore narrows
+ * here TO complete, and that is not an exception to the rule but the rule
+ * itself — without apps there can be no button that we are missing.
  *
  * @returns {Promise<{complete: boolean, pending: number}>}
  */
@@ -303,8 +302,8 @@ async function usageIndexCoverage() {
 }
 
 /**
- * De apps die nog nooit zijn geïndexeerd — de werklijst van de backfill.
- * Begrensd, want dit draait naast een verzoek.
+ * The apps that have never been indexed — the work list of the backfill.
+ * Bounded, because this runs alongside a request.
  */
 async function listUnindexedApps(limit = 50) {
     await initDB();
@@ -324,12 +323,12 @@ async function listUnindexedApps(limit = 50) {
 }
 
 /**
- * Wie draait deze automatisering — de capsule.
+ * Who runs this automation — the capsule.
  *
- * Alleen rijen van deze automatisering; de titel van de app komt via een LEFT JOIN
- * mee zodat een verdwenen app een naamloze rij oplevert in plaats van een
- * ontbrekende. Sorteren op `updated_at DESC` zodat de laatst aangeraakte knop
- * bovenaan staat, hetzelfde als `datatableStore.listUsage`.
+ * Only rows of this automation; the app's title comes along via a LEFT JOIN
+ * so that a vanished app yields a nameless row instead of a
+ * missing one. Sorting on `updated_at DESC` so that the most recently touched button
+ * is at the top, the same as `datatableStore.listUsage`.
  */
 async function listUsageOfAutomation(automationId) {
     await initDB();
@@ -347,10 +346,10 @@ async function listUsageOfAutomation(automationId) {
 }
 
 /**
- * Hoeveel knoppen draaien elk van deze automatiseringen — de pil op een lijst, in één
- * GROUP BY in plaats van één lees per rij.
- * @returns {Promise<Map<string, number>>} automation-id → aantal (0 voor een
- *   automatisering die nergens in staat)
+ * How many buttons run each of these automations — the pill on a list, in one
+ * GROUP BY instead of one read per row.
+ * @returns {Promise<Map<string, number>>} automation id → count (0 for an
+ *   automation that is nowhere in use)
  */
 async function countUsageOfAutomations(automationIds) {
     await initDB();
@@ -368,7 +367,7 @@ async function countUsageOfAutomations(automationIds) {
     return out;
 }
 
-/** De app is weg — haal zijn rijen weg. Er is geen FK die dit doet. */
+/** The app is gone — remove its rows. There is no FK that does this. */
 async function purgeUsageForConsumer(consumerKind, consumerId) {
     await initDB();
     assertConsumerKind(consumerKind, 'purgeUsageForConsumer');
@@ -377,10 +376,9 @@ async function purgeUsageForConsumer(consumerKind, consumerId) {
         `DELETE FROM automation_usage WHERE consumer_kind = $1 AND consumer_id = $2`,
         [consumerKind, consumerId],
     );
-    // Ook de markering weg: een app die niet meer bestaat is niet
-    // "geïndexeerd", hij is er niet. Bleef de rij staan, dan zou een
-    // teruggekeerd id (bij een import met hetzelfde id) als bekeken gelden
-    // terwijl er nooit naar gekeken is.
+    // The marker goes too: an app that no longer exists is not
+    // "indexed", it is not there. If the row stayed, a returned id (on an import with the
+    // same id) would count as looked-at while it was never looked at.
     await run(
         `DELETE FROM automation_usage_indexed WHERE consumer_kind = $1 AND consumer_id = $2`,
         [consumerKind, consumerId],
@@ -389,12 +387,12 @@ async function purgeUsageForConsumer(consumerKind, consumerId) {
 }
 
 /**
- * De AUTOMATION is weg — haal haar rijen weg.
+ * The AUTOMATION is gone — remove its rows.
  *
- * De andere kant van dezelfde ontbrekende FK. Zonder dit blijft een rij staan
- * die een app claimt te bedienen die niets meer aanzet, en die rij zou een
- * volgende poort (een 409 op een verwijdering) namens een automatisering tegenhouden
- * die niet meer bestaat.
+ * The other side of the same missing FK. Without this a row stays that claims an app
+ * operates something that no longer switches anything on, and that row would
+ * block a next gate (a 409 on a deletion) on behalf of an automation that
+ * no longer exists.
  */
 async function purgeUsageOfAutomation(automationId) {
     await initDB();

@@ -1,30 +1,15 @@
 // @vitest-environment node
 /**
- * De kaartvoet van een agent (A5, deel D) — de REGELS, zonder rendering.
+ * The card footer of an agent (A5, part D) — the RULES, without rendering.
  *
- * Drie eigenschappen die dit bestand vastpint, elk met zijn eigen bug erachter:
+ * Four properties that this file pins, each with its own bug behind it:
  *
- *   1. De waarschuwing "antwoordt uit het hoofd" komt van de SERVER en wordt
- *      hier niet nagerekend. `grounding.verdict` is het enige woord dat telt;
- *      drie assen die toevallig alle drie `false` staan zonder verdict zijn
- *      GEEN waarschuwing, want dan zou dit bestand de regel een tweede keer
- *      implementeren — en dat is precies hoe het overzicht en het Start-scherm
- *      uit elkaar gaan lopen over dezelfde agent.
- *   2. Een telling die niet gelezen kon worden is `null`, nooit 0. `stats:
- *      null` (de server kon het niet lezen), een rij zonder `stats`, en een
- *      `conversationCount` die geen getal is komen alle drie als `null` terug
- *      — een 0 zou een bewering zijn die niemand heeft gedaan.
- *   3. "Alleen jij" is een bewering over BEREIK en heeft BEWIJS nodig: niet
- *      gepubliceerd, jouw agent, en `othersConversationCount === 0` — geteld,
- *      niet aangenomen. `userCount` draagt die bewering niet: dat is
- *      COUNT(DISTINCT user_id) over álle gesprekken, dus één telt net zo goed
- *      als een collega die er veertig voerde terwijl jij er nul voerde.
- *   4. De waarschuwing geldt alleen waar Studio's Start-scherm hem ook zou
- *      geven — een GEPUBLICEERDE agent — en alleen waar het concept ook is wat
- *      draait. Anders schreeuwt het overzicht over agents waar Start bewust
- *      over zwijgt, of doet het een uitspraak over een versie die niet loopt.
+ *   1. The "answers from memory" warning comes from the SERVER and is not recalculated here. `grounding.verdict` is the only word that counts; three axes that happen to all be `false` without a verdict are NO warning, because then this file would implement the rule a second time — and that is exactly how the overview and the start screen drift apart over the same agent.
+ *   2. A count that could not be read is `null`, never 0. `stats: null` (the server could not read it), a row without `stats`, and a `conversationCount` that is not a number all come back as `null` — a 0 would be a claim that nobody has made.
+ *   3. "Only you" is a claim about SCOPE and needs EVIDENCE: not published, your agent, and `othersConversationCount === 0` — counted, not assumed. `userCount` does not carry that claim: it is COUNT(DISTINCT user_id) over ALL conversations, so one counts just as much as a colleague who held forty while you held none.
+ *   4. The warning applies only where Studio's start screen would also give it — a PUBLISHED agent — and only where the draft is also what runs. Otherwise the overview shouts about agents that the start screen deliberately stays silent about, or makes a statement about a version that is not running.
  *
- * Draaien: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentStudio/cardFooter.test.js
+ * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentStudio/cardFooter.test.js
  */
 import { describe, it, expect } from 'vitest';
 import { summariseCardFooter, groundingVerdictOf } from './cardFooter';
@@ -53,10 +38,7 @@ describe('the "answers from memory" warning', () => {
     });
 
     it('stays silent on a DRAFT — the same cut Studio Home makes', () => {
-        // routes/studio/attentionChecks.js filtert op `is_published = TRUE`,
-        // met als reden dat een concept zonder kennisbank een agent is die
-        // gebouwd wordt. Zonder deze grens kreeg elke net aangemaakte kaart een
-        // waarschuwing, en verdrong die ook nog de tellingen.
+        // routes/studio/attentionChecks.js filters on `is_published = TRUE`, on the grounds that a draft without a knowledge base is an agent that is being built. Without this boundary every newly created card got a warning, and that also displaced the counts.
         expect(summariseCardFooter(agent({ grounding: ungrounded, is_published: false }), 'u1').variant)
             .toBe('counts');
         const { is_published: _p, ...rest } = agent({ grounding: ungrounded });
@@ -64,19 +46,13 @@ describe('the "answers from memory" warning', () => {
     });
 
     it('stays silent when the row runs a PUBLISHED version this list cannot see', () => {
-        // `grounding` is berekend over de CONCEPT-config; voor een rij met
-        // published_version > 0 serveert de runtime `published_config`, en die
-        // blob verlaat de store nooit. Pal onder een pil die "LIVE v8" zegt een
-        // uitspraak doen over een versie die niet draait is een tegenspraak op
-        // één kaart.
+        // `grounding` is calculated over the DRAFT config; for a row with published_version > 0 the runtime serves `published_config`, and that blob never leaves the store. Directly under a pill that says "LIVE v8", making a statement about a version that is not running is a contradiction on one card.
         expect(summariseCardFooter(agent({ grounding: ungrounded, published_version: 8 }), 'u1').variant)
             .toBe('counts');
     });
 
     it('does NOT re-derive the rule from the axes', () => {
-        // Alle drie de assen leeg, maar de server heeft geen oordeel geveld.
-        // Zelf concluderen zou de tweede implementatie zijn die dit bestand
-        // juist vermijdt.
+        // All three axes empty, but the server has not delivered a judgement. Concluding it ourselves would be the second implementation that this file specifically avoids.
         const f = summariseCardFooter(agent({
             grounding: { kb: false, tables: false, verdict: null },
         }), 'u1');
@@ -103,9 +79,7 @@ describe('the "answers from memory" warning', () => {
     });
 
     it('beats "only you" where both could apply', () => {
-        // Een GEPUBLICEERDE agent die je zelf bezit: de waarschuwing is de enige
-        // van de drie die om iets vraagt, dus die wint. (Op een concept komt de
-        // waarschuwing helemaal niet — zie hierboven.)
+        // A PUBLISHED agent that you own: the warning is the only one of the three that asks for something, so it wins. (On a draft the warning does not come at all — see above.)
         const f = summariseCardFooter(agent({
             stats: { conversationCount: 4, userCount: 1, othersConversationCount: 0 },
             grounding: ungrounded,
@@ -149,9 +123,7 @@ describe('a count nobody could read', () => {
     });
 
     it('niet-gevraagd en niet-gelezen zijn twee dingen', () => {
-        // /agents/system rekent geen tellingen uit en draagt het veld niet: daar
-        // valt niets over te zeggen. `stats: null` is een route die het WEL
-        // probeerde en faalde, en dat verdient woorden.
+        // /agents/system does not calculate counts and does not carry the field: there is nothing to say about it there. `stats: null` is a route that DID try and failed, and that deserves words.
         const { stats: _stats, ...rest } = agent();
         expect(summariseCardFooter(rest, 'u1').statsAsked).toBe(false);
         expect(summariseCardFooter(agent({ stats: null }), 'u1').statsAsked).toBe(true);
@@ -211,11 +183,7 @@ describe('"only you"', () => {
     });
 
     it('does NOT show when the conversations are somebody else\'s', () => {
-        // Het geval dat gewoon voorkomt: jij publiceert, een collega voert er
-        // veertig gesprekken mee, jij zelf nooit, daarna zet je hem op concept.
-        // `setAgentPublished` doet één UPDATE — de rijen blijven staan. Op
-        // `userCount === 1` alleen zou de kaart "Alleen jij · 40 gesprekken"
-        // zeggen, en beide helften zijn onwaar.
+        // The case that occurs in practice: you publish, a colleague conducts forty conversations with it, you never do, and afterwards you set it back to draft. `setAgentPublished` does a single UPDATE — the rows stay. On `userCount === 1` alone the card would say "Only you · 40 conversations", and both halves are untrue.
         const f = summariseCardFooter(priv({
             stats: { conversationCount: 40, userCount: 1, othersConversationCount: 40 },
         }), 'u1');
@@ -223,8 +191,7 @@ describe('"only you"', () => {
     });
 
     it('does NOT show when the server could not say whose the conversations are', () => {
-        // Zonder excludeUserId telt de FILTER elke rij mee; de route stuurt dan
-        // `null`, en een 0 zou daar bewijs voorwenden dat er niet is.
+        // Without excludeUserId the FILTER counts every row; the route then sends `null`, and a 0 there would pretend to have evidence that does not exist.
         const f = summariseCardFooter(priv({
             stats: { conversationCount: 4, userCount: 1, othersConversationCount: null },
         }), 'u1');
@@ -255,7 +222,7 @@ describe('"only you"', () => {
     });
 
     it('does not show when the counts could not be read at all', () => {
-        // Zonder tellingen is er geen bewijs, en "Alleen jij" is een bewering.
+        // Without tallies there is no evidence, and "Only you" is a claim.
         expect(summariseCardFooter(priv({ stats: null }), 'u1').variant).toBe('counts');
     });
 });

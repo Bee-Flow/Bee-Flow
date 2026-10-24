@@ -11,34 +11,19 @@ import type { TranslateParams } from '../../hooks/useTranslation';
 import type { ScannedCall, CodeScan, BindingsPayload, NavigateFn, OwnCodeCardProps, OwnCodeSectionProps, FormsCardProps, AgentCardProps, WebpageActionsPanelProps } from './WebpageActionsPanel.types';
 
 /**
- * "Laat gebeuren" — de kolom naast de datakaarten: wat zet deze pagina in gang?
+ * "Lets things happen" — the column beside the data cards: what sets this page in motion?
  *
- * Zolang `bf-*` niet bestaat (W4) heeft die vraag maar twee eerlijke bronnen:
- * de brug-grants (welke automatiseringen en apps de pagina mág aanroepen — dat is
- * WebpageAppsPanel, hier gepromoveerd van IDE-zijpaneel naar de onderkant van
- * deze kolom) en de statische scan op wat de pagina BUITEN die grants om doet.
+ * As long as `bf-*` does not exist (W4), that question has only two honest sources: the bridge grants (which automations and apps the page may call — that is WebpageAppsPanel, here promoted from the IDE side panel to the bottom of this column) and the static scan of what the page does OUTSIDE those grants.
  *
- * ── VIER DINGEN DIE DIT SCHERM NIET MAG BEWEREN ─────────────────────
+ * ── FOUR THINGS THIS SCREEN MAY NOT CLAIM ───────────────────────────
  *
- * 1. "DEZE PAGINA DOET NIETS." De scan (server: core/webpages/webpageBindings.js)
- *    is een leeshulp, geen beveiliging: hij ziet alleen een letterlijk
- *    uitgeschreven `fetch(` of `XMLHttpRequest` in de eigen bestanden van de
- *    pagina. Daarom kent dit scherm drie standen — niet te lezen, niets
- *    gevonden, en n oproepen die niet te herleiden waren — en staat de
- *    beperking er als vaste regel onder in plaats van in een tooltip.
+ * 1. "THIS PAGE DOES NOTHING." The scan (server: core/webpages/webpageBindings.js) is a reading aid, not security: it only sees a literally written-out `fetch(` or `XMLHttpRequest` in the page's own files. That is why this screen has three states — unreadable, nothing found, and n calls that could not be traced back — and why the limitation stands as a fixed rule beneath it rather than in a tooltip.
  *
- * 2. "ER ZIJN GEEN FORMULIEREN." Formulier-elementen bestaan pas met `<bf-form>`
- *    (W4). Tot dan valt er niets te tellen, en dat is iets anders dan nul.
+ * 2. "THERE ARE NO FORMS." Form elements only exist with `<bf-form>` (W4). Until then there is nothing to count, and that is something other than zero.
  *
- * 3. "HET AGENT-BLOK WERKT OVERAL." Het is INTERN-ONLY: `ai.ask` is bewust uit
- *    de anonieme bridge gehouden, dus op een publieke share draait het niet.
- *    De kaart zegt dat erbij — en de Openbaar-rij in "Wie ziet de pagina" hoort
- *    dat te herhalen zodra die rij bestaat.
+ * 3. "THE AGENT BLOCK WORKS EVERYWHERE." It is INTERNAL-ONLY: `ai.ask` is deliberately kept out of the anonymous bridge, so on a public share it does not run. The card says so — and the Public row in "Who sees the page" should repeat that as soon as that row exists.
  *
- * 4. "DEZE AUTOMATION IS AF." Wat "Maak er een automation van" scaffoldt is een
- *    CONCEPT met één `http_request`-stap: het vaste deel van de URL, de methode
- *    als we die kenden, en `blockPrivateTargets` aan. Bouwde de pagina de rest
- *    van het adres ter plekke, dan zegt de beschrijving van de automatisering dat.
+ * 4. "THIS AUTOMATION IS FINISHED." What "Make an automation from this" scaffolds is a DRAFT with one `http_request` step: the fixed part of the URL, the method if we knew it, and `blockPrivateTargets` on. If the page built the rest of the address on the spot, the automation's description says so.
  */
 
 const BINDINGS_URL = (id: string | number | boolean) => `${API_BASE}/api/webpages/${encodeURIComponent(id)}/bindings`;
@@ -53,13 +38,9 @@ export function automationDeepLink(automationId: string | number | boolean) {
 }
 
 /**
- * Het concept dat "Maak er een automation van" aanmaakt.
+ * The draft that "Make an automation from this" creates.
  *
- * Puur, en apart getest: dit is de enige plek waar een gescande oproep in een
- * opgeslagen definitie verandert. Twee regels staan er hard in — het adres komt
- * uit `urlPrefix` (nooit uit de weergavetekst met het beletselteken erin), en
- * `blockPrivateTargets` blijft aan, zodat een gescaffolde automatisering niet stilletjes
- * ruimer is dan wat de builder zelf zou maken.
+ * Pure, and tested separately: this is the only place where a scanned call changes into a saved definition. Two rules are hard-coded here — the address comes from `urlPrefix` (never from the display text with the ellipsis in it), and `blockPrivateTargets` stays on, so that a scaffolded automation is not quietly broader than what the builder itself would make.
  */
 export function scaffoldHttpAutomation(call: ScannedCall) {
     const host = call.host || 'a web service';
@@ -120,7 +101,7 @@ function OwnCodeCard({ t, call, onNavigate }: OwnCodeCardProps) {
     return (
         <Card tone="warning">
             <div className="flex items-center gap-2 flex-wrap">
-                <AlertTriangle size={14} style={{ color: 'var(--warning)' }} />
+                <AlertTriangle size={14} className="[color:var(--warning)]" />
                 <span className="text-sm font-medium">{call.host}</span>
                 <Chip label={t('webpages.actions.own_code', 'Does something in its own code')} tone="muted" dashed />
             </div>
@@ -160,8 +141,8 @@ function OwnCodeCard({ t, call, onNavigate }: OwnCodeCardProps) {
                         ? t('webpages.actions.making_automation', 'Making it…')
                         : t('webpages.actions.make_automation', 'Turn it into an automation')}
                 </button>
-                {/* Zonder in-app navigator alsnog een echte link: een knop die
-                    nergens heen gaat is erger dan een volledige paginalading. */}
+                {/* Without an in-app navigator, still a real link: a button that goes nowhere is
+                    worse than a full page load. */}
                 {createdId && typeof onNavigate !== 'function' && (
                     <a
                         className="text-[11px] underline inline-flex items-center gap-1"
@@ -185,7 +166,7 @@ function OwnCodeSection({ t, code, onNavigate, onRetry }: OwnCodeSectionProps) {
         return (
             <Card tone="warning">
                 <div className="flex items-center gap-2">
-                    <AlertTriangle size={14} style={{ color: 'var(--warning)' }} />
+                    <AlertTriangle size={14} className="[color:var(--warning)]" />
                     <span className="text-sm font-medium">
                         {t('webpages.actions.code_unreadable', 'This page\'s own code could not be read')}
                     </span>
@@ -246,15 +227,15 @@ function FormsCard({ t, forms, uses, elements, onNavigate }: FormsCardProps) {
     const scanned = forms?.scanned !== false && elements?.scanned !== false;
     const targets = (uses && uses.targets && Array.isArray(uses.targets.automation))
         ? uses.targets.automation : [];
-    // De TAGS komen uit de markeringen, niet uit een lijst hier: de server mag
-    // geen tagnaam opschrijven (dat is de drift die W4 uitroeit), dus de client
-    // groepeert zelf op wat er in `elements.marks` staat.
+    // The TAGS come from the markers, not from a list here: the server may not write
+    // down a tag name (that is the drift that W4 eradicates), so the client groups
+    // by itself on what is in `elements.marks`.
     const marks = (elements && Array.isArray(elements.marks)) ? elements.marks : [];
     const byId = new Map(targets.map(x => [x.id, x]));
     return (
         <Card>
             <div className="flex items-center gap-2">
-                <FileText size={14} style={{ color: 'var(--kind-kb)' }} />
+                <FileText size={14} className="[color:var(--kind-kb)]" />
                 <span className="text-sm font-medium">{t('webpages.actions.forms', 'Forms and buttons')}</span>
             </div>
             {!scanned ? (
@@ -281,8 +262,8 @@ function FormsCard({ t, forms, uses, elements, onNavigate }: FormsCardProps) {
                                         {target.id}
                                     </button>
                                 ) : (
-                                    // Geen knop zonder bestemming: een knop die
-                                    // niets doet leest als een kapotte knop.
+                                    // No button without a destination: a button that does nothing
+                                    // reads like a broken button.
                                     <span className="font-mono">{target.id}</span>
                                 )}
                                 <span className="text-[var(--text-secondary)]">
@@ -308,7 +289,7 @@ function AgentCard({ t, agent }: AgentCardProps) {
     return (
         <Card>
             <div className="flex items-center gap-2 flex-wrap">
-                <Sparkles size={14} style={{ color: 'var(--type-ai, #8b5cf6)' }} />
+                <Sparkles size={14} className="[color:var(--type-ai,#8b5cf6)]" />
                 <span className="text-sm font-medium">{t('webpages.actions.agent', 'Agent on this page')}</span>
                 <Chip label={t('webpages.actions.agent_internal_only', 'Signed-in readers only')} tone="muted" />
             </div>
@@ -345,9 +326,9 @@ export default function WebpageActionsPanel({ webpageId, readOnly = false, onNav
 
     useEffect(() => { if (webpageId && !readOnly) load(); }, [webpageId, readOnly, load]);
 
-    // Een niet-eigenaar krijgt op /bindings een 404 — hier hetzelfde antwoord
-    // als het grants-paneel geeft, in plaats van een lege kolom die leest als
-    // "deze pagina doet niets".
+    // A non-owner gets a 404 on /bindings — here the same answer as the grants
+    // panel gives, instead of an empty column that reads as "this page does
+    // nothing".
     if (readOnly) {
         return (
             <div className="p-4 text-sm text-[var(--text-secondary)]">
@@ -394,7 +375,7 @@ export default function WebpageActionsPanel({ webpageId, readOnly = false, onNav
                 </>
             )}
 
-            {/* De grens van de scan hoort in beeld te staan, niet in een tooltip. */}
+            {/* The boundary of the scan belongs on screen, not in a tooltip. */}
             <p className="text-[11px] text-[var(--text-secondary)]">
                 {t('webpages.actions.scan_disclaimer',
                     'This check reads the page\'s own files and only sees a fetch() or XMLHttpRequest written out in full. It is a reading aid, not a security check.')}

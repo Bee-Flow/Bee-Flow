@@ -54,17 +54,17 @@ async function _initDB() {
             ON summary_templates(group_id) WHERE scope = 'group' AND is_default = TRUE;
     `);
 
-    // `version` — de revisie van de PROMPT, zodat een notitie kan zeggen met
-    // welke versie van dit sjabloon hij geschreven is.
+    // `version` — the revision of the PROMPT, so that a note can say which version
+    // of this template it was written with.
     //
-    // Via runDdl (stores/lib/_ddl.js), niet via een migratiebestand en niet in
-    // een stille catch: een ALTER die op een lock stukloopt hoort luid te
-    // falen, niet als "bestond al" te lezen.
+    // Via runDdl (stores/lib/_ddl.js), not via a migration file and not in a silent
+    // catch: an ALTER that gets stuck on a lock should fail loudly, not read as
+    // "already existed".
     //
-    // Bestaande rijen komen op 1 te staan. Dat is een DEFINITIE (de telling
-    // begint hier), geen bewering over het verleden — en hij kan ook niets
-    // vals maken: notities van vóór deze wijziging dragen helemaal geen
-    // sjabloon-id, dus geen enkele notitie gaat hierdoor "v1" beweren.
+    // Existing rows are set to 1. That is a DEFINITION (the count starts here),
+    // not a claim about the past — and it cannot make anything false either: notes
+    // from before this change carry no template id at all, so no note will suddenly
+    // claim "v1".
     const ddl = await runDdl('summaryTemplateStore', [
         `ALTER TABLE summary_templates ADD COLUMN IF NOT EXISTS version INTEGER NOT NULL DEFAULT 1`,
     ]);
@@ -87,9 +87,9 @@ function mapRow(r) {
         organizationId: r.organization_id,
         groupId: r.group_id,
         isDefault: !!r.is_default,
-        // Ontbreekt de kolom (een replica die de ladder nog niet draaide), dan
-        // is het antwoord null en niet 1: "ik weet het niet" mag hier niet als
-        // "de eerste versie" gelezen worden.
+        // If the column is missing (a replica that has not run the ladder yet), the
+        // answer is null and not 1: "I don't know" must not be read here as
+        // "the first version".
         version: Number.isInteger(Number(r.version)) && Number(r.version) > 0 ? Number(r.version) : null,
         createdBy: r.created_by,
         createdAt: r.created_at,
@@ -177,24 +177,23 @@ async function create({ scope, name, prompt, userId = null, organizationId = nul
  * Update name / prompt / is_default. Scope and owner are immutable. Setting a
  * template as default first clears the previous default for its scope-owner.
  *
- * ── WANNEER `version` OPHOOGT ────────────────────────────────────────────
- * Alleen als de PROMPT verandert, en alleen als hij echt anders is.
+ * ── WHEN `version` GOES UP ───────────────────────────────────────────────
+ * Only when the PROMPT changes, and only if it really is different.
  *
- * De versie is het antwoord op "met welke instructie is die samenvatting
- * geschreven". Hernoemen verandert die instructie niet, en het sjabloon als
- * standaard aanzetten evenmin — een ophoging daar zou notities die met exact
- * dezelfde prompt gemaakt zijn uit elkaar laten lopen op het scherm, en de
- * eerdere versie een verandering laten suggereren die nooit heeft
- * plaatsgevonden. Een opslag-knop die dezelfde tekst terugstuurt (de UI vult
- * het veld voor) is om dezelfde reden geen nieuwe versie.
+ * The version is the answer to "with which instruction was that summary
+ * written". Renaming does not change that instruction, and making the template
+ * the default does not either — an increase there would make notes created with
+ * exactly the same prompt drift apart on screen, and would suggest to the earlier
+ * version a change that never took place. A save button that sends back the same
+ * text (the UI fills in the field) is not a new version for the same reason.
  */
 async function update(id, updates = {}) {
     await initDB();
     const existing = await getById(id);
     if (!existing) return null;
 
-    // Een prompt die gelijk is aan de opgeslagen prompt is geen wijziging, en
-    // mag dus ook de versieladder niet optrekken.
+    // A prompt equal to the stored prompt is not a change, and therefore must not
+    // raise the version ladder either.
     const promptChanged = updates.prompt !== undefined && updates.prompt !== existing.prompt;
     const built = buildUpdate({
         table: 'summary_templates',
@@ -204,8 +203,8 @@ async function update(id, updates = {}) {
     const values = built ? built.params : [];
     const fields = [];
     if (promptChanged) {
-        // COALESCE, want `version` kan op een rij van vóór de ladder nog NULL
-        // zijn; `NULL + 1` is NULL en zou de versie stil laten verdwijnen.
+        // COALESCE, because `version` can still be NULL on a row from before the ladder;
+        // `NULL + 1` is NULL and would silently make the version disappear.
         fields.push(`version = COALESCE(version, 1) + 1`);
     }
 

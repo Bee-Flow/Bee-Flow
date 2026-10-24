@@ -1,11 +1,10 @@
 // @typecheck
 /**
- * Wat de bouwbalk meestuurt bij POST /, gecontroleerd en omgezet in een brief.
+ * What the build bar sends along with POST /, checked and turned into a brief.
  *
- * De route (./crud.js) parseert, autoriseert en serialiseert; het wegen van de
- * gekozen bronnen — bestaat hij, mag DEZE beller erbij, hoe heet hij volgens de
- * server — en het schrijven van de brief die de AI elke beurt leest, gebeurt
- * hier.
+ * The route (./crud.js) parses, authorises and serialises; the weighing of the chosen
+ * sources — does it exist, may THIS caller add it, what is it called according to the
+ * server — and the writing of the brief that the AI reads every turn, happen here.
  */
 
 /* ── Describe-to-build create (Webpages artboard 1a, plan W1) ──────────

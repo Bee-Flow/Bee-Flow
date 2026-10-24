@@ -290,16 +290,15 @@ async function getRetrievableTokens(webpageId) {
 }
 
 /**
- * DE ENIGE liveness-toets op een share-rij, gedeeld door beide opzoekwegen.
+ * THE ONLY liveness check on a share row, shared by both lookup paths.
  *
- * Er zijn er twee — op token (/share/<token>) en op id (/w/<slug>, waar de
- * pagina de canonieke share aanwijst) — en ze MOETEN dezelfde poort passeren.
- * Twee kopieën van "ingetrokken? verlopen?" is precies de plek waar er ooit
- * eentje wordt bijgewerkt en de andere niet, en dan serveert het ene adres een
- * ingetrokken pagina die het andere weigert.
+ * There are two — by token (/share/<token>) and by id (/w/<slug>, where the page points to the
+ * canonical share) — and they MUST pass the same gate. Two copies of "withdrawn? expired?" is
+ * exactly the place where one gets updated and the other does not, and then one address serves
+ * a withdrawn page that the other refuses.
  *
- * Geeft null terug bij afwezig, ingetrokken of verlopen — nooit de rij met een
- * vlaggetje erbij, zodat een aanroeper de controle niet kan vergeten.
+ * Returns null for absent, withdrawn or expired — never the row with a flag next to it, so that
+ * a caller cannot forget the check.
  */
 function liveShareOrNull(r) {
     if (!r) return null;
@@ -331,12 +330,11 @@ async function findByToken(rawToken) {
 /**
  * Look up a share by its ID with the SAME liveness gate as findByToken.
  *
- * Dit is de weg die /w/<slug> loopt: de pagina wijst met `public_share_id` één
- * share aan, en die wijzer is zacht. Wijst hij naar een ingetrokken, verlopen
- * of verdwenen share, dan komt hier null uit en wordt dat bij de bezoeker een
- * 404 — nooit "het adres bestaat dus laat maar zien". `getShareById` blijft
- * bestaan voor de eigenaar-schermen, die een ingetrokken share juist WEL
- * moeten kunnen zien.
+ * This is the path that /w/<slug> takes: the page points to one share with `public_share_id`,
+ * and that pointer is soft. If it points to a withdrawn, expired or vanished share, null comes
+ * back here and the visitor gets a 404 — never "the address exists, so show it anyway".
+ * `getShareById` continues to exist for the owner screens, which must still be able to see a
+ * withdrawn share.
  */
 async function findLiveShareById(id) {
     await initDB();

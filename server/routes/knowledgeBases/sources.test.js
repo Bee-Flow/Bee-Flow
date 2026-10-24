@@ -35,8 +35,7 @@ const fx = {
     refreshed: [],
     statusUpdates: [],
     chunkDeletes: [],
-    // Document-ids waarvoor de chunk-opruiming gooit — het pad dat de route
-    // moet laten kiezen tussen "bron weghalen" en "bron laten staan".
+    // Document ids for which the chunk clean-up throws — the path that must let the route choose between "remove the source" and "leave the source".
     chunkDeleteFails: new Set(),
     listCalls: [],
     extracted: [],
@@ -141,9 +140,7 @@ const MOCKS = {
             fx.listCalls.push({ kbId, ...opts });
             const f = opts.filters || {};
             const hit = fx.documents.filter(d => (!f.sourceId || d.source_id === f.sourceId));
-            // `limit` WORDT gehonoreerd. Deed hij dat niet, dan zag een route
-            // zonder rondenlus er in dit harnas net zo goed uit als een route
-            // mét — en juist het 201e document is waar dit pad over gaat.
+            // `limit` IS honoured. If it were not, a route without a round loop would look in this harness just as good as a route WITH one — and it is precisely the 201st document that this path is about.
             return Number(opts.limit) > 0 ? hit.slice(0, Number(opts.limit)) : hit;
         },
         countDocuments: async (kbId, filters = {}) => fx.documents.filter(d => (!filters.sourceId || d.source_id === filters.sourceId)).length,
@@ -204,10 +201,9 @@ const MOCKS = {
         },
     },
     '../stores/userStore': {
-        // Met de velden waar askerContext echt op leunt: de directe org én de
-        // groepen waaruit nog meer orgs volgen. Een mock zonder die velden
-        // laat de poort met een LEGE org-set probben, en dan bewijst geen
-        // enkele assertie op `reader`/`id` nog iets over de scope.
+        // With the fields that askerContext really leans on: the direct org and the
+        // groups from which further orgs follow. A mock without those fields lets the gate probe with an EMPTY org set, and then no
+        // assertion on `reader`/`id` proves anything about the scope.
         getUser: async (id) => (fx.users[id] ? { ...fx.users[id] } : null),
         getAllGroups: async () => fx.allGroups,
     },
@@ -289,12 +285,11 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
 }
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    // De poort die `metadata.transcriptionId` controleert is een GEDEELDE
-    // module geworden (core/kb/transcriptOrigin.js), zodat het duplicaat-pad
-    // hem ook passeert. Hij en de org-resolutie waar hij op leunt draaien dus
-    // buiten routes/knowledgeBases, maar horen wél in dit harnas: anders praat
-    // de poort in deze suite met de ECHTE database en bewijst de test niets
-    // over de context waarmee hij probeert.
+    // The gate that checks `metadata.transcriptionId` has become a SHARED
+    // module (core/kb/transcriptOrigin.js), so that the duplicate path
+    // also passes through it. He and the org resolution he leans on therefore run
+    // outside routes/knowledgeBases, but belong in THIS harness: otherwise the gate probes in this suite with the REAL database and the test proves
+    // nothing about the context with which it is trying.
     if (parent && (/routes[\\/]knowledgeBases(\.js|[\\/][^\\/]+\.js)$/.test(parent.filename)
                    || /core[\\/]kb[\\/](transcriptOrigin|askerContext)\.js$/.test(parent.filename))
         && !/\.test\.js$/.test(parent.filename)
@@ -526,7 +521,7 @@ test('POST kind=text creates the source and ingests the snippet onto it', async 
  */
 test('POST kind=text records which transcript line it came from', async () => {
     resetFx();
-    fx.visibleTranscriptions = ['t-1'];   // een vergadering die deze schrijver mag openen
+    fx.visibleTranscriptions = ['t-1'];   // a meeting this writer may open
     const res = await dispatch({
         method: 'POST', url: '/kb1/sources',
         body: {
@@ -588,21 +583,18 @@ test('POST kind=text stores NO origin at all when it is not a usable pair', asyn
 });
 
 /**
- * ── HET ID IS EEN BEWERING OVER IEMAND ANDERS ZIJN VERGADERING (M4) ─
- * `metadata.transcriptionId` laat een regel op de tijdlijn van een vergadering
- * landen: de balk onder de tagrij, het Gebruikt-door-tabblad en "Uit dit
- * transcript gehaald" lezen hem allemaal terug, en de verwijderpoort van die
- * vergadering telt hem mee. Op je EIGEN kennisbank ben je altijd beheerder, dus
- * zonder deze controle kon iedereen een id VERZINNEN en een onware, niet te
- * weerleggen regel op de vergadering van een ander plakken — die daarna zijn
- * eigen notitie alleen nog langs de bevestigde ontsnappingsklep kwijt kon.
+ * ── THE ID IS AN ASSERTION ABOUT SOMEONE ELSE'S MEETING (M4) ────────
+ * `metadata.transcriptionId` makes a line land on the timeline of a meeting: the bar under the tag row, the Used-by tab and "Taken from this
+ * transcript" all read it back, and the delete gate of that meeting counts it. On your OWN knowledge base you are always admin, so without this
+ * check anyone could INVENT an id and paste an untrue, unrefutable line onto somebody else's meeting — which then could only be removed from their
+ * own note through the confirmed escape hatch.
  *
- * Dezelfde bewaking als de meeting_tag-tak hierboven, en om dezelfde reden:
- * hij draait als de MAKER, en onbekend versmalt.
+ * The same guard as the meeting_tag branch above, and for the same reason:
+ * it runs as the MAKER, and unknown narrows.
  */
 test('POST kind=text refuses a transcript id the creator cannot see', async () => {
     resetFx();
-    fx.visibleTranscriptions = [];        // niet van deze schrijver
+    fx.visibleTranscriptions = [];        // not from this writer
     const res = await dispatch({
         method: 'POST', url: '/kb1/sources',
         body: {
@@ -620,8 +612,8 @@ test('POST kind=text refuses a transcript id the creator cannot see', async () =
 });
 
 test('"no such meeting" and "not yours to see" answer the same', async () => {
-    // Anders is de route een bestaans-orakel: het verschil tussen de twee
-    // antwoorden zou verklappen welke vergadering-ids bestaan.
+    // Otherwise the route is an existence oracle: the difference between the two
+    // answers would reveal which meeting ids exist.
     resetFx();
     fx.visibleTranscriptions = ['t-mine'];
     const missing = await dispatch({
@@ -649,13 +641,12 @@ test('the transcript probe runs as the CREATOR, not as the knowledge base owner'
 });
 
 /**
- * ── WIE ER PROBET IS DE HELFT; WAARMEE IS DE ANDERE HELFT ───────────
- * De testen hierboven pinnen `reader` en `id` en zwijgen over de DERDE
- * parameter — en juist die bepaalt of de controle iets betekent. De echte
- * store doet `if (ctx.isSuperAdmin) return true;`, dus één vlag erbij en de
- * poort staat wagenwijd open zonder dat één assertie verandert. En te weinig
- * scope (een verkeerd gespelde veldnaam) maakt elke org-gepubliceerde
- * vergadering onfileerbaar. Beide mutaties bleven groen; daarom deze twee.
+ * ── WHO PROBES IS HALF; WITH WHAT IS THE OTHER HALF ──────────────────
+ * The tests above pin `reader` and `id` and are silent about the THIRD
+ * parameter — and that is precisely what determines whether the check means anything. The real
+ * store does `if (ctx.isSuperAdmin) return true;`, so one flag in there and the
+ * gate stands wide open without a single assertion changing. And too narrow a scope (a misspelled field name) makes every org-published
+ * meeting unfileable. Both mutations stayed green; that is why these two.
  */
 test('de probe draagt de SCOPE van de schrijver — en nooit isSuperAdmin', async () => {
     resetFx();
@@ -666,13 +657,11 @@ test('de probe draagt de SCOPE van de schrijver — en nooit isSuperAdmin', asyn
     });
     const { ctx } = fx.transcriptProbes[0];
     assert.ok(ctx && typeof ctx === 'object', 'er gaat een context mee');
-    // De vlag die van deze controle een doorgeefluik maakt, mag er niet in
-    // zitten — ook niet als `false`, want dan is de vraag hier beantwoord in
-    // plaats van door de leesregels van de vergadering.
+    // The flag that would turn this check into a pass-through must not be in here —
+    // not even as `false`, because then the question would have been answered here instead of by the read rules of the meeting.
     assert.strictEqual('isSuperAdmin' in ctx, false, 'de poort geeft zichzelf geen super-admin-doorgang');
-    // En de scope die er WEL in zit is die van de schrijver: zijn directe org
-    // én de orgs die uit zijn groepen volgen — dezelfde resolutie als het
-    // leespad waarmee hij die vergadering überhaupt opende.
+    // And the scope that IS in there is that of the writer: his direct org
+    // and the orgs that follow from his groups — the same resolution as the read path with which he opened that meeting in the first place.
     assert.deepStrictEqual([...ctx.orgIds].sort(), ['org-via-groep', 'org1']);
     assert.deepStrictEqual(ctx.userGroupIds, ['g-sales']);
 });
@@ -936,22 +925,22 @@ test('DELETE keeps the source row when a document refuses to be purged', async (
     fx.chunkDeleteFails.add('d2');
 
     const res = await dispatch({ method: 'DELETE', url: '/kb1/sources/s1' });
-    // De FK op documents.source_id cascadeert; viel de bronrij tóch, dan
-    // verdween d2's rij en bleven zijn embeddings voorgoed doorzoekbaar.
+    // The FK on documents.source_id cascades; if the source row nevertheless
+    // disappeared, d2's row would be gone and its embeddings would remain searchable forever.
     assert.strictEqual(res.statusCode, 409);
     assert.strictEqual(res.body.code, 'purge_incomplete');
     assert.strictEqual(res.body.deletedDocuments, 1);
     assert.deepStrictEqual(fx.removed, [], 'de bron blijft staan');
     assert.ok(fx.documents.some(d => d.id === 'd2'), 'het document dat niet weg wilde staat er nog');
-    // Eén rij per document, ook al is het over meerdere ronden geprobeerd.
+    // One row per document, even if it was tried over several rounds.
     assert.deepStrictEqual(res.body.errors.map(e => e.documentId), ['d2']);
 });
 
 test('DELETE pages past the first page of documents', async () => {
     resetFx();
     fx.sources = [source({ id: 's1' })];
-    // Eén meer dan een pagina (PAGE = 200): zonder rondenlus blijft er precies
-    // één document achter, zonder dat er iets misgaat om te melden.
+    // One more than one page (PAGE = 200): without a round loop, exactly
+    // one document is left behind, without anything going wrong that could be reported.
     fx.documents = Array.from({ length: 201 }, (_, i) => doc({ id: `p${i}`, source_id: 's1' }));
 
     const res = await dispatch({ method: 'DELETE', url: '/kb1/sources/s1' });

@@ -69,44 +69,39 @@ const DATE_BUCKETS = Object.freeze(['hour', 'day', 'week', 'month', 'quarter', '
 const ACCESS_MODES = Object.freeze(['app', 'owner', 'role', 'none']);
 
 /**
- * WAAR de rijen van een modeltabel echt staan — `model.tables[].source`.
+ * WHERE the rows of a model table actually live: `model.tables[].source`.
  *
- * Er zijn twee soorten, en de eerste heeft geen `source`-blok:
+ * There are two kinds, and the first has no `source` block:
  *
- *   afwezig                 de app bezit haar eigen opslag. Dit is de soort die
- *                           er altijd al was; een model zonder `source`
- *                           canonicaliseert byte-identiek en verandert nergens
- *                           van gedrag. Additief, dus.
- *   {kind:'datatable', …}   de rijen staan in een STUDIO-DATATABEL, buiten de
- *                           app, gedeeld met automatiseringen en andere apps.
+ *   absent                  the app owns its own storage. This is the kind that
+ *                           was always there; a model without `source` canonicalises
+ *                           byte-identically and changes nothing in behaviour. Additive, therefore.
+ *   {kind:'datatable', …}   the rows are in a STUDIO DATATABLE, outside the app, shared
+ *                           with automations and other apps.
  *
- * `datatableId` draagt hetzelfde `tbl_`-voorvoegsel als een modeltabel-id
- * (stores/datatableStore.newDatatableId mint 'tbl_' + 12 hex). De twee zijn
- * dus NIET uit elkaar te houden aan hun vorm — alleen aan waar ze staan. Vandaar
- * dat `source.kind` verplicht is en niet uit de id wordt afgeleid.
+ * `datatableId` carries the same `tbl_` prefix as a model-table id
+ * (stores/datatableStore.newDatatableId mints 'tbl_' + 12 hex). The two therefore CANNOT be
+ * told apart by their form, only by where they live. That is why `source.kind` is required
+ * and is not derived from the id.
  *
- * `mode` kent precies twee waarden. Een derde is een FOUT en wordt nergens
- * stilzwijgend 'read': dat zou een typefout in een leesrecht veranderen dat
- * niemand ooit heeft aangevraagd, en de auteur zou een readwrite-tabel zien
- * die niet schrijft zonder dat het scherm dat zegt. Een ONTBREKENDE mode is
- * iets anders — daar is nooit om gevraagd, dus die versmalt naar 'read'
- * (canonicalize vult hem in).
+ * `mode` knows exactly two values. A third is an ERROR and never silently becomes 'read':
+ * that would turn a typo into a read right that nobody ever asked for, and the author would
+ * see a readwrite table that does not write without the screen saying so. A MISSING mode is
+ * something else: nobody asked for one, so it narrows to 'read' (canonicalize fills it in).
  *
- * Net als bij `access` legt deze laag alleen de VORM vast. Het afdwingen van
- * 'read' bij een schrijfstap is de taak van de opslaglaag, precies zoals de
- * RLS-gateway `access` afdwingt.
+ * As with `access`, this layer checks only the SHAPE. Enforcing 'read' on a write step is the
+ * task of the storage layer, just as the RLS gateway enforces `access`.
  */
 const TABLE_SOURCE_KINDS = Object.freeze(['datatable']);
 const TABLE_SOURCE_MODES = Object.freeze(['read', 'readwrite']);
-// De ENE mode die rijen mag veranderen. Als losse constante omdat drie lagen de
-// vraag "mag hier geschreven worden" stellen — de validator (validate/refs.js
-// checkTableWritable), de rechtenlaag (appStudio/datatableSource.js) en het
-// scherm (TablesManager) — en drie keer een letterlijke 'readwrite' is drie
-// plekken waar een vierde mode stilzwijgend als lezen of als schrijven wordt
-// gelezen. Komt er ooit een derde mode bij, dan is dit de regel die meeverandert.
+// The ONE mode that may change rows. As a separate constant because three layers ask the
+// question "may one write here": the validator (validate/refs.js checkTableWritable), the rights
+// layer (appStudio/datatableSource.js) and the screen (TablesManager). Three times a literal
+// 'readwrite' is three places where a fourth mode would silently be read as read or as write.
+// If a third mode ever arrives, this is the rule that changes along with it.
 const WRITABLE_TABLE_SOURCE_MODE = 'readwrite';
-// Gesloten sleutelset: een typefout ("datatableID", "readMode") wordt afgewezen
-// in plaats van genegeerd. Dezelfde redenering als model.directory.
+// Closed key set: a typo ("datatableID", "readMode") is refused instead of ignored.
+// The same reasoning as model.directory.
 const TABLE_SOURCE_KEYS = Object.freeze(['kind', 'datatableId', 'mode']);
 // De id-grammatica van een Studio-datatabel (stores/datatableStore.js).
 const DATATABLE_ID_RE = /^tbl_[a-z0-9]{4,}$/;

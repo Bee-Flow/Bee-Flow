@@ -148,16 +148,16 @@ const COMPLETENESS_CODES = new Set([
     'data_extraction.source_missing',
     'data_extraction.fields_missing',
     'stop_error.message_missing',
-    // `return_to_app`: half ingevuld is halverwege bouwen. Het VOCABULAIRE
-    // (tone/refresh/onError) staat er bewust NIET bij — dat reist als data naar
-    // de app-runtime en is nooit "nog niet klaar met typen", maar gewoon fout.
+    // `return_to_app`: half filled in is halfway through building. The VOCABULARY
+    // (tone/refresh/onError) deliberately is NOT included here — that travels as
+    // data to the app runtime and is never "not finished typing yet", but simply wrong.
     'return_to_app.empty',
     'return_to_app.screen_missing',
-    // Een rand die uit een terminale stap vertrekt. Ontstaat vooral bij het
-    // OMBOUWEN van een stap die al bedraad was — dat is een tussenstand, geen
-    // kapotte definitie, dus waarschuwen tijdens het bouwen en blokkeren bij
-    // activeren. (`edge.after_stop_error` is en blijft een waarschuwing op elke
-    // trap: die regel kwam ná de stappen die hem overtreden.)
+    // An edge that leaves a terminal step. Mostly arises when REWIRING a step
+    // that was already wired — an intermediate state, not a broken
+    // definition, so warn while building and block on activation.
+    // (`edge.after_stop_error` is and stays a warning on every level: that
+    // rule came AFTER the steps that break it.)
     'edge.after_terminal',
     'limit.count_missing',
     'datetime.op_missing',
@@ -236,14 +236,14 @@ const COMPLETENESS_CODES = new Set([
     // warn at draft, block activation. (form_page.nested_forbidden is
     // deliberately NOT listed: it has always blocked at both stages.)
     'approval.nested_forbidden',
-    // `return_to_app.nested_forbidden` staat hier BEWUST NIET, en dat is een
-    // ander geval dan de approval erboven: die stapsoort bestond al voordat de
-    // regel er was, dus er lagen automatiseringen die groen waren opgeslagen. De
-    // eindstap is met P4 zelf geïntroduceerd — er is geen opgeslagen automatisering
-    // van vóór de regel — en hij krijgt dezelfde behandeling als zijn eigen
-    // tweelingregel `layer.return_to_app_forbidden`: blokkeren op draft én op
-    // activate. Zo hoort de auteur het bij de eerste autosave in plaats van
-    // pas bij het live zetten.
+    // `return_to_app.nested_forbidden` is deliberately NOT here, and that is a
+    // different case from the approval above: that step kind already existed
+    // before the rule was there, so there were automations stored green. The
+    // end step was introduced with P4 itself — there is no saved automation
+    // from before the rule — and it gets the same treatment as its own twin
+    // rule `layer.return_to_app_forbidden`: block on draft AND on activate.
+    // That way the author hears it at the first autosave instead of only
+    // when going live.
     // A freshly dropped approval has no question yet — there is no honest
     // default for "what am I asking?", so the node is seeded blank on purpose
     // (DiagramPane.buildStepFromPayload). Autosave must therefore go amber,

@@ -61,22 +61,19 @@ function getEffectiveUserId(req) {
 async function getUserAuth(req) {
     const { resolveUserOrgIds } = require('../auth/permissions');
 
-    // Resolve user's org for EU mode and other org-scoped features.
+    // Resolve the user's org for EU mode and other org-scoped features.
     //
-    // ── DE ONTBREKENDE `await` (A2-tegenspraak) ─────────────────────
-    // Dit stond hier zonder `await`, dus `orgIds` was een Promise: `.size` is
-    // dan `undefined`, `undefined > 0` is false, en `userOrgId` was ALTIJD
-    // null. Die null reist mee als `messageMetadata.userOrgId` naar
-    // core/agentRuntime/modelResolver.js en chatStream.js, waar hij de sleutel
-    // is waarop de EU-override en de org-eigen tiermap worden opgezocht — een
-    // persoonlijke agent van een lid van een EU-org werd zo altijd tegen de
-    // globale, niet-EU tiermap opgelost.
+    // ── THE MISSING `await` (A2 contradiction) ─────────────────────
+    // This stood here without `await`, so `orgIds` was a Promise: `.size` is then `undefined`,
+    // `undefined > 0` is false, and `userOrgId` was ALWAYS null. That null travels as
+    // `messageMetadata.userOrgId` to core/agentRuntime/modelResolver.js and chatStream.js, where it is
+    // the key under which the EU override and the org's own tier map are looked up — a personal agent
+    // of a member of an EU org was thus always resolved against the global, non-EU tier map.
     //
-    // `strict`, want "niet te lezen" mag hier niet als "geen org" eindigen. Er
-    // valt in een helper geen 503 te geven, dus de val is de org uit de sessie
-    // (dezelfde bron die routes/ai/automationBuilder/layerAgent.js gebruikt) en
-    // anders een expliciete `userOrgUnknown` — een lezer die daarop wil
-    // versmallen kan dat, en niemand hoeft "null" voor twee dingen te lezen.
+    // `strict`, because "not readable" must not end here as "no org". A helper cannot return a 503, so
+    // the fallback is the org from the session (the same source that routes/ai/automationBuilder/
+    // layerAgent.js uses) and otherwise an explicit `userOrgUnknown` — a reader who wants to narrow on
+    // that can do so, and nobody has to read "null" as two things.
     let orgIds = null;
     let orgUnknown = false;
     try {
@@ -98,9 +95,8 @@ async function getUserAuth(req) {
         userId: req.session?.user?.id || null,
         session: req.session || null,
         userOrgId,
-        // `true` = de workspace was NIET te lezen. `userOrgId: null` alleen
-        // betekent "geen org" (of super-admin), en die twee horen niet op één
-        // waarde te landen.
+        // `true` = the workspace was NOT readable. `userOrgId: null` on its own means "no org" (or super
+        // admin), and those two must not land on one value.
         userOrgUnknown
     };
 

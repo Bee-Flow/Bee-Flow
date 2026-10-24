@@ -30,10 +30,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const SERVER = path.resolve(__dirname, '..');
-// Een module mag een MAP zijn (`dir/foo.js` → `dir/foo/index.js` met zusters
-// ernaast). Dat is nog steeds één module, dus lees hem als één tekst: anders
-// zou een opgesplitst save-pad hier stilletjes gelden als "doet de aanroep
-// niet", precies de storing die dit bestand moet vangen.
+// A module may be a DIRECTORY (`dir/foo.js` → `dir/foo/index.js` with siblings
+// next to it). That is still one module, so read it as one text: otherwise a
+// split save path would silently count here as "the call does not do it", exactly
+// the fault this file must catch.
 const read = (rel) => {
     const p = path.join(SERVER, rel);
     if (fs.existsSync(p) && fs.statSync(p).isDirectory()) {
@@ -42,11 +42,11 @@ const read = (rel) => {
             .map(f => fs.readFileSync(path.join(p, f), 'utf8'))
             .join('\n');
     }
-    // Of een FACADE: `dir/foo.js` blijft een bestand (een store MOET dat
-    // blijven, migrateDb registreert hem op pad) met zijn onderdelen in
-    // `dir/foo/`. Dat is nog steeds één module, dus lees de map erbij —
-    // anders zou een opgesplitste store hier stilletjes gelden als "noemt
-    // die soort niet".
+    // Or a FACADE: `dir/foo.js` stays a file (a store MUST stay one, migrateDb
+    // registers it by path) with its parts in `dir/foo/`. That is still one
+    // module, so read the directory along with it —
+    // otherwise a split store would silently count here as "does not name
+    // that kind".
     const parts = p.replace(/\.js$/, '');
     const facade = fs.readFileSync(p, 'utf8');
     if (!fs.existsSync(parts) || !fs.statSync(parts).isDirectory()) return facade;
@@ -222,11 +222,11 @@ function* sources(dir) {
 }
 
 /**
- * Een module die hierboven als MAP is opgeschreven (`routes/webpages`) dekt al
- * haar zusterbestanden: wie `routes/webpages/crud.js` vindt, heeft de module
- * gevonden die de lijst noemt. Alleen naar een map die voor DEZE soort ook
- * echt als module in de lijst staat, zodat een nieuw bestand in een map die
- * niemand noemt gewoon blijft opvallen.
+ * A module that is written above as a DIRECTORY (`routes/webpages`) already covers
+ * all its sibling files: whoever finds `routes/webpages/crud.js` has found the
+ * module that the list names. Only for a directory that is really listed as a module
+ * for THIS kind, so that a new file in a directory nobody names simply stays
+ * conspicuous.
  */
 function moduleOf(kind, rel) {
     const listed = new Set([...SAVE_PATHS[kind].sync.files, ...SAVE_PATHS[kind].purge.files]);
@@ -242,8 +242,8 @@ test('a kind that is wired anywhere lists that file — no half-covered consumer
         // `core/kb/sources/datatable.js` is the knowledge-base reconciler
         // itself, the same category as datatableUsageSync for automations.
         if (rel === 'automation/datatableUsageSync.js'
-            // De store is een facade met zijn onderdelen in
-            // stores/datatableStore/ — dezelfde module, dezelfde vrijstelling.
+            // The store is a facade with its parts in
+            // stores/datatableStore/ — the same module, the same exemption.
             || rel === 'stores/datatableStore.js'
             || rel.startsWith('stores/datatableStore/')
             || rel === 'core/kb/sources/datatable.js'

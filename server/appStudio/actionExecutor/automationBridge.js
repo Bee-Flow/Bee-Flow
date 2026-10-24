@@ -226,21 +226,19 @@ const NON_ANSWER_STEP_TYPES = new Set(['trigger', 'wait', 'return_to_app']);
  * expensive half — so it happens once.
  */
 /**
- * Is deze runregel een TOP-LEVEL stap van de hoofdgraaf?
+ * Is this run row a TOP-LEVEL step of the main graph?
  *
- * Twee velden, want de runner heeft twee manieren om te nesten en ze zetten
- * verschillende dingen:
+ * Two fields, because the runner has two ways of nesting and they set different things:
  *
- *   parentStepId  gezet door execCallLayer/execCallBlock ('cl1/out' → 'cl1').
- *   branchIndex   gezet door execParallel: die draait de tak MÉT
- *                 `recordSteps:true` en laat `ctx.stepRecord` ongemoeid, dus
- *                 `parentStepId` blijft daar NULL. Op `parentStepId` alleen
- *                 telt een stap in een parallelle tak dus als top-level.
+ *   parentStepId  set by execCallLayer/execCallBlock ('cl1/out' → 'cl1').
+ *   branchIndex   set by execParallel: it runs the branch WITH
+ *                 `recordSteps:true` and leaves `ctx.stepRecord` untouched, so
+ *                 `parentStepId` stays NULL there. On `parentStepId` alone, a step
+ *                 in a parallel branch would count as top-level.
  *
- * (Een loop-body levert helemaal geen regels op: execLoop draait hem met
- * `recordSteps:false`. Er is dus niets om hier te herkennen — de validator
- * weigert een `return_to_app` daar sinds P4 hard, zie
- * validate/constants.js NESTED_FORBIDDEN_RULES.)
+ * (A loop body yields no rows at all: execLoop runs it with `recordSteps:false`.
+ * So there is nothing to recognise here. The validator has refused a
+ * `return_to_app` there hard since P4, see validate/constants.js NESTED_FORBIDDEN_RULES.)
  */
 function isTopLevelRow(s) {
     return !s.parentStepId && (s.branchIndex === null || s.branchIndex === undefined);
@@ -259,9 +257,9 @@ async function deriveRunOutcome(run) {
         let outputTooLarge = false;
         for (let i = steps.length - 1; i >= 0; i--) {
             let s = steps[i];
-            // BEWUST alleen `parentStepId`, niet isTopLevelRow: welke regel de
-            // `actionResult`-bindingen van élke bestaande app lezen, is niet
-            // iets om en passant te verschuiven. Die scan blijft byte-identiek.
+            // DELIBERATELY only `parentStepId`, not isTopLevelRow: which row the
+            // `actionResult` bindings of EVERY existing app read is not something to shift
+            // in passing. That scan stays byte-identical.
             if (!s.parentStepId && !NON_ANSWER_STEP_TYPES.has(s.stepType)) {
                 // An answer over 256 KB is persisted as the truncation sentinel,
                 // with the full (already redacted) copy kept beside the row. The
@@ -282,19 +280,17 @@ async function deriveRunOutcome(run) {
                 break;
             }
         }
-        // De LAATSTE top-level return_to_app wint: een automatisering mag er één per
-        // tak dragen, en er draaide er maar één.
+        // The LAST top-level return_to_app wins: an automation may carry one per
+        // branch, and only one ran.
         //
-        // Genestelde regels tellen niet mee, en dat is hier een HARDERE eis dan
-        // bij de output-scan hierboven. Een `return_to_app` hoort nergens
-        // genesteld te staan — de validator weigert hem in een flowlet/Step
-        // (`layer.return_to_app_forbidden`) én in een loop-body of parallelle
-        // tak (`return_to_app.nested_forbidden`) — maar een definitie die vóór
-        // die regels is opgeslagen, of met de hand geschreven, komt hier nog
-        // steeds langs. En in een parallelle tak is dat niet onschuldig: de app
-        // zou "we zijn klaar, ga hierheen" krijgen terwijl de andere takken en
-        // alles ná de parallel nog draaien. Vandaar isTopLevelRow, dat óók naar
-        // branchIndex kijkt.
+        // Nested rows do not count, and that is a STRICTER requirement here than in the
+        // output scan above. A `return_to_app` should never be nested anywhere: the
+        // validator refuses it in a flowlet/Step (`layer.return_to_app_forbidden`) and in a
+        // loop body or parallel branch (`return_to_app.nested_forbidden`). But a definition
+        // saved before those rules, or written by hand, still comes through here. And in a
+        // parallel branch that is not harmless: the app would get "we are done, go there"
+        // while the other branches and everything after the parallel still run. Hence
+        // isTopLevelRow, which ALSO looks at branchIndex.
         let appEffects = null;
         for (let i = steps.length - 1; i >= 0; i--) {
             const s = steps[i];
@@ -305,15 +301,14 @@ async function deriveRunOutcome(run) {
         }
         return { output, appEffects, ...(outputTooLarge ? { outputTooLarge: true } : {}) };
     } catch (e) {
-        // MISLUKT LEZEN IS GEEN "GEEN INSTRUCTIES".
+        // A FAILED READ IS NOT "NO INSTRUCTIONS".
         //
-        // Zonder `effectsUnknown` is dit antwoord byte-identiek aan dat van een
-        // automation zónder terugkeerstap: runBody laat `_appEffects` dan gewoon
-        // weg en de bezoeker ziet niets gebeuren — geen toast, geen navigatie,
-        // geen spoor. Voor `output` was dat bestaand gedrag; aan diezelfde
-        // stille tak hangt sinds P4 een NIEUWE belofte, en die mag niet in
-        // dezelfde stilte verdwijnen. De vlag reist mee naar de app, die er een
-        // regel over zegt in plaats van niets te doen.
+        // Without `effectsUnknown` this answer is byte-identical to that of an automation
+        // without a return step: runBody then simply omits `_appEffects`, and the visitor sees
+        // nothing happen (no toast, no navigation, no trace). For `output` that was existing
+        // behaviour; since P4 a NEW promise hangs on that same silent branch, and it must not
+        // vanish in the same silence. The flag travels to the app, which says something about
+        // it instead of doing nothing.
         log.error(`[ActionExecutor] output derivation failed for run ${run?.id}: ${e.message}`);
         return { output: null, appEffects: null, effectsUnknown: true };
     }

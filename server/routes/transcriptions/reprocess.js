@@ -28,10 +28,10 @@ const { NOTHING, NO_QUERY } = require('./schemas');
 // path for exactly the meetings that time out) cannot fit a synchronous
 // request. The detail view already polls notes in 'processing'.
 
-// Neemt niets aan dan de notitie in het pad: wat er opnieuw wordt gedraaid
-// staat in de rij, niet in het verzoek. Een body-sleutel die eruitziet alsof
-// hij dat kan sturen (`provider`, `language`) hoort een 400 te krijgen en niet
-// genegeerd te worden — de vorige run koos die dienst, en die keuze staat vast.
+// Accepts nothing but the note in the path: what gets rerun is in the row, not in
+// the request. A body key that looks as if it could send that (`provider`,
+// `language`) should get a 400 and not be ignored — the previous run chose that
+// service, and that choice stands.
 router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
     // Set once the note is flipped to 'processing' and the 202 sent; from then
     // on all outcomes are written to the note, never to the HTTP response.

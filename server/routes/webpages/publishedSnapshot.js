@@ -1,13 +1,11 @@
 // @typecheck
 /**
- * Wat een LEZER van een gepubliceerde pagina krijgt, en hoe die momentopname
- * ontstaat (W2).
+ * What a READER of a published page gets, and how that snapshot comes about (W2).
  *
- * Uit routes/webpages.js gehaald toen dat bestand werd opgesplitst: de
- * leeskant (`readSlotsForReader`) hoort bij GET /:id en GET /:id/files, de
- * pinkant (`pinPublishedVersion`) bij PATCH /:id/publish, en `liveMatchesPin`
- * bij de thumbnail — drie routes in twee modules, één waarheid over welke
- * bytes een niet-eigenaar mag zien.
+ * Taken out of routes/webpages.js when that file was split: the read side
+ * (`readSlotsForReader`) belongs to GET /:id and GET /:id/files, the pin side
+ * (`pinPublishedVersion`) to PATCH /:id/publish, and `liveMatchesPin` to the thumbnail —
+ * three routes in two modules, one truth about which bytes a non-owner may see.
  */
 
 const webpageStore = require('../../stores/webpageStore');

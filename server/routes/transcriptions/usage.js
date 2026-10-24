@@ -67,52 +67,51 @@ router.get('/:id/usage', requireAuth, validate({ query: NO_QUERY }), async (req,
 });
 
 /**
- * ── EEN REGEL DIE VERKEERD GELAND IS, WEER WEG (M4) ─────────────────
+ * ── A WRONGLY LANDED RULE, REMOVED AGAIN (M4) ───────────────────────
  *
- * `POST /api/kb/:id/sources` met `kind:'text'` schrijft `config.metadata =
- * { transcriptionId, segmentIndex }` en laat die regel daarmee LANDEN op de
- * tijdlijn van een vergadering: hij verschijnt in de balk onder de tagrij, in
- * het Gebruikt-door-tabblad en in "Uit dit transcript gehaald", en hij houdt
- * de verwijderpoort van die vergadering op 409.
+ * `POST /api/kb/:id/sources` with `kind:'text'` writes `config.metadata =
+ * { transcriptionId, segmentIndex }` and thereby lets that rule LAND on the
+ * timeline of a meeting: it appears in the bar below the tag row, in the
+ * "Used by" tab and in "Extracted from this transcript", and it keeps the
+ * delete gate of that meeting at 409.
  *
- * Sinds M4 moet de schrijver die vergadering zelf kunnen openen
- * (routes/knowledgeBases/sources.js), dus nieuwe onware regels kunnen er niet
- * meer bij. Rijen die er al staan blijven staan — en voor het slachtoffer is
- * `DELETE /api/kb/:id/sources/:sid` geen uitweg: die vraagt beheer over de
- * kennisbank van de schrijver, en die heeft het slachtoffer per definitie
- * niet. Zonder deze route is de enige overgebleven uitgang de bevestigde
- * ontsnappingsklep van DELETE /:id — de eigen vergadering weggooien om van
- * andermans bewering af te komen.
+ * Since M4 the writer must be able to open that meeting itself
+ * (routes/knowledgeBases/sources.js), so new untrue rules can no longer get in.
+ * Rows that already exist stay in place — and for the victim,
+ * `DELETE /api/kb/:id/sources/:sid` is no way out: it requires management of the
+ * knowledge base of the writer, which the victim by definition does not have.
+ * Without this route, the only remaining exit is the confirmed escape hatch of
+ * DELETE /:id — throwing away one's own meeting to get rid of someone else's claim.
  *
- * DE BEVOEGDHEID IS EIGENDOM VAN DE VERGADERING, niet leesrecht erop. Een
- * collega met wie de notitie gedeeld is mag hier niets: dit verwijdert rijen
- * uit de kennisbank van iemand anders, en die bevoegdheid hoort bij precies
- * één persoon — degene over wiens vergadering de rij een bewering doet.
+ * THE AUTHORITY BELONGS TO OWNERSHIP OF THE MEETING, not to read access to it. A
+ * colleague with whom the note is shared may do nothing here: this removes rows
+ * from the knowledge base of someone else, and that authority belongs to exactly
+ * one person — the one over whose meeting the row makes a claim.
  *
- * DE POORT VAN DE SCHRIJFKANT ZIT HIER BEWUST NIET. Of de MAKER van de rij de
- * vergadering (nog) mag zien doet er voor een verwijdering niet toe: een rij
- * die juist NIET gezien had mogen worden is de rij die weg moet. Een
- * leesbaarheidscontrole op dit pad zou van elke verkeerd gelande regel een
- * onverwijderbare regel maken — precies de toestand die dit dicht.
+ * THE WRITE-SIDE GATE IS DELIBERATELY ABSENT HERE. Whether the MAKER of the row
+ * may (still) see the meeting does not matter for a removal: a row that should
+ * NOT have been visible is exactly the row that must go. A readability check on
+ * this path would turn every wrongly landed rule into an unremovable one — precisely
+ * the state this closes.
  *
- * De chunks gaan eerst, en dat doet `core/kb/purgeSourceDocuments` — dezelfde
- * lus die routes/knowledgeBases/sources.js gebruikt, niet een tweede variant
- * ernaast. Waarom een LUS en niet één pagina: de FK cascadeert de documentrijen
- * zodra de bron valt, dus een document dat niet door `deleteDocumentChunks` is
- * gegaan verdwijnt wél uit de tabel en houdt zijn embeddings. Eén `listDocuments`
- * met limit 200 liet er bij 201 documenten dus één achter — stil, want er ging
- * niets mis om te melden. In een privacyproduct is verwijderde tekst die vragen
- * blijft beantwoorden de bug.
+ * The chunks go first, and that is done by `core/kb/purgeSourceDocuments` — the same
+ * loop that routes/knowledgeBases/sources.js uses, not a second variant beside it.
+ * Why a LOOP and not one page: the FK cascades the document rows as soon as the
+ * source falls, so a document that did not go through `deleteDocumentChunks` does
+ * disappear from the table and keeps its embeddings. A single `listDocuments` with
+ * limit 200 would leave one behind at 201 documents — silently, because nothing went
+ * wrong that could be reported. In a privacy product, deleted text that keeps
+ * answering questions is the bug.
  *
- * DAAROM VALT DE BRON PAS ALS DE OPRUIMING KLAAR IS. Blijft er iets staan, dan
- * blijft de bronrij óók staan: de regel is dan niet weg, maar hij is ook niet
- * half weg met achtergebleven vectoren. De rij komt in `errors` en telt niet
- * mee in `removedLines`, zodat de eigenaar de vergadering nog steeds op 409
- * ziet staan in plaats van een schone melding te krijgen.
+ * THEREFORE THE SOURCE FALLS ONLY WHEN THE CLEANUP IS DONE. If something remains,
+ * the source row also remains: the rule is then not gone, but neither is it half
+ * gone with leftover vectors. The row goes into `errors` and does not count in
+ * `removedLines`, so the owner still sees the meeting at 409 instead of getting a
+ * clean notice.
  *
- * Per rij afzonderlijk, en wat niet lukte staat in `errors`: "ik kon dit niet
- * weghalen" is een andere zin dan "er stond niets", en alleen bij de eerste
- * mag de eigenaar niet denken dat hij schoon is.
+ * Per row separately, and what did not succeed is in `errors`: "I could not remove
+ * this" is a different sentence from "there was nothing", and only with the first
+ * must the owner not think that he is clean.
  */
 router.delete('/:id/filed-lines', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
     const userId = req.session.user.id;
@@ -121,8 +120,8 @@ router.delete('/:id/filed-lines', requireAuth, validate({ body: NOTHING, query: 
 
     const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
     const note = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
-    // Zelfde 404 als elke andere route op dit id, zodat ook deze niet te
-    // gebruiken is om te achterhalen welke ids bestaan.
+    // Same 404 as every other route on this id, so that this one cannot be used
+    // either to discover which ids exist.
     if (!note) return res.status(404).json({ error: 'Not found' });
     if (!note.isOwner) return res.status(403).json({ error: 'Only the owner can remove filed lines', code: 'not_owner' });
 
@@ -142,14 +141,13 @@ router.delete('/:id/filed-lines', requireAuth, validate({ body: NOTHING, query: 
                 kbStore, deleteDocumentChunks,
                 kbId: row.kbId, sourceId: row.sourceId, tenantId: row.tenantId,
             });
-            // Wat er wél af is telt mee, ook als de rest bleef staan: dat is
-            // geen schone melding, het is een eerlijk aantal.
+            // What is done DOES count, even if the rest stayed: that is not a clean notice,
+            // it is an honest count.
             removedDocuments += purge.deleted;
             if (!purge.complete) {
-                // Bron NIET weghalen — de FK zou de overgebleven documentrijen
-                // meesleuren en hun embeddings voorgoed doorzoekbaar laten. Een
-                // half opgeruimde bron die als verwijderd wordt gemeld is
-                // dezelfde fout in een ander jasje.
+                // Do NOT remove the source — the FK would drag the remaining document rows along
+                // and leave their embeddings searchable for good. A half-cleaned source that is
+                // reported as removed is the same mistake in another guise.
                 const why = purge.errors.length > 0
                     ? purge.errors[0].error
                     : 'documents remained after cleanup';
@@ -161,10 +159,9 @@ router.delete('/:id/filed-lines', requireAuth, validate({ body: NOTHING, query: 
             removedLines += 1;
         } catch (e) {
             log.warn('[Transcriptions] filed line not removed:', e.message);
-            // Dezelfde VORM als de tak hierboven: een client die straks
-            // "deze documenten wilden niet" toont leest `e.documents` en
-            // mag daar geen `undefined` vinden. Leeg is hier het eerlijke
-            // antwoord — de opruiming is niet eens aan documenten toegekomen.
+            // The SAME shape as the branch above: a client that later shows "these documents
+            // did not want to" reads `e.documents` and must not find `undefined` there.
+            // Empty is the honest answer here — the cleanup did not even get to documents.
             errors.push({ sourceId: row.sourceId, error: e.message, documents: [] });
         }
     }

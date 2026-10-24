@@ -4,18 +4,18 @@ import { describe, it, expect } from 'vitest';
 import { groupNoteRows, noteRowsOf, readInstalls, readReleases, versionOrNull } from './releaseModel';
 
 /**
- * Het leesmodel van de Versies- en Installaties-tab.
+ * The read model of the Versions and Installations tabs.
  *
- * Elke test hieronder houdt één paar antwoorden uit elkaar dat er op het scherm
- * hetzelfde uit zou zien:
+ * Each test below holds apart one pair of answers that would look the same on the
+ * screen:
  *
- *   "nog nooit gepubliceerd"      vs  "de geschiedenis kon niet gelezen worden"
- *   "er is niets veranderd"       vs  "er is geen diff vastgelegd"
- *   "geen nieuws"                 vs  "geen woorden" (het model viel om)
- *   "niemand heeft dit"           vs  "we konden niet tellen"
+ *   “never published yet”        vs  “the history could not be read”
+ *   “nothing has changed”        vs  “no diff has been recorded”
+ *   “no news”                    vs  “no words” (the model fell over)
+ *   “nobody has this”            vs  “we could not count”
  *
- * De tweede van elk paar is telkens het antwoord dat verdwijnt als iemand een
- * `|| []` of een `|| 0` op de verkeerde plek zet.
+ * The second of each pair is always the answer that disappears when someone puts a
+ * `|| []` or a `|| 0` in the wrong place.
  */
 
 describe('the release history', () => {
@@ -24,8 +24,7 @@ describe('the release history', () => {
     });
 
     it('a 200 whose body has no releases array is unreadable, not zero releases', () => {
-        // Een route die van vorm verandert mag geen Oplossing ongepubliceerd
-        // laten lijken.
+        // A route that changes shape must not make a Solution look unpublished.
         expect(readReleases({ status: 'ok', data: {} }).state).toBe('unreadable');
         expect(readReleases({ status: 'ok', data: { releases: 'none' } }).state).toBe('unreadable');
     });
@@ -93,8 +92,8 @@ describe('what one version says it changed', () => {
         });
         expect(rows[0].summaryMissing).toBe(true);
         expect(rows[1].summaryMissing).toBe(false);
-        // "geen nieuws" is iets anders dan "geen woorden": een ongewijzigde rij
-        // is nooit een ontbrekende samenvatting.
+        // “no news” is something other than “no words”: an unchanged row is never a
+        // missing summary.
         expect(rows[2].summaryMissing).toBe(false);
     });
 

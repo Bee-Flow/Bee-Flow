@@ -1,23 +1,22 @@
 /**
- * De verfijn-pijplijn van de editor (A2 stap 5, plus een bevestigde
- * A1c-bevinding).
+ * The refinement pipeline of the editor (A2 step 5, plus a confirmed A1c finding).
  *
- * Vier dingen liggen hier vast, en alle vier zijn ze het soort dat stil
- * kapot gaat — geen crash, geen rode test, alleen een agent die iets anders
- * denkt dan hij zegt:
+ * Four things are fixed here, and all four are the kind that breaks silently. No
+ * crash, no red test, just an agent that thinks something different from what it
+ * says:
  *
- *   DE PERSONA REIST MEE. `mergeRefinedPlan` rekent hem sinds A1c uit, maar
- *   de enige aanroeper gooide hem weg: na een verfijning beschreef
- *   `agents.persona` een prompt die niet meer bestond, en de eerstvolgende
- *   opslag rendert die oude velden zó over de nieuwe instructies heen.
+ *   THE PERSONA TRAVELS ALONG. `mergeRefinedPlan` has calculated it since A1c, but
+ *   the only caller threw it away. After a refinement, `agents.persona` described a
+ *   prompt that no longer existed, and the next save renders those old fields over
+ *   the new instructions.
  *
- *   HET UNDO-PUNT WORDT VÓÓR DE MERGE GESCHREVEN, en pas NA een geslaagd
- *   antwoord — een mislukte verfijning laat geen herstelpunt achter.
+ *   THE UNDO POINT IS WRITTEN BEFORE THE MERGE, and only AFTER a successful answer.
+ *   A failed refinement leaves no restore point.
  *
- *   EEN MISLUKTE SNAPSHOT STOPT DE VERFIJNING NIET, maar liegt er ook niet
- *   over: de beurt draagt dan `undoVersionId: null` en de kaart zegt dat.
+ *   A FAILED SNAPSHOT DOES NOT STOP THE REFINEMENT, but it does not lie about it
+ *   either: the turn then carries `undoVersionId: null` and the card says so.
  *
- *   DE BEURT DRAAGT DE DIFF, niet het plan dat het model terugstuurde.
+ *   THE TURN CARRIES THE DIFF, not the plan that the model sent back.
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/builderSplit/refineActions.test.js
  */
@@ -41,8 +40,8 @@ const PLAN = {
     skills: [],
 };
 
-// Elke test bouwt zijn eigen deps; alleen wat dit bestand beweert wordt
-// bewaard, de rest is een lege functie.
+// Every test builds its own deps. Only what this file asserts is kept; the
+// rest is an empty function.
 function makeDeps(overrides = {}) {
     const chat = [];
     const calls = [];
@@ -101,17 +100,17 @@ function makeDeps(overrides = {}) {
             agent: { id: 'agent-1' },
             refreshAgentSchedules: async () => {},
             currentPersona: undefined,
-            // De standaardopstelling is "er is nog geen rij" — de verse agent
-            // die de wizard net aanmaakte. Zonder deze vlag betekent een
-            // ontbrekende persona "niet gelezen", en dan schrijft de merge er
-            // met opzet geen; zie de test hieronder.
+            // The default setup is "there is no row yet": the fresh agent
+            // that the wizard just created. Without this flag a missing persona
+            // means "not read", and then the merge deliberately writes none.
+            // See the test below.
             noStoredPersona: true,
             ...overrides,
         },
     };
 }
 
-/** Antwoordtabel op URL-fragment; alles wat er niet in staat is een 500. */
+/** Answer table on URL fragment; anything not in it is a 500. */
 function answerWith(routes, calls) {
     authFetch.mockImplementation(async (url, opts) => {
         calls.push(`${opts?.method || 'GET'} ${url}`);
@@ -138,18 +137,17 @@ describe('createHandleRefine — de persona reist mee (A1c-bevinding)', () => {
         await createHandleRefine(deps)();
 
         expect(stateRef.current.systemPrompt).toBe('Be brief and kind.');
-        // Zonder deze regel beschrijft agents.persona een prompt die niet
-        // meer bestaat.
+        // Without this line agents.persona describes a prompt
+        // that no longer exists.
         expect(stateRef.current.persona).toBeTruthy();
         expect(stateRef.current.persona.mode).toBe('free');
         expect(stateRef.current.persona.freeText).toBe('Be brief and kind.');
     });
 
     it('een persona die NIET GELEZEN kon worden blijft staan — er reist er geen mee', async () => {
-        // De agent bestaat en heeft een persona-kolom, maar `?draft=1` gaf hem
-        // niet mee (403, of een antwoord zonder persona). Een verse persona
-        // wegschrijven zou `unknown` en `language` weggooien — instellingen die
-        // deze code nooit gelezen heeft.
+        // The agent exists and has a persona column, but `?draft=1` did not include
+        // it (a 403, or a response without a persona). Writing a fresh persona would
+        // throw away `unknown` and `language`: settings that this code never read.
         const { deps, stateRef, calls } = makeDeps({ currentPersona: undefined, noStoredPersona: false });
         answerWith([
             ['/pre-refine', { id: 'v-pre' }],
@@ -172,8 +170,8 @@ describe('createHandleRefine — de persona reist mee (A1c-bevinding)', () => {
 
         await createHandleRefine(deps)();
 
-        // Identiek object: de PUT stuurt hem terug zoals hij was, en een
-        // handgemaakte rol wordt niet door een toonverfijning herschreven.
+        // Identical object: the PUT sends it back the way it was, and a hand-made role
+        // is not rewritten by a tone refinement.
         expect(stateRef.current.persona).toBe(stored);
     });
 
@@ -235,8 +233,8 @@ describe('createHandleRefine — het undo-punt', () => {
 
         expect(stateRef.current.systemPrompt).toBe('Be brief and kind.');
         const done = chat.find(m => m.role === 'done');
-        // null, niet weggelaten: de kaart moet het verschil kunnen zien tussen
-        // "geen herstelpunt" en "nog niet gevraagd".
+        // null, not omitted: the card must be able to see the difference between
+        // "no restore point" and "not yet asked".
         expect(done.undoVersionId).toBeNull();
     });
 

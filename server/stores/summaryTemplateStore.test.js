@@ -1,18 +1,18 @@
 'use strict';
 
 /**
- * Store-tests — sjabloonversie.
+ * Store tests — template version.
  *
- * Wat hier vastligt:
- *   1. `version` staat in de boot-DDL van deze store, via runDdl — niet in een
- *      migratiebestand en niet in een stille catch.
- *   2. Ophogen gebeurt bij een ECHTE promptwijziging, en alleen daar:
- *      hernoemen en standaard-zetten laten de versie staan.
- *   3. mapRow onderscheidt "geen versie bekend" (null) van 1.
- *   4. resolveDefaultTemplate geeft de RIJ terug — een prompt alleen is niet
- *      genoeg om een notitie mee te stempelen.
+ * What is pinned here:
+ *   1. `version` is in the boot DDL of this store, via runDdl — not in a migration
+ *      file and not in a silent catch.
+ *   2. Raising happens on a REAL prompt change, and only there: renaming and
+ *      setting as default leave the version as it is.
+ *   3. mapRow distinguishes "no version known" (null) from 1.
+ *   4. resolveDefaultTemplate returns the ROW — a prompt alone is not enough to
+ *      stamp a note with.
  *
- * Hermetisch: ../db is gestubd; geen Postgres.
+ * Hermetic: ../db is stubbed; no Postgres.
  *
  * Run: cd server && node --test --test-force-exit stores/summaryTemplateStore.test.js
  */
@@ -77,8 +77,8 @@ test('mapRow onderscheidt "geen versie" van versie 1', async () => {
     oneRow = { id: 't-1', scope: 'user', name: 'Mijn', prompt: 'P', version: 4 };
     assert.strictEqual((await store.getById('t-1')).version, 4);
 
-    // Een rij van een replica die de ladder nog niet draaide. `1` invullen zou
-    // een versie beweren die nergens vandaan komt.
+    // A row from a replica that has not run the ladder yet. Filling in `1` would
+    // claim a version that comes from nowhere.
     for (const raw of [undefined, null, 0, 'nope']) {
         oneRow = { id: 't-1', scope: 'user', name: 'Mijn', prompt: 'P', version: raw };
         assert.strictEqual((await store.getById('t-1')).version, null, `version=${String(raw)} → null`);
@@ -95,9 +95,9 @@ test('een gewijzigde prompt hoogt de versie op', async () => {
 });
 
 test('hernoemen hoogt de versie NIET op', async () => {
-    // De versie zegt met welke INSTRUCTIE een samenvatting geschreven is. Een
-    // andere naam is dezelfde instructie; ophogen zou een verandering
-    // suggereren die niet heeft plaatsgevonden.
+    // The version says with which INSTRUCTION a summary was written. A different
+    // name is the same instruction; raising it would suggest a change that did not
+    // take place.
     oneRow = { id: 't-1', scope: 'user', name: 'Oud', prompt: 'P', version: 3 };
     await store.update('t-1', { name: 'Nieuw' });
     const write = dbCalls.run.find((c) => /UPDATE summary_templates SET/.test(c.sql));
@@ -114,16 +114,16 @@ test('standaard aan/uit zetten hoogt de versie NIET op', async () => {
 });
 
 test('dezelfde prompt opnieuw opslaan hoogt de versie NIET op', async () => {
-    // De editor vult het promptveld voor; op Opslaan drukken zonder iets te
-    // veranderen stuurt exact dezelfde tekst terug. Dat is geen nieuwe versie.
+    // The editor fills in the prompt field; pressing Save without changing anything
+    // sends back exactly the same text. That is not a new version.
     oneRow = { id: 't-1', scope: 'user', name: 'Mijn', prompt: 'ZELFDE', version: 3 };
     await store.update('t-1', { prompt: 'ZELFDE' });
     assert.ok(!dbCalls.run.some((c) => /version =/.test(c.sql)), 'ongewijzigde tekst is geen nieuwe versie');
 });
 
 test('resolveDefaultTemplate geeft de RIJ terug, resolveDefaultPrompt alleen de tekst', async () => {
-    // Een notitie stempelen vraagt om id + versie; uit een prompt-string is
-    // geen id terug te winnen.
+    // Stamping a note requires id + version; from a prompt string no id can be
+    // recovered.
     allRows = [{ id: 't-def', scope: 'user', user_id: 'u-1', name: 'Standaard', prompt: 'DEFAULT PROMPT', is_default: true, version: 7 }];
     const tpl = await store.resolveDefaultTemplate({ userId: 'u-1' });
     assert.strictEqual(tpl.id, 't-def');

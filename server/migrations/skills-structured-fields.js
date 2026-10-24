@@ -28,7 +28,7 @@
  * Registered from stores/skillStore.js initDB (the house pattern of
  * automationStore/core.js): the migration runs after the store's DDL, on
  * every boot, and is a no-op once applied. Do not also list it in
- * boot/bootMigrations.js — de registratietest daar kent hem als store-bedraad.
+ * boot/bootMigrations.js — the registration test there knows it as store-wired.
  */
 
 'use strict';

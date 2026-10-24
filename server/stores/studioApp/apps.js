@@ -13,6 +13,7 @@ const { changedKeysOf } = require('../lib/managedParts');
 const { initDB } = require('./schema');
 const { guardOf, inTx, serializeDefinition } = require('./shared');
 const { META_COLS, mapAppMetaRow, mapAppRow } = require('./rowMappers');
+const { rollback } = require('../../utils/txRollback');
 
 const { run, getOne, getAll } = dep('db');
 const log = dep('log');
@@ -277,24 +278,20 @@ async function setTemplateProvenance(id, ownerId, { templateId, templateVersion,
 async function saveDefinition(io, id, ownerId, definition, { expectedVersion = null, managedWrite = null } = {}) {
     await io.ready();
     const payload = serializeDefinition(definition);
-    const client = await io.db.getClient();
-    try {
-        await client.query('BEGIN');
+    return io.db.withTransaction(async (client) => {
         const cur = await client.query(
             `SELECT definition, definition_version, project_id FROM studio_apps WHERE id = $1 AND user_id = $2 FOR UPDATE`,
             [id, ownerId]
         );
         if (cur.rows.length === 0) {
-            await client.query('ROLLBACK');
-            return { ok: false, notFound: true };
+            return rollback({ ok: false, notFound: true });
         }
         await guardOf(io).assertManagedWrite({
             kind: 'app', projectId: cur.rows[0].project_id ?? null, changedKeys: ['definition'], managedWrite, client,
         });
         const currentVersion = parseInt(cur.rows[0].definition_version) || 1;
         if (expectedVersion != null && currentVersion !== expectedVersion) {
-            await client.query('ROLLBACK');
-            return { ok: false, conflict: true, currentVersion, definition: parseJSON(cur.rows[0].definition, {}) };
+            return rollback({ ok: false, conflict: true, currentVersion, definition: parseJSON(cur.rows[0].definition, {}) });
         }
         const nextVersion = currentVersion + 1;
         await client.query(
@@ -302,14 +299,8 @@ async function saveDefinition(io, id, ownerId, definition, { expectedVersion = n
              WHERE id = $3 AND user_id = $4`,
             [payload, nextVersion, id, ownerId]
         );
-        await client.query('COMMIT');
         return { ok: true, version: nextVersion };
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
+    });
 }
 
 module.exports = {

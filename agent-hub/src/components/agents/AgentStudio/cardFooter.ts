@@ -1,75 +1,72 @@
 /**
- * De voet van een agentkaart in het overzicht (A5, deel D): één regel, en
- * welke regel dat wordt.
+ * The footer of an agent card in the overview (A5, part D): one line, and which line that becomes.
  *
- * Drie vormen, en de keuze ertussen is de hele functie:
+ * Three forms, and the choice between them is the whole function:
  *
- *   ⚠ Antwoordt uit het hoofd — koppel een kennisbank
- *   312 gesprekken · ook in 2 automations, 1 app
- *   Alleen jij · 4 testgesprekken
+ *   ⚠ Answers from memory — connect a knowledge base
+ *   312 conversations · also in 2 automations, 1 app
+ *   Only you · 4 test conversations
  *
- * ── DE WAARSCHUWING IS NIET VAN DIT BESTAND ────────────────────────────────
+ * ── THE WARNING IS NOT FROM THIS FILE ──────────────────────────────────────
  *
- * "Antwoordt uit het hoofd" is een REGEL, en die staat op de server:
- * core/agentRuntime/agentGrounding.js `groundedOn` + `groundingVerdict`, waar
- * Studio's "Vraagt aandacht" (routes/studio/attentionChecks.js, bron
- * `agentNoKb`) hem ook uit leest. GET /agents/all hangt het antwoord als
- * `grounding.verdict` aan elke rij, en dit bestand LEEST dat woord — het leidt
- * niets af uit `config.knowledge_base_ids`.
+ * "Answers from memory" is a RULE, and that rule lives on the server:
+ * core/agentRuntime/agentGrounding.js `groundedOn` + `groundingVerdict`, which
+ * Studio's "Needs attention" (routes/studio/attentionChecks.js, source
+ * `agentNoKb`) also reads. GET /agents/all attaches the answer to every row as
+ * `grounding.verdict`, and this file READS that word — it derives nothing from
+ * `config.knowledge_base_ids`.
  *
- * Waarom dat de moeite waard is: twee implementaties van dezelfde zin lopen
- * uit elkaar, en het eerste scherm waar dat opvalt is precies het scherm waar
- * iemand ze naast elkaar ziet — Start zegt "vraagt aandacht" over een agent
- * waar het overzicht niets over zegt. Hetzelfde argument dat
- * admin/Studio/attention/attentionChecks.js in zijn kop maakt over de andere
- * vijf bronnen.
+ * Why that is worth the trouble: two implementations of the same sentence drift
+ * apart, and the first screen where that shows is exactly the screen where someone
+ * sees them side by side — Start says "needs attention" about an agent that the
+ * overview says nothing about. The same argument that
+ * admin/Studio/attention/attentionChecks.js makes in its header about the other
+ * five sources.
  *
- * ── WAAR DE TELLINGEN OVER GAAN, EN WAAR NIET ──────────────────────────────
+ * ── WHAT THE COUNTS ARE ABOUT, AND WHAT NOT ────────────────────────────────
  *
- * `stats` komt uit stores/agent/agentStats.js `getAgentChatStats`: één
- * GROUP BY over `agent_conversations` op `agent_id`, ZONDER filter op
- * gebruiker. `conversationCount` is dus "gesprekken MET DEZE AGENT, door
- * iedereen" en `userCount` is `COUNT(DISTINCT user_id)`. Twee gevolgen:
+ * `stats` comes from stores/agent/agentStats.js `getAgentChatStats`: ONE
+ * GROUP BY over `agent_conversations` on `agent_id`, WITHOUT a filter on user. So
+ * `conversationCount` is "conversations WITH THIS AGENT, by everyone" and
+ * `userCount` is `COUNT(DISTINCT user_id)`. Two consequences:
  *
- *   1. De zin mag nooit "jouw gesprekken" zeggen — dat zou een getal van
- *      collega's onder jouw naam zetten.
- *   2. "Alleen jij" is een BEWERING over bereik en heeft BEWIJS nodig, en
- *      `userCount` is dat bewijs niet: dat is `COUNT(DISTINCT user_id)` over
- *      álle gesprekken, dus één telt net zo goed als een collega die er
- *      veertig voerde terwijl jij er nul voerde. Precies dat gebeurt: je
- *      publiceert een agent, een collega gebruikt hem, je zet hem terug op
- *      concept (`setAgentPublished` doet één UPDATE — de rijen in
- *      `agent_conversations` blijven staan), en de kaart zou "Alleen jij · 40
- *      gesprekken" zeggen over gesprekken die niet van jou zijn.
- *      Het bewijs dat het wél draagt is `othersConversationCount`
- *      (`COUNT(*) FILTER (WHERE user_id <> jij)`), en dat rijdt sinds A5 mee op
- *      de lijst — geen extra query, dezelfde GROUP BY met één parameter erbij.
- *      `null` daar betekent "de server kon niet zien wie er kijkt", en dan
- *      verschijnt de vorm niet.
+ *   1. The sentence may never say "your conversations" — that would put a number
+ *      of colleagues under your name.
+ *   2. "Only you" is a CLAIM about scope and needs EVIDENCE, and `userCount` is not
+ *      that evidence: it is COUNT(DISTINCT user_id) over ALL conversations, so one
+ *      counts just as much as a colleague who conducted forty while you conducted
+ *      none. That is exactly what happens: you publish an agent, a colleague uses it,
+ *      you set it back to draft (`setAgentPublished` does a single UPDATE — the rows
+ *      in `agent_conversations` stay), and the card would say "Only you · 40
+ *      conversations" about conversations that are not yours.
+ *      The evidence that does carry it is `othersConversationCount`
+ *      (`COUNT(*) FILTER (WHERE user_id <> you)`), and that has been riding along on
+ *      the list since A5 — no extra query, the same GROUP BY with one parameter added.
+ *      `null` there means "the server could not see who is looking", and then the
+ *      form does not appear.
  *
- * ── EEN TELLING DIE NIET GELEZEN KON WORDEN IS GEEN 0 ──────────────────────
+ * ── A COUNT THAT COULD NOT BE READ IS NOT A 0 ─────────────────────────────
  *
- * `stats: null` is het antwoord van de server op een mislukte lezing, en een
- * rij zonder het veld is hetzelfde. Allebei worden ze `null` — nooit 0. "312
- * gesprekken" en "het aantal kon niet gelezen worden" zijn verschillende
- * zinnen, en de tweede mag niet als de eerste met een nul lezen. Zelfde regel
- * als `countOrNothing` in builderSplit/AgentEditorHeader.jsx en als
- * `summariseDeleteBlock` hiernaast.
+ * `stats: null` is the server's answer to a failed reading, and a row without the
+ * field is the same. Both become `null` — never 0. "312 conversations" and "the
+ * number could not be read" are different sentences, and the second may not be read
+ * as the first with a nought. Same rule as `countOrNothing` in
+ * builderSplit/AgentEditorHeader.jsx and as `summariseDeleteBlock` next door.
  *
- * Voor "gebruikt door" geldt dezelfde regel twee keer:
- *   - zonder `?usage=1` is het veld AFWEZIG, en dan zegt de voet er niets
- *     over (afwezig ≠ "door niets gebruikt");
- *   - `usage.partial` noemt de soorten die niemand kon controleren, en die
- *     tellen niet als nul — ze krijgen hun eigen halve zin.
+ * For "used by" the same rule applies twice:
+ *   - without `?usage=1` the field is ABSENT, and then the footer says nothing
+ *     about it (absent ≠ "used by nothing");
+ *   - `usage.partial` names the kinds that nobody could check, and those do not count
+ *     as zero — they get their own half sentence.
  *
- * Zuiver en zonder rendering, zoals ./deleteBlock.ts: de woorden staan in
- * AgentCardFooter.jsx, waar de i18n-guard de sleutels kan lezen.
+ * Pure and without rendering, like ./deleteBlock.ts: the words stand in
+ * AgentCardFooter.jsx, where the i18n guard can read the keys.
  */
 
-// Dezelfde zes soorten in dezelfde volgorde als de verwijderdialoog, uit
-// dezelfde spiegel van stores/agent/agentUsage.js KINDS. Eén lijst voor beide
-// schermen; een zevende soort die de server later toevoegt komt via `counts`
-// binnen en wordt onder zijn eigen naam gemeld in plaats van weggelaten.
+// The same six kinds in the same order as the delete dialog, from the same mirror of
+// stores/agent/agentUsage.js KINDS. One list for both screens; a seventh kind that the
+// server adds later comes in through `counts` and is reported under its own name instead
+// of being left out.
 import { USAGE_KINDS } from './deleteBlock';
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -86,19 +83,17 @@ export interface CardFooterSummary {
 }
 
 /**
- * Een eindig, niet-negatief geheel getal, of `null`. Nooit een 0 uit niets.
+ * A finite, non-negative integer, or `null`. Never a 0 out of nothing.
  *
- * De zeef vooraf is het hele punt: `Number(null)`, `Number('')` en
- * `Number(false)` zijn alle drie `0` — eindig en ≥ 0 — dus zonder die zeef
- * leest een per-veld-null (een LEFT JOIN die wegvalt, een COALESCE die
- * verdwijnt) als de BEWERING "0 gesprekken" in plaats van "kon niet gelezen
- * worden". Dezelfde zeef die `documentCountOf` in
- * server/routes/studio/attentionChecks.js voor zet.
+ * The sieve up front is the whole point: `Number(null)`, `Number('')` and `Number(false)`
+ * are all three `0` — finite and ≥ 0 — so without that sieve a per-field null (a LEFT JOIN
+ * that drops out, a COALESCE that disappears) would read as the CLAIM "0 conversations"
+ * instead of "could not be read". The same sieve that `documentCountOf` in
+ * server/routes/studio/attentionChecks.js puts up front.
  */
 function countOrNull(value: unknown) {
-    // Alleen een getal, of een string die er een is. Alles wat `Number()`
-    // buiten die twee soorten stilzwijgend 0 noemt (`null`, `''`, `false`,
-    // `[]`) is hier ONBEKEND.
+    // Only a number, or a string that is one. Anything that `Number()` silently turns into 0
+    // outside those two kinds (`null`, `''`, `false`, `[]`) is UNKNOWN here.
     const numeric = typeof value === 'number'
         || (typeof value === 'string' && value.trim() !== '');
     if (!numeric) return null;
@@ -107,14 +102,13 @@ function countOrNull(value: unknown) {
 }
 
 /**
- * Het oordeel van de server over waar deze agent op gegrond is.
+ * The server's judgement about what this agent is grounded on.
  *
- * ALLEEN het woord dat de server stuurde telt. `grounding` afwezig (een
- * oudere client, een lijst die het veld niet draagt), geen object, of een
- * `verdict` die dit bestand niet kent ⇒ `null` = "niet vastgesteld", en daar
- * hoort zwijgen bij, geen waarschuwing. De assen (`kb`/`tables`/`web`) reizen
- * mee voor context maar worden hier NIET opnieuw tot een oordeel verwerkt —
- * dat zou de tweede implementatie zijn die dit bestand vermijdt.
+ * ONLY the word that the server sent counts. `grounding` absent (an older client, a list
+ * that does not carry the field), not an object, or a `verdict` that this file does not
+ * know ⇒ `null` = "not established", and silence belongs with that, not a warning. The
+ * axes (`kb`/`tables`/`web`) travel along for context but are NOT processed again into a
+ * judgement here — that would be the second implementation that this file avoids.
  *
  */
 export function groundingVerdictOf(agent: unknown): 'grounded' | 'ungrounded' | null {
@@ -132,15 +126,13 @@ function kindOrder(kind: string) {
 const byKind = (a: string, b: string) => kindOrder(a) - kindOrder(b) || String(a).localeCompare(String(b));
 
 /**
- * De "gebruikt door"-helft: wat er gevonden is, en wat niemand kon
- * controleren.
+ * The "used by" half: what was found, and what nobody could check.
  *
- * Drie uitkomsten, niet twee. Het veld is er alleen met `?usage=1`, en
- * afwezig ⇒ er wordt niets over gezegd; een leeg object zou "door niets
- * gebruikt" beweren over een pass die nooit liep. Een soort in `partial` is
- * geen nul, en een `partial` die zelf geen lijst is, is een onleesbaar
- * antwoord over ALLE soorten — dezelfde smalle lezing die
- * `summariseDeleteBlock` hiernaast maakt.
+ * Three outcomes, not two. The field is there only with `?usage=1`; absent ⇒ nothing is
+ * said about it, and an empty object would claim "used by nothing" about a pass that never
+ * ran. A kind in `partial` is not zero, and a `partial` that is itself not a list is an
+ * unreadable answer about ALL kinds — the same narrow reading that `summariseDeleteBlock`
+ * next door makes.
  */
 function usageHalf(usage: unknown) {
     if (!isObj(usage)) return { usageAsked: false, usedBy: [], unchecked: [] };
@@ -158,17 +150,16 @@ function usageHalf(usage: unknown) {
 }
 
 /**
- * Mag deze voet "alleen jij" zeggen?
+ * May this footer say "only you"?
  *
- * Vier voorwaarden, en alle vier zijn bewijs voor die ene bewering: de agent is
- * niet gepubliceerd (niemand anders kan er nu bij), jij bent de eigenaar, en er
- * staat GEEN gesprek van iemand anders in — geteld, niet aangenomen.
- * `is_published` mag niet ONTBREKEN: afwezig is onbekend, en onbekend versmalt
- * naar de neutrale vorm.
+ * Four conditions, and all four are evidence for that one claim: the agent is not published
+ * (nobody else can reach it now), you are the owner, and NO conversation by someone else is
+ * in there — counted, not assumed. `is_published` may not be MISSING: absent is unknown, and
+ * unknown narrows to the neutral form.
  *
- * `others === null` blokkeert de vorm. Dat is het geval waarin de server niet
- * wist wie er keek (geen `excludeUserId`), en dan is de FILTER over álle rijen
- * gelopen: een 0 zou daar "niemand anders" beweren zonder bewijs.
+ * `others === null` blocks the form. That is the case in which the server did not know who
+ * was looking (no `excludeUserId`), and then the FILTER ran over all rows: a 0 would claim
+ * "nobody else" there without evidence.
  */
 function onlyYou(row: Record<string, unknown> | null, viewerId: string | null, others: number | null) {
     const published = row?.is_published ?? row?.isPublished;
@@ -178,26 +169,24 @@ function onlyYou(row: Record<string, unknown> | null, viewerId: string | null, o
 }
 
 /**
- * Mag de waarschuwing "antwoordt uit het hoofd" op deze rij?
+ * May the "answers from memory" warning appear on this row?
  *
- * Het CRITERIUM staat op de server (core/agentRuntime/agentGrounding.js) en
- * wordt hier alleen gelezen. Wat hier staat is de AFBAKENING, en die is een
- * spiegel van de `WHERE` van Studio's aandachtslijst
- * (routes/studio/attentionChecks.js: `owner_id NOT IN ('system','swarm') AND
- * is_published = TRUE`). Twee redenen om hem over te nemen:
+ * The CRITERION is on the server (core/agentRuntime/agentGrounding.js) and is only read
+ * here. What stands here is the BOUNDARY, and that is a mirror of the `WHERE` of Studio's
+ * attention list (routes/studio/attentionChecks.js: `owner_id NOT IN ('system','swarm') AND
+ * is_published = TRUE`). Two reasons to take it over:
  *
- *   - een concept zonder kennisbank is een agent die GEBOUWD wordt, en dat
- *     melden levert ruis op elke net aangemaakte kaart. Zonder deze grens
- *     schreeuwde het overzicht over agents waar Start bewust over zwijgt;
- *   - `is_published` mag niet ONTBREKEN: onbekend versmalt naar zwijgen.
+ *   - a draft without a knowledge base is an agent that is being BUILT, and reporting that
+ *     makes noise on every newly created card. Without this boundary the overview shouted
+ *     about agents that the start screen deliberately stays silent about;
+ *   - `is_published` may not be MISSING: unknown narrows to silence.
  *
- * En één afbakening die H3 niet heeft maar deze kaart wél nodig heeft: de
- * grounding is berekend over de CONCEPT-config. Voor een rij met
- * `published_version > 0` serveert de runtime `published_config`, en die blob
- * verlaat de store nooit (`agentCrud._stripPublishedBlobs`). Pal onder een pil
- * die "LIVE v8" zegt een uitspraak doen over een versie die niet draait is een
- * tegenspraak op één kaart, dus daar zwijgt de voet. Voor H3 — een werklijst
- * voor de bouwer — is het concept juist de goede kolom; vandaar het verschil.
+ * And one boundary that H3 does not have but this card does need: the grounding is calculated
+ * over the DRAFT config. For a row with `published_version > 0` the runtime serves
+ * `published_config`, and that blob never leaves the store (`agentCrud._stripPublishedBlobs`).
+ * Directly under a pill that says "LIVE v8", making a statement about a version that is not
+ * running is a contradiction on one card, so the footer is silent there. For H3 — a work list
+ * for the builder — the draft is precisely the right column; hence the difference.
  */
 function warnsUngrounded(row: Record<string, unknown> | null) {
     if (groundingVerdictOf(row) !== 'ungrounded') return false;
@@ -208,20 +197,19 @@ function warnsUngrounded(row: Record<string, unknown> | null) {
 }
 
 /**
- * Wat er in de voet van deze kaart staat.
+ * What is stated in the footer of this card.
  *
- * @param agent  één rij van GET /agents/all
- * @param viewerId  wie er kijkt; zonder dat kan "alleen jij"
- *   niet waar zijn en verschijnt die vorm niet
+ * @param agent  one row of GET /agents/all
+ * @param viewerId  who is looking; without this "only you" cannot be true
+ *   and that form does not appear
  */
 export function summariseCardFooter(agent: unknown, viewerId: string | null = null): CardFooterSummary {
     const row = isObj(agent) ? agent : null;
 
-    // DRIE ANTWOORDEN, NIET TWEE. Een rij ZONDER het veld `stats` komt van een
-    // route die de tellingen nooit uitrekende (/agents/system) — daar valt
-    // niets over te zeggen. `stats: null` is een route die het WEL probeerde en
-    // faalde, en dat verdient woorden. Een 0 die de server geteld heeft blijft
-    // een 0.
+    // THREE ANSWERS, NOT TWO. A row WITHOUT the `stats` field comes from a route that never
+    // calculated the counts (/agents/system) — there is nothing to say about that. `stats: null`
+    // is a route that DID try and failed, and that deserves words. A 0 that the server counted
+    // stays a 0.
     const statsAsked = !!row && 'stats' in row;
     const stats = isObj(row?.stats) ? row.stats : null;
     const conversations = stats ? countOrNull(stats.conversationCount) : null;
@@ -229,9 +217,9 @@ export function summariseCardFooter(agent: unknown, viewerId: string | null = nu
     const others = stats ? countOrNull(stats.othersConversationCount) : null;
     const facts = { statsAsked, conversations, people, ...usageHalf(row?.usage) };
 
-    // De waarschuwing gaat vóór: het is de enige van de drie die om iets
-    // vraagt. Alleen een HARD 'ungrounded' van de server telt, en alleen binnen
-    // de afbakening hierboven; "niet vastgesteld" waarschuwt niet.
+    // The warning goes first: it is the only one of the three that asks for something. Only a
+    // HARD 'ungrounded' from the server counts, and only within the boundary above; "not
+    // established" does not warn.
     if (warnsUngrounded(row)) return { variant: 'ungrounded', ...facts };
     if (onlyYou(row, viewerId, others)) return { variant: 'private', ...facts };
     return { variant: 'counts', ...facts };

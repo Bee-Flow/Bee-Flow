@@ -112,7 +112,7 @@ export default function FindingRow({
                             data-testid="playbook-compliance-target"
                             data-kind={target.kind}
                         >
-                            {TargetIcon && <TargetIcon className="w-3 h-3 shrink-0" style={{ color: 'var(--type-ai)' }} aria-hidden="true" />}
+                            {TargetIcon && <TargetIcon className="w-3 h-3 shrink-0 [color:var(--type-ai)]" aria-hidden="true" />}
                             <span className="truncate max-w-[220px]">{target.name}</span>
                             <ExternalLink className="w-2.5 h-2.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                         </button>
@@ -149,7 +149,7 @@ export default function FindingRow({
                             <ul className="mt-1 space-y-0.5">
                                 {(plan.what || []).map((line, i) => (
                                     <li key={i} className="flex items-start gap-1.5" style={{ fontSize: presenter ? 13 : 11, color: 'var(--text-secondary)' }}>
-                                        <Check className="w-3 h-3 mt-0.5 shrink-0" style={{ color: 'var(--type-ai)' }} aria-hidden="true" />
+                                        <Check className="w-3 h-3 mt-0.5 shrink-0 [color:var(--type-ai)]" aria-hidden="true" />
                                         {line}
                                     </li>
                                 ))}

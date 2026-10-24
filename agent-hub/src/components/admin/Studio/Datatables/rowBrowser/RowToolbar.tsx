@@ -27,7 +27,7 @@ function RowSearch({ pages }: { pages: RowPages }) {
             className="flex items-center gap-1.5"
             onSubmit={(e) => { e.preventDefault(); search(query.trim()); }}
         >
-            <label className="relative block" style={{ width: 260 }}>
+            <label className="relative block w-[260px]">
                 <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-tertiary)]" aria-hidden="true" />
                 <input
                     value={query}

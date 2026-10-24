@@ -11,16 +11,7 @@ import Pager from './Pager';
  * "Rows 1–12 of 0".
  */
 
-vi.mock('../../hooks/useTranslation', () => {
-    const useTranslation = () => ({
-        t: (key, fallback, vars) => {
-            const base = typeof fallback === 'string' ? fallback : key;
-            return vars ? Object.entries(vars).reduce((s, [k, v]) => s.replace(`{${k}}`, String(v)), base) : base;
-        },
-        locale: 'en',
-    });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 describe('Pager', () => {
     it('first page of 93 by 12: "Rows 1–12 of 93", Previous disabled, Next live', () => {

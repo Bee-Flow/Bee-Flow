@@ -15,40 +15,37 @@ interface ConceptFacts {
 }
 
 /**
- * De twee feiten die de editorkop nodig heeft en de agentenLIJST niet draagt.
+ * The two facts that the editor heading needs and that the agent LIST does not carry.
  *
- * `GET /agents/all` levert de rij via `parseConfig`, en die strippt de
- * `persona`-kolom (stores/agent/agentCrud.js: een persona is een
- * EDITOR-artefact en verlaat de store alleen waar een editor erom vraagt).
- * `unpublishedChanges` wordt pas in `GET /agents/:id` uitgerekend. Zonder die
- * ene extra lezing zou de taalchip in de hero nooit verschijnen behalve na de
- * eerste opslag — de PUT antwoordt namelijk wél met de conceptweergave.
+ * `GET /agents/all` delivers the row via `parseConfig`, and that strips the
+ * `persona` column (stores/agent/agentCrud.js: a persona is an EDITOR artefact and
+ * leaves the store only where an editor asks for it). `unpublishedChanges` is only
+ * calculated in `GET /agents/:id`. Without that one extra read, the language chip
+ * in the hero would never appear except after the first save, because the PUT does
+ * answer with the draft view.
  *
- * ── WAAROM `?draft=1` ───────────────────────────────────────────────
- * Zonder die parameter gaf deze hook ALTIJD `persona: null` terug, en dat is
- * geen degradatie maar het antwoord op een andere vraag. `GET /agents/:id`
- * kent twee weergaven (routes/agents/crud.js): alleen `draft=1` én bewerkrecht
- * levert het CONCEPT — met de persona-kolom; elke andere aanvraag krijgt de
- * runtime-projectie, en daar haalt `parseConfig` → `_stripPersona` de kolom
- * juist uit. De taalchip die deze hook bestaat om te tonen kwam dus nooit vóór
- * de eerste opslag, en de rolkaarten (A3) zouden precies dezelfde stilte
- * krijgen.
+ * ── WHY `?draft=1` ─────────────────────────────────────────────────
+ * Without that parameter this hook ALWAYS returned `persona: null`. That is not a
+ * degradation but the answer to a different question. `GET /agents/:id` has two
+ * views (routes/agents/crud.js): only `draft=1` plus edit rights yields the DRAFT,
+ * with the persona column. Every other request gets the runtime projection, and
+ * there `parseConfig` → `_stripPersona` strips the column out. So the language chip
+ * that this hook exists to show never appeared before the first save, and the role
+ * cards (A3) would get exactly the same silence.
  *
- * De parameter is meteen de juiste VERSMALLING: zonder bewerkrecht valt de
- * server terug op de runtime-weergave, dus dan komt er nog steeds geen persona
- * mee. Afwezig blijft daar "onbekend" — zie `personaState` hieronder — en niet
- * "deze agent heeft geen rol".
+ * The parameter is at the same time the right NARROWING: without edit rights the
+ * server falls back to the runtime view, so no persona comes along either. Absence
+ * there remains "unknown" (see `personaState` below), not "this agent has no role".
  *
- * Deze hook is met opzet SMAL:
- *   - hij leest, hij schrijft nooit terug in stateRef of in een bewerkveld;
- *   - hij draait één keer per agent-id, niet per opslag;
- *   - een mislukte lezing levert `null`, geen leeg object. "Ik weet het niet"
- *     en "er is er geen" moeten uit elkaar te houden blijven, want de
- *     consument tekent op het eerste geen chip en op het tweede ook niet —
- *     maar een teller die dat verschil wél gebruikt mag hier niet op een 0
- *     stuiten die niemand gemeten heeft. `personaState` maakt dat verschil
- *     expliciet: LOADING zolang de lezing loopt, ERROR als hij mislukte of
- *     als het antwoord geen persona droeg, OK zodra er een is.
+ * This hook is deliberately NARROW:
+ *   - it reads, and it never writes back into stateRef or into an edit field;
+ *   - it runs once per agent id, not per save;
+ *   - a failed read yields `null`, not an empty object. "I don't know" and "there
+ *     is none" must stay distinguishable. The consumer draws no chip in either
+ *     case, but a counter that does use that difference must not hit a 0 here
+ *     that nobody measured. `personaState` makes that difference explicit: LOADING
+ *     while the read is running, ERROR if it failed or if the answer carried no
+ *     persona, OK as soon as there is one.
  */
 export default function useAgentConceptFacts(agentId: string | null) {
     const [facts, setFacts] = useState<ConceptFacts>({ id: null, persona: null, state: READ.LOADING, unpublishedChanges: null });
@@ -69,15 +66,15 @@ export default function useAgentConceptFacts(agentId: string | null) {
                 setFacts({
                     id: agentId,
                     persona,
-                    // Geen persona in het antwoord = de runtime-weergave, en die
-                    // draagt hem nooit. Dat is ONBEKEND, niet leeg.
+                    // No persona in the answer = the runtime view, and that
+                    // never carries one. That is UNKNOWN, not empty.
                     state: persona ? READ.OK : READ.ERROR,
                     unpublishedChanges: Number.isFinite(changes) ? changes : null,
                 });
                 return undefined;
             } catch (_) {
-                // Niet-fataal: de kop toont dan gewoon geen taalchip. Nooit een
-                // verzonnen waarde in de plaats.
+                // Non-fatal: the heading then simply shows no language chip. Never an
+                // invented value in its place.
                 if (!ctrl.signal.aborted) fail();
                 return undefined;
             }
@@ -85,8 +82,8 @@ export default function useAgentConceptFacts(agentId: string | null) {
         return () => { alive = false; try { ctrl.abort(); } catch (err) { logger.debug('noop', err); } };
     }, [agentId]);
 
-    // Feiten van een VORIGE agent horen niet bij deze; tijdens het wisselen is
-    // het antwoord "nog niet bekend".
+    // Facts of a PREVIOUS agent do not belong to this one. While switching,
+    // the answer is "not yet known".
     if (facts.id !== agentId) return { persona: null, personaState: READ.LOADING, unpublishedChanges: null };
     return { persona: facts.persona, personaState: facts.state, unpublishedChanges: facts.unpublishedChanges };
 }

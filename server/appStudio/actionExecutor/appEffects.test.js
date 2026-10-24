@@ -1,15 +1,14 @@
 /**
- * Wat de app terugkrijgt: `output` én `_appEffects`, uit ÉÉN pass over de
- * runstappen.
+ * What the app receives: `output` and `_appEffects`, from ONE pass over the run steps.
  *
- * ── DE BOTSING DIE HIER WORDT VOORKOMEN ────────────────────────────────────
- * `deriveFinalOutput` levert "de output van de LAATST uitgevoerde TOP-LEVEL
- * stap", en een `return_to_app` IS per constructie die laatste stap. Zonder een
- * uitzondering zou dus élke bestaande `actionResult`-binding in élke app van de
- * ene dag op de andere niet meer de data van de automatisering lezen maar het
- * effectenobject — geruisloos, op het moment dat iemand een terugkeerstap
- * toevoegt. Daarom staat `return_to_app` in NON_ANSWER_STEP_TYPES, naast
- * `trigger` en `wait`, en reizen de effecten in hun eigen veld.
+ * ── THE COLLISION THIS PREVENTS ────────────────────────────────────────────
+ * `deriveFinalOutput` yields "the output of the LAST executed TOP-LEVEL
+ * step", and a `return_to_app` IS by construction that last step. Without an
+ * exception, every existing `actionResult` binding in every app would, from one
+ * day to the next, read not the automation's data but the effects object, silently,
+ * the moment someone adds a return step. That is why `return_to_app` is in
+ * NON_ANSWER_STEP_TYPES, next to `trigger` and `wait`, and the effects travel in
+ * their own field.
  *
  * Run: cd server && node --test appStudio/actionExecutor/appEffects.test.js
  */
@@ -74,9 +73,8 @@ test('the LAST top-level return wins, and a nested row is never one', async () =
     const other = { toast: { message: 'Second', tone: 'info' }, onError: 'stay' };
     await withSteps([
         ...ROWS,
-        // Een regel uit een flowlet/Step: execCallLayer zet `parentStepId`
-        // ('cl1/out' → 'cl1'), dus dit is de vorm die de runner daar ECHT
-        // schrijft.
+        // A line from a flowlet/Step: execCallLayer sets `parentStepId`
+        // ('cl1/out' → 'cl1'), so this is the shape the runner ACTUALLY writes there.
         { stepId: 'l1.r', stepType: 'return_to_app', parentStepId: 'l1', output: { _appEffects: { toast: { message: 'nested' } } } },
         { stepId: 'r2', stepType: 'return_to_app', parentStepId: null, output: { _appEffects: other } },
     ], async () => {
@@ -86,21 +84,19 @@ test('the LAST top-level return wins, and a nested row is never one', async () =
 });
 
 /**
- * DE PARALLELLE TAK — de enige geneste plek die ECHT runregels oplevert.
+ * THE PARALLEL BRANCH: the only nested place that ACTUALLY yields run rows.
  *
- * `parentStepId` alleen is niet genoeg, en dat was de stille aanname onder deze
- * scan. execCallLayer/execCallBlock zetten hem; execParallel NIET: die draait de
- * tak met `recordSteps:true` en laat `ctx.stepRecord` ongemoeid, dus een regel
- * uit een tak komt binnen met `parentStepId: null` en telde als top-level. En
- * een loop-body schrijft überhaupt geen regel (`recordSteps:false`), dus de
- * enige geneste vorm die hier langskomt was precies de vorm die er doorheen
- * glipte.
+ * `parentStepId` alone is not enough, and that was the silent assumption under this scan.
+ * execCallLayer/execCallBlock set it; execParallel does NOT. It runs the branch with
+ * `recordSteps:true` and leaves `ctx.stepRecord` untouched, so a row from a branch arrives
+ * with `parentStepId: null` and counted as top-level. And a loop body writes no row at all
+ * (`recordSteps:false`), so the only nested shape that came through here was exactly the
+ * shape that slipped through.
  *
- * De validator weigert een `return_to_app` daar sinds P4 hard
- * (`return_to_app.nested_forbidden`), maar een definitie van vóór die regel of
- * met de hand geschreven komt hier nog steeds langs — en dan zou de app "we
- * zijn klaar, ga hierheen" krijgen terwijl de andere takken en alles ná de
- * parallel nog draaien.
+ * The validator has refused a `return_to_app` there hard since P4
+ * (`return_to_app.nested_forbidden`), but a definition from before that rule, or one written
+ * by hand, still comes through here. Then the app would get "we are done, go there" while the
+ * other branches and everything after the parallel still run.
  */
 test('een return in een PARALLELLE TAK telt niet als top-level — die run is niet klaar', async () => {
     await withSteps([
@@ -127,13 +123,13 @@ test('…terwijl dezelfde regel ZONDER branchIndex wel telt — anders bewijst d
 });
 
 /**
- * EEN MISLUKTE LEES IS GEEN "GEEN INSTRUCTIES".
+ * A FAILED READ IS NOT "NO INSTRUCTIONS".
  *
- * Als `getRunSteps` gooit (DB-hik, timeout) was het antwoord byte-identiek aan
- * dat van een automatisering zónder terugkeerstap: `_appEffects` ontbreekt gewoon in
- * het runbody, de bezoeker ziet niets gebeuren en er is geen enkel spoor. Voor
- * `output` was dat bestaand gedrag; aan diezelfde stille tak hangt sinds P4 een
- * NIEUWE belofte. De vlag reist mee, zodat de app het kan zeggen.
+ * If `getRunSteps` throws (DB hiccup, timeout), the answer was byte-identical to that of an
+ * automation without a return step: `_appEffects` is simply missing from the run body, the
+ * visitor sees nothing happen, and there is no trace at all. For `output` that was existing
+ * behaviour; since P4 a NEW promise hangs on that same silent branch. The flag travels along
+ * so the app can say so.
  */
 test('een stappenlees die omvalt zegt dat, in plaats van "er waren geen instructies"', async () => {
     const orig = automationStore.getRunSteps;
@@ -159,12 +155,11 @@ test('een GESLAAGDE lees zegt niets over onbekend — de vlag is er alleen bij e
 });
 
 test('het runbody draagt de vlag als een eigen veld, niet als een leeg _appEffects', () => {
-    // Bewust brontekst: routes/studioAppsRun.js is een Express-router met een
-    // stapel eigen afhankelijkheden (rlsGateway, actionExecutor, runEventBus,
-    // rate limiters, …). De volle bedrading staat al apart getest in
-    // routes/studioAppsRun.test.js (1000+ regels, buiten dit bestand); die
-    // hier verdubbelen zou dit bestand — dat over de AFLEIDING gaat, niet over
-    // de route — met dezelfde omvang bezwaren.
+    // Deliberately source text: routes/studioAppsRun.js is an Express router with a
+    // pile of its own dependencies (rlsGateway, actionExecutor, runEventBus,
+    // rate limiters, …). The full wiring is already tested separately in
+    // routes/studioAppsRun.test.js (1000+ lines, outside this file); duplicating it here would
+    // give this file, which is about the DERIVATION and not the route, the same size objections.
     const fs = require('node:fs');
     const path = require('node:path');
     const src = fs.readFileSync(path.resolve(__dirname, '../../routes/studioAppsRun.js'), 'utf8');

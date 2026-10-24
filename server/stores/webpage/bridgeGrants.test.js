@@ -1,14 +1,13 @@
 /**
- * Round-trip door updateBridgeGrants: wat erin gaat, komt eruit.
+ * Round trip through updateBridgeGrants: what goes in comes out.
  *
- * De kolom `bridge_grants` wordt bij ELKE lees- en schrijfbeurt uit een vaste
- * sleutelset herbouwd (normalizeBridgeGrants). Een sleutel die daar niet in
- * staat wordt stil weggegooid — dus zolang die set niet klopt, bestaat alles
- * wat de rest van W3 opslaat simpelweg niet. Deze test zet de hele set door de
- * echte schrijf- en leesweg heen, inclusief JSON-serialisatie.
+ * The column `bridge_grants` is rebuilt from a fixed key set on EVERY read and write
+ * (normalizeBridgeGrants). A key that is not in that set is silently thrown away — so as long as
+ * that set is not right, nothing the rest of W3 stores exists at all. This test pushes the whole
+ * set through the real write and read path, including JSON serialisation.
  *
- * De pure vormtests (versmallen bij onleesbare invoer) staan in
- * stores/webpageStore.grants.test.js; hier gaat het om het BEWAARD BLIJVEN.
+ * The pure shape tests (narrowing on unreadable input) are in stores/webpageStore.grants.test.js;
+ * here it is about SURVIVING the round trip.
  *
  * Run: node --test --test-force-exit stores/webpage/bridgeGrants.test.js
  */
@@ -16,10 +15,10 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-// ── db-stub: één in-memory kolom ─────────────────────────────────────
-// Stub vóór het requiren van de store, zodat er bij import niets naar een
-// echte database reikt. De stub houdt de kolom vast als STRING, precies zoals
-// Postgres hem teruggeeft, zodat de round-trip ook door JSON.parse loopt.
+// ── db stub: one in-memory column ─────────────────────────────────────
+// Stub before requiring the store, so that nothing reaches a real database on import. The stub
+// holds the column as a STRING, exactly as Postgres returns it, so the round trip also goes
+// through JSON.parse.
 
 let column = null;      // de opgeslagen bridge_grants (JSON-string of null)
 let rowExists = true;
@@ -32,8 +31,8 @@ require.cache[dbPath] = {
         exec: async () => {},
         run: async (sql, params) => {
             if (/UPDATE webpages SET bridge_grants = \$1/.test(sql)) {
-                // Eigendom zit in de WHERE van het echte statement; de stub
-                // bootst precies dat na: een vreemde schrijver raakt niets.
+                // Ownership sits in the WHERE of the real statement; the stub reproduces exactly that:
+                // a foreign writer touches nothing.
                 if (!rowExists || params[2] !== OWNER) return { rowCount: 0 };
                 column = params[0];
                 return { rowCount: 1 };
@@ -81,21 +80,20 @@ test('round trip — every kind survives the write and the read back', async () 
 
     assert.deepStrictEqual(back, written, 'lezen levert exact op wat schrijven teruggaf');
 
-    // De twee nieuwe soorten, veld voor veld — dit is de reden dat deze stap
-    // vóór de rest van W3 komt.
+    // The two new kinds, field by field — this is the reason this step comes before the rest of W3.
     assert.deepStrictEqual(back.tables, [
         { datatableId: 'tbl_1', mode: 'readwrite', columns: ['email', 'name'], publicColumns: ['name'] },
         { datatableId: 'tbl_2', mode: 'read', columns: ['status'], publicColumns: [] },
     ]);
     assert.deepStrictEqual(back.agent, { agentId: 'agt_1' });
 
-    // En de drie oude soorten zijn niet stiekem gesneuveld.
+    // And the three old kinds have not secretly been broken.
     assert.deepStrictEqual(back.automations, [{ automationId: 'aut_1', label: 'Nightly' }]);
     assert.deepStrictEqual(back.integrations, [{ tool: 'gmail_send', fixedArgs: { to: 'x@example.com' }, label: 'Mail' }]);
     assert.strictEqual(back.ai.publicEnabled, true);
     assert.strictEqual(back.ai.publicSpendCapUsd, 7);
 
-    // Het is echt door de kolom heen gegaan, niet door een object-referentie.
+    // It really went through the column, not through an object reference.
     assert.strictEqual(typeof column, 'string');
     assert.deepStrictEqual(JSON.parse(column), written);
 });
@@ -145,8 +143,8 @@ test('narrowing happens on the way IN, so a read can never widen it', async () =
         { datatableId: 'tbl_1', mode: 'read', columns: [], publicColumns: [] },
     ]);
     assert.deepStrictEqual(back.agent, { agentId: 'agt_1' });
-    // De versmalde vorm staat ook ECHT zo in de kolom — een latere lezer die
-    // de normalizer omzeilt kan er niets ruimers uit halen.
+    // The narrowed shape really is stored THAT way in the column — a later reader that bypasses
+    // the normaliser cannot get anything wider out of it.
     assert.ok(!column.includes('bsn'));
     assert.ok(!column.includes('readwrite'));
     assert.ok(!column.includes('publicEnabled":true'));
@@ -154,7 +152,7 @@ test('narrowing happens on the way IN, so a read can never widen it', async () =
 
 test('a column written before W3 reads back as "nothing granted"', async () => {
     reset();
-    // Zoals een bestaande rij er nu uitziet: drie sleutels, geen tables/agent.
+    // How an existing row looks now: three keys, no tables/agent.
     column = JSON.stringify({ ai: { enabled: true }, automations: [], integrations: [] });
 
     const back = await getBridgeGrants('wp1');
@@ -175,23 +173,22 @@ test('a write by someone who does not own the page changes nothing', async () =>
 });
 
 test('the default shape a fresh page is created with grants nothing new', () => {
-    // webpages.js schrijft DEFAULT_BRIDGE_GRANTS bij het klonen van een pagina.
+    // webpages.js writes DEFAULT_BRIDGE_GRANTS when cloning a page.
     assert.deepStrictEqual(DEFAULT_BRIDGE_GRANTS.tables, []);
     assert.strictEqual(DEFAULT_BRIDGE_GRANTS.agent, null);
 });
 
 test('the fallback shape in shared.js mirrors the normalizer, key for key', () => {
-    // shared.js is een leaf-module en kan bridgeGrants.js niet importeren (dat
-    // zou een cyclus zijn), dus de terugval voor een rij zonder kolom staat
-    // daar als literal. Precies zo'n kopie drift stilletjes weg — vandaar deze
-    // vergelijking met de echte vorm.
+    // shared.js is a leaf module and cannot import bridgeGrants.js (that would be a cycle), so the
+    // fallback for a row without a column is there as a literal. Exactly such a copy quietly drifts
+    // away — hence this comparison with the real shape.
     const { mapWebpageRow } = require('./shared');
     const fallback = mapWebpageRow({ id: 'w', user_id: 'u', bridge_grants: null }).bridgeGrants;
 
     assert.deepStrictEqual(Object.keys(fallback).sort(), Object.keys(DEFAULT_BRIDGE_GRANTS).sort());
     assert.deepStrictEqual(fallback.tables, []);
     assert.strictEqual(fallback.agent, null);
-    // En de terugval mag nooit ruimer zijn dan wat de normalizer ervan maakt.
+    // And the fallback may never be wider than what the normaliser makes of it.
     const narrowed = normalizeBridgeGrants(fallback);
     assert.deepStrictEqual(narrowed.tables, []);
     assert.strictEqual(narrowed.agent, null);

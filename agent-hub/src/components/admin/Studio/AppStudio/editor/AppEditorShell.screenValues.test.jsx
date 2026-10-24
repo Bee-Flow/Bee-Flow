@@ -3,28 +3,24 @@ import { fireEvent, render as rtlRender, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 /**
- * DE DRAAD TUSSEN HET SCHERM EN DE TESTKNOP — end-to-end, in de modus waarin
- * die knop echt bestaat.
+ * THE THREAD BETWEEN THE SCREEN AND THE TEST BUTTON — end-to-end, in the mode in which that button
+ * really exists.
  *
- * De store (ScreenValuesContext) en de payloadbouwer (inspector/testPayload)
- * zijn allebei los grondig getest, en de LOCKSTEP-test ernaast bewijst dat
- * AppForm publiceert onder de sleutel die de inspector leest. Wat NIEMAND
- * bewees, was de draad ertussen:
+ * The store (ScreenValuesContext) and the payload builder (inspector/testPayload) are both thoroughly
+ * tested on their own, and the LOCKSTEP test alongside them proves that AppForm publishes under the key
+ * that the inspector reads. What NOBODY proved was the thread between them:
  *
- *   1. `Canvas` geeft `registerFormValue` door aan zijn AppRenderer — en deed
- *      dat alleen in de PREVIEW-tak. De inspector, en dus "Test with what is
- *      on screen", bestaat juist alleen in BEWERK-modus
- *      (`mode === 'edit' && editorView === 'edit'`), dus de store kreeg in
- *      precies die modus nooit iets binnen: elke {kind:'field'}-parameter viel
- *      weg met de reden "dat formulier staat niet op de canvas" — over een
- *      formulier dat er zichtbaar wél stond.
- *   2. `screenValues?.publish(...)` in diezelfde callback. Die regel weghalen
- *      liet 780 tests in editor/ en inspector/ groen.
+ *   1. `Canvas` passes `registerFormValue` through to its AppRenderer — and did so only in the PREVIEW
+ *      branch. The inspector, and therefore "Test with what is on screen", exists only in EDIT mode
+ *      (`mode === 'edit' && editorView === 'edit'`), so the store in precisely that mode never received
+ *      anything: every {kind:'field'} parameter dropped out with the reason "that form is not on the
+ *      canvas" — about a form that was visibly there.
+ *   2. `screenValues?.publish(...)` in that same callback. Removing that line left 780 tests in editor/
+ *      and inspector/ green.
  *
- * Vandaar deze test: de ECHTE shell, de ECHTE canvas in bewerk-modus, de ECHTE
- * store. De inspector is vervangen door een sonde die de store uitleest zoals
- * ActionsSection dat doet — dat is het enige stuk dat hier gemockt wordt, want
- * de vraag is niet wat de inspector tekent maar wat hij te lezen krijgt.
+ * Hence this test: the REAL shell, the REAL canvas in edit mode, the REAL store. The inspector is replaced
+ * by a probe that reads the store the way ActionsSection does — that is the only piece mocked here,
+ * because the question is not what the inspector draws but what it gets to read.
  */
 
 const render = (ui, options) => rtlRender(
@@ -49,19 +45,17 @@ vi.mock('../studioAppsApi', () => {
 // De sonde staat op de plek van de inspector en leest de store langs dezelfde
 // weg als ActionsSection: `useScreenValues()` → `readForm(<formuliernaam>)`.
 vi.mock('../inspector/InspectorPanel', async () => {
-    // Async-factory: `vi.mock` wordt boven de imports gehesen, dus de echte
-    // context wordt hier binnengehaald in plaats van uit een bovenliggende
-    // binding gelezen.
+    // Async factory: `vi.mock` is hoisted above the imports, so the real context is fetched in here
+    // instead of being read from an enclosing binding.
     const { useScreenValues } = await import('./ScreenValuesContext');
     const { useState } = await import('react');
     return {
-        // Een benoemde component: de hooks-regel van eslint herkent een
-        // anonieme pijlfunctie niet als React-component en wijst de hooks af.
+        // A named component: the eslint hooks rule does not recognise an anonymous arrow function as a
+        // React component and rejects the hooks.
         default: function ScreenValuesProbe() {
             const store = useScreenValues();
-            // Lezen op een KLIK, precies zoals ActionsSection: de store is een
-            // ref en rendert bewust niets opnieuw, dus een probe die bij zijn
-            // eigen render leest zou de stand van vóór de publicatie tonen.
+            // Read on a CLICK, just like ActionsSection: the store is a ref and deliberately renders nothing, so a
+            // probe that reads during its own render would show the state from before the publication.
             const [seen, setSeen] = useState('(not read yet)');
             return (
                 <div>
@@ -112,8 +106,7 @@ describe('de bewerk-canvas voedt de store die de testknop leest', () => {
 
     it('publiceert de standaardwaarde zodra het formulier op de canvas staat', () => {
         render(<AppEditorShell app={app} onClose={vi.fn()} />);
-        // Niet `{}` en niet `null`: de canvas staat in bewerk-modus en het
-        // formulier heeft zich met zijn seed gemeld.
+        // Neither `{}` nor `null`: the canvas is in edit mode and the form has announced itself with its seed.
         expect(readValues()).toBe('{"title":"seed"}');
     });
 
@@ -124,10 +117,9 @@ describe('de bewerk-canvas voedt de store die de testknop leest', () => {
     });
 
     it('een formulier dat NIET op de canvas staat blijft null — geen verzonnen lege waarden', () => {
-        // De tegenproef die de twee uitslagen uit elkaar houdt: `null` betekent
-        // "staat niet op het scherm" en `{}` betekent "staat er en is leeg".
-        // Zonder deze zou de test hierboven ook slagen als readForm altijd iets
-        // teruggaf.
+        // The counter-proof that keeps the two outcomes apart: `null` means "not on the screen" and `{}` means
+        // "it is there and empty". Without this, the test above would also pass if readForm always returned
+        // something.
         const other = { ...app, definition: { ...FORM_APP, screens: [{ ...FORM_APP.screens[0], sections: [{ ...FORM_APP.screens[0].sections[0], children: [] }] }] } };
         render(<AppEditorShell app={other} onClose={vi.fn()} />);
         expect(readValues()).toBe('null');

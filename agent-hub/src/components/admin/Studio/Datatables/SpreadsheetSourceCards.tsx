@@ -54,7 +54,7 @@ export function FileCard({ t, rel, table, mirror, canEdit }: FileCardProps) {
             <h3 className="text-sm font-semibold flex items-center gap-2 text-[var(--text-primary)]">
                 {Logo
                     ? <span className="shrink-0 inline-flex" aria-hidden="true">{React.createElement(Logo, { size: 16 })}</span>
-                    : <FileSpreadsheet className="w-4 h-4" style={{ color: 'var(--type-data)' }} aria-hidden="true" />}
+                    : <FileSpreadsheet className="w-4 h-4 [color:var(--type-data)]" aria-hidden="true" />}
                 {source?.webUrl ? (
                     <a href={source.webUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline-offset-2 hover:underline text-[var(--text-primary)]">
                         {source.fileName || source.fileId}
@@ -62,7 +62,7 @@ export function FileCard({ t, rel, table, mirror, canEdit }: FileCardProps) {
                     </a>
                 ) : <span>{source?.fileName || source?.fileId || ''}</span>}
             </h3>
-            <dl className="text-xs grid gap-x-4 gap-y-1" style={{ gridTemplateColumns: 'auto minmax(0,1fr)', color: 'var(--text-secondary)' }}>
+            <dl className="text-xs grid gap-x-4 gap-y-1 [grid-template-columns:auto_minmax(0,1fr)] [color:var(--text-secondary)]!">
                 {source?.path && (
                     <>
                         <dt className="text-[var(--text-tertiary)]">{t('datatables.ss_file_path', 'Path')}</dt>
@@ -85,8 +85,7 @@ export function FileCard({ t, rel, table, mirror, canEdit }: FileCardProps) {
             {canEdit && (
                 <div className="flex items-center gap-2 flex-wrap">
                     <button type="button" onClick={relink} disabled={busy}
-                        className={`${BTN} border inline-flex items-center gap-1.5 disabled:opacity-50`}
-                        style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)' }}>
+                        className={`${BTN} border inline-flex items-center gap-1.5 disabled:opacity-50 [border-color:var(--border-subtle)] [color:var(--text-primary)] [outline-color:var(--accent-primary)]`}>
                         {busy
                             ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
                             : <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />}
@@ -175,8 +174,8 @@ export function IdentityCard({ t, mirror }: IdentityCardProps) {
         <section className="p-4 space-y-2" style={CARD} aria-label={t('datatables.ss_identity_title', 'How rows are recognised')}>
             <h3 className="text-sm font-semibold flex items-center gap-2 text-[var(--text-primary)]">
                 {key
-                    ? <KeyRound className="w-4 h-4" style={{ color: 'var(--type-data)' }} aria-hidden="true" />
-                    : <ListOrdered className="w-4 h-4" style={{ color: 'var(--type-data)' }} aria-hidden="true" />}
+                    ? <KeyRound className="w-4 h-4 [color:var(--type-data)]" aria-hidden="true" />
+                    : <ListOrdered className="w-4 h-4 [color:var(--type-data)]" aria-hidden="true" />}
                 {t('datatables.ss_identity_title', 'How rows are recognised')}
             </h3>
             <p className="text-xs text-[var(--text-secondary)]">

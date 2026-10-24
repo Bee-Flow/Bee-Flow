@@ -474,12 +474,10 @@ function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
     validateNodeLogic(node, path, ctx, spec);
 
     // input_relation binds to a data table (publish-gated like automationId).
-    // Het is een LEZING (een keuzelijst uit die tabel), dus na checkTableRef
-    // dezelfde tweede vraag als bij een record-binding: haalt die tabel haar
-    // rijen uit een Studio-datatabel, en bestaat die dan nog? Zonder deze regel
-    // publiceerde een app waarvan de gekoppelde tabel ALLEEN door een
-    // input_relation werd aangeraakt zonder één woord, en bleef de keuzelijst
-    // bij de gebruiker leeg.
+    // It is a READ (a choice list from that table), so after checkTableRef the same second question
+    // as with a record binding: if that table fetches its rows from a Studio datatable, does that
+    // datatable still exist? Without this rule an app whose linked table was touched ONLY by an
+    // input_relation published without a word, and the choice list stayed empty for the user.
     if (node.type === 'input_relation' && props.tableId !== undefined) {
         checkTableRef(props.tableId, `${path}.props.tableId`, ctx, `${node.type}`);
         checkTableSource(props.tableId, `${path}.props.tableId`, ctx, `${node.type}`);

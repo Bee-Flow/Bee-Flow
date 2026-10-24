@@ -2,15 +2,11 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 
 /**
- * WebpageIDE — de bovenbalk, de sleepgrepen en de binaire-bestandskaart.
+ * WebpageIDE — the top bar, the drag handles and the binary-file card.
  *
- * t() is een MARKEERDER (`⟦sleutel⟧`). De zware kinderen (Monaco-editor,
- * preview-iframe, chatpaneel, de bestandenstrip) zijn gemockt: dit gaat over de
- * chrome van de IDE zelf, niet over wat erin hangt.
+ * t() is a MARKER (`⟦key⟧`). The heavy children (Monaco editor, preview iframe, chat panel, the file strip) are mocked: this is about the chrome of the IDE itself, not about what is in it.
  *
- * Wat hier vastligt: de bovenbalk HERGEBRUIKT de sleutels die W3/W4 al hebben
- * gezet (Add image, History, Code, Preview) in plaats van er een tweede paar
- * met dezelfde tekst naast te zetten.
+ * What is fixed here: the top bar REUSES the keys that W3/W4 already set (Add image, History, Code, Preview) instead of placing a second pair with the same text beside them.
  */
 
 const t = (key, fallback, params) => {
@@ -95,7 +91,7 @@ describe('WebpageIDE — i18n', () => {
     });
 
     it('BIJT — de binaire-bestandskaart legt in de taal van de gebruiker uit waarom er niets te bewerken valt', () => {
-        // Via de echte weg: een geopend niet-tekstbestand in de ontwikkelaarsstand.
+        // Via the proper route: an opened non-text file in developer mode.
         renderIde({
             devMode: true,
             extraFiles: [{ path: 'assets/logo.png', mimeType: 'image/png', size: 1024 }],
@@ -104,7 +100,7 @@ describe('WebpageIDE — i18n', () => {
         });
 
         expect(screen.getByText('⟦webpages.ide.binary_not_editable⟧')).toBeInTheDocument();
-        // Het pad en het mimetype zijn machinetekst en blijven staan.
+        // The path and the MIME type are machine text and remain as they are.
         expect(screen.getAllByText('assets/logo.png').length).toBeGreaterThan(0);
         expect(screen.getByText(/image\/png/)).toBeInTheDocument();
     });

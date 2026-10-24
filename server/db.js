@@ -19,6 +19,7 @@
 // @typecheck
 const { Pool } = require('pg');
 const Redis = /** @type {typeof import('ioredis').default} */ (/** @type {unknown} */ (require('ioredis')));
+const { settleTransaction } = require('./utils/txRollback');
 const log = require('./telemetry/log');
 
 // The store schema-init memo. It lives in stores/lib/storeInit.js — it is
@@ -374,8 +375,7 @@ async function _runTransaction(client, fn) {
     try {
         await client.query('BEGIN');
         const result = await fn(client);
-        await client.query('COMMIT');
-        return result;
+        return await settleTransaction(client, result);
     } catch (e) {
         try { await client.query('ROLLBACK'); } catch (err) { log.debug('connection may be dead', err); }
         throw e;

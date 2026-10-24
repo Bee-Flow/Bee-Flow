@@ -36,8 +36,7 @@ export function StepActionToolbar({
     if (!((onExecuteStep || showDuplicate || showDetach || showPin || showDelete) && nodeId)) return null;
     return (
         <div
-            className={`absolute left-1/2 -translate-x-1/2 flex items-center gap-0.5 px-1 py-0.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)] shadow-sm z-[2] ${chromeVisibility}`}
-            style={{ top: -30 }}
+            className={`absolute left-1/2 -translate-x-1/2 flex items-center gap-0.5 px-1 py-0.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)] shadow-sm z-[2] ${chromeVisibility} [top:-30px]`}
             data-testid="node-hover-toolbar"
         >
             {onExecuteStep && (
@@ -117,8 +116,7 @@ export function AddAfterButton({ nodeId, onAddAfter, chromeVisibility }: { nodeI
             type="button"
             onClick={(e: ClickEvent) => { e.stopPropagation(); onAddAfter(nodeId); }}
             onMouseDown={stopDown}
-            className={`absolute top-1/2 -translate-y-1/2 -right-7 h-[22px] w-[22px] rounded-full flex items-center justify-center shadow-sm ${chromeVisibility}`}
-            style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+            className={`absolute top-1/2 -translate-y-1/2 -right-7 h-[22px] w-[22px] rounded-full flex items-center justify-center shadow-sm ${chromeVisibility} [background:var(--text-primary)] [color:var(--bg-primary)]`}
             title={t('automations.step_node_base.add_next_step', 'Add next step')}
             aria-label={t('automations.step_node_base.add_next_step', 'Add next step')}
         >

@@ -3,10 +3,7 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
- * De Gepland-rij (M5) op het scherm: datumblok + `tijd · duur · deelnemers ·
- * provider`, de tags uit meeting_prefs, en de voetregel over wat er met de
- * ANDERE deelnemers gebeurt. De regels zelf staan in `../lib/upcomingMeta.js`
- * (en worden daar getoetst); hier gaat het erom dat de rij ze ook echt toont.
+ * The Scheduled row (M5) on screen: date block + `time · duration · participants · provider`, the tags from meeting_prefs, and the footer line about what happens to the OTHER participants. The rules themselves are in `../lib/upcomingMeta.js` (and are tested there); here what matters is that the row really shows them.
  */
 
 vi.mock('../lib/transcriptionsApi', () => ({
@@ -117,8 +114,8 @@ describe('UpcomingMeetings — datumblok, meta en tags', () => {
         expect(within(rows[0]).getByText('dataweging')).toBeInTheDocument();
         expect(within(rows[0]).getByText('spelersmonitor')).toBeInTheDocument();
         expect(rows[0].textContent).not.toContain('42');
-        // Read-only in dit paneel: er is nog geen route die tags op een AFSPRAAK
-        // schrijft, dus ook geen knop die belooft dat het kan.
+        // Read-only in this panel: there is no route yet that writes tags to an
+        // APPOINTMENT, so there is also no button that promises it can.
         expect(within(rows[0]).queryByText('Add tag')).not.toBeInTheDocument();
     });
 });
@@ -136,7 +133,7 @@ describe('UpcomingMeetings — de voetregel belooft alleen wat de bot echt doet'
         await screen.findByText('Talk standup');
         const notice = screen.getByTestId('upcoming-notice').textContent;
         expect(notice).toContain('posted back into the conversation');
-        // Ook mét write-back is het bericht `silent: true` — dus geen melding.
+        // Even with write-back the message is `silent: true` — so no notification.
         expect(notice).toContain('nobody gets a notification');
     });
 
@@ -185,8 +182,8 @@ describe('UpcomingMeetings — het scherm zegt niet het tegenovergestelde van de
     });
 
     it('een onbeslist gesprek heet niet "Skip" en niet "Upcoming"', async () => {
-        // De engine telt bij de start van het gesprek nog wie er in zit. "Skip"
-        // en een kale "Upcoming" beweren allebei dat er niets gebeurt.
+        // The engine still counts who is in the call at its start. "Skip" and a bare
+        // "Upcoming" both claim that nothing happens.
         listTalkMeetings.mockResolvedValue(talkPayload([
             talkMeeting({ excluded: true, recordReason: 'unknown_size', recordDecided: false, status: 'decides_at_start' }),
         ]));
@@ -209,8 +206,8 @@ describe('UpcomingMeetings — het scherm zegt niet het tegenovergestelde van de
     });
 
     it('de uitleg bij "participants unknown" komt ook echt in de rij terecht', async () => {
-        // De regel wordt in de lib berekend en daar getoetst; niets keek of hij
-        // de DOM haalde, dus `title={seg.title}` kon er ongemerkt uit vallen.
+        // The line is computed in the lib and tested there; nothing checked whether it
+        // reached the DOM, so `title={seg.title}` could drop out unnoticed.
         listTalkMeetings.mockResolvedValue(talkPayload([
             talkMeeting({ attendees: [], organizer: null, recordReason: 'unknown_size', excluded: true }),
         ]));
@@ -250,8 +247,8 @@ describe('UpcomingMeetings — het scherm zegt niet het tegenovergestelde van de
     });
 
     it('zegt niets over de voetregel als er niets wordt opgenomen', async () => {
-        // `!excluded` is de stand van de SCHAKELAAR, niet de uitkomst: hier
-        // meldt de banner erboven dat de opnameback-end niet geconfigureerd is.
+        // `!excluded` is the state of the SWITCH, not the outcome: here the banner
+        // above reports that the recording back-end is not configured.
         listTalkMeetings.mockResolvedValue(talkPayload(
             [talkMeeting({ excluded: false, status: 'upcoming' })],
             { recordingEnabled: false, postSummaryBack: true },
@@ -262,8 +259,7 @@ describe('UpcomingMeetings — het scherm zegt niet het tegenovergestelde van de
     });
 
     it('meldt GEEN nul aan de rail als beide bronnen faalden', async () => {
-        // "Upcoming 0" leest als "je hebt geen vergaderingen"; het was
-        // "we konden ze niet ophalen".
+        // "Upcoming 0" reads as "you have no meetings"; it was "we could not fetch them".
         listTalkMeetings.mockRejectedValue(new Error('talk down'));
         listGoogleMeetMeetings.mockRejectedValue(new Error('meet down'));
         const onRowsChange = vi.fn();

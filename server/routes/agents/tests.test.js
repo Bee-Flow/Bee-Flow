@@ -149,7 +149,7 @@ const MOCKS = {
     '../../core/llm/modelResolver': {
         resolveModelForTierName: async (tierName, opts) => {
             fx.modelResolveCalls.push({ tierName, opts });
-            // Onleesbaar ≠ niet ingericht: dit is de eerste van de twee.
+            // Unreadable ≠ not set up: this is the first of the two.
             if (fx.modelResolveThrows) throw new Error('config store unreachable');
             return fx.modelId;
         },
@@ -648,12 +648,12 @@ test('no grading model refuses up front instead of burning a turn per test', asy
     assert.strictEqual(fx.metadata.length, 0);
 });
 
-// ── De beoordelaar: welk model ziet dit antwoord? ─────────────────────
-// De poort hierboven was in productie ONBEREIKBAAR: resolveModelForTierName
-// had een default-fallback naar een hardgecodeerd Google-model en gaf dus
-// nooit iets falsy terug. Er werd stilzwijgend beoordeeld op een model dat de
-// organisatie nooit koos, terwijl de gradingcall het ANTWOORD van de agent
-// meestuurt. De drie tests hieronder houden die poort bereikbaar.
+// ── The grader: which model sees this answer? ─────────────────────────
+// The gate above was UNREACHABLE in production: resolveModelForTierName
+// had a default fallback to a hard-coded Google model and therefore never
+// returned anything falsy. Grading was silently done on a model that the organisation
+// never chose, while the grading call sends the agent's ANSWER along. The three tests below
+// keep that gate reachable.
 
 test('een lege beoordelaar-configuratie weigert — er wordt geen model ingevuld', async () => {
     fx.tests = [TEST()];
@@ -663,7 +663,7 @@ test('een lege beoordelaar-configuratie weigert — er wordt geen model ingevuld
     assert.strictEqual(res.body.code, 'no_grading_model');
     assert.ok(/configured/i.test(res.body.error), 'de reden hoort leesbaar te zijn');
     assert.strictEqual(fx.gradeCalls.length, 0, 'er ging geen tekst naar enig model');
-    // En de route vraagt de resolver NIET om een stille terugval.
+    // And the route does NOT ask the resolver for a silent fallback.
     assert.strictEqual(fx.modelResolveCalls.length, 1);
     assert.ok(!fx.modelResolveCalls[0].opts?.fallback,
         `de route vroeg om fallback ${fx.modelResolveCalls[0].opts?.fallback}`);

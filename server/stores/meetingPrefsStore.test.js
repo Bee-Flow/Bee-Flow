@@ -1,23 +1,22 @@
 /**
- * meetingPrefsStore — de per-vergadering opnamevoorkeur (M5 deel A).
+ * meetingPrefsStore — the per-meeting recording preference (M5 part A).
  *
- * Wat hier vastligt, in volgorde van hoe erg het is als het breekt:
- *   1. DE BACKFILL. Een uitsluiting in de OUDE vorm (de vier
- *      configStore-arrays) moet in de nieuwe tabel als `record = false`
- *      terechtkomen — org-breed én per gebruiker, Talk én Meet. Gaat dat mis,
- *      dan krijgt iemand die opnemen had uitgezet het stilzwijgend weer aan.
- *   2. DE SCOPE. De rij is per gebruiker; de lees mag nooit de rij van iemand
- *      anders pakken, en een lees zonder scope levert niets in plaats van
- *      alles.
- *   3. DE 1-OP-1-STANDAARD. Bij ten hoogste twee deelnemers staat opnemen
- *      standaard UIT, en "aantal onbekend" telt daarbij NIET als "meer dan
- *      twee" — onbekend versmalt.
+ * What is fixed here, in order of how bad it is if it breaks:
+ *   1. THE BACKFILL. An exclusion in the OLD shape (the four
+ *      configStore arrays) must end up in the new table as `record = false`
+ *      — org-wide and per user, Talk and Meet. If that goes wrong,
+ *      someone who had turned recording off silently gets it turned back on.
+ *   2. THE SCOPE. The row is per user; the read must never pick up someone
+ *      else's row, and a read without a scope yields nothing instead of
+ *      everything.
+ *   3. THE 1-ON-1 DEFAULT. At two participants or fewer, recording defaults to OFF,
+ *      and "count unknown" does NOT count as "more than two" — unknown narrows.
  *
- * DB-vrij: ../db en ./configStore worden via require.cache vervangen. De
- * nep-db is geen loze recorder maar een mini-Postgres voor precies deze tabel:
- * hij kent de primaire sleutel, de CHECK op de scope en ON CONFLICT DO
- * NOTHING/DO UPDATE, en hij WEIGERT een WHERE-vorm die hij niet herkent — zo
- * valt een gewijzigde scoping op in plaats van dat hij stil door glipt.
+ * DB-free: ../db and ./configStore are replaced via require.cache. The fake db is
+ * not a dumb recorder but a mini-Postgres for exactly this table: it knows the
+ * primary key, the CHECK on the scope and ON CONFLICT DO NOTHING/DO UPDATE, and it
+ * REJECTS a WHERE form it does not recognise — so a changed scoping shows up
+ * instead of slipping through silently.
  *
  * Run: cd server && node --test --test-force-exit stores/meetingPrefsStore.test.js
  */
@@ -77,8 +76,8 @@ function applyInsert(sql, params) {
 }
 
 function applySelect(sql, params) {
-    // Alleen de twee scope-vormen die de store hoort te schrijven. Alles
-    // anders is een gewijzigde scoping en moet opvallen, niet slagen.
+    // Only the two scope forms the store is supposed to write. Anything
+    // else is a changed scoping and must stand out, not pass.
     const userClause = sql.match(/user_id = \$(\d+)/);
     const orgClause = sql.match(/\(user_id = '' AND org_id = \$(\d+)\)/);
     if (!userClause && !orgClause) throw new Error(`onverwachte WHERE — scoping veranderd: ${sql}`);
@@ -118,10 +117,10 @@ require.cache[dbPath] = {
     },
 };
 
-// ── nep-configStore met de OUDE uitsluitdocumenten ───────────────────
-// Vóór de require gevuld: de store draait zijn backfill in initDB, en initDB
-// wordt bij het laden van de module afgetrapt. Dit is dus letterlijk de
-// boot-situatie van een installatie die vandaag uitsluitingen heeft.
+// ── fake configStore with the OLD exclusion documents ───────────────────
+// Filled before the require: the store runs its backfill in initDB, and initDB
+// is triggered when the module loads. So this is literally the boot
+// situation of an installation that has exclusions today.
 const cfg = new Map();
 const cfgReads = [];
 cfg.set('user_talk_notes_u1', { autoRecord: true, excludedRoomTokens: ['room-geheim'], excludedEventUids: ['uid-1op1'] });
@@ -167,8 +166,8 @@ test('backfill: een uitsluiting in de OUDE vorm wordt record=false in de nieuwe 
         [['code', 'zzz-zzzz-zzz', false], ['event', 'ev-excl', false]],
     );
 
-    // ... en het effect waar het om gaat: de lezer zegt "niet opnemen", ook al
-    // staat de globale schakelaar aan en zit er een zaal vol mensen in.
+    // ... and the effect that matters: the reader says "do not record", even though
+    // the global switch is on and a room full of people is sitting there.
     const prefs = await store.loadMeetingPrefs({ provider: 'talk', userId: 'u1', orgId: 'orgA' });
     const d = prefs.decide({ ids: store.talkIds({ roomToken: 'room-geheim' }), participantCount: 9, fallback: true });
     assert.equal(d.record, false);
@@ -362,8 +361,8 @@ test('een schrijf zonder user én zonder org wordt geweigerd', async () => {
 
 test('de tabel dwingt precies één scope af (CHECK meeting_prefs_one_scope)', async () => {
     reset();
-    // _scopeOf laat dit niet toe; de tabel moet het óók niet toelaten, anders
-    // kan dezelfde voorkeur als twee rijen bestaan.
+    // _scopeOf does not allow this; the table must not allow it either, or
+    // the same preference could exist as two rows.
     await assert.rejects(async () => {
         const { run } = require('../db');
         await run(
@@ -388,11 +387,11 @@ test('DDL: driewaardige record-kolom, tags als JSONB, sleutel inclusief user_id'
 // ═══ de sluitronde ═══════════════════════════════════════════════════
 
 test('backfill: een LEGE scan zet GEEN marker — niets gezien is niets bewezen', async () => {
-    // De race die dit dicht: `migrateConfigJson()` in configStore is
-    // fire-and-forget en schrijft een achtergebleven data/config.json rij voor
-    // rij weg. Draait de backfill in dat venster, dan is de prefix-scan leeg —
-    // en met een onvoorwaardelijke marker sloeg élke latere boot de scan over
-    // en waren die uitsluitingen voorgoed weg.
+    // The race this closes: `migrateConfigJson()` in configStore is
+    // fire-and-forget and writes a leftover data/config.json row by row
+    // away. If the backfill runs in that window, the prefix scan is empty —
+    // and with an unconditional marker every later boot skipped the scan and
+    // those exclusions were gone for good.
     await store.initDB();
     const saved = new Map(cfg);
     try {
@@ -415,16 +414,16 @@ test('backfill: een LEGE scan zet GEEN marker — niets gezien is niets bewezen'
 });
 
 test('een uitsluiting op een RUIMTE raakt een agenda-item met dezelfde string niet', async () => {
-    // Dit is de reden dat `id_kind` in de sleutel staat. Zonder de
-    // kind-controle in de lezer zou een uitsluiting op een ruimte die van een
-    // occurrence worden — of erger, die van een toevallig gelijke string.
+    // This is why `id_kind` is in the key. Without the kind check in the reader,
+    // an exclusion on a room could become one on an occurrence — or worse, one on
+    // a string that happens to be equal.
     const rows = [
         { idKind: 'room', externalId: 'zelfde-string', record: false, tags: [] },
         { idKind: 'event', externalId: 'zelfde-string', record: true, tags: [] },
     ];
     assert.equal(store.resolvePrefs(rows, [{ kind: 'room', id: 'zelfde-string' }]).record, false);
     assert.equal(store.resolvePrefs(rows, [{ kind: 'event', id: 'zelfde-string' }]).record, true);
-    // En een soort die er niet is, raakt niets.
+    // And a kind that does not exist touches nothing.
     assert.equal(store.resolvePrefs(rows, [{ kind: 'code', id: 'zelfde-string' }]).record, null);
 });
 

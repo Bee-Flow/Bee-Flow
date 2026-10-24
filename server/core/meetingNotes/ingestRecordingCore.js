@@ -387,12 +387,12 @@ async function resolveUserFirstName(userId) {
 /**
  * Resolve the note owner's default summary TEMPLATE (personal ▸ group ▸ org) so
  * a saved default also styles auto-ingested (Talk / Meet) notes.
- * Best-effort — returns null (→ built-in first-generation prompt) on any failure.
+ * Best-effort: returns null (→ built-in first-generation prompt) on any failure.
  *
- * De hele rij, want de notitie wordt ermee gestempeld (welk sjabloon, welke
- * versie): uit een promptstring is geen id terug te winnen. null stempelt
- * niets — de ingebouwde eerste-generatieprompt is geen van de vijf ingebouwde
- * sjablonen, dus er valt niets waars te melden.
+ * The whole row, because the note is stamped with it (which template, which
+ * version): no id can be recovered from a prompt string. null stamps
+ * nothing: the built-in first-generation prompt is none of the five built-in
+ * templates, so there is nothing true to report.
  */
 async function resolveOwnerDefaultTemplate(userId, orgId) {
     try {

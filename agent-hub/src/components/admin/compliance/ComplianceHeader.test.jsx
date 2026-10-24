@@ -5,14 +5,7 @@ import ComplianceHeader, { headerSpec, HEADER_SPECS, worstScore } from './Compli
 import { sectionById } from './sections';
 import { PRIMARY_ACTION_STYLE } from '../../shared/StudioSectionHeader';
 
-vi.mock('../../../hooks/useTranslation', () => {
-    const t = (key, fallback, vars) => {
-        let s = typeof fallback === 'string' ? fallback : key;
-        for (const [k, v] of Object.entries((typeof fallback === 'object' ? fallback : vars) || {})) s = s.replace(`{${k}}`, String(v));
-        return s;
-    };
-    return { useTranslation: () => ({ t }), default: () => ({ t }) };
-});
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const t = (key, fallback, vars) => {
     let s = typeof fallback === 'string' ? fallback : key;

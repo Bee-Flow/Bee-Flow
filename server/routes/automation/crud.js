@@ -51,39 +51,34 @@ const trashHandlers = makeTrashHandlers({
 });
 
 /**
- * P4 — WIENS automation wordt dit, als hij vanuit een app-knop wordt gemaakt?
+ * P4 — WHOSE automation does this become, if it is created from an app button?
  *
- * Een definitie met `trigger.appRef` komt van "Nieuwe vanuit deze knop" in App
- * Studio. Die automatisering bestaat om door één app-actie gedraaid te worden, en die
- * actie draait ALS DE EIGENAAR van de app: de brug
- * (appStudio/actionExecutor/automationBridge.js) weigert botweg zodra de
- * automation-eigenaar niet de app-eigenaar is. De eigenaar van de nieuwe automatisering
- * bepaalt dus met wiens rechten hij straks draait — dat is geen detail.
+ * A definition with `trigger.appRef` comes from "New from this button" in App
+ * Studio. That automation exists to be run by one app action, and that action runs AS THE OWNER of the app: the bridge
+ * (appStudio/actionExecutor/automationBridge.js) flatly refuses as soon as the
+ * automation owner is not the app owner. The owner of the new automation therefore determines with whose rights it will later run — that is no detail.
  *
- * De regel en het waarom staan in appStudio/appRefLookup.appRefOwnerVerdict;
- * hier gebeurt alleen het LADEN, en het laden mag niet fail-open zijn: een
- * store die eruit ligt levert `app: null` en dus een weigering, nooit een gok.
+ * The rule and the reasoning are in appStudio/appRefLookup.appRefOwnerVerdict;
+ * only the LOADING happens here, and the loading may not be fail-open: a
+ * store that is down yields `app: null` and therefore a refusal, never a guess.
  *
- * Zonder appRef verandert er niets: een gewone automatisering hoort bij wie hem maakt.
+ * Without appRef nothing changes: an ordinary automation belongs to whoever creates it.
  *
- * ── Waarom alleen op CREATE ──────────────────────────────────────────────
+ * ── Why only on CREATE ──────────────────────────────────────────────
  *
- * Dit gaat over de EIGENAAR, en die wordt precies één keer gekozen. Dezelfde
- * poort op PUT zou een automatisering onbewerkbaar maken zodra de app waarnaar hij
- * wijst van eigenaar wisselt of verdwijnt — de eigenaar kan zijn eigen automatisering
- * dan niet eens meer opslaan om die verwijzing weg te halen. En er valt niets
- * mee te winnen: de back-pointer is een LABEL. Wie hem later naar andermans app
- * laat wijzen krijgt daar geen rechten mee — appRefLookup vertelt een
- * niet-eigenaar geen namen, en de brug blijft weigeren op eigenaarsgelijkheid.
+ * This is about the OWNER, and that is chosen exactly once. The same gate on PUT would make an automation uneditable as soon as the app it points to
+ * changes owner or disappears — the owner could then not even save their own automation to remove that reference. And nothing is gained by it:
+ * the back pointer is a LABEL. Whoever later points it to someone else's app gets no rights from that — appRefLookup tells a
+ * non-owner no names, and the bridge keeps refusing on owner equality.
  *
  * @returns {{ok: true, ownerId: string}|{ok: false, code, message}}
  */
 async function appRefOwnerGate(definition, actorUserId) {
     const { appTriggerRef } = require('../../automation/appTriggerContract');
     const { appRefOwnerVerdict } = require('../../appStudio/appRefLookup');
-    // Geen (of een half geschreven) back-pointer → geen app-poort. Een HALVE
-    // wordt hieronder alsnog door validateDefinition geweigerd
-    // (`app_trigger.ref_incomplete`), dus er ontstaat geen sluiproute.
+    // No (or a half-written) back pointer → no app gate. A HALF one
+    // is refused below anyway by validateDefinition
+    // (`app_trigger.ref_incomplete`), so no back door arises.
     const ref = appTriggerRef(definition);
     if (!ref) return { ok: true, ownerId: actorUserId };
 
@@ -91,7 +86,7 @@ async function appRefOwnerGate(definition, actorUserId) {
     try {
         app = await require('../../stores/studioAppStore').getStudioApp(ref.appId);
     } catch (e) {
-        // Onbekend versmalt: luidruchtig in het log, weigering naar buiten.
+        // Unknown narrows: loud in the log, refusal outwards.
         log.warn(`[automation create] app ${ref.appId} unreadable; refusing to guess an owner:`, e.message);
         app = null;
     }
@@ -265,10 +260,10 @@ router.post('/', validate({ body: CreateAutomationBody }), async (req, res) => {
     const userId = req.session.user.id;
     const { title, description, triggerType, scheduleCron, scheduleTz, createdFromChatId, templateId } = req.body;
     let { definition } = req.body;
-    // WIENS automatisering wordt dit? Alleen anders dan "van de maker" wanneer de
-    // definitie een app-back-pointer draagt — zie appRefOwnerGate hierboven.
-    // Vóór de validatie, want een weigering hier is over eigendom en moet
-    // niet als "ongeldige definitie" bij de gebruiker aankomen.
+    // WHOSE automation is this? It differs from "the maker" only when the
+    // definition carries an app back pointer — see appRefOwnerGate above.
+    // Before validation, because a refusal here is about ownership and must not
+    // reach the user as an "invalid definition".
     const ownership = await appRefOwnerGate(definition, userId);
     if (!ownership.ok) return res.status(403).json({ error: ownership.message, code: ownership.code });
     // definition.runPolicy (handoff 5): out of range is the author's to fix.
@@ -301,12 +296,10 @@ router.post('/', validate({ body: CreateAutomationBody }), async (req, res) => {
         // re-derived it per run from the owner. A datatable is scoped by
         // organisation and needs it stored, not derived.
         //
-        // De eigenaar komt uit de poort, niet rechtstreeks uit de sessie.
-        // Voor een gewone automatisering is dat dezelfde waarde; voor één die
-        // vanuit een app-knop wordt gemaakt is het de APP-EIGENAAR, en dat
-        // de poort die twee gelijk heeft bevonden is precies de reden dat
-        // er hier iets gemaakt mag worden. Zo staat de regel in de code in
-        // plaats van in een aanname.
+        // The owner comes from the gate, not directly from the session.
+        // For an ordinary automation that is the same value; for one that is created from an app button it is the APP OWNER, and that
+        // the gate found those two equal is precisely why something may be created here at all. That is how the rule
+        // stands in the code instead of in an assumption.
         userId: ownership.ownerId, organizationId,
         title: title.trim(), description: description || '',
         definition, triggerType, scheduleCron, scheduleTz, nextRunAt, createdFromChatId,
@@ -366,39 +359,24 @@ router.get('/:id', async (req, res) => {
 });
 
 /**
- * "Gebruikt door 1 knop" — welke app-knoppen deze automatisering aanzetten (P4 deel C).
+ * "Used by 1 button" — which app buttons switch this automation on (P4 part C).
  *
- * Leest `automation_usage`, geschreven door appStudio/automationUsageSync.js op
- * elke save van een app. Eigenaar-only, precies zoals GET /:id ernaast: de
- * capsule noemt appnamen en knoplabels, en die zijn niet van een willekeurige
- * lezer.
+ * Reads `automation_usage`, written by appStudio/automationUsageSync.js on
+ * every save of an app. Owner-only, exactly like GET /:id next to it: the
+ * capsule names app names and button labels, and those are not for an arbitrary reader.
  *
- * TWEE DINGEN DIE NIET MOGEN VERSCHUIVEN:
+ * TWO THINGS THAT MUST NOT SHIFT:
  *
- *   1. EEN MISLUKTE LEES IS GEEN LEGE LIJST. Valt de store om, dan antwoordt
- *      deze route een FOUT en nooit `{usage: []}` — anders leest de capsule
- *      "wordt nergens gebruikt" op het moment dat de database hikt, en dat is
- *      precies de zin waarop iemand een automatisering verwijdert die een knop in
- *      productie aanzet. De client vertaalt een fout naar "kon niet worden
- *      gecontroleerd".
- *   2. EIGENDOM VERSMALT. De rijen zijn bij het schrijven al gegrendeld op
- *      `automations.user_id`, maar een automatisering die van eigenaar is gewisseld
- *      kan rijen met de OUDE eigenaar hebben. Die horen niet bij deze lezer,
- *      dus ze vallen weg — een rij te weinig is hier de veilige kant, want de
- *      naam van andermans app tonen is dat niet.
- *   3. `canOpen` WORDT GEZEGD, NIET AFGELEID. De capsule toont een appNAAM en
- *      een LINK naar de App Studio-editor, en die editor is eigenaar-only.
- *      Eerder leunde dat op een AFLEIDING (de INSERT grendelt op
- *      `automations.user_id = <app-eigenaar>`, dus app-eigenaar == kijker) die
- *      nergens in de leeslaag stond en die wegvalt zodra er een tweede
- *      `consumer_kind` bijkomt of een app van eigenaar wisselt. Nu staat het
- *      antwoord in de rij, precies zoals `appRefLookup.describeAppRef` het
- *      geeft: een link die op een 403 landt is erger dan geen link.
- *   4. HET DERDE ANTWOORD REIST MEE. `complete:false` betekent dat de index
- *      nog niet elke app heeft gezien; de capsule mag dan niet "wordt nergens
- *      gebruikt" beweren. Meteen wordt er een backfill-pass ingepland, zodat
- *      het antwoord vanzelf compleet wordt in plaats van te wachten tot iemand
- *      toevallig die app opslaat.
+ *   1. A FAILED READ IS NOT AN EMPTY LIST. If the store falls over, this route
+ *      answers with an ERROR and never with `{usage: []}` — otherwise the capsule reads "is used nowhere" at the moment the database hiccups, and that is
+ *      exactly the sentence on which someone deletes an automation that switches on a button in production. The client translates an error into "could not be checked".
+ *   2. OWNERSHIP NARROWS. The rows are locked on `automations.user_id` at write time, but an automation that has changed owner can have rows with the OLD
+ *      owner. Those do not belong to this reader, so they drop out — one row too few is the safe side here, because showing the name of someone else's app is not.
+ *   3. `canOpen` IS STATED, NOT DERIVED. The capsule shows an app NAME and a LINK to the App Studio editor, and that editor is owner-only.
+ *      Previously that leaned on a DERIVATION (the INSERT locks on `automations.user_id = <app owner>`, so app owner == viewer), which stood nowhere in the read layer and falls away as soon as a second
+ *      `consumer_kind` is added or an app changes owner. Now the answer is in the row, exactly as `appRefLookup.describeAppRef` gives it: a link that lands on a 403 is worse than no link.
+ *   4. THE THIRD ANSWER TRAVELS ALONG. `complete:false` means the index has not yet seen every app; the capsule may then not claim "is used nowhere". At the same time a backfill pass is scheduled,
+ *      so that the answer becomes complete by itself instead of waiting until someone happens to save that app.
  */
 router.get('/:id/usage', async (req, res) => {
     try {
@@ -413,10 +391,9 @@ router.get('/:id/usage', async (req, res) => {
         if (!coverage.complete) {
             require('../../appStudio/automationUsageSync').backfillAutomationUsageDetached();
         }
-        // Wie mag de app openen: de app-EIGENAAR, en dat wordt gelezen, niet
-        // afgeleid. Eén lees per genoemde app (het zijn er een handvol), en
-        // een app die niet te lezen is levert `canOpen:false` — onbekend
-        // versmalt naar geen link.
+        // Who may open the app: the app OWNER, and that is read, not
+        // derived. One read per named app (there are a handful of them), and
+        // an app that cannot be read yields `canOpen:false` — unknown narrows to no link.
         const appOwners = new Map();
         const studioAppStore = require('../../stores/studioAppStore');
         const mine = rows.filter(r => r.automationOwner === a.userId);
@@ -441,7 +418,7 @@ router.get('/:id/usage', async (req, res) => {
         // A deliberate refusal the client may see (`expose`) keeps its
         // status (terminal handler); any other error is the 500 below.
         if (e?.expose === true && Number(e?.status) >= 400 && Number(e?.status) < 500) throw e;
-        // Regel 1: zeggen dat het niet kon, niet doen alsof er niets is.
+        // Rule 1: say that it could not be done, do not pretend there is nothing.
         log.warn('[automation usage] read failed:', e.message);
         throw new HttpError(500, 'usage_unavailable', 'usage_unavailable');
     }

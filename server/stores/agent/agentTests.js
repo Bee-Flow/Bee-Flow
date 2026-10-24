@@ -12,9 +12,9 @@
  *                    from_conversation_id, written_by JSONB, suggested_by,
  *                    created_at, updated_at
  *   agent_test_runs  id, agent_id, version, results JSONB, passed, total, ran_at,
- *                    seq (BIGSERIAL — invoegvolgorde, de tiebreaker onder `ran_at`
- *                    zodra twee runs in dezelfde milliseconde landen; `id` is een
- *                    uuidv4 en dus geen geldige tiebreaker)
+ *                    seq (BIGSERIAL — insertion order, the tiebreaker under `ran_at`
+ *                    once two runs land in the same millisecond; `id` is a
+ *                    uuidv4 and therefore not a valid tiebreaker)
  *
  * ── EVERY LOOKUP CARRIES THE AGENT ID ───────────────────────────────
  * `getTest`, `updateTest` and `deleteTest` all take `(agentId, testId)` and put
@@ -81,10 +81,10 @@ function mapTest(row) {
         name: row.name || '',
         question: row.question || '',
         expect: _json(row.expect, {}),
-        // Herkomst per veld, en het model dat voorstelde. Alleen gezet voor een
-        // test die uit "+ Dit gesprek als test" komt; een mens die zelf tikte
-        // laat ze NULL, en dat is het eerlijke onderscheid dat de kaart nodig
-        // heeft. Een onleesbaar document leest terug als leeg, nooit als junk.
+        // Provenance per field, and the model that suggested it. Only set for a
+        // test that comes from "+ This conversation as test"; a human who typed it
+        // leaves them NULL, and that is the honest distinction the card needs.
+        // An unreadable document reads back as empty, never as junk.
         writtenBy: _json(row.written_by, null),
         suggestedBy: row.suggested_by || null,
         fromConversationId: row.from_conversation_id || null,
@@ -263,12 +263,12 @@ async function recordTestRun(run, { db = pool } = {}) {
 }
 
 /**
- * De laatste runs, nieuwste eerst — de run-historie achter "Bekijk".
+ * The latest runs, newest first — the run history behind "View".
  *
- * De bovengrens is `TEST_RUNS_KEEP` en niet wat de aanroeper vraagt: meer dan
- * dat staat er niet, want de prune hierboven gooit de rest weg. Een `limit`
- * die daar overheen gaat zou dus een lijst beloven die per definitie korter
- * uitvalt, en het scherm laten denken dat het de hele geschiedenis ziet.
+ * The upper bound is `TEST_RUNS_KEEP` and not what the caller asks for: no more
+ * than that exists, because the prune above throws the rest away. A `limit`
+ * that exceeds it would therefore promise a list that by definition comes back
+ * shorter, and let the screen think it sees the whole history.
  */
 async function listTestRuns(agentId, { limit = TEST_RUNS_KEEP, db = pool } = {}) {
     if (!agentId) return [];

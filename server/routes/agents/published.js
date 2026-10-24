@@ -35,31 +35,23 @@ async function withCanEdit(agents, userId, req) {
 }
 
 /**
- * Attach "waar is deze agent op gegrond" to every row (A5).
+ * Attach "what is this agent grounded on" to every row (A5).
  *
- * Puur — geen query erbij: `config` staat al op de rij (parseConfig), en de
- * regel zelf is een functie in core/agentRuntime/agentGrounding.js die Studio's
- * "Vraagt aandacht" ook aanroept. De kaartvoet van het overzicht rendert
- * hiermee "⚠ Antwoordt uit het hoofd — koppel een kennisbank" ZONDER de regel
- * client-side over te schrijven; een tweede implementatie zou het overzicht
- * en het Start-scherm over dezelfde agent uit elkaar laten lopen.
+ * Pure — no query in it: `config` is already on the row (parseConfig), and the rule itself is a function in
+ * core/agentRuntime/agentGrounding.js that Studio's "Needs attention" also calls. The card footer of the overview renders
+ * "⚠ Answers from memory — connect a knowledge base" with it, WITHOUT the client overwriting the rule itself; a second implementation
+ * would let the overview and the Start screen drift apart over the same agent.
  *
- * `verdict: null` betekent "niet vast te stellen" (een onleesbare as), en dat
- * is een DERDE waarde naast gegrond en ongegrond. De client moet daarop
- * zwijgen, niet waarschuwen.
+ * `verdict: null` means "not determinable" (an unreadable axis), and that is a THIRD value beside grounded and ungrounded. The client must
+ * stay silent about that, not warn.
  *
- * LET OP welke config dit is: de CONCEPT-config, want dat is wat parseConfig
- * op deze lijst zet (getAllAgents projecteert de runtime niet). Dat is
- * hetzelfde vak dat attentionChecks.js leest (`SELECT id, name, config`), dus
- * de twee schermen kijken naar dezelfde kolom en kunnen niet uiteenlopen —
- * maar het is de bewerkte versie, niet per se wat live draait. Voor een rij met
- * `published_version > 0` serveert de runtime `published_config`, en die blob
- * verlaat de store nooit (`_stripPublishedBlobs`). De kaartvoet zwijgt daarom
- * over zulke rijen: zie `summariseCardFooter` in
- * agent-hub/…/AgentStudio/cardFooter.js, dat `published_version` erbij leest.
- * Het VELD blijft er wel op staan — het is een feit over de concept-config, en
- * wie het anders wil lezen (een aandachtslijst voor de bouwer, bijvoorbeeld)
- * mag dat.
+ * NOTE which config this is: the DRAFT config, because that is what parseConfig puts on this list (getAllAgents does not project the runtime).
+ * That is the same column that attentionChecks.js reads (`SELECT id, name, config`), so the two screens look at the same column and cannot
+ * diverge — but it is the edited version, not necessarily what is live. For a row with `published_version > 0` the runtime serves `published_config`,
+ * and that blob never leaves the store (`_stripPublishedBlobs`). The card footer is therefore silent about such rows: see `summariseCardFooter` in
+ * agent-hub/…/AgentStudio/cardFooter.js, which reads `published_version` for that purpose.
+ * The FIELD does remain on it — it is a fact about the draft config, and anyone who wants to read it differently (an attention list for the builder, for example)
+ * may do so.
  */
 function withGrounding(agents) {
     return agents.map(a => ({ ...a, grounding: groundingOf(a?.config) }));
@@ -88,18 +80,17 @@ function withGrounding(agents) {
  * agent), and neither may claim a count it does not have: a failed stats read
  * is `stats: null`, a failed usage pass is every kind in `partial`.
  *
- * ── WAAROM `othersConversationCount` HIER WÉL OP STAAT (A5) ─────────
- * Het reed hier bewust niet mee toen het alleen een verwijder-vraag was. De
- * kaartvoet van het overzicht heeft het nodig als BEWIJS: de vorm "Only you"
- * beweert dat niemand anders in deze agent gezeten heeft, en `userCount` kan
- * dat niet dragen — dat is `COUNT(DISTINCT user_id)` over ALLE gesprekken, dus
- * één telt net zo goed als een collega die er veertig voerde terwijl de
- * eigenaar er nul voerde. `othersConversationCount` is `COUNT(*) FILTER
- * (WHERE user_id <> $viewer)`, dus 0 betekent er staat er geen van iemand
- * anders. Het kost geen extra query: dezelfde GROUP BY, één parameter erbij.
+ * ── WHY `othersConversationCount` IS HERE AFTER ALL (A5) ────────────
+ * It did not ride along when it was only a delete question. The card footer of
+ * the overview needs it as EVIDENCE: the form "Only you" claims that nobody else
+ * has been in this agent, and `userCount` cannot bear that — it is
+ * `COUNT(DISTINCT user_id)` over ALL conversations, so one person counts just as
+ * much as a colleague who conducted forty while the owner conducted none.
+ * `othersConversationCount` is `COUNT(*) FILTER (WHERE user_id <> $viewer)`, so 0
+ * means that there is none from anybody else. It costs no extra query: the same
+ * GROUP BY, one parameter added.
  *
- * De teller is DE KIJKER-relatief. Hij hoort daarom nooit gecachet of tussen
- * gebruikers hergebruikt te worden.
+ * The counter is VIEWER-RELATIVE. It therefore must never be cached or reused between users.
  */
 async function withListStats(agents, req, viewerId = null) {
     const ids = agents.map(a => a.id).filter(Boolean);
@@ -131,10 +122,9 @@ async function withListStats(agents, req, viewerId = null) {
                 ? {
                     conversationCount: s.conversationCount,
                     userCount: s.userCount,
-                    // Zonder een gelezen kijker is "van iemand anders" niet te
-                    // beantwoorden: dan telt de FILTER elke rij mee en zou een
-                    // 0 hier "niemand anders" beweren zonder bewijs. `null`
-                    // versmalt de kaartvoet naar de neutrale vorm.
+                    // Without a read viewer "from somebody else" cannot be answered: then the FILTER counts every row
+                    // and a 0 here would claim "nobody else" without evidence. `null`
+                    // narrows the card footer to the neutral form.
                     othersConversationCount: viewerId ? s.othersConversationCount : null,
                     lastUsedAt: s.lastUsedAt,
                 }

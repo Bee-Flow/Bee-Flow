@@ -32,7 +32,7 @@ vi.mock('../AgentWizard/index', () => ({ default: () => <div data-testid="wizard
 vi.mock('../AgentWizard/BuilderSplit', () => ({ default: () => <div data-testid="split" /> }));
 vi.mock('../AgentWizard/AgentEditorBootstrapContext', () => ({
     AgentEditorBootstrapProvider: ({ children }) => <>{children}</>,
-    // Het overzicht leest categorieën en groepen uit dit contract.
+    // The overview reads categories and groups from this contract.
     useAgentEditorBootstrap: () => ({
         categories: [],
         orgGroups: [{ id: 'g1', name: 'Sales team' }],
@@ -41,9 +41,9 @@ vi.mock('../AgentWizard/AgentEditorBootstrapContext', () => ({
 
 import AgentStudio from './index';
 
-// `can_edit: true` is geen decoratie: sinds A5 deel C toont de kaart de
-// prullenbak alleen bij een EXPLICIETE true (`/agents/all` zet hem altijd;
-// `/agents/system` niet, en zo'n rij hield hem daarvoor stilzwijgend).
+// `can_edit: true` is not decoration: since A5 part C the card shows the bin only on an
+// EXPLICIT true (`/agents/all` always sets it; `/agents/system` does not, and such a row
+// kept it silently).
 const AGENT = { id: 'agent-1', name: 'Helpdesk', description: '', config: {}, can_edit: true };
 
 const ok = (body) => ({ ok: true, status: 200, json: async () => body, text: async () => '' });
@@ -175,13 +175,13 @@ describe('delete → 409 → delete anyway', () => {
 });
 
 /**
- * De naden die het scherm zijn betekenis geven, en die geen van alle een eigen
- * test hadden: de deeplink, de groepsnamen, en de opt-in usage-parameter.
+ * The seams that give the screen its meaning, and that each had no test of their own: the
+ * deep link, the group names, and the opt-in usage parameter.
  */
 describe('de naden van het overzicht', () => {
     it('/app/agent-wizard opent de wizard, niet het overzicht', async () => {
-        // Zonder `startInWizard` landt die deeplink op het kaartraster en
-        // betekent hij stilzwijgend iets anders dan hij zegt.
+        // Without `startInWizard`, that deep link lands on the card grid and silently means
+        // something other than what it says.
         render(<AgentStudio user={{ id: 'u1' }} startInWizard />);
         expect(await screen.findByTestId('wizard')).toBeTruthy();
         expect(screen.queryByTestId('agent-card')).toBeNull();

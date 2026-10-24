@@ -6,14 +6,14 @@ const { TRIGGER_SOURCES } = require('./meeting-notes');
 const { validateTriggerSource } = require('../validate');
 
 /**
- * De Meeting-Notes-declaratie, en wat zij WEL en NIET vanzelf meeneemt.
+ * The Meeting-Notes declaration, and what it DOES and DOES NOT carry along by itself.
  *
- * De vraag die dit bestand beantwoordt is niet "klopt de vorm" — dat doet
- * registry.test.js voor élke declaratie. Het is: welke van de dingen die een
- * declaratie zou moeten meeliften, doet dat hier ook echt? Aannemen is hoe
- * `meeting_notes` ooit maandenlang geregistreerd léék en het niet was.
+ * The question this file answers is not "is the shape right" — registry.test.js
+ * does that for EVERY declaration. It is: of the things a declaration should
+ * carry along, which of them does this one actually carry? Assuming is how
+ * `meeting_notes` looked registered for months when it was not.
  *
- * Draai: node --test --test-force-exit automation/triggerSources/declared/meeting-notes.test.js
+ * Run: node --test --test-force-exit automation/triggerSources/declared/meeting-notes.test.js
  */
 
 function freshRegistry() {
@@ -29,8 +29,8 @@ const EVENT = DECL.events[0];
 test('de declaratie is geldig en volgt de vorm van de andere declaraties', () => {
     const errors = validateTriggerSource(DECL).filter(i => i.severity === 'error');
     assert.deepStrictEqual(errors, [], errors.map(e => `${e.code}@${e.path}`).join(', '));
-    // De vier dingen die het contract vastleggen en die niet mogen schuiven:
-    // het id staat op elke opgeslagen subscription.
+    // The four things that the contract fixes and that must not shift:
+    // the id is on every stored subscription.
     assert.strictEqual(DECL.id, 'meeting-notes', 'kebab-case; een underscore werd door PROVIDER_ID_RE geweigerd');
     assert.strictEqual(EVENT.id, 'meeting.processed');
     assert.strictEqual(EVENT.source.kind, 'push');
@@ -44,9 +44,9 @@ test('`tags` is een gedeclareerd uitvoerveld MET voorbeeld — daar filtert een 
 });
 
 test('de payload draagt GEEN inhoud van de notitie', () => {
-    // Een vergadernotitie is een transcript van collega\'s; de payload gaat naar
-    // wat een abonnement er ook aan hangt, mogelijk een uitgaande integratie.
-    // Wie recht heeft op de inhoud haalt hem op met het id (BFSF-441).
+    // A meeting note is a transcript of colleague\'s talking; the payload goes to
+    // whatever a subscription hangs on it, possibly an outbound integration.
+    // Whoever is entitled to the content fetches it with the id (BFSF-441).
     for (const forbidden of ['summary', 'title', 'attendees', 'transcript', 'actionItems', 'fullText']) {
         assert.ok(!EVENT.fields.includes(forbidden), `${forbidden} hoort niet in de payload`);
         assert.ok(!(forbidden in EVENT.sample), `${forbidden} hoort niet in het voorbeeld`);
@@ -73,9 +73,9 @@ test('de variabelenkiezer krijgt de velden en de voorbeelden zonder extra code',
 });
 
 test('de bouw-agent — en daarmee de MCP-toolset — krijgt de provider vanzelf', () => {
-    // describe.js voedt builderTools/schemas.js, en automation/mcpBuilder.js
-    // stuurt exact diezelfde TOOL_SCHEMAS naar een externe client. Eén bron,
-    // dus de twee kunnen niet uit elkaar lopen.
+    // describe.js feeds builderTools/schemas.js, and automation/mcpBuilder.js
+    // sends exactly the same TOOL_SCHEMAS to an external client. One source,
+    // so the two cannot drift apart.
     freshRegistry();
     const { describeSourcesForPrompt } = require('../describe');
     const { providerList, eventList } = describeSourcesForPrompt();
@@ -86,10 +86,10 @@ test('de bouw-agent — en daarmee de MCP-toolset — krijgt de provider vanzelf
 // ── wat de declaratie NIET meeneemt (en dus ergens anders geregeld is) ──
 
 test('de provider-dropdown vraagt om de check `meeting_notes` — die is GEEN gratis gevolg', () => {
-    // providerIsAvailable eist `ctx.checks['meeting_notes'] === true`, en die
-    // sleutel komt uit routes/automation/catalog.js. Toen die daar ontbrak
-    // kende de dispatch, de variabelenkiezer én de bouw-agent de provider al,
-    // maar kon een mens hem niet kiezen. Deze test pint beide kanten vast.
+    // providerIsAvailable requires `ctx.checks['meeting_notes'] === true`, and that
+    // key comes from routes/automation/catalog.js. When it was missing there, the
+    // dispatch, the variable picker and the build agent already knew the provider,
+    // but a human could not choose it. This test pins both sides.
     freshRegistry();
     const { buildAppEventProviders } = require('../../builderTools/triggerProviders');
     const ctx = { availableAppIds: new Set(), availableMcpServerIds: new Set(), publicBaseUrl: true, orgId: null };
@@ -103,24 +103,24 @@ test('de provider-dropdown vraagt om de check `meeting_notes` — die is GEEN gr
     assert.strictEqual(entry.label, 'Meeting Notes');
     assert.strictEqual(entry.defaultEvent, 'meeting.processed');
     assert.deepStrictEqual(entry.events.map(e => e.id), ['meeting.processed']);
-    // push-events hebben geen generieke ingest-route, maar dit event wordt
-    // in-process gedispatcht — het is dus gewoon leverbaar en mag geen
-    // "werkt nog niet"-waarschuwing tonen.
+    // push events have no generic ingest route, but this event is dispatched
+    // in-process — so it is simply deliverable and must not show a "does not work
+    // yet" warning.
     assert.strictEqual(entry.events[0].deliverability, 'ok');
 });
 
 test('de suggestie-engine leest geen enkele trigger-declaratie', () => {
-    // Eerlijk vastgelegd in plaats van aangenomen: automation/suggestions.js
-    // kent alleen de grove triggerKind-enum. Een suggestie noemt deze trigger
-    // dus niet omdat de declaratie bestaat, maar hooguit omdat het model haar
-    // in de builder-prompt is tegengekomen. Wie hier ooit wél providers wil
-    // aanbieden, moet dat expliciet gaan bouwen.
-    // Bewust tekstueel gehouden: dit pint een architectuur-belofte (geen
-    // koppeling naar de declaratie-registry), niet gedrag op een input. Een
-    // spy op de drie functies zou alleen bewijzen dat VANDAAG niemand ze
-    // aanroept, niet dat het bestand ze — of de registry zelf — nooit inleest;
-    // en zonder bestaande aanroep is er ook geen require-string om op te
-    // stuiten.
+    // Honestly recorded rather than assumed: automation/suggestions.js
+    // knows only the coarse triggerKind enum. So a suggestion does not name
+    // this trigger because the declaration exists, but at most because the
+    // model came across it in the builder prompt. Whoever ever wants to offer
+    // providers here must build that explicitly.
+    // Deliberately kept textual: this pins an architecture promise (no
+    // coupling to the declaration registry), not behaviour on an input. A spy
+    // on the three functions would only prove that TODAY nobody calls them,
+    // not that the file — or the registry itself — never reads them;
+    // and without an existing call there is also no require string to trip
+    // over.
     const src = require('fs').readFileSync(require.resolve('../../suggestions'), 'utf8');
     assert.ok(!/triggerSources|buildAppEventProviders|describeSourcesForPrompt/.test(src),
         'als dit rood wordt, leest de suggestie-engine de declaraties inmiddels wél — pas de belofte aan');

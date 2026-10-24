@@ -50,6 +50,7 @@ const facade = {
     getAll: async (sql, params) => (await db.query(sql, params)).rows,
     getClient: async () => ({ query: (sql, params) => db.query(sql, params), release() {} }),
 };
+facade.withTransaction = require('../testUtils/txFake').withTransactionVia(() => facade.getClient());
 const apps = makeStudioAppWriters(facade, { managedParts });
 const migrations = [];
 const { saveDataModel } = makeDataModelSaver({

@@ -4,16 +4,15 @@ import { describe, it, expect } from 'vitest';
 import SolutionInstallsTab, { installsBadge } from './SolutionInstallsTab';
 
 /**
- * De Installaties-tab.
+ * The Installations tab.
  *
- * Twee dingen worden hier bewaakt, en het tweede is een tenancy-regel:
+ * Two things are guarded here, and the second is a tenancy rule:
  *
- *   1. NUL IS EEN ANTWOORD, ONBEKEND IS EEN ANDER. Op precies dat verschil
- *      besluit iemand of hij een Oplossing weggooit.
- *   2. ER STAAN ALLEEN GETALLEN OP DIT SCHERM. Geen projectnaam, geen
- *      organisatie, geen tijdstip — en het getal presenteert zichzelf als een
- *      ONDERGRENS, want een installatie uit een bestand of op een andere
- *      instantie is hier onzichtbaar.
+ *   1. ZERO IS AN ANSWER, UNKNOWN IS ANOTHER. Someone decides on precisely that
+ *      difference whether to discard a Solution.
+ *   2. ONLY NUMBERS APPEAR ON THIS SCREEN. No project name, no organisation, no
+ *      time — and the number presents itself as a LOWER BOUND, because an
+ *      installation from a file or on another instance is invisible here.
  */
 
 const ok = (body) => ({ status: 'ok', data: body });
@@ -34,7 +33,7 @@ describe('zero versus unknown', () => {
         const { getByTestId } = render(<SolutionInstallsTab remote={ok({ installsHere: 3, installsElsewhere: null })} />);
         expect(getByTestId('installs-here').textContent).toMatch(/3 Solutions in your organisation/);
         expect(getByTestId('installs-elsewhere').textContent).toMatch(/could not be read/);
-        // …en dat is geen "nul elders", dus ook geen "niemand heeft dit".
+        // …and that is not “zero elsewhere”, so also not “nobody has this”.
         expect(getByTestId('installs-elsewhere').textContent).not.toMatch(/\b0\b/);
     });
 
@@ -55,12 +54,11 @@ describe('what the number is worth', () => {
     it('ALWAYS says the count is a lower bound, even on a healthy read', () => {
         const { getByTestId } = render(<SolutionInstallsTab remote={ok({ installsHere: 4, installsElsewhere: 2 })} />);
         expect(getByTestId('installs-incomplete').textContent).toMatch(/at least this many/);
-        // De zin moet ook zeggen WAAROM het een ondergrens is. Sinds de server
-        // de herkomstbewering van een bestand naloopt (install.verifyClaimed-
-        // Blueprint) telt een bestandsinstallatie op DEZE instantie wél mee, dus
-        // "een bestand is hier onzichtbaar" zou nu de verkeerde geruststelling
-        // zijn — in de richting die het getal te laag laat lijken terwijl
-        // bestandsinstallaties het juist kunnen laten oplopen.
+        // The sentence must also say WHY it is a lower bound. Since the server checks the
+        // origin claim of a file (install.verifyClaimedBlueprint), a file installation
+        // on THIS instance DOES count, so “a file is invisible here” would now be the
+        // wrong reassurance — in the direction that makes the number look too low,
+        // while file installations may in fact make it rise.
         expect(getByTestId('installs-incomplete').textContent).toMatch(/on another instance is invisible here/);
         expect(getByTestId('installs-incomplete').textContent).not.toMatch(/only installations made from the gallery/);
     });
@@ -91,9 +89,9 @@ describe('the tab badge', () => {
     });
 
     it('A REAL ZERO GETS NO BADGE EITHER — a bare "0" on a tab strip is a claim without its caveat', () => {
-        // Een getal > 0 is een ONDERGRENS en blijft waar als hij te laag is; een
-        // "0" leest als "niemand gebruikt dit", terwijl een bestandsinstallatie
-        // per definitie niet meetelt. De tab zelf zegt welke van de twee het is.
+        // A number > 0 is a LOWER BOUND and remains true even if it is too low; a “0”
+        // reads as “nobody uses this”, while a file installation by definition is not
+        // counted. The tab itself says which of the two it is.
         expect(installsBadge(ok({ installsHere: 0, installsElsewhere: 0 }))).toEqual({ count: undefined });
         expect(installsBadge(ok({ installsHere: 0, installsElsewhere: 1 }))).toEqual({ count: 1 });
     });

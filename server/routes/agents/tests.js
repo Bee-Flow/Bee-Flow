@@ -2,7 +2,7 @@
  * Test sets — the Testen tab (A1c).
  *
  *   GET    /agents/:id/tests            the questions + the last run
- *   GET    /agents/:id/tests/runs       the run history behind "Bekijk"
+ *   GET    /agents/:id/tests/runs       the run history behind "Bekijk" (view)
  *   POST   /agents/:id/tests            add one
  *   POST   /agents/:id/tests/suggest    propose an `expect` from one chat turn
  *   PUT    /agents/:id/tests/:testId    edit one
@@ -56,7 +56,7 @@
  * expectations and the tool NAMES goes: never tool arguments, never tool
  * results.
  *
- * ── "TEST ALS · GROEP X" ────────────────────────────────────────────
+ * ── "TEST ALS · GROEP X" ("TEST AS · GROUP X") ─────────────────────────────────
  * `asGroup` on the run replays the questions with the knowledge a member of
  * ONE group would have had (`core/agentRuntime/testAs`). Three consequences
  * live here rather than in that module:
@@ -75,15 +75,13 @@
  * endpoint needs `manage_users`/`org_admin` and an agent editor need not have
  * either.
  *
- * ── "+ DIT GESPREK ALS TEST" IS EEN VOORSTEL, GEEN TEST ─────────────
- * `POST /:id/tests/suggest` laat de snelle tier opschrijven wat een goed
- * antwoord op deze vraag hoe dan ook moet overbrengen, en geeft dat TERUG. Het
- * schrijft niets. De bouwer bewerkt het en zijn eigen `POST /:id/tests` maakt
- * de rij — want een test die iets anders bewaakt dan iemand dacht wordt groen,
- * en dan gelooft niemand de hele set meer. Wat een model wel en niet mag
- * voorstellen staat in `core/agentRuntime/testSuggest`; dat het een MODEL was,
- * reist mee (`suggestedBy`, en per veld `wrote`) omdat het scherm dat moet
- * kunnen zeggen.
+ * ── "+ DIT GESPREK ALS TEST" ("+ THIS CONVERSATION AS A TEST") IS A PROPOSAL, NOT A TEST ─────────────
+ * `POST /:id/tests/suggest` lets the fast tier write down what a good answer to this question must
+ * convey in any case, and returns it. It writes nothing. The builder edits it and his own `POST /:id/tests`
+ * creates the row — because a test that guards something other than what someone thought becomes green,
+ * and then nobody believes the whole set any more. What a model may and may not propose is set out in
+ * `core/agentRuntime/testSuggest`; that it was a MODEL travels along (`suggestedBy`, and per field `wrote`)
+ * because the screen must be able to say so.
  *
  * Nothing here blocks publishing. `POST /:id/publish-version` does not consult
  * these tables and must not start to: the plan's own words are "you see it, it
@@ -304,13 +302,13 @@ router.post('/:id/tests', requirePermission('manage_agents'), editLimiter, valid
         }
     }
 
-    // Herkomst. Het formulier stuurt terug wat het toonde: welk veld een
-    // model schreef, welk veld uit de beurt kwam en welk veld de mens zelf
-    // tikte. Zonder dit is een verwachting die een model opschreef na het
-    // opslaan niet meer te onderscheiden van een die iemand zelf typte —
-    // en juist die verwachting bepaalt straks of een run groen of rood is.
-    // Smal ingelezen (`normaliseWrittenBy`): onbekend valt weg, en niets
-    // ⇒ null ⇒ "een mens tikte dit".
+    // Provenance. The form sends back what it showed: which field a
+    // model wrote, which field came from the turn and which field the human typed
+    // himself. Without this an expectation that a model wrote after saving cannot be
+    // told apart from one that somebody typed — and precisely that expectation decides
+    // later whether a run is green or red.
+    // Read in narrowly (`normaliseWrittenBy`): unknown falls away, and
+    // nothing ⇒ null ⇒ "a human typed this".
     const suggest = require('../../core/agentRuntime/testSuggest');
     const writtenBy = suggest.normaliseWrittenBy(req.body.writtenBy);
     const suggestedBy = writtenBy && typeof req.body.suggestedBy === 'string'

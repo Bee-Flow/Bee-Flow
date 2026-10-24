@@ -5,16 +5,15 @@ import { describe, it, expect } from 'vitest';
 import MessageItem from './index';
 
 /**
- * C7 — de bedrading, niet de zin.
+ * C7: the wiring, not the sentence.
  *
- * De tokenmap landt server-side op het ANTWOORD (`privacy_token_map` →
- * assistantMsgId in hooks/useChatEngine/sseEvents.js), terwijl de regel onder
- * het GEBRUIKERSbericht hangt. Wie dat verkeerd knoopt krijgt geen fout maar
- * iets veel stillers: het scherm degradeert altijd, en de demonstratie — de
- * kern van het product — is nergens meer te zien zonder dat iemand het merkt.
+ * The token map lands server-side on the ANSWER (`privacy_token_map` → assistantMsgId in
+ * hooks/useChatEngine/sseEvents.js), while the line hangs under the USER message. Whoever wires that wrongly
+ * gets no error but something much quieter: the screen always degrades, and the demonstration (the core of
+ * the product) is nowhere to be seen, without anyone noticing.
  *
- * Daarom staat hier ook dat de tellervorm weg is. "1 item redacted" is een
- * bewering over een aantal; C7 vervangt hem door een aanwijzing.
+ * That is why it is also stated here that the counter form is gone. "1 item redacted" is a claim about a
+ * number; C7 replaces it with a hint.
  */
 
 const REAL_EMAIL = 'j.devries@vandijk.nl';
@@ -75,10 +74,9 @@ describe('MessageItem — een doorlaat mag niet stil wegvallen', () => {
     const WARN = { filename: 'dossier.pdf', reason: 'overflow', scannedPages: 3, totalPages: 90 };
 
     it('geruststelt niet naast een halve controle', () => {
-        // Het dossier brak na 3 van 90 pagina's af; de rest ging onder
-        // fail_open ONGEREDIGEERD naar de AI. De pil ernaast is een tweede
-        // component met een eigen bewijslast — de zin die de lezer leest moet
-        // de doorlaat zelf dragen.
+        // The file broke off after 3 of 90 pages, and the rest went under fail_open UNREDACTED to the AI. The pill
+        // beside it is a second component with its own burden of proof: the sentence the reader reads must carry
+        // the pass-through itself.
         renderTurn([
             userMsg({ dlpRedactedCount: 1, piiScanWarnings: [WARN] }),
             answer({ count: 1, tokenMap: { '[email_1]': REAL_EMAIL } }),
@@ -90,9 +88,8 @@ describe('MessageItem — een doorlaat mag niet stil wegvallen', () => {
     });
 
     it('leest een onbekende vorm als "we weten het niet", niet als "er was niets"', () => {
-        // Eén object in plaats van een lijst — de vorm die een JSON-kolom of
-        // een enkele waarschuwing oplevert. Een kale Array.isArray-poort liet
-        // de doorlaat hier spoorloos verdwijnen.
+        // One object instead of a list: the shape that a JSON column or a single warning yields. A bare
+        // Array.isArray gate let the pass-through vanish here without a trace.
         renderTurn([
             userMsg({ dlpRedactedCount: 0, piiScanWarnings: WARN }),
             answer({ count: 0 }),
@@ -107,8 +104,8 @@ describe('MessageItem — een doorlaat mag niet stil wegvallen', () => {
     });
 
     it('zwijgt waar er werkelijk niets gemeld is', () => {
-        // De andere kant van dezelfde regel: fail-closed lezen mag geen pil
-        // verzinnen onder een bericht waar niets aan de hand was.
+        // The other side of the same rule: fail-closed reading may not invent a pill under a message where nothing
+        // was the matter.
         renderTurn([userMsg({ dlpRedactedCount: 0, piiScanWarnings: [] }), answer({ count: 0 })]);
         expect(screen.queryByTestId('scan-incomplete-pill')).toBeNull();
         expect(screen.queryByTestId('privacy-row')).toBeNull();
@@ -117,11 +114,9 @@ describe('MessageItem — een doorlaat mag niet stil wegvallen', () => {
 
 describe('MessageItem — precies één privacyuitspraak per bericht', () => {
     it('zet er niet stilletjes een tweede claim naast', () => {
-        // DE EIGENSCHAP, niet de bewoording. De vorige pin zocht letterlijk
-        // naar "items redacted"; een tweede chip met andere woorden — twee
-        // componenten die dezelfde claim maken met verschillende bewijslast —
-        // gleed er zo langs. De rij draagt de regel plus hooguit de amberen
-        // pil, en niets anders.
+        // THE PROPERTY, not the wording. The previous pin searched literally for "items redacted"; a second chip with
+        // other words (two components that make the same claim with different burdens of proof) slipped past it
+        // that way. The row carries the line plus at most the amber pill, and nothing else.
         renderTurn([userMsg(), answer({ count: 1, tokenMap: { '[email_1]': REAL_EMAIL } })]);
 
         const row = screen.getByTestId('privacy-row');
@@ -144,10 +139,9 @@ describe('MessageItem — precies één privacyuitspraak per bericht', () => {
 
 describe('MessageItem — de bedrading die stil kan wegvallen', () => {
     it('telt ook een bericht dat alleen langs de legacy-PII-tak ging', () => {
-        // `dlpRedactedCount` komt van de DLP-route, `piiTokenizedCount` van de
-        // Azure-PII-route. Een bericht dat alleen die tweede route zag verliest
-        // zijn privacyregel volledig zodra iemand de max() weghaalt — zonder
-        // dat er iets rood wordt.
+        // `dlpRedactedCount` comes from the DLP route, `piiTokenizedCount` from the Azure PII route. A message that
+        // only the second route saw loses its privacy line entirely once someone removes the max(), without anything
+        // turning red.
         renderTurn([
             userMsg({ dlpRedactedCount: 0, piiTokenizedCount: 2 }),
             answer({ count: 2, tokenMap: { '[email_1]': REAL_EMAIL } }),
@@ -158,9 +152,8 @@ describe('MessageItem — de bedrading die stil kan wegvallen', () => {
     });
 
     it('leest de tekst van een samengesteld bericht, niet alleen een kale string', () => {
-        // Tekst + bijlage is de normale vorm in dit product. Wie hier naïef
-        // `msg.content` leest krijgt geen fout maar een stille degradatie: de
-        // meting vindt niets en de demonstratie verdwijnt.
+        // Text plus attachment is the normal shape in this product. Whoever naively reads `msg.content` here gets no
+        // error but a silent degradation: the measurement finds nothing and the demonstration disappears.
         const composed = userMsg({
             content: [
                 { type: 'text', text: `Contactpersoon is ${REAL_EMAIL}.` },

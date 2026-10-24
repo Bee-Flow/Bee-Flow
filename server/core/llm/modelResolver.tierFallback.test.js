@@ -1,18 +1,16 @@
 // @typecheck
 /**
- * `resolveModelForTierName` — wie vult er een model in als niemand er een koos?
+ * `resolveModelForTierName`: who fills in a model if nobody chose one?
  *
- * Deze helper had een DEFAULT-parameter `fallback = 'gemini-2.0-flash-lite'` en
- * gaf `resolved || fallback` terug. Daardoor kon hij nooit iets falsy geven, en
- * kon geen enkele aanroeper nog vragen "is er eigenlijk wel een model
- * ingericht?" — die poort was onbereikbaar. Een organisatie die dat Google-model
- * nooit koos liet er stilzwijgend tekst doorheen lopen, buiten de EU-overrides
- * en de eigen tierkeuze om.
+ * This helper had a DEFAULT parameter `fallback = 'gemini-2.0-flash-lite'` and returned
+ * `resolved || fallback`. As a result it could never give anything falsy, and no caller could
+ * any longer ask "is a model actually configured here?", that gate was unreachable. An organisation
+ * that never chose that Google model had text silently run through it, outside the EU overrides
+ * and its own tier choice.
  *
- * De regel die deze tests vastzetten: NIETS ingericht en NIETS gevraagd = null.
- * Een fallback is opt-in — wie er een wil, noemt hem. Een aanroeper die geen
- * fallback noemt hoort een leesbare weigering te geven, niet een model dat hij
- * zelf niet koos.
+ * The rule these tests pin: NOTHING configured and NOTHING requested = null.
+ * A fallback is opt-in: whoever wants one names it. A caller that names no fallback should get
+ * a readable refusal, not a model that it did not choose itself.
  *
  * Run: cd server && node --test --test-force-exit core/llm/modelResolver.tierFallback.test.js
  */
@@ -49,8 +47,8 @@ test('geen tier ingericht en geen fallback gevraagd → null, geen ingevuld mode
 });
 
 test('de weggehaalde default duikt nergens meer op als stil ingevuld model', async () => {
-    // Het hardgecodeerde Google-model was de default-parameter. Als het ooit
-    // terugkeert, faalt deze test op elk van de vier vormen tegelijk.
+    // The hard-coded Google model was the default parameter. If it ever returns,
+    // this test fails on each of the four forms at once.
     for (const opts of [undefined, {}, { userOrgId: 'org1' }, { userId: 'u1' }]) {
         const model = await resolveModelForTierName('fast', opts);
         assert.strictEqual(model, null, `opts=${JSON.stringify(opts)} vulde stilletjes ${model} in`);
@@ -79,7 +77,7 @@ test('een tier zonder eigen model valt op de fast-tier terug, niet op een hardge
     const model = await resolveModelForTierName('thinking', { userOrgId: 'org1' });
     assert.strictEqual(model, 'org-chosen-fast', 'de fast-tier is de ingerichte terugval');
 
-    // ... maar zonder fast-tier is er niets, en dan is null het antwoord.
+    // ... but without a fast tier there is nothing, and then null is the answer.
     fixtures.map['chat_model_tiers'] = { writer: { modelId: 'org-writer' } };
     assert.strictEqual(await resolveModelForTierName('thinking', { userOrgId: 'org1' }), null);
 });

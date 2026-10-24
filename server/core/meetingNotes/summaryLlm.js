@@ -256,11 +256,9 @@ function sanitizeTags(raw, personNames = []) {
  *   meetingDateIso anchors relative deadlines ("by Friday"); personNames
  *   (speakers + attendees) keeps names out of the auto-tags.
  * @returns {Promise<{actionItems: Array, decisions: Array, questions: Array, tags: string[], ok: true}|typeof ARTIFACTS_FAILED>}
- *   Drie uitkomsten, twee vormen: een GESLAAGDE pass (met of zonder
- *   resultaat) heeft de vier lijsten, een MISLUKTE pass is ARTIFACTS_FAILED
- *   en heeft er geen. Zie transcriptArtifacts.js voor waarom het onderscheid
- *   in de waarde zit en niet in een losse vlag ernaast; `artifactsUsable` is
- *   de vraag die elke schrijver stelt.
+ *   Three outcomes, two shapes: a SUCCESSFUL pass (with or without a result) has the four lists, a FAILED
+ *   pass is ARTIFACTS_FAILED and has none. See transcriptArtifacts.js for why the distinction lies in the
+ *   value and not in a separate flag beside it; `artifactsUsable` is the question that every writer asks.
  */
 async function extractMeetingArtifacts(transcript, language, userOrgId = null, { meetingDateIso = null, personNames = [] } = {}) {
     try {
@@ -307,28 +305,21 @@ Use an empty array for a list with no entries. Return ONLY valid JSON, no other 
             log.warn('[Transcriptions] artifact reply could not be parsed — reporting a failed pass, not an empty meeting');
             return ARTIFACTS_FAILED;
         }
-        // ── EEN AFGEKAPT ANTWOORD IS EEN VIERDE UITKOMST, EN GEEN GELUKTE ──
-        // `parseJsonObject` redt van een afgekapt antwoord de sleutels die nog
-        // compleet waren en sluit de rest zelf af (llmJson.js — "recovering
-        // N-1 of N items is enormously better than recovering none"). Voor een
-        // LIJST klopt dat; voor dit OBJECT niet, want de sleutels die het
-        // plafond niet meer haalden zijn dan simpelweg weg — en `asArray`
-        // hieronder maakt van elke ontbrekende sleutel een LEGE lijst.
+        // ── A TRUNCATED ANSWER IS A FOURTH OUTCOME, AND NOT A SUCCESS ──────
+        // `parseJsonObject` salvages from a truncated answer the keys that were still complete and closes the rest
+        // itself (llmJson.js: "recovering N-1 of N items is enormously better than recovering none"). For a LIST
+        // that holds; for this OBJECT it does not, because the keys that did not reach the ceiling are simply
+        // gone, and `asArray` below turns every missing key into an EMPTY list.
         //
-        // Zo'n antwoord kwam er dus uit als "gelukt, en in deze vergadering
-        // zijn geen besluiten genomen", en de merge wiste er alle opgeslagen
-        // AI-besluiten en -vragen mee. Precies bij de lange vergadering waar
-        // het plafond geraakt wordt — de vergadering met de meeste besluiten.
+        // So such an answer came out as "succeeded, and no decisions were made in this meeting", and the merge
+        // wiped all stored AI decisions and questions with it. Precisely in the long meeting where the ceiling is
+        // reached: the meeting with the most decisions.
         //
-        // Het onderscheid dat dit bestand bewaakt is "leeg" versus "niet
-        // gelezen", en bij een afgekapt antwoord is per sleutel niet te zeggen
-        // welke van de twee het is. ONBEKEND VERSMALT: geen lijsten, dus geen
-        // enkele schrijver vervangt er iets mee, en de notitieregel
-        // (buildPipelineNotices) vertelt de gebruiker dat de pass niet is
-        // afgerond. Wat je verliest is een halve extractie op een verse
-        // notitie; wat je wint is dat een druk op "Opnieuw" nooit meer een
-        // volledige besluitenlijst opruimt omdat het model één token te ver
-        // moest schrijven.
+        // The distinction this file guards is "empty" versus "not read", and with a truncated answer it is not
+        // possible to say per key which of the two it is. UNKNOWN NARROWS: no lists, so no writer replaces anything
+        // with them, and the note notice (buildPipelineNotices) tells the user that the pass was not completed. What
+        // you lose is a half extraction on a fresh note; what you win is that a press on "Regenerate" never again
+        // wipes a complete decision list because the model had to write one token too many.
         if (parsed.salvaged) {
             log.warn('[Transcriptions] artifact reply was truncated — reporting a failed pass, not an empty meeting (a missing key is unread, not empty)');
             return ARTIFACTS_FAILED;
@@ -348,14 +339,11 @@ Use an empty array for a list with no entries. Return ONLY valid JSON, no other 
                     // that rule.
                     source: 'ai',
                     text: String(item?.text || '').trim(),
-                    // Dezelfde tekst nog een keer, als IJKPUNT (M4). Zodra
-                    // iemand `text` overtypt wijkt hij hiervan af, en dat is
-                    // het enige bewijs waaraan de merge een correctie van een
-                    // mens kan onderscheiden van "het model zei het deze keer
-                    // anders". Hij hoort hier en niet pas in de merge, want de
-                    // EERSTE pass (upload / auto-import) schrijft deze lijst
-                    // rechtstreeks weg — een correctie op een verse notitie
-                    // zou anders onbeschermd zijn tot de eerste regeneratie.
+                    // The same text once more, as a REFERENCE POINT (M4). As soon as someone overtypes `text`, it deviates from
+                    // this, and that is the only evidence by which the merge can tell a correction by a person from
+                    // "the model phrased it differently this time". It belongs here and not only in the merge, because
+                    // the FIRST pass (upload / auto-import) writes this list away directly; a correction on a fresh note
+                    // would otherwise be unprotected until the first regeneration.
                     aiText: String(item?.text || '').trim(),
                     // Coerced, not passed through. The model occasionally answers
                     // `assignee: {name: 'Tom'}` or `['Tom','Sanne']`; that object
@@ -400,10 +388,9 @@ Use an empty array for a list with no entries. Return ONLY valid JSON, no other 
  * Back-compat wrapper: action items only. New code should call
  * extractMeetingArtifacts and persist all artifacts from the one pass.
  *
- * LET OP: deze vorm kan de drie uitkomsten niet uit elkaar houden — een lege
- * lijst betekent hier zowel "niets afgesproken" als "de pass viel om". Precies
- * daarom mag nieuwe code hem niet gebruiken: wie hierop overschrijft, wist een
- * bewaarde lijst zodra de smart-tier een keer omvalt.
+ * NOTE: this form cannot tell the three outcomes apart: an empty list here means both "nothing was agreed"
+ * and "the pass fell over". That is precisely why new code must not use it: whoever overwrites on the strength
+ * of it wipes a stored list as soon as the smart tier falls over once.
  */
 async function extractActionItems(transcript, language, userOrgId = null) {
     const artifacts = await extractMeetingArtifacts(transcript, language, userOrgId);

@@ -1,10 +1,10 @@
 // @typecheck
 /**
- * Skill structure — the parsers, renderers and validators behind the
- * structured skill columns (Bee Flow Builder redesign, Sep 2026, Track S1).
+ * Skill structure — the parsers, renderers and validators behind the structured skill columns
+ * (Bee Flow Builder redesign, Sep 2026, Track S1).
  *
- * A skill used to be four free-text columns (instructions, workflow, rules,
- * examples). The Studio editor now works on STRUCTURE:
+ * A skill used to be four free-text columns (instructions, workflow, rules, examples). The Studio
+ * editor now works on STRUCTURE:
  *
  *   steps        [{ id, text, refs: [{ kind: 'automation'|'kb'|'table', id }] }]
  *   rules_v2     [{ id, polarity: 'must'|'never', text }]
@@ -12,36 +12,29 @@
  *   output_schema  { type: 'object', properties: { <key>: { type, title?, format?,
  *                    'x-unit'?, description?, enum?, items? } }, required?: [] } | null
  *
- * …while the runtime (`core/tools/skillInjection.js`) and the GitHub sync
- * still read the TEXT columns. This module is the bridge, and it is pure —
- * no database, no i18n — so both the store and the migration can call it and
- * a test can pin every rule without a Postgres.
+ * …while the runtime (`core/tools/skillInjection.js`) and the GitHub sync still read the TEXT columns.
+ * This module is the bridge, and it is pure — no database, no i18n — so both the store and the migration
+ * can call it, and a test can pin every rule without a Postgres.
  *
  * ── THE PRECEDENCE RULE (plan S1) ─────────────────────────────────────
  * Mobile does full CRUD with the six text fields and never sends structure
- * (mobile/src/features/skills/api.ts). Session-skill promotion creates rows
- * from text. The Studio editor sends structure. So, per FACET
- * (workflow↔steps, rules↔rules_v2, examples↔examples_v2):
+ * (mobile/src/features/skills/api.ts). Session-skill promotion creates rows from text. The Studio editor
+ * sends structure. So, per FACET (workflow↔steps, rules↔rules_v2, examples↔examples_v2):
  *   - a request that sends the STRUCTURE → the text is regenerated from it;
- *   - a request that sends only the TEXT → the text is parsed and both are
- *     stored (the text is the source);
- *   - a request that sends neither → the facet is left alone. NEVER
- *     regenerate text from the stored structure on a request that did not
- *     send it — that is exactly how a phone edit would be overwritten.
+ *   - a request that sends only the TEXT → the text is parsed and both are stored (the text is the source);
+ *   - a request that sends neither → the facet is left alone. NEVER regenerate text from the stored
+ *     structure on a request that did not send it — that is exactly how a phone edit would be overwritten.
  * `resolveBodyWrite` is that rule as a function.
  *
- * A string in a structured column is never silently accepted (no JSON.parse
- * of request bodies here): `validate*` throws a SkillStructureError with
- * status 400 and the route answers it as such.
+ * A string in a structured column is never silently accepted (no JSON.parse of request bodies here):
+ * `validate*` throws a SkillStructureError with status 400 and the route answers it as such.
  *
  * ── THE PARSERS ARE HEURISTIC ─────────────────────────────────────────
- * They turn "1. Do X\n2. Do Y" into steps, sentences into rules (polarity
- * `never` on niet/geen/nooit/never/don't/do not), and an `Input:/Output:`
- * pattern into an example. They are for the one-time migration and for
- * text-only writers; the original text is never discarded, and the
- * renderers produce the SAME markdown a person would have typed, so a
- * migrated skill renders byte-identically in the prompt (pinned by
- * skillInjection.test.js).
+ * They turn "1. Do X\n2. Do Y" into steps, sentences into rules (polarity `never` on
+ * niet/geen/nooit/never/don't/do not), and an `Input:/Output:` pattern into an example. They are for the
+ * one-time migration and for text-only writers; the original text is never discarded, and the renderers
+ * produce the SAME markdown a person would have typed, so a migrated skill renders byte-identically in the
+ * prompt (pinned by skillInjection.test.js).
  */
 
 'use strict';

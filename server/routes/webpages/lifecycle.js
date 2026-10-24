@@ -1,12 +1,12 @@
 // @typecheck
 /**
- * Het einde en de aftakking van een pagina: klonen en verwijderen.
+ * The end and the branch of a page: cloning and deleting.
  *
  * POST /:id/clone  ·  DELETE /:id
  *
- * De twee staan bij elkaar omdat ze dezelfde vraag stellen vanaf twee kanten:
- * wat hangt er aan deze pagina, en wat moet er dan mee? De verwijderpoort zelf
- * staat in ./deleteGuard.js.
+ * The two stand together because they ask the same question from two sides:
+ * what hangs on this page, and what must happen to it then? The delete gate itself
+ * is in ./deleteGuard.js.
  */
 
 const webpageStore = require('../../stores/webpageStore');
@@ -25,10 +25,9 @@ const CloneBody = bodyOf({
     name: worded('Een naam is tekst.').trim().max(200, 'Een naam is hoogstens 200 tekens.').optional(),
 });
 
-// De bevestiging van de 409-poort. Beide spellingen die een URL kan dragen
-// tellen — zo stond het er al — maar `?confrim=1` is nu een 400 in plaats van
-// stilzwijgend "nee": op deze route is "nee" een tweede ronde door een dialoog
-// die de lijst al had laten zien.
+// The confirmation of the 409 gate. Both spellings a URL can carry count — that is how
+// it already stood — but `?confrim=1` is now a 400 instead of silently "no": on this
+// route, "no" is a second round through a dialog that had already shown the list.
 const CONFIRM_TEXT = 'confirm is true of false.';
 const DeleteQuery = z.object({ confirm: flag(CONFIRM_TEXT) }).strict();
 
@@ -54,11 +53,10 @@ function register(router) {
 
         const cloned = await webpageStore.cloneWebpage({ sourceId, newOwnerId: userId, newName: name });
         if (!cloned) return res.status(404).json({ error: 'Webpage not found' });
-        // De KLOON, niet de bron: die kreeg de code én de tabelbindingen mee en
-        // is vanaf nu een tweede gebruiker van dezelfde tabellen. Zonder deze
-        // regel is de enige pagina die niet in de index staat degene die er net
-        // bij kwam. De reconcile leest als de NIEUWE eigenaar (hij zoekt de
-        // eigenaar zelf op), dus een kloon op een ander account werkt ook.
+        // The CLONE, not the source: that got the code AND the table bindings along and is from
+        // now on a second user of the same tables. Without this line, the only page that is not
+        // in the index is the one that just came into being. The reconcile reads as the NEW owner
+        // (it looks up the owner itself), so a clone on another account works too.
         webpageUsageSync.reconcileWebpageUsageDetached(cloned.id);
         res.json({ success: true, webpage: cloned });
     });
@@ -67,8 +65,8 @@ function register(router) {
         const userId = req.session.user.id;
         const confirmed = req.query.confirm === true;
 
-        // Eigenaar-gescoopt, net als de verwijdering zelf: een niet-eigenaar
-        // krijgt dezelfde 404 als altijd en leert niets over de pagina.
+        // Owner-scoped, just like the deletion itself: a non-owner gets the same 404 as always and
+        // learns nothing about the page.
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
 
@@ -90,13 +88,11 @@ function register(router) {
         const result = await webpageStore.deleteWebpage(req.params.id, userId);
         if (!result) return res.status(404).json({ error: 'Webpage not found' });
 
-        // Er is geen FK van automation_datatable_usage naar `webpages` — die
-        // tabel hoort bij een andere store — dus niets ruimt deze rijen op.
-        // Blijven ze staan, dan vertelt de "Wordt gebruikt door"-lijst van een
-        // tabel dat iets wat niemand kan openen hem gebruikt, en houdt de
-        // 409-poort een verwijdering tegen op een pagina die niet meer bestaat.
-        // Ge-await, in tegenstelling tot de reconcile: dit is het laatste moment
-        // waarop iemand deze pagina noemt. purgeWebpageUsage gooit nooit.
+        // There is no FK from automation_datatable_usage to `webpages` — that table belongs to
+        // another store — so nothing cleans up these rows. If they stay, the "Used by" list of a
+        // table says that something nobody can open uses it, and the 409 gate holds a deletion
+        // back on a page that no longer exists. Awaited, unlike the reconcile: this is the last
+        // moment at which someone names this page. purgeWebpageUsage never throws.
         await webpageUsageSync.purgeWebpageUsage(req.params.id);
 
         // Clean up auto-created KBs

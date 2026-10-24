@@ -62,15 +62,14 @@ const dbBridgeLimiter = rateLimit({
 });
 
 /**
- * Tabelbindingen (window.beeflowTables) hebben hun EIGEN sleutel.
+ * Table bindings (window.beeflowTables) have their OWN key.
  *
- * `previewTokenKey` hierboven bevat de EIGENAAR van de pagina, want daar draait
- * de rest van de brug als. De tabelroutes draaien juist als de INGELOGDE
- * BEZOEKER, en dan is een gedeelde emmer verkeerd om: één drukke bezoeker zou
- * de tabel voor alle anderen dichtzetten. Vandaar de bezoeker in de sleutel.
- * Zonder bezoekersclaim (een token van vóór W3) wordt dat 'noviewer' — die
- * verzoeken worden verderop toch geweigerd, en één krappe emmer is de goede
- * kant om daarop te wachten.
+ * `previewTokenKey` above contains the OWNER of the page, because the rest of the bridge
+ * runs as that person. The table routes run precisely as the LOGGED-IN VIEWER, and then a
+ * shared bucket is the wrong way round: one busy viewer would close the table for all
+ * others. Hence the viewer in the key. Without a viewer claim (a token from before W3)
+ * that becomes 'noviewer' — those requests are refused further on anyway, and one tight
+ * bucket is the right side to wait on that.
  */
 function tableViewerKey(req) {
     const c = req.previewClaims;
@@ -88,8 +87,8 @@ const tableReadBridgeLimiter = rateLimit({
     message: 'Too many table reads for this page. Please try again in a minute.',
 });
 
-// Schrijven raakt gedeelde organisatiedata, niet de eigen paginadatabase:
-// eigen, krappere emmer, zodat een schrijfstorm de leesbudgetten niet opeet.
+// Writing touches shared organisation data, not the page's own database: its own,
+// tighter bucket, so that a write storm does not eat up the read budgets.
 const tableWriteBridgeLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: 20,

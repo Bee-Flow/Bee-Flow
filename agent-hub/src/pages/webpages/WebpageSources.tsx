@@ -11,10 +11,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
 
 /*
- * Het soort-label reist als SLEUTEL (`labelKey`), met het Engels ernaast als
- * fallback: de tabel wordt op één plek gerenderd, maar de waarde is tekst voor
- * de lezer en moet dus in het Talen-paneel te vinden zijn. De i18n-guard
- * controleert `labelKey` als drager — zie i18nGuard.test.js (CARRIERS).
+ * The kind label travels as a KEY (`labelKey`), with the English beside it as fallback: the table is rendered in one place, but the value is text for the reader and must therefore be findable in the Languages panel. The i18n guard checks `labelKey` as a carrier — see i18nGuard.test.js (CARRIERS).
  */
 const SOURCE_META: Record<string, { color: string; bg: string; labelKey: string; label: string; Icon: LucideIcon; }> = {
     pdf: { color: '#ef4444', bg: 'rgba(239,68,68,0.1)', labelKey: 'webpages.knowledge.type_pdf', label: 'PDF', Icon: FileText },
@@ -108,16 +105,16 @@ function SourceCard({ source, onDelete, onRetry, onCancel }: SourceCardProps) {
             <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
                 {canRetry && (
                     <button onClick={() => onRetry(source.id)} className="p-1 rounded hover:bg-white/40" title={t('webpages.knowledge.retry', 'Retry')}>
-                        <RotateCw className="w-3 h-3" style={{ color: '#3b82f6' }} />
+                        <RotateCw className="w-3 h-3 [color:#3b82f6]" />
                     </button>
                 )}
                 {isProcessing && (
                     <button onClick={() => onCancel(source.id)} className="p-1 rounded hover:bg-white/40" title={t('common.cancel', 'Cancel')}>
-                        <XCircle className="w-3 h-3" style={{ color: '#92400e' }} />
+                        <XCircle className="w-3 h-3 [color:#92400e]" />
                     </button>
                 )}
                 <button onClick={() => onDelete(source.id)} className="p-1 rounded hover:bg-white/40" title={t('webpages.card.delete', 'Delete')}>
-                    <Trash2 className="w-3 h-3" style={{ color: '#ef4444' }} />
+                    <Trash2 className="w-3 h-3 [color:#ef4444]" />
                 </button>
             </div>
         </div>

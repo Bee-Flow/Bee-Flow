@@ -140,7 +140,7 @@ export default function ConnectorHealthPanel({ initialOrgId = '', onNavigate }: 
     return (
         <div className="max-w-5xl">
             <div className="flex items-center gap-2.5 mb-1">
-                <Activity size={20} style={{ color: '#14b8a6' }} />
+                <Activity size={20} className="[color:#14b8a6]" />
                 <h2 className="text-lg font-semibold text-[var(--text-primary)] m-0">
                     {t('admin.ch_title', 'Nextcloud connector health')}
                 </h2>

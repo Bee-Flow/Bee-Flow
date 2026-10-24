@@ -155,7 +155,7 @@ function reasonWord(t: TranslateFn, reason: string | null) {
 function Warning({ text }: { text: string }) {
     return (
         <li className="flex items-start gap-1.5">
-            <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} aria-hidden="true" />
+            <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0 [color:var(--warning)]" aria-hidden="true" />
             <span>{text}</span>
         </li>
     );

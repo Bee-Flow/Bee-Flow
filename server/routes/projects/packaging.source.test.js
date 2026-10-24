@@ -1,22 +1,19 @@
 /**
- * O4 deel C — wat een geëxporteerd Blueprint-bestand over zijn herkomst zegt.
+ * O4 part C — what an exported Blueprint file says about its provenance.
  *
- * Zonder dit blok kan een BESTANDSinstallatie zichzelf nooit aan zijn Blueprint
- * koppelen, en telt zij dus nooit mee in "hoe vaak is dit geïnstalleerd". Dat
- * maakt het stempelen de voorkant van de hele installatietelling.
+ * Without this block a FILE installation can never link itself to its Blueprint, and so it never counts in "how often has this been installed". That makes
+ * the stamping the front end of the whole install count.
  *
- * Wat hier wordt vastgepind:
+ * What is pinned here:
  *
- *   1. HET BLOK WORDT NA DE PUBLICATIE GESTEMPELD, met het echte Blueprint-id
- *      en het echte versienummer. Vóór de publicatie bestaan die niet.
- *   2. EEN EXPORT ZONDER PUBLICATIE CLAIMT GEEN BLUEPRINT. `blueprintId: null`
- *      is de eerlijke waarde: het bestand hoort bij geen enkele galerijrij.
- *   3. DE ORGANISATIENAAM IS BELEEFDHEID, GEEN DRAGEND VELD. Is zij niet te
- *      lezen, dan blijft zij null en gaat de export gewoon door.
- *   4. HET IS DE ORGANISATIE VAN HET PROJECT, niet die van de sessie: een
- *      exporterende gast schrijft niet zijn eigen org in andermans bestand.
+ *   1. THE BLOCK IS STAMPED AFTER THE PUBLICATION, with the real Blueprint id
+ *      and the real version number. Before the publication those do not yet exist.
+ *   2. AN EXPORT WITHOUT PUBLICATION CLAIMS NO BLUEPRINT. `blueprintId: null`
+ *      is the honest value: the file belongs to no gallery row at all.
+ *   3. THE ORGANISATION NAME IS COURTESY, NOT A BEARING FIELD. If it cannot be read, it stays null and the export simply goes ahead.
+ *   4. IT IS THE ORGANISATION OF THE PROJECT, not that of the session: an exporting guest does not write his own org into somebody else's file.
  *
- * Hermetisch: capture, de stores en de gates zijn via require.cache vervangen.
+ * Hermetic: capture, the stores and the gates are replaced via require.cache.
  *
  * Run: cd server && node --test routes/projects/packaging.source.test.js
  */
@@ -38,8 +35,8 @@ stub('../../license/middleware', {
     featureAllowedForRequest: async () => ({ allowed: true }),
 });
 stub('../../auth/projectAccess', {
-    // De rolgate is elders getoetst (routes/projects.routetable.test.js pint dat
-    // hij op deze route staat); hier gaat het om wat er ná de gate gebeurt.
+    // The role gate has been tested elsewhere (routes/projects.routetable.test.js pins
+    // that it sits on this route); here it is about what happens AFTER the gate.
     requireProjectRole: () => (req, res, next) => next(),
 });
 
@@ -169,7 +166,7 @@ function exportProject(body) {
             r.on('data', c => { text += c; });
             r.on('end', () => {
                 let json = null;
-                try { json = JSON.parse(text); } catch { /* niet-JSON is zelf het antwoord */ }
+                try { json = JSON.parse(text); } catch { /* non-JSON is itself the answer */ }
                 resolve({ status: r.statusCode, json });
             });
         });
@@ -247,8 +244,8 @@ test('mislukt de publicatie, dan gaat het bestand mee zonder Blueprint-id', asyn
     const res = await exportProject({ save: true });
     assert.strictEqual(res.status, 200);
     assert.match(res.json._saveError, /galerij zit vol/);
-    // Het foutpad stempelt bewust geen herkomst: er IS geen galerijrij, dus een
-    // id noemen zou een verwijzing naar niets zijn.
+    // The failure path deliberately stamps no provenance: there is NO gallery row, so
+    // naming an id would be a reference to nothing.
     assert.ok(!res.json.source?.blueprintId, 'geen id van een publicatie die niet gebeurd is');
 });
 
@@ -275,9 +272,9 @@ test('een project zonder organisatie noemt er geen', async () => {
 // ── 4. De org van het PROJECT ───────────────────────────────────────────────
 
 test('het is de organisatie van het project, niet die van de sessie', async () => {
-    // De sessie draagt org_session; de Blueprint komt uit een project in
-    // org_project. Zou de sessie winnen, dan schreef een gast zijn eigen
-    // organisatie in andermans bestand.
+    // The session carries org_session; the Blueprint comes from a project in
+    // org_project. Were the session to win, a guest would write his own
+    // organisation into somebody else's file.
     reset();
     const res = await exportProject({});
     assert.strictEqual(res.json.source.orgId, 'org_project');

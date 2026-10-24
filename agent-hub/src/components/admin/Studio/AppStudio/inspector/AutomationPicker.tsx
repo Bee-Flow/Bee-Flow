@@ -240,20 +240,20 @@ const OWNER_REFUSAL_KEYS: Record<string, { key: string; en: string; }> = {
 };
 
 /**
- * Weigeringen die NIET over eigendom gaan, ook op `code` en niet op proza.
+ * Refusals that are NOT about ownership, also on `code` and not on prose.
  *
- * `/api/automation` hangt achter `requireLicenseFeature('automations')`, en die
- * poort antwoordt `{ error: 'feature_locked' }` — in dat woord zit noch
- * "tier_required" noch "licen", dus een tak die op de ZIN matchte was
- * onbereikbaar voor de poort die er in werkelijkheid staat, en de gebruiker
- * kreeg de kale servertekst `feature_locked` in het rode zinnetje. `err.code`
- * reist al mee (hooks/useAutomationApi.js), dus vertakken hoort net als bij de
- * eigendomsweigering op de code te gebeuren.
+ * `/api/automation` sits behind `requireLicenseFeature('automations')`, and that
+ * gate answers `{ error: 'feature_locked' }` — that word contains neither
+ * “tier_required” nor “licen”, so a branch that matched on the SENTENCE was
+ * unreachable for the gate actually in place, and the user got the bare server text
+ * `feature_locked` in the red sentence. `err.code` already travels along
+ * (hooks/useAutomationApi.js), so branching should happen on the code, as with
+ * the ownership refusal.
  *
- * `tier_unavailable` staat erbij omdat dezelfde middleware hem stuurt zodra de
- * licentie tijdelijk niet te bepalen is: dat is een ANDER antwoord dan "dit
- * plan heeft het niet" en verdient een andere zin — de gebruiker moet het zo
- * meteen opnieuw proberen in plaats van te gaan upgraden.
+ * `tier_unavailable` is included because the same middleware sends it when the
+ * licence temporarily cannot be determined: that is a DIFFERENT answer from “this
+ * plan does not have it” and deserves a different sentence — the user should try
+ * again in a moment instead of going to upgrade.
  */
 const OTHER_REFUSAL_KEYS: Record<string, { key: string; en: string; }> = {
     feature_locked: {
@@ -271,15 +271,15 @@ const OTHER_REFUSAL_KEYS: Record<string, { key: string; en: string; }> = {
 };
 
 /**
- * De machinenaam van een weigering — `code` als de server er een meestuurt,
- * anders het `error`-veld als dat een KALE token is (`feature_locked`,
- * `tier_unavailable`, `not_found`). De licentie- en modulepoorten sturen geen
- * `code`; hun hele antwoord is dat token.
+ * The machine name of a refusal — `code` if the server sends one along,
+ * otherwise the `error` field if that is a BARE token (`feature_locked`,
+ * `tier_unavailable`, `not_found`). The licence and module gates send no
+ * `code`; their entire answer is that token.
  *
- * Exacte gelijkheid op een token, niet een substring in een zin: dat laatste is
- * wat hier eerder stond (`/tier_required|licen/i`) en het matchte op geen enkel
- * antwoord dat de server werkelijk stuurt, terwijl het bij een gewone
- * foutmelding waarin toevallig "licen…" voorkwam wél zou aanslaan.
+ * Exact equality on a token, not a substring in a sentence: the latter is
+ * what stood here before (`/tier_required|licen/i`), and it matched no answer
+ * the server actually sends, while it would fire on an ordinary error message
+ * in which “licen…” happened to appear.
  */
 function refusalCode(err: { code?: unknown; message?: unknown } | null | undefined) {
     if (typeof err?.code === 'string' && err.code) return err.code;

@@ -67,10 +67,10 @@ async function _initDB() {
         CREATE INDEX IF NOT EXISTS idx_webpage_versions_webpage ON webpage_versions(webpage_id, created_at DESC);
     `);
 
-    // Lazy kolommigraties via runDdl (stores/lib/_ddl.js). Het oude commentaar
-    // zei telkens "column already exists — fine", maar de catch ving net zo
-    // goed een timeout of afgebroken lock-wait; nu wordt elke fout per
-    // statement luid verzameld en draait de rest gewoon door.
+    // Lazy column migrations via runDdl (stores/lib/_ddl.js). The old comment said
+    // every time "column already exists — fine", but the catch also caught a timeout
+    // or an aborted lock wait; now every error is collected loudly per statement and
+    // the rest carries on.
     await runDdl('webpageSchema', [
         // Lazy migration — `chat_messages` was added after the original schema for
         // per-webpage chat history persistence. Stored as JSONB so we can read/
@@ -136,52 +136,46 @@ async function _initDB() {
         // NOT NULL with a DEFAULT is safe here: Postgres 11+ fills it without
         // rewriting the table.
         `ALTER TABLE webpage_versions ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'manual'`,
-        // ── Het adres van de publieke pagina (W3 stap 4) ─────────────────────
-        // `slug` is WAAR de pagina publiek staat: /w/<slug>, uniek per
-        // instantie. NULL is de normale toestand — een pagina die nooit
-        // openbaar is geweest heeft geen adres, en dat moet te onderscheiden
-        // blijven van een lege string. De unieke index is daarom PARTIEEL:
-        // Postgres telt NULL's niet als duplicaat, maar '' wel, en dan zou de
-        // tweede pagina zonder adres niet meer op te slaan zijn.
+        // ── The address of the public page (W3 step 4) ─────────────────────
+        // `slug` is WHERE the page is public: /w/<slug>, unique per instance. NULL is
+        // the normal state — a page that has never been public has no address, and that
+        // must stay distinguishable from an empty string. The unique index is therefore
+        // PARTIAL: Postgres does not count NULLs as duplicates, but '' does, and then the
+        // second page without an address could no longer be saved.
         //
-        // Let op: bij toegangsmodus `unlisted` IS het adres de sleutel. De slug
-        // krijgt daarom een willekeurig achtervoegsel (stores/webpage/
-        // publicAddress.mintSlug) — een raadbaar /w/prijslijst zou elke
-        // openbare pagina op de installatie opsombaar maken.
+        // Note: with access mode `unlisted` the address IS the key. The slug therefore
+        // gets a random suffix (stores/webpage/publicAddress.mintSlug) — a guessable
+        // /w/prijslijst would make every public page on the installation enumerable.
         `ALTER TABLE webpages ADD COLUMN IF NOT EXISTS slug TEXT`,
         `CREATE UNIQUE INDEX IF NOT EXISTS idx_webpages_slug ON webpages(slug) WHERE slug IS NOT NULL`,
-        // WELKE share het adres bedient — "één share is het adres". Het
-        // N-share-model blijft bestaan (webpage_public_shares houdt er zoveel
-        // als de eigenaar maakt); deze wijzer zegt welke daarvan de canonieke
-        // is. Zachte verwijzing, geen FK: een ingetrokken share laat een
-        // wijzer achter die naar niets wijst, en dat moet 404 opleveren, geen
-        // databasefout. NULL = niet openbaar.
+        // WHICH share serves the address — "one share is the address". The N-share model
+        // remains in place (webpage_public_shares holds as many as the owner makes); this
+        // pointer says which of them is the canonical one. Soft reference, no FK: a
+        // withdrawn share leaves a pointer that points at nothing, and that must yield a
+        // 404, not a database error. NULL = not public.
         `ALTER TABLE webpages ADD COLUMN IF NOT EXISTS public_share_id TEXT`,
-        // ── De versielijst als LEESBARE geschiedenis (W4) ────────────────────
+        // ── The version list as READABLE history (W4) ────────────────────
         //
-        // `seq` is HET NUMMER dat de lezer ziet ("v14"). `created_at` kan dat
-        // nummer niet zijn: dat is TRANSACTIETIJD, dus twee rijen uit één
-        // transactie dragen dezelfde waarde en hun onderlinge volgorde is
-        // ongedefinieerd — precies de reden dat de prune-query hiernaast al
-        // `, id` als tiebreaker draagt (versions.js).
+        // `seq` is THE NUMBER the reader sees ("v14"). `created_at` cannot be that
+        // number: it is TRANSACTION time, so two rows from one transaction carry the same
+        // value and their order relative to each other is undefined — precisely why the
+        // prune query next to this also carries `, id` as a tiebreaker (versions.js).
         //
-        // NULLABLE, geen DEFAULT. Een rij van vóór deze kolom heeft geen
-        // nummer, en dat is iets ANDERS dan "v0" — dezelfde keuze als
-        // published_version_id hierboven. De backfill hieronder geeft de
-        // bestaande rijen alsnog een nummer; wat daarna nog NULL is, toont de
-        // UI als "geen nummer", nooit als 0.
+        // NULLABLE, no DEFAULT. A row from before this column has no number, and that is
+        // something DIFFERENT from "v0" — the same choice as published_version_id above.
+        // The backfill below gives the existing rows a number after all; whatever is still
+        // NULL after that, the UI shows as "no number", never as 0.
         `ALTER TABLE webpage_versions ADD COLUMN IF NOT EXISTS seq INTEGER`,
-        // Eenmalige backfill. Draait bij de eerste boot ná deze kolom over
-        // ALLE rijen (die zijn dan allemaal NULL) en is daarna leeg, want elke
-        // nieuwe rij krijgt zijn nummer bij de INSERT.
+        // One-off backfill. Runs on the first boot after this column over ALL rows (which are
+        // then all NULL) and is empty afterwards, because every new row gets its number on
+        // INSERT.
         //
-        // De nummering begint bij `MAX(seq)` van de pagina en niet bij 1. In
-        // het normale geval is dat maximum NULL en dus 0 — identiek aan "begin
-        // bij 1". Maar tijdens een rollout kan een oude pod nog rijen ZONDER
-        // seq schrijven terwijl een nieuwe pod ze al mét seq schrijft; dan
-        // zou beginnen-bij-1 een nummer uitdelen dat al bestaat en botsen met
-        // de unieke index hieronder. Een hoger nummer voor een oudere rij is
-        // lelijk; een boot die luid faalt op een dubbel nummer is erger.
+        // The numbering starts at `MAX(seq)` of the page and not at 1. In the normal case
+        // that maximum is NULL and therefore 0 — identical to "start at 1". But during a
+        // rollout an old pod may still write rows WITHOUT seq while a new pod already writes
+        // them WITH seq; then starting at 1 would hand out a number that already exists and
+        // collide with the unique index below. A higher number for an older row is ugly; a
+        // boot that fails loudly on a duplicate number is worse.
         `UPDATE webpage_versions v
             SET seq = b.base + b.rn
            FROM (
@@ -195,29 +189,25 @@ async function _initDB() {
                  WHERE n.seq IS NULL
                 ) b
           WHERE v.id = b.id AND v.seq IS NULL`,
-        // Deze index is niet alleen een integriteitsregel — hij IS het
-        // racemechanisme. Het nummer wordt toegekend met
-        // `COALESCE(MAX(seq),0)+1` IN de INSERT (versions.js); onder READ
-        // COMMITTED zien twee gelijktijdige saves hetzelfde maximum en zouden
-        // ze allebei v14 schrijven. De unieke index maakt van die tweede
-        // schrijver een 23505 in plaats van een duplicaat, en de store
-        // probeert het dan opnieuw met een vers maximum.
+        // This index is not only an integrity rule — it IS the race mechanism. The number is
+        // assigned with `COALESCE(MAX(seq),0)+1` IN the INSERT (versions.js); under READ
+        // COMMITTED two concurrent saves see the same maximum and would both write v14. The
+        // unique index turns the second writer into a 23505 instead of a duplicate, and the
+        // store then tries again with a fresh maximum.
         //
-        // PARTIEEL op `seq IS NOT NULL`: rijen die de backfill niet raakte
-        // (of een schrijver die het nummer moest opgeven) mogen naast elkaar
-        // blijven bestaan — NULL is hier "onbekend", geen waarde die botst.
+        // PARTIAL on `seq IS NOT NULL`: rows that the backfill did not touch (or a writer
+        // that had to supply the number itself) may coexist side by side — NULL is
+        // "unknown" here, not a value that collides.
         `CREATE UNIQUE INDEX IF NOT EXISTS idx_webpage_versions_seq
              ON webpage_versions(webpage_id, seq) WHERE seq IS NOT NULL`,
-        // WIE de versie maakte. Zachte verwijzing, geen FK: een verwijderd
-        // account mag de geschiedenis van de pagina niet meenemen. NULL =
-        // nooit vastgelegd, en dat is in de UI "onbekend" — niet "jij" en
-        // niet leeg (routes/webpages.js beslist dat, core/webpages/
-        // versionFacts.actorOf voert het uit).
+        // WHO made the version. Soft reference, no FK: a deleted account must not take the
+        // history of the page with it. NULL = never recorded, and in the UI that is
+        // "unknown" — not "you" and not blank (routes/webpages.js decides that;
+        // core/webpages/versionFacts.actorOf executes it).
         `ALTER TABLE webpage_versions ADD COLUMN IF NOT EXISTS actor_user_id TEXT`,
-        // HOEVEEL er veranderde: het netto aantal regels van de bewerking waar
-        // deze momentopname bij hoort. NULL = niet gemeten (bv. een publicatie
-        // of een handmatige momentopname, waar niets veranderde), en dat is
-        // iets anders dan 0 regels.
+        // HOW MUCH changed: the net number of lines of the edit this snapshot belongs to. NULL =
+        // not measured (e.g. a publication or a manual snapshot, where nothing changed), and
+        // that is something other than 0 lines.
         `ALTER TABLE webpage_versions ADD COLUMN IF NOT EXISTS line_delta INTEGER`,
     ]);
 

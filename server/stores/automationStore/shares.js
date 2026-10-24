@@ -216,22 +216,14 @@ function makeSharesStore(db, { ready = async () => {}, managedParts = null } = {
 }
 
 // The instance the app uses: the pool, behind the store's schema init.
-const { initDB, pool, getClient } = require('./core');
+const { initDB, pool, withTransaction } = require('./core');
 const defaultStore = makeSharesStore({
     query: (sql, params) => pool.query(sql, params),
     async tx(fn) {
-        const client = await getClient();
-        try {
-            await client.query('BEGIN');
+        return withTransaction(async (client) => {
             const out = await fn({ query: (sql, params) => client.query(sql, params) });
-            await client.query('COMMIT');
             return out;
-        } catch (e) {
-            await client.query('ROLLBACK').catch(() => {});
-            throw e;
-        } finally {
-            client.release();
-        }
+        });
     },
 }, { ready: initDB });
 

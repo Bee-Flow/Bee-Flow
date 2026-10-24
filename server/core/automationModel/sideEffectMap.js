@@ -37,13 +37,13 @@ const READ_ONLY = new Set([
     'contacts_search', 'contacts_list',
     'keep_list', 'keep_get', 'keep_search',
     'groups_list_conversations', 'groups_read_conversation',
-    // ── Apps die INLINE worden geïnjecteerd (toolRegistry.INLINE_TOOL_APPS) ──
-    // Sinds A2-1 staan de browser, de notebooks en de regex-regels in
-    // `ALL_TOOL_APPS`, en dus in de kiezer: hun effect komt op het scherm en
-    // stuurt de dry-run van de runner. Ze vielen alle negen op de fail-closed
-    // default ('writes'), zodat een LEESACTIE als "verandert iets" werd
-    // getekend en in een dry-run gesimuleerd werd — de builder plant dan tegen
-    // verzonnen data. Hier staan ze uitgeschreven, niet per ongeluk.
+    // ── Apps that are injected INLINE (toolRegistry.INLINE_TOOL_APPS) ──
+    // Since A2-1 the browser, the notebooks and the regex rules are in
+    // `ALL_TOOL_APPS`, and thus in the picker: their effect lands on screen and
+    // drives the runner's dry run. All nine fell to the fail-closed default
+    // ('writes'), so a READ action was drawn as "changes something" and simulated
+    // in a dry run, and the builder then planned against invented data. They are
+    // listed here explicitly, not by accident.
     'notebook_read',
     'regex_list_rules', 'regex_test_pattern',
     // Outlook / MS
@@ -184,11 +184,11 @@ const SIDE_EFFECTS = new Set([
     'ms_calendar_create_event', 'ms_calendar_update_event', 'ms_calendar_delete_event',
     'onedrive_create_folder',
     'ms_contacts_create', 'ms_contacts_update',
-    // Inline geïnjecteerde apps (zie de READ_ONLY-kop hierboven).
-    // `browse_web` staat hier BEWUST: hij leest niet alleen, hij bedient een
-    // echte browser ("clicking through a cookie wall, expanding sections,
-    // following links" — zijn eigen beschrijving), en dat is geen actie die een
-    // dry-run ongevraagd voor het echie mag doen.
+    // Inline injected apps (see the READ_ONLY header above).
+    // `browse_web` is here DELIBERATELY: he does not only read, he operates a real
+    // browser ("clicking through a cookie wall, expanding sections,
+    // following links": his own description), and that is not an action a dry run
+    // may perform for real without being asked.
     'browse_web',
     'notebook_write', 'notebook_replace', 'notebook_insert',
     'regex_add_rules', 'regex_add_collection',

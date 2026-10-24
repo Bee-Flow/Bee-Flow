@@ -16,16 +16,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn(async () => ({ ok: false })) }));
 
-vi.mock('../../../hooks/useTranslation', () => {
-    const useTranslation = () => ({
-        t: (key, fallback, vars) => {
-            const base = fallback || key;
-            return vars ? Object.entries(vars).reduce((s, [k, v]) => s.replace(`{${k}}`, v), base) : base;
-        },
-        locale: 'en',
-    });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
 vi.mock('../../shell/NavLink', () => ({ default: ({ children, ...p }) => <a {...p}>{children}</a> }));
 
@@ -133,10 +124,10 @@ describe('StudioRail', () => {
     });
 
     it('de rijnaam komt uit de gedeelde studioSectionLabel — ook zonder sleutel', () => {
-        // Deze rij hield ooit zijn eigen kopie van die helper, en die kopie
-        // miste de terugval: een beschrijver zonder label() én zonder labelKey
-        // vroeg er `t(undefined)` en tekende een NAAMLOZE rij. De gedeelde
-        // versie valt terug op labelFallback en dan op de id.
+        // This row once kept its own copy of that helper, and that copy lacked the
+        // fallback: a describer without label() and without labelKey asked for
+        // `t(undefined)` and drew a NAMELESS row. The shared version falls back to
+        // labelFallback and then to the id.
         renderRail({
             sections: [
                 ...SECTIONS,

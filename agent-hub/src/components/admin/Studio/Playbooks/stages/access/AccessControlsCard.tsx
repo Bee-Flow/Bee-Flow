@@ -70,7 +70,7 @@ export default function AccessControlsCard({
                                 className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg text-[11px]"
                                 style={{ border: `1px solid ${chosenGroups.includes(g.id) ? 'var(--kind-playbook)' : 'var(--border-default)'}`, color: 'var(--text-primary)' }}
                             >
-                                {chosenGroups.includes(g.id) && <Check className="w-3 h-3" style={{ color: 'var(--kind-playbook)' }} aria-hidden="true" />}
+                                {chosenGroups.includes(g.id) && <Check className="w-3 h-3 [color:var(--kind-playbook)]" aria-hidden="true" />}
                                 {g.name}
                             </button>
                         )) : <span className="text-[11px] text-[var(--text-secondary)]">{t('playbooks.access.no_groups', 'No groups you can see here — ask in a sentence above instead.')}</span>}

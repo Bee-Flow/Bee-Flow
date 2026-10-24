@@ -10,29 +10,27 @@ import { kindIcon, kindOf } from '../../../shared/kindColors';
 import { nOf } from '../KnowledgeStudio/plural';
 
 /**
- * Versies — de publicatiegeschiedenis van deze Oplossing, in twee weergaven.
+ * Versions — the publication history of this Solution, in two views.
  *
- *   WAT VERANDERT   één versie, per entiteit: toegevoegd, gewijzigd,
- *                   ongewijzigd. Dat is de boolean diff uit
- *                   projects/packaging/releaseNotes.js — een hashvergelijking
- *                   tussen manifest v(n-1) en v(n), zonder modelaanroep.
- *   ALLE VERSIES    de lijst zelf: welk nummer, wanneer, en hoeveel er in die
- *                   publicatie veranderde. Klikken opent hem in de eerste
- *                   weergave.
+ *   WHAT CHANGES    one version, per entity: added, changed, unchanged. That is
+ *                   the boolean diff from projects/packaging/releaseNotes.js — a
+ *                   hash comparison between manifest v(n-1) and v(n), without a
+ *                   model call.
+ *   ALL VERSIONS    the list itself: which number, when, and how many changed in
+ *                   that publication. Clicking opens it in the first view.
  *
- * ── De zin kan ontbreken; de diff niet ─────────────────────────────────────
+ * ── The sentence may be missing; the diff is not ───────────────────────────
  *
- * Boven op de boolean diff schrijft een fast-tier-model één regel per gewijzigde
- * entiteit. Die laag mag omvallen — geen provider, een time-out, een weigering —
- * en dan blijft `text` null. DAT MAG DEZE TAB NIET LEEG MAKEN: de diff is er
- * gewoon, hij is exact, en hij is het antwoord op "wat is er anders". Een rij
- * zonder zin toont dus de rij, met een regel die zegt dat er geen samenvatting
- * geschreven kon worden. `change: 'changed'` met `text: null` betekent "geen
- * woorden", `change: 'unchanged'` betekent "geen nieuws" — die twee zien er
- * hier nooit hetzelfde uit.
+ * On top of the boolean diff, a fast-tier model writes one line per changed entity.
+ * That layer may fail — no provider, a time-out, a refusal — and then `text` stays
+ * null. THIS MUST NOT EMPTY THIS TAB: the diff is there, it is exact, and it is the
+ * answer to “what is different”. A row without a sentence therefore shows the row,
+ * with a line that says a summary could not be written. `change: 'changed'` with
+ * `text: null` means “no words”; `change: 'unchanged'` means “no news” — these two
+ * never look the same here.
  *
- * En een versie waarvoor helemaal GEEN diff is vastgelegd (een publicatie van
- * vóór de release-tabel) zegt dát — niet "er is niets veranderd".
+ * And a version for which NO diff has been recorded at all (a publication from
+ * before the release table) says that — not “nothing has changed”.
  */
 
 /** Wat de segmented control aanbiedt. Twee weergaven, één keuze. */
@@ -44,11 +42,11 @@ const VIEWS: { id: ViewId; labelKey: string; fallback: string }[] = [
 ];
 
 /**
- * Het pictogram van een soort, als ELEMENT.
+ * The icon of a kind, as an ELEMENT.
  *
- * Een gewone helper en geen component — hetzelfde als `renderGlyph` in
- * StudioSectionHeader — want een `const Icon = ...` in een componentlichaam
- * leest voor de linter als een component die tijdens het renderen ontstaat.
+ * An ordinary helper and not a component — the same as `renderGlyph` in
+ * StudioSectionHeader — because a `const Icon = ...` in a component body reads to
+ * the linter as a component that comes into being while rendering.
  */
 function glyphFor(kind: string) {
     const Icon = kindIcon(kindOf(kind));
@@ -86,9 +84,8 @@ function NoteRow({ row }: { row: NoteRowData }) {
                 {row.text && (
                     <span className="block text-xs mt-0.5 text-[var(--text-secondary)]">{row.text}</span>
                 )}
-                {/* De gewijzigde rij zónder zin. De rij blijft staan — hij is het
-                    exacte antwoord — en dit is de enige plek die zegt waarom er
-                    geen woorden bij staan. */}
+                {/* The changed row without a sentence. The row remains — it is the exact
+                    answer — and this is the only place that says why there are no words. */}
                 {row.summaryMissing && (
                     <span className="block text-xs mt-0.5 text-[var(--text-tertiary)]" data-testid="version-note-nosummary">
                         {t('solutions.release_no_summary', 'Changed — a one-line summary could not be written for this one.')}
@@ -117,8 +114,8 @@ function ChangesView({ release }: { release: ReleaseRow | null }) {
     const { t } = useTranslation();
     const note = noteRowsOf(release);
 
-    // Geen vastgelegde diff. NIET hetzelfde als "niets veranderd", en dus ook
-    // geen lege lijst.
+    // No recorded diff. NOT the same as “nothing changed”, and therefore also not an
+    // empty list.
     if (note.state === 'unrecorded') {
         return (
             <Strip tone="var(--warning)" icon={AlertTriangle} testId="version-unrecorded">
@@ -235,8 +232,8 @@ export default function SolutionVersionsTab({ remote }: { remote?: ReleaseRemote
     const [picked, setPicked] = useState<string | null>(null);
 
     const { state, releases } = useMemo(() => readReleases(remote), [remote]);
-    // De nieuwste is de standaard — dat is de versie die "wat verandert"
-    // bedoelt. Een handmatige keuze wint, maar alleen zolang die versie er is.
+    // The newest is the default — that is the version “what changes” means. A manual
+    // choice wins, but only for as long as that version exists.
     const selected = releases.find((r: ReleaseRow) => r.id === picked) || releases[0] || null;
 
     if (state === 'loading') {
@@ -247,8 +244,8 @@ export default function SolutionVersionsTab({ remote }: { remote?: ReleaseRemote
         );
     }
 
-    // Een mislukte lees is GEEN lege geschiedenis. Zonder deze regel zou een
-    // Oplossing die wél gepubliceerd is er ongepubliceerd uitzien.
+    // A failed read is NOT an empty history. Without this line, a Solution that is
+    // indeed published would look unpublished.
     if (state === 'unreadable') {
         return (
             <Strip tone="var(--error)" icon={AlertTriangle} testId="versions-unreadable">

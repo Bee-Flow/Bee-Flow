@@ -1,40 +1,30 @@
 /**
- * "Uit dit transcript gehaald" — het zijpaneel naast de transcriptregels
- * (plan M4 stap 2, artboard 1b).
+ * "Extracted from this transcript": the side panel next to the transcript lines
+ * (plan M4 step 2, artboard 1b).
  *
- * ── WAT DIT BESTAND BEWAAKT ─────────────────────────────────────────
- * Drie dingen, en de rest is opmaak.
+ * ── WHAT THIS FILE GUARDS ───────────────────────────────────────────
+ * Three things, and the rest is layout.
  *
- *  1. ER WORDT NIETS OPNIEUW GETELD. De aantallen komen uit
- *     `buildFollowUpStats` — de functie die de Inzichten-tab voedt. Een
- *     paneel met een eigen telling loopt vroeg of laat uit de pas met de tab
- *     ernaast, en dan hebben twee schermen gelijk over dezelfde vergadering.
- *  2. ONBEKEND IS GEEN NUL. Een kb-scan die niet kon draaien moet dat zéggen;
- *     "nog geen regel gefileerd" is een ander antwoord en mag daar nooit voor
- *     in de plaats komen. Hetzelfde geldt voor de sprekersvraag: minder
- *     sprekers dan aanwezigen is pas een vraag als beide lijsten er zijn.
- *  3. DE PER-PERSOONS-GATE HEEFT GEEN ACHTERDEUR. Met de gate dicht mag hier
- *     geen sprekersnaam en geen per-persoonsregel staan — ook niet in de
- *     vraag over een niet-herkende spreker.
+ *  1. NOTHING IS COUNTED AGAIN. The figures come from `buildFollowUpStats`, the
+ *     function that feeds the Insights tab. A panel with its own count runs out of
+ *     step with the tab next to it sooner or later, and then two screens are both
+ *     right about the same meeting.
+ *  2. UNKNOWN IS NOT ZERO. A knowledge-base scan that could not run must say so.
+ *     "No rule filed yet" is a different answer, and it may never stand in for it.
+ *     The same goes for the speaker question: fewer speakers than attendees is only a
+ *     question when both lists are there.
+ *  3. THE PER-PERSON GATE HAS NO BACK DOOR. With the gate closed, no speaker name and
+ *     no per-person rule may appear here, not even in the question about an
+ *     unrecognised speaker.
  *
- * Draaien: cd agent-hub && npx vitest run src/pages/meeting-notes/detail/ExtractedPanel.test.jsx
+ * Running: cd agent-hub && npx vitest run src/pages/meeting-notes/detail/ExtractedPanel.test.jsx
  */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../hooks/useTranslation', () => {
-    const translator = () => ({
-        t: (key, fallback, vars) => {
-            let out = fallback || key;
-            for (const [k, v] of Object.entries(vars || {})) out = out.split(`{${k}}`).join(String(v));
-            return out;
-        },
-        language: 'en', locale: 'en',
-    });
-    return { default: translator, useTranslation: translator };
-});
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import ExtractedPanel, { speakerGapText } from './ExtractedPanel';
 import { SPEAKER_CHECK } from '../lib/transcriptOutputs';

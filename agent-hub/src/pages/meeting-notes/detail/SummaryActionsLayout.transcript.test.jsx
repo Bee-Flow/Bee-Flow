@@ -1,34 +1,23 @@
 /**
- * De transcript-tab en het paneel ernaast (plan M4 stap 2, artboard 1b).
+ * The transcript tab and the panel beside it (plan M4 step 2, artboard 1b).
  *
- * ── WAAROM DIT BESTAND BESTAAT ──────────────────────────────────────
- * ExtractedPanel wordt in zijn eigen test op alles losgelaten wat het kan
- * zeggen. Wat dáár niet te zien is, is of het paneel op het scherm dezelfde
- * gegevens krijgt: `usageUnchecked` loopt van `useUsage` via MeetingDetail en
- * deze layout naar het paneel, en dat is precies het soort doorgeefluik dat
- * bij de eerste refactor sneuvelt zonder dat er iets rood wordt. Valt het weg,
- * dan zegt het paneel "nog geen regel gefileerd" over een scan die niet heeft
- * kunnen kijken — de fail-open die de rest van dit scherm nergens toestaat.
+ * ── WHY THIS FILE EXISTS ───────────────────────────────────────────
+ * ExtractedPanel is put through its own test on everything it can say. What is not
+ * visible there is whether the panel on the screen gets the same data. `usageUnchecked`
+ * runs from `useUsage` via MeetingDetail and this layout to the panel, and that is
+ * precisely the kind of pass-through that vanishes at the first refactor without
+ * anything turning red. If it drops away, the panel says "no rule filed yet" about a
+ * scan that could not look: the fail-open that the rest of this screen nowhere allows.
  *
- * Draaien: cd agent-hub && npx vitest run src/pages/meeting-notes/detail/SummaryActionsLayout.transcript.test.jsx
+ * Running: cd agent-hub && npx vitest run src/pages/meeting-notes/detail/SummaryActionsLayout.transcript.test.jsx
  */
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../hooks/useTranslation', () => {
-    const translator = () => ({
-        t: (key, fallback, vars) => {
-            let out = fallback || key;
-            for (const [k, v] of Object.entries(vars || {})) out = out.split(`{${k}}`).join(String(v));
-            return out;
-        },
-        language: 'en', locale: 'en',
-    });
-    return { default: translator, useTranslation: translator };
-});
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
-// De popover-takken worden hier niet geopend; de modules worden wel geladen.
+// The popover branches are not opened here. The modules are loaded, however.
 vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => ({ listAutomations: vi.fn(), run: vi.fn() }) }));
 vi.mock('../../../components/admin/Studio/Datatables/datatablesApi', () => ({
     datatablesApi: { list: vi.fn(), getSchema: vi.fn(), addRow: vi.fn() },

@@ -2,24 +2,23 @@ import { render as rtlRender, screen, waitFor, cleanup } from '@testing-library/
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 /**
- * DE ENIGE PLEK WAAR DE TWEE STROKEN ECHT WORDEN GEMONTEERD.
+ * THE ONLY PLACE WHERE THE TWO STRIPS ARE REALLY MOUNTED.
  *
- * `AppRefBreadcrumb` en `UsedByButtonsCapsule` zijn los grondig getest, maar
- * niets rendert ze via de keten die ze in productie draagt:
+ * `AppRefBreadcrumb` and `UsedByButtonsCapsule` are each tested thoroughly in isolation, but
+ * nothing renders them through the chain that carries them in production:
  *
  *   automation/index.jsx  →  BuilderShell (initialAppRef)
  *   BuilderShell          →  headerProps.breadcrumbSlot
  *   BuilderHeader         →  {breadcrumbSlot}
  *
- * Gemeten: `{breadcrumbSlot}` in BuilderHeader vervangen door een leeg fragment
- * liet 176 bestanden en 2414 tests in src/components/automation groen. De hele
- * stage kon dus stilletjes onzichtbaar worden — kruimelstrook én "Gebruikt door
- * N knoppen" — zonder één rode test. Hetzelfde gold voor de `initialAppRef`-
- * draad.
+ * Measured: replacing `{breadcrumbSlot}` in BuilderHeader with an empty fragment left 176
+ * files and 2414 tests in src/components/automation green. The whole stage could thus quietly
+ * become invisible (breadcrumb and "Used by N buttons") without one red test. The same held
+ * for the `initialAppRef` thread.
  *
- * Dit bestand test de keten in twee stukken, elk op zijn eigen naad:
- *   1. BuilderShell BOUWT de slot uit de juiste twee bronnen;
- *   2. BuilderHeader RENDERT wat hij in die prop krijgt.
+ * This file tests the chain in two pieces, each at its own seam:
+ *   1. BuilderShell BUILDS the slot from the right two sources;
+ *   2. BuilderHeader RENDERS what it gets in that prop.
  */
 
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
@@ -38,8 +37,8 @@ vi.mock('./BuilderHeader', () => ({ default: (p) => { header = p; return null; }
 vi.mock('./BuildTab', () => ({ default: (p) => { header = p.headerProps; return null; } }));
 vi.mock('./SettingsTab', () => ({ default: () => null }));
 
-// De twee stroken worden vervangen door merktekens: de vraag is of ze GEMONTEERD
-// worden en met welke props, niet wat ze tekenen (dat staat in hun eigen suites).
+// The two strips are replaced by markers: the question is whether they are MOUNTED,
+// and with which props, not what they draw (that is in their own suites).
 vi.mock('./AppRefBreadcrumb', () => ({
     default: ({ appRef }) => <div data-testid="breadcrumb">{appRef?.appId}</div>,
 }));
@@ -103,8 +102,8 @@ describe('BuilderShell bouwt de kruimelstrook van de header', () => {
     });
 
     it('een automation die je via ?from=app:… opent toont ALLEBEI, kruimel eerst', async () => {
-        // Dit is de `initialAppRef`-draad: index.jsx leest hem uit de URL en
-        // geeft hem hier binnen. Hij was nergens getest.
+        // This is the `initialAppRef` thread: index.jsx reads it from the URL and passes it in
+        // here. It was tested nowhere.
         await mount({ initialAppRef: APP_REF });
         const { container } = render(<div>{header.breadcrumbSlot}</div>);
         expect(screen.getByTestId('breadcrumb').textContent).toBe(APP_REF.appId);
@@ -120,6 +119,5 @@ describe('BuilderShell bouwt de kruimelstrook van de header', () => {
     });
 });
 
-// De HEADER-helft van deze keten staat in BuilderHeader.views.test.jsx:
-// daar is BuilderHeader niet gemockt, hier wel (de shell wordt anders niet
-// meetbaar).
+// The HEADER half of this chain is in BuilderHeader.views.test.jsx:
+// there BuilderHeader is not mocked, here it is (otherwise the shell cannot be measured).

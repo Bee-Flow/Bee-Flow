@@ -121,13 +121,13 @@ export default function RegisterPanel({
                 data-testid="playbook-compliance-registered"
             >
                 <p className="flex items-center gap-2 font-semibold" style={{ fontSize: presenter ? 17 : 14, color: 'var(--text-primary)' }}>
-                    <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: 'var(--kind-playbook)' }} aria-hidden="true" />
+                    <CheckCircle2 className="w-4 h-4 shrink-0 [color:var(--kind-playbook)]" aria-hidden="true" />
                     {t('playbooks.compliance.registered', 'Registered. It is in the Compliance Center now.')}
                 </p>
                 <ul className="mt-1.5 space-y-0.5">
                     {writtenLines.map((line, i) => (
                         <li key={i} className="flex items-start gap-1.5" style={{ fontSize: presenter ? 13 : 11, color: 'var(--text-secondary)' }}>
-                            <CheckCircle2 className="w-3 h-3 mt-0.5 shrink-0" style={{ color: 'var(--kind-playbook)' }} aria-hidden="true" />{line}
+                            <CheckCircle2 className="w-3 h-3 mt-0.5 shrink-0 [color:var(--kind-playbook)]" aria-hidden="true" />{line}
                         </li>
                     ))}
                 </ul>
@@ -193,7 +193,7 @@ export default function RegisterPanel({
                 >
                     {suggestion.error
                         ? <><AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" aria-hidden="true" />{suggestion.error}</>
-                        : <><Sparkles className="w-3 h-3 mt-0.5 shrink-0" style={{ color: 'var(--type-ai)' }} aria-hidden="true" />
+                        : <><Sparkles className="w-3 h-3 mt-0.5 shrink-0 [color:var(--type-ai)]" aria-hidden="true" />
                             {suggestion.note || t('playbooks.compliance.suggest_done', 'Filled in below — read it, change what you like, then press Register it.')}</>}
                 </p>
             )}

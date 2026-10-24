@@ -101,11 +101,11 @@ async function setupTurn({ agentId, userId, userMessage, userAuth, onEvent, mess
     if (isEphemeral) {
         // Use a dummy in-memory conversation — no database writes.
         //
-        // De id is STABIEL over de beurten van één efemere sessie zodra de
-        // client een sessiesleutel meestuurt (`testChat.ephemeralConversationId`).
-        // Met de oude `ephemeral-<Date.now()>` kreeg elke BEURT een eigen id,
-        // en dan telt `usageStore.getTestChatCounts` — `COUNT(DISTINCT
-        // conversation_id)` — beurten in plaats van gesprekken.
+        // The id is STABLE across the turns of one ephemeral session as soon as the
+        // client sends a session key (`testChat.ephemeralConversationId`). With the old
+        // `ephemeral-<Date.now()>` every TURN got its own id, and then
+        // `usageStore.getTestChatCounts` — `COUNT(DISTINCT conversation_id)` — counted turns
+        // instead of conversations.
         conversation = {
             id: testChatMod.ephemeralConversationId({
                 sessionKey: messageMetadata.ephemeralKey,

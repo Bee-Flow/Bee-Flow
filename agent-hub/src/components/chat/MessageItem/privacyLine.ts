@@ -1,43 +1,44 @@
 /**
- * privacyLine.js — wat de privacyregel onder een bericht MAG beweren (C7).
+ * privacyLine.js: what the privacy line under a message MAY claim (C7).
  *
- * Het scherm heeft twee verschillende dingen te vertellen en de fout die deze
- * module onmogelijk maakt is ze door elkaar halen:
+ * The screen has two different things to tell, and the mistake this module makes
+ * impossible is mixing them up:
  *
- *   • DEMONSTRATIE — "1 gegeven vervangen door [email_1] — de echte waarde
- *     bleef hier". Dat is geen belofte maar een aanwijzing: de plaatsvervanger
- *     staat er, en de echte waarde staat leesbaar in de bubbel erboven. Die
- *     vorm mag alleen renderen als hij ook echt te tonen is.
- *   • ONBEWEZEN — de tokenmap ontbreekt (de org deelt hem niet met het scherm),
- *     dus de plaatsvervanger is hier niet bekend. Dan zegt de regel dát, en
- *     niets meer. Een geruststellende zin zonder meting eronder is erger dan
- *     geen zin: de gebruiker plakt er een beslissing op.
+ *   • DEMONSTRATION: "1 data item replaced by [email_1]. The real value stayed
+ *     here." That is not a promise but an indication: the stand-in is there, and
+ *     the real value is legible in the bubble above. That form may only render if
+ *     it can really be shown.
+ *   • UNPROVEN: the token map is missing (the org does not share it with the
+ *     screen), so the stand-in is not known here. Then the line says THAT, and
+ *     nothing more. A reassuring sentence without a measurement underneath is worse
+ *     than no sentence: the user bases a decision on it.
  *
- * De meting is bewust letterlijk. Een tokenmap-regel telt pas mee als de ECHTE
- * waarde woordelijk in de zichtbare berichttekst staat: dan — en alleen dan —
- * is aantoonbaar dat juist dít bericht die waarde bevatte, dat er een token
- * voor in de plaats ging, en dat het origineel hier nog staat. Een
- * conversatiebrede map (de kluis draagt tokens van eerdere beurten mee) levert
- * zo vanzelf alleen de regels op die over dit bericht gaan.
+ * The measurement is deliberately literal. A token-map line only counts if the
+ * REAL value literally appears in the visible message text. Then, and only then,
+ * it is demonstrable that this message contained that value, that a token was
+ * put in its place, and that the original still stands here. A conversation-wide
+ * map (the vault carries tokens from earlier turns along) thus yields only the
+ * lines that concern this message.
  *
- * Dat filter is nodig maar niet genoeg, en dat is de tweede regel hier: dat een
- * waarde hier staat bewijst niet dat de server hem in DEZE beurt verving. Zijn
- * er meer aantoonbare kandidaten dan de server vervangingen telde, dan hoort er
- * ten minste één niet bij deze beurt en weet het scherm niet welke — dan wijst
- * het niets aan. En waar een deel van de beurt helemaal niet gecontroleerd is
- * (fail_open), draagt de beschrijving dat als `incomplete` mee: de telling is
- * dan een ondergrens, geen samenvatting.
+ * That filter is necessary but not enough. That is the second rule here: that a
+ * value stands here does not prove that the server replaced it in THIS turn. If
+ * there are more demonstrable candidates than the server counted substitutions,
+ * then at least one does not belong to this turn, and the screen does not know
+ * which. Then it points to nothing. Where part of the turn was not checked at all
+ * (fail_open), the description carries that as `incomplete`: the count is then a
+ * lower bound, not a summary.
  *
- * Geen enkele functie hier kent tekst of sleutels: dit levert een beschrijving,
- * de component kiest de zin. De ternary hoort om de SLEUTEL, niet om de string.
+ * No function here knows text or keys. This produces a description, and the
+ * component chooses the sentence. The ternary belongs around the KEY, not around
+ * the string.
  */
 
 /** Hoeveel plaatsvervangers er hooguit op één regel passen. */
 export const DEFAULT_TOKEN_LIMIT = 3;
 
 /**
- * Te korte waarden matchen overal ("NL", "an") en zouden een demonstratie
- * ophangen aan toeval. Liever eerlijk degraderen dan vals bewijzen.
+ * Too-short values match everywhere ("NL", "an") and would hang a demonstration
+ * on coincidence. It is better to degrade honestly than to prove falsely.
  */
 const MIN_PROVABLE_VALUE = 3;
 
@@ -72,16 +73,15 @@ export function messageTextOf(msg: { content?: unknown } | null | undefined): st
 }
 
 /**
- * De scan-waarschuwingen van een bericht, als lijst.
+ * The scan warnings of a message, as a list.
  *
- * ONBEKEND VERSMALT HIER. Dit veld is het enige oppervlak in de chat dat een
- * fail_open-DOORLAAT zichtbaar maakt: een deel van de upload is niet
- * gecontroleerd en is ongeredigeerd naar de AI gegaan. Voor precies dit veld
- * hoort een vorm die we niet herkennen te lezen als "we weten niet of de
- * controle rond kwam", nooit als "er was niets te melden". Een kale
- * `Array.isArray`-poort deed het omgekeerde: één object in plaats van een
- * lijst, een `{count}`-vorm of een JSON-kolom die als string terugkomt, en de
- * waarschuwing verdween spoorloos.
+ * UNKNOWN NARROWS HERE. This field is the only surface in the chat that makes a
+ * fail_open PASS-THROUGH visible: part of the upload was not checked and went to
+ * the AI unredacted. For exactly this field, a shape we do not recognise must be
+ * read as "we do not know whether the check got through", never as "there was
+ * nothing to report". A bare `Array.isArray` gate did the reverse: one object
+ * instead of a list, a `{count}` shape, or a JSON column that comes back as a
+ * string, and the warning vanished without a trace.
  */
 export function normaliseScanWarnings(value: unknown) {
     if (value == null || value === false || value === '') return [];
@@ -90,8 +90,8 @@ export function normaliseScanWarnings(value: unknown) {
         const kept = value
             .filter((w: unknown) => w != null && w !== false)
             .map((w: unknown) => (typeof w === 'object' ? w : {}));
-        // Een niet-lege lijst die niets herkenbaars overhoudt is nog steeds een
-        // niet-lege lijst: er is iets gemeld, en dat mag niet wegvallen.
+        // A non-empty list that leaves nothing recognisable is still a non-empty list.
+        // Something was reported, and that may not disappear.
         return kept.length > 0 ? kept : [{}];
     }
     if (typeof value === 'object') return [value];
@@ -99,12 +99,12 @@ export function normaliseScanWarnings(value: unknown) {
 }
 
 /**
- * De tokenmap die bij DEZE beurt hoort: de eerstvolgende assistent-boodschap
- * na `idx`. De map landt server-side op het antwoord (sseEvents.js:
- * `privacy_token_map` → assistantMsgId), niet op het gebruikersbericht.
+ * The token map that belongs to THIS turn: the first assistant message after
+ * `idx`. The map lands server-side on the answer (sseEvents.js:
+ * `privacy_token_map` → assistantMsgId), not on the user message.
  *
- * Bij het volgende GEBRUIKERSbericht stoppen we: een map van een latere beurt
- * zegt niets over dit bericht.
+ * At the next USER message we stop: a map from a later turn says nothing about
+ * this message.
  */
 export function findTurnTokenMap(messages: Array<{ role?: string; tokenisationInfo?: { tokenMap?: unknown } | null } | null> | null | undefined, idx: number): object | null {
     if (!Array.isArray(messages)) return null;
@@ -119,11 +119,11 @@ export function findTurnTokenMap(messages: Array<{ role?: string; tokenisationIn
 }
 
 /**
- * De regels uit de tokenmap die over DIT bericht gaan, in leesvolgorde.
+ * The lines from the token map that concern THIS message, in reading order.
  *
- * Een regel telt alleen mee als de echte waarde woordelijk in de zichtbare
- * tekst staat. Dat is meteen het bewijs onder de zin: de plaatsvervanger ging
- * naar buiten, het origineel staat hier nog.
+ * A line counts only if the real value literally appears in the visible text.
+ * That is at the same time the proof under the sentence: the stand-in went out,
+ * and the original still stands here.
  */
 function provableTokens(messageText: unknown, tokenMap: unknown) {
     const text = typeof messageText === 'string' ? messageText : '';
@@ -133,27 +133,27 @@ function provableTokens(messageText: unknown, tokenMap: unknown) {
         if (typeof token !== 'string' || !token) continue;
         if (typeof value !== 'string' || value.length < MIN_PROVABLE_VALUE) continue;
         const at = text.indexOf(value);
-        if (at === -1) continue;          // niet in dít bericht → geen bewijs
+        if (at === -1) continue;          // not in this message → no proof
         proven.push({ token, at });
     }
     return proven.sort((a: { token: string; at: number }, b: { token: string; at: number }) => a.at - b.at);
 }
 
 /**
- * Beschrijf de regel.
+ * Describe the line.
  *
  * @param {object}  p
- * @param {number}  p.count           Wat de server telde (dlpRedactedCount / piiTokenizedCount).
- * @param {string}  p.messageText     De zichtbare tekst van het bericht.
- * @param {object}  p.tokenMap        { token: echte waarde } — of niets.
- * @param {number} [p.limit]          Hoeveel tokens er hooguit getoond worden.
- * @param {boolean}[p.scanIncomplete] Er is een deel van deze beurt NIET
- *   gecontroleerd en onder fail_open ongeredigeerd doorgelaten.
+ * @param {number}  p.count           What the server counted (dlpRedactedCount / piiTokenizedCount).
+ * @param {string}  p.messageText     The visible text of the message.
+ * @param {object}  p.tokenMap        { token: real value }, or nothing.
+ * @param {number} [p.limit]          How many tokens are shown at most.
+ * @param {boolean}[p.scanIncomplete] Part of this turn was NOT checked and
+ *   passed through unredacted under fail_open.
  * @returns {null|{form: 'demonstrated'|'unproven', count: number, tokens: string[],
  *   shown: number, partial: boolean, incomplete: boolean}}
- *   `null` als er niets te melden is. `shown` is nooit groter dan `count`,
- *   `partial` zegt dat er meer vervangen is dan hier aangetoond wordt, en
- *   `incomplete` dat de telling zelf niet het hele verhaal is.
+ *   `null` if there is nothing to report. `shown` is never larger than `count`,
+ *   `partial` says that more has been replaced than is demonstrated here, and
+ *   `incomplete` that the count itself is not the whole story.
  */
 export function describePrivacyLine({
     count, messageText, tokenMap, limit = DEFAULT_TOKEN_LIMIT, scanIncomplete = false,
@@ -165,16 +165,16 @@ export function describePrivacyLine({
 
     const proven = provableTokens(messageText, tokenMap);
 
-    // MEER KANDIDATEN DAN VERVANGINGEN → WIJS NIETS AAN.
+    // MORE CANDIDATES THAN SUBSTITUTIONS → POINT TO NOTHING.
     //
-    // De kluismap is CONVERSATIEBREED: hij draagt tokens van eerdere beurten
-    // mee. Een waarde die hier woordelijk staat, bewijst daarom alleen dát hij
-    // hier staat — niet dat de server hem in DEZE beurt heeft vervangen. Zolang
-    // er niet meer kandidaten zijn dan vervangingen kan elke kandidaat er een
-    // van zijn. Zijn het er méér, dan is ten minste één kandidaat hier NIET
-    // vervangen en zegt niets op dit scherm welke. Dan een van de twee
-    // aanwijzen op tekstpositie is niet "de beste gok tonen" maar de lezer
-    // laten concluderen dat de ándere in het klaar naar buiten ging.
+    // The vault map is CONVERSATION-WIDE: it carries tokens from earlier turns
+    // along. A value that stands here literally therefore only proves that it is
+    // here, not that the server replaced it in THIS turn. As long as there are no
+    // more candidates than substitutions, each candidate may be one of them. If
+    // there are MORE, then at least one candidate was NOT replaced here, and
+    // nothing on this screen says which. Pointing at one of the two by text
+    // position is then not "showing the best guess". It leaves the reader to
+    // conclude that the OTHER one went out in the clear.
     if (proven.length > n) return nothingShown('unproven');
 
     const tokens = proven.slice(0, limit).map((p: { token: string; at: number }) => p.token);

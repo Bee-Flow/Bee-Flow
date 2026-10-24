@@ -3,46 +3,43 @@ import type { IntegrationEntry } from '../../../config/integrationCatalog';
 import { getIntegrationIcon } from '../../../config/integrationIcons';
 
 /**
- * De app-catalogus van de agent-oppervlakken — AFGELEID, niet apart bijgehouden.
+ * The app catalogue of the agent surfaces — DERIVED, not kept separately.
  *
- * ── DE VORK DIE HIER DICHTGING (A2 stap 4) ──────────────────────────
- * Dit bestand was een eigen `META`-lijst van 27 apps naast de canonieke lijst
- * in `config/integrationCatalog.js` (49). Twee handgeschreven catalogi voor
- * dezelfde vraag, en het verschil was geen detail: **geen enkele
- * Nextcloud-app stond erin**. Een zelfhostende klant kon Nextcloud Files,
- * Talk, Deck of Tables dus wél aan een automatisering hangen, maar niet aan een
- * agent — niet omdat dat verboden was, maar omdat de kiezer ze niet kende.
- * Hetzelfde gold voor GitHub, SignRequest, Maps, Withings, Browse Web,
- * Knowledge Base en Webpages.
+ * ── THE FORK THAT WAS CLOSED HERE (A2 step 4) ───────────────────────
+ * This file was a separate `META` list of 27 apps next to the canonical list in
+ * `config/integrationCatalog.js` (49). Two hand-written catalogues for the same
+ * question, and the difference was no detail: **not one Nextcloud app was in it**.
+ * A self-hosting customer could attach Nextcloud Files, Talk, Deck or Tables to an
+ * automation, but not to an agent — not because that was forbidden, but because
+ * the picker did not know them. The same went for GitHub, SignRequest, Maps,
+ * Withings, Browse Web, Knowledge Base and Webpages.
  *
- * Zo'n vork dooft altijd dezelfde kant op: de lijst die het dichtst bij het
- * register staat groeit mee, de kopie verderop niet. De canonieke lijst zit
- * naast de org-admin- en integratieschermen die bij elke nieuwe integratie
- * worden aangeraakt; deze kopie werd alleen aangeraakt als iemand zich
- * herinnerde dat hij bestond.
+ * A fork like that always dies in the same direction: the list nearest the
+ * register grows along, the copy further away does not. The canonical list sits
+ * next to the org-admin and integration screens that are touched with every new
+ * integration; this copy was only touched if someone remembered it existed.
  *
- * De naam en het pad blijven staan omdat vier oppervlakken hem zo importeren
- * (de wizard, de legacy AgentDesigner, PlanCard en de skill-editor). Wat dit
- * bestand nog toevoegt is de VORM die die oppervlakken nodig hebben en de
- * canonieke lijst niet draagt: een icoon-element en een `group`.
+ * The name and path stay, because four surfaces import it that way (the wizard,
+ * the legacy AgentDesigner, PlanCard and the skill editor). What this file still
+ * adds is the SHAPE those surfaces need and the canonical list does not carry: an
+ * icon element and a `group`.
  *
- * ── `group` IS EEN POORT, GEEN RUBRIEK ──────────────────────────────
- * `filterAvailableIntegrations` (en twee kopieën ervan in de legacy designer)
- * doen `item.group === 'google'` en verbergen die apps voor wie niet met
- * Google inlogde. Die poort mag dus NIET uit de weergavecategorie komen:
- * "Google Maps" staat in de rubriek Google Workspace, maar draait op een
- * server-side API-sleutel (`google_maps_api_key`) en heeft niets aan een
- * Google-login. Afleiden uit de rubriek zou hem verbergen voor precies de
- * mensen die hem kunnen gebruiken.
+ * ── `group` IS A GATE, NOT A CATEGORY ──────────────────────────────
+ * `filterAvailableIntegrations` (and two copies of it in the legacy designer) do
+ * `item.group === 'google'` and hide those apps for whoever did not sign in with
+ * Google. That gate may therefore NOT come from the display category: "Google
+ * Maps" sits in the Google Workspace category, but runs on a server-side API key
+ * (`google_maps_api_key`) and needs nothing from a Google login. Deriving it from
+ * the category would hide it for exactly the people who can use it.
  *
- * Daarom staat de OAuth-lijst hier expliciet, en is hij letterlijk de lijst
- * die vóór deze stage `group: 'google'` had. Wat de poort betreft verandert
- * er dus niets; alleen de apps die de poort niet aangaat, kwamen erbij.
+ * That is why the OAuth list is stated explicitly here, and it is literally the list
+ * that carried `group: 'google'` before this stage. So as far as the gate goes,
+ * nothing changes; only the apps the gate does not concern were added.
  */
 
 /**
- * De apps die de Google-login van de gebruiker lenen. Exact de negen die vóór
- * deze stage `group: 'google'` droegen — niet "alles in de rubriek Google".
+ * The apps that borrow the user's Google login. Exactly the nine that carried
+ * `group: 'google'` before this stage — not "everything in the Google category".
  */
 const GOOGLE_OAUTH_IDS = new Set([
     'gmail', 'google-calendar', 'google-drive', 'google-sheets', 'google-docs',
@@ -53,11 +50,11 @@ const GOOGLE_OAUTH_IDS = new Set([
 const MICROSOFT_OAUTH_IDS = new Set(['outlook', 'outlook-readonly', 'ms-calendar', 'onedrive', 'ms-contacts']);
 
 /**
- * De `group` van een app: eerst de twee poorten, dan de rubriek als etiket.
+ * The `group` of an app: first the two gates, then the category as a label.
  *
- * Alleen `'google'` heeft vandaag gedrag; de rest is een groepsnaam die
- * schermen gebruiken om te ordenen. Ze blijven bestaan omdat het oude bestand
- * ze had — maar niets hangt er een recht aan op.
+ * Only `'google'` has behaviour today; the rest is a group name that screens use to
+ * order things. They stay because the old file had them — but nothing hangs a right
+ * on them.
  */
 function groupOf(item: IntegrationEntry): string {
     if (GOOGLE_OAUTH_IDS.has(item.id)) return 'google';
@@ -67,8 +64,8 @@ function groupOf(item: IntegrationEntry): string {
     return 'third-party';
 }
 
-// In rubriekvolgorde (dezelfde als de integratieschermen), zodat de kiezer
-// niet met een willekeurige registervolgorde opent.
+// In category order (the same as the integration screens), so the picker does not
+// open in an arbitrary register order.
 const CATEGORY_INDEX = new Map(
     orderCategories([...new Set(CANONICAL_CATALOG.map(i => i.category))]).map((c, i) => [c, i]),
 );

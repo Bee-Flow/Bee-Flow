@@ -35,7 +35,7 @@ function SnapshotBubble({ msg }: { msg: SnapshotMessage }) {
             }}>
                 <div className="[display:flex] [align-items:center] [gap:5px] [margin-bottom:4px]">
                     {isUserMsg
-                        ? <User style={{ width: 10, height: 10, color: 'var(--text-muted, #888)' }} />
+                        ? <User className="w-[10px] h-[10px] [color:var(--text-muted,#888)]" />
                         : <Bot style={{ width: 10, height: 10, color: COLORS.primary }} />
                     }
                     <span style={{
@@ -71,7 +71,7 @@ export function ConversationReplay({ snapshot }: { snapshot: SnapshotMessage[] }
                 letterSpacing: '0.04em', marginBottom: '8px',
                 color: COLORS.blue, display: 'flex', alignItems: 'center', gap: '5px',
             }}>
-                <MessageSquare style={{ width: 11, height: 11 }} />
+                <MessageSquare className="w-[11px] h-[11px]" />
                 {t('admin_monitoring.feedback_conversation', 'Conversation ({n} messages)', { n: snapshot.length })}
             </div>
             <div className="max-h-[400px] [overflow-y:auto] [display:flex] [flex-direction:column] [gap:6px] [padding:2px]">
@@ -86,7 +86,7 @@ export function NoConversation() {
     const { t } = useTranslation();
     return (
         <div className="[padding:16px] [border-radius:10px] [text-align:center] [background:var(--bg-primary,#0f0f1a)] [border:1px_dashed_var(--border-default,rgba(255,255,255,0.08))]">
-            <MessageSquare style={{ width: 20, height: 20, color: 'var(--text-muted, #555)', margin: '0 auto 6px' }} />
+            <MessageSquare className="w-[20px] h-[20px] [color:var(--text-muted,#555)] [margin:0_auto_6px]" />
             <div className="[font-size:12px] [color:var(--text-muted,#666)]">
                 {t('admin_monitoring.feedback_no_convo', 'No conversation shared')}
             </div>

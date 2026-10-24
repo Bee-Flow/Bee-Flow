@@ -265,18 +265,18 @@ describe('the detail', () => {
 });
 
 /**
- * ── "Wat doet deze skill" en "Wanneer inzetten" ─────────────────────────
- * De twee tekstkaarten bovenaan Werkwijze hadden geen enkele test, terwijl de
- * interessante helft van "Wanneer inzetten" juist is wat er NIET staat.
+ * ── “What does this skill do” and “When to use it” ─────────────────────────
+ * The two text cards at the top of Workflow had no test at all, while the
+ * interesting half of “When to use it” is precisely what is NOT there.
  *
- * Een teller die permanent "3.847 van de 4000" meldt, maakt van een veld waar
- * je een paar zinnen in schrijft een formulier waar je een quotum vult: het
- * telt de hele tijd mee zonder ooit iets te betekenen. Hij is dus weg, en komt
- * alleen terug als hij wél iets betekent — vlak voor de rand, en dan als
- * ruimte die OVER is, niet als verbruik.
+ * A counter that permanently reports “3,847 of the 4000” turns a field where you
+ * write a few sentences into a form where you fill in a quota: it counts the whole
+ * time without ever meaning anything. It is therefore gone, and returns only if it
+ * does mean something — close to the limit, and then as room that is LEFT, not as
+ * consumption.
  *
- * De 4000-grens zelf is van de SERVER (routes/skills.js weigert meer met een
- * 400). Wat hier wordt vastgehouden is de kant die de gebruiker merkt.
+ * The 4000 limit itself belongs to the SERVER (routes/skills.js refuses more with a
+ * 400). What is held here is the side the user notices.
  */
 describe('the two text cards on "Method"', () => {
     const openWith = async (over = {}) => {
@@ -312,9 +312,9 @@ describe('the two text cards on "Method"', () => {
     });
 
     /**
-     * De grens ligt op 90%, en wel STRIKT erboven: op precies 3600 tekens is
-     * er nog niets aan de hand. Zonder deze test zou een `>=` of een andere
-     * drempel er hetzelfde uitzien in de twee tests hierboven.
+     * The threshold sits at 90%, and STRICTLY above it: at exactly 3600 characters
+     * nothing is wrong yet. Without this test, a `>=` or another threshold would look
+     * identical in the two tests above.
      */
     it('draws that line at 90%: 3600 characters is still silent, 3601 is not', async () => {
         await openWith({ instructions: 'x'.repeat(3600) });
@@ -325,17 +325,15 @@ describe('the two text cards on "Method"', () => {
     });
 
     /**
-     * De cap is die van de server; deze test bewaakt dat de editor er nooit
-     * overheen VERSTUURT. Doet hij dat wel, dan antwoordt de PUT 400 zonder
-     * `code`, en de autosave-catch kent alleen 403 en `invalid_structure` —
-     * het opslaanlampje springt op rood en niemand hoort waarom, elke 350ms
-     * opnieuw. Afkappen aan deze kant is dus geen tweede regel naast die van
-     * de server, maar de reden dat die regel niet in stilte kan falen.
+     * The cap is the server's; this test guards that the editor never SENDS over it.
+     * If it does, the PUT answers 400 without `code`, and the autosave catch only
+     * knows 403 and `invalid_structure` — the save light turns red and nobody hears
+     * why, again every 350ms. Truncating on this side is therefore not a second rule
+     * next to the server's, but the reason that rule cannot fail silently.
      *
-     * `maxLength` op de textarea dekt dit NIET: dat stopt alleen typen en
-     * plakken in een echte browser, en doet niets aan een waarde die
-     * programmatisch binnenkomt — precies de weg die "Let AI fill it in"
-     * neemt.
+     * `maxLength` on the textarea does NOT cover this: that only stops typing and
+     * pasting in a real browser, and does nothing about a value that arrives
+     * programmatically — precisely the route that “Let AI fill it in” takes.
      */
     it('never sends more than the server will take, so the cap cannot fail in silence', async () => {
         await openWith({ instructions: '' });

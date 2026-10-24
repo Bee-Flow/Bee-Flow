@@ -1,37 +1,36 @@
 // @typecheck
 /**
- * App Studio — een CLIËNT-VEILIGE weigering op het LEESPAD.
+ * App Studio — a CLIENT-SAFE refusal on the READ path.
  *
- * `safe` is wat een router toestaat de boodschap letterlijk door te geven
- * (routes/studioAppData.js handleErr, routes/studioAppPublic.js handleErr, en
- * dataReadRunner.runBatch voor een per-lezing-status). Deze strings zijn dus
- * geschreven om gelezen te worden door iemand die de app niet gemaakt heeft:
- * geen interne paden, geen SQL, geen namen van andermans organisaties.
+ * `safe` is what a router is allowed to pass on as the message literally
+ * (routes/studioAppData.js handleErr, routes/studioAppPublic.js handleErr, and
+ * dataReadRunner.runBatch for a per-read status). These strings are therefore written to be
+ * read by someone who did not make the app: no internal paths, no SQL, no names of other
+ * people's organisations.
  *
- * Waarom een eigen bestandje: er zijn twee modules op het leespad die zo'n
- * weigering maken — dataReadRunner.js (de tabel bestaat niet / deze rol mag niet
- * lezen) en datatableSource.js (de gekoppelde Studio-tabel) — en de vlag hoort
- * op één plek gezet te worden. Twee kopieën van deze vier regels zijn twee
- * plekken waar iemand later `safe: true` op een interne foutmelding zet.
+ * Why a separate small file: there are two modules on the read path that make such a refusal
+ * — dataReadRunner.js (the table does not exist / this role may not read) and
+ * datatableSource.js (the linked Studio table) — and the flag should be set in one place. Two
+ * copies of these four lines are two places where someone later puts `safe: true` on an
+ * internal error message.
  *
- * Het SCHRIJFpad gebruikt dezelfde weigering: actionExecutor/records.js roept
- * datatableSource aan (met een schrijfactie in plaats van een lezing) en vertaalt
- * wat er uitkomt naar een stapfout. Er is dus één soort weigering voor allebei,
- * en de naam `readError` is inmiddels een understatement — hij dekt elke
- * cliënt-veilige weigering rond een tabel.
+ * The WRITE path uses the same refusal: actionExecutor/records.js calls datatableSource (with a
+ * write action instead of a read) and translates what comes out into a step error. So there is
+ * one kind of refusal for both, and the name `readError` is by now an understatement — it
+ * covers every client-safe refusal around a table.
  *
- * ── LET OP DE STATUS ────────────────────────────────────────────────
- * De runtime-client degradeert een 404 naar "leeg": zie
+ * ── MIND THE STATUS ─────────────────────────────────────────────────
+ * The runtime client degrades a 404 to "empty": see
  * agent-hub/.../runtime/useAppDataSource.js (`if (res.status === 404) return []`)
- * en runtime/dataBatchClient.js (`unwrapRead` geeft de notFoundValue terug).
- * Een weigering die 404 antwoordt, verschijnt op het scherm dus als een lege
- * lijst — en "leeg" en "onleesbaar" zijn verschillende antwoorden.
+ * and runtime/dataBatchClient.js (`unwrapRead` returns the notFoundValue).
+ * A refusal that answers 404 therefore appears on screen as an empty list — and "empty" and
+ * "unreadable" are different answers.
  *
- * Daarom is een weigering NOOIT een 404:
- *   403  je mag dit niet lezen
- *   422  de koppeling in het model deugt niet (de app wijst naar iets kapots)
- *   503  we konden het niet vaststellen (uitval, geen antwoord)
- * 404 blijft wat het altijd was: "die tabel bestaat niet in dit model".
+ * That is why a refusal is NEVER a 404:
+ *   403  you may not read this
+ *   422  the link in the model is wrong (the app points at something broken)
+ *   503  we could not establish it (outage, no answer)
+ * 404 stays what it always was: "that table does not exist in this model".
  */
 
 'use strict';

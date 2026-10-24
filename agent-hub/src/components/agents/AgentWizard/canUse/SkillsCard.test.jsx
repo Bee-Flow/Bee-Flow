@@ -1,10 +1,9 @@
 /**
- * De Skills-kaart van "Kan gebruiken" (A2 stap 2).
+ * The Skills card of "Can use" (A2 step 2).
  *
- * De ondertitel van het artboard — "5 stappen · 3 regels · ook gebruikt door 2
- * andere agents" — plus de regel eronder: de gebruikstelling is een APARTE
- * lezing, en als die mislukt verdwijnt alleen de bijzin, met een zin die zegt
- * dat hij ontbreekt.
+ * The subtitle of the artboard: "5 steps · 3 rules · also used by 2 other agents", plus the line underneath.
+ * The usage count is a SEPARATE read, and if that fails, only the subordinate clause disappears, with a
+ * sentence that says it is missing.
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/canUse/SkillsCard.test.jsx
  */

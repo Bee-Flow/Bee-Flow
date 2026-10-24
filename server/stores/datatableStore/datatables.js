@@ -610,9 +610,7 @@ async function bumpAfterWrite(id, scope, delta = 0) {
  * route still answered `{ok:true}`. Composed for both erasure callers by
  * datatableDbStore.dropDatatable.
  *
- * Wekt na een geslaagde verwijdering dezelfde gedebouncede tap als een
- * rij-mutatie (`notifyDatatableChanged`), zodat een openbare snapshot die deze
- * rijen ingebakken heeft herschreven wordt — zie de reden bij de aanroep.
+ * Fires after a successful deletion the same debounced tap as a row mutation (`notifyDatatableChanged`), so that a public snapshot that has baked in these rows is rewritten — see the reason at the call.
  *
  * A table of a Solution stage project is the release's: deleting it needs
  * `opts.managedWrite` (the capability of an active deployment of that stage,
@@ -661,24 +659,24 @@ async function deleteDatatable(id, scope, { dropPhysical = null, client: outerCl
         if (dropPhysical && before) await dropPhysical(client, { before, next: model, modelVersion });
         return true;
     });
-    // Dezelfde tap als een rij-mutatie, om dezelfde reden — alleen in zijn
-    // sterkste vorm. Een OPENBARE webpagina bakt de rijen van deze tabel als
-    // statische <table> in haar snapshot; die bytes werken zichzelf niet bij.
-    // Verdween er één rij, dan wekt bumpAfterWrite de reconciler. Verdwijnt de
-    // HELE tabel — de route DELETE /api/datatables/:id, of een account dat
-    // wordt gewist — dan verdween tot nu toe niemand: de snapshot bleef de
-    // namen en e-mailadressen tonen tot de eigenaar toevallig opsloeg. De
-    // zwaarste verwijdering die het product kent was zo de enige die publiek
-    // niets deed.
+    // The same tap as a row mutation, for the same reason — only in its
+    // strongest form. A PUBLIC web page bakes the rows of this table into its snapshot as
+    // a static <table>; those bytes do not update themselves.
+    // If one row disappeared, bumpAfterWrite wakes the reconciler. If the
+    // WHOLE table disappears — the route DELETE /api/datatables/:id, or an account
+    // that gets wiped — then until now nobody did: the snapshot kept showing the
+    // names and e-mail addresses until the owner happened to save. The
+    // heaviest deletion the product knows was thus the only one that did
+    // nothing publicly.
     //
-    // Alleen bij een ECHTE verwijdering: een `false` betekent dat er niets is
-    // gewist (verkeerde scope, al weg), en dan is er ook niets te herschrijven.
+    // Only on a REAL deletion: a `false` means that nothing was wiped (wrong
+    // scope, already gone), and then there is also nothing to rewrite.
     //
-    // Na de transactie, niet erin. Bezit de aanroeper de transactie zelf
-    // (`outerClient`), dan is er op dit punt nog niet gecommit; de melding is
-    // gedebouncet, dus in de praktijk loopt de commit voor. Rolt hij alsnog
-    // terug, dan schrijft de reconciler dezelfde rijen opnieuw — dat is de
-    // veilige kant van de vergissing.
+    // After the transaction, not inside it. If the caller owns the transaction
+    // itself (`outerClient`), then at this point nothing has been committed yet; the notice
+    // is debounced, so in practice the commit comes first. If it rolls back
+    // after all, the reconciler writes the same rows again — that is the
+    // safe side of the mistake.
     if (deleted) notifyDatatableChanged(id);
     return deleted;
 }

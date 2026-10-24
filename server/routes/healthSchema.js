@@ -1,31 +1,26 @@
 'use strict';
 
 /**
- * GET /api/health/schema — schema-gezondheidsprobe die DEGRADEERT, nooit crasht.
+ * GET /api/health/schema — schema health probe that DEGRADES, never crashes.
  *
- * Antwoordt ALTIJD HTTP 200 met een klein JSON-object { ok, schemaReady, build }:
- *   - ok          : de database heeft de probe beantwoord
- *   - schemaReady : alle sentinel-kerntabellen bestaan volgens information_schema
- *   - build       : de buildstempel (utils/buildInfo), zodat een deploy-smokecheck
- *                   in één call versie én schema kan verifiëren
+ * Always answers HTTP 200 with a small JSON object { ok, schemaReady, build }:
+ *   - ok          : the database answered the probe
+ *   - schemaReady : all sentinel core tables exist according to information_schema
+ *   - build       : the build stamp (utils/buildInfo), so that a deploy smoke check
+ *                   can verify both version and schema in one call
  *
- * Het endpoint is bewust ongeauthenticeerd (deploy-pipelines en orchestrators
- * pollen het vóór er sessies bestaan), dus de response bevat NOOIT tabelnamen
- * of fouttekst — een onbereikbare database geeft alleen ok:false plus een
- * logregel server-side. Vergelijk de sanity-probe in boot/startupTasks.js die
- * historisch process.exit(1) deed: dít is de niet-fatale variant.
+ * The endpoint is deliberately unauthenticated (deploy pipelines and orchestrators
+ * poll it before any sessions exist), so the response NEVER contains table names
+ * or error text — an unreachable database gives only ok:false plus a
+ * log line server-side. Compare the sanity probe in boot/startupTasks.js, which historically did process.exit(1): this is the non-fatal variant.
  *
- * De uitkomst wordt ~30 s in-proces gecachet (ook een mislukking), zodat een
- * agressieve poller of een liveness-loop de database niet lastigvalt.
+ * The outcome is cached in-process for ~30 s (failures too), so that an aggressive poller or a liveness loop does not hammer the database.
  *
- * ── Bewust GEEN zod-schema ──────────────────────────────────────────
+ * ── Deliberately NO zod schema ──────────────────────────────────────
  *
- * De probe leest niets uit het verzoek, en haar contract is "altijd 200":
- * mobile/src/api/server.ts leest alles behalve een 200 als "onbekend" of
- * "server te oud", en selfhost.sh en deploy-pipelines wachten op haar.
- * Een strikte query zou van een cache-buster of een monitor die `?t=`
- * toevoegt een 400 maken — een gezonde server die ongezond oogt, om een
- * sleutel die aan het antwoord niets kon veranderen.
+ * The probe reads nothing from the request, and its contract is "always 200":
+ * mobile/src/api/server.ts reads everything except a 200 as "unknown" or "server too old", and selfhost.sh and deploy pipelines wait for it.
+ * A strict query would turn a cache-buster or a monitor that adds `?t=` into a 400 — a healthy server that looks unhealthy, over a key that could not change the answer.
  */
 
 const express = require('express');
@@ -33,8 +28,7 @@ const db = require('../db');
 const { APP_BUILD_SHA } = require('../utils/buildInfo');
 const log = require('../telemetry/log');
 
-// Goedkope sentinel: een dwarsdoorsnede van kerntabellen uit verschillende
-// store-eigenaren. Bestaan deze vier, dan heeft de migratieladder gedraaid.
+// Cheap sentinel: a cross-section of core tables from different store owners. If these four exist, the migration ladder has run.
 const SENTINEL_TABLES = ['users', 'agents', 'automations', 'direct_conversations'];
 
 const CACHE_TTL_MS = 30_000;
@@ -62,7 +56,7 @@ function getSchemaHealth() {
     if (!_inflight) {
         _inflight = _probe()
             .catch((err) => {
-                // Degraderen, niet crashen — en het detail blijft server-side.
+                // Degrade, do not crash — and the detail stays server-side.
                 log.warn('[HealthSchema] schema-probe faalde:', err && err.message);
                 return { ok: false, schemaReady: false };
             })

@@ -28,10 +28,10 @@ const CATALOG_TOOLS = {
     'agent-search': [{ function: { name: 'web_search', description: 'Search the web' } }],
     'broken-app': [{ function: { name: 'broken_do' } }],
     'browser-fetch': [{ function: { name: 'browse_web', description: 'Drive a browser' } }],
-    // Twee entries over DEZELFDE module: `outlook` bezit de namen, de
-    // read-only rij levert er een strikte subset van. De echte bron geeft dat
-    // sinds A2-4 terug (`grantsVia`); een stub zonder zo'n paar kan niet zien
-    // dat de catalogus er iets over moet zeggen.
+    // Two entries over the SAME module: `outlook` owns the names, the
+    // read-only row supplies a strict subset of them. The real source gives that
+    // back since A2-4 (`grantsVia`); a stub without such a pair cannot see
+    // that the catalogue should say something about it.
     outlook: [
         { function: { name: 'outlook_search', description: 'Search mail' } },
         { function: { name: 'outlook_read', description: 'Read a mail' } },
@@ -55,15 +55,15 @@ require.cache[registryPath] = {
             { app: 'outlook', label: 'Outlook' },
             { app: 'outlook-readonly', label: 'Outlook (read-only)', grantsVia: 'outlook' },
         ],
-        // De apps die hun tools INLINE injecteren. Ze staan bewust niet in
-        // TOOL_REGISTRY (dat snijdt andere antwoorden), maar de kiezer moet ze
-        // wél kunnen tonen — anders schrijft hij nooit een weigering voor ze
-        // weg en houdt een gecureerde agent ze stilzwijgend.
+        // The apps that inject their tools INLINE. They deliberately do not stand in
+        // TOOL_REGISTRY (that would cut other answers), but the picker must be able to
+        // show them — otherwise it never writes a refusal for them and a curated agent
+        // silently keeps them.
         INLINE_TOOL_APPS: [
             {
                 app: 'browser-fetch', label: 'Browse Web',
-                // Zoals de echte rij: TWEE mogelijke oorzaken (de docker-probe
-                // en het org-entitlement), niet één.
+                // Like the real row: TWO possible causes (the docker probe
+                // and the org entitlement), not one.
                 grantsRequireEntry: true, availability: ['installation', 'permission'],
             },
         ],
@@ -71,11 +71,11 @@ require.cache[registryPath] = {
             return [...this.TOOL_REGISTRY, ...this.INLINE_TOOL_APPS];
         },
         loadTools: (entry) => (entry.app === LOAD_THROWS_FOR ? [] : (CATALOG_TOOLS[entry.app] || [])),
-        // ZOALS DE ECHTE BRON. `loadTools` gooit niet — hij vangt zelf en geeft
-        // `[]` terug — dus een route die op een throw wachtte, wachtte op iets
-        // dat nooit komt. De storing hoort als WAARDE terug te komen: een app
-        // met een lege actielijst is iets anders dan een app die niet te lezen
-        // was, en alleen de tweede mag "actionsKnown: false" opleveren.
+        // LIKE THE REAL SOURCE. `loadTools` does not throw: it catches internally and returns
+        // `[]` — so a route that waited for a throw was waiting for something that never
+        // comes. The failure should come back as a VALUE: an app with an empty
+        // action list is something different from an app that could not be read, and only
+        // the second may yield "actionsKnown: false".
         loadToolsResult: (entry) => (entry.app === LOAD_THROWS_FOR
             ? { tools: [], ok: false, reason: 'require_failed' }
             : { tools: CATALOG_TOOLS[entry.app] || [], ok: true, reason: null }),
@@ -198,11 +198,11 @@ test('an app whose module fails to load reports unknown actions, not zero action
     assert.strictEqual(appNamed(body, 'gmail').available, true);
 });
 
-// ── De apps die geen TOOLS-array-module zijn (A2-1) ─────────────────
-// `browse_web` werd inline geregistreerd en stond dus in geen enkele lijst die
-// deze route leest. Zolang de kiezer hem niet TOONT, schrijft hij er ook nooit
-// een weigering voor weg — en houdt een agent die tot één Gmail-actie werd
-// versmald in stilte een volledige browser.
+// ── The apps that are not a TOOLS-array module (A2-1) ─────────────────
+// `browse_web` was registered inline and therefore sat in no list that
+// this route reads. As long as the picker does not SHOW it, it never writes a refusal
+// for it either — and an agent narrowed down to one Gmail action would silently
+// keep a full browser.
 
 test('een inline app staat in de catalogus, met zijn acties', async () => {
     GATE_THROWS = false;
@@ -215,19 +215,19 @@ test('een inline app staat in de catalogus, met zijn acties', async () => {
     assert.deepStrictEqual(browser.actions.map(a => a.name), ['browse_web']);
     assert.strictEqual(browser.actionsKnown, true);
     assert.strictEqual(browser.available, true);
-    // De kiezer moet weten dat zwijgen hier NIET "de hele app" betekent —
-    // anders opent hij deze app met alle vinkjes aan terwijl de runtime niets
-    // gunt, en dat verschil is precies wat de rij zou verzwijgen.
+    // The picker must know that silence here does NOT mean "the whole app" —
+    // otherwise it opens this app with all the boxes ticked while the runtime grants
+    // nothing, and that difference is exactly what the row would hide.
     assert.strictEqual(browser.requiresGrant, true);
     assert.strictEqual(appNamed(body, 'gmail').requiresGrant, false,
         'een gewone registry-app houdt de geen-migratie-regel');
 });
 
 test('meer dan één mogelijke oorzaak ⇒ GEEN enkele oorzaak beweren', async () => {
-    // `availabilityKind` is een statisch veld op de registryrij, maar
-    // `available: false` heeft per app meerdere dynamische oorzaken:
-    // `browse_web` zit achter de docker-probe ÉN achter het org-entitlement.
-    // Eén ervan noemen is een bewering die de meting niet oplevert.
+    // `availabilityKind` is a static field on the registry row, but
+    // `available: false` has several dynamic causes per app:
+    // `browse_web` sits behind the docker probe AND behind the org entitlement.
+    // Naming one of them is a claim the measurement does not deliver.
     GATE_THROWS = false;
     GATE_TOOLS = ['gmail_search'];
     LOAD_THROWS_FOR = null;

@@ -1,19 +1,16 @@
 'use strict';
 
 /**
- * Het voorstel achter "+ Dit gesprek als test" (A4 deel D).
+ * The proposal behind "+ This conversation as test" (A4 part D).
  *
- * Wat hier vastligt is niet de formulering maar de GRENS van het voorstel:
+ * What is fixed here is not the wording but the LIMIT of the proposal:
  *
- *   • een model stelt nooit een verbod voor — `mustNotMention` is een
- *     letterlijke match die de grader niet kan redden, dus een verzonnen
- *     verbod is de duurste vergissing van de vijf velden;
- *   • `toolsExpected` komt uit wat er GEBEURD is, niet uit een mening;
- *   • wat niet als voorstel te lezen is, is geen half voorstel maar geen
- *     voorstel — anders staat er straks "de AI stelt dit voor" boven iets wat
- *     niemand heeft opgeschreven;
- *   • per veld reist mee WIE het schreef, want het scherm moet dat kunnen
- *     zeggen en mag het niet raden.
+ *   • a model never proposes a prohibition — `mustNotMention` is a literal match that the grader cannot rescue,
+ *     so an invented prohibition is the most expensive mistake of the five fields;
+ *   • `toolsExpected` comes from what HAPPENED, not from an opinion;
+ *   • what cannot be read as a proposal is not a half proposal but no proposal at all — otherwise "the AI proposes
+ *     this" would stand above something that nobody wrote down;
+ *   • per field travels along WHO wrote it, because the screen must be able to say so and must not have to guess it.
  *
  * Run: cd server && node --test core/agentRuntime/testSuggest.test.js
  */
@@ -40,8 +37,8 @@ test('een voorstel vult mustMention en notes, en laat de verboden leeg', () => {
 });
 
 test('een model dat toch een verbod meestuurt komt er niet doorheen', () => {
-    // parseSuggestion leest het veld niet eens; suggestionFrom zou het ook
-    // niet doorlaten. Beide kanten, want één ervan wordt ooit herschreven.
+    // parseSuggestion does not even read the field; suggestionFrom would not let it through either. Both sides,
+    // because one of them will be rewritten at some point.
     const readBack = suggest.parseSuggestion({
         mustMention: ['open until six'],
         mustNotMention: ['never mention a price'],
@@ -90,7 +87,7 @@ test('een lege lijst IS een antwoord — "hier valt niets vast te leggen"', () =
     assert.deepStrictEqual(out, { mustMention: [], notes: '' });
 });
 
-// ── De berichten naar het model ──────────────────────────────────────
+// ── The messages to the model ──────────────────────────────────────
 
 test('het antwoord staat tussen delimiters, met de staande zin erboven', () => {
     const messages = suggest.buildSuggestionMessages({
@@ -138,10 +135,9 @@ test('niets hier gooit op rommel', () => {
 });
 
 test('BIJT — de LENGTEGRENS van een voorstel is écht strenger dan die van de opslag', () => {
-    // De test hierboven leest de constante en blijft dus groen als iemand hem
-    // op de opslaggrens zet. Deze niet: hij pint de verhouding én een absolute
-    // bovengrens, want de motivering is leesbaarheid — een mens moet het
-    // NALEZEN, en dat is hier de hele beheersmaatregel.
+    // The test above reads the constant and therefore stays green if someone sets it on the storage limit.
+    // This one does not: it pins the ratio AND an absolute upper bound, because the motivation is readability —
+    // a human must READ IT THROUGH, and that is the whole control measure here.
     const { LIMITS } = require('./testSandbox');
     assert.ok(SUGGEST_LIMITS.mentionChars < LIMITS.listItemChars,
         `${SUGGEST_LIMITS.mentionChars} moet strenger zijn dan de opslaggrens ${LIMITS.listItemChars}`);
@@ -149,7 +145,7 @@ test('BIJT — de LENGTEGRENS van een voorstel is écht strenger dan die van de 
         'een steekwoord dat langer is dan dit leest niemand na');
     assert.ok(SUGGEST_LIMITS.mentions < LIMITS.listItems);
 
-    // En hij knipt ook echt: een item op de OPSLAGgrens komt korter terug.
+    // And it also really cuts: an item at the STORAGE limit comes back shorter.
     const atStorageLimit = 'x'.repeat(LIMITS.listItemChars);
     const out = suggest.suggestionFrom({ parsed: { mustMention: [atStorageLimit], notes: '' } });
     assert.strictEqual(out.expect.mustMention[0].length, SUGGEST_LIMITS.mentionChars);
@@ -157,8 +153,8 @@ test('BIJT — de LENGTEGRENS van een voorstel is écht strenger dan die van de 
 });
 
 test('de herkomst die het formulier terugstuurt wordt smal ingelezen', () => {
-    // Zonder deze lezing zou een client zelf mogen bepalen dat een regel die
-    // hij tikte "door een AI geschreven" heet, of andersom.
+    // Without this reading a client could decide by itself that a rule it typed is called "written by an AI",
+    // or the reverse.
     assert.deepStrictEqual(
         suggest.normaliseWrittenBy({ mustMention: 'ai', toolsExpected: 'observed', notes: 'human' }),
         { mustMention: 'ai', toolsExpected: 'observed', notes: 'human' },

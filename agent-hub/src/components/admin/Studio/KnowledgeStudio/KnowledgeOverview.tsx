@@ -371,8 +371,7 @@ function SuggestionBanner({ t, suggestion, onAccept, onDismiss }: SuggestionBann
                     type="button"
                     onClick={() => onDismiss(suggestion)}
                     data-testid="kb-suggestion-dismiss"
-                    className={`px-2.5 py-1 rounded-lg ${onAccept ? '' : 'ml-auto'}`}
-                    style={{ color: 'var(--text-tertiary)' }}
+                    className={`px-2.5 py-1 rounded-lg ${onAccept ? '' : 'ml-auto'} [color:var(--text-tertiary)]`}
                 >
                     {t('knowledge.suggestion_hide', 'Not now')}
                 </button>

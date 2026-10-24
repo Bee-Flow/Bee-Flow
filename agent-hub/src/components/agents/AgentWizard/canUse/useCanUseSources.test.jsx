@@ -1,10 +1,9 @@
 /**
- * useCanUseSources — de twee extra lezingen van "Kan gebruiken" (A2 stap 2).
+ * useCanUseSources: the two extra reads of "Can use" (A2 step 2).
  *
- * Twee beloftes: er wordt niets gevraagd waar niets te vragen valt (anders
- * staat er een permanente waarschuwing over modules die de organisatie niet
- * heeft), en een lezing die mislukt terwijl er wél iets gegund is landt op
- * READ.ERROR — nooit op een stille lege lijst.
+ * Two promises: nothing is asked where there is nothing to ask (otherwise a permanent warning would stand about modules
+ * that the organisation does not have), and a read that fails while something has been granted lands on READ.ERROR,
+ * never on a silent empty list.
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/canUse/useCanUseSources.test.jsx
  */
@@ -103,10 +102,8 @@ describe('useCanUseSources — wél grants', () => {
     });
 
     it('leest de telling opnieuw zodra de OPGESLAGEN skill-lijst verandert', async () => {
-        // De samenvatting telt de opgeslagen config. Vlak na het aanvinken zit
-        // deze agent er nog niet in; als de opslag landt wel — en dan moet de
-        // telling opnieuw gelezen worden, anders trekt de kaart er één af van
-        // een getal dat deze agent nooit meetelde.
+        // The summary counts the saved config. Right after ticking, this agent is not in it yet. When the save lands, it is.
+        // Then the count must be read again, otherwise the card subtracts one from a number that did not include this agent.
         const { result, rerender } = renderHook(
             ({ saved }) => useCanUseSources({ toolsConfig: null, attachedSkillIds: ['s1'], savedSkillIds: saved }),
             { initialProps: { saved: [] } },

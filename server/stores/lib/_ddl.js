@@ -1,92 +1,91 @@
 // @typecheck
 /**
- * stores/lib/_ddl.js — luide, geserialiseerde boot-DDL voor stores.
+ * stores/lib/_ddl.js — loud, serialised boot DDL for stores.
  *
- * WAAROM. De store-inits droegen ~250 `try { await exec(...) }`
- * blokken met een lege catch en als commentaar "column already exists". Maar zo'n catch slikt
- * ÁLLES: de poolbrede statement_timeout van 30s (db.js), een afgebroken
- * lock-wait, een verbroken verbinding — elke fout las als "bestond al" en de
- * store meldde zich gezond terwijl het schema half af was. Deze helper draait
- * dezelfde statements, maar verzamelt fouten per statement in een luide
- * failures-lijst in plaats van ze te verzwelgen.
+ * WHY. The store inits carried ~250 `try { await exec(...) }`
+ * blocks with an empty catch and as a comment "column already exists". But such a catch swallows
+ * EVERYTHING: the pool-wide statement_timeout of 30s (db.js), an aborted
+ * lock wait, a broken connection — every error read as "already existed" and the
+ * store reported itself healthy while the schema was half done. This helper runs
+ * the same statements, but collects errors per statement in a loud
+ * failures list instead of swallowing them.
  *
- * WERKING (per aanroep één transactie):
- *   1. `SELECT pg_advisory_xact_lock(hashtext('beeflow:ddl:<tag>'))` — hetzelfde
- *      idioom als configStore.mutateConfig: xact-scoped, komt automatisch vrij
- *      op COMMIT/ROLLBACK, en serialiseert de DDL van déze store over ALLE
- *      replicas heen. (De in-proces _schemaQueue in db.js dekte maar één proces
- *      en triggerde bovendien alleen op de substrings CREATE TABLE/ALTER TABLE/
- *      CREATE INDEX — 'CREATE UNIQUE INDEX', 'DROP TABLE' en 'CREATE EXTENSION'
- *      passeerden hem, de waargenomen pg_class-race.)
- *   2. `SET LOCAL lock_timeout = '15s'` — ruim maar eindig. Boot-DDL mag even
- *      wachten achter een drukke tabel, maar een boot mag nooit onbeperkt
- *      hangen achter andermans lock; met lock_timeout faalt de wachtende
- *      statement eerder en met een duidelijke fout (55P03) in plaats van pas
- *      op de 30s statement_timeout. SET LOCAL geldt alleen binnen deze
- *      transactie, dus het poolbrede gedrag verandert niet.
- *   3. Elk statement onder een SAVEPOINT: één falend statement wordt
- *      teruggerold en genoteerd, de rest draait door en commit gewoon.
+ * HOW IT WORKS (one transaction per call):
+ *   1. `SELECT pg_advisory_xact_lock(hashtext('beeflow:ddl:<tag>'))` — the same idiom as
+ *      configStore.mutateConfig: xact-scoped, released automatically
+ *      on COMMIT/ROLLBACK, and serialises the DDL of THIS store across ALL
+ *      replicas. (The in-process _schemaQueue in db.js covered only one process
+ *      and moreover triggered only on the substrings CREATE TABLE/ALTER TABLE/
+ *      CREATE INDEX — 'CREATE UNIQUE INDEX', 'DROP TABLE' and 'CREATE EXTENSION'
+ *      slipped past it, the observed pg_class race.)
+ *   2. `SET LOCAL lock_timeout = '15s'` — generous but finite. Boot DDL may wait
+ *      a while behind a busy table, but a boot may never hang indefinitely
+ *      behind someone else's lock; with lock_timeout the waiting
+ *      statement fails earlier and with a clear error (55P03) instead of only
+ *      at the 30s statement_timeout. SET LOCAL applies only within this
+ *      transaction, so the pool-wide behaviour does not change.
+ *   3. Each statement under a SAVEPOINT: one failing statement is rolled
+ *      back and noted, the rest runs on and simply commits.
  *
- * FOUTSEMANTIEK.
- *   - SQLSTATE-fout (de server antwoordde; db.isSqlStateError): entry in
- *     `failures` + console.error, de rest van de lijst draait door.
- *   - Verwachte SQLSTATE (per statement opgegeven via `tolerate`): entry in
- *     `tolerated`, géén log. Dit is voor statements waar de oude catch het
- *     idempotentie-mechanisme WAS (bv. ADD COLUMN zonder IF NOT EXISTS die op
- *     duplicate_column rekent) — alleen precies die code is stil, al het
- *     andere blijft luid.
- *   - Verbindingsfout (geen SQLSTATE): de hele aanroep rejict. De store-init
- *     faalt dan en de promise-memo probeert het bij de volgende aanroep
- *     opnieuw — nooit half-gezond doorstarten op een dode verbinding.
+ * ERROR SEMANTICS.
+ *   - SQLSTATE error (the server answered; db.isSqlStateError): entry in
+ *     `failures` + console.error, the rest of the list runs on.
+ *   - Expected SQLSTATE (given per statement via `tolerate`): entry in
+ *     `tolerated`, NO log. This is for statements where the old catch WAS the
+ *     idempotency mechanism (e.g. ADD COLUMN without IF NOT EXISTS that counts on
+ *     duplicate_column) — only exactly that code is silent, everything
+ *     else stays loud.
+ *   - Connection error (no SQLSTATE): the whole call rejects. The store init
+ *     then fails and the promise memo retries on the next call —
+ *     never start half-healthy on a dead connection.
  *
- * IN-PROCES WACHTRIJ. Alle runDdl-aanroepen in dit proces draaien één voor één
- * (zoals db.js' _schemaQueue): boot-DDL hoort de pool niet leeg te trekken, en
- * testomgevingen met één verbinding (pglite achter de db.js-mock van
- * migrateDb.integration.test.js) kunnen geen twee overlappende
- * BEGIN/SAVEPOINT-reeksen aan. Wederzijdse uitsluiting TUSSEN processen komt
- * van de advisory lock en is met pglite (één verbinding) niet te bewijzen —
- * dat blijft handmatige verificatie, zie de colocated test.
+ * IN-PROCESS QUEUE. All runDdl calls in this process run one by one
+ * (like db.js' _schemaQueue): boot DDL should not drain the pool, and
+ * test environments with one connection (pglite behind the db.js mock of
+ * migrateDb.integration.test.js) cannot handle two overlapping
+ * BEGIN/SAVEPOINT series. Mutual exclusion BETWEEN processes comes
+ * from the advisory lock and cannot be proven with pglite (one connection) —
+ * that remains manual verification, see the colocated test.
  *
- * Leunt uitsluitend op de db.js-facade (withTransaction, isSqlStateError) —
- * geen eigen Pool, geen pg-import — zodat de pglite-mock van de
- * integratietests alles dekt. Voor DB-loze stub-facades (hermetische
- * storetests) valt hij terug op sequentiële exec-statements: zie _dbFacade.
+ * Relies exclusively on the db.js facade (withTransaction, isSqlStateError) —
+ * no own Pool, no pg import — so that the pglite mock of the
+ * integration tests covers everything. For DB-less stub facades (hermetic
+ * store tests) it falls back to sequential exec statements: see _dbFacade.
  *
- * ── RUNBOOKREGEL: CREATE INDEX CONCURRENTLY op volumetabellen ──────────────
- * Een NIEUWE index op een tabel die al groot is hoort NIET in boot-DDL: de
- * bouw houdt de tabel vast (of loopt hier op de 30s statement_timeout stuk)
- * en elke pod herhaalt de poging bij elke boot. Zo'n index wordt éénmalig
- * handmatig gezet met `CREATE INDEX CONCURRENTLY` (buiten transactie, via het
- * runbook), en daarna desgewenst als `IF NOT EXISTS` in de boot-DDL
- * bijgeschreven zodat verse installaties hem ook krijgen — op een lege tabel
- * is die bouw gratis. Dit geldt in elk geval voor de tabellen zonder (of met
- * beperkte) retentie die in de praktijk groot worden:
+ * ── RUNBOOK RULE: CREATE INDEX CONCURRENTLY on volume tables ──────────────
+ * A NEW index on a table that is already large does NOT belong in boot DDL: the
+ * build holds the table (or breaks here on the 30s statement_timeout)
+ * and every pod repeats the attempt on every boot. Such an index is set once
+ * manually with `CREATE INDEX CONCURRENTLY` (outside a transaction, via the
+ * runbook), and afterwards optionally written into the boot DDL as
+ * `IF NOT EXISTS` so that fresh installations get it too — on an empty table
+ * that build is free. This applies in any case to the tables without (or with
+ * limited) retention that in practice become large:
  *   ai_usage_log, automation_runs, automation_run_steps, conversation_messages,
  *   cowork_runs, notifications, integration_activity_log, guardrail_events,
  *   ai_task_termination_log, azure_service_usage_log, access_audit_log,
  *   consent_acceptances, subscription_audit_log, support_messages,
  *   support_audit_log.
- * De boot-indexen die daar al staan dateren van vóór deze regel (idempotent,
- * bestaan al op draaiende installaties); er komen geen nieuwe bij via boot.
+ * The boot indexes that already stand there date from before this rule (idempotent,
+ * already exist on running installations); no new ones come in via boot.
  */
 
 'use strict';
 const log = require('../../telemetry/log');
 
 /**
- * De db-facade wordt LAZY en via twee routes opgelost, zodat runDdl onder
- * álle testpatronen van deze repo dezelfde facade ziet als de store die hem
- * aanroept:
- *   1. `require('../db')` — bestaat op schijf niet (stores/db.js), maar de
- *      hermetische storetests onderscheppen precies dít request voor bestanden
- *      onder stores/ met een DB-loze stub (Module._resolveFilename-hook).
- *   2. `require('../../db')` — het echte db.js; ook het pad dat
- *      migrateDb.integration.test.js via require.cache door pglite vervangt.
- * Een stub zonder withTransaction (de hermetische tests) krijgt de
- * SEQUENTIËLE variant hieronder: per statement via db.exec, zonder lock of
- * transactie — daar is geen database, dus ook niets te serialiseren. Het
- * echte db.js exporteert withTransaction altijd, dus productie draait altijd
- * de gelockte transactievariant.
+ * The db facade is resolved LAZILY and via two routes, so that runDdl sees under
+ * ALL test patterns of this repo the same facade as the store that calls it:
+ *   1. `require('../db')` — does not exist on disk (stores/db.js), but the hermetic
+ *      store tests intercept exactly this request for files under stores/ with a DB-less
+ *      stub (Module._resolveFilename hook).
+ *   2. `require('../../db')` — the real db.js; also the path that
+ *      migrateDb.integration.test.js replaces with pglite via require.cache.
+ * A stub without withTransaction (the hermetic tests) gets the
+ * SEQUENTIAL variant below: per statement via db.exec, without lock or
+ * transaction — there is no database there, so nothing to serialise either. The
+ * real db.js always exports withTransaction, so production always runs
+ * the locked transaction variant.
  */
 function _dbFacade() {
     try {
@@ -108,8 +107,8 @@ const CODES = Object.freeze({
     DUPLICATE_COLUMN: '42701',   // ADD COLUMN zonder IF NOT EXISTS, kolom bestaat al
     DUPLICATE_TABLE: '42P07',    // relatie (tabel/index) bestaat al
     DUPLICATE_OBJECT: '42710',   // constraint/objectnaam bestaat al
-    UNDEFINED_TABLE: '42P01',    // tabel bestaat (nog) niet
-    UNDEFINED_COLUMN: '42703',   // kolom bestaat (nog) niet
+    UNDEFINED_TABLE: '42P01',    // table does not exist (yet)
+    UNDEFINED_COLUMN: '42703',   // column does not exist (yet)
     UNDEFINED_OBJECT: '42704',   // bv. operator class gin_trgm_ops zonder pg_trgm
     UNIQUE_VIOLATION: '23505',   // CREATE UNIQUE INDEX over bestaande duplicaten
     CHECK_VIOLATION: '23514',    // ADD CONSTRAINT ... CHECK over bestaande legacy-rijen
@@ -117,8 +116,8 @@ const CODES = Object.freeze({
 });
 
 const DEFAULT_LOCK_TIMEOUT = '15s';
-// Alleen een simpele duur — de waarde wordt (na validatie) letterlijk in
-// SET LOCAL geïnterpoleerd, want SET accepteert geen bind-parameters.
+// Just a simple duration — the value is (after validation) interpolated literally into
+// SET LOCAL, because SET does not accept bind parameters.
 const LOCK_TIMEOUT_RE = /^\d+(ms|s|min)$/;
 const LOCK_NS = 'beeflow:ddl:'; // eigen naamruimte naast configStore's kale sleutels
 
@@ -147,9 +146,9 @@ async function _runLocked(tag, list, lockTimeout) {
     const failures = [];
     const tolerated = [];
 
-    // Stub-omgeving zonder withTransaction (hermetische storetests): draai de
-    // statements sequentieel via exec met dezelfde classificatie. Geen lock en
-    // geen savepoints — er is daar geen echte database.
+    // Stub environment without withTransaction (hermetic store tests): run the
+    // statements sequentially via exec with the same classification. No lock and
+    // no savepoints — there is no real database there.
     if (typeof db.withTransaction !== 'function') {
         for (const stmt of list) {
             try {
@@ -176,10 +175,10 @@ async function _runLocked(tag, list, lockTimeout) {
     }
 
     await db.withTransaction(async (client) => {
-        // Serialiseert dezelfde store over alle replicas; xact-scoped, dus
-        // automatisch vrij op COMMIT/ROLLBACK. De wachttijd op deze lock valt
-        // onder de poolbrede statement_timeout (30s) — een boot die zo lang
-        // achter een andere replica aanhangt faalt luid en de memo retryt.
+        // Serialises the same store across all replicas; xact-scoped, so
+        // automatically released on COMMIT/ROLLBACK. The waiting time for this lock falls
+        // under the pool-wide statement_timeout (30s) — a boot that hangs that long
+        // behind another replica fails loudly and the memo retries.
         await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [LOCK_NS + tag]);
         await client.query(`SET LOCAL lock_timeout = '${lockTimeout}'`);
         for (const stmt of list) {
@@ -188,9 +187,9 @@ async function _runLocked(tag, list, lockTimeout) {
                 await client.query(stmt.sql);
                 await client.query('RELEASE SAVEPOINT beeflow_ddl_stmt');
             } catch (err) {
-                // Geen SQLSTATE = de server heeft nooit geantwoord (verbinding
-                // weg, pool-timeout). Dan is ook de transactie onbruikbaar:
-                // hard falen, zodat de store-init dit als échte fout ziet.
+                // No SQLSTATE = the server never answered (connection
+                // gone, pool timeout). Then the transaction is also unusable:
+                // fail hard, so that the store init sees this as a real error.
                 if (!isSqlStateError(err)) throw err;
                 await client.query('ROLLBACK TO SAVEPOINT beeflow_ddl_stmt');
                 await client.query('RELEASE SAVEPOINT beeflow_ddl_stmt');
@@ -215,21 +214,21 @@ async function _runLocked(tag, list, lockTimeout) {
     return { tag, failures, tolerated };
 }
 
-// Force-serialisatie binnen dit proces (zie header). De ketting slikt zelf
-// nooit een fout in: elke aanroep krijgt zijn eigen rejectie terug.
+// Force serialisation within this process (see header). The chain itself never
+// swallows an error: each call gets its own rejection back.
 let _queue = Promise.resolve();
 
 /**
- * Draai een reeks schema-statements voor één store, geserialiseerd en luid.
+ * Run a series of schema statements for one store, serialised and loud.
  *
- * @param {string} tag - storenaam voor de lock én de logregels (bv. 'usageStore')
+ * @param {string} tag - store name for the lock AND the log lines (e.g. 'usageStore')
  * @param {(string|{sql: string, tolerate?: (string|RegExp)|Array<string|RegExp>, reden?: string})[]} statements
- *        SQL-strings, of objecten met verwachte SQLSTATE-codes (zie CODES) /
- *        message-RegExps in `tolerate` en een korte `reden` voor in het rapport.
- * @param {{ lockTimeout?: string }} [opts] - bv. { lockTimeout: '30s' }; default 15s.
+ *        SQL strings, or objects with expected SQLSTATE codes (see CODES) /
+ *        message RegExps in `tolerate` and a short `reden` for in the report.
+ * @param {{ lockTimeout?: string }} [opts] - e.g. { lockTimeout: '30s' }; default 15s.
  * @returns {Promise<{ tag: string, failures: Array<{sql,code,message,reden?}>, tolerated: Array<{sql,code,message,reden?}> }>}
- *          Rejict alléén op verbindingsfouten (of een mislukte lock/commit) —
- *          SQLSTATE-fouten komen als entries terug en zijn dan al gelogd.
+ *          Rejects ONLY on connection errors (or a failed lock/commit) —
+ *          SQLSTATE errors come back as entries and are then already logged.
  */
 function runDdl(tag, statements, opts = {}) {
     if (typeof tag !== 'string' || tag.trim() === '') {

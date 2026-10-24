@@ -1,32 +1,32 @@
 // @typecheck
 /**
- * De boot-migratieladder — ÉÉN lijst, twee aanroepers.
+ * The boot migration ladder — ONE list, two callers.
  *
- * Tot deze extractie leefden deze migraties als losse setImmediate-blokken in
- * startupTasks.js. Dat had twee gevolgen die allebei in productie zijn
- * waargenomen:
+ * Until this extraction these migrations lived as loose setImmediate blocks in
+ * startupTasks.js. That had two consequences that were both observed in
+ * production:
  *
- *   1. `npm run db:migrate` draaide ze NIET (migrateDb requiret alleen de
- *      store-modules), dus de gedocumenteerde upgradestap liet precies deze
- *      categorie liggen — datamigraties en vertaalcatalogi.
- *   2. Een catalogus die niet in de lijst stond, draaide nergens en niemand
- *      zag het: geen fout, geen rode test, alleen een stil Engels scherm.
- *      Elf van de vijfentwintig add-nl-catalogi stonden zo op de plank.
+ *   1. `npm run db:migrate` did NOT run them (migrateDb requires only the store
+ *      modules), so the documented upgrade step left exactly this category
+ *      behind — data migrations and translation catalogues.
+ *   2. A catalogue that was not in the list ran nowhere and nobody noticed:
+ *      no error, no red test, just a silently English screen. Eleven of the
+ *      twenty-five add-nl catalogues sat on the shelf that way.
  *
- * Daarom staan de lijsten hier, met één regel uitleg per entry, en draaien
- * boot (startupTasks) en migratierunner (migrateDb) exact dezelfde functie.
- * De registratietest op deze lijsten staat in bootMigrations.test.js: een
- * migratiebestand dat nergens geregistreerd of expliciet handmatig is, wordt
- * een rode test in plaats van een vergeten bestand.
+ * That is why the lists live here, with one line of explanation per entry,
+ * and boot (startupTasks) and the migration runner (migrateDb) run exactly
+ * the same function. The registration test on these lists lives in
+ * bootMigrations.test.js: a migration file that is registered nowhere or
+ * explicitly manual becomes a red test instead of a forgotten file.
  *
- * LEDGER: `schema_migrations` (name, applied_at, checksum) registreert elke
- * entry die geslaagd is; een geregistreerde entry met dezelfde checksum van
- * zijn bestand wordt overgeslagen, een gewijzigd bestand draait opnieuw, en
- * `--force` draait alles. Alles hier blijft idempotent: een bestaande
- * installatie draait de ladder bij de eerste boot met ledger nog één keer
- * volledig en registreert hem dan, en twee replica's die tegelijk booten
- * kunnen dezelfde entry beide draaien. De NL-catalogi draaien bewust NA
- * elkaar — read-modify-write van dezelfde 'nl'-rij (zie add-nl-cowork).
+ * LEDGER: `schema_migrations` (name, applied_at, checksum) records every entry
+ * that succeeded; a registered entry with the same checksum of its file is
+ * skipped, a changed file runs again, and `--force` runs everything. Everything
+ * here stays idempotent: an existing installation runs the ladder fully once
+ * on the first boot with ledger and then records it; two replicas booting at
+ * the same time may both run the same entry. The NL catalogues deliberately
+ * run AFTER one another — read-modify-write of the same 'nl' row (see
+ * add-nl-cowork).
  */
 
 'use strict';
@@ -35,31 +35,31 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 
 /**
- * Losse datamigraties (server/migrations/<naam>.js met een up()).
- * Elk idempotent; de reden staat erbij zodat niemand ze "opruimt".
+ * Loose data migrations (server/migrations/<name>.js with an up()).
+ * Each idempotent; the reason is stated so that nobody "cleans them up".
  */
 const LOOSE_MIGRATIONS = [
     'microsoft-sso-hardening-2026-10',
     // Vouwt subscription_plans.allowed_mcp_servers in allowed_integrations en
     // verhuist legacy mcp:<id>-grants; no-op zodra beide leeg zijn.
     'mcp-as-integration-2026-06',
-    // Compliance-Hub-als-vlag grandfather: append compliance_hub_gdpr aan
-    // bestaande pro/enterprise-plannen zodat geen klant de hub verliest.
+    // Compliance Hub as flag grandfather: append compliance_hub_gdpr to
+    // existing pro/enterprise plans so that no customer loses the hub.
     'compliance-plan-flag-2026-09',
-    // Verhuist kale prompt-taken naar Cowork; beide runners tikken elke 60s,
-    // dus de twee tabellen mogen niet tegelijk levend blijven.
+    // Moves bare prompt tasks to Cowork; both runners tick every 60s,
+    // so the two tables must not stay alive at the same time.
     'prompt-tasks-to-cowork-2026-08',
-    // De agent-gekoppelde taken (de oude "agent routines") volgen: Cowork kan
-    // een item nu als agent draaien, dus ai_tasks wordt niet meer beschreven.
+    // The agent-linked tasks (the old "agent routines") follow: Cowork can now
+    // run an item as an agent, so ai_tasks is no longer written to.
     'agent-tasks-to-cowork-2026-10',
-    // Het opgeslagen woord "routine" wordt "automation" (logs, grants,
-    // kennisbank-herkomst, playbooks, tool-sleutel). Na de vorige: een oude
-    // ai_tasks-rij herkent hij aan zijn Cowork-twin en labelt hem "cowork".
+    // The stored word "routine" becomes "automation" (logs, grants,
+    // knowledge-base provenance, playbooks, tool key). After the previous one: an old
+    // ai_tasks row is recognised by its Cowork twin and labelled "cowork".
     'routine-to-automation-2026-10',
-    // Learning Center-voortgang volgt de lessen die van "routine" naar
-    // "automation" hernoemd zijn (lesson-, oefening-, cursus- en badge-ids).
+    // Learning Center progress follows the lessons that were renamed from "routine" to
+    // "automation" (lesson, exercise, course and badge ids).
     'learning-routine-ids-2026-10',
-    // Websitepagina's: het demo-blok en /demo-links van "routines" naar "automations".
+    // Website pages: the demo block and /demo links from "routines" to "automations".
     'cms-routine-demo-2026-10',
     // Ruimt het schema van de vier gepensioneerde verticals op; laat het
     // consent-ledger staan.
@@ -74,33 +74,33 @@ const LOOSE_MIGRATIONS = [
     'org-registration-source-2026-07',
     // Seedt org_health_problems voor al-kapotte NC-orgs (ON CONFLICT DO NOTHING).
     'org-health-seed-2026-07',
-    // ── U10-grandfathers: bestaande orgs behouden exact wat ze vandaag kunnen ──
-    // Groeit USER_FACING_CORE, dan grant deze elk nieuw id eenmalig (config-
-    // marker begrenst) aan alle bestaande orgs; vandaag een bewuste no-op.
+    // ── U10 grandfathers: existing orgs keep exactly what they can do today ──
+    // If USER_FACING_CORE grows, this grants each new id once (config
+    // marker bounds it) to all existing orgs; today a deliberate no-op.
     'org-granted-capabilities-2026-09',
     // Stempelt org_mfa_required_<orgId> expliciet 'uit' voor bestaande orgs
     // (A3-leeskant; ON CONFLICT DO NOTHING laat een gezette vlag met rust).
     'org-mfa-required-2026-09',
-    // Stempelt org_cowork_shield_<orgId> expliciet 'uit' voor bestaande orgs
-    // (CW-10-schildvlag; het runpad consumeert hem pas in een latere stage).
+    // Explicitly stamps org_cowork_shield_<orgId> as 'off' for existing orgs
+    // (CW-10 shield flag; the run path only consumes it in a later stage).
     'cowork-shield-flag-2026-09',
     // FRM-08: 'ingevuld door' hoort op een rij die blijft — kolom op
     // automation_runs (90d-retentie), níét op de 8-uurs automation_form_sessions.
     'automation-form-submitter-2026-09',
-    // W2: webpages.published_version_id + webpage_versions.source, plus een
-    // snapshot+pointer voor elke AL gepubliceerde pagina. Zonder deze backfill
-    // valt het leespad voor die pagina's terug op de LIVE rij — org-lezers
-    // zien dan werk dat de eigenaar nooit publiceerde.
+    // W2: webpages.published_version_id + webpage_versions.source, plus a
+    // snapshot+pointer for every page that WAS published. Without this backfill
+    // the read path falls back for those pages to the LIVE row — org readers
+    // then see work that the owner never published.
     'webpage-published-version-2026-09',
-    // Memory-overhaul 2026-08: corrigeert twee verouderde regels in de GESEEDE
-    // extractor-prompt (system-memory-extractor staat op alwaysUpdate: false,
-    // dus het .md-bestand bereikt een bestaande install nooit). Gerichte
-    // regelvervanging, operator-edits blijven staan; no-op zodra actueel.
+    // Memory overhaul 2026-08: corrects two outdated lines in the SEEDED
+    // extractor prompt (system-memory-extractor is set to alwaysUpdate: false,
+    // so the .md file never reaches an existing install). Targeted line
+    // replacement, operator edits stay; no-op once current.
     'memory-extractor-prompt-2026-08',
-    // Memory-overhaul 2026-08: wist memories die onder een guest_<random>-id
-    // zijn geschreven (geen betrokkene achter dat id, dus geen inzage of
-    // wissing mogelijk). Eerst memory_sources, dan user_memories; 0 rijen na
-    // de eerste run. Slaat over zolang de tabel nog niet bestaat.
+    // Memory overhaul 2026-08: deletes memories that were written under a
+    // guest_<random> id (no data subject behind that id, so no access or erasure is
+    // possible). First memory_sources, then user_memories; 0 rows after the
+    // first run. Skips while the table does not yet exist.
     'memory-guest-purge-2026-08',
     // Memory control: wist de plaintext kopie van het chatbericht in
     // memory_sources.message_content (werd nergens gelezen). Idempotent.
@@ -148,9 +148,9 @@ const LOOSE_MIGRATIONS = [
 ];
 
 /**
- * Nederlandse vertaalcatalogi. Elke entry exporteert up() dat de 'nl'-blob
- * leest, alleen ontbrekende sleutels merget en terugschrijft. SEQUENTIEEL
- * draaien is een harde eis (read-modify-write van dezelfde rij).
+ * Dutch translation catalogues. Each entry exports up() that reads the 'nl'
+ * blob, merges only missing keys and writes back. RUNNING SEQUENTIALLY is a hard
+ * requirement (read-modify-write of the same row).
  */
 const NL_TRANSLATIONS = [
     'add-nl-microsoft-identity-translations',
@@ -171,12 +171,12 @@ const NL_TRANSLATIONS = [
     'add-nl-cowork-translations',
     'add-nl-studio-fundament-translations',
     'add-nl-dlp-review-translations',
-    // ── De elf van de plank (U6) ────────────────────────────────────────────
-    // Catalogi die vóór deze ladder nergens draaiden: zes bestonden alleen als
-    // handmatig script (draaiden bij require en riepen process.exit — in U6
-    // omgebouwd naar up()-exports), vier exporteerden al netjes maar stonden
-    // in geen enkele lijst, en builder-redesign was nieuw. Volgorde is hier
-    // verder betekenisloos: elke catalogus vult alleen ontbrekende sleutels.
+    // ── The eleven from the shelf (U6) ────────────────────────────────────────
+    // Catalogues that ran nowhere before this ladder: six existed only as a manual
+    // script (ran on require and called process.exit — in U6 rebuilt into
+    // up() exports), four already exported cleanly but were on no list at all,
+    // and builder-redesign was new. The order here is otherwise meaningless: each
+    // catalogue fills only missing keys.
     'add-nl-usage-sharing-translations',   // AI-verbruik delen + monitoring-breakdowns
     'add-nl-plan-change-translations',     // Stripe-planwissel + agent-planlimiet
     'add-nl-subscription-translations',    // License & Usage: abonnementskaart, kostenplafond
@@ -192,7 +192,7 @@ const NL_TRANSLATIONS = [
     'add-nl-builder-values-translations',  // de waarde-editor: lijstkeuze, slotchrome, invoegen (Track R)
     'add-nl-builder-mapping-translations', // geneste data: per item binnen een lijst, AI-koppelen, lege koppelingen in een run
     'add-nl-solution-install-wizard-translations', // de installatiewizard: inhoud, koppelen, toegang (Track O)
-    'add-nl-solution-overview-translations', // het Solutions-overzicht: tabs, kaarten, wat niet gelezen kon worden (Track O)
+    'add-nl-solution-overview-translations', // the Solutions overview: tabs, cards, what could not be read (Track O)
     'add-nl-solution-overview-2-translations', // het Solutions-overzicht, vervolg: zoeken en filteren, lege staat, skills en sjablonen tellen
     'add-nl-topic-rules-translations',     // "is about"-regels in de Condition-node (onderwerp-classifier)
     'add-nl-app-studio-builder-translations', // de App Studio-bouwfilm: activiteitsrijen, bouwbanner, ghost-cel, chatkolom
@@ -204,7 +204,7 @@ const NL_TRANSLATIONS = [
     'add-nl-privacy-shield-v3-translations',   // Privacy Shield ronde 3: kop met detectiestatus en PATH-strip, Overview-reviewkaart, één matrix, stroomkaart van de twee checks, What happened als één log
     'add-nl-memory-switch-translations',       // Instellingen → Geheugen: de hoofdschakelaar, de statistiekstatus en de zeven typelabels
     'add-nl-chat-activity-translations',       // Chat: de activiteitskaart boven een antwoord (de bouwers-tijdlijn in de gewone chat)
-    'add-nl-app-archive-import-translations',  // App Studio "Nieuwe app": het importpaneel voor een sjabloon- of app-archiefbestand, plus Exporteren
+    'add-nl-app-archive-import-translations',  // App Studio "New app": the import panel for a template or app archive file, plus Export
     'add-nl-invite-redeem-translations',       // Loginscherm: de twee foutbanners van een verlopen of mislukte uitnodigingslink
     'add-nl-memory-clear-translations',        // Geheugenpaneel: "Clear All" zegt of het je persoonlijke geheugen of dat van het project wist
     'add-nl-security-key-translations',        // Security keys (YubiKey / FIDO2): the Settings → Security card and the sign-in option
@@ -260,19 +260,19 @@ const NL_TRANSLATIONS = [
 ];
 
 /**
- * Migraties die BEWUST niet bij boot draaien. Ze bestaan, zijn geen vergeten
- * bestanden, en horen in geen van de twee lijsten hierboven: een operator
- * draait ze met de hand (`node server/migrations/<naam>.js`), na de dry-run
- * die hun eigen header voorschrijft. De registratietest
- * (boot/bootMigrations.test.js) gebruikt deze lijst om "handmatig" van
- * "kwijtgeraakt" te onderscheiden.
+ * Migrations that deliberately do NOT run at boot. They exist, they are not
+ * forgotten files, and they belong in neither of the two lists above: an
+ * operator runs them by hand (`node server/migrations/<name>.js`), after the
+ * dry run that their own header prescribes. The registration test
+ * (boot/bootMigrations.test.js) uses this list to tell "manual" apart from
+ * "lost".
  */
 const MANUAL_MIGRATIONS = [
     // Herschrijft KB-brongrants over bestaande kennisbanken; wil een dry-run
     // en een blik op de uitkomst voordat hij op productiedata losgaat.
     'kb-sources-backfill',
-    // Publiceert KB's die aan org-agents hangen — een zichtbaarheidsverbreding
-    // die je niet stilzwijgend bij elke boot wilt herhalen.
+    // Publishes KBs that hang on org agents — a visibility widening that you
+    // do not want to silently repeat on every boot.
     'publish-kbs-linked-to-org-agents',
     // Eénmalige backfill van agents.published_config; stores/agent/initSchema.js
     // zegt er expliciet bij dat hij NIET bij boot draait.
@@ -306,11 +306,10 @@ async function record(name, checksum) {
 }
 
 /**
- * Draai een lijst migraties op volgorde en registreer elke geslaagde in de
- * ledger. Elke fout wordt gevangen en verzameld — één kapotte catalogus mag
- * de rest niet tegenhouden — maar hij is NIET stil: de aanroeper krijgt de
- * failures terug en beslist zelf of dat een warn (boot) of een exit 1
- * (migratierunner) is.
+ * Run a list of migrations in order and record every successful one in the
+ * ledger. Every error is caught and collected — one broken catalogue must not hold
+ * back the rest — but it is NOT silent: the caller receives the failures and decides
+ * itself whether that is a warn (boot) or an exit 1 (migration runner).
  *
  * @returns {Promise<{ok: string[], skipped: string[], failed: {name: string, error: string}[]}>}
  */

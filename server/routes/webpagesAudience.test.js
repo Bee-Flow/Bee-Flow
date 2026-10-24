@@ -1,17 +1,16 @@
 /**
- * routes/webpagesAudience — de vierde rij (Openbaar) en het adres.
+ * routes/webpagesAudience — the fourth row (Public) and the address.
  *
- * Geen DB: auth is gestubd, en de stores/services worden per test
- * gemonkeypatcht. Zelfde patroon als routes/webpagesGrants.test.js.
+ * No DB: auth is stubbed, and the stores/services are monkeypatched per test.
+ * Same pattern as routes/webpagesGrants.test.js.
  *
- * Wat hier bewaakt wordt, in volgorde van belang:
- *   1. de KOLOMPOORT wordt toegepast VOORDAT er een byte naar buiten gaat, en
- *      een tabel zonder keuze gaat op nul;
- *   2. de SNAPSHOT wordt geschreven VOORDAT het adres ernaar wijst — een
- *      mislukte snapshot laat geen adres achter dat niets toont;
- *   3. eigenaar-only: een niet-eigenaar leest geen kolomnamen en zet niets
- *      openbaar;
- *   4. openbaar UIT laat het adres staan maar de wijzer niet.
+ * What is guarded here, in order of importance:
+ *   1. the COLUMN GATE is applied BEFORE a byte goes outside, and a table without a choice
+ *      goes to zero;
+ *   2. the SNAPSHOT is written BEFORE the address points to it — a failed snapshot leaves
+ *      no address behind that shows nothing;
+ *   3. owner-only: a non-owner reads no column names and sets nothing public;
+ *   4. public OFF leaves the address in place but not the pointer.
  *
  * Run: node --test --test-force-exit routes/webpagesAudience.test.js
  */
@@ -32,8 +31,8 @@ const publicShareStore = require('../stores/webpagePublicShareStore');
 const webpageSnapshot = require('../services/webpageSnapshot');
 const projectStore = require('../stores/projectStore');
 const audienceRouter = require('./webpagesAudience');
-// Een schemaweigering reist als fout naar de terminal-handler, dus het
-// harnas antwoordt er een zoals index.js dat doet.
+// A schema refusal travels as an error to the terminal handler, so the harness
+// answers it the way index.js does.
 const { terminalErrorHandler } = require('../core/http/terminalErrorHandler');
 
 const OWNER = { id: 'u1' };
@@ -107,9 +106,9 @@ test('GET /:id/audience geeft de vier rijen, het adres en de oplossing', async (
 });
 
 test('GET /:id/audience draagt de publieke AI-schakelaar mee uit dezelfde lezing', async () => {
-    // De grants worden hier tóch al gelezen (voor de kolompoort). Zonder de
-    // ai-plak door te geven zou het scherm over de enige betaalde eigenschap van
-    // het publieke oppervlak zwijgen — en dan is "niet gelezen" het antwoord.
+    // The grants are read here anyway (for the column gate). Without passing the
+    // ai slice along, the screen would stay silent about the only paid property of
+    // the public surface — and then "not read" is the answer.
     await withPatches(base({
         page: { id: 'wp1', userId: OWNER.id, name: 'x', slug: 'x-abcdefghjkmn', publicShareId: 'sh1' },
         getBridgeGrants: async () => ({ tables: [], ai: { publicEnabled: true, publicGroundOnPage: true } }),
@@ -284,15 +283,15 @@ test('een vervaldatum in het verleden wordt geweigerd voordat er iets gebeurt', 
         assert.strictEqual(res.status, 400);
         assert.strictEqual((await res.json()).error, 'expiresAt must be in the future.');
         assert.strictEqual(created, false);
-        // De kolomkeuze werd vroeger WEL opgeslagen, ook een verbrede, en de
-        // eerstvolgende hersnapshot van een levende link serveerde die dan.
+        // The column choice used to BE stored, also a widened one, and the next re-snapshot
+        // of a live link then served it.
         assert.strictEqual(grants, false, 'ook de kolomkeuze niet: "voordat er iets gebeurt"');
     }));
 });
 
 // ── wat de body moet zeggen ─────────────────────────────────────────
 
-/** Een PUT die geweigerd hoort te worden: 400, het veld genoemd, niets geschreven. */
+/** A PUT that should be refused: 400, the field named, nothing written. */
 async function refusedPut(body, field) {
     const writes = [];
     const note = (what) => async () => { writes.push(what); return what === 'grants' ? { tables: [] } : { share: { id: 's' }, rawToken: 'r' }; };
@@ -314,7 +313,7 @@ async function refusedPut(body, field) {
 }
 
 test('on "false" (een string) zet de pagina niet OPENBAAR', async () => {
-    // Alleen `on === false` zette uit; al het andere publiceerde.
+    // Only `on === false` switched off; everything else published.
     const body = await refusedPut({ on: 'false', publicColumns: {} }, 'body.on');
     assert.strictEqual(body.error, 'Say whether the page is public: on is true or false.');
 });
@@ -324,7 +323,7 @@ test('een vergeten on publiceert niet', async () => {
 });
 
 test('openbaar aan zonder kolomkeuze wordt geweigerd, niet gelezen als "alles op nul"', async () => {
-    // Wie alleen het wachtwoord wilde wijzigen, wiste zo de hele kolomkeuze.
+    // Whoever only wanted to change the password thereby wiped the whole column choice.
     await refusedPut({ on: true, accessMode: 'password', password: 'geheim123' }, 'body.publicColumns');
 });
 
@@ -338,8 +337,8 @@ test('een e-mailpoort zonder adressen wordt vooraf geweigerd', async () => {
 });
 
 test('een achtergebleven wachtwoord bij "unlisted" slaat geen nieuw token', async () => {
-    // Het paneel houdt een eerder getypt wachtwoord vast als de keuze terug
-    // gaat naar unlisted; accessOptionsChanged telt elk wachtwoord als wijziging.
+    // The panel keeps a previously typed password when the choice goes back to
+    // unlisted; accessOptionsChanged counts every password as a change.
     let created = false;
     await withPatches(base({
         page: { id: 'wp1', userId: OWNER.id, name: 'x', slug: 'x-abcdefghjkmn', publicShareId: 'sh1' },
@@ -359,8 +358,8 @@ test('een achtergebleven wachtwoord bij "unlisted" slaat geen nieuw token', asyn
 
 test('openbaar uit trekt de canonieke share in en laat het adres staan', async () => {
     const order = [];
-    // Eén rij die MEEBEWEEGT met de schrijfactie, zodat het antwoord de stand
-    // ná afloop is en niet die van ervoor.
+    // One row that MOVES WITH the write, so that the answer is the state after the
+    // fact and not the one from before.
     const rij = { id: 'wp1', userId: OWNER.id, name: 'x', slug: 'x-abcdefghjkmn', publicShareId: 'sh1' };
     await withPatches(base({
         getShareById: async () => ({ id: 'sh1', webpageId: 'wp1', createdBy: OWNER.id, revokedAt: null }),
@@ -397,12 +396,12 @@ test('PUT /:id/audience/public 404t voor een niet-eigenaar en schrijft niets', a
     }));
 });
 
-// ── de poort geldt voor ELKE levende link ────────────────────────────
+// ── the gate applies to EVERY live link ─────────────────────────────
 //
-// Een snapshot is bevroren: de rijen erin komen uit de `publicColumns` van het
-// moment waarop hij is geschreven. Wordt er alleen voor de canonieke share
-// opnieuw gesnapshot, dan blijft een losse /share/<token> van dezelfde pagina
-// de zojuist weggevinkte kolom serveren — terwijl het scherm zegt van niet.
+// A snapshot is frozen: the rows in it come from the `publicColumns` of the moment
+// it was written. If only the canonical share is re-snapshotted, a loose
+// /share/<token> of the same page keeps serving the column that was just unticked —
+// while the screen says it is not.
 
 test('versmallen herschrijft ELKE levende share, niet alleen de canonieke', async () => {
     const snapshotted = [];
@@ -410,7 +409,7 @@ test('versmallen herschrijft ELKE levende share, niet alleen de canonieke', asyn
         page: { id: 'wp1', userId: OWNER.id, name: 'x', slug: 'x-abcdefghjkmn', publicShareId: 'sh1' },
         getBridgeGrants: async () => ({ tables: [{ datatableId: 't1', columns: ['naam', 'email'], publicColumns: ['naam', 'email'] }] }),
         findLiveShareById: async () => ({ id: 'sh1', createdBy: OWNER.id, accessMode: 'unlisted', allowedEmails: null }),
-        // sh2 = een losse share uit POST /:id/public-shares; het N-share-model.
+        // sh2 = a loose share from POST /:id/public-shares; the N-share model.
         listSharesForWebpage: async () => ([{ id: 'sh1' }, { id: 'sh2' }, { id: 'dood', revokedAt: 'x' }]),
         writeSnapshot: async ({ shareId }) => { snapshotted.push(shareId); },
     }), () => withServer(test, async (b) => {
@@ -480,13 +479,13 @@ test('een ONLEESBARE sharelijst versmalt niet stilletjes — 500, geen 200', asy
     }));
 });
 
-// ── onbekend versmalt, óók in de PUT ─────────────────────────────────
+// ── unknown narrows, also in the PUT ────────────────────────────────
 //
-// `liveCanonicalShare` geeft twee dingen terug: de share én of hij te LEZEN
-// was. Gooit `findLiveShareById` (DB-hikje, replica net weg), dan is de share
-// null zonder dat dat "er is er nog geen" betekent. Wie alleen `share`
-// destructureert, laat de PUT precies de tak in lopen die een NIEUWE link
-// aanmaakt en het intrekken van de oude overslaat.
+// `liveCanonicalShare` returns two things: the share and whether it could be READ.
+// If `findLiveShareById` throws (a DB hiccup, a replica just gone), the share is
+// null without that meaning "there is none yet". Whoever only destructures `share`
+// lets the PUT run exactly the branch that creates a NEW link and skips the
+// withdrawal of the old one.
 
 test('een ONLEESBARE canonieke share publiceert niet — geen tweede levende link', async () => {
     const order = [];
@@ -514,14 +513,14 @@ test('een ONLEESBARE canonieke share publiceert niet — geen tweede levende lin
     }));
 });
 
-// ── openbaar uit raakt ALLEEN het adres ──────────────────────────────
+// ── public OFF touches ONLY the address ─────────────────────────────
 //
-// De off-tak trekt uitsluitend de CANONIEKE share in. Een losse share uit
-// POST /:id/public-shares blijft daarna leven en /share/<token> serveert de
-// bevroren snapshot gewoon door — tabelrijen incluis. Dat mag, het is het
-// N-share-model, maar het ANTWOORD moet het kunnen zeggen: `public.on:false`
-// naast een shareCount die de overgebleven links telt. Zonder dat getal leest
-// het scherm "Off" over een pagina die anoniem bereikbaar is.
+// The off branch withdraws exclusively the CANONICAL share. A loose share from
+// POST /:id/public-shares then stays alive, and /share/<token> keeps serving the
+// frozen snapshot — table rows included. That may be allowed, it is the N-share model,
+// but the ANSWER must be able to say so: `public.on:false` next to a shareCount that
+// counts the remaining links. Without that number the screen reads "Off" over a page
+// that is reachable anonymously.
 
 test('openbaar uit laat de LOSSE shares leven, en het antwoord telt ze', async () => {
     const rij = { id: 'wp1', userId: OWNER.id, name: 'x', slug: 'x-abcdefghjkmn', publicShareId: 'sh1' };

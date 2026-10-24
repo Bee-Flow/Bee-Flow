@@ -108,34 +108,34 @@ function isToolAllowed(tool, toolsConfig) {
         _warnDegraded(`refusing "${name}" for an agent with stored grants`);
         return false;
     }
-    // Meestal precies één app; twee registry-entries die dezelfde tool leveren
-    // beslissen allebei, en dan moet ELK van hen toestaan (zie `_decidingApps`).
+    // Usually exactly one app; two registry entries that supply the same tool
+    // each decide, and then EACH of them must allow (see `_decidingApps`).
     return _decidingApps(appId, name).every(id => _appAllowsTool(id, name, toolsConfig));
 }
 
 /**
- * Het oordeel van ÉÉN app over één van zijn eigen toolnamen.
+ * One app's verdict on one of its own tool names.
  *
- * ── EEN ENTRY IS NOG GEEN ACTIEKEUZE (A2-tegenspraak) ───────────────
- * Deze functie las tot nu toe ELKE entry-die-een-object-is als "de eigenaar
- * noemde deze app, dus hij bedoelde alles". Voor een `grantsRequireEntry`-app
- * is dat een verbreding van NIETS naar ALLES, en de kaart schrijft precies
- * zulke entries: "Confirm first" aanzetten (`setAppConfirm`) of de Als-capsule
- * omzetten (`setAppActAs`) zette `{confirm}` respectievelijk `{actAs}` neer,
- * ZONDER `actions`. Twee versmallende gebaren gaven zo een volledige headless
- * browser aan een agent die tot `gmail_search` was gecureerd — en normalisatie
- * schreef er `actions: '*'` bij in de rij.
+ * ── AN ENTRY IS NOT YET AN ACTION CHOICE (A2 contradiction) ───────────────
+ * Until now this function read EVERY entry-that-is-an-object as "the owner named
+ * this app, so they meant everything". For a `grantsRequireEntry` app that is a
+ * widening from NOTHING to EVERYTHING, and the card writes exactly such entries:
+ * turning on "Confirm first" (`setAppConfirm`) or flipping the Als capsule
+ * (`setAppActAs`) wrote `{confirm}` respectively `{actAs}` WITHOUT `actions`. Two
+ * narrowing gestures thereby handed a fully headless browser to an agent that had
+ * been curated down to `gmail_search`, and normalisation added `actions: '*'` to
+ * the row.
  *
- * Voor zo'n app telt daarom alleen een UITGESCHREVEN keuze: een actielijst, of
- * een expliciete `'*'`. Een ontbrekende (of onleesbare) `actions` is "er staat
- * niets", en niets is bij deze apps geen ja — niemand kreeg ze ooit te zien.
- * Voor elke gewone app blijft de geen-migratieregel onaangeroerd.
+ * For such an app only an EXPLICITLY WRITTEN choice counts: an action list, or an
+ * explicit `'*'`. A missing (or unreadable) `actions` means "nothing is there", and
+ * nothing is not a yes for these apps: nobody ever got to see them. For every
+ * ordinary app the no-migration rule stays untouched.
  */
 function _appAllowsTool(appId, name, toolsConfig) {
     const allowed = allowedToolsFor(appId, toolsConfig);
     if (allowed !== null) return allowed.has(name);
-    // `null` = "every action". Voor een app die de picker altijd al kon tonen
-    // is dat de geen-migratieregel: de eigenaar zag hem en liet hem staan.
+    // `null` = "every action". For an app the picker has always been able to show,
+    // that is the no-migration rule: the owner saw it and left it.
     if (!appRequiresExplicitGrant(appId)) return true;
     const entry = toolsConfig[appId];
     if (_plainObject(entry) && entry.actions === '*') return true;

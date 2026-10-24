@@ -90,17 +90,17 @@ function rowsLabel(source: ChipSource, tt: TranslateFn) {
 }
 
 /**
- * De TABEL waar een live rij uit komt.
+ * The TABLE a live row comes from.
  *
- * Een rij die op het moment van de vraag uit de tabel is gelezen heeft geen
- * pagina, geen rijbereik en geen datum — alleen zijn eigen label ("Widget A").
- * Dat is precies de kale chip waar het paginanummer voor bestaat. De tabelnaam
- * maakt hem opzoekbaar: "Widget A · Producten".
+ * A row that was read from the table at the moment of the question has no page, no
+ * row range and no date, only its own label ("Widget A"). That is precisely the bare
+ * chip that the page number exists for. The table name makes it searchable:
+ * "Widget A · Products".
  *
- * Alleen bij een ECHTE live rij, en dat is het paar `datatableId`+`rowId` —
- * `core/kb/citation.js` zet die twee samen of geen van beide. Op de naam
- * afgaan zou de bronnaam van elke gewone kb-passage ("Nextcloud · /Sales")
- * achter elke chip in het product plakken.
+ * Only for a REAL live row, and that means the pair `datatableId` + `rowId`.
+ * `core/kb/citation.js` sets those two together or neither. Going by the name would
+ * stick the source name of every ordinary kb passage ("Nextcloud · /Sales") behind
+ * every chip in the product.
  */
 function tableLabel(source: ChipSource) {
     if (!source?.datatableId || !source?.rowId) return null;
@@ -165,11 +165,11 @@ export function ChipText({ source, index, tt }: ChipTextProps) {
 }
 
 /**
- * De tooltip: het label, plus de kop waar de passage onder staat.
+ * The tooltip: the label, plus the heading under which the passage stands.
  *
- * Alleen als die kop nog iets TOEVOEGT. Bij een tabelrij is de "kop" de naam
- * van de tabel, en die staat al in het label — "Widget A · Producten —
- * Producten" leest als een fout in het product.
+ * Only if that heading still ADDS something. With a table row, the "heading" is the
+ * name of the table, and that is already in the label. "Widget A · Products —
+ * Products" reads as an error in the product.
  */
 export function chipTitle(source: ChipSource, label: string) {
     const section = typeof source?.section === 'string' ? source.section.trim() : '';

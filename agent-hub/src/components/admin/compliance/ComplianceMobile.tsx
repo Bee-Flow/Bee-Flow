@@ -141,7 +141,7 @@ export default function ComplianceMobile({
                     )}
                 </div>
                 <button type="button" data-testid="mobile-run-now" onClick={() => core.runNow?.()} disabled={!canRun || !!core.running}
-                    className={`${ICON_BUTTON} -mr-2.5`} style={{ color: 'var(--text-secondary)' }}
+                    className={`${ICON_BUTTON} -mr-2.5 [color:var(--text-secondary)]`}
                     aria-label={core.running ? t('compliance.running', 'Running...') : t('compliance.run_now', 'Run checks now')}>
                     <Play size={18} aria-hidden="true" className={core.running ? 'animate-pulse' : ''} />
                 </button>

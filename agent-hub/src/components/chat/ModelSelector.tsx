@@ -108,9 +108,9 @@ export default function ModelSelector({ models, value, onChange, defaultLabel, c
     const grouped: Record<string, ModelOption[]> = {};
     filtered.forEach((m: ModelOption) => {
         const meta = (MISTRAL_MODEL_META as Record<string, ModelMeta>)[m.id] || getModelMeta(m.id);
-        // De categorie is TWEE dingen tegelijk: de sleutel waarop gegroepeerd
-        // wordt en de kop die je leest. Groeperen blijft dus op de Engelse
-        // waarde; alleen de kop gaat door t() heen.
+        // The category is TWO things at once: the key on which is grouped and the
+        // heading you read. Grouping therefore stays on the English value. Only the
+        // heading goes through t().
         const cat = meta?.cat || 'Other';
         if (!grouped[cat]) grouped[cat] = [];
         grouped[cat].push(m);

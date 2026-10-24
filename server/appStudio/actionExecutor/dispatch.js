@@ -109,11 +109,11 @@ async function executeDataStep(app, model, step, ctx = {}) {
         if (status === 403 || status === 422 || status === 400) {
             return { ok: false, error: e.message || 'Step failed' };
         }
-        // Een weigering van de tabellaag (appStudio/readError.js) draagt de vlag
-        // `safe` én een status, en juist de statussen die hierboven NIET staan —
-        // 503 "we konden het niet vaststellen", 501 "dit kan hier nog niet". Die
-        // tot "Step failed" samenvouwen zou de enige zin weghalen waar iemand op
-        // kan handelen: "leeg", "mag niet" en "kon niet" worden dan één woord.
+        // A refusal from the table layer (appStudio/readError.js) carries the flag `safe`
+        // AND a status, and precisely the statuses NOT listed above: 503 "we could not
+        // establish it", 501 "this cannot happen here yet". Collapsing those into "Step failed"
+        // would remove the only sentence someone can act on: "empty", "not allowed" and
+        // "could not" would become one word.
         if (e && e.safe === true && typeof status === 'number') {
             return { ok: false, error: e.message || 'Step failed', code: 'datatable_source' };
         }

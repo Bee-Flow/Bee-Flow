@@ -187,11 +187,11 @@ export async function composeReactPreview(_slots: { html?: string; css?: string;
         }
     }
 
-    // Het elementblok staat NAAST de bruggen, niet erachter: buildBridgeHeadScripts
-    // geeft '' terug zodra (token, base, id) ontbreekt, en juist dan moet elk
-    // bf-element zeggen dat het zijn bron niet kan bereiken. Zonder dit was een
-    // bf-element in een react-mui-preview een leeg inline-vak — geen melding, geen
-    // zichtbare spelfout, niets. Dezelfde stilte die de publieke share had.
+    // The element block sits BESIDE the bridges, not behind them: buildBridgeHeadScripts
+    // returns '' as soon as (token, base, id) is missing, and precisely then every
+    // bf-element must say that it cannot reach its source. Without this, a
+    // bf-element in a react-mui preview was an empty inline box — no notice, no
+    // visible error, nothing. The same silence the public share had.
     const headBridges = buildBridgeHeadScripts({ dbToken, dbApiBase, dbWebpageId })
         + buildBfElementsScript();
     const importMap = buildImportMap();

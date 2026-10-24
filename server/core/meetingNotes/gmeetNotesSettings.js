@@ -2,8 +2,8 @@
 /**
  * Google Meet → Meeting Notes settings (org + user dual scope).
  *
- * Mirrors `talkNotesSettings.js`: an org-level config doc and a user-level
- * config doc, resolved with the ORG value winning per scalar field, falling
+ * Mirrors `talkNotesSettings.js`: an org-level config document and a user-level
+ * config document, resolved with the ORG value winning per scalar field, falling
  * back to the user value, then a built-in default. Stored via configStore
  * under:
  *   - org_gmeet_notes_${orgId}
@@ -12,24 +12,22 @@
  * Fields:
  *   - autoImport             background-import recordings of the user's Meet meetings
  *   - autoRecordConfig       pre-set auto-recording on meetings the user organizes
- *                            (spaces.patch — needs the meetings.space.settings scope)
+ *                            (spaces.patch: needs the meetings.space.settings scope)
  *   - importScope            'organizer' (only meetings the user organizes) |
  *                            'calendar' (any calendar meeting with a Meet link)
  *   - language               default transcription language for auto-ingest
  *   - lookbackHours          how far back the poller scans for ended meetings
- *   - excludedEventIds[]     LEGACY — moved to `stores/meetingPrefsStore` (M5)
- *   - excludedMeetingCodes[] LEGACY — moved to `stores/meetingPrefsStore` (M5)
+ *   - excludedEventIds[]     LEGACY: moved to `stores/meetingPrefsStore` (M5)
+ *   - excludedMeetingCodes[] LEGACY: moved to `stores/meetingPrefsStore` (M5)
  *
  * Scalar toggles use org-overrides-user.
  *
- * ── DE UITSLUITINGEN ZIJN VERHUISD (M5) ───────────────────────────────
- * Zelfde verhuizing als in talkNotesSettings.js: de per-vergadering
- * import-/opnamekeuze woont nu in `stores/meetingPrefsStore` (meeting_prefs),
- * met een driewaardige `record`, een rij per gebruiker en de 1-op-1-standaard.
- * `resolveGmeetNotesSettings` geeft de twee arrays daarom NIET meer terug — een
- * achtergebleven lezer zou een lege lijst zien en dus importeren wat iemand had
- * uitgezet. De velden blijven bewaard en round-trippen ongemoeid door
- * save*Settings, zodat een rollback ze nog vindt.
+ * ── THE EXCLUSIONS HAVE MOVED (M5) ───────────────────────────────────
+ * The same move as in talkNotesSettings.js: the per-meeting import/recording choice now lives in
+ * `stores/meetingPrefsStore` (meeting_prefs), with a three-valued `record`, one row per user and the
+ * 1-on-1 default. `resolveGmeetNotesSettings` therefore NO LONGER returns the two arrays: a lagging
+ * reader would see an empty list and thus import what someone had switched off. The fields remain
+ * stored and round-trip untouched through save*Settings, so that a rollback still finds them.
  */
 
 const configStore = require('../../stores/configStore');

@@ -27,7 +27,7 @@ const projectStorePath = require.resolve('../../stores/projectStore');
 const calls = [];
 const record = (name, args) => calls.push({ name, args });
 const stamps = new Map();
-/** Entiteits-id's waarvan de LEES gooit — geen ontbrekende entiteit, een kapotte lees. */
+/** Entity ids whose READ throws — not a missing entity, a broken read. */
 const readThrows = new Set();
 const liveAutomations = new Map();
 const liveApps = new Map();
@@ -44,8 +44,8 @@ require.cache[automationStorePath] = {
     id: automationStorePath, filename: automationStorePath, loaded: true,
     exports: {
         getAutomation: async (id) => {
-            // Een store die GOOIT is iets anders dan een entiteit die er niet
-            // meer is; het plan moet die twee uit elkaar houden.
+            // A store that THROWS is something other than an entity that is no longer
+            // there; the plan must keep those two apart.
             if (readThrows.has(id)) throw new Error('de automatisering is niet te lezen');
             return liveAutomations.get(id) || null;
         },
@@ -442,11 +442,11 @@ test('an upgrade builds from the CHECKED manifest, not the caller\'s own object'
 });
 
 test('een entiteit die niet te LEZEN is, is niet "door jou verwijderd"', async () => {
-    // `.catch(() => null)` maakte van een storefout precies hetzelfde antwoord
-    // als "bestaat niet meer", en de client zet daar de stelligste zin van de
-    // dialoog bij: "{n} thing you deleted is not brought back — deleting them
-    // was a decision". De eigenaar kreeg dan te horen dat hij iets had
-    // weggegooid dat er gewoon staat, en de upgrade sloeg het over.
+    // `.catch(() => null)` turned a store error into exactly the same answer
+    // as "no longer exists", and the client attaches the most emphatic sentence of the
+    // dialogue to that: "{n} thing you deleted is not brought back — deleting them
+    // was a decision". The owner was then told that he had thrown away something
+    // that is still there, and the upgrade skipped it.
     reset();
     stamps.set('aut_1', { ref: 'aut_1', kind: 'automation', entityId: 'a1', installHash: 'h', installedVersion: 1 });
     readThrows.add('a1');
@@ -458,10 +458,10 @@ test('een entiteit die niet te LEZEN is, is niet "door jou verwijderd"', async (
     assert.deepStrictEqual(plan.replace, [], 'en zeker niet overschreven');
     assert.deepStrictEqual(plan.skip.map(x => x.ref), ['aut_1']);
 
-    // De client splitst `skip` op twee signalen: de soort moet vergelijkbaar
-    // zijn ÉN de `why` moet het woord "edited" bevatten (upgradeClient.planRows).
-    // Deze reden bevat het NIET, dus de rij landt in "niet te bepalen" — de
-    // derde toestand — in plaats van in "jij hebt dit aangepast".
+    // The client splits `skip` into two signals: the kind must be comparable
+    // AND the `why` must contain the word "edited" (upgradeClient.planRows).
+    // This reason does NOT contain it, so the row lands in "cannot determine" — the
+    // third state — instead of in "you have edited this".
     const why = plan.skip[0].why;
     assert.ok(!/\bedited\b/i.test(why), `"${why}" mag niet als "jij hebt dit aangepast" lezen`);
     assert.match(why, /could not be read/);

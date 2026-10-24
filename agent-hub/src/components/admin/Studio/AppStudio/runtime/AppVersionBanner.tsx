@@ -21,7 +21,7 @@ export default function AppVersionBanner({ onReload }: { onReload: () => void })
             role="status"
             data-app-version-banner="true"
         >
-            <RefreshCw className="w-4 h-4 shrink-0" style={{ color: 'var(--app-primary)' }} aria-hidden="true" />
+            <RefreshCw className="w-4 h-4 shrink-0 [color:var(--app-primary)]" aria-hidden="true" />
             <span className="flex-1 min-w-0">{t('studio_apps_runtime.version_banner.newer_version', 'A newer version of this app has been published.')}</span>
             <button
                 type="button"

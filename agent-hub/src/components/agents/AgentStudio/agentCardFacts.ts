@@ -1,63 +1,29 @@
 /**
- * agentCardFacts — de FEITEN achter één kaart in het agentoverzicht, en
- * achter de chips en het zoekveld erboven (Bee Flow Builder-herontwerp,
- * sep 2026; Agents-artboard 1a, A5 deel C).
+ * agentCardFacts — the FACTS behind one card in the agent overview, and behind the chips and the search field above it (Bee Flow Builder redesign, Sept 2026; Agents artboard 1a, A5 part C).
  *
- * Alles hier is puur: in gaan de rijen van `GET /agents/all` (of
- * `/agents/system`) plus de categorielijst, eruit komen getallen en
- * toestanden — geen zinnen, geen kleuren. De zinnen staan in `AgentCard.jsx`
- * en `AgentOverview.tsx`, want daar staan ook de letterlijke `t()`-sleutels
- * die de i18n-guard leest.
+ * Everything here is pure: what goes in are the rows of `GET /agents/all` (or `/agents/system`) plus the category list, and what comes out are numbers and states — no sentences, no colours. The sentences are in `AgentCard.jsx` and `AgentOverview.tsx`, because that is where the literal `t()` keys are that the i18n guard reads.
  *
- * ── DE DRIE PILLEN KOMEN UIT `config`, EN DAT MAG ───────────────────
- * `getAllAgents` (server/stores/agent/agentCrud.js) draait elke rij door
- * `parseConfig`, dus `config` staat als GEPARSEERD OBJECT in de lijst — geen
- * extra serverronde nodig voor "n kennis / n skills / n tools". Twee dingen
- * die daarbij horen en die de kaart niet mag verzwijgen:
+ * ── THE THREE PILLS COME FROM `config`, AND THAT IS ALLOWED ─────────
+ * `getAllAgents` (server/stores/agent/agentCrud.js) runs every row through `parseConfig`, so `config` is in the list as a PARSED OBJECT — no extra server round trip is needed for "n knowledge / n skills / n tools". Two things that come with that, and that the card may not conceal:
  *
- *   1. Het is de CONCEPT-config. Voor een agent met `published_version > 0`
- *      serveert de runtime `published_config`, en die blob verlaat de store
- *      nooit (`_stripPublishedBlobs`). De pillen tellen dus wat er in de
- *      editor staat, niet wat er live draait — precies zoals de kop "v8"
- *      naast de statuspil de opgeslagen versie noemt.
- *   2. De tools-pil telt wat de CONFIG gunt, niet wat DEZE gebruiker in zijn
- *      catalogus heeft. De editor meet apps tegen `filterAvailableIntegrations`
- *      en toont daar bewust niets zolang `integrationStatus === null`
- *      (BuilderSplit.jsx). Die beschikbaarheid zit niet in de lijstrespons, en
- *      hem hier verzinnen zou een gemeten getal suggereren. Wat de kaart wél
- *      weet is een feit over de AGENT: hoeveel apps, automatiseringen en tabellen zijn
- *      hem gegund.
- *   3. …en dat getal is voor de meeste agents een ONDERGRENS, niet een totaal.
- *      `core/integrations/integrationTools.js` cureert de automatiseringen alleen als
- *      `config.tools` de sleutel `automations` DRAAGT; ontbreekt die, dan krijgt
- *      de agent élke agent-callable automatisering van wie er praat, plus elke in de
- *      chat gepubliceerde Step. Nul automatiseringen tellen voor zo'n agent is het
- *      omgekeerde van de waarheid, en het is precies de val die
- *      `canUse/toolGrants.js` bij naam documenteert. Vandaar `toolsAtLeast`:
- *      het getal blijft wat de config NOEMT, en de kaart zegt erbij dat er
- *      meer bij kunnen komen.
+ *   1. It is the DRAFT config. For an agent with `published_version > 0` the runtime serves `published_config`, and that blob never leaves the store (`_stripPublishedBlobs`). The pills therefore count what is in the editor, not what runs live — exactly as the heading "v8" next to the status pill names the saved version.
+ *   2. The tools pill counts what the CONFIG grants, not what THIS user has in his catalogue. The editor measures apps against `filterAvailableIntegrations` and deliberately shows nothing as long as `integrationStatus === null` (BuilderSplit.jsx). That availability is not in the list response, and inventing it here would suggest a measured figure. What the card does know is a fact about the AGENT: how many apps, automations and tables are granted to him.
+ *   3. …and for most agents that number is a LOWER BOUND, not a total. `core/integrations/integrationTools.js` curates the automations only when `config.tools` CARRIES the key `automations`; if it is missing, the agent gets EVERY agent-callable automation of whoever is talking, plus every Step published in the chat. Counting zero automations for such an agent is the opposite of the truth, and it is precisely the trap that `canUse/toolGrants.js` documents by name. Hence `toolsAtLeast`: the number remains what the config NAMES, and the card says that more can be added.
  *
- * ── LEEG IS NIET ONLEESBAAR ─────────────────────────────────────────
- * `config` kan ontbreken of onleesbaar zijn (een rij uit een andere bron, een
- * kolom die niet parseerde). Dan is het antwoord `null` — niet 0. Een 0 is de
- * bewering "deze agent heeft geen kennis", en die zet de kaart als een
- * gestippelde waarschuwingsrij op het scherm; die mag nooit op een lezing
- * staan die niet gelukt is.
+ * ── EMPTY IS NOT UNREADABLE ─────────────────────────────────────────
+ * `config` can be missing or unreadable (a row from another source, a column that did not parse). Then the answer is `null` — not 0. A 0 is the claim "this agent has no knowledge", and that puts the card on screen as a dotted warning row; that may never rest on a reading that did not succeed.
  *
- * ── ONBEKEND VERSMALT ───────────────────────────────────────────────
- * `can_edit` is de serverzijde van BFSF-271 en `/agents/all` zet hem altijd.
- * `/agents/system` doet dat NIET. `can_edit === false` als enige test is dus
- * fail-open: een rij zonder het veld hield de prullenbak. Hier zijn het drie
- * toestanden, en alleen een expliciete `true` geeft een bewerk-affordance.
+ * ── UNKNOWN NARROWS ─────────────────────────────────────────────────
+ * `can_edit` is the server side of BFSF-271 and `/agents/all` always sets it. `/agents/system` does NOT do that. `can_edit === false` as the only test is therefore fail-open: a row without the field kept the bin. Here there are three states, and only an explicit `true` gives an edit affordance.
  */
 
 import { datatableGrantsOf } from '../AgentWizard/canUse/canUseFacts';
 import { automationGrantsOf } from '../AgentWizard/canUse/toolGrants';
 
-/** Mag deze gebruiker de agent wijzigen? `UNKNOWN` is niet `NO` en niet `YES`. */
+/** May this user change the agent? `UNKNOWN` is neither `NO` nor `YES`. */
 export const EDIT = Object.freeze({ YES: 'yes', NO: 'no', UNKNOWN: 'unknown' });
 
-/** De categorie van een rij: geen, een gelezen naam, of een id zonder naam. */
+/** The category of a row: none, a name that was read, or an id without a name. */
 export const CATEGORY = Object.freeze({ NONE: 'none', NAMED: 'named', UNKNOWN: 'unknown' });
 
 /** De chip-id van "Zonder categorie" — geen echt categorie-id, dus geen botsing. */
@@ -106,11 +72,9 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
 }
 
 /**
- * De config van een lijstrij, of `null` als die er niet leesbaar in zit.
+ * The config of a list row, or `null` if it is not readable in there.
  *
- * De server levert een object (parseConfig). Een string wordt nog geprobeerd
- * — een rij die langs een andere weg binnenkwam — maar alles wat daarna geen
- * gewoon object is, is ONLEESBAAR en komt terug als `null`.
+ * The server delivers an object (parseConfig). A string is still tried — a row that arrived by another route — but anything after that which is not a plain object is UNREADABLE and comes back as `null`.
  */
 export function configOf(agent?: AgentListRow | null): AgentRowConfig | null {
     if (!agent) return null;
@@ -127,7 +91,7 @@ export function configOf(agent?: AgentListRow | null): AgentRowConfig | null {
     return null;
 }
 
-/** Unieke, niet-lege strings uit een lijst. Geen lijst ⇒ leeg. */
+/** Unique, non-empty strings from a list. No list ⇒ empty. */
 function uniqueStrings(list: unknown) {
     const seen = new Set<string>();
     for (const v of Array.isArray(list) ? list : []) {
@@ -137,9 +101,7 @@ function uniqueStrings(list: unknown) {
 }
 
 /**
- * De gekoppelde kennisbank-ids. Beide schrijfwijzen tellen mee: de config
- * draagt `knowledge_base_ids`, maar `attentionChecks.js` accepteert al jaren
- * óók `knowledgeBaseIds` en er staan rijen in het veld met die sleutel.
+ * The linked knowledge-base ids. Both spellings count: the config carries `knowledge_base_ids`, but `attentionChecks.js` has for years also accepted `knowledgeBaseIds`, and there are rows with that key in the field.
  */
 function knowledgeIdsOf(config: AgentRowConfig) {
     const raw = config.knowledge_base_ids ?? config.knowledgeBaseIds;
@@ -147,41 +109,28 @@ function knowledgeIdsOf(config: AgentRowConfig) {
 }
 
 /**
- * De drie tellers van één kaart.
+ * The three counters of one card.
  *
  * @returns
- *   `readable: false` ⇒ alle drie `null`: de config kon niet gelezen worden,
- *   en dan zegt de kaart dát, in plaats van drie nullen.
- *   `tools: null` bij een leesbare config betekent hetzelfde één niveau lager:
- *   de sectie `config.tools` staat er wél maar is niet te lezen, en dan is er
- *   geen getal om te tonen. `toolsAtLeast` zegt dat het getal een ONDERGRENS is.
+ *   `readable: false` ⇒ all three `null`: the config could not be read, and then the card says THAT, instead of showing three zeros.
+ *   `tools: null` with a readable config means the same thing one level lower: the `config.tools` section IS there but is not readable, and then there is no number to show. `toolsAtLeast` says that the number is a LOWER BOUND.
  */
 export function countsOf(agent?: AgentListRow | null): CardCounts {
     const config = configOf(agent);
     if (!config) return { readable: false, knowledge: null, skills: null, tools: null, toolsAtLeast: false };
 
-    // "Sectie afwezig", "sectie leesbaar" en "sectie onleesbaar" zijn drie
-    // antwoorden. De kop van dit bestand zegt "leeg is niet onleesbaar", en dat
-    // gold tot nu toe alleen voor de HELE config: een `config.tools` die geen
-    // object is werd hier stilletjes een gemeten nul, terwijl de server op
-    // dezelfde invoer `tables: null` geeft (core/agentRuntime/agentGrounding.js).
+    // "Section absent", "section readable" and "section unreadable" are three answers. The header of this file says "empty is not unreadable", and so far that held only for the WHOLE config: a `config.tools` that is not an object silently became a measured zero, while the server gives `tables: null` on the same input (core/agentRuntime/agentGrounding.js).
     const rawTools = config.tools;
     const toolsMissing = rawTools === undefined || rawTools === null;
     const toolsConfig = isPlainObject(rawTools) ? rawTools : null;
     const toolsUnreadable = !toolsMissing && !toolsConfig;
 
-    // De apps staan als vlakke lijst in `enabledIntegrations`; de automatiseringen en
-    // tabellen als grants onder `config.tools`. Alle drie zijn "een ding dat
-    // deze agent mag aanroepen", dus alle drie tellen mee in dezelfde pil —
-    // dezelfde optelling die de tab "Kan gebruiken" op zijn teller zet.
+    // The apps are stored as a flat list in `enabledIntegrations`; the automations and tables as grants under `config.tools`. All three are "a thing this agent may call", so all three count in the same pill — the same sum that the "Can use" tab puts on its counter.
     const apps = uniqueStrings(config.enabledIntegrations).size;
     const automations = automationGrantsOf(toolsConfig).length;
     const datatables = datatableGrantsOf(toolsConfig).grants.length;
 
-    // De AANWEZIGHEID van de sleutel is de curatie — spiegel van
-    // `_curatedAutomations` in core/integrations/integrationTools.js, dat op
-    // `hasOwnProperty('automations')` kijkt en niet op de inhoud. Ontbreekt hij,
-    // dan rijden de automatiseringen van de VRAGER mee en is dit getal een ondergrens.
+    // The PRESENCE of the key is the curation — mirror of `_curatedAutomations` in core/integrations/integrationTools.js, which checks `hasOwnProperty('automations')` and not the content. If it is missing, the automations of the ASKER ride along and this number is a lower bound.
     const curatedAutomations = !!toolsConfig
         && Object.prototype.hasOwnProperty.call(toolsConfig, 'automations');
 
@@ -195,16 +144,11 @@ export function countsOf(agent?: AgentListRow | null): CardCounts {
 }
 
 /**
- * LIVE of CONCEPT staat NIET in dit bestand: `publishedVersionOf` in
- * `AgentWizard/builderSplit/AgentEditorHeader.jsx` beantwoordt die vraag al
- * (en zijn test pint dat het `published_version` leest en niet
- * `is_published` — de INHOUDsvraag, niet het PUBLIEK). De kaart leest hem
- * daar; een tweede kopie hier zou de twee uit elkaar laten lopen.
+ * LIVE or DRAFT is NOT in this file: `publishedVersionOf` in `AgentWizard/builderSplit/AgentEditorHeader.jsx` already answers that question (and its test pins that it reads `published_version` and not `is_published` — the CONTENT question, not the AUDIENCE). The card reads it there; a second copy here would let the two drift apart.
  */
 
 /**
- * Mag deze gebruiker de agent bewerken? Alleen een expliciete boolean telt;
- * een ontbrekend veld is ONBEKEND — zie de docblock bovenaan.
+ * May this user edit the agent? Only an explicit boolean counts; a missing field is UNKNOWN — see the docblock at the top.
  */
 export function editVerdict(agent?: AgentListRow | null) {
     const v = agent?.can_edit;
@@ -214,11 +158,9 @@ export function editVerdict(agent?: AgentListRow | null) {
 }
 
 /**
- * De categorie van een rij, tegen de gelezen categorielijst.
+ * The category of a row, against the read category list.
  *
- * Een `category_id` dat we niet kunnen thuisbrengen wordt `UNKNOWN`, NOOIT
- * `NONE`: "zonder categorie" is een bewering over de agent, en de agent heeft
- * er juist wél een — we konden zijn naam alleen niet lezen.
+ * A `category_id` that we cannot place becomes `UNKNOWN`, NEVER `NONE`: "no category" is a claim about the agent, and the agent does have one — we just could not read its name.
  */
 export function categoryOf(agent: AgentListRow | null | undefined, categories?: readonly CategoryLike[] | null): CategoryVerdict {
     const id = typeof agent?.category_id === 'string' && agent.category_id ? agent.category_id : null;
@@ -229,18 +171,12 @@ export function categoryOf(agent: AgentListRow | null | undefined, categories?: 
 }
 
 /**
- * De chips boven het raster: alleen categorieën die ook echt een agent
- * hebben, in de volgorde van de categorielijst, plus "Zonder categorie" als
- * er een agent zonder is.
+ * The chips above the grid: only categories that also actually have an agent, in the order of the category list, plus "No category" if there is an agent without one.
  *
- * Een chip die naar niets filtert is een dode knop, dus lege categorieën
- * blijven weg. Agents met een onleesbare categorie (`UNKNOWN`) krijgen geen
- * eigen chip: ze horen niet in "Zonder categorie" thuis, en een chip
- * "onbekend" zou een categorie suggereren die niet bestaat. Ze blijven
- * bereikbaar zolang er geen chip actief is.
+ * A chip that filters to nothing is a dead button, so empty categories stay out. Agents with an unreadable category (`UNKNOWN`) get no chip of their own: they do not belong under "No category", and a chip "unknown" would suggest a category that does not exist. They remain reachable as long as no chip is active.
  *
  * @returns
- *   `name: null` op de chip met id NO_CATEGORY — die schrijft de UI zelf.
+ *   `name: null` on the chip with id NO_CATEGORY — the UI writes that one itself.
  */
 export function categoryChipsOf(agents: readonly AgentListRow[] | null | undefined, categories?: readonly CategoryLike[] | null): CategoryChip[] {
     const rows = Array.isArray(agents) ? agents : [];
@@ -255,8 +191,7 @@ export function categoryChipsOf(agents: readonly AgentListRow[] | null | undefin
     const chips: CategoryChip[] = (Array.isArray(categories) ? categories : [])
         .filter(c => c && typeof c.id === 'string' && counts.has(c.id))
         .map(c => ({ id: c.id, name: c.name, count: counts.get(c.id) }));
-    // Zonder ook maar één benoemde categorie is er niets om tegen te
-    // filteren: dan is élke agent "zonder categorie" en zegt de chip niets.
+    // Without even one named category there is nothing to filter against: then every agent is "no category" and the chip says nothing.
     if (chips.length > 0 && noCategory > 0) {
         chips.push({ id: NO_CATEGORY, name: null, count: noCategory });
     }
@@ -264,21 +199,11 @@ export function categoryChipsOf(agents: readonly AgentListRow[] | null | undefin
 }
 
 /**
- * "ANTWOORDT UIT HET HOOFD" STAAT NIET IN DIT BESTAND.
+ * "ANSWERS FROM MEMORY" IS NOT IN THIS FILE.
  *
- * Hier stond `warnsNoKnowledge`, met een terugval op `counts.knowledge === 0`
- * zodra de server geen oordeel gaf. Dat was een TWEEDE implementatie van de
- * regel die Studio's Start-scherm (routes/studio/attentionChecks.js) uit
- * core/agentRuntime/agentGrounding.js leest, en de twee waren het al oneens:
- * een config met `knowledge_base_ids: 'kb-1'` (string) boekt de server als een
- * GAT — "kon de bedrading niet lezen", bewust géén beschuldiging — terwijl de
- * kaart er een rode "No knowledge base" bij zette.
+ * Here stood `warnsNoKnowledge`, with a fallback on `counts.knowledge === 0` as soon as the server gave no judgement. That was a SECOND implementation of the rule that Studio's start screen (routes/studio/attentionChecks.js) reads from core/agentRuntime/agentGrounding.js, and the two already disagreed: a config with `knowledge_base_ids: 'kb-1'` (a string) is booked by the server as a GAP — "could not read the wiring", deliberately NOT an accusation — while the card put a red "No knowledge base" next to it.
  *
- * De waarschuwing staat nu op één plek in dit scherm: `./cardFooter.ts`, dat
- * uitsluitend het woord leest dat de server stuurde (`grounding.verdict`). Een
- * rij zonder dat woord (/agents/system, een oudere payload) levert stilte op,
- * niet een eigen oordeel — onbekend versmalt. De kennis-PIL blijft gewoon zijn
- * gemeten nul tonen; dat is een telling, geen bewering over gedrag.
+ * The warning now stands in one place on this screen: `./cardFooter.ts`, which reads only the word that the server sent (`grounding.verdict`). A row without that word (/agents/system, an older payload) yields silence, not a judgement of its own — unknown narrows. The knowledge PILL keeps showing its measured zero; that is a count, not a claim about behaviour.
  */
 
 /** Alles waarop het zoekveld matcht, als één kleingeschreven string. */
@@ -291,12 +216,12 @@ function haystackOf(agent: AgentListRow | null | undefined, categories?: readonl
 }
 
 /**
- * Het getoonde deel van de lijst: eerst de chip, dan de zoekterm.
+ * The shown part of the list: first the chip, then the search term.
  *
- * @param agents        de rijen zoals de server ze gaf
- * @param opts.query        de zoekterm ('' = alles)
- * @param opts.categoryId  actieve chip, `NO_CATEGORY`, of null
- * @param opts.categories    de gelezen categorielijst
+ * @param agents           the rows as the server gave them
+ * @param opts.query       the search term ('' = everything)
+ * @param opts.categoryId  active chip, `NO_CATEGORY`, or null
+ * @param opts.categories  the read category list
  */
 export function filterAgents<T extends AgentListRow>(
     agents: readonly T[] | null | undefined,

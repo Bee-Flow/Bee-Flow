@@ -1,15 +1,14 @@
 // @typecheck
 /**
- * Een geplande run moet de tier oplossen ONDER DE ORG VAN ZIJN EIGENAAR.
+ * A scheduled run must resolve the tier UNDER THE ORG OF ITS OWNER.
  *
- * Elke route-aanroep van resolveModelForTier geeft {userOrgId, userId} mee;
- * de taakrunner deed dat niet. Gevolg: applyEUOverrides zag nooit een org,
- * dus een organisatie die EU-modus aanzette kreeg EU-modellen in chat
- * terwijl haar nachtelijke coworks stil op het niet-EU-model bleven
- * draaien — precies het soort stille afwijking dat dit product verkoopt
- * niet te hebben. Dit is een GEDRAGStest, geen bronscan: hij draait de
- * echte modelResolver met een gestubde configlaag en laat executeTask
- * bewijzen welk model er werkelijk bij de provider aankomt.
+ * Every route call to resolveModelForTier passes {userOrgId, userId};
+ * the task runner did not. Consequence: applyEUOverrides never saw an org,
+ * so an organisation that switched on EU mode got EU models in chat while
+ * its nightly coworks silently kept running on the non-EU model: exactly the
+ * kind of quiet deviation this product sells not to have. This is a BEHAVIOUR
+ * test, not a source scan: it runs the real modelResolver with a stubbed config
+ * layer and lets executeTask prove which model actually arrives at the provider.
  *
  * Run: node --test --test-force-exit core/aiTaskRunner.tierContext.test.js
  */

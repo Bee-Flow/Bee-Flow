@@ -1,22 +1,22 @@
 /**
- * "Welke agent gaf dit antwoord?" — de regel boven een testchat-antwoord.
+ * "Which agent gave this answer?" — the line above a test-chat answer.
  *
- * Een testchat draait op het CONCEPT (A4). Een automatisering draait op de
- * GEPUBLICEERDE config (R2). Dat verschil is met opzet gemaakt — je test wat
- * je aan het maken bent — maar het is precies het soort verschil dat, als het
- * niet op het scherm staat, iemand laat denken dat hij net heeft gecontroleerd
- * wat er in productie gebeurt. Deze regel is dat scherm.
+ * A test chat runs on the DRAFT (A4). An automation runs on the PUBLISHED
+ * config (R2). That difference is deliberate, because you test what you are
+ * making, but it is exactly the kind of difference that, if it is not on
+ * screen, lets someone think they just checked what happens in production.
+ * This line is that screen.
  *
- * ── HET LEEST DE SERVER, NOOIT DE AANVRAAG ──────────────────────────
- * De vorm komt uit het `test_chat`-event, dat de runtime opstelt uit de rij
- * die hij werkelijk laadde. De client mag zo'n label nooit uit zijn eigen
- * verzoek afleiden — dezelfde regel als bij "Test als" (chatStream stuurt daar
- * `test_as` om precies deze reden).
+ * ── THE SERVER READS IT, NEVER THE REQUEST ──────────────────────────
+ * The shape comes from the `test_chat` event, which the runtime builds from the
+ * row it actually loaded. The client must never derive such a label from its own
+ * request. This is the same rule as for "Test as" (chatStream sends `test_as` for
+ * exactly this reason).
  *
- * ── ONBEKEND IS GEEN GERUSTSTELLING ─────────────────────────────────
- * `source: 'unknown'` betekent dat niemand kon zeggen welke config draaide.
- * Dan staat er niet "je concept" met een slag om de arm, maar de waarheid: dit
- * antwoord is niet toe te wijzen. Dat is de enige zin die dan waar is.
+ * ── UNKNOWN IS NOT REASSURANCE ─────────────────────────────────────
+ * `source: 'unknown'` means nobody could say which config ran. Then the line does
+ * not say "your draft" with a qualifier, but states the truth: this answer cannot
+ * be attributed. That is the only sentence that is then true.
  */
 
 import { FileText, HelpCircle, Send } from 'lucide-react';
@@ -53,9 +53,9 @@ export default function TestChatNotice({ info, t = (k: string, d: string) => d }
         );
     }
 
-    // 'published' hoort hier eigenlijk niet te staan — een testchat vraagt om
-    // het concept — maar als de projectie iets anders teruggaf is dát het
-    // nieuws, niet een geruststellende zin over je concept.
+    // 'published' should not really be here, because a test chat asks for
+    // the draft. But if the projection returned something else, that is the
+    // news, not a reassuring sentence about your draft.
     if (source === 'published') {
         return (
             <div data-testid="test-chat-notice" data-source="published"
@@ -77,9 +77,9 @@ export default function TestChatNotice({ info, t = (k: string, d: string) => d }
                 {published > 0
                     ? (
                         ahead > 0
-                            // Meervoud met een eigen sleutel: "1 unpublished changes"
-                            // is precies het soort slordigheid dat een zorgvuldig
-                            // product onzorgvuldig laat lijken.
+                            // Plural with its own key: "1 unpublished changes"
+                            // is exactly the kind of sloppiness that makes a careful
+                            // product look careless.
                             ? nOf(t, 'agent_studio.test.chat_source_live_ahead', ahead,
                                 'Live is v{version}, with {count} unpublished change.',
                                 'Live is v{version}, with {count} unpublished changes.',

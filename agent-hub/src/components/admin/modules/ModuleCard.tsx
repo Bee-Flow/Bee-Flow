@@ -132,8 +132,8 @@ export default function ModuleCard({ module, onImport, onRemoveRequest, busy }: 
                             title={t('modules.remove')}
                         >
                             {busy
-                                ? <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: '#ef4444' }} />
-                                : <Trash2 className="w-3.5 h-3.5" style={{ color: '#ef4444' }} />}
+                                ? <Loader2 className="w-3.5 h-3.5 animate-spin [color:#ef4444]" />
+                                : <Trash2 className="w-3.5 h-3.5 [color:#ef4444]" />}
                         </button>
                     </div>
                 ) : module.requirementsMet ? (

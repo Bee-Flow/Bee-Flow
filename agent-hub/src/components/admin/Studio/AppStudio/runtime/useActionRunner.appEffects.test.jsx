@@ -2,24 +2,24 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
- * App Studio runtime — `_appEffects`: wat een automatisering de app OPDRAAGT als hij
- * klaar is (P4, deel B).
+ * App Studio runtime — `_appEffects`: what an automation INSTRUCTS the app to do
+ * when it is done (P4, part B).
  *
- * ── GEEN NIEUW KANAAL ───────────────────────────────────────────────────────
- * De app-runtime pollt de run al. `_appEffects` reist als ZUSTERVELD naast
- * `output` in datzelfde antwoord, dus er is niets nieuws om op te abonneren —
- * en `output` blijft precies wat elke bestaande `actionResult`-binding leest.
+ * ── NO NEW CHANNEL ───────────────────────────────────────────────────────────
+ * The app runtime already polls the run. `_appEffects` travels as a SIBLING field
+ * next to `output` in that same response, so there is nothing new to subscribe to —
+ * and `output` remains exactly what every existing `actionResult` binding reads.
  *
- * ── WAT HIER WORDT BEWEZEN ──────────────────────────────────────────────────
- *   1. de drie effecten worden echt toegepast: melding, scherm (mét record) en
- *      verversen;
- *   2. de automatisering wint PER SLEUTEL van wat de app-auteur op de actie schreef —
- *      hij weet wat er werkelijk gebeurd is;
- *   3. een effect dat deze app niet KENT wordt overgeslagen zonder de effecten
- *      die hij wél kent mee te nemen, en nooit stil;
- *   4. een effect dat hier niet UITVOERBAAR is (een scherm dat de app niet
- *      heeft, `resetForm` zonder formulier) valt terug op `onError` — `stay`
- *      versmalt, `errorScreen` zegt het hardop.
+ * ── WHAT IS PROVEN HERE ──────────────────────────────────────────────────────
+ *   1. the three effects are really applied: notification, screen (with record)
+ *      and refresh;
+ *   2. the automation wins PER KEY over what the app author wrote on the action —
+ *      it knows what actually happened;
+ *   3. an effect this app does NOT KNOW is skipped without dropping the effects
+ *      it does know, and never silently;
+ *   4. an effect that is not EXECUTABLE here (a screen the app does not have,
+ *      `resetForm` without a form) falls back to `onError` — `stay` narrows,
+ *      `errorScreen` says so out loud.
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run \
  *   src/components/admin/Studio/AppStudio/runtime/useActionRunner.appEffects.test.jsx
@@ -190,15 +190,14 @@ describe('_appEffects — an effect this app cannot do is ignored, but never sil
     });
 
     /**
-     * DE SLEUTEL VAN DE RESET-BUS IS DE FORM-NAAM, NIET HET NODE-ID.
+     * THE KEY OF THE RESET BUS IS THE FORM NAME, NOT THE NODE ID.
      *
-     * AppForm registreert zijn resetter onder `props.name || node.id`, en
-     * canonicalize garandeert dat `props.name` gevuld is (`frm_<suffix>`) —
-     * terwijl AppForm zijn NODE-id als `formId` meestuurde. Die twee zijn dus
-     * per definitie nooit gelijk: `resetAppForm` deed stil niets voor een
-     * onbekende naam, het formulier bleef ingevuld staan, en omdat `formId`
-     * een niet-lege string IS werd de "er is hier geen formulier"-tak ook nooit
-     * bereikt. Geen toast, geen console-regel, geen onError.
+     * AppForm registers its resetter under `props.name || node.id`, and canonicalize
+     * guarantees that `props.name` is filled (`frm_<suffix>`) — while AppForm passed
+     * its NODE id as `formId`. Those two are therefore by definition never equal:
+     * `resetAppForm` did silently nothing for an unknown name, the form stayed filled
+     * in, and because `formId` IS a non-empty string the “there is no form here”
+     * branch was never reached either. No toast, no console line, no onError.
      */
     it('resetForm ruimt het formulier op onder de NAAM waaronder het zich meldt', async () => {
         authFetch.mockResolvedValue(resp(200, {
@@ -227,8 +226,8 @@ describe('_appEffects — an effect this app cannot do is ignored, but never sil
     });
 
     it('en AppForm stuurt allebei mee — anders is de sleutel hierboven fictie', async () => {
-        // De hele bovenstaande test hangt aan wat AppForm werkelijk doorgeeft;
-        // zonder deze regel bevestigt hij alleen zijn eigen fixture.
+        // This whole test above depends on what AppForm actually passes;
+        // without this line it only confirms its own fixture.
         const fs = await import('node:fs');
         const path = await import('node:path');
         const src = fs.readFileSync(
@@ -276,9 +275,9 @@ describe('_appEffects — the 202 + poll path and the sequence path carry it too
     });
 
     it('a run_automation STEP inside a sequence applies its effects once, at the end', async () => {
-        // Twee stappen: eerst de automatisering (die terugkeert naar scr_orders), dan
-        // nog een schrijfstap. Zou het effect meteen worden toegepast, dan
-        // navigeerde de app weg vóór die tweede stap.
+        // Two steps: first the automation (which returns to scr_orders), then
+        // another write step. Were the effect applied immediately, the app would
+        // navigate away before that second step.
         authFetch
             .mockResolvedValueOnce(resp(200, {
                 ok: true,
@@ -310,14 +309,14 @@ describe('_appEffects — the 202 + poll path and the sequence path carry it too
 });
 
 /**
- * GESLOTEN VOCABULAIRES, MET EEN AFSLUITENDE TAK.
+ * CLOSED VOCABULARIES, WITH A CLOSING BRANCH.
  *
- * `refresh` is een gesloten set aan de serverkant
- * (validate/constants.js RETURN_TO_APP_REFRESH_MODES), maar hij reist als DATA
- * naar een app-bundel die OUDER kan zijn dan de automation. `KNOWN_EFFECT_KEYS`
- * vangt een onbekende SLEUTEL; een onbekende WAARDE van een bekende sleutel
- * werd nergens gevangen en verdween stil — precies het effect dat de docblock
- * van deze functie belooft nooit te laten verdwijnen.
+ * `refresh` is a closed set on the server side
+ * (validate/constants.js RETURN_TO_APP_REFRESH_MODES), but it travels as DATA
+ * to an app bundle that can be OLDER than the automation. `KNOWN_EFFECT_KEYS`
+ * catches an unknown KEY; an unknown VALUE of a known key was caught nowhere and
+ * disappeared silently — precisely the effect the docblock of this function
+ * promises never to let vanish.
  */
 describe('_appEffects — een waarde buiten het vocabulaire verdwijnt niet stil', () => {
     it('meldt een refresh-modus die deze app-versie niet kent', async () => {
@@ -364,12 +363,12 @@ describe('_appEffects — een waarde buiten het vocabulaire verdwijnt niet stil'
 });
 
 /**
- * DE DERDE STAND: DE SERVER KON DE INSTRUCTIES NIET LEZEN.
+ * THE THIRD STATE: THE SERVER COULD NOT READ THE INSTRUCTIONS.
  *
- * `_appEffectsUnknown` betekent dat de run slaagde maar de stappenlees omviel
- * (server/appStudio/actionExecutor/automationBridge.js). Zonder een eigen tak
- * is dat antwoord niet te onderscheiden van "deze automatisering had geen
- * terugkeerstap": geen melding, geen navigatie, geen spoor.
+ * `_appEffectsUnknown` means the run succeeded but reading the steps failed
+ * (server/appStudio/actionExecutor/automationBridge.js). Without a branch of its
+ * own, that answer cannot be told apart from “this automation had no return step”:
+ * no notification, no navigation, no trace.
  */
 describe('_appEffectsUnknown — onleesbaar is niet hetzelfde als leeg', () => {
     it('zegt het hardop wanneer de actie op errorScreen staat', async () => {

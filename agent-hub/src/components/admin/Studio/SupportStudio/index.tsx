@@ -62,7 +62,7 @@ const statusLabel = (t: TranslateFn, s: string) => {
 };
 
 function Dot({ status }: DotProps) {
-    return <span className={`inline-block w-2 h-2 rounded-full ${STATUS_COLORS[status] || 'text-[var(--text-tertiary)]'}`} style={{ backgroundColor: 'currentColor' }} />;
+    return <span className={`inline-block w-2 h-2 rounded-full ${STATUS_COLORS[status] || 'text-[var(--text-tertiary)]'} [background-color:currentColor]`} />;
 }
 
 const slaBreached = (th: SupportThread) => !!(th && (th.sla_first_response_breached_at || th.sla_resolution_breached_at));

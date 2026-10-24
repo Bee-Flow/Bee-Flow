@@ -2,16 +2,16 @@ import { useState, useRef } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 
 /**
- * Breedte + sleepgreep van de verfijn-rail in BuilderSplit.
+ * Width and drag handle of the refine rail in BuilderSplit.
  *
- * De rail stond links en 460px breed. Sinds het builder-herontwerp (A2 stap
- * 1) staat hij RECHTS en is hij 360px, met een ondergrens van 300 — smaller
- * dan dat past het chatinvoerveld met zijn tierkiezer niet meer.
+ * The rail used to stand on the left and was 460px wide. Since the builder redesign
+ * (A2 step 1) it stands on the RIGHT and is 360px, with a minimum of 300. Narrower
+ * than that, the chat input field no longer fits with its tier selector.
  *
- * De KANT is niet alleen een andere `initial`. De greep zit nu aan de
- * LINKERkant van de rail, dus naar links slepen maakt hem BREDER: het teken
- * van de delta hangt aan de kant waar de rail staat. Vandaar `side` als
- * expliciete parameter en niet als aanname in de rekensom.
+ * The SIDE is not only a different `initial`. The handle now sits on the LEFT side
+ * of the rail, so dragging left makes it WIDER: the sign of the delta depends on the
+ * side on which the rail stands. Hence `side` as an explicit parameter, and not an
+ * assumption in the arithmetic.
  */
 export default function useChatPanelResize({ initial = 360, min = 300, max = 600, side = 'right' }: { initial?: number; min?: number; max?: number; side?: 'left' | 'right' } = {}) {
     const [chatWidth, setChatWidth] = useState(initial);

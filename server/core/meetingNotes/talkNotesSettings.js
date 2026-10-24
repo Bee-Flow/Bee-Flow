@@ -29,19 +29,18 @@
  *
  * Scalar toggles use org-overrides-user.
  *
- * ── DE UITSLUITINGEN ZIJN VERHUISD (M5) ───────────────────────────────
- * `excludedEventUids` en `excludedRoomTokens` waren de per-vergadering
- * opnamekeuze: aanwezigheid betekende "niet opnemen". Die keuze woont nu in
- * `stores/meetingPrefsStore` (tabel meeting_prefs), met een driewaardige
- * `record`, een eigen rij per gebruiker en de 1-op-1-standaard. Daarom geeft
- * `resolveTalkNotesSettings` die twee arrays NIET meer terug: een lezer die
- * hier was blijven hangen zou een lege lijst zien en dus opnemen wat iemand
- * had uitgezet.
+ * ── EXCLUSIONS HAVE MOVED (M5) ───────────────────────────────────────
+ * `excludedEventUids` and `excludedRoomTokens` were the per-meeting recording
+ * choice: presence meant "do not record". That choice now lives in
+ * `stores/meetingPrefsStore` (table meeting_prefs), with a three-valued
+ * `record`, its own row per user and the 1-on-1 default. Therefore
+ * `resolveTalkNotesSettings` NO LONGER returns those two arrays: a reader that
+ * was still hanging on here would see an empty list and so record what someone
+ * had switched off.
  *
- * De velden zelf blijven wel bewaard en round-trippen ongemoeid door
- * save*Settings, zodat een rollback naar de vorige image de uitsluitingen nog
- * vindt. `meetingPrefsStore.backfillFromExclusions()` heeft ze eenmalig
- * overgenomen.
+ * The fields themselves are still kept, and round-trip untouched through
+ * save*Settings, so a rollback to the previous image still finds the exclusions.
+ * `meetingPrefsStore.backfillFromExclusions()` has taken them over once.
  */
 
 const configStore = require('../../stores/configStore');

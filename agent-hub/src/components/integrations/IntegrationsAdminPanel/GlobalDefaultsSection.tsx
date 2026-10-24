@@ -45,7 +45,7 @@ export default function GlobalDefaultsSection({
                                                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all hover:scale-[1.01]"
                                                 style={{ background: enabled ? 'rgba(16, 185, 129, 0.06)' : 'var(--bg-primary)', border: `1px solid ${enabled ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-subtle)'}` }}>
                                                 {enabled
-                                                    ? <ToggleRight className="w-5 h-5 shrink-0" style={{ color: '#10b981' }} />
+                                                    ? <ToggleRight className="w-5 h-5 shrink-0 [color:#10b981]" />
                                                     : <ToggleLeft className="w-5 h-5 shrink-0 text-[var(--text-muted)]" />
                                                 }
                                                 {integ.icon && <span className="text-base shrink-0">{integ.icon}</span>}
@@ -65,7 +65,7 @@ export default function GlobalDefaultsSection({
                 {/* Per-organisation & per-group integration access moved to the
                     unified Access & Permissions hub (Admin → Access). */}
                 <div className="rounded-2xl border p-4 flex items-start gap-3 bg-[var(--bg-secondary)] border-[var(--border-default)]">
-                    <Settings className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#3b82f6' }} />
+                    <Settings className="w-4 h-4 mt-0.5 flex-shrink-0 [color:#3b82f6]" />
                     <p className="text-xs text-[var(--text-muted)]">
                         {t('integ.global_defaults_who_may_use_each_integration_per', 'Who may use each integration — per organisation, per group, or for all members — is now managed in')}
                         <strong> {t('integ.global_defaults_admin_access_permissions', 'Admin → Access & Permissions')}</strong>{t('integ.global_defaults_the_defaults_above_only_seed', '. The defaults above only seed integrations for newly created organisations.')}

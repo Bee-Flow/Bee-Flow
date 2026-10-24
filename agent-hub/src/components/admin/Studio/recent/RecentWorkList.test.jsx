@@ -4,18 +4,18 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
- * "Laatst bewerkt" op het Startscherm. Vier dingen worden hier vastgelegd,
- * omdat het de vier zijn die stilletjes verkeerd gaan:
+ * “Last edited” on the Start screen. Four things are pinned here, because they are the
+ * four that silently go wrong:
  *
- *   1. "nog niets bewerkt" en "we konden niet overal kijken" zijn twee zinnen,
- *      en de tweede wordt nooit als de eerste getekend;
- *   2. een soort die geen status meldt krijgt er geen verzonnen — en ook geen
- *      lege plek, want die leest als "in orde";
- *   3. een rij opent het ding zelf, op het pad dat het model uitrekende;
- *   4. vóór het eerste antwoord wordt er niets beweerd.
+ *   1. “nothing edited yet” and “we could not look everywhere” are two sentences, and
+ *      the second is never drawn as the first;
+ *   2. a kind that reports no status gets none invented — and also no empty place,
+ *      because that reads as “all fine”;
+ *   3. a row opens the thing itself, on the path that the model calculated;
+ *   4. before the first answer, nothing is claimed.
  *
- * `runRecentWork` is gestubd (hij wordt hiernaast tegen een gestubde
- * authFetch getest); de statuswoorden eromheen zijn de echte.
+ * `runRecentWork` is stubbed (it is tested beside this one against a stubbed
+ * authFetch); the status words around it are the real ones.
  */
 
 const { runMock } = vi.hoisted(() => ({ runMock: vi.fn() }));
@@ -25,20 +25,7 @@ vi.mock('./recentWork', async (importOriginal) => ({
     runRecentWork: (...args) => runMock(...args),
 }));
 
-vi.mock('../../../../hooks/useTranslation', () => {
-    const useTranslation = () => ({
-        t: (key, fallback, params) => {
-            let value = typeof fallback === 'string' ? fallback : key;
-            const p = typeof fallback === 'string' ? params : fallback;
-            if (p && typeof p === 'object') {
-                for (const [k, v] of Object.entries(p)) value = value.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
-            }
-            return value;
-        },
-        locale: 'en',
-    });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import RecentWorkList from './RecentWorkList';
 import { RECENT_STATUS } from '../../../../utils/studioRecentSources';
@@ -80,8 +67,8 @@ describe('RecentWorkList', () => {
     });
 
     it('belooft niets vóór het eerste antwoord', () => {
-        // Een lege lijst of een geruststelling boven een lopende fetch is een
-        // bewering die dit scherm nog niet kan onderbouwen.
+        // An empty list or a reassurance above a running fetch is a claim that this screen
+        // cannot yet substantiate.
         runMock.mockReturnValue(new Promise(() => {}));
         renderList();
         expect(screen.queryByTestId('studio-recent')).toBeNull();
@@ -169,8 +156,8 @@ describe('RecentWorkList', () => {
         renderList();
         const chip = await screen.findByTestId('studio-recent-status-aiTasks:r1');
         expect(chip.textContent).toBe('Status unknown');
-        // De zin onder de lijst gaat over soorten die er geen MELDEN; deze
-        // meldt er wel een en had hem alleen niet bij zich.
+        // The sentence under the list concerns kinds that do NOT REPORT; this one does report
+        // one and had simply not brought it along.
         expect(screen.queryByTestId('studio-recent-statusless')).toBeNull();
     });
 
@@ -182,8 +169,7 @@ describe('RecentWorkList', () => {
         expect(runMock.mock.calls[0][0]).toEqual(SECTIONS);
         expect(runMock.mock.calls[0][1]).toEqual({ limit: 5, gatesResolved: true });
 
-        // Dezelfde secties, een nieuwe array-identiteit: dat is geen reden om
-        // negen lijsten opnieuw op te halen.
+        // The same sections, a new array identity: that is no reason to fetch nine lists again.
         rerender(<RecentWorkList sections={[...SECTIONS]} onNavigate={vi.fn()} limit={5} />);
         await waitFor(() => expect(runMock).toHaveBeenCalledTimes(1));
     });

@@ -37,10 +37,9 @@ router.use('/', require('./usage'));
 // shadowed by a future /:id/* handler there.
 router.use('/', require('./tests'));
 
-// GET /:id/tool-lending — voor welke apps kan deze agent de verbinding van
-// zijn EIGENAAR lenen. Hoort bij ./toolCatalog (samen voeden ze de Tools-kaart)
-// maar staat apart omdat het een PER-AGENT antwoord is met het edit-recht als
-// poort, waar de catalogus per gebruiker is. Zelfde vroege mount als ./usage.
+// GET /:id/tool-lending — for which apps this agent may borrow the connection of
+// its OWNER. Belongs with ./toolCatalog (together they feed the Tools card) but stands apart because it is a PER-AGENT answer with the edit right as
+// its gate, where the catalogue is per user. Same early mount as ./usage.
 router.use('/', require('./toolLending'));
 
 // Specific /:id routes

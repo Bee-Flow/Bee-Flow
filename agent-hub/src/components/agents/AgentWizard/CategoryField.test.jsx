@@ -111,19 +111,17 @@ describe('CategoryField — manage popover (BFSF-272)', () => {
     });
 });
 
-// ── A3 deel B: dezelfde component op chipformaat ────────────────────
+// ── A3 part B: the same component in chip format ────────────────────
 //
-// `variant="tag"` is een SKIN, geen tweede component. Deze tests pinnen dat
-// vast: hetzelfde native <select> (dus hetzelfde toetsenbord, dezelfde
-// schermlezer, dezelfde mobiele kiezer), dezelfde aanmaak- en beheerpaden.
+// `variant="tag"` is a SKIN, not a second component. These tests pin that: the same native <select>
+// (so the same keyboard, the same screen reader, the same mobile picker), the same create and manage paths.
 describe('CategoryField — variant="tag" (A3)', () => {
     it('blijft één native select, met een naam nu de kop erboven weg is', () => {
         renderField({ variant: 'tag', value: 'sales' });
         const select = screen.getByTestId('agent-category-select');
         expect(select.tagName).toBe('SELECT');
-        // De chip heeft geen ruimte voor een zichtbaar label, dus de naam moet
-        // ergens anders vandaan komen — anders heet dit veld voor een
-        // schermlezer niets.
+        // The chip has no room for a visible label, so the name has to come from somewhere else — otherwise
+        // this field has no name for a screen reader.
         expect(select.getAttribute('aria-label')).toBe('Category');
         expect(select.value).toBe('sales');
     });

@@ -1,10 +1,10 @@
 /**
- * De sleepgreep van de verfijn-rail (A2 stap 1).
+ * The drag handle of the refine rail (A2 step 1).
  *
- * De rail verhuisde van links naar RECHTS. Dat is niet alleen een andere
- * startbreedte: de greep zit nu aan de linkerkant van de rail, dus naar
- * LINKS slepen moet hem BREDER maken. Zonder deze test is de enige manier om
- * een omgedraaid teken te merken het handmatig slepen in een browser.
+ * The rail moved from left to RIGHT. That is not only a different start width: the
+ * handle now sits on the left side of the rail, so dragging to the LEFT must make it
+ * WIDER. Without this test, the only way to notice a reversed sign is dragging by
+ * hand in a browser.
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/builderSplit/useChatPanelResize.test.jsx
  */

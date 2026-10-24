@@ -1,16 +1,14 @@
 /**
- * De rondenlus die de embeddings van een bron opruimt vóórdat de bronrij valt.
+ * The round loop that cleans up the embeddings of a source before the source row falls.
  *
- * Het gevaar zit niet in een fout maar in de STILTE: `documents.source_id`
- * cascadeert, dus elk document dat de lus overslaat verdwijnt uit de tabel én
- * houdt zijn vectoren in de search-service. Er gaat niets stuk, er komt geen
- * foutmelding, en de tekst blijft doorzoekbaar. Vandaar dat hier twee dingen
- * gepind staan: dat de lus voorbij de eerste pagina van 200 komt, en dat hij
- * `complete: false` zegt zodra dat NIET is gelukt — want dat is het enige
- * signaal waarop een aanroeper de bronrij mag laten staan.
+ * The danger lies not in an error but in the SILENCE: `documents.source_id` cascades, so every document
+ * that the loop skips disappears from the table AND keeps its vectors in the search service. Nothing breaks,
+ * no error is reported, and the text remains searchable. Hence two things are pinned here: that the loop
+ * goes beyond the first page of 200, and that it says `complete: false` as soon as that did NOT succeed,
+ * because that is the only signal on which a caller may leave the source row in place.
  *
- * Zonder database: `kbStore` en `deleteDocumentChunks` komen als parameters
- * binnen, dus de dubbels hier zijn de echte aanroepvorm.
+ * Without a database: `kbStore` and `deleteDocumentChunks` come in as parameters, so the doubles here are
+ * the real calling shape.
  *
  * Run: cd server && node --test --test-force-exit core/kb/purgeSourceDocuments.test.js
  */
@@ -21,10 +19,9 @@ const assert = require('node:assert');
 const { purgeSourceDocuments, PAGE } = require('./purgeSourceDocuments');
 
 /**
- * Een dubbel die zich gedraagt zoals de echte stack: `deleteDocumentChunks`
- * haalt de documentrij weg (dat doet kbStore.deleteDocument erin), dus de
- * volgende ronde ziet hem niet meer. Zonder dat gedrag zou een kapotte lus
- * eeuwig doordraaien in plaats van rood te worden.
+ * A double that behaves like the real stack: `deleteDocumentChunks` removes the document row (that is
+ * what kbStore.deleteDocument does inside it), so the next round no longer sees it. Without that behaviour
+ * a broken loop would spin forever instead of turning red.
  */
 function harness({ docs = [], failOn = new Set(), listLimit = true } = {}) {
     const state = { docs: [...docs], listCalls: [], chunkDeletes: [] };
@@ -49,9 +46,8 @@ function docsFor(n, { kbId = 'kb-1', sourceId = 'src-1' } = {}) {
 }
 
 test('DE 201e KOMT ER OOK AF — één pagina van 200 is niet genoeg', async () => {
-    // De bug die dit dichtte: één listDocuments met limit 200 en daarna een
-    // onvoorwaardelijke remove. Document 201 ging dan mee in de FK-cascade
-    // zónder dat zijn chunks ooit waren opgeruimd.
+    // The bug that this closed: one listDocuments with limit 200 and then an unconditional
+    // remove. Document 201 then went along in the FK cascade WITHOUT its chunks ever having been cleaned up.
     const h = harness({ docs: docsFor(201) });
     const out = await purgeSourceDocuments({
         kbStore: h.kbStore, deleteDocumentChunks: h.deleteDocumentChunks,
@@ -99,8 +95,8 @@ test('een bron zonder documenten is klaar, niet stuk', async () => {
 });
 
 test('EEN DOCUMENT DAT NIET WEG WIL MAAKT `complete` ONWAAR — en de lus draait geen rondjes', async () => {
-    // Het document blijft in de fixture staan, dus een lus zonder
-    // "niets-kwam-eraf"-uitgang zou hier eeuwig doorgaan.
+    // The document stays in the fixture, so a loop without a "nothing-came-off" exit
+    // would go on here forever.
     const h = harness({ docs: docsFor(3), failOn: new Set(['doc-2']) });
     const out = await purgeSourceDocuments({
         kbStore: h.kbStore, deleteDocumentChunks: h.deleteDocumentChunks,
@@ -108,9 +104,8 @@ test('EEN DOCUMENT DAT NIET WEG WIL MAAKT `complete` ONWAAR — en de lus draait
     });
     assert.strictEqual(out.complete, false, 'er staat nog een document met chunks — dit mag NOOIT klaar heten');
     assert.strictEqual(out.deleted, 2);
-    // Twee ronden hebben hetzelfde document geprobeerd; `errors` telt
-    // DOCUMENTEN, niet pogingen — anders leest een client zes weigeringen van
-    // één document als zes stukke documenten.
+    // Two rounds have attempted the same document; `errors` counts DOCUMENTS, not attempts,
+    // otherwise a client reads six refusals of one document as six broken documents.
     assert.strictEqual(out.errors.length, 1);
     assert.strictEqual(out.errors[0].documentId, 'doc-2');
     assert.deepStrictEqual(h.state.docs.map(d => d.id), ['doc-2']);
@@ -118,9 +113,9 @@ test('EEN DOCUMENT DAT NIET WEG WIL MAAKT `complete` ONWAAR — en de lus draait
 });
 
 test('de rondenlimiet op laten gaan is GEEN klaar, ook zonder één enkele fout', async () => {
-    // De stille variant: niets ging mis, er is alleen nog werk over. Als dat
-    // `complete: true` opleverde zou de aanroeper de bronrij weghalen en de
-    // rest via de FK-cascade laten verdwijnen — mét vectoren.
+    // The silent variant: nothing went wrong, there is only work left over. If that gave
+    // `complete: true`, the caller would remove the source row and let the rest disappear via the
+    // FK cascade, with vectors and all.
     const h = harness({ docs: docsFor(5) });
     const out = await purgeSourceDocuments({
         kbStore: h.kbStore, deleteDocumentChunks: h.deleteDocumentChunks,
@@ -143,8 +138,8 @@ test('een lijst die niets teruggeeft (null) is leeg, geen crash', async () => {
 });
 
 test('zonder store of zonder opruimfunctie gooit hij — hij meldt zich nooit klaar', async () => {
-    // Fail-closed: een lege-en-klaar teruggave zou de aanroeper de bron laten
-    // weghalen terwijl er geen enkele chunk is aangeraakt.
+    // Fail-closed: an empty-and-done answer would let the caller remove the source while
+    // not a single chunk has been touched.
     await assert.rejects(
         () => purgeSourceDocuments({ deleteDocumentChunks: async () => {}, kbId: 'kb-1', sourceId: 'src-1' }),
         /kbStore\.listDocuments is required/,
@@ -156,9 +151,9 @@ test('zonder store of zonder opruimfunctie gooit hij — hij meldt zich nooit kl
 });
 
 test('een lege bron-id of kennisbank-id gooit — het is geen "alles"', async () => {
-    // `buildDocumentFilters` hangt `source_id = ?` alleen aan een TRUTHY
-    // sourceId; een lege id zou dus élk document van de kennisbank pakken en
-    // de aanroeper daarna "klaar" melden, waarna hij de bronrij weghaalt.
+    // `buildDocumentFilters` adds `source_id = ?` only for a TRUTHY sourceId; an empty id would
+    // therefore catch EVERY document of the knowledge base and report the caller "done", after which
+    // he removes the source row.
     const kbStore = { listDocuments: async () => [{ id: 'd1' }] };
     const deleteDocumentChunks = async () => {};
     for (const bad of [undefined, null, '', '   ', 42]) {
@@ -176,9 +171,8 @@ test('een lege bron-id of kennisbank-id gooit — het is geen "alles"', async ()
 });
 
 test('een document dat elke ronde weigert staat één keer in errors', async () => {
-    // De lus lijst na elke ronde opnieuw vanaf het begin, dus een weigerend
-    // document komt terug. Zes identieke regels over hetzelfde document zou
-    // een client laten tellen alsof er zes documenten stuk zijn.
+    // The loop lists again from the start after every round, so a refusing document comes back. Six identical
+    // lines about the same document would let a client count as if six documents are broken.
     let round = 0;
     const kbStore = {
         listDocuments: async () => (round++ < 3 ? [{ id: 'goed-' + round }, { id: 'stug' }] : []),

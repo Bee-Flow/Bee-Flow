@@ -5,18 +5,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import DpiaPage, { dpiaRows, defaultExpiry, DPIA_CHECK_ID } from './DpiaPage';
 import { TABLE_FOLDED_ONLY } from '../../../shared/DataTable';
 
-vi.mock('../../../../hooks/useTranslation', () => {
-    const useTranslation = () => ({
-        t: (key, fallback, params) => {
-            let out = typeof fallback === 'string' ? fallback : key;
-            for (const [k, v] of Object.entries(params || {})) out = out.split(`{${k}}`).join(String(v));
-            return out;
-        },
-        locale: 'en',
-        resolvedLocale: 'en',
-    });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 // The drawer reads the full record (answers included): the register list
 // carries none (dpiaStore.listForOrg).

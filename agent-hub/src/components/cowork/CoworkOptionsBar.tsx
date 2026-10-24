@@ -116,8 +116,7 @@ function Sheet({ open, onClose, title, subtitle, isMobile, children, anchorClass
             ref={ref}
             role="dialog"
             aria-label={title}
-            className={`absolute ${dropDown ? 'top-full mt-2' : 'bottom-full mb-2'} z-[1100] w-[280px] max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-y-auto custom-scrollbar rounded-2xl border p-2 shadow-xl ${anchorClassName}`}
-            style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)' }}
+            className={`absolute ${dropDown ? 'top-full mt-2' : 'bottom-full mb-2'} z-[1100] w-[280px] max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-y-auto custom-scrollbar rounded-2xl border p-2 shadow-xl ${anchorClassName} [background:var(--bg-primary)] [border-color:var(--border-default)]`}
         >
             {body}
         </div>

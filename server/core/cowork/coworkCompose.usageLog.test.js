@@ -1,10 +1,9 @@
 // @typecheck
 /**
- * Ook de compose-call zelf is verbruik: één LLM-call per brief, die vóór dit
- * bestond zijn response.usage weggooide. Hier wordt gepind dat hij door
- * dezelfde sink gaat als elke andere call (usageStore.logUsage) met de
- * eigenaar + org als attributie — en dat een falende log de spec niet naar
- * de fallback duwt (boekhouding is geen poortwachter).
+ * The compose call itself is also usage: one LLM call per brief, which before this existed
+ * threw away its response.usage. Pinned here: it goes through the same sink as every other
+ * call (usageStore.logUsage) with the owner + org as attribution, and a failing log does not
+ * push the spec to the fallback (bookkeeping is not a gatekeeper).
  *
  * Run: node --test --test-force-exit core/cowork/coworkCompose.usageLog.test.js
  */

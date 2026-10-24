@@ -1,36 +1,32 @@
 // @typecheck
 /**
- * routes/ai/webpageChat — de `bf-*`-conventie in de bouwer-prompt.
+ * routes/ai/webpageChat — the `bf-*` convention in the builder prompt.
  *
- * ── WAAROM DIT EEN TEST IS EN GEEN COMMENTAARREGEL ──────────────────
+ * ── WHY THIS IS A TEST AND NOT A COMMENT LINE ───────────────────────
  *
- * Het `bf-*`-vocabulaire leeft al op drie plekken (de client-composer, de
- * publieke brug en de snapshot-uitklapper) en dit is de vierde. De drie andere
- * worden door core/webpages/bfElements.drift.test.js aan de registry gehouden;
- * deze plek is anders, want een PROMPT werkt ook als hij achterloopt — hij is
- * alleen niet meer waar. Een model dat een element voorstelt dat niet bestaat,
- * of dat de twee nieuwe niet kent, geeft geen enkele foutmelding.
+ * The `bf-*` vocabulary already lives in three places (the client composer, the public bridge
+ * and the snapshot expander) and this is the fourth. The other three
+ * are kept in line with the registry by core/webpages/bfElements.drift.test.js; this place is different,
+ * because a PROMPT also works when it lags behind — it is simply no longer correct. A model that proposes an element that does not exist,
+ * or does not know the two new ones, gives no error message at all.
  *
- * Daarom staat de lijst hier niet met de hand maar wordt hij AFGELEID
- * (`vocabularyPromptLines()`), en toetst deze test alleen dat die afleiding
- * er ook echt in belandt.
+ * That is why the list is not written out by hand here but DERIVED
+ * (`vocabularyPromptLines()`), and this test checks only that that derivation
+ * really ends up in there.
  *
- * ── WAT DIT KAN BEWIJZEN ────────────────────────────────────────────
+ * ── WHAT THIS CAN PROVE ─────────────────────────────────────────────
  *
- * Dat de bouwer-prompt zijn elementen uit de registry haalt, en dat het blok in
- * het EDITING TOOLS-hoofdstuk staat — bij de andere schrijfregels, niet ergens
- * onderaan bij de bruggen.
+ * That the builder prompt takes its elements from the registry, and that the block stands in
+ * the EDITING TOOLS chapter — next to the other write rules, not somewhere at the bottom with the bridges.
  *
- * ── WAT DIT NIET KAN BEWIJZEN ───────────────────────────────────────
+ * ── WHAT THIS CANNOT PROVE ──────────────────────────────────────────
  *
- * Dat het model de conventie ook VOLGT. Dat is geen eigenschap van deze tekst.
+ * That the model also FOLLOWS the convention. That is not a property of this text.
  *
- * De brontekst wordt gelezen in plaats van de prompt zelf uitgevoerd: de prompt
- * is een template-literal in een routebestand dat bij `require` de hele
- * routestack en de databankverbindingen optuigt. Zelfde reden en zelfde
- * mechanisme als automation/builderTools/promptCatalogSync.test.js.
+ * The source text is read instead of running the prompt itself: the prompt is a template literal in a route file that, on `require`, sets up the whole
+ * route stack and the database connections. Same reason and same mechanism as automation/builderTools/promptCatalogSync.test.js.
  *
- * Draaien: cd server && node --test --test-force-exit routes/ai/webpageChat.prompt.test.js
+ * Run: cd server && node --test --test-force-exit routes/ai/webpageChat.prompt.test.js
  */
 
 const test = require('node:test');
@@ -51,7 +47,7 @@ const ROUTE_SOURCE = ROUTE_FILES.map(f => fs.readFileSync(path.join(__dirname, f
 /** Het EDITING TOOLS-hoofdstuk van de systeemprompt, als tekst. */
 function editingToolsSection() {
     const start = SOURCE.indexOf('EDITING TOOLS');
-    // Een hernoemde kop moet ROOD worden, niet stil een lege sectie opleveren.
+    // A renamed heading must turn RED, not quietly yield an empty section.
     assert.notStrictEqual(start, -1, 'de systeemprompt draagt nog een EDITING TOOLS-hoofdstuk');
     const end = SOURCE.indexOf('SQLITE DATABASE', start);
     assert.notStrictEqual(end, -1, 'en daarna nog een SQLITE DATABASE-hoofdstuk');
@@ -73,17 +69,17 @@ test('de bouwer-prompt noemt de bf-*-conventie IN het EDITING TOOLS-hoofdstuk', 
 });
 
 test('BITE — de lijst is AFGELEID uit de registry, niet met de hand geschreven', () => {
-    // Vervangt iemand de afleiding door een letterlijke lijst, dan loopt die
-    // vanaf dat moment stil achter op core/webpages/bfElements.js.
+    // If someone replaces the derivation with a literal list, that list will from that moment on
+    // quietly lag behind core/webpages/bfElements.js.
     assert.match(SOURCE, /const BF_ELEMENTS_PROMPT = vocabularyPromptLines\(\)/,
         'BF_ELEMENTS_PROMPT hoort uit vocabularyPromptLines() te komen');
     // Bewust brontekst, zoals de bestandskop uitlegt: require() hier tuigt de
     // hele routestack en databankverbindingen op.
     assert.match(SOURCE, /require\('\.\.\/\.\.\/\.\.\/core\/webpages\/bfElements'\)/);
 
-    // En de afleiding levert werkelijk elk element op, met de inertie erbij:
-    // zonder dat zou het model een knop voorstellen en zou de auteur pas na
-    // publiceren merken dat hij daar niets doet.
+    // And the derivation really does yield every element, with the inertia included:
+    // without that the model would propose a button and the author would only notice after
+    // publishing that it does nothing there.
     const rendered = bf.vocabularyPromptLines().join('\n');
     for (const tag of bf.BF_TAGS) {
         assert.ok(rendered.includes(`<${tag}>`), `${tag} ontbreekt in de prompt-regels`);
@@ -96,12 +92,11 @@ test('BITE — de lijst is AFGELEID uit de registry, niet met de hand geschreven
 });
 
 test('geen tweede lijst — webpageChat.js en zijn stappen schrijven zelf geen tagnaam op', () => {
-    // Dezelfde regel als in bfElements.drift.test.js, hier expliciet voor de
-    // plek waar hij het makkelijkst wordt overtreden: proza nodigt uit om even
-    // een voorbeeld uit te schrijven, en dat voorbeeld veroudert.
+    // The same rule as in bfElements.drift.test.js, here explicitly for the
+    // place where it is most easily broken: prose invites you to write out an example for a moment, and that example goes out of date.
     const tagWord = new RegExp(`(?<![-\\w])(?:${bf.BF_TAGS.join('|')})(?![-\\w])`, 'g');
-    // Bewust brontekst: "geen tweede letterlijke lijst" is een eigenschap van
-    // de tekst zelf, niet van gedrag dat je door aanroepen kunt waarnemen.
+    // Deliberately source text: "no second literal list" is a property of
+    // the text itself, not of behaviour that you can observe by calling it.
     assert.ok(ROUTE_FILES.length >= 2, 'sanity: de stappen in webpageChat/ zijn gevonden');
     assert.deepStrictEqual(ROUTE_SOURCE.match(tagWord) || [], [],
         'routes/ai/webpageChat.js (of een stap in webpageChat/) noemt een bf-element met de hand; die naam kan achterlopen op de registry');

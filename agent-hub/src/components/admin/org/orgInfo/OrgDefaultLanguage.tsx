@@ -107,7 +107,7 @@ const OrgDefaultLanguage = () => {
                 </div>
             </div>
             <div className="p-3 rounded-lg text-[12px] flex items-start gap-2 [background:rgba(59,130,246,0.06)] [border:1px_solid_rgba(59,130,246,0.15)] [color:var(--text-secondary)]!">
-                <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: '#3b82f6' }} />
+                <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 [color:#3b82f6]" />
                 <span>
                     {t('org.default_language_info')}
                 </span>

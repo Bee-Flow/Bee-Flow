@@ -4,10 +4,10 @@ import { describe, it, expect } from 'vitest';
 import { confirmDecisionOf, confirmStatusOf } from './toolConfirmStatus';
 
 /**
- * De stand van een vastgehouden call, en het verschil dat de kaart eerst
- * wegpoetste: een goedkeuring van de SERVER betekent dat de call gedraaid
- * heeft, een klik in DEZE SESSIE betekent dat hij bij het volgende bericht
- * gaat draaien. Allebei "approved", twee verschillende waarheden.
+ * The status of a held call, and the difference that the card first glossed over.
+ * An approval from the SERVER means the call HAS RUN. A click in THIS SESSION
+ * means it WILL RUN with the next message. Both say "approved", but they are two
+ * different truths.
  */
 
 const call = (over = {}) => ({
@@ -39,8 +39,8 @@ describe('wie de stand zette', () => {
 
 describe('onbekend versmalt', () => {
     it('BIJT — een stand die we niet kennen wordt GEEN pending', () => {
-        // 'pending' is zelf een bewering ("dit heeft niet gedraaid"). Bij een
-        // stand die we niet kunnen lezen mogen we die niet doen.
+        // 'pending' is itself a claim ("this has not run"). For a status we cannot
+        // read, we may not make that claim.
         expect(confirmStatusOf(call({ status: 'ran_maybe' }))).toBe('unknown');
         expect(confirmStatusOf(call({ status: 'APPROVED' }))).toBe('unknown');
     });
@@ -52,8 +52,8 @@ describe('onbekend versmalt', () => {
     });
 
     it('een beslissing zonder sleutel telt niet mee', () => {
-        // De sleutel is naam-plus-argumenten. Zonder sleutel is er niets om
-        // een klik aan te hangen, en dan is de call gewoon nog open.
+        // The key is name-plus-arguments. Without a key there is nothing to attach a
+        // click to, and then the call is simply still open.
         expect(confirmStatusOf(call({ argsKey: null }), { null: 'approve' })).toBe('pending');
         expect(confirmStatusOf(call({ argsKey: undefined }), { undefined: 'approve' })).toBe('pending');
     });
@@ -74,9 +74,9 @@ describe('BIJT — de sessie-aantekening hangt aan de KAART, niet aan de actie',
     });
 
     it('een LATERE kaart voor dezelfde actie is weer een open vraag', () => {
-        // Op argsKey lezen liet een kaart in beurt 5 "You declined this"
-        // zeggen op een klik uit beurt 2 — inclusief het weghalen van de
-        // knoppen waarmee je dat had kunnen herzien.
+        // Reading by argsKey let a card in turn 5 say "You declined this" on a click
+        // from turn 2, including removing the buttons with which you could have
+        // revised it.
         const later = { callId: 'call_9', argsKey: ARGS, status: 'pending' };
         expect(confirmDecisionOf(later, { call_1: 'decline' }))
             .toEqual({ status: 'pending', by: null });

@@ -1,13 +1,10 @@
 /**
- * Wat een regel op een vergadernotitie IS (M5, deel D).
+ * What a rule IS on a meeting note (M5, part D).
  *
- * Drie beweringen zijn eerder in dit programma misgegaan en staan hieronder
- * elk met naam en toenaam:
- *   1. een stapsoort die deze kaart niet kent, verdwijnt niet stil uit de
- *      consequentie — hij wordt geteld, zodat de zin hem kan noemen;
- *   2. een filtersleutel die de kaart niet leest, versmalt niet stil;
- *   3. een regel die de lezer niet mag openen krijgt geen link, want
- *      `GET /api/automation/:id` geeft daar 403.
+ * Three claims have gone wrong earlier in this program, and each is listed below by name:
+ *   1. a step type that this card does not know does not silently disappear from the consequence — it is counted, so the sentence can name it;
+ *   2. a filter key that the card does not read does not silently narrow;
+ *   3. a rule that the reader may not open gets no link, because `GET /api/automation/:id` returns 403 there.
  */
 import { describe, expect, it } from 'vitest';
 import {
@@ -97,12 +94,7 @@ describe('consequencesOf', () => {
     });
 
     it('finds them inside a loop body, a parallel branch and a layer', () => {
-        // GEEN nested `switch.cases`. Zo ziet een switch er in dit product niet
-        // uit: stepRules documenteert `cases: [{ name, value }]` — een ARRAY van
-        // beschrijvingen — en de takken lopen via EDGE-labels, dus de stappen
-        // van een case staan gewoon top-level. De oude fixture bouwde een vorm
-        // die de builder en de validator nooit produceren, en was daardoor
-        // groen zonder iets echts te toetsen.
+        // NOT a nested `switch.cases`. A switch does not look like this in this product: stepRules documents `cases: [{ name, value }]` — an ARRAY of descriptions — and the branches run via EDGE labels, so the steps of a case simply sit top-level. The old fixture built a shape that the builder and the validator never produce, and was therefore green without testing anything real.
         const out = consequencesOf(def(
             [
                 { id: 'l', type: 'loop', body: [{ id: 'l1', type: 'knowledge_write' }] },
@@ -135,7 +127,7 @@ describe('consequencesOf', () => {
             { id: 'd', type: 'parse_json' }, { id: 'e', type: 'note' }, { id: 'f', type: 'guard' },
         ]));
         expect(out).toMatchObject({ kb: false, notify: false, table: false, other: 0 });
-        // …maar er STAAN wel stappen, en dat is iets anders dan een lege regel.
+        // …but there ARE steps, and that is something other than an empty rule.
         expect(out.steps).toBe(6);
     });
 
@@ -146,9 +138,9 @@ describe('consequencesOf', () => {
         // "nothing yet — this rule has no steps" toonde.
         const armed = consequencesOf(def([{ id: 'a', type: 'ai_step', allowTools: true, tools: ['gmail_send_email'] }]));
         expect(armed.other).toBe(1);
-        // Een expliciete allowlist zonder `allowTools` telt ook: onbekend versmalt.
+        // An explicit allowlist without `allowTools` also counts: unknown narrows.
         expect(consequencesOf(def([{ id: 'a', type: 'ai_step', tools: ['gmail_send_email'] }])).other).toBe(1);
-        // Zonder tools is het een kale modelaanroep en verandert er niets buiten.
+        // Without tools it is a bare model call and nothing changes outside.
         expect(consequencesOf(def([{ id: 'a', type: 'ai_step' }])).other).toBe(0);
         expect(consequencesOf(def([{ id: 'a', type: 'ai_step', tools: [] }])).other).toBe(0);
     });
@@ -194,11 +186,9 @@ describe('runCountOf', () => {
     it('scheidt ONLEESBAAR van een echte nul', () => {
         expect(runCountOf({ automationId: { 'a-1': 3 } }, 'a-1')).toBe(3);
         expect(runCountOf({ automationId: { 'a-1': 0 } }, 'a-1')).toBe(0);
-        // De map is er en deze automatisering staat er niet in: een echte nul.
+        // The folder is there and this automation is not in it: a real zero.
         expect(runCountOf({ automationId: {} }, 'a-1')).toBe(0);
-        // Geen map: dan heeft NIEMAND geteld. Dat was hetzelfde antwoord als
-        // hierboven, en de kaart maakte er "no runs of yours" van — een
-        // bewering over runs die niet geteld zijn.
+        // No folder: then NOBODY has counted. That was the same answer as above, and the card turned it into "no runs of yours" — a claim about runs that were not counted.
         expect(runCountOf(null, 'a-1')).toBeNull();
         expect(runCountOf({ status: {} }, 'a-1')).toBeNull();
         expect(runCountOf({ automationId: { 'a-1': 'lots' } }, 'a-1')).toBe(0);

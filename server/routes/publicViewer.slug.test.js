@@ -1,18 +1,14 @@
 // @typecheck
 /**
- * /w/<slug> — het adres van de PAGINA, bediend door dezelfde viewer.
+ * /w/<slug> — the address of the PAGE, served by the same viewer.
  *
- * De winst van één router op twee mounts is dat de toegangscontrole maar één
- * keer bestaat. De prijs is dat de viewer nu moet weten onder welke mount hij
- * draait, want alles wat hij over zichzelf uitschrijft — iframe-src,
- * formulier-action, magic-link, cookiepad — hangt daaraan. Deze tests bewaken
- * allebei die kanten:
+ * The gain of one router on two mounts is that the access control exists only once. The price is that the viewer now has to know under which mount
+ * it runs, because everything it writes about itself — iframe src, form action, magic link, cookie path — depends on that. These tests guard both sides:
  *
- *   FAAL DICHT   geen wijzer, een dode wijzer, of een wijzer naar de share van
- *                een ANDERE pagina levert 404 op. Nooit "het adres bestaat dus
- *                laat maar zien".
- *   GEEN LEK     /share blijft precies doen wat het deed; de nieuwe mount
- *                schrijft geen /share-links uit en andersom.
+ *   FAIL CLOSED  no pointer, a dead pointer, or a pointer to the share of a
+ *                DIFFERENT page yields 404. Never "the address exists, so show it".
+ *   NO LEAK      /share keeps doing exactly what it did; the new mount writes no /share
+ *                links and vice versa.
  *
  * Run: node --test --test-force-exit routes/publicViewer.slug.test.js
  */
@@ -127,8 +123,8 @@ test('een adres zonder wijzer is 404 — het bestaan van de slug zegt niets', as
 });
 
 test('een wijzer naar een INGETROKKEN of verlopen share is 404', async () => {
-    // findLiveShareById past dezelfde liveness-poort toe als findByToken en
-    // geeft dan null; het adres mag daar niets omheen bouwen.
+    // findLiveShareById applies the same liveness gate as findByToken and
+    // then returns null; the address may not build anything around that.
     await withPatches(base({ findLiveShareById: async () => null }), () => withServer(test, async (b) => {
         const res = await fetch(`${b}/w/${SLUG}`);
         assert.strictEqual(res.status, 404);
@@ -196,14 +192,11 @@ test('de unlock-cookie krijgt het pad van de mount waarop hij gezet wordt', asyn
 // ── de bron zelf ─────────────────────────────────────────────────────
 
 test('beide opzoekwegen delen ÉÉN liveness-toets', () => {
-    // Bewust brontekst: de andere tests hierboven stubben findLiveShareById/
-    // findByToken zelf weg om de ROUTE te testen, dus de échte functies
-    // aanroepen voor DEZE eigenschap zou webpagePublicShareStore.js met een
-    // nep-../db (en transitief configStore/storageStore/webpageStore) apart
-    // moeten optuigen. De eigenschap zelf ("één plek bijwerken, geen tweede
-    // kopie") is een DRY-eigenschap van de code, geen gedrag op een input —
-    // twee functies die vandaag toevallig gelijk reageren bewijst niet dat ze
-    // dezelfde poort delen in plaats van twee gesynchroniseerde kopieën.
+    // Deliberately source text: the other tests above stub findLiveShareById/
+    // findByToken themselves in order to test the ROUTE, so calling the real functions for
+    // THIS property would mean setting up webpagePublicShareStore.js with a fake ../db (and transitively configStore/storageStore/webpageStore) separately. The property itself ("update one place, no second
+    // copy") is a DRY property of the code, not behaviour on an input — two functions that happen to react identically today do not prove that they share
+    // the same gate instead of being two synchronised copies.
     const src = require('node:fs').readFileSync(require.resolve('../stores/webpagePublicShareStore'), 'utf8');
     assert.strictEqual((src.match(/if \(share\.revokedAt\) return null;/g) || []).length, 1,
         'twee kopieën van "ingetrokken?" is de plek waar er ooit één wordt bijgewerkt en de andere niet');

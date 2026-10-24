@@ -130,8 +130,8 @@ test('the lookups answer by table kind and never by string comparison at the cal
 const ALLOWED = [
     /^core\/dataEngine\/sources\/nextcloudTable\//,
     /^core\/dataEngine\/dataModel\/managedTables\.js$/,
-    // De store is een facade met zijn onderdelen in stores/datatableStore/;
-    // de literele lijst woont in sourceMirrors.js. Zelfde module, zelfde recht.
+    // The store is a facade with its parts in stores/datatableStore/;
+    // the literal list lives in sourceMirrors.js. Same module, same right.
     /^stores\/datatableStore(\.js|\/)/,
     /^migrations\//,
     /\/_fixtures\//,

@@ -109,10 +109,10 @@ test('resolve: org wins scalars; de uitsluitingen zitten hier NIET meer in', asy
     assert.strictEqual(s.language, 'en');
     assert.strictEqual(s.lookbackHours, 48, 'user value used when org doc lacks the key');
 
-    // M5: de per-vergadering keuze is verhuisd naar stores/meetingPrefsStore.
-    // Resolve mag die arrays NIET meer teruggeven — een lezer die hier was
-    // blijven hangen zou een lege lijst zien en dus importeren wat iemand had
-    // uitgezet. Ze staan nog wél in het opgeslagen document (rollback).
+    // M5: the per-meeting choice has moved to stores/meetingPrefsStore.
+    // Resolve may NO LONGER return those arrays: a reader that was still hanging here would see an
+    // empty list and thus import what someone had switched off. They do still remain in the stored
+    // document (for rollback).
     assert.ok(!('excludedEventIds' in s), 'verhuisd naar meeting_prefs');
     assert.ok(!('excludedMeetingCodes' in s), 'verhuisd naar meeting_prefs');
     assert.deepStrictEqual(fx.docs.get('user_gmeet_notes_u1').excludedEventIds, ['e2', 'e1'], 'het document blijft ongemoeid');
@@ -131,10 +131,10 @@ test('resolve: user fallback, then defaults; bad values coerced', async () => {
 // ═══ de per-vergadering toggle is verhuisd ══════════════════════════
 
 test('setMeetingImport bestaat hier niet meer — de toggle schrijft meeting_prefs', () => {
-    // Stond er als exclusielijst-mutator. De route schrijft nu rechtstreeks
-    // meetingPrefsStore.setRecord (per gebruiker, driewaardig). Blijft deze
-    // functie bestaan, dan is er een tweede waarheid en wint per ongeluk de
-    // oudste schrijver — precies wat deze verhuizing moest opheffen.
+    // This used to be the exclusion-list mutator. The route now writes directly
+    // meetingPrefsStore.setRecord (per user, three-valued). If this function remained, there would be
+    // a second source of truth, and the oldest writer would win by accident: precisely what this
+    // move was meant to remove.
     assert.strictEqual(gmeetNotes.setMeetingImport, undefined);
 });
 

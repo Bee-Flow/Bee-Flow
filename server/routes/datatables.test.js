@@ -361,9 +361,9 @@ test('the table count is taken under the model row\'s lock, not before it', () =
     assert.match(body, /assertQuota: \(usage\) => assertDatatableQuota\(scope, \{ addTables: 1, usage \}\)/);
     assert.doesNotMatch(body, /listDatatablesForScope/,
         'counting outside the lock is the race this moved inside it');
-    // De store is een FACADE met zijn onderdelen in stores/datatableStore/;
-    // createDatatable woont in datatables.js. Lees de hele module als één
-    // tekst, anders is de slice hieronder leeg en bewijst dit niets meer.
+    // The store is a FACADE with its parts in stores/datatableStore/;
+    // createDatatable lives in datatables.js. Read the whole module as one
+    // text, otherwise the slice below is empty and proves nothing any more.
     const storeDir = path.join(__dirname, '..', 'stores', 'datatableStore');
     const store = fs.readdirSync(storeDir)
         .filter(f => f.endsWith('.js') && !f.endsWith('.test.js'))
@@ -421,11 +421,8 @@ test('every plan a write path builds is scoped to the table it is touching', () 
     for (const [verb, p] of [['post', '/'], ['put', '/:id/schema'], ['post', '/:id/repair']]) {
         assert.match(routeBody(verb, p), /onlyTableIds: \[/, `${verb.toUpperCase()} ${p}`);
     }
-    // And so is the delete, one level down in the store. Bewust brontekst,
-    // zoals de bestandskop hierboven beargumenteert: dit moet op ELKE
-    // planbouw-plek gelden, ook op plekken die geen test aandrijft, en het
-    // ontbreken van de scope is stil — precies de klasse van eigenschap
-    // waarvoor dit bestand kiest voor tekst boven gedrag.
+    // And so is the delete, one level down in the store. Deliberately source text,
+    // as the file header above argues: this must apply at EVERY plan-building place, also at places that no test drives, and a missing scope is silent — precisely the class of property for which this file chooses text over behaviour.
     const store = fs.readFileSync(path.join(__dirname, '..', 'stores', 'datatableDbStore.js'), 'utf8');
     assert.match(store, /onlyTableIds: \[datatableId\]/);
 });

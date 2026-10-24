@@ -15,17 +15,7 @@ import { authFetch } from '../../../utils/helpers';
  */
 
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../hooks/useTranslation', () => ({
-    useTranslation: () => ({
-        t: (key, fallbackOrParams, maybeParams) => {
-            const fallback = typeof fallbackOrParams === 'string' ? fallbackOrParams : null;
-            const params = typeof fallbackOrParams === 'object' ? fallbackOrParams : maybeParams;
-            let out = fallback || key;
-            if (params) for (const [k, v] of Object.entries(params)) out = out.replaceAll(`{${k}}`, String(v));
-            return out;
-        },
-    }),
-}));
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const jsonRes = (body, status = 200) => Promise.resolve({
     ok: status >= 200 && status < 300,

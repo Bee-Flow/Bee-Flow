@@ -1,20 +1,19 @@
 'use strict';
 
 /**
- * De attributie-pass, en de vier weigeringen waar hij op staat.
+ * The attribution pass, and the four refusals it stands on.
  *
- *   1. Alleen `followed` wordt een chip. `not_applicable` is het normale
- *      antwoord op een verbodsregel en mag geen krediet worden; `not_followed`
- *      is een oordeel en hoort in de testset, niet naast het antwoord.
- *   2. De tekst van een chip is de bullet van de BOUWER, opgezocht op nummer.
- *      Een regel die het model verzint (index 9 van een lijst van 2) valt weg.
- *   3. Valt de pass om — geen model, een gooiende call, een timeout, een vorm
- *      die niet te lezen is — dan is er GEEN chip. Nooit één die "geen regel"
- *      beweert.
- *   4. De rol die gelezen wordt moet de rol zijn die draaide. Concept-bullets
- *      naast een gepubliceerd antwoord is een claim die niemand controleerde.
+ *   1. Only `followed` becomes a chip. `not_applicable` is the normal answer to a prohibition
+ *      rule and must not earn credit; `not_followed` is a judgment and belongs in the test set,
+ *      not next to the answer.
+ *   2. The text of a chip is the BUILDER's bullet, looked up by number. A rule that the model
+ *      invents (index 9 of a list of 2) is dropped.
+ *   3. If the pass falls over — no model, a throwing call, a timeout, a shape that cannot be
+ *      read — then there is NO chip. Never one that claims "no rule".
+ *   4. The role that is read must be the role that ran. Draft bullets next to a published answer
+ *      is a claim that nobody checked.
  *
- * Draaien: cd server && node --test core/agentRuntime/ruleAttribution.test.js
+ * Run: cd server && node --test core/agentRuntime/ruleAttribution.test.js
  */
 
 const { test } = require('node:test');
@@ -47,7 +46,7 @@ function passDeps({ structured = { rules: [] }, throws = null, model = 'fast-1',
     };
 }
 
-// ── 1. Welke uitspraak een chip wordt ────────────────────────────────
+// ── 1. Which verdict becomes a chip ────────────────────────────────
 
 test('alleen "followed" wordt een chip', () => {
     const parsed = R.parseAttribution({
@@ -57,8 +56,8 @@ test('alleen "followed" wordt een chip', () => {
 });
 
 test('BIJT — "not_applicable" geeft geen krediet', () => {
-    // Een verbod is op de meeste vragen triviaal "gevolgd"; daar een chip voor
-    // geven maakt de hele rij minder waard.
+    // A prohibition is trivially "followed" on most questions; giving a chip for that
+    // makes the whole row worth less.
     const parsed = R.parseAttribution({ rules: [{ index: 1, verdict: 'not_applicable' }] }, PERSONA.doesNot);
     assert.deepStrictEqual(R.followedFrom(parsed), []);
 });
@@ -131,10 +130,10 @@ test('rulesFrom knipt, ontdubbelt en begrenst', () => {
     }
 });
 
-// ── 4. De rol moet de rol zijn die draaide ───────────────────────────
+// ── 4. The role must be the role that ran ───────────────────────────
 
 test('BIJT — een gepubliceerde agent met onuitgegeven wijzigingen wordt niet geattribueerd', () => {
-    // De testchat draait het concept, dus daar hoort de concept-rol bij.
+    // The testchat runs the draft, so the draft role belongs there.
     assert.strictEqual(R.personaRanWith({ source: 'draft', runsDraft: true, unpublishedChanges: 3 }), true);
     assert.strictEqual(R.personaRanWith({ source: 'live', unpublishedChanges: 0 }), true);
     // Gepubliceerd én ongewijzigd is hetzelfde bestand; gepubliceerd én
@@ -153,12 +152,11 @@ test('onbekend versmalt: geen leesbare versie-informatie is geen pass', () => {
 // ── De geldkraan ─────────────────────────────────────────────────────
 
 test('BIJT — buiten testmodus belt de pass niet, wat de call-site ook doorgeeft', async () => {
-    // De productiechat betaalt hier niets. Dat hangt aan deze vlag, niet aan de
-    // plek van een `if` in een route.
+    // The production chat pays nothing here. That hangs on this flag, not on the
+    // place of an `if` in a route.
     //
-    // De deps zouden een chip OPLEVEREN als ze werden aangeroepen — deps die
-    // gooien zouden hetzelfde `null` geven en dan bewijst de test niets over
-    // de poort.
+    // The deps would PRODUCE a chip if they were called — deps that throw would give the same
+    // `null` and then the test proves nothing about the gate.
     for (const testChat of [undefined, false, null, 'true', 1, {}]) {
         const { deps, calls } = passDeps({ structured: { rules: [{ index: 1, verdict: 'followed' }] } });
         const out = await R.attributeTurn(
@@ -195,7 +193,7 @@ test('de tool vraagt om nummers en een gesloten woordenlijst, niet om proza', ()
     assert.deepStrictEqual(props.verdict.enum, [...R.VERDICTS]);
 });
 
-// ── 3. Valt de pass om, dan is er geen chip ──────────────────────────
+// ── 3. If the pass falls over, there is no chip ──────────────────────
 
 test('de hele pass, van rol tot chip', async () => {
     const { deps, calls } = passDeps({ structured: { rules: [{ index: 1, verdict: 'followed' }] }, usage: { prompt_tokens: 12 } });
@@ -206,7 +204,7 @@ test('de hele pass, van rol tot chip', async () => {
     assert.deepStrictEqual(out, { rules: [{ rule: 'Nooit een prijs noemen' }] });
     assert.strictEqual(calls.model, 'fast-1');
     assert.strictEqual(calls.options.temperature, 0);
-    // Geboekt op een eigen source, zodat een testchat de chatkosten niet vervuilt.
+    // Booked under its own source, so that a testchat does not pollute the chat costs.
     assert.strictEqual(calls.usage.length, 1);
     assert.strictEqual(calls.usage[0].modelId, 'fast-1');
 });
@@ -236,16 +234,16 @@ test('BIJT — een timeout geeft geen chip', async (t) => {
     };
     t.mock.timers.enable({ apis: ['setTimeout'] });
     const p = R.attributeTurn({ testChat: true, persona: PERSONA, configInfo: DRAFT, answer: 'x' }, deps);
-    // Eerst de modelresolutie laten landen: vóór dat punt bestaat de timer nog
-    // niet, en een tick op een lege klok laat de test daarna eeuwig hangen.
+    // First let the model resolution land: before that point the timer does not yet exist, and a
+    // tick on an empty clock would leave the test hanging forever afterwards.
     await new Promise(resolve => setImmediate(resolve));
     t.mock.timers.tick(R.LIMITS.timeoutMs + 1);
     assert.strictEqual(await p, null);
 });
 
 test('BIJT — zonder regels, zonder antwoord of met de verkeerde versie belt de pass niet eens', async () => {
-    // Deps die zouden SLAGEN: een poort die openstaat moet zichtbaar worden als
-    // een chip, niet wegvallen in een catch die toch al `null` teruggeeft.
+    // Deps that would SUCCEED: a gate that is open must become visible as a chip, not disappear in a
+    // catch that already gives `null` anyway.
     const cases = [
         ['geen regels', { persona: { doesNot: [] }, configInfo: DRAFT, answer: 'x' }],
         ['geen antwoord', { persona: PERSONA, configInfo: DRAFT, answer: '   ' }],
@@ -262,12 +260,12 @@ test('BIJT — zonder regels, zonder antwoord of met de verkeerde versie belt de
 // ── De rol die draaide is de rol die GERENDERD is ────────────────────
 
 test('BIJT — in vrije modus staan de bullets er alleen als beschrijving, dus geen regels', () => {
-    // `renderSystemPrompt` doet `if (p.mode === 'free') return p.freeText;` —
-    // de bullets bereiken de systeemprompt dan nooit. Een chip "Regel gevolgd:
-    // …" zou daar krediet geven voor het volgen van een instructie die het
-    // model niet gekregen heeft. Twee routes komen hier: de knop "Open as free
-    // instruction" in de Rol-tab, en routes/agents/crud.js die een persona
-    // ZELF naar vrij duwt zodra een client de prompt bewerkt.
+    // `renderSystemPrompt` does `if (p.mode === 'free') return p.freeText;` —
+    // the bullets then never reach the system prompt. A chip "Rule followed:
+    // …" would give credit there for following an instruction that the
+    // model never received. Two routes lead here: the button "Open as free
+    // instruction" in the Role tab, and routes/agents/crud.js that pushes a persona
+    // to free ITSELF as soon as a client edits the prompt.
     const { renderSystemPrompt } = require('./personaPrompt');
     const free = {
         mode: 'free',
@@ -287,8 +285,8 @@ test('BIJT — in vrije modus staan de bullets er alleen als beschrijving, dus g
 
 test('een persona zonder modus is de oude veldenvorm, en houdt zijn regels', () => {
     assert.deepStrictEqual(R.rulesFrom({ doesNot: ['Nooit schelden'] }), ['Nooit schelden']);
-    // Legacy: `personaOf` maakt van een NULL-kolom `{mode:'free'}` over de
-    // prompt, en die heeft per definitie geen bullets.
+    // Legacy: `personaOf` turns a NULL column into `{mode:'free'}` over the
+    // prompt, and that has by definition no bullets.
     assert.deepStrictEqual(R.rulesFrom(null), []);
     assert.deepStrictEqual(R.rulesFrom({ mode: 'onzin', doesNot: ['x'] }), ['x'],
         'een onleesbare modus landt via de normaliser op velden');
@@ -307,9 +305,9 @@ test('BIJT — de pass belt niet voor een rol die alleen als beschrijving bestaa
 });
 
 test('BIJT — "nul ongepubliceerde wijzigingen" moet een GETAL nul zijn', () => {
-    // `Number(null)`, `Number('')`, `Number(false)` en `Number([])` zijn
-    // allemaal 0, en die passeerden de poort die juist bestaat om
-    // concept-bullets naast een gepubliceerd antwoord te weigeren.
+    // `Number(null)`, `Number('')`, `Number(false)` and `Number([])` are
+    // all 0, and they passed the gate that exists precisely to refuse
+    // draft bullets next to a published answer.
     for (const v of [null, '', false, [], undefined, 'nul', {}, NaN]) {
         assert.strictEqual(
             R.personaRanWith({ source: 'published', unpublishedChanges: v }), false,

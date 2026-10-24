@@ -3,12 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
- * WebpageAppsPanel — de tweede zwaarste (57 letterlijke strings).
+ * WebpageAppsPanel — the second heaviest (57 literal strings).
  *
- * t() is een MARKEERDER (`⟦sleutel⟧`). Wat hier vastligt is niet alleen DAT er
- * vertaald wordt, maar ook HOE: een naam die in een zin staat reist als
- * parameter mee, niet als een los stuk Engels dat aan de naam wordt geplakt.
- * Die vorm is het verschil tussen een vertaalbare zin en een halve.
+ * t() is a MARKER (`⟦key⟧`). What is fixed here is not only THAT it is translated, but also HOW: a name that stands in a sentence travels as a parameter, not as a separate piece of English stuck to the name. That form is the difference between a translatable sentence and half of one.
  */
 
 const t = (key, fallback, params) => {
@@ -69,8 +66,8 @@ describe('WebpageAppsPanel — i18n', () => {
 
         expect(await screen.findByText('⟦webpages.apps.status_connected⟧')).toBeInTheDocument();
         expect(screen.getByText('⟦webpages.apps.status_reconnect⟧')).toBeInTheDocument();
-        // `null` is niet `false`: "weet ik niet" is een eigen zin, geen
-        // stilzwijgend "niet verbonden".
+        // `null` is not `false`: "don't know" is a sentence of its own, not a silent
+        // "not connected".
         expect(screen.getByText('⟦webpages.apps.status_unknown⟧')).toBeInTheDocument();
     });
 
@@ -103,18 +100,18 @@ describe('WebpageAppsPanel — i18n', () => {
         const option = [...select.options].find(o => o.value === 'youtrack');
         expect(option.textContent).toBe('⟦webpages.apps.option_not_connected⟧(name=YouTrack)');
         expect(option.disabled).toBe(true);
-        // De verbonden app houdt zijn eigen naam — die komt van de server en
-        // is geen copy van dit scherm.
+        // The connected app keeps its own name — that comes from the server and is not
+        // a copy of this screen.
         expect([...select.options].find(o => o.value === 'gmail').textContent).toBe('Gmail');
     });
 
     it('BIJT — ONBEKEND is niet "niet verbonden": een app zonder status blijft kiesbaar', async () => {
         const user = userEvent.setup();
-        // available === null is de stand waar dit paneel zelf een banner voor
-        // heeft ("Couldn't verify your connected apps") en waar de pil "Status
-        // unknown" zegt. Hem uitzetten en er "not connected" bij schrijven
-        // stuurt de auteur een koppeling maken die er misschien gewoon is —
-        // en laat hem intussen niet kiezen.
+        // available === null is the state for which this panel itself has a banner
+        // ("Couldn't verify your connected apps") and where the pill says "Status
+        // unknown". Switching it off and writing "not connected" beside it tells the
+        // author to create a connection that may well simply exist — and meanwhile
+        // does not let him choose it.
         getCatalog.mockResolvedValueOnce({
             apps: [{ id: 'drive', label: 'Drive', available: null, actions: [{ name: 'drive_list', label: 'drive list' }] }],
         });

@@ -69,7 +69,7 @@ export default function SettingsSection({ settings, sites = [], onSaved, onSites
                 <div className="[display:flex] [align-items:center] [gap:10px] [margin-bottom:6px]">
                     {onClose && (
                         <button onClick={onClose} style={iconBtnStyle} title={t('cms_site.analytics.settings.back', 'Back to dashboard')}>
-                            <ArrowLeft style={{ width: 15, height: 15 }} />
+                            <ArrowLeft className="w-[15px] h-[15px]" />
                         </button>
                     )}
                     <h2 className="[font-size:18px] [font-weight:800] [color:var(--text-primary,#fff)] [margin:0]">{t('cms_site.analytics.settings.title', 'Analytics settings')}</h2>
@@ -118,7 +118,7 @@ export default function SettingsSection({ settings, sites = [], onSaved, onSites
                         </button>
                         {url && (
                             <a href={url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: ACCENT, textDecoration: 'none' }}>
-                                {t('cms_site.analytics.settings.open_umami', 'Open Umami')} <ExternalLink style={{ width: 12, height: 12 }} />
+                                {t('cms_site.analytics.settings.open_umami', 'Open Umami')} <ExternalLink className="w-[12px] h-[12px]" />
                             </a>
                         )}
                     </div>
@@ -135,7 +135,7 @@ export default function SettingsSection({ settings, sites = [], onSaved, onSites
                 <div className="[margin-top:14px]"><SitesCard sites={sites} onChanged={onSitesChanged} /></div>
 
                 <div className="[display:flex] [gap:8px] [margin-top:14px] [align-items:flex-start] [color:var(--text-muted,#888)] [font-size:12px]">
-                    <Globe style={{ width: 14, height: 14, marginTop: 1, flexShrink: 0 }} />
+                    <Globe className="w-[14px] h-[14px] [margin-top:1px] [flex-shrink:0]" />
                     <span>{t('cms_site.analytics.settings.website_note', 'A Umami "website" is created automatically per CMS site the first time you publish it (or save here while a site is live).')}</span>
                 </div>
             </div>
@@ -311,12 +311,12 @@ function ConnectionCard({ configured }: ConnectionCardProps) {
                     <Row label={t('cms_site.analytics.settings.status', 'Status')} value={
                         d?.reachable
                             ? <span className="[display:inline-flex] [align-items:center] [gap:5px] [color:#10b981] [font-weight:700]">
-                                <CheckCircle2 style={{ width: 13, height: 13 }} /> {d.websiteCount === 1
+                                <CheckCircle2 className="w-[13px] h-[13px]" /> {d.websiteCount === 1
                                     ? t('cms_site.analytics.settings.connected_one', 'Connected · {n} website', { n: d.websiteCount })
                                     : t('cms_site.analytics.settings.connected_many', 'Connected · {n} websites', { n: d.websiteCount })}
                               </span>
                             : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: configured ? '#ef4444' : 'var(--text-muted, #888)', fontWeight: 700 }}>
-                                <XCircle style={{ width: 13, height: 13 }} /> {configured ? t('cms_site.analytics.settings.not_reachable', 'Not reachable') : t('cms_site.analytics.settings.not_configured', 'Not configured')}
+                                <XCircle className="w-[13px] h-[13px]" /> {configured ? t('cms_site.analytics.settings.not_reachable', 'Not reachable') : t('cms_site.analytics.settings.not_configured', 'Not configured')}
                               </span>
                     } />
                     <Row label={t('cms_site.analytics.settings.public_url', 'Public URL (browser)')} value={d?.publicUrl || '—'} mono />
@@ -391,7 +391,7 @@ function SitesCard({ sites, onChanged }: SitesCardProps) {
                                     color: site.recording ? ACCENT : 'var(--text-secondary, #aaa)',
                                 }}
                             >
-                                {busyId === site.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Video style={{ width: 13, height: 13 }} />}
+                                {busyId === site.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Video className="w-[13px] h-[13px]" />}
                                 {site.recording ? t('cms_site.analytics.settings.recording_on', 'Recording on') : t('cms_site.analytics.settings.record_sessions', 'Record sessions')}
                             </button>
                         </div>
@@ -400,7 +400,7 @@ function SitesCard({ sites, onChanged }: SitesCardProps) {
             )}
 
             <div className="[display:flex] [gap:8px] [margin-top:12px] [align-items:flex-start] [font-size:11px] [color:var(--text-muted,#888)]">
-                <ShieldAlert style={{ width: 14, height: 14, marginTop: 1, flexShrink: 0, color: '#f59e0b' }} />
+                <ShieldAlert className="w-[14px] h-[14px] [margin-top:1px] [flex-shrink:0] [color:#f59e0b]" />
                 <span>
                     {rich(t('cms_site.analytics.settings.recording_note', 'Session recording powers heatmaps and replays. It loads a larger script that captures clicks, scrolling and page structure, so it only ever runs for visitors who accepted your cookie banner — {modes}. Form inputs are masked. If your cookie banner is disabled, recording can never start.'), {
                         modes: <strong>{t('cms_site.analytics.settings.recording_modes', 'in every consent mode, including cookieless')}</strong>,

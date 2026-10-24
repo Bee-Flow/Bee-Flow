@@ -185,14 +185,13 @@ export default function AppPivot({ node }: NodeProps<PivotProps>) {
                     <th
                         key={d.key}
                         scope="row"
-                        className={`${cellPad} border-b text-left font-medium`}
-                        style={{ color: 'var(--text-primary)', borderColor: 'var(--border-default)' }}
+                        className={`${cellPad} border-b text-left font-medium [color:var(--text-primary)]! [border-color:var(--border-default)]!`}
                     >
                         {group.values[i]}
                     </th>
                 ))}
                 {rowDims.length === 0 ? (
-                    <th scope="row" className={`${cellPad} border-b`} style={{ borderColor: 'var(--border-default)' }} />
+                    <th scope="row" className={`${cellPad} border-b [border-color:var(--border-default)]!`} />
                 ) : null}
                 {hasCols
                     ? colGroups.map((cg) => values.map((v) => (
@@ -220,8 +219,7 @@ export default function AppPivot({ node }: NodeProps<PivotProps>) {
                 <th
                     scope="row"
                     colSpan={stubCols}
-                    className={`${cellPad} border-b text-left font-semibold`}
-                    style={{ color: 'var(--text-primary)', borderColor: 'var(--border-default)' }}
+                    className={`${cellPad} border-b text-left font-semibold [color:var(--text-primary)]! [border-color:var(--border-default)]!`}
                 >
                     {t('studio_apps_runtime.pivot.total', 'Total')}
                 </th>

@@ -221,10 +221,9 @@ function checkRecordValueColumns(kind, tableId, values, path, ctx, label) {
 }
 
 /**
- * De stapsoorten die RIJEN VERANDEREN — de enige waarvoor `mode:'read'` een
- * fout is en niet slechts een eigenschap. Expliciet opgesomd en niet uit
- * `mutatesData` afgeleid: dat vlaggetje staat óók op run_automation en
- * request_approval, die geen `tableId` schrijven maar er eentje kunnen NOEMEN.
+ * The step kinds that CHANGE ROWS — the only ones for which `mode:'read'` is an error and not
+ * merely a property. Listed explicitly and not derived from `mutatesData`: that flag is ALSO on
+ * run_automation and request_approval, which do not write a `tableId` but CAN NAME one.
  */
 const RECORD_WRITE_STEP_KINDS = new Set(['create_record', 'update_record', 'delete_record']);
 
@@ -240,16 +239,14 @@ function validateStepField(kind, field, fs, value, path, depth, counter, ctx, la
         // required variants get the unset warning.
         if (fs.required || (value !== undefined && value !== null)) {
             checkTableRef(value, path, ctx, label, 'step');
-            // …en dan de tweede tabelsoort. checkTableSource hing alleen aan de
-            // LEESbindingen (validate/bindings.js), dus een stap die de enige
-            // verwijzing naar een gekoppelde tabel was, publiceerde schoon
-            // terwijl `source.datatableId` naar een Studio-tabel wees die de
-            // eigenaar niet meer heeft — de fout viel dan pas bij het draaien,
-            // op het scherm van de gebruiker in plaats van in de publicatiepoort.
+            // …and then the second kind of table. checkTableSource was only attached to the READ bindings
+            // (validate/bindings.js), so a step that was the only reference to a linked table published
+            // cleanly while `source.datatableId` pointed to a Studio table that the owner no longer has —
+            // the error then surfaced only when running, on the user's screen instead of in the
+            // publication gate.
             checkTableSource(value, path, ctx, label, { codePrefix: 'step' });
-            // En voor een SCHRIJFstap de derde vraag: mag hier geschreven
-            // worden? Een create_record op een read-koppeling kreeg bij het
-            // publiceren geen woord en faalde daarna elke keer met 403.
+            // And for a WRITE step the third question: may writing happen here? A create_record on a read
+            // link got no word at publication and then failed with 403 every time.
             if (RECORD_WRITE_STEP_KINDS.has(kind)) {
                 checkTableWritable(value, path, ctx, label, { codePrefix: 'step' });
             }

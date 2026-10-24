@@ -108,14 +108,13 @@ test('a scoped CREATE still resolves a relation to a table outside the scope', (
     assert.match(plan[0], /"invoices"/, 'the FK target must be resolved by KEY, from the whole model');
 });
 
-// ── De TWEEDE TABELSOORT: een tabel zonder fysieke tabel ─────────────
+// ── The SECOND table kind: a table without a physical table ─────────────
 //
-// Een modeltabel met `source` haalt haar rijen uit een Studio-datatabel. De
-// planner kende `source` niet en gaf haar gewoon een CREATE TABLE. Die
-// schaduwtabel was niet alleen dood gewicht: hij was de LANDINGSPLAATS die een
-// schrijving naar de verkeerde opslag stil maakte. Zonder de tabel geeft zo'n
-// schrijving een SQL-fout; mét de tabel slaagt de INSERT en verdwijnt de rij
-// zonder spoor.
+// A model table with `source` gets its rows from a Studio datatable. The planner did not
+// know `source` and simply gave it a CREATE TABLE. That shadow table was not just dead weight:
+// it was the LANDING PLACE that silently made a write to the wrong storage succeed. Without
+// the table such a write gives an SQL error; with the table the INSERT succeeds and the row
+// vanishes without a trace.
 
 const LINK = { kind: 'datatable', datatableId: 'tbl_dt0001', mode: 'read' };
 const linked = (id, key, fields, source = LINK) => ({ ...t(id, key, fields), source });
@@ -148,8 +147,8 @@ test('eigen opslag → gekoppeld laat de fysieke tabel STAAN, met haar rijen', (
 });
 
 test('gekoppeld → eigen opslag MAAKT de tabel alsnog, compleet, en altereert hem niet', () => {
-    // Hij heeft nog nooit een fysieke tabel gehad, dus dit is een CREATE — en
-    // dan geen ADD COLUMN erachteraan voor kolommen die er al in staan.
+    // It has never had a physical table, so this is a CREATE, and then no ADD COLUMN
+    // afterwards for columns that are already in it.
     const before = model([linked('tbl_x', 'orders', [f('fld_a', 'total')])]);
     const after = model([t('tbl_x', 'orders', [f('fld_a', 'total'), f('fld_b', 'status')])]);
     const plan = migrationPlan(before, after, { dialect: 'pg' });

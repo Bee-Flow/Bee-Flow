@@ -396,12 +396,12 @@ router.post('/:id/fill-and-store', requireAuth, validate({ body: FillBody }), as
 // Serves files stored locally when RustFS is not available.
 router.get('/download-filled/:filename', requireAuth, (req, res) => {
     const path = require('path');
-    const userId = req.session.user.id;
+    const userId = req.session.user.id; // nosemgrep: ajinabraham.njsscan.traversal.resolve_path_traversal.join_resolve_path_traversal -- filename reduced to its basename, userId from the session
     const filename = req.params.filename;
 
     // Sanitize filename to prevent directory traversal
     const sanitized = path.basename(filename);
-    const filePath = path.join(__dirname, '..', 'data', 'templates_filled', userId, sanitized);
+    const filePath = path.join(__dirname, '..', 'data', 'templates_filled', userId, sanitized); // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal -- filename reduced to its basename above, userId from the session
 
     if (!fs.existsSync(filePath)) {
         log.error(`[Templates] Download-filled file not found: ${filePath}`);

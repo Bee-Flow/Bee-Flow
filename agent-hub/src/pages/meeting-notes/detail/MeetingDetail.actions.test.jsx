@@ -22,17 +22,7 @@ const H = vi.hoisted(() => ({
     state: { meeting: null },
 }));
 
-vi.mock('../../../hooks/useTranslation', () => {
-    const translator = () => ({
-        t: (key, fallback, vars) => {
-            let out = fallback || key;
-            for (const [k, v] of Object.entries(vars || {})) out = out.split(`{${k}}`).join(String(v));
-            return out;
-        },
-        language: 'en', locale: 'en',
-    });
-    return { default: translator, useTranslation: translator };
-});
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 vi.mock('../../../hooks/useUsage', () => ({
     default: () => ({ usage: [], unchecked: [], error: null, loading: false, refetch: () => {}, setUsage: () => {} }),
@@ -170,14 +160,13 @@ describe('MeetingDetail — "Opnieuw" keeps what the person wrote', () => {
     });
 
     /**
-     * ── EEN MISLUKTE ARTEFACTPASS MOET HET ZEGGEN ───────────────────
-     * De server bewaart bij een omgevallen extractie de bestaande
-     * actiepunten, besluiten en vragen en antwoordt `artifactsRegenerated:
-     * false`. Dat veld las niemand. Voor de persoon die net op "Opnieuw"
-     * drukte is het resultaat dan niet te onderscheiden van "de vergadering
-     * leverde niets nieuws op": de samenvatting is vernieuwd, de lijsten
-     * staan er nog, en niets zegt dat de helft van de knop niet gedraaid
-     * heeft. Dan drukt niemand nog eens.
+     * ── A FAILED ARTIFACT PASS MUST SAY SO ───────────────────────────
+     * On a failed extraction the server keeps the existing action items, decisions and
+     * questions, and replies `artifactsRegenerated: false`. Nobody read that field. For
+     * the person who just pressed "Regenerate", the result is then indistinguishable
+     * from "the meeting produced nothing new": the summary is refreshed, the lists are
+     * still there, and nothing says that half of the button did not run. Then nobody
+     * presses again.
      */
     it('says so when the server reports the artifact pass did not run', async () => {
         const user = userEvent.setup();
@@ -288,11 +277,11 @@ describe('MeetingDetail — writing a destination', () => {
 });
 
 
-// ── DE SJABLOONSTEMPEL NA "OPNIEUW" (M4 stap 3) ─────────────────────
+// ── THE TEMPLATE STAMP AFTER "REGENERATE" (M4 step 3) ──────────────
 //
-// De stempel zegt met welk sjabloon de tekst die er NU staat geschreven is.
-// Na een regenerate hoort het scherm dus de stempel van het ANTWOORD te
-// dragen — ook als dat antwoord "geen sjabloon" is.
+// The stamp says with which template the text that is NOW there was written.
+// After a regenerate the screen must therefore carry the stamp of the ANSWER, even if
+// that answer is "no template".
 
 describe('MeetingDetail — de sjabloonstempel volgt de nieuwe tekst', () => {
     it('neemt de stempel van het antwoord over', async () => {
@@ -309,8 +298,8 @@ describe('MeetingDetail — de sjabloonstempel volgt de nieuwe tekst', () => {
 
     it('WIST de stempel als het antwoord er geen draagt (eenmalige prompt)', async () => {
         const user = userEvent.setup();
-        // Het vorige sjabloon laten staan zou een sjabloonnaam plakken op
-        // tekst die dat sjabloon nooit geschreven heeft.
+        // Leaving the previous template in place would stick a template name on text that
+        // template never wrote.
         H.state.meeting = { ...note([AI_ITEM]), summaryTemplateId: 'tpl-9', summaryTemplateVersion: 4 };
         H.regenerateSummary.mockResolvedValue({ summary: 'Fresh', actionItems: [AI_ITEM], summaryTemplateId: null, summaryTemplateVersion: null });
         render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
@@ -322,14 +311,13 @@ describe('MeetingDetail — de sjabloonstempel volgt de nieuwe tekst', () => {
 });
 
 
-// ── EEN BEWAARD PUNT MOET HET ZEGGEN (M4) ───────────────────────────
+// ── A KEPT POINT MUST SAY SO (M4) ───────────────────────────────────
 //
-// De server bewaart een AI-punt dat een mens had afgevinkt of overgetypt, óók
-// wanneer de nieuwe extractie het niet meer oplevert — weggooien-en-opnieuw-
-// aanmaken zou die invoer alsnog wissen. Zo'n punt komt terug met
-// `orphaned: true`. Dat stilzwijgend doorlaten laat de kaart beweren dat de
-// AI het zojuist heeft opgeleverd, dus wordt het benoemd op het moment dat het
-// gebeurt (de blijvende markering staat op de kaart zelf, ActionItemsList).
+// The server keeps an AI point that a human had ticked off or retyped, even when the
+// new extraction no longer yields it. Throw-away-and-create-again would wipe that input
+// after all. Such a point comes back with `orphaned: true`. Letting it through silently
+// makes the card claim that the AI has just produced it, so it is named at the moment
+// it happens (the lasting marker stands on the card itself, ActionItemsList).
 
 describe('MeetingDetail — bewaarde actiepunten worden benoemd', () => {
     it('zegt hoeveel punten bewaard zijn die de nieuwe pass niet meer opleverde', async () => {
@@ -350,13 +338,13 @@ describe('MeetingDetail — bewaarde actiepunten worden benoemd', () => {
 
         expect(toast.info).toHaveBeenCalled();
         const said = String(toast.info.mock.calls.at(-1)[0]);
-        // EEN punt zegt "one", niet "1": de vormkeuze ligt op de SLEUTEL
-        // (basis + `_plural`), niet op een "(s)" in de zin. Pinnen op het
-        // cijfer zou juist de Engelse-grammatica-in-code terugvragen.
+        // ONE point says "one", not "1": the choice of form falls on the KEY (base +
+        // `_plural`), not on a "(s)" in the sentence. Pinning on the number would bring
+        // back the English grammar-in-code.
         expect(said).toMatch(/\bone\b/i);
         expect(said).not.toMatch(/\d/);
         expect(said).toMatch(/kept/i);
-        // En het punt staat er nog: benoemen mag nooit in plaats van bewaren.
+        // And the point is still there: naming it may never replace keeping it.
         expect(texts()).toContain('Contract tekenen');
     });
 

@@ -10,40 +10,40 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import TokenisedBadge from './TokenisedBadge';
 
 /**
- * Twee bevindingen liggen hier bovenop elkaar.
+ * Two findings sit on top of each other here.
  *
- * ── C7 — deze component doet geen privacyclaim meer ─────────────────────────
- * De blauwe "N items redacted"-pil is weg. Hij beweerde een AANTAL en zette de
- * plaatsvervanger plus de zin "the real values stay here" één klik diep. De
- * regel onder het bericht (MessageItem/PrivacyLine.jsx) doet die claim nu, mét
- * de plaatsvervanger die er echt voor in de plaats ging — en zonder
- * geruststelling waar die onbekend is. Wat hier overblijft is de amberen
- * doorlaatmelding, en die claimt niets over redactie.
+ * ── C7: this component no longer makes a privacy claim ─────────────────────────
+ * The blue "N items redacted" pill is gone. It claimed a NUMBER, and it put the
+ * stand-in plus the sentence "the real values stay here" one click deep. The
+ * line under the message (MessageItem/PrivacyLine.jsx) now makes that claim, with
+ * the stand-in that really went in its place, and without reassurance where that
+ * is unknown. What remains here is the amber pass-through notice, and that one
+ * claims nothing about redaction.
  *
- * De test die dat vasthoudt is de belangrijkste van dit bestand: hij geeft de
- * component `count` en `categories` mee — de oude pil-props — en eist dat er
- * niets verschijnt. Zonder die test komt de tellervorm er ongemerkt weer in
- * naast de regel, en dan staan er twee claims onder één bericht met
- * verschillende bewijslast.
+ * The test that holds this is the most important one in this file. It gives the
+ * component `count` and `categories` (the old pill props) and demands that nothing
+ * appears. Without that test the counter form creeps back in unnoticed next to the
+ * line, and then there are two claims under one message with different evidentiary
+ * burdens.
  *
- * ── BFSF-303 — de overlay ───────────────────────────────────────────────────
- * jsdom heeft geen layout-engine en geen stylesheet, dus de twee helften van
- * die bug staan gepind op de structurele feiten die ze onmogelijk maken:
+ * ── BFSF-303: the overlay ───────────────────────────────────────────────────
+ * jsdom has no layout engine and no stylesheet, so the two halves of that bug are
+ * pinned to the structural facts that make them impossible:
  *
- *   • Layering: het paneel MOET een body-portal zijn, geen afstammeling van de
- *     berichtenrij. Binnen de rij zat het in de stacking context van die rij
- *     (de glasthema's zetten een backdrop-filter op elk berichtvlak), en dan
- *     kan geen z-index het boven de volgende bubbel tillen.
- *   • Doorschijnendheid: het paneel MOET `data-tokenised-popover` dragen — de
- *     haak waar de glasthema-regels in index.css hun dichte vlak aan ophangen.
+ *   • Layering: the panel MUST be a body portal, not a descendant of the message
+ *     row. Inside the row it sat in that row's stacking context (the glass themes
+ *     put a backdrop-filter on every message surface), and then no z-index can lift
+ *     it above the next bubble.
+ *   • Translucency: the panel MUST carry `data-tokenised-popover`, the hook where
+ *     the glass-theme rules in index.css hang their opaque surface.
  */
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WARNINGS = [{ filename: 'big.pdf', reason: 'overflow', scannedPages: 3, totalPages: 40 }];
 
 function Row(props) {
-    // Spiegelt het echte call-site: de badge staat in de berichtenrij, die in
-    // de glasthema's een eigen stacking context is.
+    // Mirrors the real call site: the badge stands in the message row, which in the
+    // glass themes is its own stacking context.
     return (
         <div data-testid="message-row" style={{ position: 'relative', zIndex: 0 }}>
             <TokenisedBadge {...props} />
@@ -76,9 +76,9 @@ describe('TokenisedBadge — C7: geen redactieclaim meer in deze component', () 
     });
 
     it('schildert geen enkele kleur buiten de thematokens om', () => {
-        // De pil verfde zich met rgba(217,119,6,…) en rgb(180,83,9): één vaste
-        // lichte amber voor twaalf thema's. Een hex of rgb() in de bron is het
-        // bewijs dat er weer een kleur buiten index.css om is gekozen.
+        // The pill was painted with rgba(217,119,6,…) and rgb(180,83,9): one fixed light
+        // amber for twelve themes. A hex or rgb() in the source is the proof that a
+        // color has again been chosen outside index.css.
         const src = fs.readFileSync(path.join(HERE, 'TokenisedBadge.tsx'), 'utf8')
             .replace(/\/\*[\s\S]*?\*\//g, '')
             .replace(/^[ \t]*\/\/.*$/gm, '');
@@ -114,9 +114,8 @@ describe('TokenisedBadge — de overlay (BFSF-303)', () => {
 
         const panel = document.querySelector('[data-tokenised-popover="warn"]');
         expect(panel.style.position).toBe('fixed');
-        // Een portal alleen is niet genoeg — het paneel moet ook boven de
-        // eigen overlays van de app uitkomen. AnchoredMenu's 10050 is het
-        // gedeelde plafond.
+        // A portal alone is not enough. The panel must also rise above the app's own
+        // overlays. AnchoredMenu's 10050 is the shared ceiling.
         expect(Number(panel.style.zIndex)).toBeGreaterThanOrEqual(10050);
     });
 
@@ -125,9 +124,8 @@ describe('TokenisedBadge — de overlay (BFSF-303)', () => {
         render(<Row warnings={WARNINGS} />);
         await user.click(screen.getByTestId('scan-incomplete-pill'));
 
-        // Verdwijnt dit attribuut, dan stoppen de [data-theme^="glass"]-regels
-        // in index.css met matchen en valt het paneel stil terug op het
-        // doorschijnende --bg-card.
+        // If this attribute disappears, the [data-theme^="glass"] rules in index.css
+        // stop matching, and the panel silently falls back to the translucent --bg-card.
         expect(document.querySelectorAll('[data-tokenised-popover]').length).toBe(1);
     });
 

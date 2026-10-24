@@ -18,11 +18,9 @@ const { sanitizeDisabledAgentSkillIds } = require('../../../core/automationRunne
  * without it (tests / legacy callers) the check is a no-op. The error lists
  * the valid values so the model self-corrects in one round.
  *
- * De AANWEZIGHEID van de sleutel beslist, niet de inhoud. Een LEGE Set is
- * "deze workspace biedt geen enkele tier aan" — een gelezen nul — en die als
- * "geen beperking" lezen was de wijdst mogelijke uitkomst van de smalst
- * mogelijke lijst. Zelfde regel als de grants-map in toolPolicy.js: een lege
- * sectie is een keuze, geen afwezigheid.
+ * The PRESENCE of the key decides, not the content. An EMPTY Set is "this workspace offers no tier at all"
+ * — a read zero — and reading that as "no restriction" was the widest possible outcome of the narrowest
+ * possible list. Same rule as the grants map in toolPolicy.js: an empty section is a choice, not an absence.
  */
 function modelTierGateError(modelTier, draftWrap) {
     if (!modelTier || modelTier === 'auto') return null;

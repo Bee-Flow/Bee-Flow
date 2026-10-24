@@ -7,61 +7,33 @@ import type { TranslateFn } from '../../../hooks/useTranslation';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 
 /**
- * De voet van een agentkaart in het overzicht (A5, deel D).
+ * The footer of an agent card in the overview (A5, part D).
  *
- * Eén regel onder de kaart, in drie vormen:
+ * One line under the card, in three forms:
  *
  *   ⚠ Answers from memory — connect a knowledge base
  *   312 conversations · also in 2 automations, 1 app
  *   Only you · 4 conversations
  *
- * "Test" staat er bewust NIET bij. Dit product heeft een eersteklas testbegrip
- * met eigen tabellen en een eigen teller (`agent_tests` / `agent_test_runs`,
- * stores/agent/agentTests.js), en dat is wat het Test-tabblad van dezelfde
- * agent telt. Deze telling komt uit `agent_conversations` — gewone gesprekken.
- * Twee getallen die niets met elkaar te maken hebben mogen niet hetzelfde
- * woord dragen.
+ * "Test" is deliberately NOT in there. This product has a first-class notion of testing, with its own tables and its own counter (`agent_tests` / `agent_test_runs`, stores/agent/agentTests.js), and that is what the Test tab of the same agent counts. This count comes from `agent_conversations` — ordinary conversations. Two numbers that have nothing to do with each other may not carry the same word.
  *
- * Welke van de drie het wordt, beslist `summariseCardFooter` hiernaast; dit
- * bestand kiest alleen de woorden. De waarschuwing komt van de server
- * (`grounding.verdict`, uit core/agentRuntime/agentGrounding.js) en wordt hier
- * niet nagerekend — zie de kop van cardFooter.ts voor waarom dat de hele
- * opzet is.
+ * Which of the three it becomes is decided by `summariseCardFooter` next door; this file only chooses the words. The warning comes from the server (`grounding.verdict`, from core/agentRuntime/agentGrounding.js) and is not recalculated here — see the header of cardFooter.ts for why that is the whole design.
  *
- * ── ÉÉN REGEL, DUS DE WAARSCHUWING VERDRINGT DE TELLINGEN ──────────────────
- * Van de drie vormen is de waarschuwing de enige die om iets VRAAGT. Naast
- * "312 conversations" gezet zou hij de sfeer krijgen van een voetnoot bij een
- * succesverhaal; hij staat er alleen. De tellingen zijn dan niet weg — ze
- * staan op het tabblad "Used by" van dezelfde agent.
+ * ── ONE LINE, SO THE WARNING DISPLACES THE COUNTS ───────────────────
+ * Of the three forms, the warning is the only one that ASKS for something. Set next to "312 conversations" it would take on the air of a footnote to a success story; so it stands alone. The counts are not gone — they are on the "Used by" tab of the same agent.
  *
- * ── ONLEESBAAR KRIJGT WOORDEN, GEEN NUL ────────────────────────────────────
- * "312 conversations" en "the conversation count could not be read" zijn
- * verschillende zinnen. De tweede is de zin die je krijgt als `stats: null`
- * terugkomt, en hij mag nooit als de eerste met een 0 lezen. Hetzelfde voor
- * "gebruikt door": een soort in `usage.partial` is niet nul, die krijgt zijn
- * eigen halve zin.
+ * ── UNREADABLE GETS WORDS, NOT A ZERO ──────────────────────────────
+ * "312 conversations" and "the conversation count could not be read" are different sentences. The second is the one you get when `stats: null` comes back, and it may never be read as the first with a 0. The same goes for "used by": a kind in `usage.partial` is not zero; it gets its own half sentence.
  */
 
 /**
- * De GETELDE naam van een consumentsoort — enkelvoud én meervoud.
+ * The COUNTED name of a consumer kind — singular and plural.
  *
- * Een `switch` met LETTERLIJKE sleutels, om dezelfde reden die
- * DeleteBlockedNotice.jsx opschrijft: de i18n-guard leest aanroepplekken, dus
- * een sleutel die uit een variabele wordt samengesteld is voor hem onzichtbaar
- * en kan ongemerkt meereizen tot hij opduikt in een taal die niemand getest
- * had. (Dit commentaar noemt met opzet GEEN voorbeeldaanroep meer: de guard
- * leest de rúwe bestandstekst en zonderde commentaar niet uit, dus een
- * illustratieve `nOf(...)` hierboven eiste een spooksleutel die nooit mag
- * bestaan — en de volgende lezer had die in de woordenboeken gezet.)
+ * A `switch` with LITERAL keys, for the same reason that DeleteBlockedNotice.jsx writes down: the i18n guard reads call sites, so a key that is composed from a variable is invisible to it and can travel along unnoticed until it turns up in a language that nobody tested. (This comment deliberately no longer gives an example call: the guard reads the raw file text and did not exclude comments, so an illustrative `nOf(...)` above demanded a ghost key that must never exist — and the next reader would have put it into the dictionaries.)
  *
- * Dit zijn niet de sleutels van die dialoog: `agent_usage.kind_*` zijn
- * KOPJES ("Automations"), die geen enkelvoud kennen en er in een geteld zinsdeel
- * ook geen kunnen krijgen zonder daar iets anders te gaan betekenen. Voor het
- * zinsdeel "could not check: …" zijn ze wél precies goed, en dáár worden ze
- * hieronder hergebruikt.
+ * These are not the keys of that dialog: `agent_usage.kind_*` are HEADINGS ("Automations"), which have no singular and cannot get one in a counted phrase without giving something else a different meaning. For the phrase "could not check: …" they are exactly right, and that is where they are reused below.
  *
- * Een soort die de server later toevoegt valt terug op zijn eigen ruwe naam:
- * lelijk en eerlijk verslaat een etiket dat stilletjes iets anders beweert.
+ * A kind that the server adds later falls back on its own raw name: ugly and honest beats a label that quietly claims something else.
  */
 function usedByPhrase(t: TranslateFn, kind: string, n: number | null) {
     switch (kind) {
@@ -89,10 +61,7 @@ function kindHeading(t: TranslateFn, kind: string) {
 }
 
 /**
- * De halve zinnen na de telling: wat de agent gebruikt, en wat niemand kon
- * controleren. Allebei mogen ze ontbreken, en geen van beide mag als nul
- * lezen — een lijst zonder `?usage=1` levert hier niets op, en dat is iets
- * anders dan "door niets gebruikt".
+ * The half sentences after the count: what the agent is used by, and what nobody could check. Both may be missing, and neither may read as zero — a list without `?usage=1` yields nothing here, and that is something other than "used by nothing".
  */
 function usageParts(t: TranslateFn, footer: CardFooterSummary) {
     const parts: string[] = [];
@@ -110,7 +79,7 @@ function usageParts(t: TranslateFn, footer: CardFooterSummary) {
 export interface AgentCardFooterProps {
     /** Één rij van GET /agents/all. */
     agent?: unknown;
-    /** Wie er kijkt — zonder dit kan "Only you" niet waar zijn en verschijnt die vorm niet. */
+    /** Who is looking — without this, "Only you" cannot be true and that form does not appear. */
     viewerId?: string | null;
 }
 
@@ -118,9 +87,7 @@ export default function AgentCardFooter({ agent, viewerId = null }: AgentCardFoo
     const { t } = useTranslation();
     const footer = summariseCardFooter(agent, viewerId);
 
-    // `<span className="block">`, geen `<p>`. De voet hangt binnen de
-    // kaartknop van AgentCard.jsx, en een `<button>` neemt alleen phrasing
-    // content — dat is de reden dat elk kind daar een span is.
+    // `<span className="block">`, not a `<p>`. The footer hangs inside the card button of AgentCard.jsx, and a `<button>` only takes phrasing content — that is why every child there is a span.
     if (footer.variant === 'ungrounded') {
         return (
             <span
@@ -134,9 +101,7 @@ export default function AgentCardFooter({ agent, viewerId = null }: AgentCardFoo
         );
     }
 
-    // De telling. Drie antwoorden: niet gevraagd (dan zwijgt de voet erover —
-    // /agents/system rekent geen tellingen uit), niet gelezen (dat krijgt
-    // woorden), of een getal dat de server geteld heeft (ook een 0).
+    // The count. Three answers: not requested (then the footer says nothing about it — /agents/system does not calculate counts), not read (that gets words), or a number that the server counted (a 0 included).
     const unreadable = footer.statsAsked && footer.conversations === null;
     const countPart = !footer.statsAsked
         ? null
@@ -150,8 +115,7 @@ export default function AgentCardFooter({ agent, viewerId = null }: AgentCardFoo
         ...usageParts(t, footer),
     ];
 
-    // Niets te zeggen is niets zeggen: een lege regel onder de kaart zou alleen
-    // ruimte innemen en suggereren dat er iets ontbreekt.
+    // Nothing to say is saying nothing: an empty line under the card would only take up space and suggest that something is missing.
     if (parts.length === 0) return null;
 
     return (

@@ -129,7 +129,7 @@ export default function ReportsTab({ api = '/api/compliance', dl, exportsEnabled
                         aria-label={t(group.titleKey, group.titleEn)}
                     >
                         <header className="flex items-center gap-2">
-                            <Icon size={14} style={{ color: 'var(--kind-compliance)' }} aria-hidden />
+                            <Icon size={14} className="[color:var(--kind-compliance)]" aria-hidden />
                             <h3 className="m-0 text-[13px] font-semibold text-[var(--text-primary)]">{t(group.titleKey, group.titleEn)}</h3>
                         </header>
                         <ul className="m-0 mt-1 list-none p-0">

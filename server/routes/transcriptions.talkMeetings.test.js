@@ -1,18 +1,16 @@
 /**
- * GET/PATCH /api/transcriptions/talk-meetings — de Gepland-lijst voor Talk.
+ * GET/PATCH /api/transcriptions/talk-meetings — the Scheduled list for Talk.
  *
- * Sinds M5 komt de per-vergadering opnamekeuze uit `stores/meetingPrefsStore`
- * (tabel meeting_prefs) en niet meer uit de exclusielijsten in de instellingen.
- * Wat hier vastligt:
- *   - de route leest de voorkeuren met de scope van DE AANROEPER (zijn userId
- *     plus zijn org), nooit met die van iemand anders;
- *   - een uitsluiting maakt `excluded: true` en dus géén `will_record`;
- *   - de 1-op-1-standaard: een afspraak met ten hoogste twee deelnemers staat
- *     standaard uit, en een expliciete keuze wint daarvan;
- *   - de PATCH schrijft de voorkeur van de aanroeper op zowel de ruimte als de
- *     occurrence — hetzelfde bereik dat de oude exclusielijsten hadden.
+ * Since M5 the per-meeting recording choice comes from `stores/meetingPrefsStore`
+ * (table meeting_prefs) and no longer from the exclusion lists in the settings.
+ * What is pinned here:
+ *   - the route reads the preferences with the scope of THE CALLER (his userId
+ *     plus his org), never with that of somebody else;
+ *   - an exclusion makes `excluded: true` and therefore NO `will_record`;
+ *   - the 1-on-1 default: an appointment with at most two participants is off by default, and an explicit choice wins over that;
+ *   - the PATCH writes the caller's preference on both the space and the occurrence — the same scope that the old exclusion lists had.
  *
- * Drijft de ECHTE Express-router met require-cache-stubs (zelfde harnas als
+ * Drives the REAL Express router with require-cache stubs (same harness as
  * transcriptions.talkRecordings.test.js).
  *
  * Run: cd server && node --test --test-force-exit routes/transcriptions.talkMeetings.test.js
@@ -91,9 +89,9 @@ stub('../core/meetingNotes/talkCalendar', {
 stub('../core/integrations/ncScopeGuard', {
     guardedNcCall: async (_tool, _args, _ctx, call) => call(),
 });
-// meeting_prefs (M5). De beslislogica zelf ligt vast in
-// stores/meetingPrefsStore.test.js; hier telt of de route hem met de eigen
-// scope raadpleegt en zijn antwoord in `excluded` + de statuschip vertaalt.
+// meeting_prefs (M5). The decision logic itself is fixed in
+// stores/meetingPrefsStore.test.js; here it counts whether the route consults it with its own
+// scope and translates its answer into `excluded` + the status chip.
 stub('../stores/meetingPrefsStore', {
     talkIds: ({ eventUid = null, roomToken = null } = {}) => [
         { kind: 'event', id: eventUid }, { kind: 'room', id: roomToken },
@@ -107,19 +105,16 @@ stub('../stores/meetingPrefsStore', {
     },
     setRecord: async (args) => {
         fx.prefWrites.push(args);
-        // De schrijf werkt de fixture bij, zodat de route hem kan TERUGLEZEN.
-        // Deed hij dat niet, dan kon het antwoord van de PATCH niet meer zijn
-        // dan een echo van het verzoek — en juist daar zat de fout.
+        // The write updates the fixture, so that the route can READ IT BACK.
+        // If it did not, the answer of the PATCH could be no more than an echo of the request — and that is exactly where the fault lay.
         for (const { kind, id } of args.ids) fx.prefs[`${kind}:${id}`] = args.record;
         return 1;
     },
     loadMeetingPrefs: async ({ provider, userId, orgId }) => {
         fx.prefLoads.push({ provider, userId, orgId });
-        // Een ORG-brede rij schrijft de echte store als `user_id = ''` en leest
-        // hij alleen via de org-tak van listPrefs; zonder orgId is hij hier dus
-        // onzichtbaar. Zo wordt het weglaten van de org-scope wél rood.
-        // EEN FALSE WINT, uit welke rij hij ook komt — de user-rij overschrijft
-        // de org-rij niet, zoals `resolvePrefs` het ook niet doet.
+        // An ORG-wide row writes the real store as `user_id = ''` and reads it only via the org branch of
+        // listPrefs; without orgId it is therefore invisible here. That is how leaving out the org scope turns red.
+        // A FALSE WINS, from whichever row it comes — the user row does not overwrite the org row, as `resolvePrefs` does not either.
         const scopes = orgId ? [fx.orgPrefs, fx.prefs] : [fx.prefs];
         const opinionFor = (ids) => {
             const seen = ids.flatMap(({ kind, id }) => scopes.map(m => m[`${kind}:${id}`]));
@@ -225,7 +220,7 @@ test('1-op-1-standaard: ten hoogste twee deelnemers staat standaard uit', async 
     assert.equal(res.body.meetings[0].recordReason, 'small_meeting');
     assert.equal(res.body.meetings[0].status, 'upcoming');
 
-    // ... maar een expliciete keuze wint daarvan.
+    // ... but an explicit choice wins over that.
     fx.prefs['event:uid1'] = true;
     res = await dispatch({ url: '/talk-meetings' });
     assert.equal(res.body.meetings[0].excluded, false);
@@ -255,11 +250,10 @@ test('PATCH schrijft de voorkeur van de aanroeper op ruimte én occurrence', asy
 });
 
 test('PATCH meldt geen succes als een ORG-brede uitsluiting hem overruled', async () => {
-    // Eén FALSE wint, ook die van de org. De PATCH kaatste de vraag terug, de
-    // rij sprong op "Record", en bij de volgende load stond hij weer op "Skip"
-    // zonder dat het scherm iets had gezegd. De reden die dán terugkomt is
-    // `opted_out` — precies de reden die géén uitleg krijgt, want die geldt als
-    // "je eigen keuze". Hier was het de keuze van iemand anders.
+    // One FALSE wins, also that of the org. The PATCH bounced the question back, the
+    // row jumped to "Record", and at the next load it was on "Skip" again
+    // without the screen having said anything about it. The reason that then comes back is
+    // `opted_out` — precisely the reason that gets no explanation, because it counts as "your own choice". Here it was someone else's choice.
     resetFx();
     fx.orgPrefs['room:tok1'] = false;
     const res = await dispatch({ method: 'PATCH', url: '/talk-meetings/tok1', body: { record: true, eventUid: 'uid1' } });
@@ -276,13 +270,11 @@ test('PATCH zonder eventUid raakt alleen de ruimte', async () => {
     assert.equal(fx.prefWrites[0].record, true);
 });
 
-// ── de lijst en de engine mogen elkaar niet tegenspreken ─────────────
+// ── the list and the engine must not contradict each other ───────────────
 //
-// Dit was de HOOG-bevinding: de route rekende met de agenda alléén, de engine
-// met dezelfde agenda PLUS het conversatietype PLUS een live telling. Bij een
-// agenda-afspraak zonder ATTENDEE-regels zei het scherm "uit" en nam de server
-// op. Beide kanten gebruiken nu `knownParticipantCount`; wat alleen de engine
-// kan weten reist als `recordDecided: false` naar het scherm.
+// This was the HIGH finding: the route calculated with the agenda alone, the engine
+// with the same agenda PLUS the conversation type PLUS a live count. For an agenda appointment without ATTENDEE lines the screen said "off" and the server recorded.
+// Both sides now use `knownParticipantCount`; what only the engine can know travels to the screen as `recordDecided: false`.
 
 test('een agenda-afspraak zonder deelnemerslijst is ONBESLIST, niet "uit"', async () => {
     resetFx();
@@ -297,9 +289,9 @@ test('een agenda-afspraak zonder deelnemerslijst is ONBESLIST, niet "uit"', asyn
 
 test('een 1-op-1-ruimte telt óók zonder agenda als twee — net als in de engine', async () => {
     resetFx();
-    // Talk-conversatie van type 1 is per definitie een één-op-één. De engine
-    // wist dat al (room.type === 1 → 2); de route wist het niet en zei
-    // "onbekend", dus de twee gaven een verschillende verklaring voor dezelfde rij.
+    // A Talk conversation of type 1 is by definition a one-on-one. The engine
+    // already knew that (room.type === 1 → 2); the route did not know it and said
+    // "unknown", so the two gave a different explanation for the same row.
     fx.meetings = [meeting({ organizer: null, attendees: [] })];
     fx.rooms = [{ token: 'tok1', participantType: 2, hasCall: false, callRecording: 0, type: 1 }];
     const res = await dispatch({ url: '/talk-meetings' });
@@ -312,9 +304,9 @@ test('een 1-op-1-ruimte telt óók zonder agenda als twee — net als in de engi
 test('in scope "all" telt de agenda niet mee — de engine kijkt er ook niet naar', async () => {
     resetFx();
     fx.settings.autoRecordScope = 'all';
-    // Zes genodigden op de uitnodiging. In scope 'all' vult talkAutoRecord
-    // `calendarByToken` niet, dus de engine beslist op de LIVE telling. De chip
-    // "Will record" zou hier een belofte zijn die de engine niet kent.
+    // Six invitees on the invitation. In scope 'all' talkAutoRecord does not
+    // fill `calendarByToken`, so the engine decides on the LIVE count. The "Will record" chip
+    // would here be a promise that the engine does not know.
     fx.meetings = [meeting({ attendees: [1, 2, 3, 4, 5].map(n => ({ email: `p${n}@example.com` })) })];
     fx.rooms = [moderatorRoom()];
     const res = await dispatch({ url: '/talk-meetings' });
@@ -376,8 +368,8 @@ test('postSummaryBack reist mee, zodat de voetregel niet hoeft te zwijgen', asyn
 });
 
 test('de tags van de AFSPRAAK reizen mee — anders had de rij een bron die er niet is', async () => {
-    // De Gepland-rij toont deze read-only. Zonder `tagsFor` in de route stuurde
-    // niets ooit een `tags`-veld en kon dat blok dus nooit iets laten zien.
+    // The Scheduled row shows this read-only. Without `tagsFor` in the route, nothing
+    // ever sent a `tags` field and that block could therefore never show anything.
     resetFx();
     fx.meetings = [meeting()];
     fx.rooms = [moderatorRoom()];

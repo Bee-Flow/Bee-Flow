@@ -136,13 +136,13 @@ function SolutionDetailView({
     const installs = installsBadge(data.installs);
 
     /**
-     * Mag de banner iets beloven?
+     * May the banner promise something?
      *
-     * De Blueprint wordt opgezocht in `data.blueprints` — de ORG-GESCOOPTE
-     * lijst van GET /package/blueprints. Staat hij daar niet in, dan is het
-     * antwoord `unknown` en verschijnt er geen update. `installedVersion` komt
-     * uit de summary-rij; is die er niet, dan is er niets om tegen te
-     * vergelijken en is het antwoord óók `unknown` — nooit "bijgewerkt".
+     * The Blueprint is looked up in `data.blueprints` — the ORG-SCOPED list from
+     * GET /package/blueprints. If it is not in there, the answer is `unknown` and no
+     * update appears. `installedVersion` comes from the summary row; if that is not
+     * there, there is nothing to compare against and the answer is also `unknown` —
+     * never “updated”.
      */
     const availability = useMemo(() => updateAvailability({
         installedFromBlueprintId: project.installedFromBlueprintId,
@@ -211,10 +211,9 @@ function SolutionDetailView({
 
             <div className="flex-1 min-h-0 overflow-y-auto">
                 <div className="max-w-5xl mx-auto px-4 md:px-6 py-5 space-y-6">
-                    {/* Boven elke tab, want "er is een nieuwere versie" gaat over
-                        de Oplossing en niet over het tabblad dat toevallig open
-                        staat. Alleen de eigenaar kan hem toepassen — dezelfde
-                        rol die de route eist — dus alleen die krijgt de knop. */}
+                    {/* Above every tab, because “there is a newer version” concerns the Solution
+                        and not the tab that happens to be open. Only the owner can apply it —
+                        the same role the route requires — so only that person gets the button. */}
                     {!isStage && (
                         <UpdateBanner
                             availability={availability}

@@ -148,14 +148,13 @@ async function purgeWebpageObjects(userId, webpageId) {
 }
 
 /**
- * Zijn de bytes überhaupt te lezen?
+ * Can the bytes be read at all?
  *
- * `readSlot` antwoordt met '' zodra RustFS niet beschikbaar is — óók tijdens een
- * herverbindingsvenster. Voor het TONEN van een pagina is dat de juiste keuze
- * (leeg is leeg), maar voor het METEN van een regelverschil niet: dan wordt een
- * niet-meting stilletjes "er veranderde niets" (±0), of erger, de hele nieuwe
- * tekst als aanwinst geboekt tegen een oude kant die nooit gelezen is.
- * Aanroepers die iets MÉTEN vragen dit eerst.
+ * `readSlot` answers with '' as soon as RustFS is unavailable — including during a
+ * reconnect window. For DISPLAYING a page that is the right choice (empty is empty), but
+ * for MEASURING a line difference it is not: there a non-measurement silently becomes
+ * "nothing changed" (±0), or worse, the whole new text is booked as a gain against an old
+ * side that was never read. Callers that MEASURE something ask this first.
  */
 function slotsAreReadable() {
     return storageStore.isAvailable();

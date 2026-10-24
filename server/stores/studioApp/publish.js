@@ -8,6 +8,7 @@
 const { buildUpdate } = require('../lib/sqlBuilder');
 const { guardOf, serializeDefinition } = require('./shared');
 const { createVersionSnapshot } = require('./versions');
+const { rollback } = require('../../utils/txRollback');
 
 /**
  * Toggle published state + sharing scope. When sharedGroups is undefined,
@@ -57,16 +58,13 @@ function readThemePrimary(definition) {
 
 async function setStudioAppPublished(io, id, isPublished, ownerId, sharedGroups = undefined, organizationId = undefined, publishedDefinition = undefined, publishedVersion = undefined) {
     await io.ready();
-    const client = await io.db.getClient();
-    try {
-        await client.query('BEGIN');
+    return io.db.withTransaction(async (client) => {
         const cur = await client.query(
             `SELECT definition, definition_version, project_id FROM studio_apps WHERE id = $1 AND user_id = $2 FOR UPDATE`,
             [id, ownerId]
         );
         if (cur.rows.length === 0) {
-            await client.query('ROLLBACK');
-            return false;
+            return rollback(false);
         }
         // ALWAYS refused on an app of a Solution stage, capability or not: a
         // publish here re-freezes the WORKING definition. The audience goes
@@ -114,14 +112,8 @@ async function setStudioAppPublished(io, id, isPublished, ownerId, sharedGroups 
             // snapshot never commits independently of published_definition.
             await createVersionSnapshot(id, ownerId, frozenPayload, 'Published', { client });
         }
-        await client.query('COMMIT');
         return true;
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
+    });
 }
 
 /** The audience columns setStudioAppAudience writes; nothing else. */
@@ -148,16 +140,13 @@ const APP_AUDIENCE_COLUMNS = {
  */
 async function setStudioAppAudience(io, id, ownerId, { isPublished, sharedGroups, organizationId, managedWrite = null } = {}) {
     await io.ready();
-    const client = await io.db.getClient();
-    try {
-        await client.query('BEGIN');
+    return io.db.withTransaction(async (client) => {
         const cur = await client.query(
             `SELECT project_id FROM studio_apps WHERE id = $1 AND user_id = $2 FOR UPDATE`,
             [id, ownerId]
         );
         if (cur.rows.length === 0) {
-            await client.query('ROLLBACK');
-            return false;
+            return rollback(false);
         }
         const write = { isPublished: !!isPublished, sharedGroups, organizationId };
         await guardOf(io).assertManagedWrite({
@@ -172,14 +161,8 @@ async function setStudioAppAudience(io, id, ownerId, { isPublished, sharedGroups
             where: [{ col: 'id', value: id }, { col: 'user_id', value: ownerId }],
         });
         await client.query(built.sql, built.params);
-        await client.query('COMMIT');
         return true;
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
+    });
 }
 
 /**

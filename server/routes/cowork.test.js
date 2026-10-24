@@ -56,12 +56,7 @@ function reset() {
 }
 
 // Owned by 'u1'. Anything else asking for it must get a 403.
-// Een SCHEMA zoals de store hem teruggeeft — inclusief de velden die tekst
-// over andermans post dragen. `lastResult` staat hier met opzet in en met een
-// herkenbare zin erin: de "stats lekt geen tekst"-test hieronder loopt over de
-// waarden van het antwoord, dus een veld dat niet in deze fixture staat kan
-// ongezien meelekken. Dat is precies wat er met last_result gebeurde — een
-// echt schemaveld (coworkStore.rowToSchedule) dat de fixture niet kende.
+// A SCHEMA as the store returns it — including the fields that carry text about someone else's mail. `lastResult` is in here deliberately, with a recognisable sentence in it: the "stats leaks no text" test below runs over the values of the answer, so a field that is not in this fixture could leak along unseen. That is exactly what happened with last_result — a real schema field (coworkStore.rowToSchedule) that the fixture did not know.
 const OWNED = {
     id: 'cw-1',
     userId: 'u1',
@@ -602,9 +597,8 @@ test('toggle flips the active flag and reports the new value', async () => {
 
 // ── CW-06: currentRunStartedAt ──────────────────────────────────────
 //
-// "Loopt sinds 08:00:04" is een uitspraak over de run die NU open staat, dus
-// hij hoort uit de open historierij te komen — niet uit lastStatus. De payload
-// mag er alleen bij winnen: niets wat de Expo-app leest verandert van naam.
+// "Running since 08:00:04" is a statement about the run that is open RIGHT NOW, so it should come from the open history rows — not from lastStatus. The payload
+// may only gain: nothing that the Expo app reads changes its name.
 
 test('GET / carries the start time of each open run, and null for the rest', async () => {
     reset();
@@ -623,9 +617,9 @@ test('GET / carries the start time of each open run, and null for the rest', asy
 });
 
 test('GET / keeps every field it already sent — the field is added, nothing renamed', async () => {
-    // De Expo-app leest deze payload; een hernoeming hier is een kapotte APK
-    // zonder rode test. Daarom: alles wat de store levert komt er ongewijzigd
-    // uit, plus het nieuwe veld.
+    // The Expo app reads this payload; a rename here is a broken APK
+    // without a red test. Therefore: everything that the store delivers comes out
+    // unchanged, plus the new field.
     reset();
     state.schedules = [{ ...OWNED }];
     const r = await call('');
@@ -672,22 +666,18 @@ test('the owner gets the aggregate plus the schedule\'s own lifetime figures', a
     assert.strictEqual(r.json.success, 10);
     assert.strictEqual(r.json.failed, 2);
     assert.strictEqual(r.json.avgDurationMs, 72000);
-    // "42 keer gedraaid · sinds 8 juli" komt van het SCHEMA, niet van de
-    // bewaarde rijen: de retentiesweep laat `total` na 90 dagen krimpen en
-    // run_count niet.
+    // "Run 42 times · since 8 July" comes from the SCHEMA, not from the
+    // stored rows: the retention sweep shrinks `total` after 90 days, but not run_count.
     assert.strictEqual(r.json.runCount, 42);
     assert.strictEqual(r.json.createdAt, '2026-07-08T06:00:00.000Z');
 });
 
 test('a broken open-runs query costs the live times, not the whole list', async () => {
-    // De .catch op getOpenRunStarts stond er ongedekt: zonder hem verandert
-    // één kapotte query de hele lijst in een 500, en de gebruiker ziet niets
-    // meer van zijn werk omdat "loopt sinds …" niet uit te rekenen was.
-    // Eerlijk erbij: dit is dezelfde vorm van fail-open die elders in deze
-    // batch juist is dichtgezet — "onbekend" wordt hier "niets loopt". Dat is
-    // hier de goede kant op (het scherm claimt géén live run, en de rij zelf
-    // zegt nog steeds wat de status is), maar de keuze hoort zichtbaar te zijn
-    // in plaats van in een stille .catch te staan.
+    // The .catch on getOpenRunStarts was there unguarded: without it, one broken query
+    // turns the whole list into a 500, and the user sees nothing of their work any more because "running since …" could not be computed.
+    // To be fair: this is the same kind of fail-open that is closed elsewhere in this batch — "unknown" becomes "nothing running" here. That is
+    // the right direction here (the screen claims no live run, and the row itself still says what the status is), but the choice should be visible
+    // rather than sitting in a silent .catch.
     reset();
     state.schedules = [{ ...OWNED, id: 'cw-1' }];
     const original = mockCoworkStore.getOpenRunStarts;
@@ -717,9 +707,8 @@ test('a broken open-run query costs one item its live time, not its detail', asy
 });
 
 test('the stats answer carries no cost or token field to render as € 0,00', async () => {
-    // Kosten per cowork bestaan niet (CW-12: het runpad logt geen usage). Een
-    // leeg veld zou als "€ 0,00 deze maand" op het scherm komen — een getal
-    // dat niemand heeft gemeten.
+    // Costs per cowork do not exist (CW-12: the run path logs no usage). An
+    // empty field would reach the screen as "€ 0.00 this month" — a figure that nobody has measured.
     reset();
     const r = await call('/cw-1/stats');
     for (const key of Object.keys(r.json)) {
@@ -728,8 +717,7 @@ test('the stats answer carries no cost or token field to render as € 0,00', as
 });
 
 test('the stats route never returns run results, only counts', async () => {
-    // Dezelfde reden waarom /runs eigendom-gecontroleerd is: het resultaat gaat
-    // over andermans post en agenda. Een aggregaat hoort geen tekst te dragen.
+    // The same reason why /runs is ownership-checked: the result concerns someone else's mail and calendar. An aggregate should not carry text.
     reset();
     const r = await call('/cw-1/stats');
     for (const v of Object.values(r.json)) {
@@ -739,11 +727,9 @@ test('the stats route never returns run results, only counts', async () => {
 });
 
 test('the stats route names its fields, rather than spreading the schedule', async () => {
-    // De vorige test kijkt naar WAARDEN, en dekt daarmee alleen de velden die
-    // deze fixture toevallig vult. Deze kijkt naar de SLEUTELS: het antwoord is
-    // een opsomming, geen doorgeefluik. Zo blijft een kolom die volgend jaar
-    // aan cowork_schedules wordt toegevoegd buiten dit aggregaat — dezelfde
-    // allow-list-regel als voor uitgaande payloads.
+    // The previous test looks at VALUES, and so covers only the fields that
+    // this fixture happens to fill. This one looks at the KEYS: the answer is an
+    // enumeration, not a pass-through. That way a column that is added to cowork_schedules next year stays out of this aggregate — the same allow-list rule as for outgoing payloads.
     reset();
     const r = await call('/cw-1/stats');
     assert.deepStrictEqual(
@@ -753,9 +739,8 @@ test('the stats route names its fields, rather than spreading the schedule', asy
 });
 
 test('the stats route does not carry the last result along', async () => {
-    // last_result is een echt schemaveld met de tekst van de laatste run erin.
-    // Het staat in de fixture, dus het kan hier alleen ontbreken doordat de
-    // route het niet meestuurt.
+    // last_result is a real schema field with the text of the last run in it.
+    // It is in the fixture, so it can only be missing here because the route does not pass it on.
     reset();
     const r = await call('/cw-1/stats');
     assert.strictEqual(r.json.lastResult, undefined);

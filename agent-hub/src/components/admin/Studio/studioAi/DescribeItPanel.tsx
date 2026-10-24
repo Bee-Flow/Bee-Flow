@@ -16,17 +16,18 @@ const ERROR_TEXT: Record<string, string[]> = {
     ai_unusable: ['studio.ai.err_ai_unusable', 'That was not clear enough to pick a building block — describe it a little more concretely.'],
     rate_limited: ['studio.ai.err_rate_limited', 'That is a lot of requests in a row — wait a moment and try again.'],
     failed: ['studio.ai.err_failed', 'Could not read that just now. Try again.'],
-    // Twee antwoorden van de server die er allebei uitzien als "geen soort" en
-    // het NIET zijn (huisregel 12: leeg en onleesbaar blijven te onderscheiden).
+    // Two answers from the server that both look like "no kind" and are NOT
+    // (house rule 12: empty and unreadable must stay distinguishable).
     none_available: ['studio.ai.err_none_available', 'There is nothing here you can build yet — ask an admin what your workspace has switched on.'],
     gates_unreadable: ['studio.ai.err_gates_unreadable', 'We could not work out what you may build right now. Try again in a moment.'],
 };
 
 /**
- * Waarom er geen soort uit kwam. De server stuurt `available` (wat deze lezer
- * mag bouwen) en `undecided` (de soorten waarvan de gate niet te lezen was);
- * een lege `available` met een gevulde `undecided` is iets anders dan een lege
- * `available` zonder — en allebei iets anders dan "de AI koos niets".
+ * Why no kind came out. The server sends `available` (what this reader may
+ * build) and `undecided` (the kinds whose gate could not be read); an empty
+ * `available` with a filled `undecided` is something other than an empty
+ * `available` without one — and both are something other than "the AI chose
+ * nothing".
  */
 const noKindCode = (result: Extract<RouteResult, { ok: true }>) => {
     if (Array.isArray(result.available) && result.available.length === 0) {
@@ -61,8 +62,8 @@ function PlanCaveats({ plan, dest, blocked, copied, onCopy, t }: PlanCaveatsProp
     return (
         <>
             {undecided.length > 0 ? (
-                // Geen meervoudspaar: de zin somt namen op en verandert niet
-                // met het aantal — dezelfde afweging als
+                // No singular/plural pair: the sentence lists names and does not change with
+                // the count — the same consideration as
                 // studio.attention.unavailable_named.
                 <p data-testid="studio-ai-undecided" className="mt-2 text-[11.5px] text-[var(--text-secondary)]">
                     {t(
@@ -178,11 +179,10 @@ function PanelBody({ sections, onNavigate, user, onClose }: PanelBodyProps) {
         try {
             result = await routeDescription(text, { signal: controller.signal });
         } catch (err) {
-            // Afgebroken — door de annuleerknop of door de fetch-laag zelf.
-            // Geen fout op het scherm (de brief blijft staan), maar wél terug
-            // naar het veld: anders blijft "bezig" hangen op een verzoek dat
-            // nooit meer antwoordt. Een verouderd verzoek (er loopt alweer een
-            // nieuwer) laat de toestand met rust.
+            // Aborted — by the cancel button or by the fetch layer itself. No error on
+            // the screen (the brief stays), but DO go back to the field: otherwise
+            // "busy" hangs on a request that never answers again. A stale request
+            // (a newer one is already running) leaves the state alone.
             if ((err as Error)?.name === 'AbortError') {
                 if (abortRef.current === controller) setPhase('idle');
                 return;
@@ -194,7 +194,7 @@ function PanelBody({ sections, onNavigate, user, onClose }: PanelBodyProps) {
         if (controller.signal.aborted) return;
         if (!result.ok) { setPhase('idle'); setErrorCode(result.code || 'failed'); return; }
         if (!result.kind) {
-            // Een antwoord zonder soort is geen soort. Nooit een gok.
+            // An answer without a kind is not a kind. Never a guess.
             setPhase('idle');
             setErrorCode(noKindCode(result));
             return;
@@ -209,14 +209,14 @@ function PanelBody({ sections, onNavigate, user, onClose }: PanelBodyProps) {
         setPhase('idle');
     }, []);
 
-    // "Iets anders": terug naar het veld MET de tekst erin. De brief mag nooit
-    // verdwijnen door een knop die "nee" betekent.
+    // "Something else": back to the field WITH the text in it. The brief may
+    // never disappear through a button that means "no".
     const back = useCallback(() => { setPlan(null); setErrorCode(null); setPhase('idle'); }, []);
 
     const dest = plan ? destinationForKind(plan.kind, { sections, t }) : null;
-    // De server hoort een soort die deze lezer niet mag al niet te sturen;
-    // staat de soort tóch niet in zijn eigen `available`-lijst, dan telt dat
-    // mee. Geen lijst = onbekend, en dan beslist alleen de sectie-rem.
+    // The server should not send a kind this reader may not build; if the kind is
+    // nevertheless not in its own `available` list, that counts. No list = unknown,
+    // and then only the section brake decides.
     const serverExcludes = !!plan && Array.isArray(plan.available) && !plan.available.includes(plan.kind);
     const blocked = !!plan && (!dest?.available || serverExcludes);
 
@@ -264,7 +264,7 @@ function PanelBody({ sections, onNavigate, user, onClose }: PanelBodyProps) {
     return (
         <div className={CARD_CLASS} style={{ background: 'color-mix(in srgb, var(--type-ai) 4%, transparent)' }}>
             <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--type-ai)' }} strokeWidth={1.75} aria-hidden="true" />
+                <Sparkles className="w-4 h-4 flex-shrink-0 [color:var(--type-ai)]" strokeWidth={1.75} aria-hidden="true" />
                 <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">
                     {t('studio.ai.describe_title', 'Describe what you want')}
                 </h2>

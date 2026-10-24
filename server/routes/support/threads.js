@@ -48,6 +48,7 @@ const { worded } = require('../../core/http/schemaParts');
 const { _isLikelySpam, loggedInRequester, anonymousRequester, openTicket } = require('./threadCreate');
 const H = require('./threadHandlers');
 const log = require('../../telemetry/log');
+const requesterSession = require('./requesterSession');
 
 // ── What a body and a query may carry ───────────────────────────────
 
@@ -191,12 +192,19 @@ async function createThread(req, res) {
  * later linked to a user (via email match): marketing-form requesters come
  * back via the email link without ever logging in.
  */
-async function checkThreadAccess(req, thread) {
+async function checkThreadAccess(req, res, thread) {
     const userId = getUserId(req);
     const staff = await _hasAdminSupport(req);
     const isOwner = userId && thread.requester_user_id === userId;
-    const tokenOK = req.query.token
-        && supportStore.verifyAccessToken(thread.id, thread.requester_email, req.query.token);
+    // The mailed link carries the token in the query; the first valid use turns
+    // it into a short-lived cookie (requesterSession.js) so later calls need no URL token.
+    requesterSession.setNoLeakHeaders(res);
+    const queryToken = req.query.token;
+    const cookieToken = queryToken ? null : requesterSession.readCookieToken(req, thread.id);
+    const presented = queryToken || cookieToken;
+    const tokenOK = presented
+        && supportStore.verifyAccessToken(thread.id, thread.requester_email, presented);
+    if (tokenOK && queryToken) requesterSession.setRequesterCookie(req, res, thread.id, queryToken);
     return { userId, staff, allowed: !!(staff || isOwner || tokenOK) };
 }
 
@@ -208,10 +216,23 @@ async function getThread(req, res) {
     // all": that distinction would enable UUID enumeration.
     const NOT_FOUND = () => res.status(404).json({ error: 'Not found' });
     if (!thread) return NOT_FOUND();
-    const { staff, allowed } = await checkThreadAccess(req, thread);
+    const { staff, allowed } = await checkThreadAccess(req, res, thread);
     if (!allowed) return NOT_FOUND();
     const messages = await supportStore.getThreadMessages(thread.id, { includeInternal: staff });
     res.json({ thread, messages, viewerIsStaff: !!staff });
+}
+
+/** GET /t/:id/open — see registerThreadRoutes. Same 404 for every miss. */
+async function openFromMail(req, res) {
+    requesterSession.setNoLeakHeaders(res);
+    const thread = await supportStore.getThread(req.params.id); // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- target is the configured client host plus a URI-encoded id
+    const token = req.query.token;
+    if (!thread || !token || !supportStore.verifyAccessToken(thread.id, thread.requester_email, token)) {
+        return res.status(404).json({ error: 'Not found' });
+    }
+    requesterSession.setRequesterCookie(req, res, thread.id, token);
+    const { clientHost } = require('../../utils/appPaths');
+    res.redirect(303, `${clientHost()}/support/t/${encodeURIComponent(thread.id)}`);
 }
 
 /** POST /threads/:id/messages — append a reply (same access as reading). */
@@ -219,7 +240,7 @@ async function postReply(req, res) {
     const thread = await supportStore.getThread(req.params.id);
     const NOT_FOUND = () => res.status(404).json({ error: 'Not found' });
     if (!thread) return NOT_FOUND();
-    const { userId, staff, allowed } = await checkThreadAccess(req, thread);
+    const { userId, staff, allowed } = await checkThreadAccess(req, res, thread);
     if (!allowed) return NOT_FOUND();
     return H.appendReply(req, res, thread, { userId, staff });
 }
@@ -288,6 +309,9 @@ function registerThreadRoutes(router) {
     });
 
     router.get('/threads/:id', threadReadLimiter, validate({ query: TokenQuery }), getThread);
+    // GET /t/:id/open?token= — the landing hop for a mailed link: trades the
+    // query token for the cookie and redirects to the page WITHOUT the token.
+    router.get('/t/:id/open', threadReadLimiter, validate({ query: TokenQuery }), openFromMail);
     router.post('/threads/:id/messages', validate({ query: TokenQuery, body: ReplyBody }), postReply);
 
     // PATCH /threads/:id — staff status/priority/assignee + resolve

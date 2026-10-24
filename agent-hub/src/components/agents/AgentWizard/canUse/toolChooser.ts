@@ -1,16 +1,13 @@
 /**
- * De GETYPEERDE aanroep van de tool-kiezer (Agents-artboard 1f).
+ * The TYPED call of the tool picker (Agents artboard 1f).
  *
- * De kiezer zelf bouwt A2 stap 4. Wat hier staat is de naad ertussen: de
- * secties die hij kent, en een bouwer die een aanvraag maakt of `null`
- * teruggeeft. Zo staat de sectienaam op één plek in plaats van als losse
- * string bij elke "+ Koppelen"-knop — en een typfout opent straks niet stil
- * de verkeerde sectie maar levert `null`, wat de aanroeper afdwingt.
+ * The picker itself is built in A2 step 4. What is here is the seam between them: the sections it knows,
+ * and a builder that makes a request or returns `null`. That way the section name lives in one place,
+ * instead of as a loose string on every "+ Link" button, and a typo does not silently open the wrong section
+ * but yields `null`, which the caller is forced to handle.
  *
- * Waarom nu al, terwijl er nog niets opengaat: de knoppen bestaan wél, en een
- * knop die vandaag rechtstreeks een oude popover opent is over drie stages
- * niet meer terug te vinden. Deze module is de plek waar stap 4 één regel
- * vervangt.
+ * Why now, while nothing opens yet: the buttons do exist, and a button that today opens an old popover
+ * directly will not be findable three stages later. This module is the place where step 4 replaces one line.
  */
 
 /** De secties van de kiezer, in artboardvolgorde (apps eerst, dan "Uit Studio"). */

@@ -138,9 +138,9 @@ test('table bindings use the same atomic path, keyed on datatableId', async () =
 });
 
 test('the single-entry path narrows exactly like the whole-column path', async () => {
-    // Eén ingang minder om te vergeten: de atomaire schrijver haalt zijn entry
-    // door dezelfde normalizer, dus 'write' wordt hier ook read en een publieke
-    // kolom buiten `columns` haalt de kolom niet.
+    // One entry point fewer to forget: the atomic writer fetches its entry through the same
+    // normaliser, so 'write' becomes read here too, and a public column outside `columns` does
+    // not fetch the column.
     reset();
     await upsertBridgeGrantEntry('wp1', 'u1', 'tables', {
         datatableId: 'tbl_1', mode: 'write', columns: '*', publicColumns: ['bsn'], evil: 'dropped',

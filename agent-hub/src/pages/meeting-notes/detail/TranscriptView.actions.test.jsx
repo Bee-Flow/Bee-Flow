@@ -21,17 +21,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../hooks/useTranslation', () => {
-    const translator = () => ({
-        t: (key, fallback, vars) => {
-            let out = fallback || key;
-            for (const [k, v] of Object.entries(vars || {})) out = out.split(`{${k}}`).join(String(v));
-            return out;
-        },
-        language: 'en', locale: 'en',
-    });
-    return { default: translator, useTranslation: translator };
-});
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const listAutomations = vi.fn();
 const runAutomation = vi.fn();
@@ -228,13 +218,13 @@ describe('TranscriptView — what one line can become', () => {
     });
 
     /**
-     * ── DE TWEEDE KLIK OP DEZELFDE REGEL ────────────────────────────
-     * `buildLineActionItem` is deterministisch, `appendArtifact` plakt blind
-     * achter, en `collect()` (server) ontdubbelt alleen op id — dat elk item
-     * vers gemunt krijgt. Een tweede bezoek maakte dus een byte-identiek
-     * tweede item, en dat is niet terug te draaien: er is geen verwijderknop
-     * voor een los item en `source:'user'` is juist wat elke "Opnieuw" laat
-     * staan. Het menu moet zelf zeggen wat de regel al heeft opgeleverd.
+     * ── THE SECOND CLICK ON THE SAME LINE ────────────────────────────
+     * `buildLineActionItem` is deterministic, `appendArtifact` pastes blindly behind it,
+     * and `collect()` (server) de-duplicates only on id, and every item gets a freshly
+     * minted id. A second visit thus made a byte-identical second item, and that is not
+     * reversible: there is no delete button for a single item, and `source:'user'` is
+     * precisely what every "Regenerate" leaves in place. The menu itself must say what
+     * the line has already delivered.
      */
     it('biedt geen tweede actie aan op een regel die er al een heeft', () => {
         open({
@@ -245,9 +235,9 @@ describe('TranscriptView — what one line can become', () => {
         });
         openMenuOn('We gaan met leverancier B verder.');
         expect(screen.getByTestId('line-already-action')).toBeTruthy();
-        // Er valt niets te kiezen: geen knop, dus ook geen menuitem.
+        // There is nothing to choose: no button, so no menuitem either.
         expect(screen.getByTestId('line-already-action').closest('button')).toBeNull();
-        // En het is de ANDERE soort niet: een besluit kan deze regel nog worden.
+        // And it is NOT the other kind: a decision may still become this line.
         expect(screen.getByText('Decision')).toBeTruthy();
         expect(screen.queryByTestId('line-already-decision')).toBeNull();
     });
@@ -265,10 +255,9 @@ describe('TranscriptView — what one line can become', () => {
     });
 
     /**
-     * Dezelfde val als in de derde kolom: een item van vóór M4 heeft geen
-     * anker, en `Number(undefined)` mag geen 0 worden — anders is de eerste
-     * zin van elke oudere meeting "al een actie" en kan niemand hem meer
-     * markeren.
+     * The same trap as in the third column. An item from before M4 has no anchor, and
+     * `Number(undefined)` may not become 0. Otherwise the first sentence of every older
+     * meeting is "already an action" and nobody can mark it any more.
      */
     it('remt niets op een item zonder anker', () => {
         open({ meeting: { ...meeting, actionItems: [{ id: 'ai-0', text: 'Oud punt' }] } });
@@ -278,10 +267,7 @@ describe('TranscriptView — what one line can become', () => {
     });
 
     /**
-     * En hetzelfde over een ECHTE ronde: schrijven, menu dicht, menu weer
-     * open. Dit is de weg waarlangs de dubbel ontstond — de chip die het al
-     * zei staat 150px verderop in dezelfde rij, en wie na een scroll twijfelt
-     * of de eerste klik landde, klikt gewoon nog eens.
+     * The same over a REAL round: write, menu closed, menu open again. This is the path through which the duplicate arose — the chip that already said it sits 150px further along in the same row, and whoever doubts after a scroll whether the first click landed simply clicks again.
      */
     it('laat een tweede bezoek na een geslaagde schrijfactie niets meer schrijven', async () => {
         const user = userEvent.setup();

@@ -90,7 +90,7 @@ function ResultModalHeader({ modal, onClose, onDiscuss }: {
     return (
         <div className="[display:flex] [align-items:center] [gap:10px] [padding:16px_20px] [border-bottom:1px_solid_var(--border-subtle,rgba(0,0,0,0.06))] [background:var(--bg-secondary,rgba(0,0,0,0.02))]">
             <div className="w-[36px] h-[36px] [border-radius:10px] [background:var(--bg-secondary,rgba(0,0,0,0.04))] [display:flex] [align-items:center] [justify-content:center] [border:1px_solid_var(--border-subtle,rgba(0,0,0,0.08))] [flex-shrink:0]">
-                <Bot style={{ width: 18, height: 18, color: 'var(--text-primary, #0f172a)' }} />
+                <Bot className="w-[18px] h-[18px] [color:var(--text-primary,#0f172a)]" />
             </div>
             <div className="[flex:1] min-w-[0]">
                 <div className="[font-size:15px] [font-weight:700] [color:var(--text-primary,#0f172a)] [line-height:1.3] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">
@@ -110,7 +110,7 @@ function ResultModalHeader({ modal, onClose, onDiscuss }: {
                 onClick={onClose}
                 className="[background:none] [border:none] [cursor:pointer] [padding:6px] [border-radius:8px] [color:var(--text-muted,#94a3b8)] [flex-shrink:0]"
             >
-                <X style={{ width: 18, height: 18 }} />
+                <X className="w-[18px] h-[18px]" />
             </button>
         </div>
     );

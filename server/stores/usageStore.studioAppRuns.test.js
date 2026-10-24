@@ -1,20 +1,17 @@
 'use strict';
 
 /**
- * "N acties deze maand" per App Studio-app (APPS-08).
+ * "N actions this month" per App Studio app (APPS-08).
  *
- * Het getal komt uit `ai_usage_log`, waar routes/studioAppsRun.js per
- * actierun een rij wegschrijft. Twee dingen kunnen daar los kapot, en allebei
- * stil:
+ * The number comes from `ai_usage_log`, where routes/studioAppsRun.js writes one row per
+ * action run. Two things can break there, both silently and independently:
  *
- *   • de BRON kan aan een kant hernoemd worden (de runtime schrijft
- *     'studio_app_action', de query zoekt iets anders) — dan telt elke app op
- *     nul en oogt het hele scherm dood;
- *   • het FILTER kan naar de kijker verschuiven. Elke rij staat op de
- *     EIGENAAR van de app, dus zodra er `user_id = <viewer>` in de where
- *     komt, ziet iedereen behalve de bouwer nul. Dat is precies de valkuil
- *     die in de bevinding staat, en hij is niet zichtbaar aan het antwoord:
- *     nul is een geldig getal.
+ *   • the SOURCE can be renamed on one side (the runtime writes 'studio_app_action', the query
+ *     looks for something else) — then every app counts zero and the whole screen looks dead;
+ *   • the FILTER can shift to the viewer. Every row is on the OWNER of the app, so as soon as
+ *     `user_id = <viewer>` is in the where, everyone except the builder sees zero. That is
+ *     precisely the trap in the finding, and it is not visible in the answer: zero is a valid
+ *     number.
  *
  * Run: cd server && node --test stores/usageStore.studioAppRuns.test.js
  */

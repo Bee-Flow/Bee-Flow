@@ -7,24 +7,23 @@ import { citationIsOpenable } from './answerChips';
 import MessageItem from './index';
 
 /**
- * De bronchips onder een antwoord (C6), en waar ze heen gaan (C13).
+ * The source chips under an answer (C6), and where they go (C13).
  *
- * ── WAT HIER VASTLIGT ──────────────────────────────────────────────────────
+ * ── WHAT IS FIXED HERE ─────────────────────────────────────────────────────
  *
- * 1. In een GEWOON gesprek staat de bron onder het antwoord, niet achter twee
- *    keer uitklappen. Een citaat dat je moet zoeken is geen citaat.
- * 2. Dezelfde poort als het bronnenpaneel: op de publieke embed staat er niets.
- *    De chiprij mag geen tweede, ongepoorte weg naar dezelfde gegevens zijn.
- * 3. Een chip opent de passage — zonder dat de aanroeper daar iets voor doet.
- * 4. En een chip die niets te openen heeft, IS GEEN KNOP. "Niet meegestuurd"
- *    en "mag je niet lezen" zijn van deze kant niet te onderscheiden, dus
- *    versmalt onbekende leesbaarheid naar niet-klikbaar.
+ * 1. In an ORDINARY conversation the source stands under the answer, not behind two clicks to expand. A citation
+ *    that you have to search for is not a citation.
+ * 2. The same gate as the sources panel: on the public embed there is nothing. The chip row may not be a second,
+ *    ungated path to the same data.
+ * 3. A chip opens the passage, without the caller having to do anything for it.
+ * 4. And a chip with nothing to open IS NOT A BUTTON. "Not sent along" and "may not read it" cannot be told
+ *    apart from this side, so unknown readability narrows to non-clickable.
  *
- * Er wordt op de eigenschap getest, niet op de opmaak: welke chip klikbaar is,
- * wat er na een klik te lezen valt, en wat er bij een dichte poort niet staat.
+ * It is tested on the property, not on the layout: which chip is clickable, what there is to read after a click,
+ * and what is not shown when the gate is closed.
  */
 
-/** Een passage die volledig meekwam — hier valt iets te openen. */
+/** A passage that came along completely. Here something can be opened. */
 const OPEN_SOURCE = {
     title: 'Personeelshandboek',
     kind: 'kb_chunk',
@@ -34,9 +33,8 @@ const OPEN_SOURCE = {
 };
 
 /**
- * Een citaat ZONDER passage. Bestaat echt: `routes/ai/webpageChat.js` stuurt
- * alleen `preview`, en een server kan de tekst weglaten omdat deze lezer de
- * bron niet mag lezen. De chip weet het verschil niet.
+ * A citation WITHOUT a passage. This really exists: `routes/ai/webpageChat.js` sends only `preview`, and a
+ * server can omit the text because this reader may not read the source. The chip does not know the difference.
  */
 const CLOSED_SOURCE = {
     title: 'Prijslijst',
@@ -53,14 +51,13 @@ const msg = (over = {}) => ({
     ...over,
 });
 
-/** De overlay die een chip opent — of null als er geen openstaat. */
+/** The overlay that a chip opens, or null if none is open. */
 const overlay = () => document.querySelector('.fixed.inset-0');
 
 describe('C6 — de bron staat onder het antwoord', () => {
     it('toont de chip in een gewoon gesprek, zonder dat de aanroeper erom vraagt', () => {
-        // DirectChatView en AgentChatView geven geen enkele chip-prop mee; als
-        // dit van een prop zou afhangen, zag niemand in het product ooit een
-        // bronchip.
+        // DirectChatView and AgentChatView pass no chip prop at all. If this depended on a prop, nobody in the product
+        // would ever see a source chip.
         render(<MessageItem idx={0} msg={msg({ kbSources: [OPEN_SOURCE] })} />);
         expect(screen.getByTestId('citation-chip').textContent).toBe('Personeelshandboek · p. 12');
     });
@@ -76,19 +73,17 @@ describe('C6 — de bron staat onder het antwoord', () => {
     });
 
     it('BIJT — en staat er niet terwijl het antwoord nog geschreven wordt', () => {
-        // Citaten landen MIDDEN in de beurt. Zonder deze klem groeide de rij
-        // "waar dit antwoord vandaan komt" mee terwijl het antwoord nog niet
-        // bestond, en sprong de tekst eronder bij elke nieuwe chip op.
+        // Citations land IN THE MIDDLE of the turn. Without this clamp, the row "where this answer comes from" grew
+        // along while the answer did not yet exist, and the text beneath it jumped with each new chip.
         render(<MessageItem idx={0} msg={msg({ kbSources: [OPEN_SOURCE], isStreaming: true })} />);
         expect(screen.queryByTestId('citation-chip')).toBeNull();
         expect(screen.queryByTestId('answer-chips')).toBeNull();
     });
 
     it('BIJT — Simple Mode klapt de bron niet weg', () => {
-        // Simple Mode haalt de UITKLAPBARE verantwoording weg ("How I got this
-        // answer"). De chiprij is juist de simpele vorm van diezelfde
-        // informatie — één regel, geen machinerie — en is dus precies wat een
-        // gebruiker in die modus wél hoort te houden.
+        // Simple Mode removes the EXPANDABLE accountability ("How I got this answer"). The chip row is precisely the
+        // simple form of that same information (one line, no machinery), and is therefore exactly what a user in
+        // that mode should keep seeing.
         window.__beeflowSimpleMode = true;
         try {
             render(<MessageItem idx={0} msg={msg({ kbSources: [OPEN_SOURCE] })} />);
@@ -129,8 +124,8 @@ describe('C13 — de chip opent de passage', () => {
         const user = userEvent.setup();
         render(<MessageItem idx={0} msg={msg({ kbSources: [OPEN_SOURCE] })} />);
         await user.click(screen.getByTestId('citation-chip'));
-        // Naam los: de overlay leent `notebooks.close`, en die sleutel zegt in
-        // het woordenboek "Close Notebook" (zie de melding bij deze stage).
+        // Name stands apart: the overlay borrows `notebooks.close`, and that key says "Close Notebook" in the
+        // dictionary (see the note at this stage).
         await user.click(screen.getAllByRole('button', { name: /close/i })[0]);
         expect(overlay()).toBeNull();
     });
@@ -197,8 +192,8 @@ describe('citationIsOpenable', () => {
     });
 
     it('BIJT — alles wat geen passage is, is geen toestemming', () => {
-        // Ook `preview`: dat is de alias van één release, en de overlay leest
-        // hem niet — goedkeuren zou precies het lege paneel opleveren.
+        // Also `preview`: that is the alias of one release, and the overlay does not read it. Approving it would yield
+        // exactly the empty panel.
         for (const source of [
             undefined, null, {}, { content: '' }, { content: '   ' }, { content: null },
             { content: 42 }, { content: ['x'] }, { preview: 'Staffelkorting' },

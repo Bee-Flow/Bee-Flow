@@ -22,15 +22,14 @@ const { z } = require('../../utils/zod');
 const { worded, bodyOf, choice, NOTHING, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
 
-// ── Wat een bron mag dragen ─────────────────────────────────────────
+// ── What a source may carry ─────────────────────────────────────────
 //
-// `provider` is een enum, en dat is de reden dat dit bestand een schema kreeg.
-// Het stond er als `provider === 'microsoft' ? 'onedrive' : 'gdrive'`: élke
-// andere waarde — 'Microsoft' met een hoofdletter, 'onedrive', een typefout —
-// zette de bron weg als een Google Drive-bestand. De rij in het bronnenpaneel
-// droeg daarna het verkeerde pictogram en de verkeerde herkomst, en
-// `metadata.provider` hield ondertussen de ruwe waarde vast: twee velden op
-// één rij die elkaar tegenspreken.
+// `provider` is an enum, and that is the reason this file got a schema.
+// It stood there as `provider === 'microsoft' ? 'onedrive' : 'gdrive'`: EVERY other
+// value — 'Microsoft' with a capital, 'onedrive', a typo — put the source down as a
+// Google Drive file. The row in the sources panel then carried the wrong icon and the
+// wrong origin, and `metadata.provider` meanwhile kept the raw value: two fields on one
+// row that contradict each other.
 const PROVIDER_TEXT = 'Kies een aanbieder: google of microsoft.';
 const URL_TEXT = 'URL required';
 const TEXT_TEXT = 'Text content required';
@@ -45,18 +44,17 @@ const TextBody = bodyOf({
 
 const DriveBody = bodyOf({
     provider: choice(['google', 'microsoft'], PROVIDER_TEXT),
-    // De inhoud van één Drive-bestand zoals de kiezer hem al gelezen heeft.
-    // De vorm daarvan is die van de kiezer, niet van deze route.
+    // The content of one Drive file as the picker has already read it.
+    // Its shape is that of the picker, not of this route.
     files: z.array(z.unknown(), { error: FILES_TEXT }).min(1, FILES_TEXT),
 });
 
 function register(router, { upload }) {
     // ── Source: File Upload ────────────────────────────────────────────
 
-    // Multipart, dus het schema staat ACHTER multer: die vult `req.body` pas
-    // nadat hij de stream heeft gelezen. Deze route leest er niets uit — de
-    // naam, het type en de bytes komen allemaal van `req.file` — en zegt dat
-    // met een lege strikte body in plaats van het stilzwijgend te laten.
+    // Multipart, so the schema sits BEHIND multer: that fills `req.body` only after it has
+    // read the stream. This route reads nothing from it — the name, the type and the bytes all
+    // come from `req.file` — and says so with an empty strict body instead of letting it pass silently.
     router.post('/:id/sources/file', requireAuth, validate({ query: NO_QUERY }), upload.single('file'),
         validate({ body: NOTHING }), async (req, res) => {
         const userId = req.session.user.id;

@@ -2,57 +2,50 @@
 'use strict';
 
 /**
- * Statische route-oppervlakte-sweep — de parser + pure sweep achter
- * auth/accessRegistry.sweep.test.js (de app-brede opvolger van de
- * /auth-drifttest).
+ * Static route-surface sweep — the parser + pure sweep behind auth/accessRegistry.sweep.test.js
+ * (the app-wide successor of the /auth drift test).
  *
- * WAAROM STATISCH: de bestaande drifttest laadt de echte app in een
- * wegwerp-kindproces (auth/routeWalk.cli.js) — dat is en blijft het sterkste
- * bewijs, maar het dekt alleen de triagedPrefixes diepgaand en kost ~2 min per
- * run. Deze sweep leest index.js en elk bereikbaar routebestand als TEKST
- * (nooit een require van de app — dat start schedulers) en beantwoordt één
- * bredere vraag: is élke route verantwoord — aantoonbaar gegate op de mount,
- * op de router, op de route of in de handler, gedeclareerd in het registry,
- * of expliciet en met reden vrijgesteld in de sweep-test?
+ * WHY STATIC: the existing drift test loads the real app in a throwaway child process
+ * (auth/routeWalk.cli.js) — that is and remains the strongest proof, but it covers only the
+ * triagedPrefixes in depth and costs ~2 min per run. This sweep reads index.js and every reachable
+ * route file as TEXT (never a require of the app — that starts schedulers) and answers one broader
+ * question: is EVERY route accounted for — demonstrably gated on the mount, on the router, on the
+ * route or in the handler, declared in the registry, or explicitly and with a reason exempted in
+ * the sweep test?
  *
- * WAT DIT BEWIJST: verantwoording, geen toereikendheid. Een probe-hit zegt
- * "deze handler kijkt naar wie de caller is", niet "de juiste caller". De
- * diepe verificatie is en blijft het werk van de drifttest (machinale
- * gate-tags) en de per-route authz-tests.
+ * WHAT THIS PROVES: accountability, not sufficiency. A probe hit says "this handler looks at who
+ * the caller is", not "the right caller". The deep verification is and remains the work of the
+ * drift test (machine-read gate tags) and the per-route authz tests.
  *
- * PUUR MET OPZET: parseSurface leest bestanden uitsluitend via de meegegeven
- * readSource(relPath), en sweepSurface is een pure functie over het geparste
- * model + registry + vrijstellingen. Daardoor kan de test het hele mechanisme
- * met SYNTHETISCHE fixtures voeden en bewijzen dat een niet-geregistreerde
- * route écht rood oplevert — zonder canary-bestanden in de echte boom.
+ * PURE ON PURPOSE: parseSurface reads files exclusively via the supplied readSource(relPath), and
+ * sweepSurface is a pure function over the parsed model + registry + exemptions. That lets the test
+ * feed the whole mechanism with SYNTHETIC fixtures and prove that an unregistered route really turns
+ * red — without canary files in the real tree.
  */
 
 const path = require('node:path');
 
-// ── Gate-vocabulaire ─────────────────────────────────────────────────────────
-// Identiteits-gates: middleware-namen die beslissen WIE er langs mag. Bewust
-// NIET meegeteld:
-//   • requireModule — verbergt een niet-geïmporteerde module; elke installatie
-//     mét de module is open;
-//   • requireCapability / requireFeature / requireLicenseFeature / requireTier /
-//     requireBetaFeature en de *FeatureGate-kill-switches — entitlement-gates
-//     laten een ANONIEME caller bewust door ("let auth middleware reject",
-//     core/entitlements/entitlements.js requireCapability; license/middleware.js
-//     header). Een mount met alléén zo'n gate is dus niet verantwoord: de echte
-//     identiteitsgate moet in de router of handler zitten en telt daar mee;
-//   • requireNcOrg (plumbing, zie accessRegistry.plumbingNames) en
-//     requireActiveOrg* (raakt alleen mutaties).
+// ── Gate vocabulary ─────────────────────────────────────────────────────────
+// Identity gates: middleware names that decide WHO may pass. Deliberately NOT counted:
+//   • requireModule — hides a module that is not imported; every installation WITH the module is open;
+//   • requireCapability / requireFeature / requireLicenseFeature / requireTier / requireBetaFeature and
+//     the *FeatureGate kill switches — entitlement gates deliberately let an ANONYMOUS caller through
+//     ("let auth middleware reject", core/entitlements/entitlements.js requireCapability;
+//     license/middleware.js header). A mount with only such a gate is therefore not accounted for: the
+//     real identity gate must sit in the router or handler and counts there;
+//   • requireNcOrg (plumbing, see accessRegistry.plumbingNames) and requireActiveOrg* (touches only
+//     mutations).
 const AUTH_GATE_RX = /\b_{0,2}(?:require(?!Module\b|NcOrg\b|ActiveOrg|Capability\b|Feature\b|License|Tier\b|Beta)[A-Z]\w*|attachOrgFilter|apiKeyAuth)\b/;
 const MODULE_GATE_RX = /\brequireModule\s*\(/;
 
-// Handler-probe — de tekstuele evenknie van routeWalk.cli.js:242-245, plus de
-// vormen die dáár niet nodig waren omdat de walker alleen /auth diepgaand
-// bekijkt: het zelf-401-patroon (if (!req.session…) return res.status(401))
-// en token/HMAC-authenticatie (webhooks, bridge-tokens, MCP-bearer).
+// Handler probe — the textual counterpart of routeWalk.cli.js:242-245, plus the shapes that were not
+// needed there because the walker only examines /auth in depth: the self-401 pattern
+// (if (!req.session…) return res.status(401)) and token/HMAC authentication (webhooks, bridge
+// tokens, MCP bearer).
 const PROBE_DIRECT = /\bisSuperAdmin\s*\(|\bhasPermission\s*\(|\bgetUserPermissions\s*\(|session\s*\??\.\s*isAdmin|\bresolveUserOrgIds\s*\(|\bperms\s*\.\s*includes\s*\(|\bisOrgAdmin|\bresolveEntitlements\s*\(|\bcanUseCapability\s*\(/;
-// Ruimer dan de walker-variant (req op élke argumentpositie, en optioneel een
-// module-privé underscore): canModifyAgent en canReadAgent krijgen req als
-// derde argument, en supportInbox' routergate heet _hasSupportInbox(req).
+// Broader than the walker variant (req in ANY argument position, and an optional module-private
+// underscore): canModifyAgent and canReadAgent receive req as a third argument, and supportInbox'
+// router gate is called _hasSupportInbox(req).
 const PROBE_WRAPPER = /\b_{0,2}(?:is|has|can|assert|ensure|check|require|resolve|guard|verify|authenticate)[A-Z]\w*\s*\([^()]*\breq\b/;
 const PROBE_TOKEN = /\btimingSafeEqual\s*\(|\bcreateHmac\s*\(|\bjwt\.verify\s*\(|\bverify\w*Signature\b|\bverify\w*Token\b/;
 const PROBE_SELF_STATUS = /\bres\s*\.\s*status\s*\(\s*40[13]\b/;
@@ -68,10 +61,9 @@ const METHODS = ['get', 'post', 'put', 'patch', 'delete', 'all', 'options', 'hea
 
 // ── Bron-preparatie ──────────────────────────────────────────────────────────
 /**
- * Blankt commentaar uit (vervangen door spaties, zelfde lengte zodat offsets
- * blijven kloppen); strings en template-literals blijven staan. Regex-literals
- * worden herkend via de vorige betekenisvolle token, zodat een regex met //
- * of /* erin niet als commentaar wordt weggeblankt.
+ * Blanks out comments (replaced by spaces, same length so that offsets stay correct); strings and
+ * template literals remain. Regex literals are recognised via the previous meaningful token, so that
+ * a regex containing // or /* is not blanked out as a comment.
  */
 function stripComments(src) {
     const out = src.split('');
@@ -113,13 +105,13 @@ function stripComments(src) {
             continue;
         }
         if (c === '/') {
-            // Regex of deling? Na een waarde (identifier, ), ], literal) is het
-            // deling; na een operator/keyword is het een regex-literal.
+            // Regex or division? After a value (identifier, ), ], literal) it is division; after an operator or
+            // keyword it is a regex literal.
             const isRegex = !/[\w)\]'"`]/.test(prevSignificant);
             if (isRegex) {
-                // De body van een regex-literal wordt óók geblankt: haken erin
-                // ([^\]] of \( ) zijn geen code, en de argument-balancer verderop
-                // telt ze anders mee.
+                // The body of a regex literal is blanked too: brackets within it
+                // ([^\]] or \( ) are not code, and the argument balancer further on would
+                // otherwise count them.
                 const start = i;
                 i++;
                 let inClass = false;
@@ -245,7 +237,7 @@ function parseRequires(src) {
 
 const INLINE_REQUIRE_RX = /^require\(\s*['"](\.[^'"]+)['"]\s*\)(?:\.(\w+))?$/;
 
-/** Ziet dit argument eruit als een router-referentie naar een lokaal bestand? */
+/** Does this argument look like a router reference to a local file? */
 function asRouterRef(argText, requires) {
     const inline = argText.match(INLINE_REQUIRE_RX);
     if (inline) {
@@ -255,8 +247,8 @@ function asRouterRef(argText, requires) {
     }
     if (/^\w+$/.test(argText) && requires.has(argText)) {
         const { spec, prop } = requires.get(argText);
-        // Gedestructureerde gates (requireAuth as requireAuthedUser) zijn geen
-        // routers; alleen een default-export of een expliciete .router-prop.
+        // Destructured gates (requireAuth as requireAuthedUser) are not routers; only a default export or
+        // an explicit .router prop.
         if (prop && !/router/i.test(prop)) return null;
         if (AUTH_GATE_RX.test(argText) || MODULE_GATE_RX.test(argText)) return null;
         return { spec, prop };
@@ -265,16 +257,15 @@ function asRouterRef(argText, requires) {
 }
 
 /**
- * Eerste parameternaam per genoemde functie — de sleutel tot een gesplitste
- * router. Een groepsmodule (routes/webpages/crud.js, routes/playbooks/
- * recipeRoutes.js, routes/support/threads.js) roept zelf nooit express.Router()
- * aan; hij krijgt de router als ARGUMENT:
+ * First parameter name per named function — the key to a split router. A group module
+ * (routes/webpages/crud.js, routes/playbooks/recipeRoutes.js, routes/support/threads.js) never calls
+ * express.Router() itself; it receives the router as an ARGUMENT:
  *
  *     function register(router, deps) { router.get('/x', …); }
  *
- * Voor zo'n bestand is `router` dus de actieve router-variabele, en die naam
- * staat alleen in de parameterlijst. Dekt `function f(p)`, `const f = (p) =>`,
- * `const f = async (p) =>` en `const f = function (p)`.
+ * For such a file `router` is therefore the active router variable, and that name appears only in
+ * the parameter list. Covers `function f(p)`, `const f = (p) =>`, `const f = async (p) =>` and
+ * `const f = function (p)`.
  */
 function parseFnParams(src) {
     const map = new Map();
@@ -329,8 +320,8 @@ function namedFnText(src, name) {
 }
 
 /**
- * Parseert één bestand tot registraties en submounts. Puur op tekst; het
- * resultaat wordt door parseSurface per mount-context omgezet in routes.
+ * Parses one file into registrations and submounts. Purely on text; the result is converted by
+ * parseSurface into routes per mount context.
  */
 function parseFile(src) {
     const clean = stripComments(src);
@@ -339,12 +330,10 @@ function parseFile(src) {
     const exported = exportedRouterVar(clean, routerVars);
     const fnParams = parseFnParams(clean);
 
-    // Een groepsmodule van een gesplitste router roept zelf nooit
-    // express.Router() aan — hij KRIJGT de router als eerste parameter. Zo'n
-    // parameter telt hier als router-variabele zodra er ook echt routes op
-    // worden geregistreerd; anders zou elke `function f(x)` er één zijn.
-    // routerVars zelf blijft de zuivere express.Router()-verzameling: daar
-    // hangen exportedRouterVar en de terugval in parseSurface aan.
+    // A group module of a split router never calls express.Router() itself — it RECEIVES the router as
+    // its first parameter. Such a parameter counts here as a router variable as soon as routes are
+    // actually registered on it; otherwise every `function f(x)` would be one. routerVars itself stays
+    // the pure express.Router() collection: exportedRouterVar and the fallback in parseSurface hang on that.
     const recvVars = new Set(routerVars);
     for (const param of fnParams.values()) {
         if (recvVars.has(param)) continue;
@@ -390,9 +379,8 @@ function parseFile(src) {
                 }
             }
             if (!sawRouterRef) {
-                // Gate-vormige naam, of een inline functie die volgens de probe
-                // naar de identiteit van de caller kijkt (zoals de 401-poort
-                // die routes/license.js als anonieme router.use draagt).
+                // Gate-like name, or an inline function that, according to the probe, looks at the identity of the
+                // caller (like the 401 gate that routes/license.js mounts as an anonymous router.use).
                 const gated = rest.some((a) => AUTH_GATE_RX.test(a) || (/=>|function/.test(a) && probeText(a)));
                 if (gated) routerGates.push({ routerVar: recv, path: paths ? mountPath : '/', offset: m.index });
             }
@@ -415,29 +403,25 @@ function parseFile(src) {
         });
     }
 
-    // ── Register-helpers: de over een map gesplitste router ──────────────────
-    // Een router die over een map is gesplitst, hangt zijn groepen er niet met
-    // router.use(...) aan, maar laat elke groep zichzelf registreren:
+    // ── Register helpers: the router split across a folder ──────────────────
+    // A router that is split across a folder does not attach its groups with router.use(...), but lets
+    // each group register itself:
     //
     //     require('./crud').register(router, deps);   // routes/webpages/index.js
     //     mailbox.register(router);                   // routes/support.js
     //
-    // Dat is een submount op '/' in alles behalve de schrijfwijze: dezelfde
-    // router, hetzelfde padprefix, dezelfde keten-gates, dezelfde
-    // registratievolgorde. Zonder deze tak verdwijnt élke route uit zo'n
-    // groepsmodule geruisloos uit het oppervlak — precies het gevaar waar deze
-    // sweep tegen is gebouwd: een poort die OPEN faalt. De router-variabele aan
-    // de kindkant is de eerste parameter van de register-functie (parseFnParams).
+    // That is a submount at '/' in everything but spelling: the same router, the same path prefix, the
+    // same chain gates, the same registration order. Without this branch every route from such a group
+    // module disappears from the surface silently — precisely the danger this sweep is built against: a
+    // gate that fails OPEN. The router variable on the child side is the first parameter of the register
+    // function (parseFnParams).
     //
-    // Twee bewuste beperkingen, zodat dit geen willekeurige functieaanroep gaat
-    // opslokken:
-    //   • de ontvanger moet een HELE lokale module zijn (require('./x') of een
-    //     binding daarvan) — geen gedestructureerde naam, want die is een
-    //     functie uit die module en niet de module zelf;
-    //   • `app` telt hier NIET als router-argument. Pathloze app-helpers in het
-    //     entry-bestand (boot/securityHeaders.applySecurityHeaders(app),
-    //     boot/requestTiming.mountRequestTiming(app)) zijn plumbing — dezelfde
-    //     klasse die gateApplies() hieronder ook al uitsluit.
+    // Two deliberate limits, so that this does not swallow arbitrary function calls:
+    //   • the receiver must be a WHOLE local module (require('./x') or a binding of it) — no destructured
+    //     name, because that is a function from that module and not the module itself;
+    //   • `app` does NOT count here as a router argument. Pathless app helpers in the entry file
+    //     (boot/securityHeaders.applySecurityHeaders(app), boot/requestTiming.mountRequestTiming(app)) are
+    //     plumbing — the same class that gateApplies() below already excludes.
     const helperRx = /(?:require\(\s*['"](\.[^'"]+)['"]\s*\)|\b(\w+))\s*\.\s*(\w+)\s*\(/g;
     while ((m = helperRx.exec(clean))) {
         const [, inlineSpec, localName, fn] = m;
@@ -475,12 +459,12 @@ function resolveSpec(fromFile, spec, readSource) {
 }
 
 /**
- * Bouwt het route-oppervlak op vanaf een entry-bestand (index.js).
+ * Builds the route surface starting from an entry file (index.js).
  *
- * @param {(relPath: string) => string|null} readSource bron per relatief pad
- * @param {string} entry  entry-bestand, bv. 'index.js'
- * @param {{ skipPrefix?: (p: string) => boolean }} [opts] mounts overslaan
- *        (bv. triagedPrefixes: die dekt de walker-drifttest al, dieper)
+ * @param {(relPath: string) => string|null} readSource source per relative path
+ * @param {string} entry  entry file, e.g. 'index.js'
+ * @param {{ skipPrefix?: (p: string) => boolean }} [opts] mounts to skip
+ *        (e.g. triagedPrefixes: the walker drift test already covers those, in depth)
  * @returns {{ routes: Array, opaque: Array, files: string[], skippedMounts: string[] }}
  */
 function parseSurface(readSource, entry, opts = {}) {
@@ -500,23 +484,19 @@ function parseSurface(readSource, entry, opts = {}) {
         if (depth > 12) return;
         const p = parseOf(file);
 
-        // Binnengekomen via een register-helper? Dan is de actieve
-        // router-variabele de eerste PARAMETER van die functie — een
-        // groepsmodule roept zelf nooit express.Router() aan. Is die parameter
-        // niet te vinden, dan vallen we terug op de gewone regel: liever
-        // opaque (luid) dan stil niets.
+        // Entered via a register helper? Then the active router variable is the first PARAMETER of that
+        // function — a group module never calls express.Router() itself. If that parameter cannot be found,
+        // we fall back to the ordinary rule: better opaque (loud) than silently nothing.
         const viaParam = entryFn ? p.fnParams.get(entryFn) : null;
         const activeVars = viaParam ? new Set([viaParam]) : new Set(
             p.exported ? [p.exported] : [...p.routerVars, ...(file === entry ? ['app'] : [])],
         );
         if (file === entry) activeVars.add('app');
 
-        // De actieve variabelen horen in de sleutel: één bestand kan via twee
-        // register-functies worden binnengekomen (routes/support.js roept
-        // threads.registerThreadRoutes én threads.registerBulkRoute aan). Delen
-        // die dezelfde parameternaam, dan heeft de eerste doorloop het bestand
-        // al volledig gelezen en is de tweede dubbel werk; verschillen ze, dan
-        // moeten ze allebei.
+        // The active variables belong in the key: one file can be entered via two register functions
+        // (routes/support.js calls threads.registerThreadRoutes AND threads.registerBulkRoute). If both share
+        // the same parameter name, the first pass has already read the file completely and the second is
+        // duplicate work; if they differ, both must be done.
         const key = `${file}::${prefix}::${[...activeVars].sort().join(',')}`;
         if (visited.has(key)) return;
         visited.add(key);
@@ -526,9 +506,9 @@ function parseSurface(readSource, entry, opts = {}) {
         if (!sawAnything) opaque.push({ file, prefix });
     }
 
-    // App-level app.use(fn) zonder pad in het entry-bestand is PLUMBING (helmet,
-    // sessies, body parsers, de bridge-middleware) — geen gate voor wat eronder
-    // gemount wordt. Zelfde uitsluiting als routeWalk.cli.js maakt met isRoot.
+    // App-level app.use(fn) without a path in the entry file is PLUMBING (helmet, sessions, body parsers,
+    // the bridge middleware) — not a gate for what is mounted beneath it. The same exclusion as
+    // routeWalk.cli.js makes with isRoot.
     const gateApplies = (isRoot) => (g) => !(isRoot && g.routerVar === 'app' && g.path === '/');
 
     function emitVar(file, p, vars, prefix, inherited, depth, sawCb) {
@@ -582,13 +562,13 @@ function parseSurface(readSource, entry, opts = {}) {
 
 // ── De pure sweep ────────────────────────────────────────────────────────────
 /**
- * Beslist per route of hij verantwoord is. Puur: geen IO, geen require van
- * app-code — alleen het geparste model, het registry en de vrijstellingen.
+ * Decides per route whether it is accounted for. Pure: no IO, no require of app code — only the
+ * parsed model, the registry and the exemptions.
  *
- * Vrijstellings-sleutels (exempt: Map sleutel → reden):
- *   'METHOD /pad'        één route (zelfde sleutelvorm als het registry)
- *   'file:routes/x.js'   alle routes uit één bestand
- *   'mount:/prefix'      alles onder een mount (ook opaque/dynamische mounts)
+ * Exemption keys (exempt: Map key → reason):
+ *   'METHOD /path'        one route (same key form as the registry)
+ *   'file:routes/x.js'    all routes from one file
+ *   'mount:/prefix'       everything under a mount (also opaque/dynamic mounts)
  *
  * @returns {{ unaccounted, unaccountedOpaque, staleExempt, redundantExempt, stats }}
  */
@@ -614,9 +594,8 @@ function sweepSurface(surface, registry, exempt) {
     for (const route of surface.routes) {
         const id = `${route.method} ${route.path}`;
         if (triaged(route.path)) continue;
-        // Een gate geldt ongeacht de padvorm, dus ook een dynamische (regex-)
-        // registratie is verantwoord zodra er evidence is; alleen een
-        // dynamische route ZONDER gate vraagt een file:/mount:-vrijstelling.
+        // A gate applies regardless of the path form, so a dynamic (regex) registration is also accounted for
+        // as soon as there is evidence; only a dynamic route WITHOUT a gate requires a file:/mount: exemption.
         const structural = route.evidence.length > 0;
         const declared = Boolean((registry.routes || {})[id]) || (registry.untriaged || []).includes(id);
         const key = exemptKeyFor(route);

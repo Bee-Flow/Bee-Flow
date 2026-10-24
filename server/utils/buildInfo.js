@@ -2,25 +2,23 @@
 'use strict';
 
 /**
- * Buildstempel van dit serverproces.
+ * Build stamp of this server process.
  *
- * CI geeft de git-SHA door als build-arg (.github/workflows/build-push-ghcr.yml,
- * job `server`) die server/Dockerfile als ENV APP_BUILD_SHA in het image bakt.
+ * CI passes the git SHA as a build arg (.github/workflows/build-push-ghcr.yml, job `server`), which
+ * server/Dockerfile bakes into the image as ENV APP_BUILD_SHA.
  *
- * De fallback is bewust 'dev' en niet een lege string: lokale dev en self-host
- * builds zonder CI-injectie hebben óók een bruikbare, niet-lege stempel nodig —
- * onder andere als versiecomponent in cachesleutels, waar '' onzichtbaar in de
- * sleutel verdwijnt en twee verschillende builds dezelfde sleutel zouden munten.
- * Eén keer hier vastgelegd, zodat niet elke lezer zijn eigen fallback verzint.
+ * The fallback is deliberately 'dev' and not an empty string: local dev and self-host builds without
+ * CI injection also need a usable, non-empty stamp — among other things as a version component in cache
+ * keys, where '' silently disappears from the key and two different builds would mint the same key.
+ * Recorded once here, so that not every reader invents its own fallback.
  */
 const APP_BUILD_SHA = process.env.APP_BUILD_SHA || 'dev';
 
 /**
- * Vlecht de buildversie in een cachesleutel-prefix, zodat sleutels van een
- * oude en een nieuwe build elkaar in gedeelde caches (sessie/Redis) nooit
- * kunnen raken — ook niet bij een rollback.
+ * Weaves the build version into a cache key prefix, so that keys of an old and a new build can never
+ * collide in shared caches (session/Redis) — not even on a rollback.
  *
- * @param {string} prefix - de sleutel zonder versiecomponent, bv. `_ent:u1:o2`
+ * @param {string} prefix - the key without the version component, e.g. `_ent:u1:o2`
  * @returns {string} `${prefix}:b<sha>`
  */
 function buildKey(prefix) {

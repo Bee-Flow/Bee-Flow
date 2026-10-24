@@ -6,16 +6,14 @@ import PrivacyLine from './PrivacyLine';
 import { interpolate } from '../../../hooks/useTranslation';
 
 /**
- * C7 — wat de regel op het scherm zegt, en vooral wat hij niet zegt.
+ * C7: what the line says on screen, and above all what it does NOT say.
  *
- * De demonstratievorm mag beweren dat de echte waarde hier bleef, want hij wijst
- * de plaatsvervanger aan én de echte waarde staat leesbaar in de bubbel erboven.
- * De onbewezen vorm mag dat niet: daar is niets gemeten, en een geruststellende
- * zin zonder meting is erger dan geen zin.
+ * The demonstration form may claim that the real value stayed here, because it points to the placeholder AND the
+ * real value stands legibly in the bubble above it. The unproven form may not: nothing was measured there, and a
+ * reassuring sentence without a measurement is worse than no sentence.
  *
- * `t` is hier de échte resolutie-vorm (sleutel ontbreekt nog in het woordenboek
- * → de Engelse fallback, mét interpolatie), zodat de test ziet wat een gebruiker
- * vandaag ziet.
+ * `t` here is the real resolution form (the key is still missing from the dictionary, so the English fallback,
+ * WITH interpolation), so that the test sees what a user sees today.
  */
 const t = (_key, fallback, params) => interpolate(fallback, params);
 
@@ -34,8 +32,8 @@ describe('PrivacyLine — de demonstratievorm', () => {
     });
 
     it('laat de plaatsvervanger als eigen element staan, niet als losse tekst', () => {
-        // Het artboard zet hem in monospace op --bg-tertiary; belangrijker is dat
-        // hij een aanwijsbaar element is en niet in de zin verdwijnt.
+        // The artboard sets it in monospace on --bg-tertiary. More important is that it is an identifiable element and
+        // does not disappear into the sentence.
         render(<PrivacyLine count={1} messageText={TEXT} tokenMap={MAP} t={t} />);
         const token = screen.getByTestId('privacy-line-token');
         expect(token.tagName).toBe('CODE');
@@ -73,8 +71,7 @@ describe('PrivacyLine — de eerlijke degradatie', () => {
 
     it('zegt wát er niet getoond kan worden, in plaats van alleen een aantal', () => {
         render(<PrivacyLine count={3} messageText={TEXT} t={t} />);
-        // Het onbekende versmalt: niet "3 items redacted", maar precies welk
-        // stuk bewijs het scherm mist.
+        // The unknown narrows: not "3 items redacted", but precisely which piece of evidence the screen is missing.
         expect(line().textContent).toMatch(/cannot show which placeholder/i);
         expect(line().textContent).toMatch(/3/);
     });
@@ -90,11 +87,9 @@ describe('PrivacyLine — de eerlijke degradatie', () => {
 
 describe('PrivacyLine — een half gecontroleerde beurt', () => {
     it('geruststelt niet dwars over een doorlaat heen', () => {
-        // Een dossier brak na 3 van 90 pagina's af en de rest ging onder
-        // fail_open ONGEREDIGEERD naar de AI. "de echte waarde bleef hier" is
-        // dan waar over het aangetoonde en misleidend over de rest. De zin
-        // moet de doorlaat zelf dragen — niet alleen de pil ernaast, want dat
-        // is een tweede component met een eigen bewijslast.
+        // A file broke off after 3 of 90 pages, and the rest went under fail_open UNREDACTED to the AI. "the real value
+        // stayed here" is then true about what was shown and misleading about the rest. The sentence must carry the
+        // pass-through itself, not only the pill beside it, because that is a second component with its own burden of proof.
         render(<PrivacyLine count={1} messageText={TEXT} tokenMap={MAP} scanIncomplete t={t} />);
 
         expect(screen.getByTestId('privacy-line-incomplete')).toBeTruthy();
@@ -119,10 +114,9 @@ describe('PrivacyLine — een half gecontroleerde beurt', () => {
 
 describe('PrivacyLine — wat de zin niet mag claimen', () => {
     it('maakt de aangetoonde plaatsvervanger geen lid van de telling', () => {
-        // De kluismap is conversatiebreed. Bij vier vervangingen en één
-        // aantoonbaar token is "4 vervangen, WAARONDER [email_1]" een bewering
-        // over lidmaatschap die dit scherm niet kan doen. De twee beweringen
-        // horen naast elkaar te staan, niet in elkaar geschoven.
+        // The token vault is conversation-wide. With four replacements and one demonstrably present token, "4 replaced,
+        // INCLUDING [email_1]" is a claim about membership that this screen cannot make. The two claims should stand
+        // next to each other, not fused together.
         render(<PrivacyLine count={4} messageText={TEXT} tokenMap={MAP} t={t} />);
 
         expect(line()).toHaveAttribute('data-privacy-line', 'demonstrated');
@@ -133,9 +127,8 @@ describe('PrivacyLine — wat de zin niet mag claimen', () => {
     });
 
     it('zegt het in enkelvoud waar er één vervanging was, ook onbewezen', () => {
-        // De onbewezen vorm is de zin die het meest gelezen wordt zodra een org
-        // de tokenmap niet deelt; "1 values were replaced" hoort daar net zo
-        // min als in de demonstratievorm.
+        // The unproven form is the sentence that is read most often once an org does not share the token map. "1 values
+        // were replaced" belongs there just as little as in the demonstration form.
         render(<PrivacyLine count={1} messageText={TEXT} tokenMap={null} t={t} />);
 
         expect(line()).toHaveAttribute('data-privacy-line', 'unproven');
@@ -146,9 +139,8 @@ describe('PrivacyLine — wat de zin niet mag claimen', () => {
     });
 
     it('laat de plaatsvervanger nooit vallen, ook niet in een vertaling zonder {tokens}', () => {
-        // Het vangnet dat de code belooft. Een vertaler die de "rare accolade"
-        // weghaalt mag de demonstratie niet terugbrengen tot de tellervorm die
-        // deze batch juist wegnam — dan komen de chips achteraan de zin.
+        // The safety net that the code promises. A translator who removes the "odd brace" may not reduce the demonstration
+        // to the counter form that this batch precisely removed. Then the chips end up at the back of the sentence.
         const noPlaceholder = (_key, _fallback, params) =>
             interpolate('Er zijn {count} gegevens vervangen voordat dit naar de AI ging.', params);
         render(<PrivacyLine count={1} messageText={TEXT} tokenMap={MAP} t={noPlaceholder} />);

@@ -1,32 +1,31 @@
 'use strict';
 
 /**
- * Wat de vergadernotitie-routes aannemen, en wat ze zeggen als ze weigeren
+ * What the meeting-note routes accept, and what they say when they refuse
  * (routes/transcriptions/*.js).
  *
- * Vier stille terugvallen stonden hier, allemaal onder een 200, en drie ervan
- * gaan over wat er met een OPNAME gebeurt:
+ * Four silent fallbacks stood here, all under a 200, and three of them concern what
+ * happens to a RECORDING:
  *
- *   - `PATCH /talk-meetings/:token {"record":"false"}` zette de automatische
- *     opname AAN. De voorkeur werd geschreven als `record: !!record`, en de
- *     tekst "false" is waar. `PATCH /gmeet-meetings/:eventId` deed hetzelfde.
- *     Andersom net zo: een verkeerd gespelde sleutel zette hem UIT.
- *   - `PATCH /:id/publish {"isPublished":true,"sharedGrous":["g-hr"]}` deelde
- *     de vergadering met de HELE ORGANISATIE: de groepenlijst viel weg, en een
- *     lege lijst op een gepubliceerde notitie betekent iedereen.
- *   - `POST /from-nextcloud {"languge":"en"}` liet een Engelse opname in het
- *     Nederlands transcriberen — niet te zien aan het antwoord.
- *   - `POST /:id/regenerate-summary {"templatId":"tpl_1"}` herschreef de
- *     samenvatting met het ingebouwde 'general'-sjabloon en stempelde díe naam
- *     eronder.
+ *   - `PATCH /talk-meetings/:token {"record":"false"}` switched automatic recording
+ *     ON. The preference was written as `record: !!record`, and the text "false" is
+ *     true. `PATCH /gmeet-meetings/:eventId` did the same. The other way round just
+ *     as much: a misspelled key switched it OFF.
+ *   - `PATCH /:id/publish {"isPublished":true,"sharedGrous":["g-hr"]}` shared the
+ *     meeting with the WHOLE ORGANISATION: the group list dropped out, and an empty
+ *     list on a published note means everyone.
+ *   - `POST /from-nextcloud {"languge":"en"}` let an English recording be transcribed
+ *     in Dutch — not visible from the answer.
+ *   - `POST /:id/regenerate-summary {"templatId":"tpl_1"}` rewrote the summary with
+ *     the built-in 'general' template and stamped that name under it.
  *
- * Wat dit bestand vastlegt is het deel waar een beller iets mee kan:
+ * What this file records is the part where a caller can do something about it:
  *
- *   - de 400 NOEMT het veld (`body.record`), niet alleen "ongeldig";
- *   - de boodschap is een zin, ook voor een veld dat simpelweg ontbreekt;
- *   - de stores worden niet bereikt, dus een geweigerd verzoek verandert niets.
+ *   - the 400 NAMES the field (`body.record`), not just "invalid";
+ *   - the message is a sentence, also for a field that is simply missing;
+ *   - the stores are not reached, so a refused request changes nothing.
  *
- * Draaien: cd server && node --test routes/transcriptions/transcriptions.validation.test.js
+ * Run: cd server && node --test routes/transcriptions/transcriptions.validation.test.js
  */
 
 process.env.NODE_ENV = 'test';
@@ -39,8 +38,7 @@ const express = require('express');
 const SERVER = path.resolve(__dirname, '..', '..');
 const { mockModule: mock } = require('../../testUtils/moduleMock');
 
-// Elke store-aanroep komt in `touched` terecht. Een geweigerd verzoek moet
-// hem leeg laten.
+// Every store call ends up in `touched`. A refused request must leave it empty.
 let touched = [];
 /** @type {Error | null} */
 let ingestFails = null;
@@ -161,9 +159,8 @@ async function refuses(request, field) {
 // ═══ De opnameschakelaars ═══════════════════════════════════════════
 
 test('de tekst "false" zet een opname niet meer aan', async () => {
-    // `record: !!record` — "false" is waar, dus wie de opname UIT zette met
-    // een tekst zette hem AAN, voor deze vergadering en met `applyToSeries`
-    // voor de hele serie.
+    // `record: !!record` — "false" is true, so whoever switched recording OFF with a
+    // text switched it ON, for this meeting and, with `applyToSeries`, for the whole series.
     await refuses({ method: 'PATCH', url: '/talk-meetings/abc', body: { record: 'false' } }, 'body.record');
     await refuses({ method: 'PATCH', url: '/gmeet-meetings/e1', body: { record: 'false' } }, 'body.record');
 });
@@ -296,8 +293,8 @@ test('een titel die geen tekst is wordt geweigerd in plaats van als cijfers opge
 });
 
 test('een exportformaat dat er niet is wordt geweigerd, niet als markdown geleverd', async () => {
-    // `?fromat=txt` viel weg en de standaard 'md' nam het over: een
-    // markdown-bestand op een vraag om platte tekst.
+    // `?fromat=txt` was dropped and the default 'md' took over: a markdown file in
+    // answer to a request for plain text.
     await refuses({ method: 'GET', url: '/t-1/export?fromat=txt' }, 'query');
     const res = await dispatch({ method: 'GET', url: '/t-1/export?format=pdf' });
     assert.strictEqual(res.statusCode, 400);
@@ -305,9 +302,9 @@ test('een exportformaat dat er niet is wordt geweigerd, niet als markdown geleve
 });
 
 test('de sprekerbewerking doet geen lege schrijfronde meer', async () => {
-    // `{"rename": {...}}` liet `renames` op `{}` staan, waarna de route de
-    // segmenten, de sprekers en het transcript ONGEWIJZIGD terugschreef en de
-    // hele notitie terugstuurde — wat een geslaagde hernoeming er ook is.
+    // `{"rename": {...}}` left `renames` at `{}`, after which the route wrote the
+    // segments, the speakers and the transcript back UNCHANGED and returned the whole
+    // note — which is also what a successful rename looks like.
     await refuses({ method: 'PATCH', url: '/t-1/speakers', body: { rename: { 'Guest-1': 'Tom' } } }, 'body');
 });
 

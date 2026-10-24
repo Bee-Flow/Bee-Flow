@@ -1,14 +1,13 @@
 /**
- * routes/webpagesPreviewTables — de `window.beeflowTables`-brug.
+ * routes/webpagesPreviewTables — the `window.beeflowTables` bridge.
  *
- * Geen databank en geen echte token: `requirePreviewToken`, de limiters, de
- * grant-lezer, de principal-resolver en de runner worden vóór het laden van de
- * router vervangen (ze worden daar gedestructureerd, dus later patchen komt te
- * laat). Wat overblijft is precies wat deze route zelf beslist: welke van de
- * twee poorten er dichtgaat, in welke volgorde, en met welke waarden de runner
- * wordt aangeroepen.
+ * No database and no real token: `requirePreviewToken`, the limiters, the grant reader, the
+ * principal resolver and the runner are replaced before the router loads (they are
+ * destructured there, so patching later comes too late). What remains is exactly what this
+ * route decides itself: which of the two gates closes, in which order, and with which values
+ * the runner is called.
  *
- * Draaien: cd server && node --test --test-force-exit routes/webpagesPreviewTables.test.js
+ * Run: cd server && node --test --test-force-exit routes/webpagesPreviewTables.test.js
  */
 
 const test = require('node:test');

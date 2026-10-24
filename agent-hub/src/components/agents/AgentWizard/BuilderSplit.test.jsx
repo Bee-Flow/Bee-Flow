@@ -28,33 +28,19 @@ vi.mock('../../renderers/MarkdownRenderer', () => ({
     default: ({ content }) => <div data-testid="markdown">{content}</div>,
 }));
 /**
- * Eigen vertaler in plaats van de gedeelde stub, om precies de reden die in
- * `src/test/i18n.ts` staat: die stub geeft de fallback ONGEWIJZIGD terug, dus
- * "{count} documents" blijft daar letterlijk staan. De echte hook vult de
- * placeholders wél in, en dit bestand beweert dingen over de zin die de
- * gebruiker leest ("42 documents"). Zelfde regel als de echte t():
- * een string als tweede argument is de fallback, anders zijn het de params.
+ * Own translator instead of the shared stub, for exactly the reason stated in `src/test/i18n.ts`:
+ * that stub returns the fallback UNCHANGED, so "{count} documents" stays there literally. The real
+ * hook does fill in the placeholders, and this file asserts things about the sentence that the user
+ * reads ("42 documents"). Same rule as the real t(): a string as the second argument is the fallback,
+ * otherwise they are the params.
  */
-vi.mock('../../../hooks/useTranslation', () => {
-    const t = (key, fallbackOrParams, paramsArg) => {
-        const hasStringFallback = typeof fallbackOrParams === 'string';
-        const params = hasStringFallback ? paramsArg : fallbackOrParams;
-        let value = hasStringFallback ? fallbackOrParams : key;
-        if (params && typeof params === 'object') {
-            for (const [k, v] of Object.entries(params)) value = value.split(`{${k}}`).join(String(v));
-        }
-        return value;
-    };
-    const useTranslation = () => ({ t, locale: 'en', setLocale: () => {}, isLoading: false, strings: {} });
-    return { default: useTranslation, useTranslation, TranslationProvider: ({ children }) => children };
-});
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import BuilderSplit from './BuilderSplit';
 import { authFetch } from '../../../utils/helpers';
 
-// De standaardmock antwoordt overal met ok:false. Een test die een geslaagde
-// lezing nodig heeft zet er tijdelijk een eigen antwoordtabel voor en zet die
-// daarna terug — anders lekt hij naar de volgende test.
+// The default mock answers everywhere with ok:false. A test that needs a successful reading sets
+// its own answer table for a while and puts it back afterwards — otherwise it leaks into the next test.
 const DEFAULT_FETCH = authFetch.getMockImplementation();
 function answerWith(routes) {
     authFetch.mockImplementation(async (url) => {
@@ -116,11 +102,10 @@ describe('BuilderSplit (decomposed layout smoke)', () => {
 });
 
 /**
- * A2 stap 1 — de editor-chrome. Deze drie pinnen de dingen vast die de
- * herindeling stilletjes weer terug kan draaien: de rail hoort RECHTS, de
- * omschrijving hoort ALTIJD zichtbaar, en de tabs moeten echt van inhoud
- * wisselen. De vierde pint de "geen 0"-regel op een teller die de server
- * niet kon beantwoorden.
+ * A2 step 1 — the editor chrome. These three pin the things that the rearrangement could quietly
+ * turn back: the rail belongs on the RIGHT, the description is ALWAYS visible, and the tabs must
+ * really switch content. The fourth pins the "no 0" rule on a counter that the server could not
+ * answer.
  */
 describe('BuilderSplit — kop, hero en tabs', () => {
     it('zet de verfijn-rail rechts van de inhoud', () => {
@@ -133,9 +118,9 @@ describe('BuilderSplit — kop, hero en tabs', () => {
         expect(rail.tagName).toBe('ASIDE');
         // De greep zit ertussen, niet erbuiten.
         expect(kids.indexOf(screen.getByTestId('refine-rail-handle'))).toBe(1);
-        // jsdom rekent geen layout uit, dus de KANT staat als bron in de
-        // klassen: een rij die omgedraaid wordt zet de rail links zonder één
-        // DOM-knoop te verplaatsen, en een rail rechts heeft zijn rand links.
+        // jsdom does not calculate layout, so the SIDE is in the source as a class: a rail that gets
+        // mirrored moves to the left without moving a single DOM node, and a rail on the right has its
+        // edge on the left.
         expect(row.className).not.toMatch(/flex-row-reverse/);
         expect(rail.className).toContain('border-l');
         expect(rail.className).not.toContain('border-r');
@@ -173,11 +158,10 @@ describe('BuilderSplit — kop, hero en tabs', () => {
 });
 
 /**
- * A2 stap 2 — de tab "Kan gebruiken" draagt Kennis en Skills.
+ * A2 step 2 — the "Can use" tab carries Knowledge and Skills.
  *
- * De drie beloftes die een herindeling het makkelijkst weer sloopt: de
- * kaarten staan er, een mislukte lezing zegt dát in plaats van een lege
- * lijst te tonen, en de teller op de tab telt wat er op de tab staat.
+ * The three promises that a rearrangement most easily breaks: the cards are there, a failed reading
+ * says THAT instead of showing an empty list, and the counter on the tab counts what is on the tab.
  */
 describe('BuilderSplit — de tab "Kan gebruiken"', () => {
     const openCanUse = () => fireEvent.click(screen.getAllByRole('radio', { name: /Can use/ })[0]);
@@ -192,9 +176,8 @@ describe('BuilderSplit — de tab "Kan gebruiken"', () => {
     });
 
     it('zegt bij een mislukte kennisbanklezing dát hij mislukte — nooit "niets gekoppeld"', async () => {
-        // De standaardmock laat élke fetch falen, dus GET /api/kb?context=agent
-        // ook. De agent HEEFT een koppeling, dus er valt iets te benoemen dat
-        // we niet konden benoemen — precies waar de waarschuwing voor is.
+        // The default mock fails every fetch, so GET /api/kb?context=agent does too. The agent DOES have
+        // a link, so there is something to name that we could not name — exactly what the warning is for.
         render(<BuilderSplit {...baseProps} agent={{ ...agent, config: { knowledge_base_ids: ['kb1'] } }} />);
         openCanUse();
         expect(await screen.findByTestId('agent-knowledge-kbs-unreadable')).toBeTruthy();
@@ -204,8 +187,8 @@ describe('BuilderSplit — de tab "Kan gebruiken"', () => {
     it('waarschuwt niet over kennisbanken die deze agent niet heeft', async () => {
         render(<BuilderSplit {...baseProps} />);
         openCanUse();
-        // Nul koppelingen: dan is "niets gekoppeld" het antwoord, niet een
-        // waarschuwing over een lijst die deze agent toch niet gebruikt.
+        // Zero links: then "nothing linked" is the answer, not a warning about a list that this agent
+        // does not use anyway.
         expect(await screen.findByTestId('agent-knowledge-empty')).toBeTruthy();
         expect(screen.queryByTestId('agent-knowledge-kbs-unreadable')).toBeNull();
     });
@@ -288,12 +271,11 @@ describe('BuilderSplit — the Upload files pill', () => {
 });
 
 /**
- * A2 stap 3 — de Tools-kaart hangt aan dezelfde tab.
+ * A2 step 3 — the Tools card hangs off the same tab.
  *
- * Wat hier gepind wordt is de BEDRADING, niet de kaart zelf (die heeft zijn
- * eigen suite): dat de catalogus uit de ONGEGATE bron komt, dat een mislukte
- * lezing de rijen laat staan, dat een grant op een uitgezette app zichtbaar
- * blijft, en dat een keuze in de kaart in de config landt.
+ * What is pinned here is the WIRING, not the card itself (that has its own suite): that the
+ * catalogue comes from the UNGATED source, that a failed reading leaves the rows in place, that
+ * a grant on a switched-off app stays visible, and that a choice in the card lands in the config.
  */
 describe('BuilderSplit — de Tools-kaart', () => {
     const openCanUse = () => fireEvent.click(screen.getAllByRole('radio', { name: /Can use/ })[0]);
@@ -394,12 +376,11 @@ describe('BuilderSplit — de Tools-kaart', () => {
 });
 
 /**
- * A2 stap 4 — de tool-KIEZER hangt aan dezelfde kaart.
+ * A2 step 4 — the tool PICKER hangs off the same card.
  *
- * Twee dingen die de bedrading stilletjes kan verliezen: de ↗ moet de kiezer
- * op DIE app openen (en niet, zoals in stap 3, de oude apps-popover op een
- * andere tab), en wat je daar kiest moet in de config landen — in één keer,
- * met allebei de poorten (`enabledIntegrations` én `config.tools`).
+ * Two things that the wiring can silently lose: the ↗ must open the picker on THAT app (and not,
+ * as in step 3, the old apps popover on another tab), and what you choose there must land in the
+ * config — in one go, with both gates (`enabledIntegrations` AND `config.tools`).
  */
 describe('BuilderSplit — de tool-kiezer', () => {
     const openCanUse = () => fireEvent.click(screen.getAllByRole('radio', { name: /Can use/ })[0]);
@@ -426,8 +407,8 @@ describe('BuilderSplit — de tool-kiezer', () => {
     it('opent de kiezer op de app van de rij, op dezelfde tab', async () => {
         const user = userEvent.setup();
         answerWith([['/agents/tool-catalog', CATALOG]]);
-        // Drive staat NIET bovenaan in de kiezer (Gmail sorteert ervoor), dus
-        // deze test faalt zodra de ↗ zijn app-id onderweg kwijtraakt.
+        // Drive is NOT at the top of the picker (Gmail sorts before it), so this test fails as soon as the
+        // ↗ loses its app id along the way.
         render(<BuilderSplit {...baseProps} agent={{ ...agent, config: { enabledIntegrations: ['google-drive'] } }} />);
         openCanUse();
 
@@ -476,8 +457,8 @@ describe('BuilderSplit — de tool-kiezer', () => {
         await waitFor(() => expect(screen.getByTestId('agent-tool-row').textContent).toContain('Google Drive'));
         expect(screen.queryByTestId('agent-tools-empty')).toBeNull();
 
-        // En allebei de poorten gaan in DEZELFDE opslag mee: een patch met
-        // alleen de acties zou een app opleveren die aanstaat noch uitstaat.
+        // And both gates go into the SAME store: a patch with only the actions would give an app that is
+        // neither on nor off.
         const puts = authFetch.mock.calls.filter(([url, opts]) => opts?.method === 'PUT' && String(url).includes('/agents/agent-1'));
         const put = puts[puts.length - 1];
         expect(put).toBeTruthy();
@@ -488,12 +469,11 @@ describe('BuilderSplit — de tool-kiezer', () => {
 });
 
 /**
- * A2 stap 5 — de "Gedaan"-beurt en het ongedaan maken, bedraad.
+ * A2 step 5 — the "Done" turn and the undo, wired up.
  *
- * De kaart zelf is gepind in builderSplit/RefineDoneCard.test.jsx; wat hier
- * bewezen wordt is de BEDRADING: dat de klik bij de juiste versie uitkomt,
- * dat een beurt zonder herstelpunt niets aanroept, en dat "Test met een
- * vraag" echt van tab wisselt.
+ * The card itself is pinned in builderSplit/RefineDoneCard.test.jsx; what is proven here is the
+ * WIRING: that the click lands on the right version, that a turn without a restore point calls
+ * nothing, and that "Test with a question" really switches tab.
  */
 describe('BuilderSplit — de Gedaan-beurt in de verfijn-rail', () => {
     const doneTurn = (extra = {}) => ({
@@ -543,9 +523,8 @@ describe('BuilderSplit — de Gedaan-beurt in de verfijn-rail', () => {
 
     it('herstelt ook de LIJSTEN die de kaarten tekenen, niet alleen stateRef', async () => {
         const user = userEvent.setup();
-        // De verfijning zette gmail aan; het ongedaan maken haalt hem weg.
-        // Bleef de React-state staan, dan toont "Kan gebruiken" een app die
-        // volgens de opgeslagen staat niet meer aanstaat.
+        // The refinement switched gmail on; the undo removes it. If the React state stayed, "Can use" would
+        // show an app that according to the saved state is no longer on.
         answerWith([
             ['/versions/agent-1/v9/restore', { success: true, restoredTo: 4 }],
             ['/agents/agent-1', { ...agent, config: { enabledIntegrations: [] }, rev: 5 }],
@@ -570,20 +549,19 @@ describe('BuilderSplit — de Gedaan-beurt in de verfijn-rail', () => {
         render(<BuilderSplit {...baseProps} history={[doneTurn()]} />);
         await user.click(screen.getByTestId('refine-done-test'));
         expect(screen.getByTestId('agent-tests-card')).toBeTruthy();
-        // De standaardmock antwoordt met ok:false, dus dit is een MISLUKTE
-        // lezing — en die mag nooit als "nog niet gedraaid" op de kaart komen
-        // (A4 deel D). Dat de tab dat hier al waarmaakt, is de reden dat deze
-        // assertie meeverhuisde toen de placeholder verdween.
+        // The default mock answers with ok:false, so this is a FAILED reading — and that may never appear on
+        // the card as "not yet run" (A4 part D). That this tab already makes that come true is the reason
+        // this assertion moved along when the placeholder disappeared.
         await waitFor(() => expect(screen.getByTestId('agent-tests-score')).toHaveAttribute('data-state', 'unknown'));
     });
 });
 
 /**
- * A2 stap 5 — de persona die na een verfijning ECHT bij de server aankomt.
+ * A2 step 5 — the persona that really reaches the server after a refinement.
  *
- * `mergeRefinedPlan` rekende hem al uit; wat ontbrak was de laatste meter.
- * En hij reist EENMALIG: blijft hij op de snapshot staan, dan stuurt elke
- * latere opslag een persona mee die intussen elders veranderd kan zijn.
+ * `mergeRefinedPlan` already calculated it; what was missing was the last metre. And it travels
+ * ONCE: if it stays on the snapshot, every later save sends a persona that may in the meantime have
+ * been changed elsewhere.
  */
 describe('BuilderSplit — de verfijnde persona bereikt de opslag, precies één keer', () => {
     const REFINED = {
@@ -631,8 +609,8 @@ describe('BuilderSplit — de verfijnde persona bereikt de opslag, precies één
         expect(refineSave.persona.unknown).toEqual({ mode: 'handoff', automationId: 'auto-1' });
         expect(refineSave.persona.language).toBe('nl');
 
-        // Een gewone bewerking daarna draagt GEEN persona meer — anders
-        // overschrijft elke opslag een rol die een ander scherm net zette.
+        // An ordinary edit afterwards carries NO persona any more — otherwise every save overwrites a role
+        // that another screen has just set.
         fireEvent.change(screen.getByDisplayValue('Test Agent'), { target: { value: 'Renamed' } });
         await waitFor(() => expect(putsTo('agent-1').length).toBe(2), { timeout: 3000 });
         expect('persona' in putsTo('agent-1')[1]).toBe(false);
@@ -640,9 +618,9 @@ describe('BuilderSplit — de verfijnde persona bereikt de opslag, precies één
 
     it('stuurt GEEN persona mee als de kolom niet gelezen kon worden', async () => {
         const user = userEvent.setup();
-        // De lijstrij draagt geen persona (`_stripPersona`) en `?draft=1` geeft
-        // hem hier ook niet mee. Een verse persona wegschrijven zou `unknown`
-        // en `language` weggooien — instellingen die dit pad nooit las.
+        // The list row carries no persona (`_stripPersona`) and `?draft=1` does not give one here either.
+        // Writing a fresh persona back would throw away `unknown` and `language` — settings that this path
+        // never read.
         answerWith([
             ['/agents/wizard/refine', REFINED],
             ['/versions/agent-1/pre-refine', { id: 'v-pre' }],
@@ -692,14 +670,13 @@ describe('BuilderSplit — de verfijnde persona bereikt de opslag, precies één
 
     it('neemt het prompt over dat de SERVER uit de persona rendeerde', async () => {
         const user = userEvent.setup();
-        // De persona is de bron van het prompt: de server rendert hem en negeert
-        // de tekst die we meestuurden. Zonder die overname houdt de editor zijn
-        // eigen tekst vast en schrijft de eerstvolgende opslag (die geen persona
-        // draagt) die er weer overheen.
+        // The persona is the source of the prompt: the server renders it and ignores the text we sent along.
+        // Without that takeover the editor keeps holding on to its own text, and the next save (which
+        // carries no persona) writes it over again.
         answerWith([
             ['/agents/wizard/refine', REFINED],
             ['/versions/agent-1/pre-refine', { id: 'v-pre' }],
-            // De PUT antwoordt met het GERENDERDE prompt, niet met 'Be brief.'.
+            // The PUT answers with the RENDERED prompt, not with 'Be brief.'.
             ['/agents/agent-1', { ...agent, persona: STORED_PERSONA, system_prompt: 'De supportcollega.\n\nWhat you do:\n- antwoorden', rev: 4 }],
         ]);
         render(<BuilderSplit {...baseProps} agent={{ ...agent, persona: STORED_PERSONA }} />);

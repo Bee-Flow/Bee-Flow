@@ -196,12 +196,12 @@ describe('setNodeEvent', () => {
         expect(findNode(withCard, 'cmp_refre1').node.onCardMove).toBe('act_fetch1');
     });
 
-    // onDecided ontbrak in NODE_EVENTS terwijl de server het kent
-    // (componentSpecs/screenSpec.js), approval_list het toestaat, de inspector
-    // het slot rendert en de runtime het uitvoert. Gevolg: deze aanroep viel op
-    // de guard in setNodeEvent en gaf DEZELFDE def terug — de gebruiker klikte,
-    // er gebeurde niets, en er stond geen fout. Dat is precies het stille
-    // wegvallen dat de Logica-tab moet uitsluiten, dus wordt het hier vastgezet.
+    // onDecided was missing from NODE_EVENTS while the server knows it
+    // (componentSpecs/screenSpec.js), approval_list allows it, the inspector
+    // renders the slot and the runtime executes it. Consequence: this call fell
+    // into the guard in setNodeEvent and returned the SAME def — the user clicked,
+    // nothing happened, and there was no error. That is exactly the silent
+    // dropping that the Logic tab must exclude, so it is pinned here.
     it('bedraadt onDecided echt, in plaats van de def ongewijzigd terug te geven', () => {
         expect(NODE_EVENTS).toContain('onDecided');
         const next = setNodeEvent(KITCHEN_SINK, 'cmp_refre1', 'onDecided', 'act_toast1');
@@ -975,12 +975,12 @@ describe('removeNode — a deleted dialog takes its wiring with it', () => {
 });
 
 describe('removeAction ruimt ÉLKE verwijzing op, niet alleen onClick/onSubmit', () => {
-    // Een hangende verwijzing is serverzijdig een HARDE fout
-    // (`event.action_unresolved`), dus 422 op PUT /:id/definition, useAppAutosave
-    // die zijn basislijn niet verzet, en elke volgende toetsaanslag die dezelfde
-    // afgewezen save opnieuw afvuurt. Dat is precies de vastloper die de doc van
-    // removeNode zegt te hebben opgelost — hij was alleen voor twee van de zeven
-    // events en voor geen van de zes actie-oppervlakken opgelost.
+    // A dangling reference is a HARD error on the server side
+    // (`event.action_unresolved`), so 422 on PUT /:id/definition, useAppAutosave
+    // does not move its baseline, and every next keystroke fires the same rejected
+    // save again. That is precisely the jam the doc of removeNode says it solved —
+    // it was only solved for two of the seven events and for none of the six
+    // action surfaces.
     const withRefs = () => ({
         schemaVersion: 2,
         homeScreenId: 'scr_1',

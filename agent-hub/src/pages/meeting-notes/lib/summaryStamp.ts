@@ -1,40 +1,17 @@
 /**
- * MET WELK SJABLOON IS DEZE SAMENVATTING GESCHREVEN — de pure helft
- * (plan M4 stap 3, "Sjabloon (v4)").
+ * WHICH TEMPLATE THIS SUMMARY WAS WRITTEN WITH — the pure half (plan M4 step 3, "Template (v4)").
  *
- * De server stempelt een notitie bij het schrijven van de samenvatting:
- * `summaryTemplateId` ('builtin:<sleutel>' of het id van een opgeslagen
- * sjabloon) en `summaryTemplateVersion`. Deze functie zet dat paar om in een
- * TOESTAND — geen zin. De zin (en dus het meervoud, de volgorde, de vertaling)
- * hoort in de opmaak, want een sleutelkeuze is geen stringkeuze.
+ * The server stamps a note when writing the summary: `summaryTemplateId` ('builtin:<key>' or the id of a saved template) and `summaryTemplateVersion`. This function turns that pair into a STATE — not a sentence. The sentence (and therefore the plural, the order, the translation) belongs in the formatting, because a key choice is not a string choice.
  *
- * ── DE VERSIE KOMT VAN DE NOTITIE, NOOIT VAN HET SJABLOON ────────────
- * Het sjabloon staat vandaag misschien op v9 terwijl deze notitie met v2
- * geschreven is. De versie van de RIJ tonen zou een uitspraak over het
- * verleden zijn die aan het heden is afgelezen — precies de stille onwaarheid
- * die dit programma steeds tegenkomt. De rij levert alleen de NAAM.
+ * ── THE VERSION COMES FROM THE NOTE, NEVER FROM THE TEMPLATE ────────
+ * The template may today be at v9 while this note was written with v2. Showing the version of the ROW would be a statement about the past read off the present — precisely the silent untruth that this program keeps running into. The row supplies only the NAME.
  *
- * ── VIJF TOESTANDEN, EN VIER ERVAN ZWIJGEN LIEVER ────────────────────
- * `NONE`     de notitie draagt geen (leesbare) stempel — o.a. elke notitie van
- *            vóór deze kolommen, en elke samenvatting die met een eenmalige
- *            prompt geschreven is. Toon niets. NIET "v1": een versienummer
- *            verzinnen voor een notitie waarvan je het sjabloon niet kent is
- *            een bewering die niemand ooit heeft gecontroleerd.
- * `LOADING`  er ís een stempel, maar de sjabloonlijst is nog niet binnen (of
- *            niet te lezen). Dan is de naam onbekend — zwijgen, en zeker niet
- *            "bestaat niet meer" zeggen over een sjabloon dat er gewoon is.
- * `BUILTIN`  een ingebouwd sjabloon. Die leven in code, niet in een tabel: er
- *            is geen versie, en er wordt er geen verzonnen.
- * `CUSTOM`   een opgeslagen sjabloon dat de lezer nog kan zien — naam uit de
- *            lijst, versie uit de notitie.
- * `GONE`     een stempel waarvan het sjabloon niet in de lijst staat:
- *            verwijderd, of niet meer zichtbaar voor deze lezer. We weten
- *            wélke versie, maar niet welke naam — en dan wordt er geen naam
- *            geraden. Welke van die twee het is, valt hier NIET vast te
- *            stellen: de lijst is die van de lezer. De zin eromheen
- *            (detail/SummaryView.jsx) mag daarom geen verwijdering beweren —
- *            voor elke gedeelde notitie die met een persoonlijk sjabloon
- *            geschreven is, is de tweede lezing de gewone.
+ * ── FIVE STATES, AND FOUR OF THEM PREFER TO KEEP QUIET ──────────────
+ * `NONE`     the note carries no (readable) stamp — e.g. every note from before these columns, and every summary written with a one-off prompt. Show nothing. NOT "v1": inventing a version number for a note whose template you do not know is a claim that nobody ever checked.
+ * `LOADING`  there is a stamp, but the template list has not yet arrived (or cannot be read). Then the name is unknown — keep quiet, and certainly do not say "no longer exists" about a template that is simply there.
+ * `BUILTIN`  a built-in template. Those live in code, not in a table: there is no version, and none is invented.
+ * `CUSTOM`   a saved template that the reader can still see — name from the list, version from the note.
+ * `GONE`     a stamp whose template is not in the list: deleted, or no longer visible to this reader. We know WHICH version, but not which name — and then no name is guessed. Which of the two it is cannot be established here: the list is the reader's own. The sentence around it (detail/SummaryView.jsx) may therefore not claim deletion — for every shared note that was written with a personal template, the second reading is the ordinary one.
  */
 
 import type { MeetingNote } from '../detail/meetingDetailTypes';
@@ -60,37 +37,36 @@ export const SUMMARY_STAMP = Object.freeze({
 
 const NOTHING = Object.freeze({ state: SUMMARY_STAMP.NONE, name: null, nameKey: null, version: null });
 
-/** Een bruikbare, niet-lege naam? */
+/** A usable, non-empty name? */
 function nonEmpty(v: unknown): v is string {
     return typeof v === 'string' && v.trim() !== '';
 }
 
-/** Een versienummer, of null. Alles wat geen positief geheel getal is telt niet. */
+/** A version number, or null. Anything that is not a positive integer does not count. */
 function readVersion(raw: number | null | undefined): number | null {
     return Number.isInteger(raw) && (raw as number) > 0 ? (raw as number) : null;
 }
 
 /**
- * Lees de stempel van een notitie.
+ * Read the stamp of a note.
  *
- * @param {object|null} meeting detail-payload; alleen `summaryTemplateId` en
- *        `summaryTemplateVersion` worden gelezen.
- * @param {object|null} templates het antwoord van GET /api/summary-templates
- *        (`{ builtins, custom }`); `null`/onleesbaar = nog niet bruikbaar.
+ * @param {object|null} meeting detail payload; only `summaryTemplateId` and `summaryTemplateVersion` are read.
+ * @param {object|null} templates the answer from GET /api/summary-templates
+ *        (`{ builtins, custom }`); `null`/unreadable = not yet usable.
  * @returns {{state: string, name: string|null, nameKey: string|null, version: number|null}}
  */
 function builtinStamp(key: string, templates: SummaryTemplates | null | undefined): SummaryStamp {
     const builtins = Array.isArray(templates?.builtins) ? templates.builtins : null;
-    // Zonder lijst geen naam. Zwijgen, niet gokken.
+    // No list, no name. Keep quiet, do not guess.
     if (!builtins) return { state: SUMMARY_STAMP.LOADING, name: null, nameKey: null, version: null };
     const hit = builtins.find((b) => b && b.id === key);
-    // Geen rij, of een rij zonder bruikbare naam: allebei "we kunnen dit
-    // sjabloon niet noemen". Een lege naam invullen zou "Template: " op het
-    // scherm zetten — een zin met een gat erin.
+    // No row, or a row without a usable name: both are "we cannot name this
+    // template". Filling in an empty name would put "Template: " on the screen —
+    // a sentence with a hole in it.
     if (!hit || !(nonEmpty(hit.name) || nonEmpty(hit.nameKey))) {
         return { state: SUMMARY_STAMP.GONE, name: null, nameKey: null, version: null };
     }
-    // Ingebouwd = geen versie, ook niet als de notitie er toch een draagt.
+    // Built-in = no version, even if the note does carry one anyway.
     return {
         state: SUMMARY_STAMP.BUILTIN,
         name: nonEmpty(hit.name) ? hit.name.trim() : null,
@@ -103,7 +79,7 @@ function customStamp(id: string, templates: SummaryTemplates | null | undefined,
     const custom = Array.isArray(templates?.custom) ? templates.custom : null;
     if (!custom) return { state: SUMMARY_STAMP.LOADING, name: null, nameKey: null, version };
     const hit = custom.find((c) => c && c.id === id);
-    // Weg of onzichtbaar: de versie weten we nog uit de notitie, de naam niet.
+    // Gone or invisible: we still know the version from the note, but not the name.
     if (!hit || !nonEmpty(hit.name)) return { state: SUMMARY_STAMP.GONE, name: null, nameKey: null, version };
     // De naam van NU (die verandert bij hernoemen zonder de tekst te raken),
     // de versie van TOEN.

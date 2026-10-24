@@ -1,16 +1,16 @@
 // @typecheck
 /**
- * De reconciler, omgekeerd: een tabel verandert, een openbare pagina moet mee.
+ * The reconciler, reversed: a table changes, a public page must follow.
  *
- * Dit is een AVG-pad, geen verversknopje. De tests hieronder pinnen daarom
- * niet "hij werkt", maar de drie dingen die er fout aan kunnen gaan:
+ * This is a GDPR path, not a refresh button. The tests below therefore do not pin
+ * "it works", but the three things that can go wrong in it:
  *
- *   1. een INGETROKKEN share mag nooit opnieuw geschreven worden — dat zou
- *      bytes terugzetten onder een link die net dood is gemaakt;
- *   2. een onleesbare LIJST van gebonden pagina's mag niet stil eindigen in
- *      "niets te doen": onbekend versmalt naar 0 herschrijvingen én een
- *      luide waarschuwing;
- *   3. één pagina die omvalt mag de rest van de lus niet meenemen.
+ *   1. a WITHDRAWN share may never be rewritten — that would put bytes back under a
+ *      link that was just killed;
+ *   2. an unreadable LIST of bound pages may not quietly end in
+ *      "nothing to do": unknown narrows to 0 rewrites and a
+ *      loud warning;
+ *   3. one page that fails may not take the rest of the loop along.
  *
  * Run: node --test --test-force-exit core/webpages/webpageShareReconciler.test.js
  */
@@ -186,10 +186,9 @@ test('de datatable-tap roept deze reconciler écht aan', () => {
 });
 
 test('routes/webpages gebruikt DEZELFDE implementatie, geen tweede kopie', () => {
-    // routes/webpages is een MAP (index.js plus één module per bronnengroep),
-    // dus de hele map is "het bestand" waarover deze bewering gaat — anders
-    // zou het verhuizen van de aanroep naar een zustermodule hem stil groen
-    // laten worden.
+    // routes/webpages is a FOLDER (index.js plus one module per source group),
+    // so the whole folder is "the file" about which this claim is made — otherwise
+    // moving the call to a sibling module would silently turn it green.
     const fs = require('node:fs');
     const nodePath = require('node:path');
     const dir = nodePath.dirname(require.resolve('../../routes/webpages'));

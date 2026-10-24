@@ -2,25 +2,16 @@
 'use strict';
 
 /**
- * R2 — de agentpoort op de SAVE- en ACTIVEER-routes, als BEDRADING.
+ * R2 — the agent gate on the SAVE and ACTIVATE routes, as WIRING.
  *
- * De pure regel (`ai_step.agent_unavailable`) en de catalogus
- * (`automation/agentCatalog.js`) hebben allebei hun eigen tests. Wat die niet
- * dekken is de draad ertussen: de route die de catalogus bouwt en hem aan
- * `validateDefinition` meegeeft. Haal `availableAgents` uit de aanroep in
- * crud.js en elk bestaand testbestand onder routes/automation/ blijft groen —
- * geen enkele noemt `agentId`. Dit bestand is de bijt-toets: het draait de
- * ECHTE `validateDefinition` en de ECHTE `agentCatalogForOwner`, en alleen de
- * database eronder is een double.
+ * The pure rule (`ai_step.agent_unavailable`) and the catalogue
+ * (`automation/agentCatalog.js`) each have their own tests. What those do not cover is the thread between them: the route that builds the catalogue and passes it to `validateDefinition`. Remove `availableAgents` from the call in crud.js and every existing test file under routes/automation/ stays green —
+ * none of them mentions `agentId`. This file is the bite test: it runs the REAL `validateDefinition` and the REAL `agentCatalogForOwner`, and only the database underneath is a double.
  *
- * Tweede ding dat hier wordt vastgelegd: WELKE identiteit de vraag stelt. De
- * route las de STEMPEL op de automation-rij (`a.organizationId`) met de org van
- * degene die op Activeren drukte als terugval; de run meet het huidige
- * lidmaatschap van de EIGENAAR. Voor een org-loos opgeslagen automatisering geven die
- * twee een ander antwoord, en het verschil is onzichtbaar: scherm en activatie
- * zeggen ja, elke geplande run zegt `agent_unavailable`.
+ * Second thing pinned here: WHICH identity asks the question. The route read the STAMP on the automation row (`a.organizationId`) with the org of
+ * whoever pressed Activate as fallback; the run measures the current membership of the OWNER. For an automation saved without an org those two give a different answer, and the difference is invisible: the screen and activation say yes, every scheduled run says `agent_unavailable`.
  *
- * Draaien: node --test --test-reporter=tap routes/automation/crud.agentGate.test.js
+ * Run: node --test --test-reporter=tap routes/automation/crud.agentGate.test.js
  */
 
 const { test } = require('node:test');

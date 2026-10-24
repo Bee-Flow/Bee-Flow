@@ -31,35 +31,32 @@ const FALLBACK_BUILTINS: BuiltinTemplate[] = [
 ];
 
 /**
- * "Met welk sjabloon is deze samenvatting geschreven" — de ZIN.
+ * "With which template this summary was written": the SENTENCE.
  *
- * De TOESTAND komt uit lib/summaryStamp.js; hier wordt alleen de sleutel
- * gekozen, en de ternary staat om de SLEUTEL heen, nooit om een letter.
+ * The STATE comes from lib/summaryStamp.js. Here only the key is chosen, and the ternary
+ * stands around the KEY, never around a letter.
  *
- * Twee toestanden zwijgen: geen stempel (o.a. elke notitie van vóór deze
- * kolommen, en elke samenvatting uit een eenmalige prompt) en een
- * sjabloonlijst die nog niet binnen is. Een versienummer verzinnen voor een
- * notitie waarvan het sjabloon onbekend is, is precies wat hier niet gebeurt.
+ * Two states stay silent: no stamp (e.g. every note from before these columns, and
+ * every summary from a one-off prompt), and a template list that has not yet arrived.
+ * Inventing a version number for a note whose template is unknown is precisely what
+ * does not happen here.
  *
- * Geen taalschakelaar ernaast: er bestaat geen vertaling van transcripten,
- * dus zo'n knop zou iets beloven wat het product niet doet.
+ * There is no language switch beside it. There is no translation of transcripts, so
+ * such a button would promise something the product does not do.
  */
 function stampSentence(stamp: ReturnType<typeof buildSummaryStamp>, t: TranslateFn) {
     if (stamp.state === SUMMARY_STAMP.NONE || stamp.state === SUMMARY_STAMP.LOADING) return null;
     if (stamp.state === SUMMARY_STAMP.GONE) {
-        // Versie bekend, naam niet — en WAAROM de naam ontbreekt weet dit
-        // scherm niet. `GET /api/summary-templates` levert per LEZER: zijn
-        // eigen user-scope sjablonen plus zijn org en zijn groepen. Een
-        // collega die een gedeelde notitie opent mist Ann's persoonlijke
-        // sjabloon dus altijd — niet omdat het weg is, maar omdat het niet van
-        // hem is. Dat is niet de uitzondering maar de normale gang van zaken
-        // voor elke gedeelde notitie die met een persoonlijk (of andermans
-        // groeps-) sjabloon geschreven is.
+        // Version known, name not. And WHY the name is missing, this screen does not know.
+        // `GET /api/summary-templates` supplies, per READER, his own user-scope templates plus
+        // his org and his groups. A colleague who opens a shared note always misses Ann's
+        // personal template, not because it is gone but because it is not his. That is not
+        // the exception but the normal course of events for every shared note that was
+        // written with a personal (or someone else's group) template.
         //
-        // "Bestaat niet meer" is dan een bewering die dit scherm niet kan
-        // controleren, en die in het gedeelde geval onwaar is. Onbekend
-        // versmalt: de zin zegt alleen wat in BEIDE gevallen waar is — deze
-        // lezer kan dit sjabloon niet inzien.
+        // "No longer exists" is then a claim that this screen cannot check, and that is
+        // untrue in the shared case. Unknown narrows: the sentence says only what is true in
+        // BOTH cases, namely that this reader cannot see this template.
         return stamp.version
             ? t('meeting_notes.template_stamp_unavailable_versioned', 'Template: not available to you (v{version})', { version: stamp.version })
             : t('meeting_notes.template_stamp_unavailable', 'Template: not available to you');
@@ -78,8 +75,8 @@ export default function SummaryView({
     templates = null,          // { builtins, custom, defaultTemplateId, canManageOrg }
     onNewTemplate,
     onEditTemplate,
-    // De notitie zelf — alleen `summaryTemplateId` / `summaryTemplateVersion`
-    // worden gelezen, voor de regel "met welk sjabloon is dit geschreven".
+    // The note itself. Only `summaryTemplateId` / `summaryTemplateVersion` are read, for
+    // the rule "with which template this was written".
     meeting = null,
 }: SummaryViewProps) {
     const { t } = useTranslation();

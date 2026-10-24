@@ -11,31 +11,26 @@ import type { NodeEntry, RowCommon, LogicRow, RowExtra, MakeEmitterArgs, LogicRo
 export type { LogicRow } from './logicRows.types';
 
 /**
- * De rijen van de Logica-tab: één tabel over ALLE schermen van "wanneer" ×
- * "wat er dan gebeurt".
+ * The rows of the Logic tab: one table across ALL screens of "when" × "what then happens".
  *
- * De oude Logica-weergave (collectLogicMarks in nodeLogicSummary.js) liep
- * alleen over NODE_EVENTS en sloeg elk slot met een falsy actie over. Daardoor
- * toonde hij precies de helft die al goed was, en verzweeg hij de helft waar
- * een bouwer naar zoekt:
+ * The old Logic view (collectLogicMarks in nodeLogicSummary.js) ran only over NODE_EVENTS and skipped every
+ * slot with a falsy action. As a result it showed precisely the half that was already fine, and concealed the
+ * half that a builder looks for:
  *
- *   • een event dat een component WEL kan maar dat aan niets hangt
- *     (data_grid onRowClick, kanban onCardMove, elke input-onChange,
- *     approval_list onDecided) — geen regel, geen waarschuwing, niets;
- *   • de vier andere actie-oppervlakken die de server WEL als bereikbaar telt
- *     (validate/nodes.js collectReferencedActions): rowActions, itemActions,
- *     bulkActions, toolbarActions, props.addRowActionId en
- *     props.columns[].actionId;
- *   • een actie in `definition.actions` waar niets naar wijst — serverzijdig
- *     een `action.unreachable`-waarschuwing, hier vroeger onzichtbaar.
+ *   • an event that a component CAN carry but that is attached to nothing (data_grid onRowClick, kanban
+ *     onCardMove, every input onChange, approval_list onDecided) — no row, no warning, nothing;
+ *   • the four other action surfaces that the server DOES count as reachable (validate/nodes.js
+ *     collectReferencedActions): rowActions, itemActions, bulkActions, toolbarActions, props.addRowActionId
+ *     and props.columns[].actionId;
+ *   • an action in `definition.actions` that nothing points to — server-side an `action.unreachable` warning,
+ *     previously invisible here.
  *
- * Stil weglaten is de fout die dit scherm moet oplossen, dus komt ALLES in de
- * tabel en draagt elke rij zelf of hij bedraad is (`wired`). De tab tekent een
- * onbedrade rij gestippeld en hangt er de save-melding aan die de server over
- * dat component stuurde.
+ * Silently leaving things out is the failure this screen must solve, so EVERYTHING goes into the table, and
+ * each row carries itself whether it is wired (`wired`). The tab draws an unwired row dotted and attaches the
+ * save notice that the server sent about that component.
  *
- * → [{ key, kind, wired, when, what, ... }] in leesvolgorde: per scherm, eerst
- * de beschrijvende "scherm opent"-regel, dan de componenten in canvasvolgorde.
+ * → [{ key, kind, wired, when, what, ... }] in reading order: per screen, first the descriptive "screen opens"
+ * row, then the components in canvas order.
  */
 
 /** Zelfde stand-in voor t() als nodeLogicSummary/dryRunIssues — zie daar. */
@@ -47,11 +42,10 @@ const EN_ONLY = (key: string | undefined, en: string, params?: TranslateParams):
     : en);
 
 /**
- * De vier lijst-oppervlakken plus de twee losse, in de woorden waarin ze
- * gebeuren. Dit is dezelfde verzameling die collectReferencedActions
- * (server/appStudio/validate/nodes.js) als "bereikbaar" telt — de rolpoort
- * (studioAppRunGate.js) en de oude Logica-weergave kenden er maar een deel
- * van, en dat verschil is precies waar een actie onzichtbaar werd.
+ * The four list surfaces plus the two loose ones, in the words in which they happen. This is the same
+ * collection that collectReferencedActions (server/appStudio/validate/nodes.js) counts as "reachable" — the
+ * role gate (studioAppRunGate.js) and the old Logic view knew only part of it, and that difference is
+ * precisely where an action became invisible.
  */
 const SURFACE_LISTS = ['rowActions', 'itemActions', 'bulkActions', 'toolbarActions'];
 
@@ -80,27 +74,24 @@ function triggerWhen(t: TranslateFn, kind: string) {
     }
 }
 
-/** Welke events dit componenttype MAG dragen — leeg voor een type zonder events. */
+/** Which events this component TYPE may carry — empty for a type without events. */
 export function eventsForType(type: string|number) {
     const list = TYPE_EVENT_LISTS[type];
     return Array.isArray(list) ? list : [];
 }
 
 /**
- * De eventslots van DIT component: wat het type mag dragen, PLUS elk slot dat
- * er daadwerkelijk in staat.
+ * The event slots of THIS component: what the type may carry, PLUS every slot that is actually in it.
  *
- * Alleen de typelijst is niet genoeg, en dat is de reden dat deze functie
- * bestaat. De server loopt per NAAM over élk node (validate/nodes.js, EVENT_NAMES
- * + collectReferencedActions) en de canvasbadge doet dat óók (nodeLogicSummary
- * loopt NODE_EVENTS). Een bedraad slot buiten de typelijst — een type dat een
- * event uit zijn spec verliest terwijl opgeslagen definities het slot houden,
- * of een install/import die niet door PUT /:id/definition ging — viel bij deze
- * tab uit de tabel én maakte zijn actie tot "wees": van de drie lezers verborg
- * juist het scherm dat is gebouwd omdat er niets stil mag verdwijnen de
- * bedrading, mét de omgekeerde bewering ("Nothing starts this yet") erbij.
+ * The type list alone is not enough, and that is the reason this function exists. The server walks by NAME
+ * over every node (validate/nodes.js, EVENT_NAMES + collectReferencedActions) and the canvas badge does too
+ * (nodeLogicSummary walks NODE_EVENTS). A wired slot outside the type list — a type that loses an event from
+ * its spec while stored definitions keep the slot, or an install/import that did not go through
+ * PUT /:id/definition — dropped out of this tab and made its action an "orphan": of the three readers, the
+ * screen that was built because nothing may silently disappear hid the wiring, together with the reverse claim
+ * ("Nothing starts this yet").
  *
- * De volgorde blijft die van het type; wat er extra in staat komt erachteraan.
+ * The order stays that of the type; whatever is extra comes after it.
  */
 export function eventSlotsOf(node: AppNode | null | undefined) {
     const slots = eventsForType(node?.type ?? '').slice();
@@ -112,13 +103,12 @@ export function eventSlotsOf(node: AppNode | null | undefined) {
 }
 
 /**
- * Elke `tableId` die ergens in de props van dit scherm/deze app gebonden is.
+ * Every `tableId` that is bound anywhere in the props of this screen or app.
  *
- * Diep gelopen in plaats van per bindingsoort uitgelezen: de soortenlijst
- * (componentSpecs/bindings.js BINDING_KINDS) is gesloten maar staat op de
- * server, en een binding zit soms twee lagen diep (kolomfilters, geneste
- * aggregaties). Een object met een string-`tableId` IS een tabelbinding, in
- * welke soort hij ook zit — dat blijft waar als er een soort bij komt.
+ * Walked deeply instead of read out per binding kind: the kind list (componentSpecs/bindings.js
+ * BINDING_KINDS) is closed but lives on the server, and a binding sometimes sits two levels deep (column
+ * filters, nested aggregations). An object with a string `tableId` IS a table binding, whichever kind it
+ * sits in — that stays true when a kind is added.
  */
 export function collectBoundTableIds(root: unknown) {
     const ids = new Set<string>();
@@ -163,9 +153,8 @@ function actionsOf(definition: AppDefinition | null): Record<string, AppAction> 
 }
 
 /**
- * Wat er achter een actie-id zit, in de taal van de auteur — of, als de actie
- * er niet is, dat gezegd. `describeAction` naamt; dat er NIETS te naamen valt
- * is een andere mededeling en mag niet als naam doorgaan.
+ * What sits behind an action id, in the language of the author — or, if the action is not there, says so.
+ * `describeAction` names; that there is NOTHING to name is a different message and must not pass as a name.
  */
 function whatOf(t: TranslateFn, actionId: string, definition: AppDefinition | null, titleFor: ((automationId?: string | null) => string | null) | null) {
     const action = actionsOf(definition)[actionId];
@@ -194,22 +183,18 @@ function baseRow(extra: RowExtra & Pick<LogicRow, 'what'>): LogicRow {
 }
 
 /**
- * De beschrijvende regel "Scherm wordt geopend".
+ * The descriptive row "Screen is opened".
  *
- * AFWIJKING VAN HET ARTBOARD, bewust. Het artboard tekent deze regel tussen de
- * andere in, alsof er een `onScreenOpen`-event bestaat. Dat bestaat niet:
- * EVENT_NAMES (server/appStudio/componentSpecs/screenSpec.js) kent zeven
- * events en geen daarvan hangt aan een scherm, en de runtime laadt data omdat
- * een component een BINDING heeft, niet omdat iemand iets bedraadde. Een
- * nieuw event verzinnen zou een slot opleveren dat de server weigert
- * (`event.not_supported`) en de AI-builder zou kunnen "bedraden" zonder dat er
- * ooit iets afgaat. Dus: afgeleid uit de databindingen, gemarkeerd als
- * `descriptive`, en de tab tekent hem zonder bedradingsaffordance — je kunt
- * hem niet aanklikken om er een actie aan te hangen, want er is niets om aan
- * te hangen.
+ * DEVIATION FROM THE ARTBOARD, deliberate. The artboard draws this row among the others, as if an
+ * `onScreenOpen` event existed. It does not: EVENT_NAMES (server/appStudio/componentSpecs/screenSpec.js)
+ * knows seven events and none of them hangs on a screen, and the runtime loads data because a component has
+ * a BINDING, not because someone wired something. Inventing a new event would yield a slot that the server
+ * refuses (`event.not_supported`), and the AI builder could "wire" it without anything ever firing. So:
+ * derived from the data bindings, marked as `descriptive`, and the tab draws it without a wiring affordance —
+ * you cannot click it to attach an action, because there is nothing to attach to.
  *
- * Geen bindingen op het scherm → geen regel. Er gebeurt dan werkelijk niets
- * bij het openen, en "niets gebeurt er" als rij is ruis, geen informatie.
+ * No bindings on the screen → no row. Then nothing actually happens on opening, and "nothing happens" as a row
+ * is noise, not information.
  */
 
 function screenOpenRow(t: TranslateFn, screen: AppScreen, screenIndex: number, nodes: NodeEntry[]) {
@@ -225,9 +210,8 @@ function screenOpenRow(t: TranslateFn, screen: AppScreen, screenIndex: number, n
         screenName: screen.name || '',
         path: `screens[${screenIndex}]`,
         when: t('app_studio.logic.when_screen_opens', 'When the screen is opened'),
-        // Geen tabelNAMEN: die staan achter een fetch, niet in de definitie
-        // (dezelfde reden als bij actionLabels' create_record). Het aantal
-        // componenten is wat de definitie wél weet en is niet minder waar.
+        // No table NAMES: those sit behind a fetch, not in the definition (the same reason as for actionLabels'
+        // create_record). The number of components is what the definition does know, and it is no less true.
         what: nOf(
             t, 'app_studio.logic.screen_loads', loaders.length,
             '{count} component loads its data', '{count} components load their data',
@@ -259,12 +243,11 @@ function makeEmitter({ rows, definition, titleFor, t, referenced }: MakeEmitterA
 }
 
 /**
- * Elk event-slot dat dit componenttype MAG dragen, bedraad of niet.
+ * Every event slot that this component type MAY carry, wired or not.
  *
- * De onbedrade helft is de kern van dit scherm. Vandaag verdwijnt zo'n slot
- * spoorloos: de canvasbadge slaat een falsy actionId over
- * (nodeLogicSummary.js), "Logic n" telt hem niet mee, en de validator zwijgt
- * erover op een knop en een formulier na. Hij blijft hier dus staan.
+ * The unwired half is the core of this screen. Today such a slot disappears without a trace: the canvas badge
+ * skips a falsy actionId (nodeLogicSummary.js), "Logic n" does not count it, and the validator is silent about
+ * it except on a button and a form. So it stays here.
  */
 type Emitter = ReturnType<typeof makeEmitter>;
 
@@ -279,14 +262,12 @@ function emitEventRows(node: AppNode, common: RowCommon, emit: Emitter, t: Trans
 }
 
 /**
- * De zes actie-oppervlakken naast de events: vier lijsten plus addRowActionId
- * en columns[].actionId. Dit is de lijst uit collectReferencedActions
- * (server/appStudio/validate/nodes.js); de rolpoort en de oude weergave kenden
- * er maar een deel van.
+ * The six action surfaces alongside the events: four lists plus addRowActionId and columns[].actionId. This is
+ * the list from collectReferencedActions (server/appStudio/validate/nodes.js); the role gate and the old view
+ * knew only part of it.
  *
- * Een lege actionId in een lijst is de inspector's eigen "nog niet
- * bedraad"-stand — validate/nodes.js laat hem expliciet toe — dus die telt als
- * onbedraad en niet als kapot.
+ * An empty actionId in a list is the inspector's own "not wired yet" state — validate/nodes.js allows it
+ * explicitly — so it counts as unwired and not as broken.
  */
 function emitSurfaceRows(node: AppNode, common: RowCommon, emit: Emitter, t: TranslateFn) {
     const props = (node.props && typeof node.props === 'object') ? node.props : {};
@@ -329,7 +310,7 @@ function emitSurfaceRows(node: AppNode, common: RowCommon, emit: Emitter, t: Tra
     });
 }
 
-/** Het eigen label van een rij-/kolomactie, of niets als er geen is. */
+/** The own label of a row or column action, or nothing if there is none. */
 function labelOf(entry: { label?: unknown } | null | undefined) {
     return typeof entry?.label === 'string' && entry.label.trim() ? entry.label.trim() : null;
 }
@@ -357,10 +338,9 @@ export default function logicRows(definition: AppDefinition | null, { titleFor =
         }
     });
 
-    // Acties waar niets naar wijst. De server geeft hier een
-    // `action.unreachable`-waarschuwing over af (validate.js) en de oude
-    // weergave liet ze weg — waardoor een automatisering die je net koos nergens te
-    // zien was en je hem een tweede keer toevoegde.
+    // Actions that nothing points to. The server issues an `action.unreachable` warning about these (validate.js)
+    // and the old view left them out — so an automation you had just chosen was nowhere to be seen, and you
+    // added it a second time.
     for (const [actionId, action] of Object.entries(actionsOf(definition))) {
         if (referenced.has(actionId)) continue;
         rows.push(baseRow({
@@ -380,9 +360,9 @@ export default function logicRows(definition: AppDefinition | null, { titleFor =
 }
 
 /**
- * Hoort deze automatisering bij deze app? Drie voorwaarden, alle drie versmallend:
- * hij staat in dezelfde oplossing, hij hangt nog niet aan een knop (dan staat
- * hij hierboven al) en hij raakt een tabel waar de app aan gebonden is.
+ * Does this automation belong to this app? Three conditions, all three narrowing: it is in the same solution,
+ * it is not yet attached to a button (then it already stands above), and it touches a table to which the app
+ * is bound.
  */
 function belongsToApp(row: AutomationRow, { projectId, tables, wired }: { projectId: string; tables: Set<string>; wired: Set<string> }) {
     if (!row?.id || row.projectId !== projectId) return false;
@@ -390,25 +370,23 @@ function belongsToApp(row: AutomationRow, { projectId, tables, wired }: { projec
     return automationTouchesTables(row, tables);
 }
 
-/** Een Set van wat er binnenkomt: een Set blijft zichzelf, een lijst wordt er een. */
+/** A Set of what comes in: a Set stays itself, a list becomes one. */
 function asSet(value: Set<string> | string[] | null | undefined): Set<string> {
     if (value instanceof Set) return value;
     return new Set(Array.isArray(value) ? value : []);
 }
 
-/** De triggersoort van een routinerij, zoals AutomationPicker hem ook leest. */
+/** The trigger type of a routine, as AutomationPicker also reads it. */
 function triggerKindOf(row: AutomationRow) {
     return row?.definition?.trigger?.kind || row?.triggerType || 'manual';
 }
 
 /**
- * Raakt deze automatisering een van deze tabellen?
+ * Does this automation touch one of these tables?
  *
- * Een `datatable`-stap draagt `datatableId` (of `datatableKey`); een
- * tabeltrigger draagt zijn tabel in `trigger.filter.tableId`. Stappen kunnen
- * genest zijn (loop-body, if/else, switch-cases), dus de walk gaat er doorheen
- * — een automatisering die alleen ín een lus naar de tabel schrijft raakt hem net zo
- * goed.
+ * A `datatable` step carries `datatableId` (or `datatableKey`); a table trigger carries its table in
+ * `trigger.filter.tableId`. Steps can be nested (loop body, if/else, switch cases), so the walk goes through
+ * them — an automation that writes to the table only inside a loop touches it just as well.
  */
 export function automationTouchesTables(row: Pick<AutomationRow, 'definition'>, tableIds: Set<string>) {
     if (!(tableIds instanceof Set) || tableIds.size === 0) return false;
@@ -451,13 +429,12 @@ export function derivedAutomationRows({ app, automationRows, boundTableIds, wire
 }
 
 /**
- * De save-meldingen die over DEZE rij gaan.
+ * The save notices that concern THIS row.
  *
- * Gematcht op het definitiepad dat de server meestuurt, niet op de tekst: de
- * zin mag herschreven worden, het pad is de identiteit. Een melding op het
- * component zelf (`screens[0]…children[2]`) hoort bij elke rij van dat
- * component; een melding op een dieper pad (`…props.rowActions[1].actionId`)
- * alleen bij de rij die daar precies over gaat.
+ * Matched on the definition path that the server sends along, not on the text: the sentence may be rewritten,
+ * the path is the identity. A notice on the component itself (`screens[0]…children[2]`) belongs to every row of
+ * that component; a notice on a deeper path (`…props.rowActions[1].actionId`) only to the row that is about
+ * exactly that.
  */
 export function noticesForRow(notices: SaveNotice[], row: { path: string }) {
     if (!Array.isArray(notices) || !row?.path) return [];
@@ -465,25 +442,22 @@ export function noticesForRow(notices: SaveNotice[], row: { path: string }) {
 }
 
 /**
- * Hoe goed hoort deze melding bij deze rij? → `null` als hij er niet bij hoort.
+ * How well does this notice belong to this row? → `null` if it does not belong to it at all.
  *
- * Drie soorten treffer, en de rangorde erna is niet dezelfde:
- *   2 — het pad is IDENTIEK. Altijd de beste.
- *   1 — de melding zit DIEPER dan de rij (`…rowActions[1].actionId` onder een
- *       component). De meest SPECIFIEKE rij wint: het langste pad.
- *   0 — de melding zit HOGER dan de rij (een melding over het component, de rij
- *       is een van zijn oppervlakken). Dan wint de EERSTE rij van dat component,
- *       zoals de doc hieronder belooft — niet de diepste, die toevallig het
- *       langste pad heeft.
+ * Three kinds of match, and the ranking afterwards is not the same:
+ *   2 — the path is IDENTICAL. Always the best.
+ *   1 — the notice sits DEEPER than the row (`…rowActions[1].actionId` under a component). The most SPECIFIC
+ *       row wins: the longest path.
+ *   0 — the notice sits HIGHER than the row (a notice about the component; the row is one of its surfaces).
+ *       Then the FIRST row of that component wins, as the doc below promises — not the deepest, which happens
+ *       to have the longest path.
  *
- * EEN BESCHRIJVENDE RIJ VANGT ALLEEN ZICHZELF. "Scherm wordt geopend" draagt het
- * pad van het SCHERM (`screens[0]`), en dat is een voorvader van élk component
- * erop. Zonder deze uitzondering landde een melding over een component dat geen
- * enkele logica-rij oplevert (een input_text, een kop, een plaatje) op die ene
- * regel: de bouwer las "input_text sits outside a form" onder "When the screen is
- * opened / 2 components load their data" en ging het verkeerde component zoeken.
- * Zulke meldingen horen bij geen enkele rij en blijven in de save-pill staan —
- * precies wat de kop van assignNotices al beweerde.
+ * A DESCRIPTIVE ROW CATCHES ONLY ITSELF. "Screen is opened" carries the path of the SCREEN (`screens[0]`), and
+ * that is an ancestor of every component on it. Without this exception a notice about a component that yields no
+ * logic row at all (an input_text, a heading, an image) landed on that one row: the builder read "input_text
+ * sits outside a form" under "When the screen is opened / 2 components load their data" and went looking for
+ * the wrong component. Such notices belong to no row and stay in the save pill — exactly what the header of
+ * assignNotices already claimed.
  */
 function matchNotice(row: { path: string; descriptive?: boolean }, notice: SaveNotice) {
     const rowPath = typeof row?.path === 'string' ? row.path : '';
@@ -497,18 +471,16 @@ function matchNotice(row: { path: string; descriptive?: boolean }, notice: SaveN
 }
 
 /**
- * Elke melding aan PRECIES ÉÉN rij, de meest specifieke.
+ * Every notice goes to EXACTLY ONE row, the most specific one.
  *
- * Een component met twee eventslots en drie rijacties levert vijf rijen op, en
- * `component.control_inert` past op alle vijf. Vijf keer dezelfde zin onder
- * elkaar is geen nadruk maar ruis, en het maakt de rij die de melding écht
- * bedoelt onvindbaar. Het langste matchende pad wint: een melding over
- * `…props.rowActions[1].actionId` hoort bij die ene rijactie, een melding over
- * het component zelf bij de eerste rij ervan.
+ * A component with two event slots and three row actions yields five rows, and `component.control_inert`
+ * matches all five. Five times the same sentence under each other is not emphasis but noise, and it makes the
+ * row that the notice really means unfindable. The longest matching path wins: a notice about
+ * `…props.rowActions[1].actionId` belongs to that one row action, a notice about the component itself to its
+ * first row.
  *
- * → Map van rij-key naar meldingen. Een melding die bij geen enkele rij hoort
- * (app-brede paden zoals `meta.name`) valt hier weg en blijft in de save-pill
- * staan, waar hij thuishoort.
+ * → Map from row key to notices. A notice that belongs to no row at all (app-wide paths such as `meta.name`)
+ * drops out here and stays in the save pill, where it belongs.
  */
 export function assignNotices(rows: { key: string; path: string; descriptive?: boolean }[], notices: SaveNotice[]) {
     const byRow = new Map<string, SaveNotice[]>();
@@ -534,19 +506,17 @@ export function assignNotices(rows: { key: string; path: string; descriptive?: b
 }
 
 /**
- * Hoeveel BEDRADE logica deze app draagt — het getal in het "Logic n"-segment
- * van de kop (EditorHeader).
+ * How much WIRED logic this app carries — the number in the "Logic n" segment of the header (EditorHeader).
  *
- * Staat hier en niet in nodeLogicSummary, omdat de kop en de tab anders
- * verschillende dingen tellen. Dat was ook zo: `countLogicMarks` telde alleen
- * bedrade NODE_EVENTS, terwijl deze tabel er zes actie-oppervlakken bij heeft.
- * Een data_grid waarvan alle logica in `rowActions` + `toolbarActions` zit gaf
- * dus 0 — het segment liet het getal weg, het signaal "hier valt niets te zien",
- * boven een tabel met vier regels. Eén bron, en `logicRows` is die bron.
+ * It lives here and not in nodeLogicSummary, because the header and the tab would otherwise count different
+ * things. That was so too: `countLogicMarks` counted only wired NODE_EVENTS, while this table has six action
+ * surfaces besides. A data_grid whose logic all sits in `rowActions` + `toolbarActions` gave 0 — the segment
+ * left the number out, the signal "nothing to see here", above a table with four rows. One source, and
+ * `logicRows` is that source.
  *
- * Wat NIET meetelt: de beschrijvende "scherm opent"-regel (die is afgeleid, niet
- * bedraad) en elk onbedraad slot of weesje (die staan in de tabel juist omdat er
- * nog niets gebeurt — ze zijn geen logica die iemand aanzette).
+ * What is NOT counted: the descriptive "screen opens" row (that is derived, not wired) and any unwired slot or
+ * orphan (those stand in the table precisely because nothing is happening yet — they are not logic that someone
+ * switched on).
  */
 export function countWiredLogic(definition: AppDefinition | null) {
     return logicRows(definition).filter((row) => row.wired && !row.descriptive).length;

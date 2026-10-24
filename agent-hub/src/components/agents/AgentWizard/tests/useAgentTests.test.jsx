@@ -1,14 +1,14 @@
 /**
- * De lezingen achter de testset-kaart (A4 deel D).
+ * The reads behind the test-set card (A4 part D).
  *
- * De kaart kan nog zo eerlijk zijn — als de hook een mislukte lezing als een
- * lege lijst doorgeeft, staat er alsnog "nog niet gedraaid" boven een agent
- * met twaalf groene tests. Wat hier vastligt:
+ * The card can be as honest as it likes. If the hook passes a failed read on as an empty
+ * list, "not yet run" still appears above an agent with twelve green tests. What is fixed
+ * here:
  *
- *   • een mislukte `GET /tests` levert `lastRunUnknown`, niet "nooit";
- *   • een weigering van `POST /tests/run` raakt de vorige uitslag niet aan;
- *   • alleen `done` maakt van een stroom resultaten een uitslag, en alleen een
- *     BEWAARDE uitslag wordt de nieuwe laatste run.
+ *   • a failed `GET /tests` yields `lastRunUnknown`, not "never";
+ *   • a refusal of `POST /tests/run` does not touch the previous result;
+ *   • only `done` turns a stream of results into a result, and only a STORED result becomes
+ *     the new last run.
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/tests/useAgentTests.test.jsx
  */
@@ -295,7 +295,7 @@ describe('BIJT — een geweigerde lezing draagt zijn reden', () => {
         expect(result.current.readRefusal).toBeTruthy();
         expect(result.current.readRefusal.kind).toBe(REFUSAL.NOT_EDITABLE);
         expect(result.current.readRefusal.retryable).toBe(false);
-        // En nog steeds geen bewering over of er ooit gedraaid is.
+        // And still no claim about whether it has ever been run.
         expect(result.current.lastRunUnknown).toBe(true);
     });
 
@@ -310,11 +310,10 @@ describe('BIJT — een geweigerde lezing draagt zijn reden', () => {
 
 describe('BIJT — alleen een BEWAARDE run wordt de laatste run', () => {
     it('een "Test als"-run met een rij erbij wordt hem nog steeds niet', async () => {
-        // De server stuurt vandaag `run: null` naast `notStored`, dus de helft
-        // `state.run` blokkeert het al. Deze test oefent de ANDERE helft uit:
-        // zou de route morgen een rij meesturen bij een simulatie, dan mag die
-        // nog steeds niet de laatste run worden — de score van een gesimuleerde
-        // groep is geen oordeel over de agent.
+        // The server sends `run: null` alongside `notStored` today, so the half `state.run` already
+        // blocks it. This test exercises the OTHER half: should the route send a row along with a
+        // simulation tomorrow, it may still not become the last run. The score of a simulated group
+        // is no judgment about the agent.
         authFetch.mockImplementation(async (url) => {
             if (String(url).endsWith('/tests')) return json(TESTS_BODY);
             if (String(url).endsWith('/tests/run')) {

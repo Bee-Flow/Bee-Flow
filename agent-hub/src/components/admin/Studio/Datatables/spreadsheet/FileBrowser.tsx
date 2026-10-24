@@ -354,7 +354,7 @@ function FileRow({ t, item, provider, rel, checked, mark, onToggle }: FileRowPro
             <input type="checkbox" checked={checked} disabled={dead} onChange={() => onToggle(item)} className="mt-0.5 shrink-0" aria-label={item.name} />
             {SheetsLogo
                 ? <span className="mt-0.5 shrink-0 inline-flex" data-testid="logo-google_sheets" aria-hidden="true">{React.createElement(SheetsLogo, { size: 16 })}</span>
-                : <FileSpreadsheet className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--type-data)' }} aria-hidden="true" />}
+                : <FileSpreadsheet className="w-4 h-4 mt-0.5 shrink-0 [color:var(--type-data)]" aria-hidden="true" />}
             <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium truncate text-[var(--text-primary)]">{item.name}</span>

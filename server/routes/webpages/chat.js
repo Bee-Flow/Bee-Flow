@@ -11,19 +11,18 @@ const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { bodyOf, NO_QUERY, NOTHING } = require('./schemas');
 
-// ── Wat een chat-save mag dragen ────────────────────────────────────
+// ── What a chat save may carry ──────────────────────────────────────
 //
-// `messages` is VERPLICHT, en dat is hier geen vormkwestie. Het stond er als
-// `Array.isArray(req.body?.messages) ? req.body.messages : []`, en die `: []`
-// is een WISSEN: `PUT /:id/chat` met een verkeerd gespelde sleutel —
-// `{"mesages": [...]}` — sloeg een lege lijst op over de hele
-// gespreksgeschiedenis van de bouw-AI en antwoordde `{success:true,count:0}`.
-// Leegmaken hoort bij DELETE /:id/chat; een PUT die niets te zeggen heeft moet
-// dat gezegd krijgen.
+// `messages` is REQUIRED, and that is not a question of form here. It stood there as
+// `Array.isArray(req.body?.messages) ? req.body.messages : []`, and that `: []` is a
+// WIPE: `PUT /:id/chat` with a misspelled key — `{"mesages": [...]}` — saved an empty
+// list over the whole conversation history of the build AI and answered
+// `{success:true,count:0}`. Clearing belongs to DELETE /:id/chat; a PUT that has
+// nothing to say must be told so.
 //
-// Wat er ín een bericht staat is van de chat-arm, niet van deze route: die
-// vorm verandert met elk gereedschap dat de bouwer krijgt, en een tweede
-// kopie hier zou er vanzelf van gaan verschillen.
+// What is inside a message belongs to the chat arm, not to this route: that shape
+// changes with every tool the builder gets, and a second copy here would drift apart
+// from it by itself.
 const MESSAGES_TEXT = 'Stuur de berichten mee — { messages: [...] }';
 const ChatBody = bodyOf({
     messages: z.array(z.unknown(), { error: MESSAGES_TEXT }),

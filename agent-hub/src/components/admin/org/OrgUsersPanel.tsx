@@ -101,7 +101,7 @@ function PanelSkeleton() {
 function RoleChangeErrorBanner({ message, onDismiss }: { message: string; onDismiss: () => void }) {
     return (
         <div className="flex items-start gap-2 rounded-xl p-3 text-sm bg-[var(--bg-tertiary)] text-[var(--text-primary)]">
-            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--error)' }} />
+            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 [color:var(--error)]" />
             <span>{message}</span>
             <button type="button" onClick={onDismiss} className="ml-auto shrink-0">
                 <X className="w-4 h-4 text-[var(--text-muted)]" />

@@ -11,9 +11,9 @@ export const PICKER_TEXT = Object.freeze({
     search: 'Search apps and actions',
     enableAll: 'Enable all',
     disableAll: 'Disable all',
-    // Enkelvoud en meervoud als twee STRINGS, niet als een ternary om het woord
-    // heen: de schil kiest de hele zin, en een surface met `t()` hangt er twee
-    // sleutels aan (basis + `_plural`, de conventie van dit product).
+    // Singular and plural as two STRINGS, not as a ternary around the word. The shell
+    // chooses the whole sentence, and a surface with `t()` attaches two keys to it
+    // (base + `_plural`, the convention of this product).
     selectedOf: '{selected} of {total} actions selected',
     selectedOfOne: '{selected} of {total} action selected',
     noMatch: 'This app has no matching actions.',
@@ -28,18 +28,17 @@ export const PICKER_TEXT = Object.freeze({
     badgeSends: 'sends',
     badgeUnknown: 'unknown',
     badgeList: 'list',
-    // BEWUST LEEG. "Wordt altijd eerst bevestigd" is een regel van de
-    // AGENT-runtime (`confirmForTool` zegt bij een send altijd `ask`); een
-    // automation-stap kent die regel niet — daar staat één bevestiging vóór de
-    // eerste onbeheerde run. Een schil die de zin standaard toont, zou hem dus
-    // op één van zijn twee oppervlakken verzinnen. Wie de regel wél heeft,
-    // geeft de tekst mee.
+    // DELIBERATELY EMPTY. "Always confirmed first" is a rule of the AGENT runtime
+    // (`confirmForTool` always says `ask` for a send). An automation step does not
+    // know that rule. There, one confirmation sits before the first unattended run.
+    // A shell that showed the sentence by default would therefore invent it on one of
+    // its two surfaces. Whoever has the rule supplies the text.
     sendsNote: null,
 });
 
 const EFFECTS = Object.freeze(['reads', 'writes', 'sends']);
 
-/** `reads`/`writes`/`sends`, of `null` als de catalogus het niet zegt. */
+/** `reads`/`writes`/`sends`, or `null` if the catalogue does not say so. */
 export function actionEffect(action: PickerAction) {
     const raw = action && typeof action.effect === 'string' ? action.effect.trim() : '';
     return EFFECTS.includes(raw) ? raw : null;
@@ -53,7 +52,7 @@ function matchesEffectFilter(action: PickerAction, filter: string) {
     return effect === filter;
 }
 
-/** De token-kleur van een effect. Geen losse hexwaarden: het thema beslist. */
+/** The token color of an effect. No loose hex values: the theme decides. */
 const EFFECT_TOKEN: Readonly<Record<string, string>> = Object.freeze({
     reads: 'var(--success)',
     writes: 'var(--warning)',
@@ -167,9 +166,9 @@ export default function AppActionPicker({
     const [effectFilter, setEffectFilter] = useState('all');
     const [focusedId, setFocusedId] = useState(focusAppId || apps[0]?.id || null);
 
-    // Het per-app model wint van het platte. `undefined` = niets gezegd (geen
-    // vinkjes), `null` = onbekend (niets te vinken, en dus ook niets aan te
-    // raken). Zie de kop.
+    // The per-app model wins over the flat one. `undefined` means nothing was said (no
+    // ticks), `null` means unknown (nothing to tick, and therefore nothing to touch).
+    // See the heading.
     const pickedFor = (appId: string | undefined): Set<string | undefined> | null | undefined => {
         if (!selection) return undefined;
         const raw = selection instanceof Map ? selection.get(appId as string) : selection[appId as string];
@@ -184,8 +183,8 @@ export default function AppActionPicker({
     };
     const countFor = (app: PickerApp) => (app.actions || []).reduce((n, a) => n + (isOn(app.id, a.name) ? 1 : 0), 0);
 
-    // Draagt deze catalogus effecten? Zo niet: geen chips, geen effect-badges
-    // — filteren op een veld dat er niet is verbergt alles.
+    // Does this catalogue carry effects? If not, there are no chips and no effect
+    // badges. Filtering on a field that is not there hides everything.
     const showEffect = useMemo(
         () => apps.some(app => (app.actions || []).some(a => actionEffect(a))),
         [apps],
@@ -207,8 +206,8 @@ export default function AppActionPicker({
         setFocusedId(filtered[0].id);
     }
 
-    // De ↗ op een tool-rij opent de kiezer op DIE app; verandert het verzoek,
-    // dan verspringt de focus mee.
+    // The ↗ on a tool row opens the picker on THAT app. If the request changes, the
+    // focus moves along with it.
     useEffect(() => {
         if (focusAppId && apps.some((app) => app.id === focusAppId)) setFocusedId(focusAppId);
     }, [focusAppId, apps]);
@@ -228,8 +227,8 @@ export default function AppActionPicker({
         return hits.length ? hits : (appMatches ? byEffect : hits);
     }, [focused, q, effectFilter]);
 
-    // Een app waarvan de acties onbekend zijn: niets te vinken, en de schil
-    // biedt het ook niet aan.
+    // An app whose actions are unknown: nothing to tick, and the shell does not offer
+    // it either.
     const focusedUnknown = !!focused && (focused.actionsKnown === false || pickedFor(focused.id) === null);
     const selectedCount = focusedActions.filter((a) => isOn(focused?.id, a.name)).length;
     const allOn = focusedActions.length > 0 && selectedCount === focusedActions.length;

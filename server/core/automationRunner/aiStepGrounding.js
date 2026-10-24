@@ -123,11 +123,11 @@ async function groundAiStepWithMemory(step, ctx, promptText, deps) {
  */
 async function groundAiStepWithKB(step, ctx, query, mode, kbIds = null, deps) {
     if (mode === 'dry_run') return { context: '', chunks: [] };
-    // De lijst komt van de aanroeper: op een agent-stap is dat de UNIE van de
-    // banken van de stap en die van de agent (aiStepAgent.knowledgeBaseIdsForStep),
-    // en die hele unie gaat door dezelfde per-vrager-filter hieronder — anders
-    // leest een automation-eigenaar via de agent van een collega mee in banken die
-    // hij zelf niet mag zien. Zonder lijst blijft het de stap zijn eigen banken.
+    // The list comes from the caller. On an agent step that is the UNION of the bases
+    // of the step and those of the agent (aiStepAgent.knowledgeBaseIdsForStep), and that
+    // whole union goes through the same per-asker filter below. Otherwise an automation
+    // owner would read via a colleague's agent into bases he may not see himself.
+    // Without a list it stays the step's own bases.
     const ids = Array.isArray(kbIds) ? kbIds : (Array.isArray(step.knowledgeBaseIds) ? step.knowledgeBaseIds : []);
     if (!ids.length) return { context: '', chunks: [] };
     try {
@@ -145,18 +145,17 @@ async function groundAiStepWithKB(step, ctx, query, mode, kbIds = null, deps) {
 }
 
 /**
- * Skill-injectie voor een AI-stap (R2).
+ * Skill injection for an AI step (R2).
  *
- * De stap-skills gaan als `attached` mee en de skills van de agent als
- * `session`: `mergeSkillIds` houdt attached vooraan en kapt daarna af op de
- * cap, dus de skill die de auteur op DEZE stap koos is leidend — in volgorde
- * én in de cap — zonder dat de gedeelde functie iets hoeft te weten van
- * automations.
+ * The step skills go along as `attached` and the agent's skills as `session`:
+ * `mergeSkillIds` keeps attached at the front and then cuts off at the cap, so the
+ * skill the author chose on THIS step leads, in order and in the cap, without the
+ * shared function needing to know anything about automations.
  *
- * `orgId` is de tenantgrens van `getSkillsByIds`: zonder org geeft
- * `buildSkillInjection` stil niets terug, en dat "stil" is precies het soort
- * ding dat je een halve dag kost — daarom wordt het hier hardop gezegd.
- * Alles is best-effort: een kapotte skill-lookup mag een stap niet omleggen.
+ * `orgId` is the tenant boundary of `getSkillsByIds`: without an org,
+ * `buildSkillInjection` silently returns nothing, and that "silently" is exactly the
+ * kind of thing that costs you half a day, which is why it is said out loud here.
+ * Everything is best-effort: a broken skill lookup must not derail a step.
  */
 async function groundAiStepWithSkills(step, ctx, binding, preloadedSkills = null, deps) {
     const empty = { systemPromptAddendum: '', tools: [], startsAutomations: false };
@@ -177,7 +176,7 @@ async function groundAiStepWithSkills(step, ctx, binding, preloadedSkills = null
             // agent-eigenaar valt daarmee vanzelf weg (stores/skillStore.js).
             userId: ctx.userId,
             agentId: binding ? binding.agentId : null,
-            // De "laatst gebruikt"-rij hoort bij deze automatisering, niet bij een chat.
+            // The "last used" row belongs to this automation, not to a chat.
             conversationId: ctx.automationId || null,
             // Handoff 5: the rows execAi already loaded (aiStepSkills), in
             // run order, so the leading skill also comes first in the prompt.
@@ -186,16 +185,16 @@ async function groundAiStepWithSkills(step, ctx, binding, preloadedSkills = null
         return {
             systemPromptAddendum: injection.systemPromptAddendum || '',
             tools: Array.isArray(injection.tools) ? injection.tools : [],
-            // Draagt `activate_skill` hier een AUTOMATION-START? Een skill met een
-            // `automationId` heeft geen tekstbody: `executeActivateSkill` draait
-            // `executeAutomation(..., mode: 'live')`. Dat is dezelfde handeling
-            // waar `startAutomations` over gaat, dus die schakelaar beslist
-            // erover — anders krijgt een stap met alle drie de permissies UIT
-            // toch een tool waarmee het model een automatisering live start.
+            // Does `activate_skill` carry an AUTOMATION START here? A skill with an
+            // `automationId` has no text body: `executeActivateSkill` runs
+            // `executeAutomation(..., mode: 'live')`. That is the same act that
+            // `startAutomations` governs, so that switch decides on it. Otherwise a step
+            // with all three permissions OFF would still get a tool with which the model
+            // starts an automation live.
             startsAutomations: Array.isArray(injection.automationSkillIds)
                 ? injection.automationSkillIds.length > 0
-                // Een oudere (of gestubde) injectie zegt het niet. Onbekend
-                // versmalt: dan telt de tool als automation-starter.
+                // An older (or stubbed) injection does not say so. Unknown narrows: then the
+                // tool counts as an automation starter.
                 : true,
         };
     } catch (e) {

@@ -47,8 +47,7 @@ export default function ContactsDraftCard({ msg, contactsDraftStatuses, setConta
             ? { border: 'border-emerald-500/30', bg: 'bg-emerald-500/5', text: 'text-emerald-500', btn: 'bg-emerald-600 hover:bg-emerald-500' }
             : { border: 'border-blue-500/30', bg: 'bg-blue-500/5', text: 'text-blue-500', btn: 'bg-blue-600 hover:bg-blue-500' };
 
-        // De regels dragen alleen een icoon en de waarde; er staat geen
-        // labeltekst op het scherm, dus er valt hier niets te vertalen.
+        // The rows carry only an icon and the value; there is no label text on screen, so there is nothing to translate here.
         const fields = [
             { icon: Mail, value: draft.email },
             { icon: Phone, value: draft.phone },

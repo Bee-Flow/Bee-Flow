@@ -10,60 +10,57 @@ import type { IsNewerArgs, UpdateAvailabilityArgs, PlanItem, PlanManifest, PlanR
 export type { PlanRows, ReadReport } from './upgradeClient.types';
 
 /**
- * Bijwerken naar een nieuwere Blueprint: de banner, het plan, en de bevestiging.
+ * Updating to a newer Blueprint: the banner, the plan, and the confirmation.
  *
- * Er is niets nieuws aan de serverkant — dit rijdt op de BESTAANDE routes
- * `POST /:id/package/upgrade/plan` en `POST /:id/package/upgrade`. Wat hier
- * bijkomt is het enige wat een gebruiker van een upgrade te zien kreeg: niets.
+ * There is nothing new on the server side — this runs on the EXISTING routes
+ * `POST /:id/package/upgrade/plan` and `POST /:id/package/upgrade`. What is added
+ * here is the one thing a user of an upgrade used to get: nothing.
  *
- * ── Een upgrade is ingrijpend, dus het plan komt vóór de knop ──────────────
+ * ── An upgrade is far-reaching, so the plan comes before the button ───────
  *
- * `planUpgrade` beantwoordt precies de vraag die iemand heeft voordat hij
- * bevestigt: wat gebeurt er met MIJN aanpassingen. De server geeft vier lijsten
- * terug; dit scherm zet ze om in benoemde rijen, en de vertaling daarvan is de
- * hele inhoud van dit bestand:
+ * `planUpgrade` answers exactly the question someone has before confirming: what
+ * happens to MY changes. The server returns four lists; this screen converts them
+ * into named rows, and that translation is the whole content of this file:
  *
- *   TOEGEVOEGD   `plan.add`      — dit brengt de update erbij.
- *   GEWIJZIGD    `plan.replace`  — sinds de installatie onaangeroerd, dus de
- *                                  nieuwe versie schrijft eroverheen.
- *   BLIJFT STAAN `plan.skip`     — en hier splitst het, zie hieronder.
- *   WEG          `plan.missing`  — ooit geïnstalleerd, nu verwijderd. Een
- *                                  update wekt dat niet opnieuw op.
+ *   ADDED        `plan.add`      — the update brings this in.
+ *   CHANGED      `plan.replace`  — untouched since the installation, so the new
+ *                                  version writes over it.
+ *   STAYS        `plan.skip`     — and here it splits, see below.
+ *   GONE         `plan.missing`  — once installed, now deleted. An update does
+ *                                  not resurrect it.
  *
- * ── De splitsing in "blijft staan" is het punt ────────────────────────────
+ * ── The split in “stays” is the point ─────────────────────────────────────
  *
- * `plan.skip` heeft twee volstrekt verschillende betekenissen en de server zet
- * ze in dezelfde lijst:
+ * `plan.skip` has two completely different meanings, and the server puts them in
+ * the same list:
  *
- *   1. WE HEBBEN HET VERGELEKEN EN JIJ HEBT HET AANGEPAST. Alleen mogelijk voor
- *      de vier soorten die de upgrade kan vervangen (COMPARED_KINDS): daarvoor
- *      bestaat een `installHash` en een levende payload om ertegenaan te leggen.
- *   2. WE HEBBEN HET NOOIT VERGELEKEN. Een tabel en een kennisbank hebben geen
- *      payload die de upgrade kan hashen (`currentPayload` geeft er `null` voor),
- *      dus of de installateur er zelf iets aan veranderde is HIER NIET TE
- *      BEPALEN. Zo'n rij als "blijft staan" tonen zonder meer zou beweren dat
- *      we gekeken hebben.
+ *   1. WE COMPARED IT AND YOU CHANGED IT. Only possible for the four kinds that the
+ *      upgrade can replace (COMPARED_KINDS): for those, an `installHash` and a live
+ *      payload exist to check against.
+ *   2. WE NEVER COMPARED IT. A table and a knowledge base have no payload that the
+ *      upgrade can hash (`currentPayload` gives `null` for them), so whether the
+ *      installer changed something there is NOT DETERMINABLE HERE. Showing such a row
+ *      as “stays” without more would claim that we had looked.
  *
- * Dit scherm claimt geval 1 alleen als BEIDE signalen dat zeggen: de soort is er
- * een die vergeleken kán worden, én de `why` van de server noemt de bewerking.
- * Ontbreekt of verandert een van de twee, dan valt de rij terug op "niet te
- * bepalen" — de kant die te weinig belooft in plaats van te veel.
+ * This screen claims case 1 only if BOTH signals say so: the kind is one that can be
+ * compared, AND the server's `why` mentions the edit. If either is missing or
+ * changes, the row falls back to “not determinable” — the side that promises too
+ * little rather than too much.
  *
- * ── Waarom de client het manifest NIET meestuurt ──────────────────────────
+ * ── Why the client does NOT send the manifest ─────────────────────────────
  *
- * Beide routes accepteren óf een `blueprintId` óf een heel `manifest`. Dit
- * scherm stuurt uitsluitend het id. Dan draait `resolveManifest` er `canRead`
- * overheen en beslist de SERVER of deze lezer bij die Blueprint mag; een
- * meegestuurd manifest zou langs die controle heen gaan en de bytes van de
- * client tot waarheid maken. De banner controleert de scope óók (zie
- * `updateAvailability`), maar dat is de tweede grendel, niet de eerste.
+ * Both routes accept either a `blueprintId` or an entire `manifest`. This screen
+ * sends only the id. Then `resolveManifest` runs `canRead` over it, and the SERVER
+ * decides whether this reader may have that Blueprint; a sent manifest would bypass
+ * that check and make the client's bytes the truth. The banner also checks the scope
+ * (see `updateAvailability`), but that is the second lock, not the first.
  */
 
 /**
- * De soorten waarvan de upgrade een "heb jij dit aangepast" kan beantwoorden.
- * Spiegel van REPLACEABLE_KINDS in server/projects/packaging/upgrade.js. Een
- * soort die hier NIET in staat — ook een die er volgend jaar bijkomt — leest als
- * "niet te bepalen", nooit als "onaangeroerd".
+ * The kinds for which the upgrade can answer “did you change this?”.
+ * Mirror of REPLACEABLE_KINDS in server/projects/packaging/upgrade.js. A kind that
+ * is NOT in here — also one that is added next year — reads as “not determinable”,
+ * never as “untouched”.
  */
 export const COMPARED_KINDS = new Set(['automation', 'app', 'webpage', 'agent']);
 
@@ -82,16 +79,15 @@ export function updateAvailability({ installedFromBlueprintId, installedVersion,
     if (!id) return { state: 'none', blueprintId: null, installedVersion: null, latestVersion: null };
 
     const unknown = { state: 'unknown', blueprintId: null, installedVersion: null, latestVersion: null };
-    // `null` is "de galerij kon niet gelezen worden" en is dus niet hetzelfde
-    // als een lege lijst — maar voor deze vraag is het antwoord in beide
-    // gevallen: we weten het niet.
+    // `null` is “the gallery could not be read” and is therefore not the same as an
+    // empty list — but for this question the answer in both cases is: we do not know.
     if (!Array.isArray(blueprints)) return unknown;
     const found = blueprints.find(b => b && b.id === id);
     if (!found) return unknown;
 
     const latestVersion = Number.isInteger(found.version) && found.version > 0 ? found.version : null;
-    // Zonder een gelezen geïnstalleerde versie is er niets om tegen te
-    // vergelijken. Dit is de bewaker die de serverfunctie mist.
+    // Without a read installed version there is nothing to compare against. This is
+    // the guard that the server function lacks.
     const installed = Number.isFinite(installedVersion) ? Math.trunc(Number(installedVersion)) : null;
     if (latestVersion === null || installed === null) return unknown;
 
@@ -120,17 +116,17 @@ export function nameIndex(manifest: PlanManifest | null | undefined) {
     return index;
 }
 
-/** Eén planrij, met de naam erbij en zonder ook maar iets anders uit de rij. */
+/** One plan row, with the name added and nothing else taken from the row. */
 function rowOf(item: PlanItem, index: Map<string, string>): PlanRow {
     const ref = typeof item?.ref === 'string' ? item.ref : '';
     return { ref, kind: typeof item?.kind === 'string' ? item.kind : '', name: index.get(ref) || ref };
 }
 
 /**
- * De vier serverlijsten als vijf benoemde groepen.
+ * The four server lists as five named groups.
  *
- * `undetermined` is de groep die deze functie bestaansrecht geeft: hij bestaat
- * niet op de server, maar wel in de werkelijkheid — zie de kop.
+ * `undetermined` is the group that gives this function its reason to exist: it does
+ * not exist on the server, but it does in reality — see the header.
  */
 export function planRows(body: UpgradeBody | null | undefined): PlanRows {
     const plan: NonNullable<UpgradeBody['plan']> = body?.plan || {};
@@ -140,8 +136,8 @@ export function planRows(body: UpgradeBody | null | undefined): PlanRows {
     const undetermined: PlanRow[] = [];
     for (const item of list(plan.skip)) {
         const row = rowOf(item, index);
-        // Twee signalen moeten het eens zijn voordat dit scherm beweert dat er
-        // vergeleken IS. Ontbreekt er een, dan is het antwoord "niet bepaald".
+        // Two signals must agree before this screen claims that it WAS compared. If one
+        // is missing, the answer is “not determined”.
         const comparable = COMPARED_KINDS.has(row.kind);
         const saysEdited = typeof item?.why === 'string' && /\bedited\b/i.test(item.why);
         (comparable && saysEdited ? kept : undetermined).push(row);
@@ -155,7 +151,7 @@ export function planRows(body: UpgradeBody | null | undefined): PlanRows {
     };
 }
 
-/** Verandert dit plan iets? Anders is de bevestiging een lege handeling. */
+/** Does this plan change anything? Otherwise the confirmation is an empty act. */
 export function planTouchesNothing(rows: PlanRows | undefined) {
     return (rows?.added?.length || 0) === 0 && (rows?.changed?.length || 0) === 0;
 }
@@ -192,7 +188,7 @@ export async function runUpgrade({ projectId, blueprintId }: RunUpgradeArgs): Pr
     }
 }
 
-/** Het rapport, uit een allow-list. Alleen tellingen en de zinnen van de server. */
+/** The report, from an allow-list. Only counts and the sentences of the server. */
 export function readReport(report: UpgradeReport | null | undefined): ReadReport {
     const added: Record<string, unknown> = report?.added && typeof report.added === 'object' ? report.added : {};
     const total = Object.values(added).reduce<number>((n, v) => n + (Array.isArray(v) ? v.length : 0), 0);
@@ -231,10 +227,9 @@ export function UpdateBanner({ availability, onOpen }: UpdateBannerProps) {
                 {t('solutions.update_available', 'Version {version} of the Blueprint this Solution came from is available. You have version {installed}.',
                     { version: availability.latestVersion, installed: availability.installedVersion })}
             </span>
-            {/* Geen knop zonder handler: alleen de eigenaar mag bijwerken, en een
-                knop die niets doet is erger dan geen knop. De regel zelf blijft
-                wél staan — dat er een nieuwere versie is, is ook nieuws voor
-                iemand die hem niet zelf kan toepassen. */}
+            {/* No button without a handler: only the owner may update, and a button that does
+                nothing is worse than no button. The line itself does remain — that there
+                is a newer version is also news for someone who cannot apply it himself. */}
             {onOpen && (
                 <button
                     onClick={onOpen}
@@ -289,8 +284,8 @@ export function PlanBody({ rows }: { rows: PlanRows }) {
                     '{count} thing you changed stays as it is', '{count} things you changed stay as they are')}
                 note={t('solutions.upgrade_kept_note', 'Your version is kept — the update does not write over it.')}
             />
-            {/* De groep waar dit scherm om bestaat: hier is NIET vast te stellen
-                of de installateur zelf iets veranderde, en dat staat er dus. */}
+            {/* The group this screen exists for: it is NOT determinable here whether the
+                installer changed something himself, and that is stated here. */}
             <PlanGroup
                 rows={rows.undetermined} testId="upgrade-group-undetermined"
                 title={nOf(t, 'solutions.upgrade_undetermined', rows.undetermined.length,
@@ -398,10 +393,10 @@ export default function UpgradeDialog({ open, onClose, projectId, blueprintId, l
         setPlan(await fetchUpgradePlan({ projectId, blueprintId }));
     }, [projectId, blueprintId]);
 
-    // De dialoog blijft gemonteerd terwijl hij dicht is, dus het plan van de
-    // vorige keer staat er nog. Openen MOET dat wissen — een oud plan naast een
-    // nieuwe knop is precies de vergissing die dit scherm moet voorkomen. Zelfde
-    // uitzondering, en om dezelfde reden, als de naam-draft in SolutionDetail.
+    // The dialog stays mounted while closed, so the plan from the previous time is
+    // still there. Opening MUST clear that — an old plan next to a new button is
+    // precisely the mistake this screen must prevent. Same exception, and for the same
+    // reason, as the name draft in SolutionDetail.
     useEffect(() => {
         if (!open || !projectId || !blueprintId) return;
         // eslint-disable-next-line react-hooks/set-state-in-effect

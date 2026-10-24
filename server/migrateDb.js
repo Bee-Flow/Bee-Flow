@@ -1,36 +1,34 @@
 #!/usr/bin/env node
 // @typecheck
 /**
- * Database Migration Runner — en sinds U1 doet hij dat ook echt.
+ * Database Migration Runner — and since U1 it actually does that too.
  *
- * De oude versie deed synchroon `require(store)` en meldde meteen ✅: elke
- * store startte zijn initDB toen als niet-afgewachte promise bij module-load,
- * dus het script eindigde met exit 0 vóór er ook maar één CREATE TABLE was
- * uitgevoerd — aantoonbaar, tegen een echte Postgres (zie PLAN-APP-UPGRADE.md).
- * Die load-time-start bestaat niet meer (boot/storeSchemas.js doet het nu
- * expliciet), dus requiren alléén zou hier helemaal niets meer doen. Nu:
+ * The old version synchronously did `require(store)` and reported ✅ immediately: every store started its
+ * initDB at module load as a non-awaited promise, so the script ended with exit 0 before even a single
+ * CREATE TABLE had run — demonstrably, against a real Postgres (see PLAN-APP-UPGRADE.md).
+ * That load-time start no longer exists (boot/storeSchemas.js now does it explicitly), so merely requiring
+ * would now do nothing at all here. Now:
  *
- *   - elke store wordt AFGEWACHT via zijn gememoiseerde initDB()/ready
- *     (de promise-memo verhelpt meteen de pg_class-race van twee parallelle
- *     identieke CREATE TABLE IF NOT EXISTS);
- *   - de boot-migratieladder (losse datamigraties + NL-catalogi uit
- *     boot/bootMigrations.js) draait hier OOK — dat was precies de categorie
- *     die "npm run db:migrate" altijd oversloeg;
- *   - falen is luid: exit 1 met de namen; een store zonder awaitbare ingang
- *     telt als NIET GEVERIFIEERD en wordt genoemd in plaats van goedgepraat.
+ *   - every store is AWAITED via its memoised initDB()/ready
+ *     (the promise memo immediately resolves the pg_class race of two parallel
+ *     identical CREATE TABLE IF NOT EXISTS);
+ *   - the boot migration ladder (separate data migrations + NL catalogues from
+ *     boot/bootMigrations.js) ALSO runs here — precisely the category that
+ *     "npm run db:migrate" always skipped;
+ *   - failure is loud: exit 1 with the names; a store without an awaitable entry point
+ *     counts as NOT VERIFIED and is named, instead of being glossed over.
  *
- * De store-DDL is idempotent en draait bij elke aanroep; de boot-ladder
- * (datamigraties + NL-catalogi) staat in de `schema_migrations`-ledger van
- * boot/bootMigrations.js en wordt overgeslagen zodra hij geregistreerd is.
- * Een bestaande installatie draait die ladder de eerste keer nog één keer
- * volledig (idempotent) en registreert hem dan.
+ * The store DDL is idempotent and runs on every call; the boot ladder (data migrations +
+ * NL catalogues) is in the `schema_migrations` ledger of boot/bootMigrations.js and is skipped
+ * once it is registered. An existing installation runs that ladder once more in full (idempotent)
+ * the first time and then registers it.
  *
  * Usage:
- *   node migrateDb.js                    # alles, exit 1 bij enige fout
- *   node migrateDb.js --force            # ook de geregistreerde boot-ladder opnieuw
- *   npm run db:migrate                   # hetzelfde
+ *   node migrateDb.js                    # everything, exit 1 on any error
+ *   node migrateDb.js --force            # also re-run the registered boot ladder
+ *   npm run db:migrate                   # the same
  *   docker exec beeflow-server node migrateDb.js
- *   MIGRATE_TIMEOUT_MS=1200000 node migrateDb.js   # ruimere waakhond
+ *   MIGRATE_TIMEOUT_MS=1200000 node migrateDb.js   # more generous watchdog
  */
 
 const path = require('path');
@@ -43,9 +41,9 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 
 /**
- * Draai de volledige ladder: user_sessions, elke store AFGEWACHT, en daarna
- * de boot-migraties (losse datamigraties + NL-catalogi). Gooit zelf niet —
- * de aanroeper leest het rapport en beslist over de exitcode.
+ * Run the full ladder: user_sessions, every store AWAITED, and then
+ * the boot migrations (separate data migrations + NL catalogues). Does not throw itself —
+ * the caller reads the report and decides on the exit code.
  *
  * @returns {Promise<{succeeded: string[], skipped: string[], unverified: string[],
  *   failed: {name: string, error: string}[]}>}
@@ -74,11 +72,10 @@ async function runMigrations({ log = console, force = false } = {}) {
     for (const store of collectStoreModules(log)) {
         try {
             const mod = require(store.file);
-            // Voorkeursvolgorde: initDB() — door de promise-memo is dat
-            // dezelfde promise als de load-time init, en na een eerdere
-            // mislukking een echte retry. Anders een geëxporteerde
-            // ready-promise. Geen van beide = niet verifieerbaar, en dat
-            // zeggen we hardop in plaats van ✅ te liegen.
+            // Preferred order: initDB() — through the promise memo that is
+            // the same promise as the load-time init, and after an earlier failure a real
+            // retry. Otherwise an exported ready promise. Neither = not verifiable, and we
+            // say so out loud instead of lying with ✅.
             const handle = (mod && typeof mod.initDB === 'function') ? mod.initDB()
                 : (mod && mod.ready && typeof mod.ready.then === 'function') ? mod.ready
                 : null;
@@ -107,8 +104,8 @@ async function runMigrations({ log = console, force = false } = {}) {
         log.log(`  ${r.failed.length === 0 ? '✅' : '❌'} ${label}: ${r.ok.length} ok, ${r.skipped.length} al geregistreerd, ${r.failed.length} gefaald`);
     }
 
-    // Geen fout, wel een herinnering: deze bestaan en draaien bewust nooit
-    // vanzelf. De operator beslist (na de dry-run uit hun eigen header).
+    // Not an error, but a reminder: these exist and deliberately never run
+    // by themselves. The operator decides (after the dry run in their own header).
     if (MANUAL_MIGRATIONS.length > 0) {
         log.log(`  ◌  handmatig (niet gedraaid): ${MANUAL_MIGRATIONS.join(', ')}`);
     }
@@ -119,10 +116,9 @@ async function runMigrations({ log = console, force = false } = {}) {
 module.exports = { runMigrations, STORE_MODULES };
 
 if (require.main === module) {
-    // Waakhond, geen sluipmoordenaar: de oude 30s-timer zat binnen een factor
-    // 1,2 van een migratie op een LEGE database en zou na de await-fix juist
-    // de grote installaties afbreken waar migreren het langst duurt. Ruim
-    // default, instelbaar, en altijd exit 1 mét uitleg.
+    // Watchdog, not assassin: the old 30 s timer sat within a factor of 1.2 of a migration on an
+    // EMPTY database and, after the await fix, would precisely abort the large installations where
+    // migrating takes longest. A generous default, adjustable, and always exit 1 with an explanation.
     const TIMEOUT_MS = parseInt(process.env.MIGRATE_TIMEOUT_MS || String(10 * 60_000), 10);
     const watchdog = setTimeout(() => {
         console.error(`[migrate] ⚠️ Waakhond na ${TIMEOUT_MS}ms — het schema is vermoedelijk ONVOLLEDIG. ` +

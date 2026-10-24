@@ -62,9 +62,8 @@ module.exports = {
     // The batch sibling — the choke point connectorSync writes every synced row
     // through, so it must be reachable from outside this module.
     writeRecordBatch,
-    // Het DELETE-knooppunt. De DELETE-route compileerde zijn eigen SQL en kende
-    // de tweede tabelsoort daardoor niet; nu deelt hij deze ene body met de
-    // delete_record-stap.
+    // The DELETE node. The DELETE route compiled its own SQL and therefore did not know
+    // the second table kind; now it shares this one body with the delete_record step.
     eraseRecord,
     // Shared with routes/studioAppsRun.js (single implementations — do not fork)
     resolveInputs,

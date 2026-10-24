@@ -3,13 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
- * WebpageDataCards — de middenkolom van "Data & koppelingen".
+ * WebpageDataCards — the middle column of "Data & bindings".
  *
- * `authFetch` is gemockt; de fixture spiegelt het contract van
- * GET /api/webpages/:id/data-cards (server: core/webpages/webpageDataCards.js).
- * Wat hier vastligt is wat het scherm mag BEWEREN: de gestippelde "niet
- * gebruikt" alleen bij een gecontroleerde false, publieke kolommen apart
- * gemarkeerd, en een mislukte lezing die niet als "er hangt niets aan" leest.
+ * `authFetch` is mocked; the fixture mirrors the contract of GET /api/webpages/:id/data-cards (server: core/webpages/webpageDataCards.js). What is fixed here is what the screen may CLAIM: the dotted "not used" only on a verified false, public columns marked separately, and a failed read that does not read as "nothing is attached".
  */
 
 const authFetch = vi.fn();
@@ -56,7 +52,7 @@ describe('WebpageDataCards', () => {
         expect(await screen.findByText('Rates')).toBeInTheDocument();
         expect(screen.getByText('42 rows (approximate)')).toBeInTheDocument();
         expect(screen.getByText('Read and write')).toBeInTheDocument();
-        // publicColumns wordt apart gemarkeerd; een gewone kolom niet.
+        // publicColumns is marked separately; an ordinary column is not.
         expect(screen.getByText('Product · Public')).toBeInTheDocument();
         expect(screen.getByText('Price')).toBeInTheDocument();
     });
@@ -67,7 +63,7 @@ describe('WebpageDataCards', () => {
         expect(await screen.findByText('Not used on this page')).toBeInTheDocument();
         unmount();
 
-        // null = de bestanden waren niet te lezen. Dan zwijgt het scherm.
+        // null = the files could not be read. Then the screen stays silent.
         authFetch.mockResolvedValue(response(clone({ tables: [{ ...CARDS.tables[0], usedInCode: null }] })));
         render(<WebpageDataCards webpageId="wp1" sources={[]} />);
         expect(await screen.findByText('Rates')).toBeInTheDocument();

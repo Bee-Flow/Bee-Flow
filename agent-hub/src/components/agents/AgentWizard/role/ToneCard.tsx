@@ -5,28 +5,28 @@ import RoleCard, { RoleCounter, RoleEmpty, RoleNote, RoleTextArea } from './Role
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 
 /**
- * "Hoe het praat" — toon en vorm (Agents-artboard 1c).
+ * "How it speaks": tone and form (Agents artboard 1c).
  *
- * ── WAAROM DIT GEEN `shared/ChoiceCards` IS ─────────────────────────
- * `ChoiceCards` is een ARIA-radiogroup: precies één optie tegelijk, en
- * `aria-checked` zegt dat de opties elkaar uitsluiten. Toon is meervoudig —
- * "zakelijk" én "kort" én "met bedragen in €" is de normale keuze — dus een
- * radiogroup zou een schermlezer iets vertellen dat niet waar is. Dat is
- * exact het defect waarvoor `ChoiceCards` zelf is gebouwd (zie zijn kop: twee
- * eerdere kopieën gaven kleur als enige selectiesignaal), alleen dan
- * andersom. Vandaar: `role="group"` met `aria-pressed`-schakelknoppen, de
- * standaardvorm voor een meervoudige keuze. De radiogroup zit wél op "Als het
- * niet weet", want daar is de keuze echt één uit drie.
+ * ── WHY THIS IS NOT A `shared/ChoiceCards` ─────────────────────────
+ * `ChoiceCards` is an ARIA radiogroup: exactly one option at a time, and
+ * `aria-checked` says the options exclude each other. Tone is multiple: "businesslike"
+ * AND "short" AND "with amounts in €" is the normal choice, so a radiogroup would
+ * tell a screen reader something that is not true. That is exactly the defect
+ * `ChoiceCards` itself was built for (see its header: two earlier copies gave colour
+ * as the only selection signal), only the other way round. Hence: `role="group"`
+ * with `aria-pressed` toggle buttons, the standard form for a multiple choice. The
+ * radiogroup IS on "If it does not know", because there the choice really is one out
+ * of three.
  *
- * ── DE CHIPWAARDE IS PROMPTTEKST ────────────────────────────────────
- * Wat hier aan staat wordt letterlijk `Tone: formal, friendly.` in het
- * systeemprompt. Het label gaat door `t()`, de WAARDE niet — zie de kop van
- * `personaFacts.js`. Chips die deze kaart niet aanbiedt (uit de AI-parse, of
- * met de hand gezet) staan er gewoon bij: de server bewaart ze woordelijk en
- * rendert ze mee, dus ze verzwijgen zou de instructie verzwijgen.
+ * ── THE CHIP VALUE IS PROMPT TEXT ────────────────────────────────────
+ * What is set here becomes literally `Tone: formal, friendly.` in the system prompt.
+ * The label goes through `t()`, the VALUE does not; see the header of
+ * `personaFacts.js`. Chips that this card does not offer (from the AI parse, or set
+ * by hand) are simply there: the server stores them verbatim and renders them along,
+ * so hiding them would hide the instruction.
  */
 
-/** Het label van een aangeboden chip. Letterlijke t()-aanroepen, zodat de i18n-guard ze ziet. */
+/** The label of an offered chip. Literal t() calls, so the i18n guard sees them. */
 function chipLabel(t: TranslateFn, value: string): string {
     switch (value) {
         case 'formal': return t('agent_studio.role.tone_formal', 'Businesslike');
@@ -34,7 +34,7 @@ function chipLabel(t: TranslateFn, value: string): string {
         case 'concise': return t('agent_studio.role.tone_concise', 'Short');
         case 'amounts in euros': return t('agent_studio.role.tone_amounts_eur', 'Amounts in €');
         case 'Dutch unless asked otherwise': return t('agent_studio.role.tone_dutch_default', 'Dutch, unless asked otherwise');
-        // Een eigen chip is de eigen tekst van de eigenaar; die vertaalt niet.
+        // A custom chip is the owner's own text; that is not translated.
         default: return value;
     }
 }

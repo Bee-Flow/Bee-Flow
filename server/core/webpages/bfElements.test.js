@@ -1,13 +1,12 @@
 /**
- * core/webpages/bfElements — het vocabulaire zelf.
+ * core/webpages/bfElements — the vocabulary itself.
  *
- * Wat hier getoetst wordt is de DATASTRUCTUUR, niet een renderer: dat elk
- * element bestaat, dat elk verplicht attribuut als verplicht bekendstaat, dat
- * een element dat JS nodig heeft nergens als "statisch uitgeklapt" kan worden
- * opgeschreven, en dat een ONBEKEND `bf-*`-element herkenbaar onbekend
- * terugkomt in plaats van stil door te glippen.
+ * What is tested here is the DATA STRUCTURE, not a renderer: that every
+ * element exists, that every required attribute is known as required, that
+ * an element that needs JS can nowhere be written down as "statically expanded", and that an UNKNOWN `bf-*` element
+ * comes back recognizably unknown instead of slipping through silently.
  *
- * Draaien: cd server && node --test --test-force-exit core/webpages/bfElements.test.js
+ * Run: cd server && node --test --test-force-exit core/webpages/bfElements.test.js
  */
 
 const test = require('node:test');
@@ -16,15 +15,15 @@ const assert = require('node:assert');
 const bf = require('./bfElements');
 
 /**
- * Het vocabulaire, hier LETTERLIJK opgeschreven.
+ * The vocabulary, written out LITERALLY here.
  *
- * Met opzet geen `bf.BF_TAGS`: dan zou de test met elke wijziging meebewegen en
- * niets meer beweren. Deze lijst hoort mee te veranderen als iemand het
- * vocabulaire verandert — dat is precies het moment waarop een mens moet kijken.
+ * Deliberately not `bf.BF_TAGS`: then the test would move along with every change and
+ * assert nothing anymore. This list is meant to change along when someone changes the
+ * vocabulary — that is precisely the moment at which a human must look.
  */
 const VOCABULARY = ['bf-table', 'bf-stat', 'bf-button', 'bf-form', 'bf-agent'];
 
-/** Welke attributen zijn per element verplicht — ook letterlijk, om dezelfde reden. */
+/** Which attributes are required per element — also written out literally, for the same reason. */
 const REQUIRED = {
     'bf-table': ['source'],
     'bf-stat': ['source'],
@@ -66,10 +65,10 @@ test('elk element is volledig beschreven: samenvatting, attributen, binding, dri
 });
 
 test('BIJT — wat JS nodig heeft is in de vanilla snapshot inert, met een zichtbare melding', () => {
-    // Dit is de regel die W4 bestaat om te beschermen. In de vanilla publieke
-    // snapshot draait geen JS; een element dat JS nodig heeft kan daar dus per
-    // definitie niet meer dan inert zijn. Zou iemand hem ooit op 'static' of
-    // 'live' zetten, dan belooft het vocabulaire iets dat de pagina niet doet.
+    // This is the rule that W4 exists to protect. In the vanilla public
+    // snapshot no JS runs; an element that needs JS can therefore by definition be nothing more than
+    // inert there. Were someone ever to set it to 'static' or 'live', the vocabulary would promise
+    // something the page does not do.
     for (const tag of VOCABULARY) {
         const def = bf.getBfElement(tag);
         const vanilla = def.surfaces.vanillaSnapshot;
@@ -110,7 +109,7 @@ test('bf-stat: `column` is verplicht zodra de aggregatie iets anders is dan tell
     assert.deepStrictEqual(bf.missingAttributes('bf-stat', { source: 't1', agg: 'sum' }), ['column'],
         'een som zonder kolom is geen getal');
     assert.deepStrictEqual(bf.missingAttributes('bf-stat', { source: 't1', agg: 'sum', column: 'price' }), []);
-    // De default staat in het vocabulaire, niet in de renderer.
+    // The default is in the vocabulary, not in the renderer.
     assert.strictEqual(bf.effectiveAttributes('bf-stat', { source: 't1' }).agg, 'count');
 });
 
@@ -120,7 +119,7 @@ test('de oudere schrijfwijze `datatable` landt onder `source`', () => {
     // Canoniek wint als beide er staan — zelfde volgorde als de oude
     // `getAttribute('source') || getAttribute('datatable')`.
     assert.deepStrictEqual(bf.readAttributes('bf-table', { source: 'a', datatable: 'b' }), { source: 'a' });
-    // Lege waarden bestaan niet: een leeg attribuut is een ontbrekend attribuut.
+    // Empty values do not exist: an empty attribute is a missing attribute.
     assert.deepStrictEqual(bf.readAttributes('bf-table', { source: '   ' }), {});
 });
 
@@ -149,9 +148,9 @@ test('elke binding wijst een tabel, een automatisering of een agent aan — met 
     assert.strictEqual(bf.bindingFor('bf-form', { automation: 'auto_2' }).kind, 'automation');
     assert.strictEqual(bf.bindingFor('bf-form', { automation: 'auto_2' }).id, 'auto_2');
 
-    // Zonder id is er geen binding — behalve bij bf-agent, dat op de agent van
-    // de PAGINA terugvalt. Dat is geen "geen binding": de usage-index moet die
-    // pagina-agent tellen, anders lijkt een agent-blok nergens gebruikt.
+    // Without an id there is no binding — except for bf-agent, which falls back to the agent of
+    // the PAGE. That is not "no binding": the usage index must count that page
+    // agent, otherwise an agent block seems to be used nowhere.
     assert.strictEqual(bf.bindingFor('bf-table', {}), null);
     assert.strictEqual(bf.bindingFor('bf-button', {}), null);
     const agent = bf.bindingFor('bf-agent', {});
@@ -162,9 +161,9 @@ test('elke binding wijst een tabel, een automatisering of een agent aan — met 
 });
 
 test('BIJT — een onbekend bf-element is HERKENBAAR onbekend, niet stil in orde', () => {
-    // Het gevaar: DOMPurify pakt `<bf-widget action="x">Klik</bf-widget>` uit tot
-    // `Klik` zonder één waarschuwing. Wie hier een lege definitie of een lege
-    // lijst terugkrijgt, denkt dat er niets mis is.
+    // The danger: DOMPurify unwraps `<bf-widget action="x">Click</bf-widget>` to
+    // `Click` without a single warning. Whoever gets an empty definition or an empty
+    // list back here thinks that nothing is wrong.
     assert.strictEqual(bf.getBfElement('bf-widget'), null, 'geen lege definitie voor iets dat niet bestaat');
     assert.strictEqual(bf.isBfTag('bf-widget'), true, 'het ZIET er wel als een van ons uit');
     assert.strictEqual(bf.isKnownBfTag('bf-widget'), false);
@@ -175,12 +174,12 @@ test('BIJT — een onbekend bf-element is HERKENBAAR onbekend, niet stil in orde
     assert.strictEqual(seen.reason, 'unknown-bf-element');
     assert.strictEqual(seen.binding, null, 'een onbekend element bindt niets');
     assert.strictEqual(seen.needsJs, null, '"weten we niet" is iets anders dan "nee"');
-    // NIET [] — een lege lijst leest als "er ontbreekt niets", en dat is een
-    // uitspraak die we over een onbekend element niet kunnen doen.
+    // NOT [] — an empty list reads as "nothing is missing", and that is a
+    // statement that we cannot make about an unknown element.
     assert.strictEqual(bf.missingAttributes('bf-widget', {}), null);
     assert.deepStrictEqual(bf.readAttributes('bf-widget', { action: 'x' }), {});
 
-    // En een gewoon element is iets anders dan een onbekend bf-element.
+    // And an ordinary element is something other than an unknown bf element.
     const div = bf.inspectBfElement('div');
     assert.strictEqual(div.isBf, false);
     assert.strictEqual(div.reason, 'not-a-bf-element');
@@ -213,8 +212,8 @@ test('de scan haalt onbekende bf-elementen uit ruwe HTML, en laat gewone tags me
 });
 
 test('BIJT — assertCoversVocabulary gooit als een consument een element niet noemt', () => {
-    // Dit is het slot dat het onmogelijk maakt een element toe te voegen zonder
-    // dat de vanilla snapshot erop reageert: de module laadt dan niet meer.
+    // This is the slot that makes it impossible to add an element without
+    // the vanilla snapshot reacting to it: the module then no longer loads.
     assert.strictEqual(bf.assertCoversVocabulary('een volledige consument', VOCABULARY), true);
     assert.strictEqual(bf.assertCoversVocabulary('idem, als map', Object.fromEntries(VOCABULARY.map(t => [t, 'x']))), true);
 
@@ -259,8 +258,8 @@ test('de prompt-regels zijn afgeleid, zodat er geen vierde lijst met de hand ont
             assert.ok(line.includes(`${name} (required)`), `${tag}: ${name} staat als verplicht in de prompt`);
         }
     }
-    // De inertie wordt BENOEMD in plaats van weggelaten: anders stelt het model
-    // een knop voor en ontdekt de auteur pas na publiceren dat hij dood is.
+    // The inertness is NAMED rather than left out: otherwise the model proposes
+    // a button and the author only discovers after publishing that it is dead.
     for (const tag of NEEDS_JS) {
         assert.match(lines.find(l => l.startsWith(`<${tag}>`)), /INERT once published/);
     }
@@ -279,10 +278,10 @@ test('de gegenereerde client-spiegel bevat exact het vocabulaire', () => {
 });
 
 test('het vocabulaire is bevroren — niemand breidt het per ongeluk uit tijdens een run', () => {
-    // Eén consument die per ongeluk in de lijst schrijft, zou de andere twee
-    // stilzwijgend iets anders laten zien. Uitbreiden gooit; een toewijzing
-    // gaat in deze (niet-strikte) module stil verloren, dus die toetsen we op
-    // het resultaat.
+    // One consumer that writes into the list by accident would silently let the other two
+    // show something different. Extending throws; an assignment
+    // is silently lost in this (non-strict) module, so we check that on
+    // the result.
     assert.throws(() => { bf.BF_ELEMENTS.push({ tag: 'bf-nope' }); });
     bf.BF_ELEMENTS[0].tag = 'bf-anders';
     bf.BF_ELEMENTS[0].attributes[0].required = false;

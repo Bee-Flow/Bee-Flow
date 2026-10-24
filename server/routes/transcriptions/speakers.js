@@ -18,15 +18,14 @@ const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
 
-// ── Wat een sprekerbewerking mag dragen ─────────────────────────────
+// ── What a speaker edit may carry ───────────────────────────────────
 //
-// `.strict()` op allebei. `{"rename": {...}}` liet `renames` op `{}` staan,
-// waarna de route de segmenten, de sprekerslijst en het transcript ONGEWIJZIGD
-// terugschreef en de hele notitie terugstuurde: precies wat een geslaagde
-// hernoeming er ook uitziet. En `{"attendes": "Tom, Anna"}` op de
-// her-identificatie liet de zojuist ingetypte namenlijst vallen, draaide het
-// model zonder die namen, en OVERSCHREEF de sprekerlabels met wat er zonder
-// hen uitkwam.
+// `.strict()` on both. `{"rename": {...}}` left `renames` at `{}`, after which the
+// route wrote the segments, the speaker list and the transcript back UNCHANGED and
+// returned the entire note: exactly what a successful rename looks like too. And
+// `{"attendes": "Tom, Anna"}` on the re-identification dropped the name list just
+// typed, ran the model without those names, and OVERWROTE the speaker labels with
+// what came out without them.
 const RENAMES_TEXT = 'renames must be an object';
 const MERGES_TEXT = 'merges must be an array';
 const SpeakersBody = bodyOf({
@@ -34,8 +33,8 @@ const SpeakersBody = bodyOf({
     merges: z.array(z.unknown(), { error: typeError({ invalid: MERGES_TEXT }) }).optional(),
 });
 
-// Een komma-/regelgescheiden lijst of een echte lijst — toContextBias leest
-// allebei, en dat is wat het scherm en de mobiele app allebei versturen.
+// A comma- or newline-separated list, or a real list — toContextBias reads both,
+// and that is what both the screen and the mobile app send.
 const ATTENDEES_TEXT = 'attendees is een lijst met namen, of namen gescheiden door komma\'s.';
 const ReidentifyBody = bodyOf({
     attendees: z.union([

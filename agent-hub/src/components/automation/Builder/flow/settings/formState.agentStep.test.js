@@ -3,17 +3,15 @@ import { describe, it, expect } from 'vitest';
 import { extractFormState, buildPatch } from './formState';
 
 /**
- * De heen-en-terugreis van de drie R2-velden op een ai_step: `agentId`,
- * `skillIds` en `agentPermissions`.
+ * The round trip of the three R2 fields on an ai_step: `agentId`, `skillIds` and
+ * `agentPermissions`.
  *
- * De regel die hier wordt vastgelegd is niet "de waarden komen door" maar:
- * `agentPermissions` wordt aan BEIDE kanten OPNIEUW OPGEBOUWD uit de drie
- * bekende namen, nooit doorgegeven en nooit ingemengd. Een half object dat
- * blijft staan levert een `undefined`, en de eerstvolgende lezer die
- * `!== false` schrijft leest die als ja — dat is precies de fout die deze
- * laag twee ronden achter elkaar opleverde.
+ * The rule fixed here is not "the values come through" but this: `agentPermissions` is REBUILT
+ * on BOTH sides from the three known names, never passed through and never mixed in. A half
+ * object that stays behind yields an `undefined`, and the next reader who writes `!== false`
+ * reads that as yes. That is precisely the mistake this layer made two rounds in a row.
  *
- * Draaien: cd agent-hub && ./node_modules/.bin/vitest run src/components/automation/Builder/flow/settings/formState.agentStep.test.js
+ * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/automation/Builder/flow/settings/formState.agentStep.test.js
  */
 
 const aiStep = (over = {}) => ({ id: 's1', type: 'ai_step', prompt: 'Do X', inputs: {}, ...over });

@@ -86,8 +86,7 @@ interface MobileCardProps {
 
 export function MobileCard({ children, className = '', testId }: MobileCardProps) {
     return (
-        <div data-testid={testId} className={`rounded-xl overflow-hidden ${className}`}
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)' }}>
+        <div data-testid={testId} className={`rounded-xl overflow-hidden ${className} [background:var(--bg-card)] [border:1px_solid_var(--border-default)] [box-shadow:var(--shadow-sm)]`}>
             {children}
         </div>
     );

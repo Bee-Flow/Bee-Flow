@@ -28,7 +28,7 @@ export default function TemplateCard({ template, renamingId, setRenamingId, rena
             <div className="flex items-start gap-3">
                 {/* Icon */}
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 [background:rgba(99,102,241,0.08)]">
-                    <File className="w-5 h-5" style={{ color: '#6366f1' }} />
+                    <File className="w-5 h-5 [color:#6366f1]" />
                 </div>
 
                 {/* Info */}

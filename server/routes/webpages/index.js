@@ -25,31 +25,30 @@
  *   DELETE /:id/versions/:vid   — delete a version
  *   GET    /:id/draft-document     — the draft as one HTML document, bridges baked in
  *
- * ── Deze map ────────────────────────────────────────────────────────
+ * ── This folder ─────────────────────────────────────────────────────
  *
- * Dit bestand is het aanknooppunt en niets meer: het maakt de router, hangt de
- * middleware en de drie eigen sub-routers erop, en laat daarna elke
- * bronnengroep zijn eigen routes registreren. IN DEZELFDE VOLGORDE als toen
- * alles in één bestand stond — Express matcht op volgorde van registratie, dus
- * die volgorde is gedrag, geen smaak. Sub-routers zijn het bewust NIET: die
- * zouden een eigen middlewarelaag toevoegen.
+ * This file is the hub and nothing more: it creates the router, hangs the middleware and
+ * the three own sub-routers on it, and then lets each source group register its own
+ * routes. IN THE SAME ORDER as when everything stood in one file — Express matches in
+ * order of registration, so that order is behaviour, not taste. Sub-routers are
+ * deliberately NOT used for that: they would add their own middleware layer.
  *
- *   schemas.js           de zod-woordenschat waaruit elk verzoekschema is gebouwd
- *   crud.js              de pagina zelf: POST / · GET / · GET /:id · PUT /:id
- *   createBrief.js       wat de bouwbalk meestuurt, gewogen en tot brief gemaakt
- *   publishing.js        thumbnail + org/groep-publicatie
- *   publishedSnapshot.js welke bytes een niet-eigenaar leest, en hoe ze gepind worden
- *   publicShares.js      externe deel-links + het vernieuwen van hun momentopnames
- *   files.js             extra bestanden en binaire assets
- *   previewToken.js      het token voor de gesandboxte preview-iframe
+ *   schemas.js           the zod vocabulary from which every request schema is built
+ *   crud.js              the page itself: POST / · GET / · GET /:id · PUT /:id
+ *   createBrief.js       what the build bar sends, weighed and turned into a brief
+ *   publishing.js        thumbnail + org/group publication
+ *   publishedSnapshot.js which bytes a non-owner reads, and how they are pinned
+ *   publicShares.js      external share links + the refreshing of their snapshots
+ *   files.js             extra files and binary assets
+ *   previewToken.js      the token for the sandboxed preview iframe
  *   draftDocument.js     the draft as one ready-to-run document (the phone's preview)
- *   pageDatabase.js      de paginadatabank achter de sessie
- *   chat.js              de chatgeschiedenis van de bouw-AI
- *   lifecycle.js         klonen en verwijderen
- *   deleteGuard.js       de 409-poort die DELETE /:id eerst stelt
- *   sources.js           bestand/URL/tekst/Drive + retry, cancel, verwijderen
- *   versions.js          de versiegeschiedenis
- *   versionListing.js    hoe een versierij gelezen hoort te worden
+ *   pageDatabase.js      the page database behind the session
+ *   chat.js              the chat history of the build AI
+ *   lifecycle.js         cloning and deleting
+ *   deleteGuard.js       the 409 gate that DELETE /:id sets first
+ *   sources.js           file/URL/text/Drive + retry, cancel, delete
+ *   versions.js          the version history
+ *   versionListing.js    how a version listing should be read
  */
 
 const express = require('express');
@@ -60,9 +59,9 @@ const { requireActiveOrgForMutations } = require('../../auth');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
-// Wat de bronnengroepen van dit aanknooppunt meekrijgen. De multipart-poort is
-// de enige gedeelde: twee groepen (assets, bronbestanden) uploaden, en dat moet
-// dezelfde instantie met dezelfde limiet zijn.
+// What the source groups of this hub receive. The multipart gate is the
+// only shared one: two groups (assets, source files) upload, and that has to be
+// the same instance with the same limit.
 const deps = { upload };
 
 // Access control: the beta-feature gate at server/index.js (`requireBetaFeature('webpages')`)
@@ -75,14 +74,14 @@ router.use(requireActiveOrgForMutations());
 // Bridge-grant management for the IDE "Apps & data" panel — owner-only REST
 // surface over the same integrations/webpageGrants module the studio AI uses.
 router.use(require('../webpagesGrants'));
-// "Wie ziet de pagina, en het adres" (W3 stap 4) — de vierde rij (Openbaar) en
-// de Adres-kaart. Eigenaar-only, en bewust een eigen bestand: dit is de enige
-// plek die de kolompoort `publicColumns` schrijft.
+// "Wie ziet de pagina, en het adres" (W3 step 4) — the fourth row (Openbaar) and the
+// Adres-kaart. Owner-only, and deliberately its own file: this is the only place
+// that the column gate `publicColumns` writes.
 router.use(require('../webpagesAudience'));
-// "Wie gebruikt deze pagina" (W5 deel B) — het Gebruikt-door-tabblad en de
-// verwijderbevestiging. Eigen bestand om dezelfde reden als de twee hierboven:
-// dit is de enige plek die per deelvraag mag zeggen dat zij NIET gecontroleerd
-// is, en dat onderscheid overleeft geen plek tussen de CRUD-routes.
+// "Wie gebruikt deze pagina" (W5 part B) — the Gebruikt-door tab and the delete
+// confirmation. Its own file for the same reason as the two above: this is the only
+// place that may say, per sub-question, that it is NOT checked, and that distinction
+// survives no place between the CRUD routes.
 router.use(require('../webpagesUsage'));
 
 require('./crud').register(router, deps);

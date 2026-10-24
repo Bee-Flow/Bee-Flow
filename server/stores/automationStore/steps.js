@@ -4,7 +4,8 @@
  */
 
 const crypto = require('crypto');
-const { initDB, run, getAll, getClient } = require('./core');
+const { initDB, run, getAll, withTransaction } = require('./core');
+const { rollback } = require('../../utils/txRollback');
 const { rowToAutomation, safeParse } = require('./rowMappers');
 const { getAutomation } = require('./automations');
 
@@ -29,20 +30,9 @@ async function stepProjectId(q, id) {
     return r.rows[0] ? r.rows[0].project_id ?? null : undefined;
 }
 
-/** Run `fn` on one pooled client inside BEGIN/COMMIT (ROLLBACK on a throw). */
-async function inTx(fn) {
-    const client = await getClient();
-    try {
-        await client.query('BEGIN');
-        const out = await fn(client);
-        await client.query('COMMIT');
-        return out;
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
+/** Run `fn` on one pooled client in a transaction. */
+function inTx(fn) {
+    return withTransaction(fn);
 }
 
 // ── Steps (reusable building blocks, kind='block') ─────
@@ -144,18 +134,10 @@ async function createStep({ userId, organizationId = null, title, description = 
  *  version counter so the snapshot and pointer never collide. */
 async function publishStep(id, savedByUserId, { managedWrite = null } = {}) {
     await initDB();
-    const client = await getClient();
-    try {
-        await client.query('BEGIN');
+    return withTransaction(async (client) => {
         const out = await publishStepWith(client, id, savedByUserId, { managedWrite });
-        await client.query(out ? 'COMMIT' : 'ROLLBACK');
-        return out;
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
+        return out || rollback(out);
+    });
 }
 
 /**

@@ -38,8 +38,8 @@ stub('../llm/llmClient', {
         if (/List the FIRST NAMES/.test(sys)) return { content: extractionResponse };
         if (/Divide the transcript into/.test(sys)) return { content: chaptersResponse };
         if (/structured artifacts/.test(sys)) {
-            // Een omgevallen smart-tier (time-out, 500, geen model) — de derde
-            // uitkomst, en de enige die niets mag mogen wissen.
+            // A fallen-over smart tier (time-out, 500, no model): the third outcome, and the only
+            // one that must not be allowed to wipe anything.
             if (artifactsThrow) throw artifactsThrow;
             return { content: artifactsResponse };
         }

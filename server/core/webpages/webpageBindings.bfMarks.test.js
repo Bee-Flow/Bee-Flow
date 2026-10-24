@@ -1,22 +1,22 @@
 // @typecheck
 /**
- * core/webpages/webpageBindings — de ELEMENTSCAN: waar staat een `bf-*`?
+ * core/webpages/webpageBindings — the ELEMENT SCAN: where does a `bf-*` stand?
  *
- * Dit is de bron van de markeringen in de Code-tab. Wat hier vastligt is niet
- * "de scan is slim", maar wat hij mag BEWEREN:
+ * This is the source of the markings in the Code tab. What is fixed here is not
+ * "the scan is smart", but what it may ASSERT:
  *
- *   - een element wordt gevonden op de regel waar de auteur het schreef, in
- *     ELK tekstbestand van de pagina — ook in `src/App.jsx`, waar een
- *     react-mui-project zijn hele app heeft staan;
- *   - een onbekend `bf-*`-element komt er HERKENBAAR onbekend uit, nooit als
- *     een gewoon element zonder koppeling;
- *   - onleesbare bestanden geven `scanned:false`, en dat mag niet te
- *     onderscheiden zijn van "deze pagina heeft geen koppelingen" — precies
- *     het verschil dat de legenda in de Code-tab moet tonen;
- *   - dit bestand schrijft zelf geen tagnaam en geen eigen tagpatroon op: de
- *     namen én het patroon komen uit core/webpages/bfElements.js.
+ *   - an element is found on the line where the author wrote it, in
+ *     EVERY text file of the page — also in `src/App.jsx`, where a react-mui project has
+ *     its whole app;
+ *   - an unknown `bf-*` element comes out of it RECOGNIZABLY unknown, never as
+ *     an ordinary element without a binding;
+ *   - unreadable files give `scanned:false`, and that must not be
+ *     distinguishable from "this page has no bindings" — precisely the
+ *     difference that the legend in the Code tab must show;
+ *   - this file writes no tag name and no tag pattern of its own: both the names
+ *     and the pattern come from core/webpages/bfElements.js.
  *
- * Draaien: cd server && node --test --test-force-exit core/webpages/webpageBindings.bfMarks.test.js
+ * Run: cd server && node --test --test-force-exit core/webpages/webpageBindings.bfMarks.test.js
  */
 
 const test = require('node:test');
@@ -34,9 +34,9 @@ const bindings = require('./webpageBindings');
 const OWNER = 'u-owner';
 
 /**
- * De tags die deze test gebruikt komen UIT de registry, niet uit het
- * toetsenbord: zo blijft de test geldig als het vocabulaire verandert, en zo
- * legt hij bovendien vast dát er zulke elementen zijn.
+ * The tags that this test uses come FROM the registry, not from the keyboard:
+ * that way the test stays valid when the vocabulary changes, and moreover it records
+ * THAT there are such elements.
  */
 const TABLE = bf.BF_ELEMENTS.find(e => e.binding && e.binding.kind === 'datatable');
 const AUTOMATION = bf.BF_ELEMENTS.find(e => e.binding && e.binding.kind === 'automation');
@@ -45,7 +45,7 @@ const AGENT = bf.BF_ELEMENTS.find(e => e.binding && e.binding.kind === 'agent');
 assert.ok(TABLE && AUTOMATION && AGENT,
     'sanity: het vocabulaire kent een tabel-, een automation- en een agent-element');
 
-/** `<bf-x a="1" b="2">` uit een definitie, zodat er geen tagnaam in deze test staat. */
+/** `<bf-x a="1" b="2">` from a definition, so that no tag name stands in this test. */
 function open(def, attrs = {}) {
     const written = Object.entries(attrs).map(([k, v]) => ` ${k}="${v}"`).join('');
     return `<${def.tag}${written}>`;
@@ -87,8 +87,8 @@ test('een element wordt gevonden op zijn eigen regel, met het slot erbij', () =>
     const [mark] = out.marks;
     assert.strictEqual(mark.line, 3);
     assert.strictEqual(mark.source, 'index.html');
-    // Het SLOT is wat de editor als sleutel gebruikt; op de bestandsnaam
-    // matchen zou de client een tweede naamlijst geven.
+    // The SLOT is what the editor uses as key; matching on the file name
+    // would give the client a second name list.
     assert.strictEqual(mark.slot, 'html');
     assert.strictEqual(mark.tag, TABLE.tag);
     assert.strictEqual(mark.known, true);
@@ -121,10 +121,10 @@ test('een alias-attribuut landt op dezelfde binding als de canonieke naam', () =
 });
 
 test('een element zonder zijn verplichte attribuut is GEMARKEERD maar zonder doel', () => {
-    // Dit is het geval waar de auteur iets aan moet doen: het element staat er,
-    // maar het hangt nergens aan. Het blijft wél een tabelelement — de familie
-    // komt uit de definitie — dus wat het onderscheid draagt is `missing` en
-    // een leeg `targetId`, en dáár leest de Code-tab op.
+    // This is the case where the author has to do something: the element is there,
+    // but it hangs on nothing. It remains a table element — the family comes from the
+    // definition — so what carries the distinction is `missing` and an empty `targetId`, and
+    // that is what the Code tab reads.
     const out = bindings.scanBfElements({ html: `${open(TABLE)}</${TABLE.tag}>` });
 
     assert.strictEqual(out.marks.length, 1);
@@ -160,8 +160,8 @@ test('BIJT — een onbekend bf-element komt er herkenbaar onbekend uit', () => {
 });
 
 test('een gewone tag met bf in de naam wordt niet aangezien voor een element', () => {
-    // `class="bf-table-colhead"` bestaat echt in de frontend; een klassenaam is
-    // geen element, en een vals alarm zou de markering waardeloos maken.
+    // `class="bf-table-colhead"` really exists in the frontend; a class name is
+    // not an element, and a false alarm would make the marking worthless.
     const out = bindings.scanBfElements({
         html: '<div class="bf-table-colhead">x</div>\n<beefy-table></beefy-table>',
     });
@@ -188,14 +188,12 @@ test('BIJT — een react-mui-pagina heeft haar elementen in src/, en die moeten 
 });
 
 test('BIJT — ook het css-slot wordt gelezen, anders is een gemist bestand niet te zien', async () => {
-    // `style.css` doet niet mee in de oproepscan. Voor de elementscan moet elk
-    // tekstbestand dat de editor toont zijn gelezen: een slot dat overgeslagen
-    // wordt levert nul markeringen op, en dat leest als "hier staat niets".
-    // LET OP: geen COMMENTAAR als voorbeeld meer. Sinds de sluitronde maskeert
-    // de scan commentaar weg — uitgecommentarieerde code is geen koppeling — dus
-    // een `/* … */`-fixture zou nul markeringen opleveren en daarmee niet meer
-    // bewijzen dat het slot überhaupt wordt gelezen. Dit is een echte, levende
-    // regel: een generated-content-regel die de tag als tekst neerzet.
+    // `style.css` does not take part in the call scan. For the element scan every text
+    // file that the editor shows must have been read: a slot that is skipped
+    // yields zero markings, and that reads as "nothing is here".
+    // NOTE: no COMMENT as an example any more. Since the closing round the scan masks comments away — commented-out code is not a binding — so a
+    // `/* … */` fixture would yield zero markings and thereby no longer prove
+    // that the slot is read at all. This is a real, living line: a generated-content rule that sets the tag down as text.
     const slots = {
         html: '<p>hi</p>',
         css: `.x::before{content:"${open(TABLE, { [TABLE.binding.from]: 'tbl_1' })}"}`,
@@ -256,27 +254,26 @@ test('meer elementen dan de bovengrens worden geteld, niet stil weggelaten', () 
 // ── geen tweede lijst, en geen tweede patroon ─────────────────────────
 
 test('BIJT — webpageBindings kent geen tagnaam en schrijft geen eigen tagpatroon', () => {
-    // Eigen naam (niet `src`) om een toevallige woordmatch met "src/App.jsx" in
-    // de foutmeldingen van de test hierboven te vermijden — de source-text-
-    // teller ziet anders twee ongerelateerde asserties als brontekst-checks.
+    // Own name (not `src`) to avoid an accidental word match with "src/App.jsx" in
+    // the error messages of the test above — otherwise the source-text
+    // counter sees two unrelated assertions as source-text checks.
     const bindingsSrc = fs.readFileSync(path.join(__dirname, 'webpageBindings.js'), 'utf8');
 
-    // (1) Geen tagnaam in een stringliteral. Dezelfde toets die de drifttest
-    //     over de hele serverbron doet, hier van dichtbij: dit bestand is de
-    //     nieuwste consument en dus de eerstvolgende kandidaat om af te drijven.
+    // (1) No tag name in a string literal. The same check that the drift test
+    //     does over the whole server source, here from close up: this file is the newest
+    //     consumer and thus the next candidate to drift.
     const tagWord = new RegExp(`(?<![-\\w])(?:${bf.BF_TAGS.join('|')})(?![-\\w])`, 'g');
     const strays = bindings.maskCode(bindingsSrc).literals
         .map(l => String(l.value || '').match(tagWord) || []).flat();
     assert.deepStrictEqual(strays, [],
         'webpageBindings.js schrijft een bf-tagnaam op in plaats van hem uit de registry te lezen');
 
-    // (2) En geen eigen idee van hoe een element ERUITZIET. Twee patronen lopen
-    //     net zo hard uit elkaar als twee lijsten; het patroon hoort in de
-    //     registry, en hier hoort alleen de verwijzing ernaartoe te staan.
-    //     Na het maskeren is commentaar weggehaald en is elke string een
-    //     plaatshouder, dus wat er dan nog aan `bf-` overblijft staat in CODE —
-    //     en omdat een identifier geen koppelteken kan dragen, kan dat alleen
-    //     een eigen regex-literal zijn.
+    // (2) And no own idea of how an element LOOKS. Two patterns drift apart just as hard
+    //     as two lists; the pattern belongs in the registry, and here only the
+    //     reference to it should stand.
+    //     After masking, comments have been removed and every string is a placeholder,
+    //     so what still remains of `bf-` stands in CODE — and because an identifier cannot carry a hyphen,
+    //     that can only be a regex literal of its own.
     assert.ok(bindingsSrc.includes('bfElements.BF_TAG_SCAN'),
         'de scan hoort het patroon uit de registry te halen');
     const inCode = bindings.maskCode(bindingsSrc).masked.match(/bf-/gi) || [];
@@ -286,10 +283,9 @@ test('BIJT — webpageBindings kent geen tagnaam en schrijft geen eigen tagpatro
 });
 
 test('uitgecommentarieerde code is geen koppeling', async () => {
-    // De auteur zag een gemarkeerde regel met een adres erachter op code die UIT
-    // staat, en de usage-index beweerde dat de pagina die tabel gebruikt. Per
-    // taal een eigen commentaarvorm, want de maskeerder moet weten waar hij naar
-    // kijkt; regelnummers van wat er WEL staat blijven kloppen.
+    // The author saw a marked line with an address behind it on code that is OFF,
+    // and the usage index claimed that the page uses that table. Per language its own comment form,
+    // because the masker must know what it is looking at; line numbers of what IS there stay correct.
     const live = open(TABLE, { [TABLE.binding.from]: 'tbl_live' });
     const dead = open(TABLE, { [TABLE.binding.from]: 'tbl_dead' });
     const slots = {
@@ -313,9 +309,9 @@ test('uitgecommentarieerde code is geen koppeling', async () => {
 });
 
 test('een adres in een STRING blijft wel meetellen', async () => {
-    // De scherpe rand van de maskeerder: `//` in "https://…" mag de rest van de
-    // regel niet wegpoetsen, en een element dat de pagina via innerHTML neerzet
-    // is een echte koppeling.
+    // The sharp edge of the masker: `//` in "https://…" must not wipe out the rest of the
+    // line, and an element that the page puts down via innerHTML is a real
+    // binding.
     const slots = {
         html: '',
         css: '',

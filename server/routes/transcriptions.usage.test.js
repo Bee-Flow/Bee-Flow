@@ -50,9 +50,8 @@ function poolQuery(sql, params) {
     }
     if (/FROM kb_sources/.test(sql)) {
         if (plan.failKb) return Promise.reject(new Error('kb_sources is down'));
-        // Een bron die het opruimpad heeft weggehaald bestaat niet meer, dus de
-        // scan mag hem ook niet meer zien. Zonder deze regel zou een route die
-        // NIETS verwijdert er toch uitzien alsof het gelukt is.
+        // A source that the clean-up path has removed no longer exists, so the
+        // scan may not see it either. Without this line a route that deletes NOTHING would still look as if it had succeeded.
         return Promise.resolve({ rows: (plan.kb || []).filter(r => !removedSources.includes(r.source_id)) });
     }
     if (/FROM automations/.test(sql)) return Promise.resolve({ rows: plan.automations || [] });
@@ -79,13 +78,11 @@ stub('../db', {
     getAll: async () => [], getOne: async () => null, run: async () => ({ rowCount: 1 }), exec: async () => {},
     pool: { query: poolQuery },
 });
-// Het opruimpad raakt de kennisbank-kant aan: documenten eraf, chunks eraf,
-// bron weg. Alle drie zijn recorders — er is hier geen kennisbank en geen
-// zoekdienst.
+// The clean-up path touches the knowledge-base side: documents off, chunks off,
+// source away. All three are recorders — there is no knowledge base and no
+// search service here.
 stub('../stores/knowledgeBases', {
-    // De `limit` wordt hier ECHT toegepast: de opruimlus vraagt per ronde een
-    // pagina op, en een dubbel die alles in één keer teruggeeft zou een route
-    // zonder lus er precies zo goed uit laten zien als een route mét.
+    // The `limit` is REALLY applied here: the cleanup loop asks for one page per round, and a double that returns everything in one go would make a route without a loop look just as good as a route with one.
     listDocuments: async (kbId, opts = {}) => {
         const rows = kbDocuments.filter(d => d.kbId === kbId && d.sourceId === (opts.filters || {}).sourceId);
         return opts.limit ? rows.slice(0, opts.limit) : rows;
@@ -95,9 +92,7 @@ stub('../stores/kbSources', {
     remove: async (id) => { removedSources.push(id); return true; },
 });
 stub('../core/kb/kbIngestionHelpers', {
-    // Net als de echte: de documentrij gaat mee weg, dus de volgende ronde
-    // ziet hem niet meer. Zonder dat zou een kapotte lus blijven draaien in
-    // plaats van rood te worden.
+    // Just like the real one: the document row goes away too, so the next round no longer sees it. Without that, a broken loop would keep running instead of turning red.
     deleteDocumentChunks: async (kbId, docId, tenantId, opts) => {
         chunkDeletes.push({ kbId, docId, tenantId, opts });
         if (failChunkDeleteOn.has(docId)) throw new Error(`search-service refused ${docId}`);
@@ -290,15 +285,14 @@ test('the confirmed path still refuses a meeting the store will not delete', asy
 // ── DELETE /:id/filed-lines ─────────────────────────────────────────
 
 /**
- * ── EEN REGEL DIE VERKEERD GELAND IS, MOET WEG KUNNEN (M4) ──────────
- * De schrijfpoort in routes/knowledgeBases/sources.js weigert sinds M4 een
- * verzonnen `metadata.transcriptionId`, maar rijen die er door een oudere bug
- * al staan blijven staan: ze beweren op drie schermen dat deze vergadering in
- * een kennisbank zit die de eigenaar niet mag zien, en ze houden de
- * verwijderpoort van die vergadering op 409. De kennisbank is van iemand
- * anders, dus DELETE /api/kb/:id/sources/:sid is voor het slachtoffer geen
- * uitweg. Deze route is dat wel: wie de vergadering BEZIT mag weghalen wat
- * beweert eruit te komen.
+ * ── A WRONGLY LANDED RULE MUST BE REMOVABLE (M4) ────────────────────
+ * The write gate in routes/knowledgeBases/sources.js has refused a made-up
+ * `metadata.transcriptionId` since M4, but rows that already exist because of an
+ * older bug stay in place: on three screens they claim that this meeting sits in
+ * a knowledge base the owner may not see, and they keep the delete gate of that
+ * meeting at 409. The knowledge base belongs to someone else, so DELETE
+ * /api/kb/:id/sources/:sid is no way out for the victim. This route is one: whoever
+ * OWNS the meeting may remove what claims to come from it.
  */
 test('the owner of the meeting can remove a line that landed on it wrongly', async () => {
     note();
@@ -325,17 +319,14 @@ test('and after that the delete guard lets the meeting go', async () => {
     assert.strictEqual(blocked.statusCode, 409, 'the forged row holds the delete');
 
     await dispatch({ method: 'DELETE', url: '/m-1/filed-lines' });
-    // plan.kb wordt NIET met de hand leeggemaakt: de nep-pool laat weggehaalde
-    // bronnen zelf vallen, dus dit meet of er echt iets is verdwenen.
+    // plan.kb is NOT emptied by hand: the fake pool drops removed sources itself, so this measures whether anything really disappeared.
     const res = await dispatch({ method: 'DELETE', url: '/m-1' });
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(deleteCalls, [{ id: 'm-1', userId: 'owner-1' }]);
 });
 
 test('a reader who is not the owner may not empty someone else’s knowledge base', async () => {
-    // Gedeeld lezen is geen eigendom. Het opruimen van een kennisbank van een
-    // ander is een bevoegdheid van precies één persoon: wie de vergadering
-    // bezit waar de regel beweert uit te komen.
+    // Shared reading is not ownership. Cleaning up a knowledge base of someone else is a power of exactly one person: whoever owns the meeting the rule claims to come from.
     note({ isOwner: false, ownerId: 'someone-else' });
     plan.kb = [{ source_id: 'src-forged', kb_id: 'kb-attacker', owner_id: 'attacker', kind: 'text' }];
     const res = await dispatch({ method: 'DELETE', url: '/m-1/filed-lines' });
@@ -353,9 +344,7 @@ test('a meeting the caller may not read is 404, and nothing is touched', async (
 });
 
 test('a line that would not come off is REPORTED, never counted as removed', async () => {
-    // Fail-closed op dezelfde manier als de scan: "ik kon dit niet weghalen" is
-    // een andere zin dan "er stond niets", en alleen op de eerste mag de
-    // eigenaar niet in de veronderstelling blijven dat hij schoon is.
+    // Fail-closed in the same way as the scan: "I could not remove this" is a different sentence from "there was nothing", and only the first must keep the owner from assuming that he is clean.
     note();
     plan.kb = [{ source_id: 'src-forged', kb_id: 'kb-attacker', owner_id: 'attacker', kind: 'text' }];
     const store = require('../stores/kbSources');
@@ -373,19 +362,19 @@ test('a line that would not come off is REPORTED, never counted as removed', asy
 });
 
 /**
- * ── EEN BRON MET MEER DAN 200 DOCUMENTEN (M5) ───────────────────────
+ * ── A SOURCE WITH MORE THAN 200 DOCUMENTS (M5) ──────────────────────
  *
- * Een `text`-bron houdt niet één document. `POST /api/kb/:id/ingest/text`
- * zoekt via `ensureKbSource` de bestaande text-bron op met
- * `config @> { title: 'Text snippet' }` en hangt er élke keer een NIEUW
- * document aan (routes/knowledgeBases/ingest.js). Een gefileerde regel die met
- * de standaardtitel is aangemaakt verzamelt zo onbeperkt documenten.
+ * A `text` source does not hold one document. `POST /api/kb/:id/ingest/text`
+ * looks up the existing text source via `ensureKbSource` with
+ * `config @> { title: 'Text snippet' }` and attaches a NEW document to it EVERY time
+ * (routes/knowledgeBases/ingest.js). A filed rule that was created with the
+ * default title therefore collects documents without limit.
  *
- * Dit pad haalde één pagina van 200 op en verwijderde daarna onvoorwaardelijk
- * de bronrij. `documents.source_id` cascadeert, dus alles voorbij die 200 ging
- * mee zónder ooit langs `deleteDocumentChunks` te zijn geweest: uit beeld,
- * maar met levende embeddings in de search-service. De gebruiker heeft
- * verwijderd en de tekst is nog vindbaar — in een privacyproduct is dat DE bug.
+ * This path fetched one page of 200 and then deleted the source row
+ * unconditionally. `documents.source_id` cascades, so everything beyond those 200
+ * went along WITHOUT ever having passed `deleteDocumentChunks`: out of sight,
+ * but with live embeddings in the search service. The user deleted and the text
+ * is still findable — in a privacy product that IS the bug.
  */
 test('MEER DAN 200 DOCUMENTEN: alle chunks gaan eraf, niet alleen de eerste pagina', async () => {
     note();
@@ -407,9 +396,7 @@ test('MEER DAN 200 DOCUMENTEN: alle chunks gaan eraf, niet alleen de eerste pagi
 });
 
 test('EEN OPRUIMING DIE HALVERWEGE VASTLOOPT MELDT GEEN SUCCES — en laat de bron staan', async () => {
-    // Stil half verwijderen is dezelfde fout in een ander jasje: viel de
-    // bronrij tóch, dan cascadeerde de FK het overgebleven document weg en
-    // bleven juist díe embeddings voor altijd doorzoekbaar.
+    // Silently half-deleting is the same mistake in another guise: if the source row did fall, the FK would cascade the remaining document away, and exactly those embeddings would stay searchable forever.
     note();
     plan.kb = [{ source_id: 'src-forged', kb_id: 'kb-attacker', owner_id: 'attacker', kind: 'text' }];
     kbDocuments = Array.from({ length: 250 }, (_, i) => ({
@@ -426,8 +413,7 @@ test('EEN OPRUIMING DIE HALVERWEGE VASTLOOPT MELDT GEEN SUCCES — en laat de br
         'het document dat bleef staan wordt bij naam genoemd');
     assert.deepStrictEqual(removedSources, [], 'DE BRON BLIJFT STAAN zolang er documenten met chunks aan hangen');
     assert.deepStrictEqual(kbDocuments.map(d => d.id), ['doc-150']);
-    // En het luidst mogelijke gevolg: de vergadering geldt nog steeds als in
-    // gebruik, dus de eigenaar krijgt geen schone melding maar een 409.
+    // And the most severe possible consequence: the meeting still counts as in use, so the owner gets no clean notice but a 409.
     const still = await dispatch({ method: 'DELETE', url: '/m-1' });
     assert.strictEqual(still.statusCode, 409);
     assert.strictEqual(still.body.code, 'in_use');

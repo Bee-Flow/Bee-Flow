@@ -164,7 +164,7 @@ export default function OrgAccessEditor({ orgId, onChanged }: OrgAccessEditorPro
                                             {cap.description ? <p className="text-[11px] truncate text-[var(--text-muted)]" title={cap.description}>{cap.description}</p> : null}
                                         </div>
                                         {unrestricted
-                                            ? <Lock className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
+                                            ? <Lock className="w-4 h-4 flex-shrink-0 [color:var(--text-muted)] [opacity:0.4]" />
                                             : (
                                                 <span className="relative inline-flex items-center flex-shrink-0" onClick={e => e.stopPropagation()}>
                                                     <input type="checkbox" checked={checked} onChange={() => toggle(cap.id)} className="sr-only peer" />

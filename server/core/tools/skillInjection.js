@@ -373,13 +373,12 @@ async function buildSkillInjection({ sessionSkillIds = [], attachedSkillIds = []
         systemPromptAddendum: addendum,
         tools,
         dynamicSkillIds: dynamicSkills.map(s => s.id),
-        // De ids waarvan `activate_skill` een AUTOMATISERING start: hun "body" is een
-        // automation, en `executeActivateSkill` draait die hieronder met
-        // `mode: 'live'`. Meegegeven omdat de aanroeper anders niet kan weten
-        // dat de ene tool die hij terugkrijgt méér doet dan tekst laden — en op
-        // een onbewaakt oppervlak (de ai_step van een automatisering) hangt dat aan een
-        // andere schakelaar dan gewone skills. Leeg voor elke bestaande
-        // aanroeper, dus niets verandert er voor de chat.
+        // The ids of which `activate_skill` starts an AUTOMATION: their "body" is an
+        // automation, and `executeActivateSkill` runs that below with
+        // `mode: 'live'`. Passed along because the caller could otherwise not know
+        // that the one tool it gets back does more than load text — and on an unguarded surface (the ai_step of an automation) that hangs on
+        // a different switch than ordinary skills. Empty for every existing
+        // caller, so nothing changes for the chat.
         automationSkillIds: dynamicSkills.filter(s => s.automationId).map(s => s.id),
         staticCount: staticSkills.length,
     };

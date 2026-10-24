@@ -1,55 +1,48 @@
 // @typecheck
 /**
- * Webpagina's — wie gebruikt er een (W5 deel B).
+ * Web pages — who uses one (W5 part B).
  *
  *   GET /:id/usage  →  { usage, unchecked, sources, complete }
  *
- * Voedt hetzelfde tabblad als elke andere soort: `shared/UsedByTab.jsx` via
- * `hooks/useUsage.js`, dat `webpage → webpages` al in `USAGE_KIND_PATH` heeft
- * staan met "W5" erachter. Het antwoord volgt daarom letterlijk de vorm van de
- * kennisbank (`routes/knowledgeBases/usage.js`) en de vergadernotitie
- * (`routes/transcriptions/usage.js`): `usage` is de lijst, `unchecked` de
- * soorten die niet beantwoord konden worden. De client hoeft niets te leren.
+ * Feeds the same tab as every other kind: `shared/UsedByTab.jsx` via `hooks/useUsage.js`,
+ * which already has `webpage → webpages` in `USAGE_KIND_PATH` with "W5" after it. The answer
+ * therefore follows the shape of the knowledge base (`routes/knowledgeBases/usage.js`) and the
+ * meeting note (`routes/transcriptions/usage.js`) literally: `usage` is the list, `unchecked`
+ * the kinds that could not be answered. The client does not need to learn anything.
  *
- * ── EIGENAAR-GESCOOPT, ZOALS DE ANDERE WEBPAGINA-ROUTES ─────────────
+ * ── OWNER-SCOPED, LIKE THE OTHER WEBPAGE ROUTES ─────────────────────
  *
- * `webpageStore.getWebpage(id, userId)` is eigenaar-gescoopt in SQL; een
- * org-lezer die de pagina wél mag OPENEN krijgt hier 404, precies zoals bij
- * `routes/webpagesGrants.js` en `routes/webpagesAudience.js`. Dat is geen
- * strengheid om de strengheid: dit antwoord vertelt in welke Oplossing de
- * pagina ligt en dat er een bouwgesprek aan hangt. Dat is de werkindeling van
- * de eigenaar, en een gepubliceerde pagina is geen uitnodiging om die uit te
- * lezen. Dezelfde 404 als elke andere route op dit id, zodat deze niet te
- * gebruiken is om te achterhalen welke pagina-ids bestaan.
+ * `webpageStore.getWebpage(id, userId)` is owner-scoped in SQL; an org reader who may OPEN the
+ * page gets a 404 here, just as with `routes/webpagesGrants.js` and `routes/webpagesAudience.js`.
+ * That is not strictness for its own sake: this answer says in which Solution the page lies and
+ * that a build conversation hangs on it. That is the owner's working arrangement, and a published
+ * page is no invitation to read it out. The same 404 as every other route on this id, so that this
+ * one cannot be used to discover which page ids exist.
  *
- * ── DRIE VELDEN, DRIE VERSCHILLENDE UITSPRAKEN ──────────────────────
+ * ── THREE FIELDS, THREE DIFFERENT VERDICTS ──────────────────────────
  *
- *   usage      wat er gevonden is. Rijen van een ander (een Oplossing van een
- *              collega) houden soort en rol en verliezen hun naam.
- *   unchecked  welke soorten NIET beantwoord konden worden. "Ik kon de agents
- *              niet nakijken" is een andere zin dan "geen agent gebruikt deze
- *              pagina", en alleen op de tweede mag iemand verwijderen. De
- *              verwijderpoort moet dit als IN GEBRUIK lezen — dezelfde regel
- *              die `routes/transcriptions/noteActions.js` vastlegt.
- *   sources    per soort de stand + `found`, in de vorm die
- *              `routes/studio/attention.js` voor "Vraagt aandacht" heeft
- *              gezet. `unchecked` is de platte samenvatting daarvan, zodat de
- *              bestaande client onveranderd blijft werken; `sources` is er
- *              voor het scherm dat WIL zeggen welke deelvraag omviel.
- *   complete   de vergunning om "niets gebruikt deze pagina" te zeggen.
+ *   usage      what was found. Rows from someone else (a colleague's Solution) keep their kind and
+ *              role and lose their name.
+ *   unchecked  which kinds could NOT be answered. "I could not check the agents" is a different
+ *              sentence from "no agent uses this page", and only on the second may someone delete.
+ *              The delete gate must read this as IN USE — the same rule that
+ *              `routes/transcriptions/noteActions.js` records.
+ *   sources    per kind the state + `found`, in the shape that `routes/studio/attention.js` has set
+ *              for "Needs attention". `unchecked` is the flat summary of that, so the existing client
+ *              keeps working unchanged; `sources` is there for the screen that WANTS to say which
+ *              sub-question fell through.
+ *   complete   the licence to say "nothing uses this page".
  *
- * Vandaag is `complete` altijd false, omdat niet vast te stellen is welke
- * agents een pagina als tool mogen openen — zie de kop van
- * core/webpages/webpageUsage.js. Dat is de eerlijke stand, geen bug.
+ * Today `complete` is always false, because it cannot be established which agents may open a page as
+ * a tool — see the header of core/webpages/webpageUsage.js. That is the honest state, not a bug.
  *
- * Gemonteerd vanuit routes/webpages.js (`router.use(...)`), naast de
- * grants- en audience-routers, en dus vóór `GET /:id`.
+ * Mounted from routes/webpages.js (`router.use(...)`), next to the grants and audience routers, and
+ * therefore before `GET /:id`.
  *
- * ── GEEN QUERY ──────────────────────────────────────────────────────
+ * ── NO QUERY ────────────────────────────────────────────────────────
  *
- * De route leest alleen het id uit het pad. Een querysleutel viel stil weg:
- * `?kind=agent` kreeg álle soorten terug onder een 200, alsof dat filter
- * bestond. Nu is dat een 400 in één zin, zoals bij
+ * The route reads only the id from the path. A query key fell away silently: `?kind=agent` got back
+ * ALL kinds under a 200, as if that filter existed. Now that is a 400 in one sentence, as in
  * `routes/transcriptions/usage.js`.
  */
 
@@ -57,9 +50,8 @@ const express = require('express');
 const router = express.Router();
 
 const webpageStore = require('../stores/webpageStore');
-// Als MODULE-object, niet gedestructureerd: dat is wat routes/webpagesGrants.js
-// ook doet, en het is de reden dat de test hiernaast de scan kan vervangen
-// zonder een database.
+// As a MODULE object, not destructured: that is what routes/webpagesGrants.js also does, and it is
+// the reason that the test next to it can replace the scan without a database.
 const webpageUsage = require('../core/webpages/webpageUsage');
 const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
@@ -69,9 +61,9 @@ const { z, onUnknownKeys } = require('../utils/zod');
 const NO_QUERY = z.object({}, { error: onUnknownKeys('This usage list takes no parameters; it always covers every kind.') }).strict();
 
 router.get('/:id/usage', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
-    // `usageForWebpage` vangt elke deelvraag apart op; valt de opzoeking zelf
-    // om, dan een 500 (de terminal handler) — nooit een leeg `usage`, want dat
-    // is de ene zin die deze route niet per ongeluk mag uitspreken.
+    // `usageForWebpage` catches each sub-question separately; if the lookup itself falls over,
+    // then a 500 (the terminal handler) — never an empty `usage`, because that is the one sentence
+    // that this route must not utter by accident.
     const userId = req.session.user.id;
     const wp = await webpageStore.getWebpage(req.params.id, userId);
     if (!wp) return res.status(404).json({ error: 'Webpage not found' });

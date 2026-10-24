@@ -103,17 +103,17 @@ export async function listCoworkRuns(id: string, { limit = 25, offset = 0 }: { l
 }
 
 /**
- * De cijfers achter één opdracht (CW-11): hoeveel keer gedraaid, hoeveel
- * daarvan geslaagd, hoe lang een keer gemiddeld duurt.
+ * The figures behind one command (CW-11): how many times it ran, how many of those
+ * succeeded, and how long one run takes on average.
  *
- * `total` telt de BEWAARDE historie (de retentiesweep ruimt na 90 dagen op);
- * `runCount` is de levenslange teller van het schema zelf en is wat "42 keer
- * gedraaid" hoort te zeggen. Ze lopen met opzet uiteen — verwar ze niet.
+ * `total` counts the RETAINED history (the retention sweep cleans up after 90 days).
+ * `runCount` is the lifetime counter of the schedule itself, and is what "ran 42
+ * times" should say. They deliberately diverge. Do not confuse them.
  *
- * Er zit geen kosten- of tokenveld in: het runpad legt geen usage vast
- * (CW-12), en een ontbrekend veld dat als "€ 0,00" rendert is erger dan een
- * kaart die er niet staat. `avgDurationMs` blijft null als er nog nooit een
- * poging is afgerond — dat is iets anders dan nul milliseconden.
+ * There is no cost or token field in here. The run path does not record usage
+ * (CW-12), and a missing field that renders as "€ 0.00" is worse than a card that
+ * is not there. `avgDurationMs` stays null as long as no attempt has been completed
+ * yet. That is something other than zero milliseconds.
  */
 export async function getCoworkStats(id: string): Promise<CoworkStatsData> {
     const res = await authFetch(itemUrl(id, '/stats'));

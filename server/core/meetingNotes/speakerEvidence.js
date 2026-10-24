@@ -4,10 +4,10 @@
  *
  * WHY THE SPLIT
  * Working out who each diarizer ID belongs to is two jobs wearing one coat:
- *   1. "Where are person names spoken, and what are they?" — extraction. A NER
+ *   1. "Where are person names spoken, and what are they?": extraction. A NER
  *      model answers this; no pattern list required.
- *   2. "Is that line an introduction, and which ID is which person?" —
- *      judgement. Only the LLM can read "Ik ben Ewald" vs "Ik ben benieuwd" vs
+ *   2. "Is that line an introduction, and which ID is which person?": judgement.
+ *      Only the LLM can read "Ik ben Ewald" vs "Ik ben benieuwd" vs
  *      "Dit is Ewald" vs "Met Ewald" without someone enumerating phrasings.
  *
  * This module does (1) and nothing else. An earlier version matched

@@ -31,22 +31,22 @@ const initDB = makeStoreInit('CoworkStore', _initDB);
 
 async function _initDB() {
     await require('../migrations/cowork-2026-08').up();
-    // CW-13: `produced_output` als EIGEN feit naast `status`.
+    // CW-13: `produced_output` as its OWN fact alongside `status`.
     //
-    // Een run die niets te melden had is GESLAAGD — hij is alleen leeg. Zonder
-    // deze kolom kan de historie die twee niet uit elkaar houden: beide zijn
-    // status='success', en het scherm moest het verschil uit de resultaattekst
-    // raden. Dat raden hoort één keer te gebeuren, bij het sluiten van de run,
-    // en dan bewaard te worden.
+    // A run that had nothing to report is SUCCESSFUL — it is only empty. Without
+    // this column the history cannot tell the two apart: both are
+    // status='success', and the screen had to guess the difference from the result text.
+    // That guessing should happen once, when the run is closed,
+    // and then be stored.
     //
-    // NULL is een DERDE waarde en met opzet niet FALSE: rijen van vóór deze
-    // kolom weten het simpelweg niet. Ze terugvullen als "niets geproduceerd"
-    // zou een uitspraak over het verleden verzinnen; de UI leest NULL als
-    // onbekend en valt daar terug op de tekst.
+    // NULL is a THIRD value and deliberately not FALSE: rows from before this
+    // column simply do not know. Back-filling them as "nothing produced" would
+    // invent a statement about the past; the UI reads NULL as
+    // unknown and falls back to the text for that.
     //
-    // Een nieuwe kolom hoort in de idempotente boot-DDL van zijn eigen store en
-    // dan via runDdl — niet in een los migratiebestand en niet in een stille
-    // catch (boot/bootMigrations.test.js legt die regel uit).
+    // A new column belongs in the idempotent boot DDL of its own store, and
+    // then via runDdl — not in a loose migration file and not in a
+    // silent catch (boot/bootMigrations.test.js explains that rule).
     await runDdl('coworkStore', [
         'ALTER TABLE cowork_runs ADD COLUMN IF NOT EXISTS produced_output BOOLEAN',
     ]);
@@ -101,9 +101,9 @@ function rowToRun(r) {
         durationMs: r.duration_ms,
         result: r.result,
         error: r.error,
-        // CW-13. Drie waarden, niet twee: true (er kwam iets uit), false
-        // (geslaagd, niets te melden) en null (rij van vóór de kolom — niet
-        // gemeten). null mag NOOIT als false worden gelezen.
+        // CW-13. Three values, not two: true (something came out), false
+        // (successful, nothing to report) and null (row from before the column — not
+        // measured). null must NEVER be read as false.
         producedOutput: (r.produced_output === null || r.produced_output === undefined)
             ? null
             : !!r.produced_output,
@@ -111,29 +111,28 @@ function rowToRun(r) {
 }
 
 /**
- * Had deze geslaagde run iets te melden? (CW-13)
+ * Did this successful run have anything to report? (CW-13)
  *
- * De runner levert nooit een lege string aan markCompleted: als het model geen
- * tekst produceerde, zet aiTaskRunner er zijn eigen markering voor in de plaats
- * — één cursieve regel tussen haakjes, `_( … )_`, en verder niets. Dat is de
- * vorm die hier wordt herkend, niet de Nederlandse zin erin: die tekst is
- * copy en mag veranderen (en vertaald worden) zonder deze afleiding te breken.
+ * The runner never supplies an empty string to markCompleted: if the model produced
+ * no text, aiTaskRunner puts its own marker in its place — one italic line in brackets,
+ * `_( … )_`, and nothing more. That is the shape that is recognised here, not the Dutch sentence
+ * in it: that text is copy and may change (and be translated) without breaking
+ * this inference.
  *
- * Bewust GEEN inhoudelijk oordeel over echte resultaten — "korte tekst" of
- * "bevat geen cijfers" is een mening, en die hoort niet in een kolom die als
- * feit wordt gelezen. Alleen leeg en de markering tellen als "niets".
+ * Deliberately NO substantive judgement on real results — "short text" or
+ * "contains no figures" is an opinion, and that does not belong in a column that is read as
+ * a fact. Only empty and the marker count as "nothing".
  *
- * Aanroepers die het zeker weten (de runner weet of er tool-output was) geven
- * `producedOutput` expliciet mee; deze afleiding is het antwoord voor wie dat
- * niet doet.
+ * Callers that know for certain (the runner knows whether there was tool output)
+ * pass `producedOutput` explicitly; this inference is the answer for whoever does not.
  */
 function deriveProducedOutput(result) {
     if (result === null || result === undefined) return false;
     const text = String(result).trim();
     if (text === '') return false;
-    // Exact één `_( … )_`-blok en niets eromheen: de "geen tekstresultaat"-
-    // markering van aiTaskRunner. Een echt antwoord dat toevallig cursief
-    // begint heeft er tekst omheen en telt dus gewoon mee.
+    // Exactly one `_( … )_` block and nothing around it: the "no text result"
+    // marker of aiTaskRunner. A real answer that happens to start in italics
+    // has text around it and therefore counts as normal.
     if (/^_\([\s\S]*\)_$/.test(text)) return false;
     return true;
 }
@@ -282,13 +281,13 @@ async function listRuns(scheduleId, { limit = 25, offset = 0 } = {}) {
 }
 
 /**
- * De starttijd van de run die dit schema NU open heeft staan, of null (CW-06).
+ * The start time of the run that this schedule NOW has open, or null (CW-06).
  *
- * De bron is de open historierij (`finished_at IS NULL`), niet
- * `last_status = 'running'`: die twee kunnen uit elkaar lopen — reapStaleRuns
- * sluit een vastgelopen rij en zet het schema terug op 'error', en een
- * handmatige run kan de tick net voor zijn. "Loopt sinds …" hoort te komen van
- * de rij die daadwerkelijk open staat.
+ * The source is the open history row (`finished_at IS NULL`), not
+ * `last_status = 'running'`: those two can drift apart — reapStaleRuns
+ * closes a stuck row and sets the schedule back to 'error', and a
+ * manual run can start just before the tick. "Running since …" must come from
+ * the row that is actually open.
  */
 async function getOpenRunStart(scheduleId) {
     await initDB();
@@ -302,11 +301,11 @@ async function getOpenRunStart(scheduleId) {
 }
 
 /**
- * Hetzelfde voor ELK schema van één gebruiker, in één query: een object
- * `{ scheduleId: ISO-tijd }` met alleen de schema's die iets open hebben staan.
+ * The same for EVERY schedule of one user, in one query: an object
+ * `{ scheduleId: ISO time }` with only the schedules that have something open.
  *
- * Per rij een losse query zou de lijst N+1 keer laten praten met de database;
- * dit is één keer, op de bestaande index (user_id, started_at DESC).
+ * One query per row would make the list talk to the database N+1 times;
+ * this is once, on the existing index (user_id, started_at DESC).
  */
 async function getOpenRunStarts(userId) {
     await initDB();
@@ -325,23 +324,23 @@ async function getOpenRunStarts(userId) {
 }
 
 /**
- * De cijfers achter één schema (CW-11): hoeveel pogingen er in de BEWAARDE
- * historie staan, hoeveel daarvan slaagden, hoeveel er misgingen, en hoe lang
- * een poging gemiddeld duurde.
+ * The figures behind one schedule (CW-11): how many attempts are in the STORED
+ * history, how many of those succeeded, how many went wrong, and how long
+ * an attempt took on average.
  *
- * Twee dingen die de aanroeper uit elkaar moet houden:
+ * Two things that the caller must keep apart:
  *
- *   - `total` telt de rijen die er NOG zijn. De retentiesweep
- *     (deleteRunsOlderThan, 90 dagen) haalt oude rijen weg, dus na een jaar is
- *     dit minder dan het aantal keren dat dit werk ooit draaide. Het
- *     levenslange aantal staat op het schema zelf (`run_count`) en is wat "42
- *     keer gedraaid" hoort te zeggen.
- *   - `failed` is "gesloten en niet geslaagd" — dus ook `needs_reauth`, en ook
- *     een statusnaam die er later bij komt. Een lijst van foutstatussen zou
- *     zo'n nieuwe status stilzwijgend als "geslaagd noch mislukt" wegstrepen.
+ *   - `total` counts the rows that STILL exist. The retention sweep
+ *     (deleteRunsOlderThan, 90 days) removes old rows, so after a year this
+ *     is less than the number of times this work has ever run. The lifetime
+ *     count sits on the schedule itself (`run_count`) and is what "run 42
+ *     times" should say.
+ *   - `failed` is "closed and not successful" — so also `needs_reauth`, and also
+ *     a status name that is added later. A list of error statuses would
+ *     silently strike such a new status as "neither successful nor failed".
  *
- * Een lopende run telt in `total` maar in geen van beide uitkomsten, en telt
- * niet mee in het gemiddelde: zijn duur is nog niet bekend.
+ * A running run counts in `total` but in neither of the two outcomes, and does not
+ * count in the average: its duration is not yet known.
  */
 async function getRunStats(scheduleId) {
     await initDB();
@@ -359,8 +358,8 @@ async function getRunStats(scheduleId) {
         total: r?.total || 0,
         success: r?.success || 0,
         failed: r?.failed || 0,
-        // null blijft null: "nog nooit een poging afgerond" is iets anders dan
-        // "gemiddeld 0 ms".
+        // null stays null: "no attempt completed yet" is something other than
+        // "0 ms on average".
         avgDurationMs: (avg === null || avg === undefined) ? null : Math.round(Number(avg)),
     };
 }
@@ -391,9 +390,9 @@ async function _closeOpenRun(scheduleId, { status, result, error, producedOutput
         [scheduleId],
     );
     if (!openRun) return null;
-    // CW-13: het "was er iets te melden"-oordeel valt HIER, één keer, en wordt
-    // bewaard. Een expliciete waarde van de aanroeper wint; anders leidt
-    // deriveProducedOutput hem af uit wat er is opgeslagen.
+    // CW-13: the "was there anything to report" judgement falls HERE, once, and is
+    // stored. An explicit value from the caller wins; otherwise deriveProducedOutput
+    // infers it from what has been stored.
     const produced = typeof producedOutput === 'boolean'
         ? producedOutput
         : deriveProducedOutput(result);
@@ -522,10 +521,10 @@ async function markRunning(id, { triggerKind = 'schedule' } = {}) {
 }
 
 /**
- * `producedOutput` is optioneel en overschrijft de afleiding uit `result` —
- * bedoeld voor een aanroeper die het zeker weet. De runner geeft hem vandaag
- * niet mee; die extra parameter blijft daarom zuiver additief (de gedeelde
- * runner-surface met aiTaskStore roept markCompleted(id, result) aan).
+ * `producedOutput` is optional and overrides the inference from `result` —
+ * meant for a caller that knows for certain. The runner does not pass it along today;
+ * that extra parameter therefore remains purely additive (the shared
+ * runner surface with aiTaskStore calls markCompleted(id, result)).
  * @param id
  * @param result
  * @param {{ producedOutput?: boolean }} [opts]
@@ -559,8 +558,8 @@ async function markError(id, error) {
          WHERE id = $3`,
         [status, msg, id],
     );
-    // Een mislukte run heeft per definitie niets opgeleverd — geen afleiding,
-    // geen twijfel: false.
+    // A failed run has by definition produced nothing — no inference,
+    // no doubt: false.
     await _closeOpenRun(id, { status, error: msg, producedOutput: false });
 }
 

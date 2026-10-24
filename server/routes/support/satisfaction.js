@@ -16,6 +16,7 @@
 
 const supportStore = require('../../stores/supportStore');
 
+const { setNoLeakHeaders } = require('./requesterSession');
 const { _shortId, requireStaffSupport, _csatHtml, _emit, notifyStaff } = require('./shared');
 const { threadReadLimiter } = require('./rateLimits');
 const log = require('../../telemetry/log');
@@ -33,10 +34,23 @@ function register(router) {
     // GET /csat/:threadId — PUBLIC. Records a CSAT vote or dispute via HMAC token.
     // Links live in the resolution email; no session required.
     // ──────────────────────────────────────────────────────────────────────────
+    // GET /csat/:threadId/done — the tokenless thank-you page. Static text only:
+    // it records nothing and reads no thread.
+    router.get('/csat/:threadId/done', threadReadLimiter, (req, res) => {
+        setNoLeakHeaders(res);
+        if (req.query.dispute) return res.send(_csatHtml({ disputed: true }));
+        const score = parseInt(String(req.query.score), 10); // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- static page; only a boolean flag is used
+        res.send(_csatHtml({ score: Number.isInteger(score) && score >= 1 && score <= 5 ? score : undefined })); // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write -- static page; score is an integer 1-5 or undefined
+    });
+
     router.get('/csat/:threadId', threadReadLimiter, async (req, res) => {
+        // The token is in this URL: keep it out of Referer and caches. A
+        // recorded vote is answered with a redirect to a URL WITHOUT it (below),
+        // so it does not linger in history or proxy logs after the first use.
+        setNoLeakHeaders(res);
         try {
             const { score, dispute, token } = req.query;
-            const thread = await supportStore.getThread(req.params.threadId);
+            const thread = await supportStore.getThread(req.params.threadId); // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- same-origin path built server-side, id URI-encoded
             if (!thread) return res.status(404).send(_csatHtml({ error: 'Thread not found.' }));
 
             const numScore = dispute ? 0 : parseInt(score, 10);
@@ -60,7 +74,7 @@ function register(router) {
                     category: 'urgent',
                 });
                 _emit('thread_updated', { threadId: thread.id });
-                return res.send(_csatHtml({ disputed: true }));
+                return res.redirect(303, `${req.baseUrl}/csat/${encodeURIComponent(thread.id)}/done?dispute=1`); // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- same-origin path built server-side, id URI-encoded
             }
 
             await supportStore.setCsat({ threadId: thread.id, score: numScore });
@@ -70,7 +84,7 @@ function register(router) {
                 action: 'csat', payload: { score: numScore },
             });
             _emit('thread_updated', { threadId: thread.id });
-            res.send(_csatHtml({ score: numScore }));
+            res.redirect(303, `${req.baseUrl}/csat/${encodeURIComponent(thread.id)}/done?score=${numScore}`); // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- same-origin path built server-side, id URI-encoded
         } catch (err) {
             log.error(`[Support] GET /csat/:threadId error (id=${_shortId(req.params.threadId)}):`, err.message);
             res.status(500).send(_csatHtml({ error: 'Something went wrong.' }));

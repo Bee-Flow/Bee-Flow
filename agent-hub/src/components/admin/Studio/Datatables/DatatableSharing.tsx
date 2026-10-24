@@ -309,8 +309,7 @@ function AudienceRow({ icon, title, description, checked, onSelect, last = false
                 checked={checked}
                 onChange={onSelect}
             />
-            <span className="grid place-items-center shrink-0"
-                style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+            <span className="grid place-items-center shrink-0 w-[28px] h-[28px] [border-radius:8px] [background:var(--bg-tertiary)] [color:var(--text-secondary)]"
                 aria-hidden="true">
                 {icon}
             </span>
@@ -404,14 +403,13 @@ function GrantList({ table, grants, canEdit, directory, onChanged, onPaywalled }
             <div className="overflow-hidden" style={CARD}>
                 {/* The owner is always on the list, so an empty list never
                     reads "Nobody yet" above a row with somebody on it. */}
-                <h4 className="flex items-center gap-2 text-sm font-semibold px-4 py-3 m-0" style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border-default)' }}>
+                <h4 className="flex items-center gap-2 text-sm font-semibold px-4 py-3 m-0 [color:var(--text-primary)]! [border-bottom:1px_solid_var(--border-default)]">
                     <UserPlus className="w-3.5 h-3.5 text-[var(--text-secondary)]" aria-hidden="true" />
                     {t('datatables.grants_title', 'People and teams')}
                     <span className="ml-auto text-[11px] font-medium text-[var(--text-tertiary)]">{t('datatables.grants_caption', 'invited by name')}</span>
                 </h4>
                 {grants.map(g => (
-                    <div key={g.id} className="grid items-center gap-3 px-4 py-3"
-                        style={{ gridTemplateColumns: 'minmax(0,1fr) 200px 32px', borderBottom: '1px solid var(--border-default)' }}>
+                    <div key={g.id} className="grid items-center gap-3 px-4 py-3 [grid-template-columns:minmax(0,1fr)_200px_32px] [border-bottom:1px_solid_var(--border-default)]">
                         <span className="flex items-center gap-2.5 min-w-0">
                             <Avatar name={nameOf(g)} group={g.granteeType === 'group'} />
                             <span className="min-w-0">
@@ -437,8 +435,7 @@ function GrantList({ table, grants, canEdit, directory, onChanged, onPaywalled }
                         {canEdit ? (
                             <button type="button" onClick={() => remove(g.id)}
                                 aria-label={t('datatables.grant_remove', 'Remove {name}', { name: nameOf(g) })}
-                                className="p-1 rounded justify-self-center focus-visible:outline focus-visible:outline-2"
-                                style={{ color: 'var(--text-tertiary)', outlineColor: 'var(--accent-primary)' }}>
+                                className="p-1 rounded justify-self-center focus-visible:outline focus-visible:outline-2 [color:var(--text-tertiary)] [outline-color:var(--accent-primary)]!">
                                 <X className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
                         ) : <span />}
@@ -466,8 +463,7 @@ function GrantList({ table, grants, canEdit, directory, onChanged, onPaywalled }
 
                 {canEdit && !adding && (
                     <button type="button" onClick={() => setAdding(true)}
-                        className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
-                        style={{ color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}>
+                        className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!">
                         <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                         {t('datatables.grant_add_open', 'Add a person or team')}
                     </button>
@@ -500,8 +496,7 @@ function GrantList({ table, grants, canEdit, directory, onChanged, onPaywalled }
                             {t('datatables.share_button', 'Share')}
                         </button>
                         <button type="button" onClick={() => { setAdding(false); setGranteeId(''); }}
-                            className="px-3 py-1.5 rounded-lg text-sm border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}>
+                            className="px-3 py-1.5 rounded-lg text-sm border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [border-color:var(--border-default)] [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!">
                             {t('datatables.cancel', 'Cancel')}
                         </button>
                     </div>
@@ -525,11 +520,7 @@ function Avatar({ name, group = false }: AvatarProps) {
     const initials = String(name || '?').trim().split(/\s+/).slice(0, 2)
         .map(w => w[0]).join('').toUpperCase() || '?';
     return (
-        <span className="grid place-items-center shrink-0 text-[11px] font-bold"
-            style={{
-                width: 28, height: 28, borderRadius: 8,
-                background: 'var(--bg-tertiary)', color: 'var(--text-secondary)',
-            }}
+        <span className="grid place-items-center shrink-0 text-[11px] font-bold w-[28px] h-[28px] [border-radius:8px] [background:var(--bg-tertiary)] [color:var(--text-secondary)]!"
             aria-hidden="true">
             {group ? <Users className="w-3.5 h-3.5" /> : (initials.length ? initials : <User className="w-3.5 h-3.5" />)}
         </span>

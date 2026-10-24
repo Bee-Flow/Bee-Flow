@@ -40,16 +40,16 @@ const GOOD_ARTIFACTS = {
     ok: true,
 };
 let artifactsResult = GOOD_ARTIFACTS;
-// De ENE gedeelde mislukt-waarde, rechtstreeks uit de bron. Een testfixture
-// die hem naspeelt (vier lege lijsten + `ok:false`) pint een vorm die de
-// echte extractor niet meer produceert.
+// The ONE shared failure value, straight from the source. A test fixture
+// that replays it (four empty lists + `ok:false`) pins a shape that the real
+// extractor no longer produces.
 const { ARTIFACTS_FAILED } = require('../core/meetingNotes/transcriptArtifacts');
 const chatCalls = [];              // every llmClient.chat call
-const updateCalls = [];            // every transcriptionStore.updateTranscription call
-// Wat de store zegt dat er ECHT is weggeschreven. In productie komt dat uit
-// het RETURNING van de UPDATE, en het kan van `updates` afwijken: de store
-// laat artefacten staan die na het vertrekpunt van de run zijn ontstaan.
-// Mutabel, zodat één test dat verschil kan opvoeren.
+const updateCalls = [];            // Every transcriptionStore.updateTranscription call
+// What the store says has REALLY been written. In production that comes from
+// the RETURNING of the UPDATE, and it may differ from `updates`: the store
+// leaves artifacts in place that arose after the starting point of the run.
+// Mutable, so that one test can stage that difference.
 let updateResult = null;
 
 stub('../stores/transcriptionStore', {
@@ -76,8 +76,8 @@ stub('../core/meetingNotes/summaryHelpers', {
     generateSpeakerSummaries: async () => speakerSummaries,
     // Pure — use the real merge rather than a stub that could drift.
     applySpeakerSummaries: require('../core/meetingNotes/transcriptArtifacts').applySpeakerSummaries,
-    // De ECHTE poort: welke uitkomsten deze route mag wegschrijven is precies
-    // wat de laatste tests in dit bestand bewaken.
+    // The REAL gate: which outcomes this route may write is exactly
+    // what the last tests in this file guard.
     artifactsUsable: require('../core/meetingNotes/transcriptArtifacts').artifactsUsable,
     ARTIFACTS_FAILED: require('../core/meetingNotes/transcriptArtifacts').ARTIFACTS_FAILED,
     // Destructured at module load but unused by regenerate:
@@ -140,8 +140,8 @@ test.beforeEach(() => {
         isOwner: true,
         transcript: 'Hello, this is the meeting transcript.',
         language: 'nl',
-        // Het moment waarop de store deze rij las, van de DATABASEKLOK. De
-        // regeneratie geeft het door aan zijn eigen schrijfactie.
+        // The moment at which the store read this row, from the DATABASE CLOCK. The
+        // regeneration passes it on to its own write action.
         readAt: '2026-09-07T10:00:00.000Z',
         updatedAt: '2026-09-07T09:55:00.000Z',
         speakers: [
@@ -293,19 +293,17 @@ test('regenerate keeps the action the user added and replaces only the AI\'s', a
     assert.deepStrictEqual(actionItems.map((i) => i.text), ['Bel de klant', 'Do it']);
 });
 
-// ── Menselijke invoer wint van hergeneratie (M4) ─────────────────────
+// ── Human input wins over regeneration (M4) ─────────────────────────────────
 //
-// De vraag die M3 expliciet aan M4 doorgaf. "Opnieuw" gooide van elk AI-punt
-// weg of het afgevinkt was en welke tekst iemand er met de hand van gemaakt
-// had — en het punt kwam terug onder DEZELFDE `ai-<n>`-id, dus op het scherm
-// leek er niets verdwenen te zijn. GOOD_ARTIFACTS levert het punt op anker
-// ('00:10', 'Tom') opnieuw op; zie `anchorKey` in core/meetingNotes/actionItems.js.
+// The question that M3 explicitly handed on to M4. "Regenerate" threw away from every AI point whether it was ticked and which text someone had written
+// by hand — and the point came back under the SAME `ai-<n>` id, so on screen nothing seemed to have disappeared. GOOD_ARTIFACTS delivers the point again
+// on the anchor ('00:10', 'Tom'); see `anchorKey` in core/meetingNotes/actionItems.js.
 
 test('regenerate laat een afgevinkt punt afgevinkt en zet een correctie niet terug', async () => {
     storedTranscription.actionItems = [{
         id: 'ai-0', source: 'ai', assignee: 'Tom', timestamp: '00:10',
         text: 'Do it for Jansen BV',   // met de hand overgetypt...
-        aiText: 'Do it',               // ...en dit is wat het model schreef
+        aiText: 'Do it',               // ...and this is what the model wrote
         done: true,
     }];
 
@@ -316,8 +314,8 @@ test('regenerate laat een afgevinkt punt afgevinkt en zet een correctie niet ter
     assert.strictEqual(actionItems.length, 1, 'herkend als hetzelfde punt, dus niet verdubbeld');
     assert.strictEqual(actionItems[0].done, true, 'het vinkje blijft staan');
     assert.strictEqual(actionItems[0].text, 'Do it for Jansen BV', 'de correctie blijft staan');
-    // En het scherm krijgt dezelfde lijst terug, anders is het verlies pas na
-    // een refetch zichtbaar — en dan is het al gebeurd.
+    // And the screen gets the same list back, otherwise the loss only becomes
+    // visible after a refetch — and by then it has already happened.
     assert.strictEqual(res.body.actionItems[0].done, true);
     assert.strictEqual(res.body.actionItems[0].text, 'Do it for Jansen BV');
 });
@@ -378,10 +376,9 @@ test('a failed artifact pass leaves the artifacts exactly as they were', async (
     storedTranscription.actionItems = [{ id: 'ai-9', text: 'Already there', source: 'ai' }];
     storedTranscription.decisions = [{ id: 'd-9', text: 'Already decided' }];
     storedTranscription.questions = [{ id: 'q-9', text: 'Already asked', open: true }];
-    // DE ECHTE MISLUKT-WAARDE, niet een nagebouwde. Hier stond de OUDE vorm
-    // (`{actionItems:[],…,ok:false}`), een waarde die extractMeetingArtifacts
-    // niet meer kan teruggeven — een stub die rijker is dan de bron pint het
-    // gedrag van de bron niet.
+    // THE REAL FAILURE VALUE, not a rebuilt one. Here stood the OLD shape
+    // (`{actionItems:[],…,ok:false}`), a value that extractMeetingArtifacts
+    // can no longer return — a stub that is richer than the source does not pin the source's behaviour.
     artifactsResult = ARTIFACTS_FAILED;
 
     const res = await dispatch({ url: '/t-1/regenerate-summary', body: {} });
@@ -402,11 +399,10 @@ test('a failed artifact pass leaves the artifacts exactly as they were', async (
 });
 
 test('een NIET-HERKENDE vorm is ook geen geslaagde pass — de poort versmalt', async () => {
-    // De poort die deze route gebruikt was ooit `artifacts?.ok !== false`, en
-    // die liet elk antwoord door dat de vlag niet zette. Een antwoord ZONDER
-    // lijsten kwam er dan doorheen als "gelukt", waarna `artifacts.actionItems`
-    // (undefined) alle AI-actiepunten, -besluiten en -vragen wiste. Geen enkele
-    // regenerate-test merkte dat, want de enige mislukt-fixture zette `ok`.
+    // The gate that this route used was once `artifacts?.ok !== false`, and
+    // that let through every answer that did not set the flag. An answer WITHOUT
+    // lists came through that way as "succeeded", after which `artifacts.actionItems`
+    // (undefined) wiped all AI action items, decisions and questions. No single regenerate test noticed that, because the only failure fixture did set `ok`.
     storedTranscription.actionItems = [{ id: 'ai-9', text: 'Already there', source: 'ai' }];
     storedTranscription.decisions = [{ id: 'd-9', text: 'Already decided' }];
     storedTranscription.questions = [{ id: 'q-9', text: 'Already asked', open: true }];
@@ -426,8 +422,8 @@ test('een NIET-HERKENDE vorm is ook geen geslaagde pass — de poort versmalt', 
 });
 
 test('een pass met lijsten maar zonder ok-vlag telt WEL — de poort kijkt naar de waarde', async () => {
-    // De keerzijde: versmallen mag geen "alleen wat de vlag zet". Wie de drie
-    // lijsten heeft, heeft een antwoord gelezen.
+    // The flip side: narrowing may not mean "only what the flag sets". Whoever has the three
+    // lists has read an answer.
     storedTranscription.decisions = [{ id: 'd-9', text: 'Already decided' }];
     artifactsResult = { actionItems: [], decisions: [{ id: 'd-0', text: 'Vers besluit' }], questions: [], tags: [] };
     const res = await dispatch({ url: '/t-1/regenerate-summary', body: {} });
@@ -501,21 +497,15 @@ test('a legacy decision (extractor id, no source) is still replaced, so the card
 });
 
 
-// ── EN WAT ER TIJDENS DE RUN ZELF BIJKOMT ────────────────────────────
+// ── AND WHAT ARRIVES DURING THE RUN ITSELF ───────────────────────────────
 //
-// De merge hierboven beschermt `source:'user'` — maar alleen rijen die in de
-// momentopname zaten die de run bij de START las. Tussen dat lezen en het
-// schrijven zitten VIER LLM-aanroepen (drie ervan gekapt op 540 s), en de
-// "Opnieuw"-banner staat boven het tabblad: wie in het transcript blijft en
-// een regel als besluit vastlegt, schrijft in precies dat venster. Voor de
-// merge is die rij onzichtbaar, en de update wiste hem — zonder melding.
+// The merge above protects `source:'user'` — but only rows that were in the snapshot which the run read at the START. Between that reading and the write sit
+// FOUR LLM calls (three of them cut off at 540 s), and the "Regenerate" banner sits above the tab: whoever stays in the transcript and records a line
+// as a decision writes in precisely that window. For the merge that row is invisible, and the update wiped it — without any notice.
 //
-// De route kan dat zelf niet oplossen (hij weet niets van wat er ná zijn read
-// is gebeurd). Wat hij WEL moet doen is zijn vertrekpunt doorgeven: het
-// moment waarop hij zijn invoer las, van dezelfde klok als de stempels
-// waartegen de store het straks vergelijkt. Het bewijs dat het SQL daar het
-// juiste mee doet staat in stores/transcriptionStore.artifactWindow.pg.test.js,
-// tegen een echte Postgres.
+// The route cannot solve that itself (it knows nothing about what happened after its read). What it DOES have to do is pass on its starting point: the
+// moment at which it read its input, from the same clock as the stamps against which the store compares later. The proof that the SQL does the right thing with it
+// stands in stores/transcriptionStore.artifactWindow.pg.test.js, against a real Postgres.
 
 test('regenerate geeft het moment waarop hij zijn invoer las mee aan de schrijfactie', async () => {
     const res = await dispatch({ url: '/t-1/regenerate-summary', body: {} });
@@ -527,10 +517,9 @@ test('regenerate geeft het moment waarop hij zijn invoer las mee aan de schrijfa
 });
 
 test('zonder readAt valt het vertrekpunt terug op de laatste schrijftijd van de rij — nooit op een eigen klok', async () => {
-    // Een oudere store (of een gestubte) levert geen readAt. `updated_at` komt
-    // van dezelfde databaseklok en ligt per definitie vóór onze read, dus hij
-    // is een veilige ondergrens. Wat NIET mag is Date.now() van deze node:
-    // dat is de tweede klok waar dit venster juist op stukloopt.
+    // An older store (or a stubbed one) delivers no readAt. `updated_at` comes from the
+    // same database clock and is by definition before our read, so it is a safe lower bound. What must NOT happen is Date.now() of this node:
+    // that is the second clock on which this window precisely breaks down.
     delete storedTranscription.readAt;
     const res = await dispatch({ url: '/t-1/regenerate-summary', body: {} });
     assert.strictEqual(res.statusCode, 200);
@@ -539,17 +528,14 @@ test('zonder readAt valt het vertrekpunt terug op de laatste schrijftijd van de 
 
 test('het antwoord toont wat de store ECHT heeft weggeschreven, inclusief wat tijdens de run ontstond', async () => {
     storedTranscription.decisions = [{ id: 'd-0', text: 'Wat het model vorige keer vond' }];
-    // De store meldt terug wat er na de conditionele schrijfactie in de kolom
-    // staat: het verse AI-besluit én het besluit dat iemand tijdens de run van
-    // een regel plukte. Antwoorden met alleen de merge zou die rij van het
-    // scherm halen terwijl hij veilig in de database staat — voor de persoon
-    // die kijkt niet te onderscheiden van verliezen.
+    // The store reports back what is in the column after the conditional write:
+    // the fresh AI decision AND the decision that someone picked from a line during the run. Answering with the merge alone would take that row off
+    // the screen while it sits safely in the database — for the person looking, indistinguishable from a loss.
     updateResult = {
         ok: true,
-        // ALLE DRIE de lijsten wijken af van wat de route stuurde. Juist de
-        // actiepunten zijn de lijst die de M4-regelpopover en elk vinkje
-        // tijdens een run schrijven, dus alle drie horen hier gepind te zijn —
-        // niet alleen `decisions`.
+        // ALL THREE lists differ from what the route sent. Precisely the action items
+        // are the list that the M4 line popover and every tick during a run write,
+        // so all three must be pinned here — not just `decisions`.
         actionItems: [
             { id: 'ai-0', text: 'Do it', source: 'ai' },
             { id: 'ua-live', text: 'TIJDENS DE RUN AFGEVINKT', source: 'user', done: true },
@@ -575,10 +561,9 @@ test('het antwoord toont wat de store ECHT heeft weggeschreven, inclusief wat ti
 });
 
 test('een oudere store zonder RETURNING valt terug op de merge — het antwoord blijft de MERGE, niet de extractor', async () => {
-    // `stored.x || merged` moet de terugval zijn, niet de hoofdweg. Zonder
-    // deze test kan de terugval stilletjes de extractor-helft worden en
-    // verdwijnen de rijen van de gebruiker van het scherm tot de volgende
-    // ophaalronde.
+    // `stored.x || merged` must be the fallback, not the main path. Without
+    // this test the fallback can quietly become the extractor half and the user's rows disappear from the screen
+    // until the next fetch round.
     storedTranscription.actionItems = [{ id: 'u-77', source: 'user', text: 'Bel de klant' }];
     storedTranscription.decisions = [{ id: 'ud-77', source: 'user', text: 'Leverancier B' }];
     storedTranscription.questions = [{ id: 'uq-77', source: 'user', text: 'Wie betaalt?', open: true }];
@@ -590,11 +575,10 @@ test('een oudere store zonder RETURNING valt terug op de merge — het antwoord 
     assert.deepStrictEqual(res.body.questions.map((q) => q.text), ['Wie betaalt?', 'Wie regelt de licentie?']);
 });
 
-// ── MET WELK SJABLOON IS DEZE NOTITIE GESCHREVEN (M4 stap 3) ─────────
+// ── WITH WHICH TEMPLATE WAS THIS NOTE WRITTEN (M4 step 3) ─────────────────
 //
-// `summary_template_id` + `summary_template_version` zijn een uitspraak over
-// de tekst die er NU staat. Elke tak van de promptkeuze moet hem dus zetten —
-// inclusief de tak die hem juist leeg maakt.
+// `summary_template_id` + `summary_template_version` are a statement about the text that is there NOW. Every branch of the prompt choice must therefore set
+// them — including the branch that empties them.
 
 test('een opgeslagen sjabloon stempelt id én de versie van dít moment', async () => {
     storedTemplate = { id: 'tpl-9', scope: 'user', userId: 'owner-1', name: 'Mijn', prompt: 'P', version: 4, organizationId: null, groupId: null };
@@ -604,8 +588,7 @@ test('een opgeslagen sjabloon stempelt id én de versie van dít moment', async 
     const { updates } = updateCalls[0];
     assert.strictEqual(updates.summaryTemplateId, 'tpl-9');
     assert.strictEqual(updates.summaryTemplateVersion, 4);
-    // En terug naar de client, anders blijft de kaart tot de volgende
-    // ophaalronde het vorige sjabloon noemen bij nieuwe tekst.
+    // And back to the client, otherwise the card keeps naming the previous template until the next fetch round when there is new text.
     assert.strictEqual(res.body.summaryTemplateId, 'tpl-9');
     assert.strictEqual(res.body.summaryTemplateVersion, 4);
 });
@@ -626,8 +609,8 @@ test('een ingebouwd sjabloon stempelt builtin:<sleutel> en geen versie', async (
 });
 
 test('een onbekende ingebouwde sleutel stempelt general — de prompt die het écht schreef', async () => {
-    // De prompt valt terug op general; de stempel moet dezelfde val maken,
-    // anders noemt de notitie een sjabloon dat niet bestaat.
+    // The prompt falls back to general; the stamp must make the same fall,
+    // otherwise the note names a template that does not exist.
     const res = await dispatch({ url: '/t-1/regenerate-summary', body: { template: 'does-not-exist' } });
     assert.strictEqual(res.statusCode, 200);
     assert.ok(lastSystemPrompt().includes(GENERAL_PROMPT));
@@ -635,9 +618,9 @@ test('een onbekende ingebouwde sleutel stempelt general — de prompt die het é
 });
 
 test('een eenmalige prompt WIST de stempel', async () => {
-    // De samenvatting die er nu staat is niet meer die van het vorige
-    // sjabloon. De oude stempel laten staan zou een sjabloonnaam plakken op
-    // tekst die dat sjabloon nooit geschreven heeft.
+    // The summary that is there now is no longer that of the previous
+    // template. Leaving the old stamp in place would stick a template name on
+    // text that that template never wrote.
     storedTranscription.summaryTemplateId = 'tpl-9';
     storedTranscription.summaryTemplateVersion = 4;
     const res = await dispatch({ url: '/t-1/regenerate-summary', body: { customPrompt: 'TRY THIS ONCE' } });

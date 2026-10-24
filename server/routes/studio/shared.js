@@ -1,9 +1,9 @@
 // @typecheck
 /**
- * The pieces every /api/studio aggregate shares.
+ * The pieces that every /api/studio aggregate shares.
  *
  * counts.js and search.js were written to the same three rules and grew the
- * same two helpers twice: a lazily-memoised dependency object, and the four
+ * same two helpers twice: a lazily memoised dependency object, and the four
  * non-middleware twins of the mount gates. attention.js is the third aggregate
  * asking the same question ("what may this caller see"), and a third copy is
  * how the three quietly start answering it differently — one file learns that
@@ -17,39 +17,34 @@
  * caller may not see, because a 403 on the aggregate would tell a Community org
  * there is something behind the door.
  *
- * ── DE GATES GEVEN DRIE ANTWOORDEN, GEEN TWEE ──────────────────────────────
+ * ── THE GATES GIVE THREE ANSWERS, NOT TWO ─────────────────────────────────
  *
- * `true` = mag, `false` = mag niet, en een `GateUndecidable`-worp = we hebben
- * het niet kunnen vaststellen. Die derde is de reden dat dit blok bestaat.
- * Alle drie de onderliggende controles FALEN DICHT ZONDER TE GOOIEN, en een
- * dichte gate is op deze schermen "niet van jou" — een bekende, permanente
- * afwezigheid die géén gat heet. Zonder onderscheid wordt een storing dus
- * stilletjes tot een gerustgesteld "die soort heb jij niet" gepromoveerd:
+ * `true` = may, `false` = may not, and a `GateUndecidable` throw = we could not
+ * establish it. That third one is the reason this block exists.
+ * All three of the underlying checks FAIL CLOSED WITHOUT THROWING, and a closed
+ * gate on these screens means "not yours", a known, permanent absence that is
+ * not called a gap. Without the distinction a failure is quietly promoted to a reassuring "you do not have that kind":
  *
  *   license/middleware.js:228   `resolution.error === 'tier_unavailable'` →
- *                               { allowed: false }. requireFeature maakt daar
- *                               zelf een 503 van, juist omdat het geen 403 is.
- *   entitlements.js:648-657     hasCapability geeft false bij een worp én bij
- *                               een `degraded` snapshot ("FAILS CLOSED … rather
+ *                               { allowed: false }. requireFeature makes a
+ *                               503 of that itself, precisely because it is not a 403.
+ *   entitlements.js:648-657     hasCapability gives false on a throw AND on
+ *                               a `degraded` snapshot ("FAILS CLOSED … rather
  *                               than throwing, because it runs in hot paths").
- *   permissions.js:676-686      getUserPermissions geeft ['page_chat'] bij een
- *                               DB-fout en zet `_lastPermLookupFailedAt`, met
- *                               in het commentaar de opdracht dat een route die
- *                               een hard antwoord wil `isPermissionLookupDegraded()`
- *                               moet raadplegen. Dat gebeurt hier.
+ *   permissions.js:676-686      getUserPermissions gives ['page_chat'] on a
+ *                               DB error and sets `_lastPermLookupFailedAt`, with
+ *                               the comment instructing that a route that wants a hard answer
+ *                               must consult `isPermissionLookupDegraded()`. That happens here.
  *
- * De aanroepers verwerken de worp elk op hun eigen manier, en alle drie op de
- * kant van "onbekend versmalt": counts.js laat de sleutel weg en markeert het
- * antwoord partial, search.js zet de soort in `errors[]`, attention.js in
- * `unavailable[]` (nooit in `gated[]`).
+ * The callers each handle the throw in their own way, and all three on the side of "unknown narrows": counts.js omits the key and marks the answer
+ * partial, search.js puts the kind in `errors[]`, attention.js in `unavailable[]` (never in `gated[]`).
  */
 
 'use strict';
 
 /**
- * "Deze poort kon niet beantwoord worden." Een eigen type zodat een aanroeper
- * hem kan herkennen; elke aanroeper vandaag behandelt hem hetzelfde als elke
- * andere worp, en dat is precies goed.
+ * "This gate could not be answered." Its own type so that a caller can recognise it;
+ * every caller today treats it the same as any other throw, and that is exactly right.
  */
 class GateUndecidable extends Error {
     constructor(what) {
@@ -85,8 +80,8 @@ const orgIdOf = (req) => req.session?.user?.organizationId || req.session?.user?
 const moduleActive = (d, id) => d.modules.isModuleActive(id);
 
 /**
- * Licentie. `tier_unavailable` is de tier-resolutie die NIET kon lezen — geen
- * "deze org heeft het niet".
+ * Licence. `tier_unavailable` is the tier resolution that could NOT read — not
+ * "this org does not have it".
  */
 const licenceAllows = async (d, req, feature) => {
     const { allowed, resolution } = (await d.license.featureAllowedForRequest(req, feature)) || {};
@@ -97,11 +92,11 @@ const licenceAllows = async (d, req, feature) => {
 };
 
 /**
- * Capability. `resolveCapabilitySet` is dezelfde resolutie als hasCapability
- * (zijn `has()` doet letterlijk dezelfde alias-uitbreiding), maar hij MELDT
- * `degraded` in plaats van hem als "nee" te verkopen. Een deps-object dat de
- * batch-helper niet meelevert valt terug op hasCapability — dan is er niets
- * verloren behalve het onderscheid dat die helper nu juist draagt.
+ * Capability. `resolveCapabilitySet` is the same resolution as hasCapability
+ * (its `has()` does literally the same alias expansion), but it REPORTS
+ * `degraded` instead of selling it as a "no". A deps object that the batch
+ * helper does not supply falls back to hasCapability — then nothing is lost except
+ * the distinction that this helper exists to carry.
  */
 const capability = async (d, req, capId) => {
     const ctx = { userId: userIdOf(req), orgId: orgIdOf(req), session: req.session, req };
@@ -156,19 +151,18 @@ async function visibleSolutionsFor(req, d) {
 }
 
 /**
- * De kennisbanken die deze beller mag zien.
+ * The knowledge bases that this caller may see.
  *
- * Stond woordelijk in counts.js ('knowledge'), in search.js ('knowledge') én
- * in attentionChecks.js (knowledgeBasesToActOn) — drie keer dezelfde zeven
- * regels. De gate zegt "mag deze soort", dit zegt "welke RIJEN", en die tweede
- * is de duurste helft om te laten uiteenlopen: een vierde
- * zichtbaarheidsvoorwaarde die maar op twee van de drie plekken landt laat het
- * aandachtsscherm kennisbanken noemen die de kennislijst niet toont.
+ * Stood verbatim in counts.js ('knowledge'), in search.js ('knowledge') and
+ * in attentionChecks.js (knowledgeBasesToActOn) — three times the same seven
+ * lines. The gate says "may this kind", this says "which ROWS", and the second
+ * is the more expensive half to let diverge: a fourth
+ * visibility condition that lands on only two of the three places leaves the attention screen naming knowledge bases that the knowledge list does not show.
  *
- * `resolveUserOrgIds` staat hier STRIKT: een onleesbare userStore geeft
- * anders een lege Set, en die is niet te onderscheiden van "lid van geen
- * enkele organisatie" (permissions.js:832-866 zegt dat in zijn eigen kop).
- * Hier gooit hij dus, en elke aanroeper heeft al een plek voor een worp.
+ * `resolveUserOrgIds` is STRICT here: an unreadable userStore would otherwise give an
+ * empty Set, which cannot be told apart from "member of no
+ * organisation at all" (permissions.js:832-866 says so in its own header).
+ * Here it throws, and every caller already has a place for a throw.
  */
 async function visibleKnowledgeBasesFor(req, d) {
     const userId = userIdOf(req);

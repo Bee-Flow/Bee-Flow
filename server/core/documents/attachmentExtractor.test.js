@@ -243,7 +243,7 @@ const {
     // the catch logged it as "could not render this file". Every STEP a model
     // was asked to look at came back as a header line for weeks, and the app
     // dutifully wrote "het 3D-model bevat alleen de header" onto real order
-    // lines. Only a test that runs the RENDER — not the routing — catches that,
+    // lines. Only a test that runs the RENDER, not the routing, catches that,
     // so this one draws an actual sheet.
     {
         const dxf = [

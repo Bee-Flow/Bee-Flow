@@ -3,22 +3,13 @@ import React, { useEffect } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
- * De editor geeft zijn markeringen DOOR aan Monaco.
+ * The editor passes its markers THROUGH to Monaco.
  *
- * De vertaling markering → decoratie is puur en staat in bfDecorations.js;
- * wat hier overblijft is de bedrading, en juist die kan stil kapot: de
- * decoraties berekenen en ze vervolgens nergens naartoe sturen levert een
- * editor op die er precies zo uitziet als een pagina zonder koppelingen. Dat
- * is het verschil dat de legenda ernaast belooft te tonen, dus het moet hier
- * bewezen worden.
+ * The translation marker → decoration is pure and lives in bfDecorations.js; what remains here is the wiring, and precisely that can break silently: computing the decorations and then sending them nowhere yields an editor that looks exactly like a page without bindings. That is the difference that the legend beside it promises to show, so it must be proven here.
  *
- * Monaco zelf draait niet in jsdom (canvas, workers, metingen), dus
- * `@monaco-editor/react` is vervangen door een stub die `onMount` aanroept met
- * een nagemaakte editor. Wat dit KAN bewijzen: dat de decoraties de editor-API
- * bereiken en bij een wijziging opnieuw worden gezet. Wat dit NIET kan
- * bewijzen: dat Monaco ze ook echt tekent.
+ * Monaco itself does not run in jsdom (canvas, workers, measurements), so `@monaco-editor/react` is replaced by a stub that calls `onMount` with a mimicked editor. What this CAN prove: that the decorations reach the editor API and are set again on a change. What this can NOT prove: that Monaco also actually draws them.
  *
- * Draaien: cd agent-hub && ./node_modules/.bin/vitest run src/pages/webpages/WebpageEditor.test.jsx
+ * Run: cd agent-hub && ./node_modules/.bin/vitest run src/pages/webpages/WebpageEditor.test.jsx
  */
 
 const collection = { set: vi.fn(), clear: vi.fn() };
@@ -34,9 +25,8 @@ const monaco = {
 };
 
 vi.mock('@monaco-editor/react', () => ({
-    // Eén keer monteren, één keer `onMount` — zoals de echte editor. Een stub
-    // die bij élke render opnieuw meldt dat hij gemonteerd is, zou hier iets
-    // toetsen dat nooit gebeurt.
+    // Mount once, one `onMount` — like the real editor. A stub that reports at every
+    // render that it has been mounted would here test something that never happens.
     default: function MonacoStub({ onMount }) {
         const mounted = React.useRef(false);
         useEffect(() => {

@@ -56,10 +56,9 @@ function mapWebpageRow(r) {
         sharedGroups: parseJSON(r.shared_groups, []),
         organizationId: r.organization_id || null,
         projectId: r.project_id || null,
-        // W3 stap 4 — het adres. `slug` is /w/<slug>; `publicShareId` zegt
-        // WELKE share dat adres bedient ("één share is het adres"). Allebei
-        // null tot de pagina openbaar wordt gezet, en null blijft null: een
-        // lege string zou "adres bestaat, maar is leeg" beweren.
+        // W3 step 4 — the address. `slug` is /w/<slug>; `publicShareId` says WHICH share serves
+        // that address ("one share is the address"). Both null until the page is made public,
+        // and null stays null: an empty string would claim "address exists, but is empty".
         slug: r.slug || null,
         publicShareId: r.public_share_id || null,
         icon: r.icon || '',
@@ -75,12 +74,11 @@ function mapWebpageRow(r) {
         publicShareCount: (r.public_share_count === undefined || r.public_share_count === null)
             ? null
             : (parseInt(r.public_share_count) || 0),
-        // Spiegel van DEFAULT_BRIDGE_GRANTS (webpage/bridgeGrants.js), hier als
-        // literal omdat shared.js een leaf-module is: importeren zou een cyclus
-        // maken (bridgeGrants.js leest parseJSON hiervandaan). Dit is puur de
-        // TERUGVAL voor een rij zonder kolom — het gezaghebbende versmallen
-        // gebeurt in normalizeBridgeGrants, waar elke lees- en schrijfbeurt
-        // langsgaat. Groeit die vorm, dan groeit deze regel mee.
+        // Mirror of DEFAULT_BRIDGE_GRANTS (webpage/bridgeGrants.js), here as a literal because
+        // shared.js is a leaf module: importing would create a cycle (bridgeGrants.js reads
+        // parseJSON from here). This is purely the FALLBACK for a row without a column — the
+        // authoritative narrowing happens in normalizeBridgeGrants, through which every read
+        // and write passes. If that shape grows, this line grows with it.
         bridgeGrants: parseJSON(r.bridge_grants, {
             ai: { enabled: true, groundOnPage: true },
             automations: [], integrations: [], tables: [], agent: null,

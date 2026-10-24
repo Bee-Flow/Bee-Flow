@@ -93,10 +93,9 @@ const NL_TRANSLATIONS = {
     'approvals.reject': 'Afwijzen',
     'approvals.reason_needed': 'Geef een reden om af te wijzen.',
 
-    // Opeenvolgende goedkeuringsfasen (2026-08): een geordende keten van
-    // maximaal vijf benoemde stappen. De tijdlijn in het goedkeuringsdetail,
-    // de "welke fase wacht"-regel in de in-app goedkeuringslijst, en de
-    // fase-editor in de routinebouwer.
+    // Sequential approval phases (2026-08): an ordered chain of at most five named
+    // steps. The timeline in the approval detail, the "which phase is waiting" line in the
+    // in-app approval list, and the phase editor in the routine builder.
     'approvals.stages_title': 'Goedkeuringsketen',
     'approvals.stage_of': 'Fase {n} van {m}',
     'approvals.chain_of': 'Keten van {n} fasen',

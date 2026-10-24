@@ -274,11 +274,11 @@ export function ErrorNote({ message, onRetry, compact = false }: ErrorNoteProps)
             background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)',
             color: '#fda4af', fontSize: 12,
         }}>
-            <AlertTriangle style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1 }} />
+            <AlertTriangle className="w-[14px] h-[14px] [flex-shrink:0] [margin-top:1px]" />
             <span className="[flex:1] [word-break:break-word]">{message}</span>
             {onRetry && (
                 <button onClick={onRetry} title={t('cms_site.analytics.common.retry', 'Retry')} className="[display:inline-flex] [align-items:center] [gap:4px] [background:transparent] [border:1px_solid_rgba(244,63,94,0.35)] [border-radius:7px] [color:#fda4af] [font-size:11px] [font-weight:700] [padding:3px_8px] [cursor:pointer] [flex-shrink:0]">
-                    <RefreshCw style={{ width: 11, height: 11 }} /> {t('cms_site.analytics.common.retry', 'Retry')}
+                    <RefreshCw className="w-[11px] h-[11px]" /> {t('cms_site.analytics.common.retry', 'Retry')}
                 </button>
             )}
         </div>

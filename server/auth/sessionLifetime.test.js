@@ -87,8 +87,8 @@ test('the cookie session uses the helpers rather than a second copy of the rule'
     // a second copy is how the tested rule and the shipped rule drift apart.
     // The cookie session now lives in boot/session.js (index.js calls
     // applyCookieSession); boot/bootChain.characterisation.test.js drives it.
-    // Bewust brontekst: dit pint dat de helpers de bron ZIJN, niet alleen dat
-    // de waarde vandaag toevallig klopt.
+    // Deliberately source text: this pins that the helpers are the SOURCE, not merely that the value
+    // happens to be correct today.
     const src = fs.readFileSync(path.resolve(__dirname, '../boot/session.js'), 'utf8');
     assert.match(src, /require\('\.\.\/auth\/sessionLifetime'\)/);
     assert.match(src, /maxAge:\s*sessionMaxAgeMs\(\)/);

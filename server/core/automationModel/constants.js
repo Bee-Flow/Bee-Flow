@@ -108,31 +108,30 @@ const VALID_STEP_TYPES = new Set([
 const KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES = Object.freeze(['skip', 'merge', 'replace', 'add']);
 
 /**
- * R2 — what an `ai_step` that is BOUND TO AN AGENT lets that agent do here.
+ * R2: what an `ai_step` that is BOUND TO AN AGENT lets that agent do here.
  *
  * Exactly these three keys, exactly booleans, and the whole set is written on
- * every step the builders produce — `agentPermissions` is never left absent
+ * every step the builders produce: `agentPermissions` is never left absent
  * and never left half-filled.
  *
- * ── EEN ONTBREKENDE SLEUTEL BETEKENT NIETS, NOOIT ALLES ─────────────
- * De grants-map in core/agentRuntime/toolPolicy.js leest een ONTBREKENDE
- * app-entry wel als "alles van deze app", en dat is daar juist: die agents
- * hadden die toolbelt gisteren ook, dus breed lezen geeft niemand iets nieuws
- * (de geen-migratieregel in de modulekop daar). Hier bestaat dat gisteren
- * niet. Een ai_step met een agent is een NIEUW oppervlak, dus er is geen
- * gedrag te bewaren en de uitzondering heeft geen grond: afwezig is `false`,
- * op alle drie.
+ * ── A MISSING KEY MEANS NOTHING, NEVER EVERYTHING ───────────────────
+ * The grants map in core/agentRuntime/toolPolicy.js DOES read a MISSING
+ * app entry as "everything of this app", and that is right there: those agents
+ * had that toolbelt yesterday too, so a broad reading gives nobody anything new
+ * (the no-migration rule in the module header there). Here that yesterday does
+ * not exist. An ai_step with an agent is a NEW surface, so there is no behaviour
+ * to preserve, and the exception has no basis: absent is `false`, on all three.
  *
- * En dat geldt per sleutel, niet alleen voor het hele object. `{useTools:true}`
- * mag `useKnowledge` niet als `undefined` achterlaten, want de eerstvolgende
- * lezer die `!== false` schrijft leest dat als ja. Daarom bouwen de builders
- * het object OPNIEUW op uit deze drie namen (sanitizeAgentPermissions in
- * builderTools/stepBuilders.js) in plaats van een patch erin te mengen.
+ * And that holds per key, not only for the whole object. `{useTools:true}`
+ * must not leave `useKnowledge` as `undefined`, because the next reader who
+ * writes `!== false` would read that as yes. That is why the builders
+ * rebuild the object from these three names (sanitizeAgentPermissions in
+ * builderTools/stepBuilders.js) instead of mixing a patch into it.
  *
- * Waarom alle drie versmallen en niet één ervan verbreden: `startAutomations`
- * start neveneffecten in naam van de automation-eigenaar, `useTools` verstuurt,
- * `useKnowledge` leest documenten. Alle drie zijn vermogen-vragen waar een
- * verkeerde gok de eigenaar iets geeft wat hij nooit heeft aangevinkt.
+ * Why narrow all three and not widen one of them: `startAutomations` starts
+ * side effects in the name of the automation owner, `useTools` sends,
+ * `useKnowledge` reads documents. All three are capability questions where a
+ * wrong guess hands the owner something he never ticked.
  */
 const AI_STEP_AGENT_PERMISSION_KEYS = Object.freeze(['startAutomations', 'useKnowledge', 'useTools']);
 
@@ -328,80 +327,79 @@ const ON_ERROR_SOURCE_TYPES = new Set([
 const ON_ERROR_FORBIDDEN_SOURCE_TYPES = new Set(['trigger', 'condition', 'switch', 'approval', 'form_page', 'stop_error', 'guard', 'return_to_app']);
 
 /**
- * ── DE TERMINALE STAPSOORTEN — EEN LIJST, ELF LEZERS ────────────────────────
+ * ── THE TERMINAL STEP TYPES: ONE LIST, ELEVEN READERS ───────────────────────
  *
  * Step types after which NOTHING runs. A terminal step ends the walk: any edge
  * leaving it is dead, no downstream step can bind to its output, and no error
  * branch can start from it.
  *
- * De reden dat dit één geëxporteerde set is en geen elf losse literals: een
- * terminale soort is pas terminaal als ÉLKE lezer dat weet. Kent de ene plek
- * hem wel en de andere niet, dan is dezelfde graaf op de ene plek geldig en op
- * de andere niet — en dat merkt iemand pas als een automatisering halverwege stopt of
- * de editor een rand accepteert die de validator weigert.
+ * Why this is one exported set and not eleven loose literals: a terminal type is
+ * only terminal once EVERY reader knows it. If one place knows it and another does
+ * not, the same graph is valid in one place and invalid in the other, and someone
+ * finds out only when an automation stops halfway or the editor accepts an edge
+ * the validator refuses.
  *
- * WIE LEEST DEZE LIJST (de canonieke inventaris; de drifttests bewaken hem —
+ * WHO READS THIS LIST (the canonical inventory; the drift tests guard it:
  * server: automation/validate/terminalSteps.test.js, client:
  * agent-hub …/Builder/flow/terminalSteps.test.js):
  *
- *   SERVER — afdwingend
- *     1. validate/graph.js            een rand die uit een terminal vertrekt
+ *   SERVER, enforcing
+ *     1. validate/graph.js            an edge leaving a terminal
  *                                     (`edge.after_terminal`)
- *     2. constants.js                 ON_ERROR_FORBIDDEN_SOURCE_TYPES hierboven
- *     3. builderTools/draftGraph.js   ERROR_BRANCH_FORBIDDEN_SOURCES — de
- *                                     LLM-zijde-spiegel van 2
- *     4. core/automationRunner/runDag.js  de wandeling STOPT hier. Dit is het
- *                                     mechanisme zelf: stop_error eindigde de
- *                                     run alleen doordat het GOOIT, dus een
- *                                     terminal die succesvol eindigt had tot nu
- *                                     toe helemaal geen manier om te eindigen.
+ *     2. constants.js                 ON_ERROR_FORBIDDEN_SOURCE_TYPES above
+ *     3. builderTools/draftGraph.js   ERROR_BRANCH_FORBIDDEN_SOURCES: the
+ *                                     LLM-side mirror of 2
+ *     4. core/automationRunner/runDag.js  the walk STOPS here. This is the
+ *                                     mechanism itself: stop_error ended the
+ *                                     run only by THROWING, so a terminal that
+ *                                     ends successfully had until now no way to end.
  *
- *   SERVER — proza die het model leest (geen code, wel bindend)
- *     5. automation/builderPrompt.js  de typecatalogus + de on_error-verbodslijst
- *     6. builderTools/schemas.js      dezelfde verbodslijst in de
- *                                     builder_wire_error_branch-beschrijving
+ *   SERVER, prose that the model reads (not code, but binding)
+ *     5. automation/builderPrompt.js  the type catalogue + the on_error prohibition list
+ *     6. builderTools/schemas.js      the same prohibition list in the
+ *                                     builder_wire_error_branch description
  *
- *   CLIENT — afdwingend, allemaal via de spiegel in
+ *   CLIENT, enforcing, all via the mirror in
  *   agent-hub …/Builder/flow/terminalSteps.js
- *     7.  mapping/upstream.js          geen variabelengroep — niets kan eraan binden
- *     8.  flow/useStepDrop.js          drop-om-achter-te-plakken weigert
- *     9.  flow/nodeDropTarget.js       sleep-om-te-ketenen weigert `from`
- *     10. flow/useEdgeEditCallbacks.js handmatig een rand tekenen weigert
- *     11. flow/nodes/<X>Node.jsx       geen "+"-knop, sourceConnectable={false}
+ *     7.  mapping/upstream.js          no variable group: nothing can bind to it
+ *     8.  flow/useStepDrop.js          drop-to-insert-after refuses
+ *     9.  flow/nodeDropTarget.js       drag-to-chain refuses `from`
+ *     10. flow/useEdgeEditCallbacks.js drawing an edge by hand refuses
+ *     11. flow/nodes/<X>Node.jsx       no "+" button, sourceConnectable={false}
  *
- * NIET in deze lijst, met reden:
- *   - `layer_output` heeft wél familie `end`, maar is NIET terminaal: een
- *     flowlet keert terug naar zijn AANROEPER en die loopt door. De client-
- *     drifttest houdt die uitzondering expliciet bij (END_NOT_TERMINAL), zodat
- *     een NIEUWE end-familie niet stilzwijgend hetzelfde voorrecht erft.
- *   - Dat `return_to_app` binnen een flowlet/Step verboden is, is een APARTE
- *     regel (validate/graph.js, `layer.return_to_app_forbidden`) en geldt niet
- *     voor stop_error: een stop mag overal, want die faalt de hele run.
+ * NOT in this list, with reason:
+ *   - `layer_output` has family `end`, but is NOT terminal: a flowlet returns to its
+ *     CALLER and that caller continues. The client drift test records that exception
+ *     explicitly (END_NOT_TERMINAL), so that a NEW end family does not
+ *     silently inherit the same privilege.
+ *   - That `return_to_app` is forbidden inside a flowlet/Step is a SEPARATE
+ *     rule (validate/graph.js, `layer.return_to_app_forbidden`) and does not
+ *     apply to stop_error: a stop may go anywhere, because it fails the whole run.
  */
 const TERMINAL_STEP_TYPES = new Set(['stop_error', 'return_to_app']);
 
 /**
- * `return_to_app` — wat de app na de run doet.
+ * `return_to_app`: what the app does after the run.
  *
- * Drie gesloten vocabulaires. Ze reizen als DATA in `_appEffects` naar een
- * app-runtime die ouder kan zijn dan de automatisering, dus een waarde buiten deze
- * sets is geen typefout maar een effect dat aan de andere kant stil zou
- * verdwijnen — daarom weigert de validator hem en logt de runner hem.
+ * Three closed vocabularies. They travel as DATA in `_appEffects` to an app runtime
+ * that may be older than the automation, so a value outside these sets is not a
+ * typo but an effect that would silently vanish on the other side. That is why the
+ * validator refuses it and the runner logs it.
  */
 // Wat de app opnieuw laadt. `tableViews` = de gegevens van het scherm;
 // `resetForm` = het formulier dat de actie startte weer leeg.
 const RETURN_TO_APP_REFRESH_MODES = new Set(['tableViews', 'resetForm']);
-// Wat de app doet als de terugkeer zélf niet uitvoerbaar is (het genoemde
-// scherm bestaat niet in deze app-versie, er is geen formulier om te legen).
-// `stay` = blijf staan waar je bent — de versmallende default; `errorScreen` =
-// stuur de bezoeker naar het foutscherm van de app.
+// What the app does when the return itself is not executable (the named
+// screen does not exist in this app version, there is no form to empty).
+// `stay` = stay where you are, the narrowing default; `errorScreen` =
+// send the visitor to the app's error screen.
 const RETURN_TO_APP_ON_ERROR_MODES = new Set(['stay', 'errorScreen']);
 // Dezelfde tonen als de toast-stap van App Studio (showToast in
 // agent-hub …/AppStudio/runtime/useActionRunner.js).
 const RETURN_TO_APP_TOAST_TONES = new Set(['info', 'success', 'warning', 'danger']);
-// Bovengrens op de toast-template en op de record-verwijzing. Beide worden bij
-// elke autosave in hun geheel opnieuw opgeslagen, net als elk ander vrij
-// tekstveld hier, en beide gaan als string over de draad naar de browser.
+// Upper bound on the toast template and on the record reference. Both are saved in
+// full on every autosave, like every other free-text field here, and both travel
+// as strings over the wire to the browser.
 const RETURN_TO_APP_MAX_TOAST_CHARS = 300;
 const RETURN_TO_APP_MAX_RECORD_REF_CHARS = 500;
 
@@ -425,48 +423,42 @@ const BRANCHER_TYPES = new Set(['condition', 'guard', 'switch']);
 const LOOP_RUNTIME_KEYS = new Set(['_index']);
 
 /**
- * ── WAT NIET IN EEN LOOP-BODY OF EEN PARALLELLE TAK MAG ─────────────────────
+ * ── WHAT MAY NOT BE IN A LOOP BODY OR A PARALLEL BRANCH ─────────────────────
  *
- * De contract-scope-regels (layer/block) staan in validate/graph.js en kijken
- * alleen naar TOP-LEVEL stappen. Een genestelde stap loopt langs
- * `checkStep(..., { nested: true })` in stepRules.js, en dát is de enige plek
- * die deze lijst leest — dus een soort die hier ontbreekt, valideert binnen een
- * lus of een tak volkomen schoon.
+ * The contract-scope rules (layer/block) are in validate/graph.js and look only
+ * at TOP-LEVEL steps. A nested step passes through `checkStep(..., { nested: true })`
+ * in stepRules.js, and that is the only place that reads this list, so a type
+ * missing here validates cleanly inside a loop or a branch.
  *
- * TWEE FAMILIES, ÉÉN LIJST — omdat de PLEK dezelfde is en één lijst maar op één
- * manier kan wegdrijven:
+ * TWO FAMILIES, ONE LIST: because the PLACE is the same, one list can drift in one way only:
  *
- *  1. STAPPEN DIE PAUZEREN (`form_page`, `approval`). Hervatten speelt de
- *     PARENT-graaf per step-id opnieuw af, en sub-stapregels dragen een
- *     parent_step_id die de replay bewust overslaat — dus een pauze in een
- *     body/tak wordt op runtime wél binnengegaan en daarna nooit meer
- *     geadresseerd (de goedkeur-actie / de publieke form-URL hebben geen stap
- *     om te hervatten). execApproval en execFormPage gooien de twee fouten die
- *     isRunPause identiek behandelt, dus ze krijgen de identieke regel; alleen
- *     de bewoording en de code verschillen. (Eén publieke form-URL kan boven-
- *     dien maar één wachtende pagina tegelijk tonen, dus N parallelle
- *     form-pagina's zouden ook dubbelzinnig zijn als de replay er wél bij kwam.)
+ *  1. STEPS THAT PAUSE (`form_page`, `approval`). Resuming replays the PARENT
+ *     graph per step id, and sub-step rules carry a parent_step_id that the replay
+ *     deliberately skips, so a pause in a body/branch IS entered at runtime but then
+ *     never addressed again (the approve action / the public form URL have no step
+ *     to resume). execApproval and execFormPage throw the two errors that isRunPause
+ *     treats identically, so they get the identical rule; only the wording and the
+ *     code differ. (One public form URL can also show only one waiting page at a
+ *     time, so N parallel form pages would be ambiguous too if the replay did pick them up.)
  *
- *  2. DE STAP DIE DE RUN BEËINDIGT (`return_to_app`). `TERMINAL_STEP_TYPES`
- *     hierboven maakt hem terminaal door runDag's wandeling te breken — maar
- *     in een sub-graaf is die wandeling niet de RUN. Concreet, en beide kanten
- *     zijn fout:
- *       · LOOP-BODY   — execFlow draait de body met `recordSteps:false` en
- *         `suppress:true`, dus er komt geen runregel; `deriveRunOutcome`
- *         (appStudio/actionExecutor/automationBridge.js) vindt nooit
- *         `_appEffects` en de app krijgt NIETS. Het `break` beëindigt alleen
- *         die iteratie: de lus draait het volgende item en de run loopt door.
- *       · PARALLELLE TAK — die regels worden wél opgenomen en erven
- *         `parentStepId: null`, dus de app krijgt "we zijn klaar, ga hierheen"
- *         terwijl de andere takken en alles ná de parallel nog draaien.
- *     `stop_error` staat hier NIET: die gooit, en een worp reist wél door elke
- *     sub-graaf omhoog. Terminaal-door-te-slagen en terminaal-door-te-gooien
- *     zijn twee verschillende mechanismen, en alleen het eerste heeft deze
- *     regel nodig.
+ *  2. THE STEP THAT ENDS THE RUN (`return_to_app`). `TERMINAL_STEP_TYPES` above
+ *     makes it terminal by breaking runDag's walk, but inside a sub-graph that walk
+ *     is not the RUN. Concretely, and both sides are wrong:
+ *       · LOOP BODY   execFlow runs the body with `recordSteps:false` and
+ *         `suppress:true`, so no run line is written; `deriveRunOutcome`
+ *         (appStudio/actionExecutor/automationBridge.js) never finds
+ *         `_appEffects`, and the app gets NOTHING. The `break` ends only that
+ *         iteration: the loop runs the next item and the run carries on.
+ *       · PARALLEL BRANCH the lines ARE recorded and inherit
+ *         `parentStepId: null`, so the app receives "we are done, go here"
+ *         while the other branches and everything after the parallel still run.
+ *     `stop_error` is NOT listed here: it throws, and a throw does travel up through
+ *     every sub-graph. Terminal-by-succeeding and terminal-by-throwing are two
+ *     different mechanisms, and only the first needs this rule.
  *
- * De palet-spiegel hiervan staat in
- * agent-hub …/Builder/flow/stepPalette.js (`NOT_INSIDE_A_LAYER`): wat de
- * validator hier weigert, hoort de editor niet aan te bieden.
+ * The palette mirror of this is in
+ * agent-hub …/Builder/flow/stepPalette.js (`NOT_INSIDE_A_LAYER`): what the
+ * validator refuses here should not be offered by the editor.
  */
 const NESTED_FORBIDDEN_RULES = new Map([
     ['form_page', {

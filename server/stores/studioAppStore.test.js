@@ -181,6 +181,7 @@ const mockDb = {
     exec: async (sql) => { query(sql); },
     getClient: async () => ({ query: async (sql, params = []) => query(sql, params), release() {} }),
 };
+mockDb.withTransaction = require('../testUtils/txFake').withTransactionVia(() => mockDb.getClient());
 
 // The delete path purges the app's DATA too (per-app database + attachment
 // objects), so those two collaborators are stubbed as well — the suite stays
@@ -803,20 +804,20 @@ test('setTemplateStamp moves version + hash, owner-scoped', async () => {
     assert.strictEqual(fetched.templateId, 'app-crm-pipeline');
 });
 
-// ── De herindexerende wrappers, op GEDRAG ─────────────────────────
+// ── The re-indexing wrappers, on BEHAVIOUR ─────────────────────────
 //
-// `appStudio/automationUsage.savePaths.test.js` telt de save-paden en eist per
-// schrijver een `x: xIndexed`-export. Wat dat NIET kon zien: of een wrapper de
-// reconciler ook echt aanroept. Eén overgebleven aanroep hield de
-// string-controle voor alle wrappers in de lucht, dus de belangrijkste van
-// allemaal — `saveDefinitionIndexed`, het pad dat élke autosave van élke app
-// neemt — kon eruit zonder dat er iets rood werd. De gevolgen in productie zijn
-// stil en permanent: `reconcileAutomationUsage` is delete-then-insert, dus
-// zonder de aanroep blijven de rijen van de VÓRIGE definitie staan en houdt een
-// actie die haar automatisering kwijtraakt de capsule voor altijd in de lucht.
+// `appStudio/automationUsage.savePaths.test.js` counts the save paths and requires
+// per writer an `x: xIndexed` export. What it could NOT see: whether a wrapper
+// actually calls the reconciler. One remaining call kept the string check alive
+// for all wrappers, so the most important one of all — `saveDefinitionIndexed`,
+// the path that EVERY autosave of EVERY app takes — could go without anything
+// turning red. The consequences in production are silent and permanent:
+// `reconcileAutomationUsage` is delete-then-insert, so without the call the rows
+// of the PREVIOUS definition stay, and an action that loses its automation keeps
+// the capsule up forever.
 //
-// Vandaar deze vier: de echte store, de echte wrappers, de reconciler
-// vervangen door een teller.
+// Hence these four: the real store, the real wrappers, the reconciler replaced
+// by a counter.
 
 const usageSync = require('../appStudio/automationUsageSync');
 

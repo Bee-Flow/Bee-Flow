@@ -268,7 +268,7 @@ export default function ComplianceStage({ playbook = null, phase, dispatch, t, p
                                 </p>
                                 {verdict.cleanLine && (
                                     <p className="mt-0.5 flex items-center gap-1.5" style={{ fontSize: presenter ? 14 : 12, color: 'var(--text-secondary)' }} data-testid="playbook-compliance-clean-count">
-                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--kind-playbook)' }} aria-hidden="true" />
+                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0 [color:var(--kind-playbook)]" aria-hidden="true" />
                                         {verdict.cleanLine}
                                     </p>
                                 )}

@@ -23,9 +23,9 @@ const { z } = require('../../utils/zod');
 const { worded, bodyOf, whole, NOTHING, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
 
-// De bladwijzer van de geschiedenislijst. `.strict()`, want elke andere
-// parameter die iemand hier verwacht — een filter op bron, op maker — komt
-// terug als "de laatste 50", en dat is een ANDER antwoord dan de vraag.
+// The bookmark of the history list. `.strict()`, because every other parameter one would
+// expect here — a filter on source, on maker — came back as "the last 50", and that is a
+// DIFFERENT answer to the question.
 const ListQuery = z.object({ limit: whole('limit'), offset: whole('offset') }).strict();
 
 const SummaryBody = bodyOf({
@@ -51,17 +51,15 @@ function register(router) {
         const names = await versionActorNames(page, req.session.user);
         const publishedVersionId = wp.publishedVersionId || null;
 
-        // WELKE versie het publiek leest, als eigen veld — niet als iets dat de
-        // client uit de rijen moet afleiden. De gepinde rij kan buiten deze
-        // bladzijde vallen (of, bij een wijzer naar een verdwenen rij,
-        // helemaal niet meer bestaan), en dan zou "zoek hem in de lijst" een
-        // pagina zonder chip opleveren terwijl er wél iets gepubliceerd is.
+        // WHICH version the public reads, as its own field — not something that the client must
+        // derive from the rows. The pinned row may fall outside this page (or, with a pointer to a
+        // vanished row, may not exist at all any more), and then "look for it in the list" would
+        // yield a page without a chip while something IS published.
         let published = null;
         if (publishedVersionId) {
             const meta = await webpageStore.getVersionMeta(publishedVersionId);
-            // getVersionMeta leest op id alleen; de pagina-check hoort erbij,
-            // anders zou een wijzer naar een andere pagina hier een nummer
-            // krijgen dat in déze lijst niets betekent.
+            // getVersionMeta looks up by id only; the page check belongs with it, otherwise a pointer
+            // to another page would get a number here that means nothing in THIS list.
             published = (meta && meta.webpageId === req.params.id)
                 ? { versionId: meta.id, seq: meta.seq }
                 : null;
@@ -71,9 +69,8 @@ function register(router) {
             versions: page.map(r => decorateVersionRow(r, { viewerId: userId, names, publishedVersionId })),
             hasMore,
             published,
-            // WAT deze lijst dekt. Zonder dit veld kan het scherm een lege lijst
-            // alleen verklaren met "je hebt nog niet genoeg bewerkt", en op het
-            // standaard projecttype is dat onwaar.
+            // WHAT this list covers. Without this field the screen can explain an empty list only
+            // with "you have not edited enough yet", and on the default project type that is untrue.
             coverage: versionCoverage(wp),
             managed: await webpageStore.managedPayloadOf(wp),
         });
@@ -88,9 +85,9 @@ function register(router) {
         if (!version || version.webpageId !== req.params.id) {
             return res.status(404).json({ error: 'Version not found' });
         }
-        // Dezelfde vorm als een rij uit de lijst — "Bekijk" opent een rij die
-        // de gebruiker daar zag, en die mag niet opeens een andere maker of een
-        // ander nummer dragen omdat hij via een tweede route binnenkomt.
+        // The same shape as a row from the list — "View" opens a row that the user saw
+        // there, and it must not suddenly carry a different maker or a different number just
+        // because it came in via a second route.
         const names = await versionActorNames([version], req.session.user);
         res.json({
             version: decorateVersionRow(version, {
@@ -135,10 +132,9 @@ function register(router) {
         if (!version || version.webpageId !== req.params.id) {
             return res.status(404).json({ error: 'Version not found' });
         }
-        // De rij bestaat, maar zijn bytes niet meer. Terugzetten zou dan de
-        // LEGE strings over de levende pagina schrijven — een blanco pagina,
-        // terwijl de bevestiging net beloofde dat je het kon terugdraaien.
-        // Weigeren is hier het enige eerlijke antwoord.
+        // The row exists, but its bytes do not any more. Restoring would then write the
+        // EMPTY strings over the live page — a blank page, while the confirmation had just promised
+        // that you could undo it. Refusing is the only honest answer here.
         if (version.readable === false) {
             return res.status(409).json({
                 error: 'This snapshot cannot be read any more, so it cannot be restored.',
@@ -158,18 +154,17 @@ function register(router) {
         const hadContent = wp.htmlSize + wp.cssSize + wp.jsSize + (wp.dbSize || 0) > 0;
         if (hadContent) {
             try {
-                // Het regelverschil van DEZE gebeurtenis: van wat er nu staat
-                // naar wat er wordt teruggezet. De huidige bytes moeten daarvoor
-                // gelezen worden — dat mag hier, terugzetten is zeldzaam en de
-                // route doet toch al een volledige RustFS-ronde.
+                // The line difference of THIS event: from what stands now to what is restored. The current
+                // bytes must be read for that — that is allowed here, restoring is rare and the route
+                // already does a full RustFS round anyway.
                 let lineDelta = null;
                 try {
                     if (!webpageStore.slotsAreReadable()) throw new Error('object storage unavailable');
                     const live = await webpageStore.readAllSlots(userId, req.params.id);
                     lineDelta = versionFacts.slotsLineDelta(live, version, webpageStore.SLOTS);
                 } catch (e) {
-                    // Niet kunnen meten is geen 0 — de rij zegt dan niets over
-                    // het aantal regels, in plaats van "er veranderde niets".
+                    // Not being able to measure is not a 0 — the row then says nothing about the
+                    // number of lines, instead of "nothing changed".
                     log.warn('[Webpages] Restore line delta unavailable:', e.message);
                 }
                 await webpageStore.createVersion(userId, req.params.id,
@@ -217,23 +212,21 @@ function register(router) {
 
         await webpageStore.updateWebpageMetadata(req.params.id, userId, updates);
 
-        // Terugzetten is een save als elke andere: de slots dragen nu ANDERE
-        // `bf-*`-elementen dan een seconde geleden, dus de index moet mee. Dit
-        // is bovendien het pad waarop een tabel weer VERSCHIJNT die er in de
-        // tussentijd uit was gehaald.
+        // Restoring is a save like any other: the slots now carry DIFFERENT `bf-*` elements from
+        // a second ago, so the index must come along. This is moreover the path on which a table
+        // that had been taken out in the meantime APPEARS again.
         webpageUsageSync.reconcileWebpageUsageDetached(req.params.id);
 
-        // Wat er BUITEN de momentopname viel, met naam en toenaam. Een
-        // momentopname draagt alleen de drie slots plus de paginadatabank
-        // (stores/webpage/shared.js: VERSIONED_SLOTS); de extra bestanden van een
-        // multi-file project blijven op de nieuwe stand staan. Dat verzwijgen zou
-        // van een half teruggezette pagina een hele lijken maken.
+        // What fell OUTSIDE the snapshot, by name and in full. A snapshot carries only the
+        // three slots plus the page database (stores/webpage/shared.js: VERSIONED_SLOTS); the extra
+        // files of a multi-file project stay at the new state. Keeping quiet about that would make a
+        // half-restored page look like a whole one.
         let extraFilesUntouched = 0;
         try {
             const extras = await webpageStore.listExtraFiles(req.params.id);
             extraFilesUntouched = Array.isArray(extras) ? extras.length : 0;
         } catch (e) {
-            // Niet kunnen tellen is geen 0: `null` zegt "we weten het niet".
+            // Not being able to count is not 0: `null` says "we do not know".
             extraFilesUntouched = null;
         }
         res.json({

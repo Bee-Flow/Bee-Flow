@@ -1,27 +1,26 @@
 /**
- * O4 deel C — "hoe vaak is dit geïnstalleerd", als twee getallen.
+ * O4 part C — "how often has this been installed", as two numbers.
  *
- * Blueprints zijn strikt org-gescoopt (zie de kop van `canRead`).
- * `countInstallsFor` is de ENIGE lezing die daaroverheen kijkt, en dat mag
- * alleen omdat er niets anders uit kan komen dan getallen. Deze tests bewaken
- * precies die kanten:
+ * Blueprints are strictly org-scoped (see the header of `canRead`).
+ * `countInstallsFor` is the ONLY read that looks across that, and that is allowed
+ * only because nothing but numbers can come out of it. These tests guard
+ * exactly those sides:
  *
- *   1. HET TELT OVER ORGANISATIES HEEN, gesplitst in "hier" en "elders". Een
- *      telling die stilletjes alleen de eigen organisatie ziet, geeft het
- *      antwoord "0" op de vraag waarvoor de functie bestaat.
- *   2. DE VERGELIJKING TUSSEN TWEE VERSCHILLENDE LEGE WAARDEN.
- *      `projects.organization_id` is TEXT DEFAULT '' en de galerijkant mag NULL
- *      zijn; een naïeve `=` telt elke org-loze installatie als "elders".
- *   3. ER KOMT GEEN RIJ UIT. Geen `SELECT *`, geen projectnaam, geen eigenaar,
- *      geen tijdstip — één COUNT-rij. Er is dus ook geen kolom die volgend jaar
- *      aan `projects` wordt toegevoegd en vanzelf meelift.
- *   4. NUL IS EEN ANTWOORD, "niet te lezen" is er geen. Die twee mogen op geen
- *      enkel scherm hetzelfde worden, dus mogen ze hier ook niet dezelfde
- *      waarde hebben.
+ *   1. IT COUNTS ACROSS ORGANISATIONS, split into "here" and "elsewhere". A
+ *      count that quietly sees only the own organisation answers "0" to the question
+ *      the function exists for.
+ *   2. THE COMPARISON BETWEEN TWO DIFFERENT EMPTY VALUES.
+ *      `projects.organization_id` is TEXT DEFAULT '' and the gallery side may be
+ *      NULL; a naive `=` counts every org-less installation as "elsewhere".
+ *   3. NO ROW COMES OUT. No `SELECT *`, no project name, no owner,
+ *      no timestamp — one COUNT row. So there is also no column that is added to
+ *      `projects` next year and rides along by itself.
+ *   4. ZERO IS AN ANSWER, "not readable" is not one. Those two may not become the
+ *      same on any screen, so they may not have the same value here either.
  *
- * Hermetisch: `../db` is gestubd (het patroon van blueprint/releases.test.js),
- * dus er komt geen Postgres aan te pas en de SQL wordt op VORM getoetst —
- * dezelfde keuze die blueprint/mappers.test.js voor `canRead` maakt.
+ * Hermetic: `../db` is stubbed (the pattern of blueprint/releases.test.js),
+ * so no Postgres is involved and the SQL is checked on SHAPE —
+ * the same choice that blueprint/mappers.test.js makes for `canRead`.
  *
  * Run: cd server && node --test stores/blueprint/gallery.test.js
  */
@@ -34,8 +33,8 @@ const Module = require('module');
 // ── De db-stub ──────────────────────────────────────────────────────────────
 
 const calls = { getOne: [], getAll: [], run: [], exec: [] };
-// `counts` is wat de tellende query antwoordt; `countRow` overschrijft de HELE
-// rij, zodat "de rij kwam niet terug" ook te spelen is.
+// `counts` is what the counting query answers; `countRow` overrides the WHOLE
+// row, so that "the row did not come back" can also be simulated.
 const state = { counts: { here: 0, elsewhere: 0 }, countRow: undefined, row: null };
 
 const flat = (s) => String(s).replace(/\s+/g, ' ').trim();
@@ -91,15 +90,15 @@ test('de telling splitst in hier en elders, en kijkt dus over organisaties heen'
     const q = countQuery();
     assert.ok(q, 'er is een tellende query gedraaid');
     const sql = flat(q.sql);
-    // Precies twee parameters: de id's en de organisatie van de bron. Zou de
-    // organisatie in de WHERE staan in plaats van in de FILTER, dan telde de
-    // functie alleen de eigen organisatie — het antwoord "0" op de vraag
-    // waarvoor zij bestaat.
+    // Exactly two parameters: the ids and the organisation of the source. Were the
+    // organisation in the WHERE instead of the FILTER, the function would count
+    // only its own organisation — the answer "0" to the question
+    // it exists for.
     assert.deepStrictEqual(q.params, [['bp_a', 'bp_b'], 'org_source']);
     assert.match(sql, /WHERE installed_from_blueprint_id = ANY\(\$1::text\[\]\)/);
-    // De organisatie hoort in de FILTER en NIET in de WHERE van de tabel: zou
-    // zij de rijen al wegfilteren, dan is "elders" per definitie nul en telt de
-    // functie precies niet wat zij moet tellen.
+    // The organisation belongs in the FILTER and NOT in the WHERE of the table: if
+    // it already filtered the rows away, "elsewhere" would be zero by definition and the
+    // function would precisely not count what it has to count.
     const whereClause = sql.split('FROM projects')[1] || '';
     assert.ok(!whereClause.includes('organization_id'),
         'de WHERE van de tabel noemt geen organisatie — anders verdwijnt "elders"');
@@ -107,13 +106,13 @@ test('de telling splitst in hier en elders, en kijkt dus over organisaties heen'
     assert.match(sql, /FILTER \(WHERE COALESCE\(organization_id, ''\) <> COALESCE\(\$2, ''\)\)/);
 });
 
-// ── 2. Leeg en NULL zijn hetzelfde "geen organisatie" ───────────────────────
+// ── 2. Empty and NULL are the same "no organisation" ────────────────────────
 
 test('een org-loze bron vergelijkt met de lege string, niet met NULL', async () => {
-    // `projects.organization_id` is TEXT DEFAULT '' (createProject schrijft
-    // `organizationId || ''`), terwijl de galerijkant NULL mag zijn. Zonder de
-    // COALESCE aan BEIDE kanten matcht een org-loze installatie nooit en telt
-    // zij als "elders" — precies verkeerd om.
+    // `projects.organization_id` is TEXT DEFAULT '' (createProject writes
+    // `organizationId || ''`), while the gallery side may be NULL. Without the
+    // COALESCE on BOTH sides an org-less installation never matches and
+    // counts as "elsewhere" — exactly the wrong way round.
     await reset();
     await store.countInstallsFor(['bp_a'], { organizationId: null });
     assert.deepStrictEqual(countQuery().params[1], '',
@@ -133,16 +132,16 @@ test('er komen twee getallen uit, nooit een rij', async () => {
     for (const column of ['p.name', 'owner_id', 'icon', 'created_at', 'installed_version']) {
         assert.ok(!sql.includes(column), `${column} hoort niet in een telling`);
     }
-    // GROUP BY organization_id zou een uitsplitsing PER organisatie geven, en
-    // bij één installatie is dat geen aggregaat meer maar een aanwijzing.
+    // GROUP BY organization_id would give a breakdown PER organisation, and
+    // with a single installation that is no longer an aggregate but a hint.
     assert.ok(!/GROUP BY/i.test(sql), 'geen uitsplitsing per organisatie');
 });
 
 // ── 4. Nul is een antwoord ──────────────────────────────────────────────────
 
 test('zonder Blueprint valt er niets te tellen, en dat is nul', async () => {
-    // Uit een id dat niet bestaat kan niemand iets geïnstalleerd hebben. Nul is
-    // hier een antwoord en geen gat — en het spaart een query uit.
+    // From an id that does not exist nobody can have installed anything. Zero is
+    // an answer here and not a gap — and it saves a query.
     await reset();
     for (const ids of [[], null, ['', null, 42]]) {
         assert.deepStrictEqual(await store.countInstallsFor(ids, { organizationId: 'org1' }),
@@ -152,9 +151,9 @@ test('zonder Blueprint valt er niets te tellen, en dat is nul', async () => {
 });
 
 test('een onleesbare telling is null, nooit 0', async () => {
-    // "Niemand heeft dit geïnstalleerd" en "we konden het niet nakijken" zijn
-    // twee verschillende mededelingen. `Number(null)` is 0, dus dit is precies
-    // de plek waar een kale coercie het onderscheid weggooit.
+    // "Nobody has installed this" and "we could not check" are
+    // two different statements. `Number(null)` is 0, so this is precisely
+    // the place where a bare coercion throws the distinction away.
     for (const answer of [null, {}, { here: null, elsewhere: 0 }, { here: 0, elsewhere: 'veel' }]) {
         await reset();
         state.countRow = answer;
@@ -163,19 +162,19 @@ test('een onleesbare telling is null, nooit 0', async () => {
     }
 });
 
-// ── 5. De toegangsvraag hoort hier NIET ─────────────────────────────────────
+// ── 5. The access question does NOT belong here ─────────────────────────────────
 
 test('de store autoriseert niets — de aanroeper levert de geautoriseerde id\'s', async () => {
-    // Dezelfde belofte als listStamps/listInstalledVersions/listReleases: deze
-    // functie telt wat zij krijgt. Wie mag tellen beslist de route, met de
-    // eigenaarsrol op het bronproject.
+    // The same promise as listStamps/listInstalledVersions/listReleases: this
+    // function counts what it gets. Who may count is decided by the route, with the
+    // owner role on the source project.
     await reset();
     state.counts = { here: 9, elsewhere: 9 };
     const out = await store.countInstallsFor(['bp_van_een_ander'], { organizationId: 'org_willekeurig' });
     assert.deepStrictEqual(out, { here: 9, elsewhere: 9 });
 });
 
-// ── 6. De meta-lezing sleept het manifest niet mee ──────────────────────────
+// ── 6. The meta read does not drag the manifest along ───────────────────────────
 
 test('een lezing zonder manifest haalt het manifest ook echt niet op', async () => {
     await reset();
@@ -190,8 +189,8 @@ test('een lezing zonder manifest haalt het manifest ook echt niet op', async () 
 });
 
 test('de gewone lezing draagt het manifest nog steeds', async () => {
-    // De installwizard leest een Blueprint mét manifest; dat pad mag niet
-    // stilletjes zijn versmald door de optie hierboven.
+    // The install wizard reads a Blueprint WITH the manifest; that path must not
+    // have been quietly narrowed by the option above.
     await reset();
     state.row = { id: 'bp_abc', organization_id: 'org1', created_by: 'alice', version: 1, manifest: { solution: {} } };
     const full = await store.getBlueprintById('bp_abc');

@@ -6,31 +6,28 @@ import StepNodeBase from './StepNodeBase';
 import type { StepNodeProps } from './nodeProps';
 
 /**
- * "Back to the app" — the run ends here and the Studio App is told what to do
+ * "Back to the app": the run ends here and the Studio App is told what to do
  * next: which screen to open, what to say, what to refresh.
  *
- * TERMINAAL, en dat is wat deze kaart moet uitstralen. Net als StopErrorNode
- * geeft hij `onAddAfter` NIET door en zet hij `sourceConnectable={false}`: geen
- * "+"-knop, geen sleepbare uitgang. Dat weglaten is de hele regel — het
- * MECHANISME zit in StepNodeBase (`onAddAfter && …`, `isConnectable=
- * {sourceConnectable}`) en dat bestand noemt geen enkele stapsoort.
+ * TERMINAL, and that is what this card must radiate. Like StopErrorNode, it does NOT pass on
+ * `onAddAfter` and sets `sourceConnectable={false}`: no "+" button, no draggable exit.
+ * Leaving that out is the whole rule. The MECHANISM sits in StepNodeBase (`onAddAfter && …`,
+ * `isConnectable={sourceConnectable}`), and that file names no step type at all.
  *
- * Bestaande uitgaande randen (uit JSON/AI-authoring of uit een omgebouwde stap)
- * renderen nog wél en blijven verwijderbaar — alleen NIEUWE verbindingen worden
- * geweigerd, precies zoals bij Stop-and-Error.
+ * Existing outgoing edges (from JSON/AI authoring or from a converted step) still render and
+ * remain removable. Only NEW connections are refused, exactly as with Stop-and-Error.
  *
- * Geen `tone`: StepNodeBase kent er precies één (`error`, de rode eindkaart van
- * Stop-and-Error) en dit is juist de goede afloop van een automatisering die door een
- * knop werd gestart. De kaart draagt dus de gewone kleur van zijn familie
- * (`end`) — hem 'success' meegeven zou een prop zijn die nergens gelezen wordt.
+ * No `tone`: StepNodeBase knows exactly one (`error`, the red end card of Stop-and-Error), and
+ * this is the good ending of an automation started by a button. The card therefore carries the
+ * ordinary colour of its family (`end`); passing 'success' would be a prop that is read nowhere.
  */
 export default function ReturnToAppNode({ id, data }: StepNodeProps) {
     const { t } = useTranslation();
     const { step, runStep, issues } = data;
-    // Wat er op de kaart staat is wat er GEBEURT als de run hier eindigt, in de
-    // volgorde waarin de bezoeker het merkt: eerst de melding, dan het scherm.
-    // De toast en het scherm-id zijn de woorden van de AUTEUR en blijven staan
-    // zoals hij ze typte; alleen wat de kaart er zelf bij zegt gaat door t().
+    // What is on the card is what HAPPENS when the run ends here, in the order in which the
+    // visitor notices it: first the notification, then the screen. The toast and the screen id
+    // are the AUTHOR's words and stay as he typed them; only what the card adds itself goes
+    // through t().
     const nav = step.navigateTo && typeof step.navigateTo === 'object' ? step.navigateTo : null;
     const parts = [];
     if (step.toast && step.toast.message) parts.push(String(step.toast.message));

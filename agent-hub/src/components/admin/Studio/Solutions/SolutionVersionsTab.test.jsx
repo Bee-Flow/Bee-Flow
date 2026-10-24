@@ -5,16 +5,16 @@ import { describe, it, expect } from 'vitest';
 import SolutionVersionsTab from './SolutionVersionsTab';
 
 /**
- * De Versies-tab, in twee weergaven.
+ * The Versions tab, in two views.
  *
- * Wat hier wordt vastgepind is de belofte uit de kop van de component: de
- * TEKSTLAAG mag omvallen, de DIFF niet. Een release waarvan het model geen enkele
- * zin schreef toont gewoon zijn rijen — dat is het exacte antwoord — met een
- * regel erbij die zegt waarom er geen woorden bij staan. Een lege tab op zo'n
- * versie zou de gebruiker leren dat er niets veranderd is.
+ * What is pinned here is the promise from the header of the component: the TEXT
+ * LAYER may fail, the DIFF may not. A release of which the model wrote not a single
+ * sentence simply shows its rows — that is the exact answer — with a line beside
+ * it that says why there are no words. An empty tab on such a version would teach
+ * the user that nothing has changed.
  *
- * Daarnaast, en om dezelfde reden als op elk ander Oplossingsscherm: een
- * mislukte lees is geen lege geschiedenis.
+ * In addition, and for the same reason as on every other Solution screen: a failed
+ * read is not an empty history.
  */
 
 const ok = (releases) => ({ status: 'ok', data: { releases } });
@@ -80,8 +80,7 @@ describe('what changed', () => {
 
     it('…and says, per row, that the line is the thing that is missing', () => {
         const { getAllByTestId } = render(<SolutionVersionsTab remote={ok([NO_SUMMARIES])} />);
-        // Alleen op de twee GEWIJZIGDE rijen: een ongewijzigde rij mist geen
-        // samenvatting, hij heeft geen nieuws.
+        // Only on the two CHANGED rows: an unchanged row has no missing summary; it has no news.
         expect(getAllByTestId('version-note-nosummary').length).toBe(2);
     });
 
@@ -135,7 +134,7 @@ describe('all versions', () => {
         expect(rows.length).toBe(2);
         expect(rows[0].textContent).toMatch(/v3/);
         expect(rows[0].textContent).toMatch(/1 change/);
-        // rel_2: twee gewijzigd + één toegevoegd = drie, het ongewijzigde telt niet.
+        // rel_2: two changed + one added = three; the unchanged one does not count.
         expect(rows[1].textContent).toMatch(/3 changes/);
     });
 

@@ -136,7 +136,7 @@ export default function DesignStage({ phase, dispatch, t, reducedMotion = false,
                 {design && status === 'awaiting' && (
                     <section className="mt-5 rounded-xl p-3 [border:1px_solid_var(--border-default)] [background:var(--bg-card)]" data-testid="playbook-design-revise">
                         <div className="flex items-center gap-2 mb-1.5">
-                            <Wand2 className="w-3.5 h-3.5" style={{ color: 'var(--type-ai)' }} aria-hidden="true" />
+                            <Wand2 className="w-3.5 h-3.5 [color:var(--type-ai)]" aria-hidden="true" />
                             <span className="text-xs font-semibold text-[var(--text-primary)]">{t('playbooks.design.revise_label', 'Ask for a change')}</span>
                         </div>
                         <div className="flex flex-col sm:flex-row gap-2">

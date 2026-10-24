@@ -2,14 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { interpolate } from './useTranslation';
 
 /**
- * `{naam}` → de waarde, LETTERLIJK.
+ * `{naam}` → the value, LITERALLY.
  *
- * Deze test bestaat om één reden: `String.prototype.replace` met een
- * vervangings-STRING kent `$&`, `` $` ``, `$'` en `$1`..`$9` als speciale
- * tekens, en de waarden die hier langskomen zijn gebruikersinvoer — een
- * bestandsnaam, een tabelnaam, een pad. De oude implementatie sloopte
- * daardoor precies die naam uit de melding die bestaat OMDAT de naam rare
- * tekens bevat.
+ * This test exists for one reason: `String.prototype.replace` with a replacement
+ * STRING knows `$&`, `` $` ``, `$'` and `$1`..`$9` as special characters, and the
+ * values that come through here are user input: a file name, a table name, a path.
+ * The old implementation therefore scrubbed out precisely that name from the message
+ * that exists BECAUSE the name contains odd characters.
  */
 describe('interpolate — een waarde is tekst, geen vervangingspatroon', () => {
     it('zet een gewone waarde in', () => {
@@ -17,7 +16,7 @@ describe('interpolate — een waarde is tekst, geen vervangingspatroon', () => {
     });
 
     it('BIJT — `$&` blijft `$&` en eet de placeholder niet op', () => {
-        // Met een vervangings-STRING werd dit 'a{segment}b.txt'.
+        // With a replacement STRING this became 'a{segment}b.txt'.
         expect(interpolate('Bad name "{segment}"', { segment: 'a$&b.txt' }))
             .toBe('Bad name "a$&b.txt"');
     });

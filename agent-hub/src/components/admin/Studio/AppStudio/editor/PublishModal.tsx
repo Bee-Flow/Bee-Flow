@@ -483,7 +483,7 @@ function BlockerList({ errors, warnings, revealTarget, onReveal, context = 'publ
             {errors.length > 0 ? (
                 <IssuePanel
                     issues={errors}
-                    icon={<AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" style={{ color: '#b45309' }} />}
+                    icon={<AlertTriangle className="h-4 w-4 shrink-0 [color:#b45309]" aria-hidden="true" />}
                     title={errorTitle}
                     note={isCheck
                         ? t('app_studio.publish.check_errors_note', 'These stop the app working for the people you share it with.')

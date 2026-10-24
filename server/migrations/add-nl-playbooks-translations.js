@@ -212,7 +212,7 @@ const NL_TRANSLATIONS = {
     'playbooks.err.interrupted': 'Halverwege gestopt. Opnieuw proberen geeft de bouwer de opdracht weer, op wat er al staat; Markeer als klaar houdt het zoals het is.',
     'playbooks.handoff.dismiss': 'Verbergen',
 
-    // ── Automatisering, niet "routine": het woord dat Studio zelf gebruikt ────
+    // ── Automation, not "routine": the word that Studio itself uses ────────
     'playbooks.done.automation': 'Automatisering',
     'playbooks.fact.automation': 'Automatisering "{name}"',
     'playbooks.phase.automation': 'Automatisering',

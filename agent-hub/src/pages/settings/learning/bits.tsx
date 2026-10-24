@@ -184,7 +184,7 @@ export function PlaysChip({ t, plays }: { t: TFn; plays?: string }) {
                 ? { padding: '1px 7px', borderRadius: 999, background: 'color-mix(in srgb, var(--accent-primary) 16%, transparent)', color: 'var(--accent-primary)', fontSize: 11, fontWeight: 600 }
                 : { padding: '1px 7px', borderRadius: 999, border: '1px solid var(--border-default)', color: 'var(--text-secondary)', fontSize: 11 }}
         >
-            <Icon style={{ width: 11, height: 11 }} aria-hidden="true" />
+            <Icon className="w-[11px] h-[11px]" aria-hidden="true" />
             {docked ? t('learn.plays.docked', 'beside the app') : t('learn.plays.modal', 'in window')}
         </span>
     );

@@ -50,17 +50,15 @@ async function loadOwnedAutomations(ownerId) {
     return (owned || []).map(a => ({ id: a.id, userId: a.userId, isActive: a.isActive }));
 }
 
-// The app's data model + dataset ids in the shape validate.js expects for
+// The app's data model and dataset ids in the shape that validate.js expects for
 // opts.dataModel/opts.datasets (data-reference cross-checks). `model` is null
-// when the app has no data model yet — validate treats every table reference
-// as unknown then, which is exactly right.
+// when the app has no data model yet — validate then treats every table reference
+// as unknown, which is exactly right.
 //
-// `datatables` is de derde: zonder die lijst was `binding.unknown_datatable`
-// onbereikbaar (geen enkele aanroeper vulde opts.datatables) en kreeg élke
-// binding op een gekoppelde tabel bij élke save de waarschuwing
-// `binding.datatable_unverified` die de auteur nooit kon wegwerken — terwijl
-// een app met een datatableId die nergens naar wijst schoon publiceerde en pas
-// bij de eerste lezing brak.
+// `datatables` is the third: without that list `binding.unknown_datatable` was
+// unreachable (no caller filled opts.datatables), and every binding on a linked table got on every save the warning
+// `binding.datatable_unverified` that the author could never resolve — while
+// an app with a datatableId that points nowhere published cleanly and broke only at the first read.
 async function loadDataRefs(appId, ownerId) {
     const meta = await studioAppDataStore.getDataModel(appId, ownerId);
     const datasets = await studioAppDataStore.listDatasets(appId, ownerId);

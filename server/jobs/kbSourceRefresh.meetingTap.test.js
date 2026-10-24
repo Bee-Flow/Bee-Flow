@@ -105,12 +105,11 @@ test('the bus tap is wired, or none of this ever runs', async () => {
 test('the arming query respects the mode somebody chose', () => {
     // `manual` said "I will press the button" and `schedule` said "nightly is
     // fine". A meeting happening is not a reason to override either.
-    // Bewust brontekst: armMeetingSources roept eerst initDB()/ensureSchema()
-    // aan (FK naar knowledge_bases), dus het ECHT aanroepen hangt aan de
-    // Postgres-integratiesuite van stores/kbSources.test.js (skipt zonder DB,
-    // en pglite zou ook de parent-store moeten optuigen) — te zwaar voor dit
-    // lichte eenheidstestbestand, dat de rest van deze twee taps met fakes
-    // test. Wat hier gepind wordt is de letterlijke WHERE-clause.
+    // Deliberately source text: armMeetingSources first calls initDB()/ensureSchema()
+    // (FK to knowledge_bases), so ACTUALLY calling it depends on the Postgres integration suite of
+    // stores/kbSources.test.js (skips without a DB, and pglite would also have to set up the parent
+    // store) — too heavy for this light unit test file, which tests the rest of these two taps with fakes.
+    // What is pinned here is the literal WHERE clause.
     const src = require('node:fs').readFileSync(require.resolve('../stores/kbSources'), 'utf8');
     const fn = src.slice(src.indexOf('armMeetingSources'), src.indexOf('requestCancel:'));
     assert.match(fn, /refresh_mode = 'after_meeting'/);

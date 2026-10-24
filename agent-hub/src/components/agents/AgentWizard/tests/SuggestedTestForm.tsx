@@ -35,36 +35,33 @@ interface SuggestedTestDraft {
 }
 
 /**
- * "+ Dit gesprek als test" — het formulier waarin een VOORSTEL een test wordt
- * (A4 deel D).
+ * "+ Dit gesprek als test": the form in which a PROPOSAL becomes a test (A4 part D).
  *
- * De server heeft de snelle tier laten opschrijven wat een goed antwoord op
- * deze vraag hoe dan ook moet overbrengen (`POST /:id/tests/suggest`). Dat is
- * een voorstel, en dit scherm is de plek waar het er ook zo uitziet:
+ * The server had the fast tier write down what a good answer to this question must
+ * convey in any case (`POST /:id/tests/suggest`). That is a proposal, and this screen is
+ * the place where it also looks like one:
  *
- *   • ELK veld is te bewerken vóór opslag. Een test die iets anders bewaakt
- *     dan iemand dacht wordt groen, en dan gelooft niemand de hele set meer;
- *   • er staat bij DAT EEN AI HET SCHREEF, en per veld welke. Zodra je een
- *     veld aanraakt is het van jou en verdwijnt dat merkje — het zou anders
- *     over jouw eigen zin blijven staan;
- *   • `toolsExpected` draagt een ander merkje, want dat is geen mening maar
- *     wat er in die beurt daadwerkelijk is aangeroepen;
- *   • `mustNotMention` komt LEEG binnen en blijft leeg tot iemand hem typt.
- *     Een verbod is een regel van de organisatie, geen observatie over één
- *     antwoord — en het is de enige verwachting die letterlijk gematcht wordt
- *     en die de beoordelaar niet kan redden. Een verzonnen verbod is dus de
- *     duurste van de vijf velden (server: core/agentRuntime/testSuggest).
+ *   • EVERY field is editable before saving. A test that guards something other than
+ *     someone thought turns green, and then nobody believes the whole set anymore;
+ *   • it says THAT AN AI WROTE IT, and per field which one. As soon as you touch a field
+ *     it is yours and that marker disappears, otherwise it would stay on your own sentence;
+ *   • `toolsExpected` carries a different marker, because that is not an opinion but what
+ *     was actually called in that turn;
+ *   • `mustNotMention` comes IN EMPTY and stays empty until someone types it. A prohibition
+ *     is a rule of the organisation, not an observation about one answer, and it is the only
+ *     expectation that is matched literally and that the judge cannot rescue. An invented
+ *     prohibition is therefore the most expensive of the five fields (server:
+ *     core/agentRuntime/testSuggest).
  *
- * ── EEN MISLUKT VOORSTEL IS EEN LEEG FORMULIER, GEEN AI-TEKST ───────
- * Kon de server geen voorstel schrijven, dan opent dit formulier gewoon leeg
- * en zegt het dat er niets is voorgesteld. Wat er NIET gebeurt is een lege
- * suggestie tonen met "een AI schreef dit" erboven: dan zou het merkje over
- * niemands werk gaan.
+ * ── A FAILED PROPOSAL IS AN EMPTY FORM, NOT AI TEXT ─────────────────
+ * If the server could not write a proposal, this form opens simply empty and says that
+ * nothing was proposed. What does NOT happen is showing an empty suggestion with "an AI
+ * wrote this" above it: then the marker would be about nobody's work.
  *
- * ── DE VRAAG IS VAN DE BOUWER ───────────────────────────────────────
- * `question` komt uit wat hij zelf typte in de testchat, niet uit het model,
- * en staat daarom zonder merkje bovenaan — bewerkbaar, want de vraag in een
- * test mag scherper zijn dan wat je toevallig intikte.
+ * ── THE QUESTION IS THE BUILDER'S ───────────────────────────────────
+ * `question` comes from what he himself typed in the test chat, not from the model. It is
+ * therefore shown at the top without a marker, and editable, because the question in a
+ * test may be sharper than what you happened to type.
  */
 
 /** Elke lijst is één item per regel. Simpel te bewerken, simpel te lezen. */
@@ -79,7 +76,7 @@ export function listToLines(list: unknown): string {
     return (Array.isArray(list) ? list : []).join('\n');
 }
 
-/** Het merkje dat zegt wie dit veld schreef. Verdwijnt zodra je het aanraakt. */
+/** The marker that says who wrote this field. Disappears as soon as you touch it. */
 function SourceChip({ t, source, touched, field }: { t: TranslateFn; source?: string; touched: boolean; field: string }) {
     if (touched) return null;
     if (source === 'ai') {
@@ -158,8 +155,8 @@ export default function SuggestedTestForm({
 }) {
     const expect = (suggestion && suggestion.expect) || EMPTY_EXPECT;
     const wrote: Record<string, string> = useMemo(() => (suggestion && suggestion.wrote) || {}, [suggestion]);
-    // Welk model het voorstel schreef. Reist mee naar de opslag, zodat de rij
-    // later nog kan zeggen wie hem opstelde.
+    // Which model wrote the proposal. It travels along to the storage, so the row can
+    // later still say who drafted it.
     const suggestedBy = (suggestion && typeof suggestion.suggestedBy === 'string')
         ? suggestion.suggestedBy : null;
 
@@ -177,10 +174,9 @@ export default function SuggestedTestForm({
     };
 
     /**
-     * Heeft een MODEL hier iets geschreven? Alleen dan mag de regel erboven
-     * dat zeggen. Een leeg voorstel ("ik zie hier niets dat vastgelegd moet
-     * worden") is een geldig antwoord van de server, maar het is geen tekst
-     * van een AI, en er hoort dus geen AI-vlag boven.
+     * Did a MODEL write anything here? Only then may the line above say so. An empty
+     * proposal ("I see nothing here that needs to be recorded") is a valid answer from the
+     * server, but it is not text from an AI, and therefore no AI marker belongs above it.
      */
     const aiWroteSomething = useMemo(
         () => Object.values(wrote).some(v => v === 'ai'),
@@ -200,12 +196,11 @@ export default function SuggestedTestForm({
 
     const submit = () => {
         if (!canSave) return;
-        // De herkomst reist MEE naar de opslag. Zonder dat bestond het merkje
-        // "AI wrote this" alleen zolang dit formulier openstond: zodra er
-        // opgeslagen was, was de regel niet meer te onderscheiden van een die
-        // een mens tikte — terwijl juist die regel bepaalt of een run groen of
-        // rood wordt. Een veld dat de mens aanraakte is vanaf dat moment van
-        // de mens, wat er ook in stond.
+        // The provenance travels ALONG to the storage. Without that, the marker "AI wrote this"
+        // existed only as long as this form stayed open: once something was saved, the line was
+        // no longer distinguishable from one a human typed, while precisely that line decides
+        // whether a run turns green or red. A field that the human touched is from that moment
+        // on the human's, whatever was in it.
         const writtenBy: Record<string, string> = {};
         for (const field of ['mustMention', 'mustNotMention', 'toolsExpected', 'rulesExpected', 'notes']) {
             writtenBy[field] = touched[field] ? 'human' : (wrote[field] || 'empty');
@@ -293,9 +288,9 @@ export default function SuggestedTestForm({
             <ListField
                 t={t} field="toolsExpected"
                 label={t('agent_studio.test.field_tools', 'Should use these tools')}
-                // "from this chat", niet "what this answer actually used": de
-                // server krijgt deze namen uit de request-body en kan ze niet
-                // nagaan — de testchat is efemeer en laat geen rij achter.
+                // "from this chat", not "what this answer actually used": the server gets these names
+                // from the request body and cannot check them. The test chat is ephemeral and leaves
+                // no row behind.
                 help={t('agent_studio.test.field_tools_help', 'Taken from the tools this chat showed running. Remove any you do not want to require.')}
                 value={toolsExpected} onChange={touch('toolsExpected', setToolsExpected)}
                 source={wrote.toolsExpected} touched={!!touched.toolsExpected}

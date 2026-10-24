@@ -58,10 +58,10 @@ async function _doInit() {
             ADD COLUMN IF NOT EXISTS step_id TEXT,
             ADD COLUMN IF NOT EXISTS is_dry_run BOOLEAN DEFAULT false
     `);
-    // Via runDdl (stores/lib/_ddl.js): fouten per statement luid verzameld;
-    // de Promise.all werd tóch al geserialiseerd door de DDL-queue. NB
-    // (runbookregel in _ddl.js): guardrail_events is een volumetabel zonder
-    // retentie — nieuwe indexen alleen handmatig via CONCURRENTLY.
+    // Via runDdl (stores/lib/_ddl.js): errors per statement are collected loudly;
+    // the Promise.all was serialised by the DDL queue anyway. NB
+    // (runbook rule in _ddl.js): guardrail_events is a volume table without
+    // retention — new indexes only manually via CONCURRENTLY.
     await runDdl('guardrailEventStore', [
         `CREATE INDEX IF NOT EXISTS idx_guardrail_timestamp ON guardrail_events(timestamp DESC)`,
         `CREATE INDEX IF NOT EXISTS idx_guardrail_org_timestamp ON guardrail_events(organization_id, timestamp DESC)`,

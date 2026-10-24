@@ -69,7 +69,7 @@ interface DesignPlaceholderProps {
 
 function DesignPlaceholder({ name }: DesignPlaceholderProps) {
     return (
-        <div className={`${CENTERED} gap-2`} style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+        <div className={`${CENTERED} gap-2 [background:var(--bg-tertiary)] [color:var(--text-muted)]`}>
             <FileText className="h-6 w-6" aria-hidden="true" />
             <span className="text-xs">{name}</span>
         </div>
@@ -310,8 +310,7 @@ export default function AppFilePreview({ node }: NodeProps<FilePreviewProps>) {
                 <img
                     src={state.url ?? undefined}
                     alt={state.name || ''}
-                    className={`w-full${boxed ? ' flex-1 min-h-0' : ' h-full'}`}
-                    style={{ objectFit: 'contain' }}
+                    className={`w-full${boxed ? ' flex-1 min-h-0' : ' h-full'} [object-fit:contain]`}
                 />
             )}
         </>,

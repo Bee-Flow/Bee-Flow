@@ -8,28 +8,22 @@ import { logger } from '../../../../utils/logger';
 type SkillUsageSummary = Record<string, { agents?: number | null }>;
 
 /**
- * De twee EXTRA lezingen die de tab "Kan gebruiken" nodig heeft en die de
- * editor nog niet deed (A2 stap 2):
+ * The two EXTRA reads that the "Can use" tab needs and that the editor did not yet do (A2 step 2):
  *
- *   `GET /api/datatables`            de NAMEN bij de tabel-grants uit
- *                                    `config.tools.datatables`;
- *   `GET /api/skills/usage-summary`  "ook gebruikt door k andere agents".
+ *   `GET /api/datatables`            the NAMES of the table grants from `config.tools.datatables`;
+ *   `GET /api/skills/usage-summary`  "also used by k other agents".
  *
- * ── ALLEEN LEZEN WAT ER TE VRAGEN VALT ──────────────────────────────
- * Beide lezingen gaan pas de deur uit als er iets is om over te vragen. Dat is
- * niet alleen zuinig, het houdt de kaart ook eerlijk: `/api/datatables` hangt
- * achter `requireModule('automation')` + `requireLicenseFeature('automations')`
- * en `/api/skills` achter `requireCapability('skills')`, dus in een
- * organisatie zonder die modules is een 403 het NORMALE antwoord. Een agent
- * zonder tabel-grants zou daar een waarschuwing krijgen over iets wat hij niet
- * heeft — en een waarschuwing die altijd staat, leert mensen om ze te negeren.
- * Geen grants ⇒ geen lezing ⇒ `READ.OK` met nul rijen, wat de waarheid is.
+ * ── ONLY READ WHAT THERE IS TO ASK ABOUT ───────────────────────────
+ * Both reads only go out the door if there is something to ask about. That is not only frugal, it also keeps the card
+ * honest: `/api/datatables` sits behind `requireModule('automation')` + `requireLicenseFeature('automations')`, and
+ * `/api/skills` behind `requireCapability('skills')`. So in an organisation without those modules a 403 is the NORMAL
+ * answer. An agent without table grants would get a warning there about something it does not have, and a warning that
+ * always stands teaches people to ignore it. No grants ⇒ no read ⇒ `READ.OK` with zero rows, which is the truth.
  *
- * ── EN ANDERS: DE FOUT ZEGGEN, NIET INSLIKKEN ───────────────────────
- * Zíjn er wél grants en mislukt de lezing, dan is dat wél nieuws: de agent
- * leest die tabellen, en wij kunnen niet zeggen welke. Dan `READ.ERROR`, met
- * `refetch` erbij. Het patroon van `hooks/useUsage.js`: nooit een stille lege
- * lijst waar een mislukte lezing hoort te staan.
+ * ── AND OTHERWISE: SAY THE ERROR, DO NOT SWALLOW IT ─────────────────
+ * If there ARE grants and the read fails, that is news: the agent reads those tables, and we cannot say which. Then
+ * `READ.ERROR`, with `refetch` attached. The pattern of `hooks/useUsage.js`: never a silent empty list where a failed
+ * read belongs.
  */
 export default function useCanUseSources({ enabled = true, toolsConfig = null, attachedSkillIds = [], savedSkillIds = [] }: {
     enabled?: boolean;
@@ -41,8 +35,8 @@ export default function useCanUseSources({ enabled = true, toolsConfig = null, a
     const [tablesState, setTablesState] = useState<ReadState>(READ.LOADING);
     const [usage, setUsage] = useState<SkillUsageSummary | null>(null);
     const [usageState, setUsageState] = useState<ReadState>(READ.LOADING);
-    // Een teller die elke refetch ophoogt: het effect hangt eraan, dus opnieuw
-    // proberen is één setState en geen tweede kopie van de fetch.
+    // A counter that rises on every refetch: the effect hangs on it, so trying again is one setState and not a second copy
+    // of the fetch.
     const [tablesNonce, setTablesNonce] = useState(0);
     const [usageNonce, setUsageNonce] = useState(0);
 
@@ -50,23 +44,20 @@ export default function useCanUseSources({ enabled = true, toolsConfig = null, a
     const skillIds = Array.isArray(attachedSkillIds) ? attachedSkillIds.filter(id => typeof id === 'string' && id) : [];
     const savedIds = Array.isArray(savedSkillIds) ? savedSkillIds.filter(id => typeof id === 'string' && id) : [];
     /**
-     * De id-lijsten als sleutel, zodat het effect op INHOUD reageert en niet
-     * op de nieuwe array-identiteit die elke render van de ouder oplevert.
+     * The id lists as keys, so that the effect reacts to CONTENT and not to the new array identity that every render of the
+     * parent produces.
      *
-     * Er staan er TWEE in, en de tweede is de reden dat de aftreksom klopt.
-     * De samenvatting telt de OPGESLAGEN config van elke agent. Vink je een
-     * skill aan, dan verandert de live lijst en halen we de telling opnieuw
-     * op — maar de opslag is dan nog onderweg, dus deze agent zit er nog niet
-     * in. Zodra de opslag landt verandert de opgeslagen lijst, en pas dán
-     * telt de server deze agent mee. Zonder die tweede lezing zou
-     * `skillRows` één aftrekken van een telling die dat ene nog niet bevatte:
-     * "ook gebruikt door 2 andere agents" waar het er 3 zijn.
+     * There are TWO of them, and the second is the reason the subtraction is correct. The summary counts the SAVED config of
+     * every agent. If you tick a skill, the live list changes and we fetch the count again, but the save is still on its way,
+     * so this agent is not in it yet. As soon as the save lands, the saved list changes, and only then does the server count
+     * this agent. Without that second read, `skillRows` would subtract one from a count that did not yet contain that one:
+     * "also used by 2 other agents" where there are 3.
      */
     const skillKey = `${skillIds.join(',')}|${savedIds.join(',')}`;
 
     useEffect(() => {
         if (!enabled) return undefined;
-        // Niets gegund? Dan is "geen tabellen" een gelezen feit, geen gok.
+        // Nothing granted? Then "no tables" is a read fact, not a guess.
         if (grantCount === 0) { setTables([]); setTablesState(READ.OK); return undefined; }
         const ctrl = new AbortController();
         let alive = true;
@@ -91,8 +82,7 @@ export default function useCanUseSources({ enabled = true, toolsConfig = null, a
 
     useEffect(() => {
         if (!enabled) return undefined;
-        // Niets gekoppeld — nu niet en opgeslagen niet — dan valt er niets te
-        // tellen en is `{}` een gelezen antwoord.
+        // Nothing linked, neither now nor saved: then there is nothing to count, and `{}` is a read answer.
         if (skillIds.length === 0) { setUsage({}); setUsageState(READ.OK); return undefined; }
         const ctrl = new AbortController();
         let alive = true;

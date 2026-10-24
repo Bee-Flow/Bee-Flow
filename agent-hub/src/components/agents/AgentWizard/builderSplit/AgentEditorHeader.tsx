@@ -12,37 +12,30 @@ import type { StudioSectionHeaderTab } from '../../../projects/workspace/studioP
 import type { AudienceEntity, OrgGroup } from '../../../shared/VisibilityCapsule.types';
 
 /**
- * AgentEditorHeader — de 48px kop van de agent-editor (Bee Flow Builder
- * herontwerp, sep 2026; Agents-artboard 1b, A2 stap 1).
+ * AgentEditorHeader — the 48px header of the agent editor (Bee Flow Builder redesign, Sept 2026;
+ * Agents artboard 1b, A2 step 1).
  *
- * Dit bestand bouwt NIETS zelf: het is een compositie van de gedeelde
- * primitieven, zodat een agent met dezelfde rij opent als een kennisbank,
- * een tabel of een skill —
- *   shared/StudioSectionHeader   de rij zelf (terugpijl · tegel · naam ·
- *                                statuschip · tabs · capsule · primair)
- *   shared/VisibilityCapsule     "wie mag dit zien" (variant capsule,
- *                                anchored: een 48px balk klemt een absolute
- *                                popover af — BFSF-328)
- *   shared/StatusActionPill      LIVE / CONCEPT plus de ÉNE volgende stap
- *   builderSplit/SaveStateIndicator  de live opslagstatus
+ * This file builds NOTHING itself: it is a composition of the shared primitives, so that an agent
+ * opens with the same row as a knowledge base, a table or a skill —
+ *   shared/StudioSectionHeader   the row itself (back arrow · tile · name · status chip · tabs · capsule · primary)
+ *   shared/VisibilityCapsule     "who may see this" (variant capsule, anchored: a 48px bar clamps an
+ *                                absolute popover — BFSF-328)
+ *   shared/StatusActionPill      LIVE / DRAFT plus the ONE next step
+ *   builderSplit/SaveStateIndicator  the live save status
  *
- * ── AFWIJKING VAN HET ONTWERP, BEWUST ───────────────────────────────
- * Het artboard tekent een lucide-`bot` in de 28px tegel. Hier staat de
- * EMOJI of AFBEELDING van het avatar op die plek. Het avatar is de
- * identiteit van de agent in chat, in de agentenlijst, op de marketplace-
- * kaart en op mobiel; een bot-glyph in de editor zou de agent op precies
- * één scherm anders laten heten dan overal elders. De tegel zelf (kleur,
- * vorm, 18% tint van --type-ai) blijft die van kindColors — alleen de glyph
- * wijkt af. Een agent ZONDER avatar valt terug op de lucide-bot van
- * kindColors, dus de afwijking voegt niets toe waar niets is.
+ * ── DEVIATION FROM THE DESIGN, DELIBERATE ───────────────────────────
+ * The artboard draws a lucide `bot` in the 28px tile. Here the EMOJI or IMAGE of the avatar stands in
+ * that place. The avatar is the identity of the agent in chat, in the agent list, on the marketplace
+ * card and on mobile; a bot glyph in the editor would make the agent be called something different on
+ * exactly one screen than everywhere else. The tile itself (colour, shape, 18% tint of --type-ai) stays
+ * that of kindColors — only the glyph deviates. An agent WITHOUT an avatar falls back on the lucide-bot
+ * of kindColors, so the deviation adds nothing where there is nothing.
  *
- * ── TWEE PUBLICATIE-WERKWOORDEN, NIET DOOR ELKAAR ───────────────────
- * De capsule regelt het PUBLIEK (is_published + shared_groups, PATCH
- * /agents/:id/publish). De split-knop regelt de INHOUD: welke config en
- * welk systeemprompt de runtime serveert (published_version, POST
- * /agents/:id/publish-version). Ze staan naast elkaar in de kop omdat ze
- * allebei "publiceren" heten en het verschil alleen leesbaar is als je ze
- * naast elkaar ziet:
+ * ── TWO PUBLISH VERBS, NOT CONFUSED ─────────────────────────────────
+ * The capsule governs the AUDIENCE (is_published + shared_groups, PATCH /agents/:id/publish). The split
+ * button governs the CONTENT: which config and which system prompt the runtime serves (published_version,
+ * POST /agents/:id/publish-version). They stand next to each other in the header because both are called
+ * "publish" and the difference is only legible when you see them side by side:
  *   published_version > 0  →  LIVE   · "Publish new version"
  *   published_version = 0  →  DRAFT  · "Publish"
  *
@@ -53,11 +46,10 @@ import type { AudienceEntity, OrgGroup } from '../../../shared/VisibilityCapsule
  * `embed_enabled` are on the stage's allow-list, so the capsule keeps working.
  * The AI builder chat lives in BuilderSplit and goes away there.
  *
- * ── WAT DE KOP NIET DOET ────────────────────────────────────────────
- * Geen `inert` op deze rij. Alleen-lezen (BFSF-271) haalt de BEWERKENDE
- * affordances weg — hernoemen, publiceren, de capsule — maar terug,
- * tabs en de tellers blijven werken: iemand die een agent alleen mag
- * bekijken moet er wél doorheen kunnen lopen.
+ * ── WHAT THE HEADER DOES NOT DO ─────────────────────────────────────
+ * No `inert` on this row. Read-only (BFSF-271) removes the EDITING affordances — rename, publish, the
+ * capsule — but back, tabs and the counters keep working: someone who may only view an agent must still
+ * be able to walk through it.
  */
 
 /** De vier tabs van een agent, in artboard-volgorde. "Used by" is altijd laatst. */
@@ -69,21 +61,19 @@ export const AGENT_TAB_IDS = Object.freeze({
 });
 
 /**
- * Een teller die niet gelezen kon worden toont NIETS — nooit een 0.
+ * A counter that could not be read shows NOTHING — never a 0.
  *
- * `0` is een BEWERING ("deze agent kan niets gebruiken", "niemand gebruikt
- * dit"), en die maken we alleen als we hem kunnen onderbouwen. Alles wat
- * geen eindig getal is — nog aan het laden, een mislukte fetch, een lijst
- * die we niet konden lezen — komt terug als `undefined`, en dan rendert de
- * badge van SegmentedControl niets (resolveSegmentedBadge).
+ * `0` is a CLAIM ("this agent cannot use anything", "nobody uses this"), and we only make it when we can
+ * back it up. Everything that is not a finite number — still loading, a failed fetch, a list that we could
+ * not read — comes back as `undefined`, and then the badge of SegmentedControl renders nothing
+ * (resolveSegmentedBadge).
  */
 export function countOrNothing(value: number | null | undefined) {
     return Number.isFinite(value) ? value : undefined;
 }
 
 /**
- * De tabs met hun tellers. Puur, zodat de "geen 0"-regel hierboven te
- * testen is zonder een header te renderen.
+ * The tabs with their counters. Pure, so that the "no 0" rule above can be tested without rendering a header.
  */
 export function buildAgentTabs(t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string, { canUseCount, usedByCount }: { canUseCount?: number | null; usedByCount?: number | null } = {}) {
     return [
@@ -95,10 +85,9 @@ export function buildAgentTabs(t: (key: string | undefined, fallbackOrParams?: s
 }
 
 /**
- * t() met de placeholders er ALTIJD ingevuld. De echte vertaler interpoleert
- * `{version}` zelf, maar een meegegeven `t` (tests, embeds) doet dat niet —
- * en een chip die letterlijk "Saved · v{version}" zegt is erger dan geen
- * chip. Zelfde reden en zelfde vorm als shared/VisibilityCapsule's `tx`.
+ * t() with the placeholders ALWAYS filled in. The real translator interpolates `{version}` itself, but a
+ * passed-in `t` (tests, embeds) does not — and a chip that literally says "Saved · v{version}" is worse than
+ * no chip. Same reason and same shape as shared/VisibilityCapsule's `tx`.
  */
 function tx(t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string, key: string, fallback: string, params: { version: number }) {
     let value = t(key, fallback, params);
@@ -117,14 +106,14 @@ export function publishedVersionOf(agent: { published_version?: unknown; publish
 }
 
 /**
- * De glyph in de kindtegel: het avatar van de agent (zie de afwijking in de
- * docblock), of `undefined` als er geen avatar is — dan valt
- * StudioSectionHeader terug op kindIcon('agent'), de lucide-bot.
+ * The glyph in the kind tile: the agent's avatar (see the deviation in the
+ * docblock), or `undefined` if there is no avatar. Then StudioSectionHeader
+ * falls back to kindIcon('agent'), the lucide-bot.
  *
- * Let op waarom dit een FUNCTIE is en geen component die `null` teruggeeft:
- * `<AgentTileGlyph avatar={null} />` is zelf een geldig element, dus
- * `icon ?? kindIcon(kind)` in StudioSectionHeader zou het element kiezen en
- * een LEGE tegel tekenen. De terugval moet dus hier gebeuren, vóór de prop.
+ * Note why this is a FUNCTION and not a component that returns `null`:
+ * `<AgentTileGlyph avatar={null} />` is itself a valid element, so
+ * `icon ?? kindIcon(kind)` in StudioSectionHeader would pick the element and
+ * draw an EMPTY tile. The fallback therefore has to happen here, before the prop.
  */
 export function agentTileIcon(avatar: string | null) {
     return avatar ? <AgentTileGlyph avatar={avatar} /> : undefined;
@@ -154,14 +143,14 @@ function AgentTileGlyph({ avatar }: AgentTileGlyphProps) {
 }
 
 /**
- * Het statuschip-slot: "Saved · v8" uit `published_version`, met de LIVE
- * opslagstatus ernaast.
+ * The status-chip slot: "Saved · v8" from `published_version`, with the LIVE
+ * save status next to it.
  *
- * De twee zeggen verschillende dingen en staan daarom naast elkaar: het chip
- * noemt de versie die het PUBLIEK draait, de indicator of het CONCEPT dat je
- * nu typt al op de server staat. Zonder gepubliceerde versie is er geen
- * versie om te noemen — dan blijft alleen de indicator over, want "v0" zou
- * een versie verzinnen die niet bestaat.
+ * The two say different things and therefore sit side by side: the chip names
+ * the version that the PUBLIC is running, the indicator says whether the DRAFT
+ * you are typing right now is already on the server. Without a published version
+ * there is no version to name, so only the indicator remains, because "v0" would
+ * invent a version that does not exist.
  */
 interface HeaderStatusProps {
     t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
@@ -189,11 +178,11 @@ function HeaderStatus({ t, publishedVersion, savingState, savedAt, saveErrorMsg,
 }
 
 /**
- * Het primaire slot. Drie gevallen, in deze volgorde:
- *   alleen-lezen        niets — er valt niets te publiceren
- *   managed (`locked`)  niets — a Solution deploy owns the version
- *   concept zonder id   de expliciete eerste opslag (POST /agents)
- *   opgeslagen agent    de LIVE/CONCEPT-split-knop
+ * The primary slot. Three cases, in this order:
+ *   read-only           nothing: there is nothing to publish
+ *   managed (`locked`)  nothing: a Solution deploy owns the version
+ *   draft without id    the explicit first save (POST /agents)
+ *   saved agent         the LIVE/DRAFT split button
  */
 /** The agent row as the header reads it: its id may be null for an unsaved draft. */
 type HeaderAgent = Omit<AudienceEntity, 'id'> & { id?: string | null };
@@ -241,8 +230,8 @@ function PrimarySlot({ t, ro, locked = false, agent, savingState, saveDraft, pub
                 icon: Rocket,
                 onClick: onPublishVersion,
                 disabled: !!publishing,
-                // Publiceren is de voorwaartse stap, ook op een agent die al
-                // live is — StatusActionPill zou hem daar anders stil maken.
+                // Publishing is the forward step, also on an agent that is already
+                // live. StatusActionPill would otherwise make it inert there.
                 primary: true,
             }}
         />
@@ -333,8 +322,8 @@ function AgentHeaderRow({
             kind="agent"
             icon={agentTileIcon(avatar)}
             title={name}
-            // Alleen-lezen: geen onRename, dus de naam is een <h1> en geen
-            // knop die in een invoerveld verandert.
+            // Read-only: no onRename, so the name is an <h1> and not a
+            // button that turns into an input field.
             onRename={ro ? undefined : onRename}
             statusChip={(
                 <HeaderStatus

@@ -170,10 +170,10 @@ test('the DEFAULT unknown line and the language line never ship on their own', (
 });
 
 test('an explicit unknown CHOICE is content — the card promises it reaches the prompt', () => {
-    // De Rol-kaart zegt bij "Hand it to a person": "It starts an automation you
-    // pick and tells the user the question was handed over." Zonder deze tak
-    // kreeg zo'n agent wel de automation-grant (applyPersonaToConfig) en een pil
-    // met de automatiseringsnaam, maar geen woord instructie die de automation noemde.
+    // The Role card says under "Hand it to a person": "It starts an automation you
+    // pick and tells the user the question was handed over." Without this branch such an
+    // agent got the automation grant (applyPersonaToConfig) and a chip with the automation's
+    // name, but no word of instruction that named the automation.
     const handoff = { mode: 'fields', unknown: { mode: 'handoff', automationId: 'auto-1' } };
     const rendered = renderSystemPrompt(handoff, { handoffLabel: 'automation_auto_1' });
     assert.match(rendered, /hand it over with the "automation_auto_1" action/);
@@ -232,8 +232,8 @@ test('"say I do not know" does NOT switch strict knowledge on when there is no k
         { strictKnowledge: false, knowledge_base_ids: ['   '] },
         { strictKnowledge: false, tools: { datatables: {} } },
         { strictKnowledge: false, knowledge_base_ids: 'unreadable' },
-        // Onbekend versmalt: een config die niet te lezen is mag nooit het
-        // ding zijn dat een agent stilletjes op weigeren zet.
+        // Unknown narrows: a config that cannot be read must never be the
+        // thing that silently sets an agent to refuse.
         { strictKnowledge: false, tools: 'unreadable' },
     ]) {
         const { config, warnings } = applyPersonaToConfig(before, { ...FIELDS, unknown: { mode: 'honest' } });

@@ -1,17 +1,11 @@
 // @vitest-environment node
 /**
- * De feiten achter de agentkaart (A5 deel C).
+ * The facts behind the agent card (A5 part C).
  *
- * Wat hier gepind wordt is niet "de optelling klopt" maar de drie plekken waar
- * dit soort schermen het altijd verliezen:
- *   - LEEG is niet ONLEESBAAR. Een config die niet gelezen kon worden geeft
- *     `null`, want 0 is een bewering — en op die 0 hangt de gestippelde
- *     "geen kennisbank"-rij.
- *   - ONBEKEND is niet MAG-NIET en niet MAG-WEL. `/agents/system` levert geen
- *     `can_edit`, en `can_edit === false` als enige test liet zo'n rij zijn
- *     prullenbak houden.
- *   - "zonder categorie" is een bewering over de agent. Een categorie-id dat
- *     we niet konden thuisbrengen hoort daar dus NIET bij.
+ * What is pinned here is not "the sum adds up" but the three places where this kind of screen always loses:
+ *   - EMPTY is not UNREADABLE. A config that could not be read gives `null`, because 0 is a claim — and the dotted "no knowledge base" row hangs on that 0.
+ *   - UNKNOWN is neither MAY-NOT nor MAY. `/agents/system` supplies no `can_edit`, and `can_edit === false` as the only test let such a row keep its bin.
+ *   - "no category" is a claim about the agent. A category id that we could not place therefore does NOT belong with it.
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentStudio/agentCardFacts.test.js
  */
@@ -38,7 +32,7 @@ describe('configOf', () => {
     it('parseert een string nog wel, maar onleesbaar blijft null', () => {
         expect(configOf({ config: '{"a":1}' })).toEqual({ a: 1 });
         expect(configOf({ config: '<html>' })).toBeNull();
-        expect(configOf({ config: '[1,2]' })).toBeNull(); // een array is geen config
+        expect(configOf({ config: '[1,2]' })).toBeNull(); // an array is not a config
     });
 
     it('geen config in de rij ⇒ null, niet {}', () => {
@@ -65,19 +59,14 @@ describe('countsOf', () => {
     });
 
     it('zonder automation-curatie is het getal een ONDERGRENS, geen totaal', () => {
-        // core/integrations/integrationTools.js cureert alleen als
-        // `config.tools` de sleutel `automations` DRAAGT; ontbreekt hij, dan
-        // krijgt de agent élke agent-callable automatisering van de vrager plus elke
-        // in de chat gepubliceerde Step. "1 tool" was daar het omgekeerde van
-        // de waarheid.
+        // core/integrations/integrationTools.js only curates when `config.tools` CARRIES the key `automations`; if it is missing, the agent gets EVERY agent-callable automation of the asker plus every Step published in the chat. "1 tool" was the opposite of the truth there.
         const counts = countsOf({ config: { enabledIntegrations: ['gmail'] } });
         expect(counts.tools).toBe(1);
         expect(counts.toolsAtLeast).toBe(true);
     });
 
     it('een LEGE automation-sectie is wél curatie — de aanwezigheid van de sleutel is de keuze', () => {
-        // Spiegel van `_curatedAutomations`: `hasOwnProperty('automations')`,
-        // niet de inhoud. "Alles uitgevinkt" levert geen enkele automatisering op.
+        // Mirror of `_curatedAutomations`: `hasOwnProperty('automations')`, not the content. "Everything unticked" yields not a single automation.
         const counts = countsOf({ config: { enabledIntegrations: ['gmail'], tools: { automations: {} } } });
         expect(counts.tools).toBe(1);
         expect(counts.toolsAtLeast).toBe(false);
@@ -109,9 +98,7 @@ describe('countsOf', () => {
     });
 
     it('een `tools` die geen object is is ONLEESBAAR, geen gemeten nul', () => {
-        // De kop van het bestand ("leeg is niet onleesbaar") gold tot nu toe
-        // alleen voor de héle config. De server maakt dat onderscheid wél op
-        // dezelfde invoer: agentGrounding.tablesAxis geeft daar `null`.
+        // The header of the file ("empty is not unreadable") so far applied only to the WHOLE config. The server makes that distinction too, on the same input: agentGrounding.tablesAxis gives `null` there.
         const counts = countsOf({ config: { tools: 'kapot', enabledIntegrations: ['gmail'] } });
         expect(counts.readable).toBe(true);
         expect(counts.tools).toBeNull();
@@ -137,12 +124,7 @@ describe('editVerdict — onbekend versmalt', () => {
     });
 });
 
-// `warnsNoKnowledge` bestaat niet meer: de regel "antwoordt uit het hoofd"
-// staat op de server (core/agentRuntime/agentGrounding.js) en wordt door dit
-// scherm op één plek gelezen — ./cardFooter.js. Een terugval op
-// `counts.knowledge === 0` maakte er een tweede implementatie van, en die was
-// het al oneens met Studio's Start-scherm over een config die niet te lezen
-// was. Zie cardFooter.test.js.
+// `warnsNoKnowledge` no longer exists: the rule "answers from memory" lives on the server (core/agentRuntime/agentGrounding.js) and is read by this screen in one place — ./cardFooter.js. A fallback on `counts.knowledge === 0` made a second implementation of it, and that one already disagreed with Studio's start screen about a config that could not be read. See cardFooter.test.js.
 
 describe('categoryOf', () => {
     it('geen category_id ⇒ NONE', () => {
@@ -190,9 +172,7 @@ describe('filterAgents', () => {
         { id: 'a', name: 'Helpdesk', description: 'answers tickets', category_id: 'c1' },
         { id: 'b', name: 'Planner', description: '', category_id: 'c2' },
         { id: 'c', name: 'Scratch', description: '' },
-        // Een categorie die we niet kunnen thuisbrengen. Hij hoort NIET bij
-        // "zonder categorie" — categoryChipsOf telt hem daar ook niet mee, en
-        // als deze filter dat wél deed sprak de chip zijn eigen lijst tegen.
+        // A category that we cannot place. It does NOT belong with "no category" — categoryChipsOf does not count it there either, and if this filter did, the chip would contradict its own list.
         { id: 'd', name: 'Orphan', description: '', category_id: 'weg' },
     ];
 
@@ -209,9 +189,7 @@ describe('filterAgents', () => {
     });
 
     it('een agent met een ONLEESBARE categorie hoort niet bij "zonder categorie"', () => {
-        // De chip telt hem niet mee (categoryChipsOf sluit UNKNOWN uit), dus
-        // als het raster hem hier wél toonde zou de chip "No category 1" zeggen
-        // boven twee kaarten.
+        // The chip does not count it (categoryChipsOf excludes UNKNOWN), so if the grid did show it here the chip would say "No category 1" above two cards.
         const rows = filterAgents(AGENTS, { categoryId: NO_CATEGORY, categories: CATS });
         expect(rows.map(a => a.id)).not.toContain('d');
         const chip = categoryChipsOf(AGENTS, CATS).find(c => c.id === NO_CATEGORY);

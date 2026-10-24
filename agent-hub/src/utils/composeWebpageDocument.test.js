@@ -81,29 +81,29 @@ describe('composeWebpageDocument injected scripts', () => {
 
     it('sends expectedUpdatedAt on update — a write without it must not be expressible', () => {
         const doc = composeFullDoc();
-        // De shim geeft de vierde parameter door; laat je hem weg, dan weigert
-        // de server. Wat hier NIET mag staan is een default die hem verzint.
+        // The shim passes on the fourth parameter; leave it out and the server
+        // refuses. What must NOT stand here is a default that invents it.
         expect(doc).toContain('expectedUpdatedAt: expectedUpdatedAt');
         expect(doc).not.toMatch(/expectedUpdatedAt:\s*(expectedUpdatedAt\s*\|\||Date|new Date|"")/);
     });
 });
 
 // ─────────────────────────────────────────────────────────────────────
-// W4 — de Bee Flow-elementen in de client-composer.
+// W4 — the Bee Flow elements in the client composer.
 //
-// Dit is het pad voor de PREVIEW en voor een INGELOGDE lezer: daar draait
-// JavaScript, dus hier werken alle elementen echt. De tests hieronder draaien
-// het uitgezonden blok in de jsdom van de test zelf, met nagebootste bruggen,
-// en kijken naar wat er in de DOM belandt. Dat is met opzet geen tekstvergelijk
-// op de uitgezonden bron: die kan kloppen terwijl er niets gebeurt.
+// This is the path for the PREVIEW and for a LOGGED-IN reader: there JavaScript
+// runs, so here all elements really work. The tests below run the emitted block in
+// the test's own jsdom, with imitated bridges, and look at what lands in the DOM.
+// That is deliberately not a text comparison on the emitted source: that can be
+// right while nothing happens.
 //
-// Het zwaartepunt ligt op FALEN. Een element dat zijn bron niet kan lezen moet
-// dat TONEN, en de redenen moeten uit elkaar blijven: "mag je niet zien",
-// "is er niet (meer)", "kon niet lezen", "leeg" en "er is hier geen brug" zijn
-// vijf verschillende dingen die om ander gedrag van de lezer vragen.
+// The emphasis lies on FAILING. An element that cannot read its source must SHOW
+// that, and the reasons must stay apart: "you may not see this", "is not there
+// (any more)", "could not read", "empty" and "there is no bridge here" are five
+// different things that call for different behaviour from the reader.
 // ─────────────────────────────────────────────────────────────────────
 
-/** Elke elementnaam als heel woord — `bf-stat-value` is een CSS-klasse, geen tag. */
+/** Every element name as a whole word — `bf-stat-value` is a CSS class, not a tag. */
 const TAG_WORD = new RegExp(`(?<![-\\w])(?:${BF_ELEMENTS.map(e => e.tag).join('|')})(?![-\\w])`, 'g');
 
 const tagOf = (local) => (BF_ELEMENTS.find(e => localNameOf(e.tag) === local) || {}).tag;
@@ -111,10 +111,10 @@ const tagOf = (local) => (BF_ELEMENTS.find(e => localNameOf(e.tag) === local) ||
 let runtimeLoaded = false;
 
 /**
- * Het uitgezonden elementblok één keer uitvoeren in de jsdom van de test.
- * Het blok leest de bruggen pas op het moment dat het een element rendert, dus
- * één keer laden en per test andere bruggen neerzetten is genoeg — en het
- * voorkomt een stapel MutationObservers.
+ * Run the emitted element block once in the test's jsdom.
+ * The block only reads the bridges at the moment it renders an element, so loading
+ * it once and setting up different bridges per test is enough — and it avoids a
+ * pile of MutationObservers.
  */
 function loadRuntime() {
     if (runtimeLoaded) return;
@@ -172,33 +172,33 @@ describe('W4 — het elementblok komt uit de registry, niet uit dit bestand', ()
     });
 
     it('schrijft in de bron van de renderer geen enkele elementnaam op', () => {
-        // Dezelfde regel als server/core/webpages/bfElements.drift.test.js voor de
-        // twee composers: alles wat hier met de hand staat, is een tweede lijst
-        // die kan achterlopen op de registry.
-        // Pad vanaf de projectwortel: vitest draait vanuit agent-hub/ (zie de
-        // testinstructies), en de sanity-assert hieronder maakt een verkeerd
-        // pad ROOD in plaats van stil groen.
+        // The same rule as server/core/webpages/bfElements.drift.test.js for the
+        // two composers: everything that is written here by hand is a second list
+        // that can fall behind the registry.
+        // Path from the project root: vitest runs from agent-hub/ (see the test
+        // instructions), and the sanity assert below makes a wrong path RED
+        // instead of silently green.
         const src = fs.readFileSync(path.resolve('src/utils/bfElementsRuntime.ts'), 'utf8');
         expect(src.length, 'sanity: de bron is gelezen').toBeGreaterThan(500);
         expect(src.match(TAG_WORD) || []).toEqual([]);
     });
 
     it('bedient het vocabulaire volledig — beide richtingen', () => {
-        // BIJT: zet een zesde element in de registry en deze test wordt rood
-        // vóórdat een lezer een lege plek te zien krijgt.
+        // BITES: put a sixth element in the registry and this test turns red
+        // before a reader sees an empty spot.
         expect(clientCoverageGaps()).toEqual({ missing: [], stray: [], unimplemented: [] });
-        // Derde richting: de renderer moet er ook ECHT staan. Zonder deze
-        // richting kon een sleutel in CLIENT_HANDLING 'live' beloven terwijl er
-        // geen functie voor bestond — de brug loog dan tegen de pagina.
+        // Third direction: the renderer must ALSO really exist. Without this
+        // direction a key in CLIENT_HANDLING could promise 'live' while no
+        // function existed for it — the bridge then lied to the page.
         expect(clientCoverageGaps(buildBfElementsScript()).unimplemented).toEqual([]);
         expect(Object.keys(CLIENT_HANDLING).length).toBe(BF_ELEMENTS.length);
     });
 
     it('stuurt alleen mee wat de browser nodig heeft, niet de interne verantwoording', () => {
-        // De registry draagt per plek een Nederlandse `why` voor ONTWIKKELAARS.
-        // Die hoort niet in de pagina van een lezer te belanden; de projectie
-        // laat hem achter. Zonder deze toets is "gooi de hele registry er maar
-        // in" een makkelijke, stille verslechtering.
+        // The registry carries a Dutch `why` per place for DEVELOPERS.
+        // That should not end up in a reader's page; the projection
+        // leaves it behind. Without this test, "just put the whole registry
+        // in" is an easy, silent deterioration.
         const doc = composeFullDoc();
         for (const def of BF_ELEMENTS) {
             for (const surface of Object.values(def.surfaces || {})) {
@@ -214,7 +214,7 @@ describe('W4 — het elementblok komt uit de registry, niet uit dit bestand', ()
             { dbToken: null, dbApiBase: null, dbWebpageId: null }
         );
         expect(doc).toContain('window.beeflowBf');
-        // …en het definieert nog steeds geen enkele brug: die poort blijft dicht.
+        // …and it still does not define any bridge: that gate stays closed.
         expect(doc).not.toContain('window.beeflowTables');
     });
 
@@ -243,8 +243,8 @@ describe('W4 — een tabel bij een ingelogde lezer', () => {
         expect(seen[0][0]).toBe('tbl_1');
         expect(first('table.bf-grid')).toBeTruthy();
         expect(first('table.bf-grid').textContent).toContain('Ada');
-        // Gelukt is de AFWEZIGHEID van een stand — noch op de melding, noch op
-        // het element zelf staat er dan iets.
+        // Success is the ABSENCE of a state — neither on the notice nor on
+        // the element itself is anything then shown.
         expect(stateOf(first(tagOf('table')))).toBe(null);
         expect(first(tagOf('table')).getAttribute('data-bf-state')).toBe(null);
     });
@@ -254,8 +254,8 @@ describe('W4 — een tabel bij een ingelogde lezer', () => {
         window.beeflowTables = {
             query: (id) => { seen.push(id); return Promise.resolve({ rows: [{ a: 1 }], columns: ['a'] }); },
         };
-        // `datatable` is de alias van `source` in de registry; die vertaling
-        // hoort uit het vocabulaire te komen, niet uit een tweede lijst.
+        // `datatable` is the alias of `source` in the registry; that translation
+        // should come from the vocabulary, not from a second list.
         await mount(`<${tagOf('table')} datatable="tbl_alias"></${tagOf('table')}>`);
         expect(seen).toEqual(['tbl_alias']);
     });
@@ -287,8 +287,8 @@ describe('W4 — een tabel bij een ingelogde lezer', () => {
             expect(el.textContent.trim().length, `${expected}: de melding is niet leeg`).toBeGreaterThan(0);
             seen.push(stateOf(el));
         }
-        // De vier standen moeten ECHT verschillen; één gedeelde "er ging iets
-        // mis" is precies wat deze stap moet uitroeien.
+        // The four states must REALLY differ; one shared "something went
+        // wrong" is exactly what this step must eradicate.
         expect(new Set(seen).size).toBe(4);
     });
 
@@ -388,8 +388,8 @@ describe('W4 — een knop die een automatisering start', () => {
     });
 
     it('meldt een MISLUKTE run als mislukt, ook al antwoordde de route met 200', async () => {
-        // De route geeft 200 met de fout in het lichaam. Wie alleen naar de
-        // HTTP-status kijkt, zet hier "gelukt" neer over iets dat stukliep.
+        // The route returns 200 with the error in the body. Whoever only looks at the
+        // HTTP status would write "succeeded" here over something that broke.
         window.beeflowAutomations = {
             run: () => Promise.resolve({ runId: 'r1', status: 'error', error: 'step 2 exploded' }),
         };
@@ -552,8 +552,8 @@ describe('W4 — het gespreksblok', () => {
     });
 
     it('zegt het als de agentische lus hier niet bestaat', async () => {
-        // De publieke brug houdt `ask` er met opzet uit. Een pagina die daar
-        // langskomt mag geen dood invoerveld te zien krijgen.
+        // The public bridge deliberately leaves `ask` out. A page that passes by there
+        // must not get to show a dead input field.
         window.beeflowAI = { chat: () => Promise.resolve('x') };
         await mount(`<${agent()}></${agent()}>`);
         expect(stateOf(first(agent()))).toBe('unavailable');
@@ -572,8 +572,8 @@ describe('W4 — wat er NIET stil mag verdwijnen', () => {
     it('pakt ook op wat de pagina zelf later neerzet', async () => {
         window.beeflowTables = { query: () => Promise.resolve({ rows: [{ a: 1 }], columns: ['a'] }) };
         await mount('<div id="host"></div>');
-        // Geen refresh(): dit is precies het geval waarin script.js zijn eigen
-        // markup bouwt en er niemand is om het blok opnieuw te laten kijken.
+        // No refresh(): this is precisely the case in which script.js builds its own
+        // markup and there is nobody to have the block look again.
         document.getElementById('host').innerHTML = `<${tagOf('table')} source="t"></${tagOf('table')}>`;
         await flush();
         expect(first('table.bf-grid')).toBeTruthy();
@@ -592,10 +592,10 @@ describe('W4 — wat er NIET stil mag verdwijnen', () => {
 
 describe('W4-sluitronde — wat van de auteur is, blijft van de auteur', () => {
     it('gooit de terugvaltekst van de auteur niet weg als het misgaat', async () => {
-        // Beide serverplekken bewaren de kinderen van de auteur uitdrukkelijk
-        // (inertBlock verhuist ze, bfDecorate laat ze staan). Deze plek deed het
-        // omgekeerde: `clear()` haalde alles weg, dus bij een tikfout in een
-        // attribuut verdween de hele markup van de auteur uit de preview.
+        // Both server places explicitly keep the author's children (inertBlock moves them,
+        // bfDecorate leaves them alone). This place did the opposite: `clear()` removed
+        // everything, so with a typo in an attribute the author's entire markup
+        // disappeared from the preview.
         await mount(`<${tagOf('table')} source="t">This table loads shortly.</${tagOf('table')}>`);
         const el = first(tagOf('table'));
         expect(el.textContent).toContain('This table loads shortly');
@@ -603,8 +603,8 @@ describe('W4-sluitronde — wat van de auteur is, blijft van de auteur', () => {
     });
 
     it('houdt de velden van een formulier staan als een attribuut verkeerd heet', async () => {
-        // Eén tikfout (`automatie` in plaats van `automation`) mag niet het hele
-        // formulier van de auteur opruimen.
+        // One typo (`automatie` instead of `automation`) must not clear out the
+        // author's entire form.
         const form = tagOf('form');
         await mount(`<${form} automatie="auto_2"><label>E-mail<input name="email"></label><textarea name="note"></textarea></${form}>`);
         const el = first(form);
@@ -624,9 +624,9 @@ describe('W4-sluitronde — wat van de auteur is, blijft van de auteur', () => {
     });
 
     it('zet de stand op het ELEMENT, ook bij een knop, formulier of agentblok', async () => {
-        // De melding hangt bij die drie onder een gewone <div class="bf-status">.
-        // Stond de markering alleen daar, dan matchte `bf-button[data-bf-state]`
-        // nooit — precies de haak die de publieke brug wél neerzet.
+        // For those three, the notice hangs under a plain <div class="bf-status">.
+        // If the mark sat only there, `bf-button[data-bf-state]` would never
+        // match — precisely the hook that the public bridge DOES set.
         await mount(
             `<${tagOf('button')} run="a1">Go</${tagOf('button')}>`
             + `<${tagOf('form')} automation="a1"></${tagOf('form')}>`
@@ -648,18 +648,17 @@ describe('W4-sluitronde — hetzelfde getal in de preview als op de gepubliceerd
         const stat = BF_ELEMENTS.find(e => localNameOf(e.tag) === 'stat');
         expect(stat.reads.rowsMax, 'sanity: de registry noemt een rijgrens').toBeGreaterThan(0);
         await mount(`<${stat.tag} source="t" agg="sum" column="a"></${stat.tag}>`);
-        // Zonder deze grens vroeg de client niets en koos de server zijn eigen
-        // default (50), terwijl de gepubliceerde pagina er 500 leest.
+        // Without this limit the client asked for nothing and the server chose its own
+        // default (50), while the published page reads 500.
         expect(seen[0]).toEqual({ limit: stat.reads.rowsMax });
     });
 });
 
 describe('W4-sluitronde — het blok bereikt ook een pagina zonder <head>', () => {
     it('zendt het elementblok uit als de HTML een fragment is', () => {
-        // Een door de AI geschreven index.html is niet altijd een volledig
-        // document. Die tak werd door geen enkele assertie geraakt, dus je kon
-        // hem weghalen zonder één rode test — en dan valt het fragment terug op
-        // precies de stilte die W4 uitroeit.
+        // An AI-written index.html is not always a complete document. No assertion
+        // touched that branch, so you could remove it without a single red test — and
+        // then the fragment falls back to exactly the silence that W4 eradicates.
         const doc = composeWebpageDocument(
             { html: `<div id="app"><${tagOf('table')} source="t"></${tagOf('table')}></div>`, css: '', js: '' },
             { dbToken: 'tok', dbApiBase: 'https://api.example.test/', dbWebpageId: 'wp_1' },

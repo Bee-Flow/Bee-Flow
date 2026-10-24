@@ -193,9 +193,9 @@ const NL_TRANSLATIONS = {
     'automations.node.datatable.desc': 'Bewaar rijen die de run overleven — en deel ze met andere automatiseringen',
     'automations.node.datatable.help': 'Leest en schrijft rijen in een tabel die blijft bestaan nadat de run klaar is, zodat deze automatisering verder kan waar hij gebleven was en andere automatiseringen dezelfde gegevens kunnen gebruiken.',
 
-    // K10 — de tweede stap waarvan het effect de run overleeft. Bewust NIET
-    // "Naar kennisbank schrijven": op de kaart staat de naam van de stap, niet
-    // wat hij doet, en "Naar kennisbank" leest daar als een bestemming.
+    // K10 — the second step whose effect survives the run. Deliberately NOT
+    // "Naar kennisbank schrijven" (write to knowledge base): the card shows the name of the step, not
+    // what it does, and "Naar kennisbank" would read there as a destination.
     'automations.node.knowledge_write.typeLabel': 'Naar kennisbank',
     'automations.node.knowledge_write.defaultLabel': 'Naar kennisbank',
     'automations.node.knowledge_write.label': 'Naar kennisbank',
@@ -206,9 +206,9 @@ const NL_TRANSLATIONS = {
     'automations.node.parallel.defaultLabel': 'Parallel',
     'automations.node.parallel.help': 'Voert meerdere takken tegelijk uit en gaat verder zodra ze allemaal klaar zijn.',
 
-    // ── Terug naar de app (return_to_app) ──
-    // De sleutels stonden al in en.js (Track P4) maar hadden hier nog geen
-    // Nederlands, waardoor de dekkingstest van deze migratie rood bleef.
+    // ── Back to the app (return_to_app) ──
+    // The keys were already in en.js (Track P4) but did not yet have a Dutch version here,
+    // which kept this migration's coverage test red.
     'automations.node.return_to_app.typeLabel': 'Terug naar de app',
     'automations.node.return_to_app.defaultLabel': 'Terug naar de app',
     'automations.node.return_to_app.label': 'Terug naar de app',
@@ -217,12 +217,11 @@ const NL_TRANSLATIONS = {
     'automations.node.return_to_app.card_resets_form': 'maakt het formulier leeg',
     'automations.node.return_to_app.card_reloads_data': 'laadt de gegevens opnieuw',
     'automations.node.return_to_app.card_empty': 'zegt de app nog niets',
-    // ── Gegevens uitlezen (data_extraction) ──
-    // De stap die met naam genoemde, getypeerde velden uit tekst haalt op het
-    // extractiemodel van de beheerder. Sleutels als in het gedeelde contract
-    // (2026-09-12): `automations.node.` voor de kaart, `automations.ndv.extraction.`
-    // voor het instellingenpaneel. "Naam" en "Type" zijn in het Nederlands
-    // hetzelfde woord als in het Engels.
+    // ── Extracting data (data_extraction) ──
+    // The step that pulls named, typed fields out of text on the administrator's extraction
+    // model. Keys as in the shared contract (2026-09-12): `automations.node.` for the card,
+    // `automations.ndv.extraction.` for the settings panel. "Naam" (name) and "Type" are in Dutch
+    // the same word as in English.
     'automations.node.data_extraction.typeLabel': 'Gegevens uitlezen',
     'automations.node.data_extraction.defaultLabel': 'Gegevens uitlezen',
     'automations.node.data_extraction.label': 'Gegevens uitlezen',

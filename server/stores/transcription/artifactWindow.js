@@ -6,68 +6,64 @@
  */
 
 /**
- * ── HET VENSTER VAN EEN REGENERATIE (M4) ────────────────────────────
+ * ── THE WINDOW OF A REGENERATION (M4) ────────────────────────────────
  *
- * "Opnieuw" leest de notitie, praat daarna minuten met een model en schrijft
- * dán pas. De merge in core/meetingNotes/actionItems.js beschermt wat een
- * mens heeft neergezet — maar alleen rijen die in die MOMENTOPNAME zaten.
- * Wie ondertussen in het transcript-tabblad een regel als besluit vastlegt
- * (de "Opnieuw"-banner staat boven dat tabblad), schrijft in precies dat
- * venster: voor de merge is die rij onzichtbaar en de landende update wist
- * hem. Geen melding, geen undo — en het antwoord toont daarna keurig de
- * werkelijkheid waarin de rij zojuist verdween. Hetzelfde geldt voor een
- * bestaand punt dat iemand in dat venster AFVINKT of overtypt: de merge
- * draaide tegen een momentopname van vóór dat vinkje.
+ * "Regenerate" reads the note, then talks for minutes with a model and only then
+ * writes. The merge in core/meetingNotes/actionItems.js protects what a person has
+ * written down — but only rows that were in that SNAPSHOT. Whoever in the meantime
+ * records a line as a decision in the transcript tab (the "Regenerate" banner sits
+ * above that tab) writes in precisely that window: for the merge that row is
+ * invisible, and the landing update wipes it. No notice, no undo — and the response
+ * then neatly shows the reality in which the row has just disappeared. The same
+ * goes for an existing item that someone CHECKS OFF or retypes in that window: the
+ * merge ran against a snapshot from before that tick.
  *
- * Het antwoord daarop hoort NIET in de route: die weet niets van wat er ná
- * zijn read is gebeurd. Het hoort in het SQL van de schrijfactie, want daar
- * is de kolom van dit moment te zien. De regel is: vervang alleen wat er vóór
- * het vertrekpunt van de run al stond; wat erna is ontstaan OF veranderd
- * blijft staan.
+ * The answer to that does NOT belong in the route: it knows nothing about what
+ * happened after its read. It belongs in the SQL of the write action, because that
+ * is where the column's current state is visible. The rule is: replace only what
+ * was already there before the starting point of the run; whatever came into
+ * existence or CHANGED after it stays.
  *
- * ── ÉÉN KLOK ────────────────────────────────────────────────────────
- * Zowel het vertrekpunt (`readAt`, meegegeven door getTranscription) als de
- * `createdAt`/`touchedAt` van elke artefactregel komt uit `NOW()` van DEZE
- * database.
- * Node's klok komt er niet aan te pas en de client evenmin: twee klokken die
- * milliseconden uiteenlopen beslissen juist aan de randen van dit venster de
- * verkeerde kant op. Vandaar één vast, lexicografisch vergelijkbaar formaat
- * in plaats van een cast die op een rare waarde kan omvallen.
+ * ── ONE CLOCK ────────────────────────────────────────────────────────
+ * Both the starting point (`readAt`, passed in by getTranscription) and the
+ * `createdAt`/`touchedAt` of each artifact row come from `NOW()` of THIS database.
+ * Node's clock does not come into it, nor does the client's: two clocks that
+ * differ by milliseconds would decide the wrong way precisely at the edges of this
+ * window. Hence one fixed, lexicographically comparable format instead of a cast
+ * that might fall over on an odd value.
  *
- * IN MICROSECONDEN, NIET IN MILLISECONDEN. `NOW()` van Postgres loopt in
- * microseconden, en dit formaat gooide er drie cijfers van weg (het was
- * identiek aan JS' toISOString). Twee transacties in dezelfde milliseconde
- * kregen dan dezelfde stempel, en `>` maakt van gelijk "vóór de run": een
- * vinkje dat in dezelfde milliseconde landde als de read van "Opnieuw", werd
- * stil overschreven. Met de volle klok betekent gelijk vrijwel alleen nog:
- * dezelfde transactie (NOW() is het begin daarvan).
- * Stempels van vóór deze regel dragen nog drie cijfers ("…12.345Z"). Tegen
- * een nieuwe vergelijkt dat alleen anders dan de tijd als beide in dezelfde
- * milliseconde vallen, en een oude stempel en een nieuwe read liggen minstens
- * een deploy uit elkaar.
+ * IN MICROSECONDS, NOT IN MILLISECONDS. Postgres's `NOW()` runs in microseconds,
+ * and this format dropped three digits (it was identical to JS' toISOString). Two
+ * transactions in the same millisecond then got the same stamp, and `>` makes equal
+ * into "before the run": a tick that landed in the same millisecond as the read of
+ * "Regenerate" was silently overwritten. With the full clock, equal now practically
+ * only means: the same transaction (NOW() is the start of it).
+ * Stamps from before this line still carry three digits ("…12.345Z"). Against a new
+ * one that only compares differently if the time falls in the same millisecond, and
+ * an old stamp and a new read are at least one deploy apart.
  *
- * GEEN OPTIMISTIC LOCK. Een versiecontrole zou de hele schrijfactie weigeren
- * omdat er érgens iets veranderd is; dat maakt van een geslaagde run van
- * minuten een foutmelding. Een tijdstempel per rij zegt precies genoeg.
+ * NO OPTIMISTIC LOCK. A version check would refuse the whole write action because
+ * something somewhere changed; that turns a successful run of minutes into an error
+ * message. A timestamp per row says exactly enough.
  */
 const DB_CLOCK_ISO = `to_char(NOW() AT TIME ZONE 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
-// De stempel voor een rij die al in de kolom stond maar er nog geen draagt:
-// geschreven vóór deze regel bestond, door de kale UPDATE van /reprocess, of
-// door de INSERT van een auto-import. Zelfde klok, zelfde formaat.
+// The stamp for a row that is already in the column but does not carry one yet:
+// written before this line existed, by the bare UPDATE of /reprocess, or by the
+// INSERT of an auto-import. Same clock, same format.
 //
-// HIER STOND `updated_at`, EN DAT VERBREEDDE. `updated_at` is het moment van
-// de vorige schrijfactie op de NOTITIE, en dat ligt ná het vertrekpunt van een
-// lopende run zodra er tijdens die run ook maar iets anders op de rij is
-// geschreven (een titel PATCHen, een spreker hernoemen, de audio-backfilljob).
-// Een ongestempelde AI-rij kreeg dan een stempel BINNEN het venster en
-// overleefde als "tijdens de run ontstaan" — precies de rij die "Opnieuw"
-// hoort te vervangen, en de gebruiker zag oude AI-punten terugkomen.
+// IT WAS `updated_at` HERE, AND THAT WIDENED. `updated_at` is the moment of the
+// previous write action on the NOTE, and that falls AFTER the starting point of a
+// running run as soon as anything else was written to the row during that run
+// (patching a title, renaming a speaker, the audio backfill job). An unstamped AI
+// row then got a stamp INSIDE the window and survived as "created during the run" —
+// exactly the row that "Regenerate" should replace, and the user saw old AI items
+// come back.
 //
-// `created_at` is het aanmaakmoment van de NOTITIE. Dat ligt per definitie
-// vóór elke read van die rij, dus vóór elk mogelijk vertrekpunt, en het
-// beweegt nooit meer. Een rij zonder stempel kan niet nieuwer dan het
-// vertrekpunt bewezen worden en telt daarmee gegarandeerd als oud — de kant
-// waar de gewone merge-regel geldt, die een mens z'n rijen al beschermt.
+// `created_at` is the creation moment of the NOTE. That lies by definition before
+// every read of that row, and so before every possible starting point, and it never
+// moves again. A row without a stamp cannot be proven newer than the starting point,
+// and therefore counts guaranteed as old — the side where the ordinary merge rule
+// applies, which already protects a person's rows.
 const ROW_UNSTAMPED_ISO = `to_char(created_at AT TIME ZONE 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
 
 /** Een JSON-scalar in een array-kolom telt als leeg — zelfde regel als parseJsonArray. */
@@ -76,13 +72,13 @@ function jsonbArrayOf(expr) {
 }
 
 /**
- * De inhoud van één artefactrij ZONDER de twee stempels.
+ * The content of one artifact row WITHOUT the two stamps.
  *
- * Waarmee de vraag "is deze rij daadwerkelijk veranderd" wordt beantwoord: de
- * stempels zelf tellen niet mee, anders zou elke herschrijving zichzelf als
- * wijziging melden. Een rij die geen object is gaat ongemoeid door — die kan
- * de `- 'key'`-operator niet aan, en "onbekend" hoort hier als "veranderd" te
- * eindigen (versmallend: de rij telt dan als tijdens de run aangeraakt).
+ * This answers the question "has this row actually changed": the stamps themselves
+ * do not count, otherwise every rewrite would report itself as a change. A row that
+ * is not an object passes untouched — it cannot handle the `- 'key'` operator, and
+ * "unknown" should end here as "changed" (narrowing: the row then counts as touched
+ * during the run).
  */
 function artifactRowBody(expr) {
     return `(CASE WHEN jsonb_typeof(${expr}) = 'object'
@@ -90,44 +86,42 @@ function artifactRowBody(expr) {
 }
 
 /**
- * De SET-expressie voor één artefactkolom (action_items / decisions / questions).
+ * The SET expression for one artifact column (action_items / decisions / questions).
  *
- * ── TWEE STEMPELS, ÉÉN VRAAG ────────────────────────────────────────
- *   createdAt  wanneer deze rij is ONTSTAAN (blijft staan bij herschrijven).
- *   touchedAt  wanneer deze rij voor het laatst van INHOUD veranderde.
- * Beide van de databaseklok, allebei onbereikbaar voor de client: wat er
- * binnenkomt wordt hier overschreven.
+ * ── TWO STAMPS, ONE QUESTION ────────────────────────────────────────
+ *   createdAt  when this row CAME INTO EXISTENCE (stays when rewritten).
+ *   touchedAt  when this row last CHANGED in content.
+ * Both from the database clock, both unreachable for the client: whatever comes in
+ * is overwritten here.
  *
- * Drie delen, in één statement zodat er tussen lezen en schrijven geen venster
- * meer zit:
- *   1. Staat er een rij met DEZELFDE id in de kolom die ná het vertrekpunt van
- *      de run is aangeraakt, dan wint DIE rij en wordt wat de schrijver stuurt
- *      genegeerd.
- *   2. Anders: wat de schrijver stuurt, met de stempels hierboven.
- *   3. Alleen als er een vertrekpunt is: alles wat op dit moment in de kolom
- *      staat, ná dat vertrekpunt is aangeraakt, en niet al in (1)/(2) voorkomt.
+ * Three parts, in one statement so that no window remains between reading and
+ * writing:
+ *   1. If there is a row with the SAME id in the column that was touched after the
+ *      starting point of the run, THAT row wins and what the writer sends is ignored.
+ *   2. Otherwise: what the writer sends, with the stamps above.
+ *   3. Only if there is a starting point: everything that is in the column at this
+ *      moment and was touched AFTER that starting point, and is not already in (1)/(2).
  *
- * ── WAAROM DEEL 1 ER IS ─────────────────────────────────────────────
- * Deel 3 alleen redt rijen die tijdens de run zijn ONTSTAAN. Een bestaand
- * AI-punt dat iemand tijdens diezelfde run AFVINKT houdt zijn oude `createdAt`
- * en staat gewoon in de verse lijst — beide voorwaarden van deel 3 falen, dus
- * de minuten oude momentopname van de merge overschreef het vinkje weer. Dat
- * is dezelfde bevinding, alleen onder een andere volgorde: de merge beschermt
- * menselijke invoer die vóór de read gebeurde, dit deel beschermt die van
- * tijdens de run.
+ * ── WHY PART 1 EXISTS ───────────────────────────────────────────────
+ * Part 3 only saves rows that were CREATED during the run. An existing AI item that
+ * someone CHECKS OFF during that same run keeps its old `createdAt` and simply sits
+ * in the fresh list — both conditions of part 3 fail, so the minutes-old snapshot of
+ * the merge overwrote the check again. That is the same finding, just in a different
+ * order: the merge protects human input from before the read, this part protects
+ * human input from during the run.
  *
- * De hele opgeslagen rij wint, niet een paar velden ervan: welk veld een mens
- * heeft aangeraakt is hier niet te zien, en een verse tijdstempel of assignee
- * kwijtraken op één rij weegt niet op tegen een vinkje of een correctie stil
- * ongedaan maken. De volgende regeneratie ververst hem alsnog.
+ * The whole stored row wins, not a few fields of it: which field a person touched
+ * cannot be seen here, and losing a fresh timestamp or assignee on one row does not
+ * weigh against silently undoing a check or a correction. The next regeneration
+ * refreshes it anyway.
  */
 function artifactColumnSql(column, valuePh, sincePh) {
     const stored = jsonbArrayOf(column);
     const now = `to_jsonb(${DB_CLOCK_ISO})`;
     const unstamped = `to_jsonb(${ROW_UNSTAMPED_ISO})`;
-    // "Deze rij is ná het vertrekpunt van de run aangeraakt." Zonder
-    // vertrekpunt is er geen venster en is het antwoord altijd nee. Een rij
-    // zonder stempel geeft NULL en dus ook nee — onbekend versmalt.
+    // "This row was touched after the starting point of the run." Without a starting
+    // point there is no window and the answer is always no. A row without a stamp
+    // gives NULL and therefore also no — unknown narrows.
     const touchedDuringTheRun = (expr) => (sincePh ? `(${expr})->>'touchedAt' > ${sincePh}::text` : 'false');
     const keptFromTheRun = sincePh ? `
                 UNION ALL

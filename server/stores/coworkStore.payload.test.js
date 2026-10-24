@@ -1,24 +1,24 @@
 /**
- * De cowork-payload: de velden die het Cowork-scherm nieuw leest, tegen een
- * gestubde db. Dit bestand pint het SQL- en waardecontract; de echte
- * Postgres-round-trip staat in coworkStore.test.js en skipt zonder database,
- * dus wat hier staat draait overal.
+ * The cowork payload: the fields that the Cowork screen newly reads, against a
+ * stubbed db. This file pins the SQL and value contract; the real
+ * Postgres round trip is in coworkStore.test.js and skips without a database,
+ * so what is here runs everywhere.
  *
- * Drie eigenschappen, alle drie met een eigen wond:
+ * Three properties, each with its own wound:
  *
- *   - CW-13 `produced_output`. Een run die niets te melden had is GESLAAGD, en
- *     dat oordeel hoort één keer te vallen (bij het sluiten) en bewaard te
- *     worden — niet elke keer opnieuw uit de resultaattekst geraden te worden.
- *     NULL is een derde waarde: rijen van vóór de kolom weten het niet, en die
- *     als "niets geproduceerd" lezen verzint een uitspraak over het verleden.
+ *   - CW-13 `produced_output`. A run that had nothing to report is SUCCESSFUL, and
+ *     that judgement should be made once (at closing) and stored — not
+ *     guessed again each time from the result text.
+ *     NULL is a third value: rows from before the column do not know, and reading
+ *     them as "nothing produced" invents a statement about the past.
  *
- *   - CW-06 `currentRunStartedAt`. De bron is de rij die open staat
- *     (`finished_at IS NULL`), niet `last_status = 'running'`: die twee lopen
- *     uiteen zodra reapStaleRuns een vastgelopen poging opruimt.
+ *   - CW-06 `currentRunStartedAt`. The source is the row that is open
+ *     (`finished_at IS NULL`), not `last_status = 'running'`: those two drift apart
+ *     as soon as reapStaleRuns cleans up a stuck attempt.
  *
- *   - CW-11 het aggregaat. `failed` is "gesloten en niet geslaagd", zodat een
- *     statusnaam die er later bij komt niet stilzwijgend tussen wal en schip
- *     valt, en een lopende run telt in geen van beide uitkomsten mee.
+ *   - CW-11 the aggregate. `failed` is "closed and not successful", so that a
+ *     status name added later does not silently fall through the gap, and a running run
+ *     counts in neither outcome.
  *
  * Run: cd server && node --test --test-reporter=tap stores/coworkStore.payload.test.js
  */
@@ -109,8 +109,8 @@ test('"niets te melden" wordt een GESLAAGDE run met produced_output false', asyn
 test('een aanroeper die het zeker weet overstemt de afleiding', async () => {
     reset();
     withOpenRun();
-    // De runner weet of er tool-output was; die kennis mag niet verloren gaan
-    // aan een tekstafleiding.
+    // The runner knows whether there was tool output; that knowledge may not be lost
+    // to a text inference.
     await coworkStore.markCompleted('cw-1', 'ziet er leeg uit', { producedOutput: false });
     assert.strictEqual(closingUpdate().params[3], false);
 
@@ -120,13 +120,13 @@ test('een aanroeper die het zeker weet overstemt de afleiding', async () => {
     assert.strictEqual(closingUpdate().params[3], true);
 });
 
-// EERLIJK: deze test kan niet falen op het contract dat hij noemt. markError
-// geeft geen `result` mee, dus deriveProducedOutput(undefined) is al false —
-// het expliciete `producedOutput: false` in markError weghalen is een
-// EQUIVALENTE mutatie en blijft groen. De test is de waarde-assertie waard
-// (produced_output = false op een mislukte rij) maar bewijst niet dat de
-// aanroeper het zelf zegt. Wie dat wél wil bewijzen heeft een markError nodig
-// die een resultaat draagt, en die bestaat vandaag niet.
+// HONESTLY: this test cannot fail on the contract it names. markError
+// passes no `result`, so deriveProducedOutput(undefined) is already false —
+// removing the explicit `producedOutput: false` in markError is an
+// EQUIVALENT mutation and stays green. The test is worth the value assertion
+// (produced_output = false on a failed row) but does not prove that the
+// caller says so itself. Whoever wants to prove that needs a markError
+// that carries a result, and that does not exist today.
 test('een mislukte run heeft per definitie niets opgeleverd', async () => {
     reset();
     withOpenRun();
@@ -145,9 +145,9 @@ test('een opgeruimde vastgelopen run wordt ook op false gezet', async () => {
 });
 
 test('de kolom komt uit de runDdl-ladder van deze store, niet uit een stille catch', async () => {
-    // Een nieuwe kolom hoort in de idempotente boot-DDL van zijn eigen store
-    // (boot/bootMigrations.test.js legt die regel uit). IF NOT EXISTS draagt de
-    // idempotentie, zodat elke boot van elke replica hem opnieuw mag draaien.
+    // A new column belongs in the idempotent boot DDL of its own store
+    // (boot/bootMigrations.test.js explains that rule). IF NOT EXISTS carries the
+    // idempotency, so every boot of every replica may run it again.
     const alter = execCalls.find(sql => /ADD COLUMN IF NOT EXISTS produced_output BOOLEAN/.test(sql));
     assert.ok(alter, `geen ALTER voor produced_output gezien; wel: ${execCalls.join(' | ')}`);
     assert.match(alter, /ALTER TABLE cowork_runs/);
@@ -174,10 +174,10 @@ test('de open run wordt gezocht op finished_at IS NULL, niet op een status', asy
     const at = await coworkStore.getOpenRunStart('cw-1');
     assert.strictEqual(at, '2026-09-10T08:00:04.000Z');
     assert.match(seen.sql, /finished_at IS NULL/);
-    // GEEN statuskolom, in welke spelling dan ook. De vorige versie van deze
-    // regel verbood alleen `last_status`, waardoor `AND status = 'running'` —
-    // precies de fout die de doc-comment beschrijft — er ongezien doorheen
-    // kwam: na een reap staat de rij open én is de status geen 'running' meer.
+    // NO status column, in whatever spelling. The previous version of this
+    // rule forbade only `last_status`, so `AND status = 'running'` —
+    // precisely the error that the doc comment describes — slipped through unseen:
+    // after a reap the row is open and the status is no longer 'running'.
     assert.ok(!/\bstatus\b/.test(seen.sql), 'een status in de WHERE loopt uiteen met de open rij');
     assert.deepStrictEqual(seen.params, ['cw-1']);
 });
@@ -215,17 +215,17 @@ test('het aggregaat telt geslaagd apart en rekent "mislukt" als gesloten-en-niet
     const stats = await coworkStore.getRunStats('cw-1');
     assert.deepStrictEqual(stats, { total: 12, success: 10, failed: 2, avgDurationMs: 72000 });
     assert.deepStrictEqual(seen.params, ['cw-1']);
-    // Zonder database is SQL-tekst het enige wat hier te meten valt, dus deze
-    // drie regels toetsen de VOORWAARDEN en niet de schrijfwijze: een
-    // semantisch identieke SUM(CASE WHEN …) hoort niet rood te worden, een
-    // veranderde voorwaarde wel. De echte round-trip hoort in
-    // coworkStore.test.js en skipt hier zonder Postgres.
+    // Without a database, SQL text is the only thing that can be measured here, so these
+    // three lines check the CONDITIONS and not the way of writing them: a
+    // semantically identical SUM(CASE WHEN …) should not turn red, a
+    // changed condition should. The real round trip belongs in
+    // coworkStore.test.js and skips here without Postgres.
     assert.match(seen.sql, /success[\s\S]{0,80}status = 'success'|status = 'success'[\s\S]{0,80}success/);
-    // Niet een lijst foutstatussen: 'needs_reauth' bestaat al en er komt er ooit
-    // een bij. "Gesloten en niet geslaagd" dekt die allemaal.
+    // Not a list of error statuses: 'needs_reauth' already exists and one more
+    // will come someday. "Closed and not successful" covers all of them.
     assert.match(seen.sql, /finished_at IS NOT NULL AND status <> 'success'/);
     assert.ok(!/status = 'error'/.test(seen.sql), 'een lijst foutstatussen laat een nieuwe status wegvallen');
-    // Een lopende run heeft nog geen duur; die hoort het gemiddelde niet te verdunnen.
+    // A running run has no duration yet; it should not dilute the average.
     assert.match(seen.sql, /AVG\(duration_ms\)[\s\S]{0,60}finished_at IS NOT NULL/);
 });
 
@@ -238,10 +238,10 @@ test('nog nooit een poging afgerond geeft null, niet 0 ms', async () => {
 });
 
 test('een GEMETEN 0 blijft 0 — de andere helft van dezelfde regel', async () => {
-    // Het onderscheid stond in drie commentaarblokken en in nul fixtures: geen
-    // enkele test gaf ooit 0 mee, dus `avg ? … : null` in plaats van een
-    // null-check bleef overal groen. Een run die onder de milliseconde
-    // afrondt IS afgerond, en 0 is dan een meting.
+    // The distinction stood in three comment blocks and in zero fixtures: not a
+    // single test ever passed 0, so `avg ? … : null` instead of a
+    // null check stayed green everywhere. A run that rounds below a millisecond
+    // IS finished, and 0 is then a measurement.
     reset();
     getOneHandler = () => ({ total: 3, success: 3, failed: 0, avg_duration_ms: '0' });
     const stats = await coworkStore.getRunStats('cw-1');

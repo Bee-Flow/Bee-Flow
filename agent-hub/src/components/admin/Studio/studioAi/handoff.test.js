@@ -1,21 +1,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 /**
- * De overdrachtstabel. Drie beloften worden hier vastgezet:
+ * The handover table. Three promises are fixed here:
  *
- *   1. de soort→sectie-wandeling komt UIT HET REGISTER (studioNav), niet uit
- *      een tweede tabel die morgen uit de pas loopt;
- *   2. `run` opent dezelfde deur als het "Nieuw"-menu — en draagt de naam mee
- *      waar de bouwer daar iets mee doet;
- *   3. een gelockte of afwezige sectie is een bordje, geen deur;
- *   4. "de brief komt aan" en "de naam komt aan" zijn TWEE vlaggen, want ze
- *      zijn vandaag verschillend waar.
+ *   1. the kind→section walk COMES FROM THE REGISTER (studioNav), not from a
+ *      second table that drifts out of line tomorrow;
+ *   2. `run` opens the same door as the "New" menu — and carries the name along
+ *      where the builder does something with it;
+ *   3. a locked or absent section is a sign, not a door;
+ *   4. "the brief arrives" and "the name arrives" are TWO flags, because today
+ *      they are in different places.
  */
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));
 vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: (...a) => fetchMock(...a) }));
-// De formulier-trigger komt uit de builder-chunk; die hoeft hier niet echt te
-// laden om te bewijzen dat createFormAutomation wordt aangeroepen.
+// The form trigger comes from the builder chunk; it need not really load here
+// to prove that createFormAutomation is called.
 vi.mock('../../../automation/Builder/flow/settings/FormBuilderFields', () => ({
     defaultFormDeclaration: () => ({ pages: [] }),
 }));
@@ -43,9 +43,8 @@ const created = (id = 'a1') => ({ ok: true, status: 200, json: async () => ({ au
 beforeEach(() => { fetchMock.mockReset(); try { window.sessionStorage.clear(); } catch { /* geen storage */ } });
 
 describe('destinationForKind — de sectie komt uit het register', () => {
-    // Het label is het woord dat het "Nieuw"-menu voor die soort gebruikt —
-    // letterlijk uit de create-rij van het register, niet uit een tweede
-    // woordenlijst hier.
+    // The label is the word the "New" menu uses for that kind — taken literally from
+    // the create row of the register, not from a second word list here.
     it.each([
         ['automation', 'aiTasks', 'Automation'],
         ['form', 'forms', 'Form'],
@@ -112,8 +111,8 @@ describe('destinationForKind — run opent dezelfde deur als het "Nieuw"-menu', 
         expect(destinationForKind('form', { sections: allOpen(), t }).carriesName).toBe(true);
         // niet de automation-bouwer: de Form-pagina
         expect(onNavigate).toHaveBeenCalledWith('studio/forms/f1/questions');
-        // de brief staat geparkeerd ONDER HET ID — een kale 'form'-brief zou
-        // door de eerstvolgende Vragen-tab van elk formulier worden opgepakt
+        // the brief is parked UNDER THE ID — a bare 'form' brief would be picked up by
+        // the next Questions tab of any form
         expect(takeSeed('form')).toBe(null);
         expect(takeSeed('form:f1')).toBe(null); // takeSeed('form') hierboven wiste hem al: één keer lezen
         await destinationForKind('form', { sections: allOpen(), t }).run({ onNavigate, t, name: 'Aanmelding', seed: 'nog eens' });
@@ -121,9 +120,9 @@ describe('destinationForKind — run opent dezelfde deur als het "Nieuw"-menu', 
     });
 });
 
-// Twee vragen, twee tabellen. Ze in één vlag vouwen was de fout van de eerste
-// ronde: automation droeg de NAAM mee, stond daarom op "seedable", en het
-// scherm verzweeg daar de BRIEF.
+// Two questions, two tables. Folding them into one flag was the mistake of the
+// first round: automation carried the NAME, so it was marked "seedable", and the
+// screen concealed the BRIEF there.
 describe('destinationForKind — de brief en de naam zijn twee beloften', () => {
     it('alleen form draagt de brief naar zijn bouwer', () => {
         const seedable = Object.entries(SEED_SUPPORT).filter(([, v]) => v).map(([k]) => k);

@@ -1,37 +1,37 @@
 /**
- * De markeringen in de Code-tab: welke regel krijgt welke tint?
+ * The marks in the Code tab: which line gets which tint?
  *
- * ── DIT MODULE ZOEKT NIETS OP ───────────────────────────────────────
+ * ── THIS MODULE SEARCHES FOR NOTHING ────────────────────────────────
  *
- * Er staat hier geen enkele regex en geen enkele tagnaam. WAAR een `bf-*`-
- * element staat komt van de server, uit dezelfde parser als de rest van W4
+ * There is not a single regex and not a single tag name here. WHERE a `bf-*`
+ * element sits comes from the server, from the same parser as the rest of W4
  * (`core/webpages/webpageBindings.js` → `GET /api/webpages/:id/bindings`),
- * die op zijn beurt het vocabulaire uit `core/webpages/bfElements.js` haalt.
+ * which in turn takes the vocabulary from `core/webpages/bfElements.js`.
  *
- * Een tweede regex hier zou een tweede lezing van hetzelfde vocabulaire zijn,
- * en twee lezingen lopen uit elkaar — dat is precies wat er met
- * `window.beeflowAI` al is gebeurd. Dit bestand doet één ding: het vertaalt
- * markeringen naar Monaco-decoraties.
+ * A second regex here would be a second reading of the same vocabulary, and two
+ * readings drift apart — that is exactly what already happened with
+ * `window.beeflowAI`. This file does one thing: it translates marks into
+ * Monaco decorations.
  *
- * ── DE FAMILIES ─────────────────────────────────────────────────────
+ * ── THE FAMILIES ─────────────────────────────────────────────────────
  *
- * Een tint per FAMILIE, niet per element: waar het element aan hangt is wat de
- * auteur wil zien, niet hoe het heet. De families komen uit het vocabulaire
- * zelf (`binding.kind` in de gespiegelde registry), plus twee die geen binding
- * ZIJN maar wel een eigen kleur verdienen:
+ * One tint per FAMILY, not per element: what an element hangs on is what the
+ * author wants to see, not what it is called. The families come from the
+ * vocabulary itself (`binding.kind` in the mirrored registry), plus two that are
+ * NOT bindings but still deserve their own colour:
  *
- *   incomplete  het element is er, maar een verplicht attribuut ontbreekt —
- *               het hangt dus nergens aan. Dat is iets anders dan geen element,
- *               en ook iets anders dan een adres dat de pagina ter plekke
- *               bouwt (`dynamic`): dáár heeft de auteur het wél opgeschreven,
- *               dus dat blijft gewoon zijn eigen familie houden;
- *   unknown     de server kende dit `bf-*`-element niet. In de publieke
- *               snapshot pakt DOMPurify zoiets stil uit, dus hier hoort het
- *               juist op te vallen.
+ *   incomplete  the element is there, but a required attribute is missing —
+ *               so it hangs on nothing. That is something different from no
+ *               element, and also different from an address that the page builds
+ *               on the spot (`dynamic`): there the author DID write it down,
+ *               so that keeps its own family;
+ *   unknown     the server did not know this `bf-*` element. In the public
+ *               snapshot DOMPurify quietly strips something like that, so here
+ *               it should stand out.
  *
- * Voegt de registry morgen een familie toe, dan verschijnt die vanzelf in
- * `BF_FAMILIES`; `bfDecorations.test.js` eist dan een tint in vscode-theme.css,
- * zodat een nieuwe familie niet ongemerkt kleurloos blijft.
+ * If the registry adds a family tomorrow, it appears in `BF_FAMILIES` by itself;
+ * `bfDecorations.test.js` then requires a tint in vscode-theme.css, so that a new
+ * family cannot silently stay colourless.
  */
 
 import { BF_ELEMENTS } from '../../utils/bfElements';
@@ -75,7 +75,7 @@ interface DecorationOpts {
     hover?: (group: BfMarkGroup) => string;
 }
 
-/** Families die geen binding zijn, maar wel een eigen tint hebben. */
+/** Families that are not bindings, but do have their own tint. */
 const EXTRA_FAMILIES = Object.freeze(['incomplete', 'unknown']);
 
 /** Elke familie die een markering kan dragen, in vocabulairevolgorde. */
@@ -89,17 +89,17 @@ export const BF_FAMILIES = Object.freeze([
 ]);
 
 /**
- * De familie van één markering.
+ * The family of one mark.
  *
- * De volgorde van de vragen is de bedoeling:
+ * The order of the questions is deliberate:
  *
- *   1. "kennen we dit element?" — een onbekend element mag nooit als een
- *      gewoon element zonder koppeling worden getekend;
- *   2. "ontbreekt er iets verplichts?" — dan hangt het nergens aan, wat de
- *      auteur waarschijnlijk zelf moet afmaken. De server houdt de familie
- *      van het SOORT element (een `bf-table` zonder bron is nog steeds een
- *      tabelelement), dus dit onderscheid leest op `missing`, niet op `family`;
- *   3. anders de familie zelf.
+ *   1. "do we know this element?" — an unknown element must never be drawn as
+ *      an ordinary element without a connection;
+ *   2. "is something required missing?" — then it hangs on nothing, which the
+ *      author probably has to finish themselves. The server keeps the family of
+ *      the KIND of element (a `bf-table` without a source is still a table
+ *      element), so this distinction reads `missing`, not `family`;
+ *   3. otherwise the family itself.
  */
 export function familyOf(mark?: BfMark | null): string {
     if (!mark) return 'unknown';
@@ -110,18 +110,18 @@ export function familyOf(mark?: BfMark | null): string {
 }
 
 /**
- * WAT ER VAN DIT ELEMENT OVERBLIJFT ZODRA DE PAGINA GEPUBLICEERD IS.
+ * WHAT REMAINS OF THIS ELEMENT ONCE THE PAGE IS PUBLISHED.
  *
- * De Code-tab tekende élk bf-element als een gelijkwaardige "Studio link",
- * terwijl drie van de vijf op een gepubliceerde pagina dood zijn: er draait daar
- * geen JS, dus een knop, een formulier en een agentblok worden een zichtbaar
- * uitgeschakeld blok met een melding (services/webpageBfTable.js). Het ENIGE
- * scherm dat de koppelingen zichtbaar maakt, maakte dat verschil niet — terwijl
- * de gegevens er al lagen: de gespiegelde registry draagt per element zowel de
- * toestand als de zin die de lezer te zien krijgt.
+ * The Code tab drew every bf element as an equal "Studio link", while three of
+ * the five are dead on a published page: no JS runs there, so a button, a form
+ * and an agent block become a visibly disabled block with a notice
+ * (services/webpageBfTable.js). The ONLY screen that made the connections visible
+ * did not make that difference — even though the data was already there: the
+ * mirrored registry carries per element both the state and the sentence the
+ * reader sees.
  *
- * Geeft `null` voor een tag die het
- *   vocabulaire niet kent — daar valt niets over te beweren.
+ * Returns `null` for a tag that the
+ *   vocabulary does not know — there is nothing to claim about it.
  */
 export function publishedFate(tag: unknown): { state: string; notice: string } | null {
     const def = BF_ELEMENTS.find(e => e.tag === String(tag || '').toLowerCase());
@@ -134,8 +134,8 @@ export function publishedFate(tag: unknown): { state: string; notice: string } |
 /** Blijft dit element werken op de gepubliceerde pagina? */
 export function survivesPublishing(tag: unknown): boolean {
     const fate = publishedFate(tag);
-    // Onbekend telt NIET als "overleeft het": DOMPurify pakt zo'n element stil
-    // uit, en dat is het tegenovergestelde van overleven.
+    // Unknown does NOT count as "survives it": DOMPurify quietly
+    // strips such an element, and that is the opposite of surviving.
     if (!fate) return false;
     return fate.state === 'static' || fate.state === 'live';
 }
@@ -146,12 +146,12 @@ export function familyClass(family: string): string {
 }
 
 /**
- * Markeringen van ÉÉN bestand, gegroepeerd per regel.
+ * Marks of ONE file, grouped per line.
  *
- * Twee elementen op één regel worden één decoratie: twee tinten over elkaar
- * heen leveren een derde kleur op die niets betekent, en twee labels achter
- * elkaar zijn onleesbaar. De regel houdt de familie van het eerste element en
- * het label noemt ze allebei.
+ * Two elements on one line become one decoration: two tints on top of each other
+ * produce a third colour that means nothing, and two labels next to each other
+ * are unreadable. The line keeps the family of the first element, and the label
+ * names both of them.
  */
 export function groupMarksByLine(marks?: BfMark[] | null): BfMarkGroup[] {
     const byLine = new Map<number, BfMark[]>();
@@ -167,14 +167,14 @@ export function groupMarksByLine(marks?: BfMark[] | null): BfMarkGroup[] {
 }
 
 /**
- * Monaco-decoraties voor één bestand.
+ * Monaco decorations for one file.
  *
- * Puur: geen Monaco-import, geen editor — een lijst gewone objecten, zodat
- * deze vertaling te testen valt zonder een editor te starten.
+ * Pure: no Monaco import, no editor — a list of plain objects, so that this
+ * translation can be tested without starting an editor.
  *
- * `opts.label` is de tekst achter de regel. Wordt in de component met `t()`
- * gemaakt — vertaalde tekst hoort niet in een puur model. `opts.hover` is de
- * tekst van de tooltip.
+ * `opts.label` is the text after the line. It is made in the component with `t()` —
+ * translated text does not belong in a pure model. `opts.hover` is the text of the
+ * tooltip.
  */
 export function buildBfDecorations(marks?: BfMark[] | null, { label, hover }: DecorationOpts = {}): BfDecoration[] {
     return groupMarksByLine(marks).map((group: BfMarkGroup) => {
@@ -185,8 +185,8 @@ export function buildBfDecorations(marks?: BfMark[] | null, { label, hover }: De
             className: `bf-mark ${familyClass(group.family)}`,
             linesDecorationsClassName: `bf-mark-gutter ${familyClass(group.family)}`,
         };
-        // Een leeg label zou een lege injectie opleveren die de cursor wél
-        // verspringt; dan liever geen injectie.
+        // An empty label would produce an empty injection that still shifts the
+        // cursor; then prefer no injection at all.
         if (text) options.after = { content: `   ${text}`, inlineClassName: 'bf-mark-label' };
         if (tip) options.hoverMessage = { value: tip };
         return {

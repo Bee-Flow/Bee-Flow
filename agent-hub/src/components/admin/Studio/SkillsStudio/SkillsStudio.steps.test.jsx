@@ -57,25 +57,25 @@ function RulesHarness({ initial = [], readOnly = false, onRules }) {
 }
 
 beforeEach(() => { cleanup(); vi.clearAllMocks(); });
-// `measureCardsAsAStack` hangt een spy op Element.prototype; zonder dit lekt
-// die geometrie naar elke volgende test in dit bestand.
+// `measureCardsAsAStack` hangs a spy on Element.prototype; without this, that
+// geometry leaks into every subsequent test in this file.
 afterEach(() => { vi.restoreAllMocks(); });
 
 /**
- * ── DE KAARTEN EEN ECHTE GEOMETRIE GEVEN ─────────────────────────────
- * jsdom meet niets: elke getBoundingClientRect is 0x0. dnd-kit leest uit
- * ECHTE rechthoeken waar een pijltoets heen wijst — `sortableKeyboardCoordinates`
- * vergelijkt de bovenkanten van de vakjes en kiest het dichtstbijzijnde in die
- * richting — dus met louter nullen wijst elke pijl nergens heen en zou de test
- * groen blijven om de verkeerde reden. De kaarten krijgen daarom de geometrie
- * die een browser ze zou geven: een stapel rijen in DOM-volgorde, zo hoog als
- * een echte stapkaart met een textarea erin. Verder wordt er niets nagebootst.
+ * ── GIVING THE CARDS REAL GEOMETRY ───────────────────────────────────
+ * jsdom measures nothing: every getBoundingClientRect is 0x0. dnd-kit reads REAL
+ * rectangles where an arrow key points to — `sortableKeyboardCoordinates` compares
+ * the top edges of the boxes and picks the nearest one in that direction — so with
+ * nothing but zeros every arrow points nowhere and the test would stay green for
+ * the wrong reason. The cards therefore get the geometry a browser would give them:
+ * a stack of rows in DOM order, as tall as a real step card with a textarea in it.
+ * Nothing else is imitated.
  *
- * Die hoogte is niet vrijblijvend. dnd-kit's EIGEN standaard-coordinateGetter
- * schuift een vast aantal pixels per aanslag; alleen `sortableKeyboardCoordinates`
- * springt naar het buurvakje, hoe hoog dat ook is. Met rijen van 40px slagen
- * ze allebei en houdt de test de keuze niet vast — bij een realistische
- * kaarthoogte komt de standaard niet over de rand en deze wel.
+ * That height is not inconsequential. dnd-kit's OWN default coordinateGetter moves
+ * a fixed number of pixels per keypress; only `sortableKeyboardCoordinates` jumps
+ * to the neighbouring box, however tall that is. With rows of 40px both succeed and
+ * the test does not hold the choice in place — at a realistic card height the
+ * default does not get across the edge and this one does.
  */
 const CARD_HEIGHT = 96;
 const NO_RECT = { x: 0, y: 0, top: 0, left: 0, bottom: 0, right: 0, width: 0, height: 0, toJSON() {} };
@@ -89,9 +89,9 @@ function measureCardsAsAStack() {
 }
 
 /**
- * dnd-kit hangt zijn keydown-luisteraar pas in een `setTimeout` op na het
- * oppakken, en meet de vakjes in een frame. Tussen twee toetsaanslagen moet
- * de macrotaak-wachtrij dus leeglopen.
+ * dnd-kit only attaches its keydown listener in a `setTimeout` after picking up,
+ * and measures the boxes in a frame. Between two keystrokes the macrotask queue
+ * must therefore be drained.
  */
 const settle = () => act(async () => { await new Promise(r => setTimeout(r, 30)); });
 
@@ -142,24 +142,23 @@ describe('steps', () => {
     });
 
     /**
-     * ── HET TOETSENBORD IS DE HELE TEST ──────────────────────────────
-     * Hier stond een test die keek of de grip een NAAM had ("Reorder step
-     * 1") en dat "reachable without a mouse" noemde. Dat bewijst niets: met
-     * de KeyboardSensor uit `useSensors` gesloopt bleef de hele SkillsStudio-map
-     * groen — destijds 106 van de 106. @dnd-kit KAN toetsenbordslepen, maar
-     * alleen als je die sensor aanzet, en een herordening die alleen met de
-     * muis kan is voor een deel van de gebruikers geen functie.
+     * ── THE KEYBOARD IS THE WHOLE TEST ──────────────────────────────
+     * There used to be a test here that checked whether the grip had a NAME (“Reorder
+     * step 1”) and called that “reachable without a mouse”. That proves nothing: with
+     * the KeyboardSensor from `useSensors` removed, the entire SkillsStudio folder
+     * stayed green — 106 of 106 at the time. @dnd-kit CAN drag by keyboard, but only
+     * if that sensor is switched on, and a reorder that works only with the mouse is
+     * no feature for some of the users.
      *
-     * Dus wordt de herordening hier ECHT gedaan: Space pakt op, ArrowDown
-     * verplaatst, Space legt neer. Wat de assertie vasthoudt is de UITKOMST
-     * (`onChange` krijgt de nieuwe volgorde), niet de weg erheen.
+     * So the reorder is now REALLY performed here: Space picks up, ArrowDown moves,
+     * Space puts down. What the assertion holds is the OUTCOME (`onChange` receives
+     * the new order), not the path to it.
      *
-     * TWEE aanslagen, niet één. Een stap één plek opschuiven is een wissel
-     * van buren, en die is symmetrisch: `moveItem(rows, 0, 1)` en
-     * `moveItem(rows, 1, 0)` geven allebei ['b','a','c'], dus een omgedraaide
-     * van/naar zou ongemerkt door de test glippen. Over twee plekken lopen de
-     * twee uit elkaar (['b','c','a'] tegen ['c','a','b']) — en het bewijst
-     * meteen dat de greep een tweede verplaatsing overleeft.
+     * TWO keystrokes, not one. Moving a step one place is a swap of neighbours, and
+     * that is symmetric: `moveItem(rows, 0, 1)` and `moveItem(rows, 1, 0)` both give
+     * ['b','a','c'], so a reversed from/to would slip past the test unnoticed. Over
+     * two places the two diverge (['b','c','a'] against ['c','a','b']) — and it
+     * immediately proves that the grip survives a second move.
      */
     it('reorders with the keyboard alone: space picks a step up, arrows move it, space drops it', async () => {
         const onSteps = vi.fn();
@@ -173,9 +172,9 @@ describe('steps', () => {
             onSteps={onSteps}
         />);
 
-        // De grip is bewust de ENIGE activator (setActivatorNodeRef): de kaart
-        // bevat een textarea, en dnd-kit weigert een start die van een ander
-        // element komt. Vandaar de grip van kaart 1, en niet de kaart zelf.
+        // The grip is deliberately the ONLY activator (setActivatorNodeRef): the card
+        // contains a textarea, and dnd-kit refuses a start that comes from another
+        // element. Hence the grip of card 1, and not the card itself.
         const grip = within(screen.getAllByTestId('skill-step')[0]).getByTestId('skill-step-grip');
         grip.focus();
         fireEvent.keyDown(grip, { key: ' ', code: 'Space' });
@@ -192,10 +191,9 @@ describe('steps', () => {
     });
 
     /**
-     * Escape laat de lijst staan zoals hij stond. Zonder deze test zou een
-     * "afbreken" dat tóch opslaat er hetzelfde uitzien als een geslaagde
-     * herordening — en juist bij toetsenbordbediening is afbreken de manier
-     * waarop je uit een greep komt die je per ongeluk begon.
+     * Escape leaves the list as it was. Without this test, a “cancel” that nevertheless
+     * saved would look the same as a successful reorder — and with keyboard operation,
+     * cancelling is precisely the way out of a grip you started by accident.
      */
     it('leaves the order alone when the keyboard drag is cancelled', async () => {
         const onSteps = vi.fn();
@@ -209,12 +207,12 @@ describe('steps', () => {
         grip.focus();
         fireEvent.keyDown(grip, { key: ' ', code: 'Space' });
         await settle();
-        // Eerst vastleggen dat er ÍETS is om af te breken. Zonder dit blijft
-        // deze test groen als de hele toetsenbordbediening verdwijnt: hij houdt
-        // alleen vast DAT er niets gebeurde, en als er niets KAN gebeuren is
-        // dat vanzelf waar. dnd-kit's live-regio (aria-live, niet de statische
-        // instructietekst) meldt de greep zodra een sensor hem oppakt; zonder
-        // KeyboardSensor blijft die regio leeg en valt deze test om.
+        // First establish that there IS something to cancel. Without this, this test
+        // stays green if the whole keyboard operation disappears: it only holds that
+        // NOTHING happened, and if nothing CAN happen, that is automatically true.
+        // dnd-kit's live region (aria-live, not the static instruction text) announces
+        // the grip as soon as a sensor picks it up; without a KeyboardSensor that
+        // region stays empty and this test falls over.
         const announced = () => [...document.querySelectorAll('[aria-live]')]
             .map(el => el.textContent).join(' ');
         expect(announced(), 'de greep is niet opgepakt — er valt niets af te breken')
@@ -254,13 +252,12 @@ describe('steps', () => {
     });
 
     /**
-     * ── DRIE ANTWOORDEN, NIET TWEE ───────────────────────────────────
-     * Deze test stuurde `refOptions={{}}` en niets anders. Drie lege arrays
-     * kunnen "gelezen en leeg" en "nooit gelezen" niet uit elkaar houden, dus
-     * hij legde het foute gedrag vast: het menu beweerde dat de organisatie
-     * niets had om naar te verwijzen, óók als de lijsten nooit gelezen waren.
-     * Een `table`-ref is een echte grant (datatable_query), dus wie dat te
-     * horen krijgt loopt weg van een grant die hij nodig heeft.
+     * ── THREE ANSWERS, NOT TWO ───────────────────────────────────────
+     * This test sent `refOptions={{}}` and nothing else. Three empty arrays cannot
+     * distinguish “read and empty” from “never read”, so it pinned the wrong
+     * behaviour: the menu claimed the organisation had nothing to refer to, even when
+     * the lists had never been read. A `table` ref is a real grant (datatable_query),
+     * so whoever gets that message walks away from a grant he needs.
      */
     it('offers nothing to reference only when the lists were READ and are empty', async () => {
         const user = userEvent.setup();
@@ -304,10 +301,9 @@ describe('steps', () => {
     });
 
     /**
-     * De stille variant: één lijst valt om, de andere twee komen binnen. De
-     * groep Automatiseringen verdween dan geruisloos (een lege groep wordt eruit
-     * gefilterd) terwijl Tables er nog stond — dat leest als "deze organisatie
-     * heeft geen automations".
+     * The silent variant: one list fails, the other two come in. The Automations group
+     * then vanished without a trace (an empty group is filtered out) while Tables
+     * remained — which reads as “this organisation has no automations”.
      */
     it('keeps the lists that DID arrive and still names the one that did not', async () => {
         const user = userEvent.setup();

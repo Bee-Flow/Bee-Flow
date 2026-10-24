@@ -1,20 +1,20 @@
 /**
- * Validatorregels voor de `return_to_app`-stap — P4, deel B.
+ * Validator rules for the `return_to_app` step — P4, part B.
  *
- * Drie soorten regel, met bewust verschillende hardheid:
+ * Three kinds of rule, with deliberately different strictness:
  *
- *   VOCABULAIRE (tone / refresh / onError) blokkeert op ELKE trap. Deze waarden
- *   reizen als DATA naar een app-runtime in de browser, en daar is een waarde
- *   buiten de lijst geen halfgetypt veld maar een instructie die stil
- *   verdwijnt — precies wat deze stap moest voorkomen.
+ *   VOCABULARY (tone / refresh / onError) blocks on EVERY level. These values
+ *   travel as DATA to an app runtime in the browser, and there a value outside the
+ *   list is not a half-typed field but an instruction that silently disappears —
+ *   precisely what this step had to prevent.
  *
- *   ONAF (nog geen scherm gekozen, nog niets ingevuld) is completeness: je bouwt
- *   een automatisering stap voor stap en de builder PUT bij elke toetsaanslag de hele
- *   definitie. Waarschuwen tijdens het bouwen, blokkeren bij activeren.
+ *   INCOMPLETE (no screen chosen yet, nothing filled in yet) is completeness: you
+ *   build an automation step by step and the builder PUTs the whole definition on
+ *   every keystroke. Warn while building, block on activation.
  *
- *   TERMINAAL (een rand erachter, een on_error-tak eruit, in een flowlet) hoort
- *   bij de gedeelde regel die validate/terminalSteps.test.js per plek bewaakt;
- *   hier staat wat een auteur er FEITELIJK van te zien krijgt.
+ *   TERMINAL (an edge behind it, an on_error branch out of it, inside a flowlet)
+ *   belongs to the shared rule that validate/terminalSteps.test.js guards per place;
+ *   here is what an author ACTUALLY sees of it.
  *
  * Run: cd server && node --test automation/validate.returnToApp.test.js
  */
@@ -102,8 +102,8 @@ test('an oversized toast is refused rather than silently cut', () => {
 });
 
 // ── the three closed vocabularies ───────────────────────────────────────────
-// Elk hiervan reist als data naar de browser; een waarde buiten de lijst zou
-// daar geruisloos wegvallen. Dus: blokkeren op ELKE trap, ook bij draft.
+// Each of these travels as data to the browser; a value outside the list would
+// silently drop there. So: block on EVERY level, including draft.
 
 for (const [field, step, code] of [
     ['toast.tone', { type: 'return_to_app', toast: { message: 'Hi', tone: 'chartreuse' } }, 'return_to_app.tone_invalid'],
@@ -182,27 +182,27 @@ test('both templates are checked like any other reference — a typo warns inste
     assert.ok(refCodes.length >= 1, `expected a ref warning, got ${JSON.stringify(codesOf(d))}`);
 });
 
-// ── de tweede plaatsingsregel: een lus of een tak is niet het einde ──────────
+// ── the second placement rule: a loop or a branch is not the end ──────────
 //
-// De flowlet-regel hierboven kijkt alleen naar TOP-LEVEL stappen (graph.js
-// toetst `isContractScope` per stap in `graph.steps`). Een stap in een
-// loop-body of een parallelle tak loopt langs de GENESTELDE wandeling, en die
-// leest precies één lijst: NESTED_FORBIDDEN_RULES. Stond `return_to_app` daar
-// niet in, dan gebeurde dit:
+// The flowlet rule above only looks at TOP-LEVEL steps (graph.js checks
+// `isContractScope` per step in `graph.steps`). A step in a loop body or a
+// parallel branch walks the NESTED path instead, and that reads exactly one
+// list: NESTED_FORBIDDEN_RULES. Had `return_to_app` not been in there, this
+// would happen:
 //
-//   LOOP-BODY      execFlow draait de body met recordSteps:false, dus er komt
-//                  geen runregel; deriveRunOutcome vindt nooit `_appEffects` en
-//                  de app krijgt niets. Het `break` in runDag beëindigt alleen
-//                  die iteratie — de lus draait het volgende item en de run
-//                  loopt door.
-//   PARALLELLE TAK die regels worden wél opgenomen en erven parentStepId null,
-//                  dus de app krijgt "we zijn klaar, ga hierheen" terwijl de
-//                  andere takken en alles ná de parallel nog draaien.
+//   LOOP BODY      execFlow runs the body with recordSteps:false, so no run
+//                  rule is written; deriveRunOutcome never finds `_appEffects`
+//                  and the app gets nothing. The `break` in runDag only ends
+//                  that iteration — the loop runs the next item and the run
+//                  carries on.
+//   PARALLEL BRANCH the rules ARE recorded and inherit parentStepId null,
+//                  so the app gets "we are done, go here" while the other
+//                  branches and everything after the parallel still run.
 //
-// Vandaar: hard weigeren op ELKE trap, net als de flowlet-tweeling. De stapsoort
-// is met P4 zelf geïntroduceerd, dus er is geen opgeslagen automatisering van vóór de
-// regel die hierdoor onbewerkbaar wordt — daarom staat de code bewust NIET in
-// COMPLETENESS_CODES.
+// Hence: refuse hard on EVERY level, just like the flowlet twin. The step kind
+// was introduced with P4 itself, so there is no saved automation from before the
+// rule that this would make uneditable — which is why the code deliberately is
+// NOT in COMPLETENESS_CODES.
 
 const NESTED_CODE = 'return_to_app.nested_forbidden';
 

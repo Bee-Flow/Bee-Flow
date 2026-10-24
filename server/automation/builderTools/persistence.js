@@ -35,21 +35,19 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
         throw Object.assign(new Error('The definition still points at a table that was proposed but never created (pending:…).'), { code: 'datatable_pending' });
     }
     /**
-     * De agentpoort, op het ENIGE opslagpad van de builder.
+     * The agent gate, on the ONLY storage path of the builder.
      *
-     * `validateDefinition` is de pure pass en kan niet in de database kijken of
-     * een agent bestaat, gepubliceerd is en met deze eigenaar gedeeld — dus
-     * wordt de catalogus hier gebouwd en meegegeven, precies zoals de
-     * assignee- en kennisbankpoorten hieronder.
+     * `validateDefinition` is the pure pass and cannot look into the database to see whether an agent exists,
+     * is published and is shared with this owner — so the catalogue is built here and passed on, exactly like
+     * the assignee and knowledge-base gates below.
      *
-     * Zonder dit was `builder_replace_step` de enige route waarnaar
-     * `builder_update_step` het model dóórstuurt ("so the permission check runs
-     * on it") terwijl daar geen enkele controle stond: een agent-herkoppeling
-     * passeerde elke save-time-controle, en de belofte in de toolbeschrijving
-     * was juist de reden dat het model dat pad koos.
+     * Without this, `builder_replace_step` was the only path to which `builder_update_step` forwards the model
+     * ("so the permission check runs on it") while no check at all stood there: an agent relink passed every
+     * save-time check, and the promise in the tool description was precisely the reason that the model chose
+     * that path.
      *
-     * Fail-open in zijn geheel (`null` ⇒ de regel wordt overgeslagen) — zie
-     * automation/agentCatalog.js. De run blijft de echte poort.
+     * Fail-open as a whole (`null` ⇒ the rule is skipped) — see automation/agentCatalog.js. The run remains
+     * the real gate.
      */
     let availableAgents = null;
     if (draftWrap.userId) {

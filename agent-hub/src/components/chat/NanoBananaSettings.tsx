@@ -40,9 +40,9 @@ const IMAGE_MODELS = [
     { label: 'Pro Image (Quality)', value: 'gemini-3-pro-image-preview' },
 ];
 
-// De tabbladen. `labelKey` draagt de sleutel, `labelEn` de Engelse vorm —
-// het label wordt in de component door t() gehaald, want een tabel op
-// modulehoogte heeft geen t() tot haar beschikking.
+// The tabs. `labelKey` carries the key, `labelEn` the English form. The label is
+// looked up through t() in the component, because a table at module level has
+// no t() at its disposal.
 const TABS = [
     { id: 'image', labelKey: 'chat.media.tab_image', labelEn: 'Image', icon: '🖼️' },
     { id: 'elevenlabs', labelKey: 'chat.media.tab_music_tts', labelEn: 'Music & TTS', icon: '🎵' },

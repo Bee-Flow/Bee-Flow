@@ -13,47 +13,41 @@ import type { RelativeTimeInput } from '../../../../hooks/useRelativeTime';
 import type { StatusDotProps, RefusalNoticeProps, ScoreLineProps, AboutLineProps, FailLineProps, TestRowProps, TestSetCardProps } from './TestSetCard.types';
 
 /**
- * De testset-kaart van de Test-tab (Agents-artboard 1c, A4 deel D).
+ * The test-set card of the Test tab (Agents artboard 1c, A4 part D).
  *
- * Vier dingen, en drie ervan zijn er om te voorkomen dat de kaart iets beweert
- * wat ze niet weet:
+ * Four things, and three of them are there to prevent the card from claiming something it
+ * does not know:
  *
- *   DE TELLING   "11 / 12 goed" is een uitslag van één RUN. Nooit gedraaid is
- *                geen "0 / 12" (er is niets gevraagd), een lezing die mislukte
- *                is dat ook niet, en een run die halverwege omviel is geen
- *                uitslag. `testSetFacts.summariseRun` beslist welke van de
- *                vier het is; deze kaart schrijft er alleen de zin bij.
- *   DE FAALREGEL het ene niet-groene resultaat, met WAAROM. `fail`, `blocked`
- *                en `error` zijn drie verschillende dingen en krijgen drie
- *                verschillende zinnen: alleen de eerste zegt iets over de
- *                agent.
- *   BEKIJK       de vragen met hun laatste oordeel, plus de run-historie —
- *                want één getal zonder geschiedenis maakt van een toevallige
- *                groene run een feit.
- *   + DIT GESPREK ALS TEST
- *                de knop die van de laatste beurt een test maakt. Hij staat er
- *                alleen als er een beurt IS; een knop die nergens heen kan is
- *                erger dan geen knop.
+ *   THE COUNT    "11 / 12 passed" is a result of ONE RUN. Never run is not "0 / 12"
+ *                (nothing was asked), a read that failed is not that either, and a run
+ *                that fell over halfway is not a result. `testSetFacts.summariseRun`
+ *                decides which of the four it is; this card only writes the sentence.
+ *   THE FAILURE  the one non-green result, with WHY. `fail`, `blocked` and `error` are
+ *                three different things and get three different sentences: only the
+ *                first says something about the agent.
+ *   VIEW         the questions with their latest verdict, plus the run history, because
+ *                one number without history turns a chance green run into a fact.
+ *   + THIS CHAT AS TEST
+ *                the button that makes a test from the last turn. It appears only if
+ *                there IS a turn; a button that has nowhere to go is worse than no button.
  *
- * ── EEN WEIGERING IS GEEN MISLUKTE TEST ─────────────────────────────
- * "Er is geen model ingericht om deze antwoorden te beoordelen" komt terug
- * vóór er één beurt gedraaid heeft (`POST /:id/tests/run` weigert met 503).
- * Die weigering wordt hier als weigering getekend en laat de telling met rust.
- * Als hij als rode tests zou landen, gaat iemand zijn agent repareren terwijl
- * er niets mis is met zijn agent — en dat is precies het soort vals-rood dat
- * mensen leert de testset te negeren.
+ * ── A REFUSAL IS NOT A FAILED TEST ──────────────────────────────────
+ * "No model is set up to judge these answers" comes back before even one turn has run
+ * (`POST /:id/tests/run` refuses with 503). That refusal is drawn here as a refusal and
+ * leaves the count alone. If it landed as red tests, someone would go and repair his
+ * agent while nothing is wrong with the agent, and that is exactly the kind of false red
+ * that teaches people to ignore the test set.
  *
- * ── ALLEEN-LEZEN HAALT DE ACTIES WEG, EN DE SERVER DE FEITEN ────────
- * `ro` verbergt Run en "+ Dit gesprek als test" (BFSF-271: alleen-lezen haalt
- * de BEWERKENDE affordances weg). De telling, de faalregel en Bekijk blijven —
- * ZOLANG de lezing lukt.
+ * ── READ-ONLY REMOVES THE ACTIONS, AND THE SERVER THE FACTS ────────
+ * `ro` hides Run and "+ Dit gesprek als test" (BFSF-271: read-only removes the EDITING
+ * affordances). The count, the failure line and View remain, AS LONG AS the read succeeds.
  *
- * En die lukt vandaag niet voor iemand die alleen mag bekijken: elke route in
- * `routes/agents/tests.js` loopt door `requireEditableAgent` en geeft 403
- * `agent_not_editable`. Dat is een bewuste, smalle keuze (een testvraag is
- * bouwmateriaal), en de kaart mag hem dus niet als storing tekenen. Hij komt
- * binnen als `readRefusal` en krijgt de weigeringsbanner, zonder Opnieuw-knop.
- * De kaart belooft daarmee niets wat de server niet geeft.
+ * And that does not succeed today for someone who may only view: every route in
+ * `routes/agents/tests.js` runs through `requireEditableAgent` and gives 403
+ * `agent_not_editable`. That is a deliberate, narrow choice (a test question is building
+ * material), and the card may therefore not draw it as a fault. It arrives as
+ * `readRefusal` and gets the refusal banner, without a Retry button. The card thereby
+ * promises nothing that the server does not give.
  */
 
 /** De statuskleur en het glyph van één resultaat. Vier statussen, vier vormen. */
@@ -71,13 +65,12 @@ function StatusDot({ status }: StatusDotProps) {
 }
 
 /**
- * De zin bij één probleem.
+ * The sentence for one problem.
  *
- * Puur op `kind` uit `problemFor`, dus de gesloten waarden van de server
- * (`decidedBy`) en de FEITEN (een verboden woord dat er letterlijk staat, een
- * tool die nooit is aangeroepen) krijgen elk hun eigen vertaalbare regel. De
- * Engelse zin die de server opsloeg wordt niet getoond: die is niet vertaald
- * en zegt hetzelfde.
+ * Purely based on `kind` from `problemFor`, so the closed values of the server
+ * (`decidedBy`) and the FACTS (a forbidden word that is literally present, a tool that was
+ * never called) each get their own translatable rule. The English sentence that the server
+ * stored is not shown: it is not translated and says the same thing.
  */
 function problemSentence(t: TranslateFn, problem: { status: string; kind: string; names: string[]; reason: string } | null) {
     if (!problem) return '';
@@ -126,21 +119,21 @@ function refusalSentence(t: TranslateFn, refusal: Refusal) {
         case REFUSAL.NOTHING_TO_RUN:
             return t('agent_studio.test.refused_empty', 'There is nothing to run yet — write a question first.');
         case REFUSAL.NOT_EDITABLE:
-            // Wat waar is: deze agent bewaart tests, en jij mag ze niet zien.
-            // De oude zin ("You can look at these tests, but not run them")
-            // beloofde precies de lezing die de server juist weigert.
+            // What is true: this agent keeps tests, and you may not see them.
+            // The old sentence ("You can look at these tests, but not run them")
+            // promised precisely the read that the server refuses.
             return t('agent_studio.test.refused_not_editable', 'You need edit access to this agent to see and run its tests.');
         case REFUSAL.TOO_MANY:
             return t('agent_studio.test.refused_too_many', 'This agent already holds as many tests as it can.');
         case REFUSAL.NOT_SAVED:
             return t('agent_studio.test.refused_not_saved', 'The tests ran, but the result could not be saved — so this score is not kept.');
         case REFUSAL.RUN_STOPPED:
-            // "Nothing was tested" zou hier onwaar zijn: de resultaten die al
-            // binnenkwamen staan eronder op het scherm.
+            // "Nothing was tested" would be false here: the results that already came in
+            // are shown beneath it on the screen.
             return t('agent_studio.test.refused_run_stopped', 'The run stopped part-way. What you see below is what had already been tested.');
         default:
-            // Onbekend versmalt: we weten niet HOEVER hij gekomen is, dus we
-            // beweren ook niet dat er niets getest is.
+            // Unknown narrows: we do not know HOW FAR it got, so we also do not claim that
+            // nothing was tested.
             return t('agent_studio.test.refused_unknown', 'Could not finish the test run.');
     }
 }
@@ -153,7 +146,7 @@ function RefusalNotice({ t, refusal, onRetry }: RefusalNoticeProps) {
             data-kind={refusal.kind}
             className="flex items-start gap-2 px-4 py-3 text-[12px] [background:color-mix(in_srgb,var(--warning)_8%,transparent)]"
         >
-            <AlertTriangle size={14} aria-hidden="true" style={{ color: 'var(--warning)', flexShrink: 0, marginTop: 1 }} />
+            <AlertTriangle size={14} aria-hidden="true" className="[color:var(--warning)] [flex-shrink:0] [margin-top:1px]" />
             <span className="flex-1 text-[var(--text-secondary)]">{refusalSentence(t, refusal)}</span>
             {refusal.retryable && onRetry && (
                 <button
@@ -170,8 +163,8 @@ function RefusalNotice({ t, refusal, onRetry }: RefusalNoticeProps) {
 }
 
 function ScoreLine({ t, summary, questionCount, progress }: ScoreLineProps) {
-    // Een lopende run heeft geen uitslag. Wat er staat is voortgang, en dat
-    // moet ook zo lezen — niet als een tussenstand die "3 goed" beweert.
+    // A running run has no result. What is there is progress, and it must read that way too:
+    // not as an interim tally that claims "3 passed".
     if (progress && progress.status === PROGRESS.RUNNING) {
         return (
             <div data-testid="agent-tests-score" data-state="running" className="text-[15px] font-semibold text-[var(--text-primary)]">
@@ -242,9 +235,9 @@ function AboutLine({ t, summary, justRan = null }: AboutLineProps) {
         parts.push(t('agent_studio.test.about_draft', 'about your draft'));
     }
     if (summary.coverage && summary.coverage.of !== null && summary.coverage.ran !== summary.coverage.of) {
-        // Twee zinnen, want twee verschillende feiten: hoeveel vragen er NU
-        // staan (het normale geval) en hoeveel er stonden TOEN de run liep (als
-        // de huidige lijst niet gelezen kon worden).
+        // Two sentences, because there are two different facts: how many questions stand NOW
+        // (the normal case), and how many stood THEN, when the run ran (if the current list
+        // could not be read).
         parts.push(summary.coverage.when === 'then'
             ? nOf(t, 'agent_studio.test.covers_then', summary.coverage.of,
                 'covers {ran} of the {count} question this agent had then',
@@ -293,12 +286,12 @@ function FailLine({ t, items }: FailLineProps) {
 }
 
 /**
- * Schreef een MODEL een deel van deze verwachting?
+ * Did a MODEL write part of this expectation?
  *
- * `writtenBy` komt uit de opslag (agent_tests.written_by) en is null voor elke
- * test die iemand zelf tikte. Zonder dit merkje was een door een model
- * opgestelde verwachting na het opslaan niet meer te onderscheiden van een
- * getikte — terwijl elke run-uitslag die eruit volgt erop leunt.
+ * `writtenBy` comes from the storage (agent_tests.written_by) and is null for every test
+ * that someone typed himself. Without this marker, an expectation written by a model was
+ * no longer distinguishable after saving from a typed one, while every run result that
+ * follows from it relies on it.
  */
 function aiWrote(test: AgentTest) {
     const by = test && test.writtenBy;
@@ -335,11 +328,11 @@ function TestRow({ t, test, item }: TestRowProps) {
 }
 
 /**
- * Eén regel run-historie. Een rij zonder uitslag toont er geen.
+ * One line of run history. A row without a result shows none.
  *
- * En zegt daarbij NIET "The last run …": die zin hoort bij de kopregel, en in
- * de historie stond hij onder elke onafgeronde rij — ook onder de vijfde van
- * boven. Een rij in een lijst spreekt over zichzelf.
+ * And it does NOT say "The last run …": that sentence belongs to the heading. In the
+ * history it stood under every unfinished row, also under the fifth from the top. A row in
+ * a list speaks for itself.
  */
 function RunRow({ t, rel, row }: { t: TranslateFn; rel: ((dateLike: RelativeTimeInput) => string) | null; row: TestRun }) {
     const summary = summariseRun({ lastRun: row });
@@ -372,13 +365,11 @@ export default function TestSetCard({
 }: TestSetCardProps) {
     const [open, setOpen] = useState(false);
     const summary = summariseRun({ lastRun, lastRunUnknown, tests });
-    // De run die zojuist afliep — of null zolang er geen is. Zie ScoreLine:
-    // die wint van de opgeslagen run, want de rest van de kaart gaat er ook
-    // over.
+    // The run that just finished, or null as long as there is none. See ScoreLine: that one
+    // wins over the stored run, because the rest of the card is also about it.
     const justRan = justRanScore(progress);
-    // Wat er in de lijst getoond wordt is de LAATSTE afgeronde uitslag, of de
-    // run die zojuist afliep. Een lopende run vult de lijst terwijl hij loopt,
-    // maar levert nog geen telling — zie ScoreLine.
+    // What is shown in the list is the LAST completed result, or the run that just finished.
+    // A running run fills the list while it runs, but does not yet yield a tally. See ScoreLine.
     const liveItems = progress && progress.items && progress.items.length > 0 ? progress.items : null;
     const items = liveItems || (summary.state === RUN_STATE.RESULT ? summary.items : []);
     const showFailLine = liveItems || summary.state === RUN_STATE.RESULT;
@@ -419,10 +410,9 @@ export default function TestSetCard({
                 )}
             </div>
 
-            {/* Weigerde de SERVER de lezing, dan is dat geen storing en helpt
-                Opnieuw niet — elke route hier vraagt bewerkrecht, dus wie deze
-                agent alleen mag bekijken krijgt 403. Die zin hoort in de
-                weigeringsbanner te staan, niet in de gele "kon niet laden". */}
+            {/* If the SERVER refused the read, that is not a fault and Retry does not help. Every
+                route here asks for edit rights, so whoever may only view this agent gets 403.
+                That sentence belongs in the refusal banner, not in the yellow "could not load". */}
             {readRefusal
                 ? <RefusalNotice t={t} refusal={readRefusal} onRetry={readRefusal.retryable ? onRetryTests : null} />
                 : testsState === READ.ERROR && (
@@ -444,10 +434,9 @@ export default function TestSetCard({
                     </div>
                 )}
                 <AboutLine t={t} summary={summary} justRan={justRan} />
-                {/* Een uitslag die nergens bewaard is, zegt dat zelf. Anders
-                    staat er een score zonder enige aanwijzing dat hij morgen
-                    weg is — en bij een "Test als"-simulatie is er niet eens
-                    een weigering die het uitlegt. */}
+                {/* A result that is not stored anywhere says so itself. Otherwise there is a score
+                    without any hint that it will be gone tomorrow, and with a "Test as" simulation
+                    there is not even a refusal that explains it. */}
                 {justRan && !justRan.kept && (
                     <div className="text-[12px] text-[var(--warning)]" data-testid="agent-tests-not-kept">
                         {justRan.notStored === 'test_as'
@@ -469,9 +458,8 @@ export default function TestSetCard({
                     {open ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
                     {t('agent_studio.test.view', 'View')}
                 </button>
-                {/* Alleen als er een beurt IS om vast te leggen. Zonder gesprek
-                    zou deze knop een leeg formulier openen dat om een vraag
-                    vraagt die je net had. */}
+                {/* Only if there IS a turn to record. Without a conversation this button would open an
+                    empty form asking for a question you had just asked. */}
                 {!ro && onAddFromChat && canAddFromChat && (
                     <button
                         type="button"

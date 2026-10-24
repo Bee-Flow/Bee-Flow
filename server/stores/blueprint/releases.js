@@ -148,45 +148,43 @@ function makeReleasesStore({ db, ready, handle, inTransaction, _saveBlueprint })
     // ── Publiceren: één galerijrij én één release-rij ────────────────────────
 
     /**
-     * Publiceer dit project: bewaar (of bump) de Blueprint in de galerij ÉN noteer
-     * de publicatie in de geschiedenis. Samen, of geen van beide.
+     * Publish this project: store (or bump) the Blueprint in the gallery AND record
+     * the publication in the history. Together, or neither.
      *
-     * ── DE VOLGORDE, EN WELKE KANT WINT ─────────────────────────────────────
+     * ── THE ORDER, AND WHICH SIDE WINS ─────────────────────────────────────
      *
-     * De volgorde BINNEN de transactie ligt vast en is niet de interessante vraag:
-     * de release-rij draagt `blueprint_id` en het definitieve versienummer, dus de
-     * galerijrij moet eerst geschreven zijn. De interessante vraag is wat er
-     * gebeurt als de tweede schrijfactie faalt, en daar wint DE RELEASE-RIJ: dan is
-     * er niets gepubliceerd — geen Blueprint, en geen verbruikt versienummer.
+     * The order WITHIN the transaction is fixed and is not the interesting question:
+     * the release row carries `blueprint_id` and the definitive version number, so the
+     * gallery row must be written first. The interesting question is what
+     * happens if the second write fails, and there THE RELEASE ROW WINS: then
+     * nothing has been published — no Blueprint, and no consumed version number.
      *
-     * Waarom die kant, en niet "de Blueprint staat er dan tenminste":
+     * Why that side, and not "the Blueprint is at least there":
      *
-     *   1. DEZELFDE VORM ALS DE W2-BEVINDING. Daar werd de zichtbaarheidsvlag vóór
-     *      de pin gezet, en een mislukte publicatie serveerde het ongepubliceerde
-     *      werk. Hier is de galerijrij de zichtbaarheid — hij is meteen
-     *      installeerbaar door de hele org — en de release-rij is de pin: het
-     *      vastgelegde "dit is wat v3 was". Zichtbaar zonder pin is precies de
-     *      toestand die daar fout was.
-     *   2. DE BUMP VERBRUIKT EEN NUMMER. Slaagt de UPDATE en faalt de release-rij,
-     *      dan serveert de galerij v3 terwijl de geschiedenis bij v2 ophoudt en de
-     *      vólgende publicatie v4 wordt. v3 bestaat dan voorgoed als de versie die
-     *      niemand kan terugvinden — en installaties dragen dat nummer mee in hun
-     *      stempels, dus het is niet alleen een gat in een lijstje.
-     *   3. DE OMGEKEERDE FOUT is met deze volgorde niet te maken: een release-rij
-     *      die naar een Blueprint wijst die er niet is, kan niet ontstaan omdat het
-     *      id pas bestaat nadat de INSERT/UPDATE geslaagd is — en beide committen
-     *      samen. Zonder transactie zou juist die kant onherstelbaar zijn: een
-     *      losse release-rij verwijst dan naar een id dat nooit heeft bestaan.
+     *   1. THE SAME SHAPE AS THE W2 FINDING. There the visibility flag was set before
+     *      the pin, and a failed publication served unpublished work. Here the
+     *      gallery row is the visibility — it is installable by the whole
+     *      org at once — and the release row is the pin: the recorded "this is what v3
+     *      was". Visible without a pin is exactly the state that was wrong there.
+     *   2. THE BUMP CONSUMES A NUMBER. If the UPDATE succeeds and the release row fails,
+     *      then the gallery serves v3 while the history stops at v2 and the
+     *      next publication becomes v4. v3 then exists forever as the version that
+     *      nobody can find — and installations carry that number in their stamps, so it is
+     *      not just a gap in a list.
+     *   3. THE REVERSE FAILURE cannot occur with this order: a release row that
+     *      points to a Blueprint that does not exist cannot arise, because the id only
+     *      exists after the INSERT/UPDATE has succeeded — and both commit
+     *      together. Without a transaction exactly that side would be irreparable: a
+     *      loose release row then refers to an id that never existed.
      *
-     * Daarom draait het geheel in ÉÉN transactie, met exact dezelfde statements als
-     * `saveBlueprint` (zie `handle`) — een tweede kopie van de bump-logica zou juist
-     * hier uit de pas gaan lopen.
+     * That is why the whole thing runs in ONE transaction, with exactly the same statements as
+     * `saveBlueprint` (see `handle`) — a second copy of the bump logic would be
+     * precisely what drifts out of step here.
      *
-     * HET SNOEIEN ZIT ER BEWUST IN. Publiceren is één handeling: een geschiedenis
-     * die over zijn cap heen groeit omdat de DELETE stilletjes faalde, is dezelfde
-     * half-afgemaakte toestand als een Blueprint zonder release-rij. Een
-     * galerijpublicatie snoeit alleen het galerijkanaal; pipeline-rijen hebben
-     * hun eigen cap en hun eigen waarborgen.
+     * THE PRUNING IS DELIBERATELY IN IT. Publishing is one act: a history that grows
+     * beyond its cap because the DELETE silently failed is the same half-finished
+     * state as a Blueprint without a release row. A gallery publication prunes only the gallery
+     * channel; pipeline rows have their own cap and their own guarantees.
      *
      * @returns {Promise<{blueprint: any, release: any}>}
      * @param {{ organizationId?: string|null, createdBy?: string, sourceProjectId?: string, manifest?: any, notes?: any }} [opts]
@@ -195,35 +193,35 @@ function makeReleasesStore({ db, ready, handle, inTransaction, _saveBlueprint })
         organizationId = null, createdBy, sourceProjectId, manifest, notes = null,
     } = {}) {
         await ready();
-        // Geweigerd VÓÓR de transactie, dus vóór elke schrijfactie: een publicatie
-        // zonder project heeft geen geschiedenis om in te staan, en een Blueprint
-        // opslaan die daar niet in terechtkomt is precies wat hierboven verboden is.
+        // Refused BEFORE the transaction, so before any write: a publication
+        // without a project has no history to be recorded in, and saving a Blueprint that
+        // does not end up there is exactly what is forbidden above.
         if (!sourceProjectId) throw new Error('sourceProjectId is required to publish a release');
         if (!createdBy) throw new Error('createdBy is required');
         if (!manifest?.solution) throw new Error('manifest is required');
-        // Ook vóór de transactie: een notitie die niet opgeslagen kan worden mag
-        // geen halve publicatie achterlaten, en de weigering moet actionabel zijn.
+        // Also before the transaction: a note that cannot be stored must not
+        // leave behind a half publication, and the refusal must be actionable.
         const safeNotes = normalizeNotes(notes);
 
         return db.withTransaction(async (client) => {
             const h = clientHandle(client);
             const blueprint = await _saveBlueprint(h, { organizationId, createdBy, sourceProjectId, manifest });
-            // GEEN RIJ TERUG = er is geen galerijrij. Bereikbaar: alleen de maker
-            // mag verwijderen, en hij mag dat doen terwijl een collega publiceert —
-            // dan vindt de lookup nog een rij en raakt de UPDATE er nul. Zou de
-            // release-rij dan tóch geschreven worden, dan wijst zij naar een
-            // Blueprint die er niet is; precies de andere helft van de belofte
-            // hierboven. Dus afbreken, en de hele publicatie draait terug.
+            // NO ROW BACK = there is no gallery row. Reachable: only the creator
+            // may delete, and they may do so while a colleague is publishing —
+            // then the lookup still finds a row and the UPDATE touches zero. Were the
+            // release row then written anyway, it would point to a
+            // Blueprint that does not exist; exactly the other half of the promise
+            // above. So abort, and the whole publication rolls back.
             if (!blueprint?.id) throw new Error('The Blueprint could not be saved, so nothing was published.');
             const release = await _insertRelease(h, {
                 projectId: sourceProjectId,
                 blueprintId: blueprint.id,
-                // Het nummer dat de galerij ná deze publicatie serveert — hetzelfde
-                // nummer dat installaties in hun stempels meekrijgen.
+                // The number that the gallery serves AFTER this publication — the same
+                // number that installations carry in their stamps.
                 version: blueprint.version,
-                // Het manifest ZOALS OPGESLAGEN: op het bump-pad is `solution.version`
-                // herschreven, en de geschiedenis moet vastleggen wat er werkelijk is
-                // gepubliceerd, niet wat de aanroeper aanbood.
+                // The manifest AS STORED: on the bump path `solution.version` has been
+                // rewritten, and the history must record what was actually
+                // published, not what the caller offered.
                 manifest: blueprint.manifest,
                 notes: safeNotes,
                 publishedBy: createdBy,
@@ -234,13 +232,13 @@ function makeReleasesStore({ db, ready, handle, inTransaction, _saveBlueprint })
     }
 
     /**
-     * De publicatiegeschiedenis van één project, nieuwste eerst — zonder manifest.
+     * The publication history of one project, newest first — without manifest.
      *
-     * DEZE FUNCTIE AUTORISEERT NIETS. Zij scoopt op het project-id dat zij krijgt,
-     * meer niet; de aanroeper moet dat id al hebben geautoriseerd (in de
-     * packaging-router is dat `requireProjectRole('owner')`). Zelfde contract als
-     * `listStamps` en `listInstalledVersions`, en dezelfde stille manier om het te
-     * breken: een nieuwe aanroeper die er een id in gooit dat hij niet controleerde.
+     * THIS FUNCTION AUTHORISES NOTHING. It scopes only on the project id it receives,
+     * nothing more; the caller must already have authorised that id (in the
+     * packaging router that is `requireProjectRole('owner')`). Same contract as
+     * `listStamps` and `listInstalledVersions`, and the same silent way to
+     * break it: a new caller that throws in an id it did not check.
      *
      * One channel at a time, 'gallery' by default, so the Versions tab and the
      * installs counter never see a pipeline row (`listPipelineReleases` is the
@@ -265,12 +263,12 @@ function makeReleasesStore({ db, ready, handle, inTransaction, _saveBlueprint })
     }
 
     /**
-     * Eén release, mét het manifest zoals het gepubliceerd is, and with its
+     * One release, with the manifest as it was published, and with its
      * stage fields (seq, channel, gate, contentHash).
      *
-     * ALTIJD op (project, id) en nooit op id alleen: het id is de sleutel, maar het
-     * project is de scope die de aanroeper heeft geautoriseerd. Een lookup op id
-     * alleen zou een geraden id uit een ánder project beantwoorden.
+     * ALWAYS on (project, id) and never on id alone: the id is the key, but the project is the
+     * scope that the caller has authorised. A lookup on id alone would answer a
+     * guessed id from a DIFFERENT project.
      */
     async function getRelease(projectId, releaseId, { client = null } = {}) {
         await ready();

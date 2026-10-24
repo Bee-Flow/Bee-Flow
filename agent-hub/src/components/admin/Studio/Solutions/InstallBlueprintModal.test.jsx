@@ -370,10 +370,10 @@ describe('step 3 and after', () => {
 });
 
 describe('waar dit bestand zégt vandaan te komen', () => {
-    // Een manifest is invoer van buiten. `source.orgName` is tekst die in het
-    // bestand staat en verder niets; het scherm mag hem tonen, maar alleen als
-    // wat hij is. De server beslist met canRead over de echte galerijrij, en
-    // die vraag raakt dit blok niet aan.
+    // A manifest is input from outside. `source.orgName` is text that stands in the
+    // file and nothing more; the screen may show it, but only as what it is. The
+    // server decides with canRead on the real gallery row, and that question does
+    // not touch this block.
 
     const fromFile = (source, entities = {}) => ({ ...manifest(entities), source });
 
@@ -382,31 +382,31 @@ describe('waar dit bestand zégt vandaan te komen', () => {
         const claim = screen.getByTestId('install-source-claim').textContent;
         expect(claim).toContain('Acme');
         expect(claim).toContain('version 3');
-        // De zin eromheen is het hele punt: zonder haar leest andermans naam
-        // als een vastgesteld feit.
+        // The sentence around it is the whole point: without it, another person's name
+        // reads as an established fact.
         expect(claim).toMatch(/says/i);
         expect(claim).toMatch(/anyone who can edit the file can change it/i);
     });
 
     it('zegt niets als het bestand niets beweert', async () => {
-        // Geen "afkomstig van —": een lege regel voegt niets toe en suggereert
-        // dat er iets ontbreekt.
+        // No “originating from —”: an empty line adds nothing and suggests that
+        // something is missing.
         open({ manifest: manifest({}) });
         expect(screen.queryByTestId('install-source-claim')).toBeNull();
     });
 
     it('een bewering zonder naam is geen bewering', async () => {
-        // Een id zegt de lezer niets; alleen een naam is iets om over na te
-        // denken, en zonder naam is er dus niets te tonen.
+        // An id says nothing to the reader; only a name is something to think about,
+        // and without a name there is therefore nothing to show.
         open({ manifest: fromFile({ blueprintId: 'bp_abc', orgId: 'org1' }) });
         expect(screen.queryByTestId('install-source-claim')).toBeNull();
     });
 
     it('een bewering reist niet mee naar de installatieroute', async () => {
         const user = userEvent.setup();
-        // De server leest de herkomst uit het MANIFEST dat hij zelf al heeft.
-        // Zou de wizard hem los meesturen, dan was er een tweede weg naar die
-        // kolommen — precies wat er bij de grants is afgeschaft.
+        // The server reads the origin from the MANIFEST it already has itself.
+        // Were the wizard to send it separately, there would be a second route to
+        // those columns — precisely what was abolished with the grants.
         open({ manifest: fromFile({ blueprintId: 'bp_abc', orgId: 'org1', orgName: 'Acme' }) });
         await toStep(3);
         await user.click(screen.getByTestId('install-confirm'));

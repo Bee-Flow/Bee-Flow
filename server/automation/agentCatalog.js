@@ -1,41 +1,34 @@
 /**
- * "Deze automatisering noemt een agent — mag die hier draaien?" — de SAVE-kant van R2.
+ * "This automation calls an agent — may that run here?" — the SAVE side of R2.
  *
- * ── WAAROM DIT NIET IN validate/stepRules.js ZIT ────────────────────
- * De regel staat daar wél; het ANTWOORD kan daar niet vandaan komen. Bestaat
- * de agent, zit hij in dezelfde organisatie, is hij gepubliceerd: dat zijn drie
- * databasevragen, en `validate/` is bewust de pure pass (hij draait in de
- * builder, bij import, en in tests zonder database erachter). Dus levert deze
- * module de catalogus — een Set met de ids die deze automatisering mág gebruiken — en
- * geeft de route die door als `availableAgents`. Precies de constructie die
- * `availableTools` al gebruikt, en dezelfde splitsing als
- * `core/kb/automationKbCheck.js` voor kennisbanken.
+ * ── WHY THIS IS NOT IN validate/stepRules.js ────────────────────────
+ * The rule IS there; the ANSWER cannot come from there. Whether the agent exists, sits in the same
+ * organisation, and is published: those are three database questions, and `validate/` is deliberately
+ * the pure pass (it runs in the builder, at import, and in tests without a database behind it). So
+ * this module supplies the catalogue — a Set with the ids that this automation MAY use — and the
+ * route passes that on as `availableAgents`. Precisely the construction that `availableTools` already
+ * uses, and the same split as `core/kb/automationKbCheck.js` for knowledge bases.
  *
- * ── ÉÉN ANTWOORD VOOR ELKE MANIER VAN NIET-MOGEN ────────────────────
- * Deze module zegt alleen WELKE ids mogen. Niet welke bestaan, niet waarom een
- * id ontbreekt. Dat is geen luiheid maar het punt: een verwijderde agent, een
- * agent van een andere organisatie, een agent die niet met de eigenaar gedeeld
- * is en een agent die nooit gepubliceerd is vallen alle vier op dezelfde manier
- * uit de Set, en `stepRules.js` maakt er één melding van. Zou het onderscheid
- * hier of daar overleven, dan is de automation-editor een bestaans-orakel voor
- * elke andere workspace op deze installatie: typ een id, lees aan de
- * foutmelding af of hij ergens bestaat.
+ * ── ONE ANSWER FOR EVERY WAY OF NOT BEING ALLOWED ───────────────────
+ * This module says only WHICH ids are allowed. Not which exist, not why an id is missing. That is not
+ * laziness but the point: a deleted agent, an agent of another organisation, an agent that is not
+ * shared with the owner and an agent that was never published all fall out of the Set in the same way,
+ * and `stepRules.js` makes one message of it. Were the distinction to survive here or there, the
+ * automation editor would become an existence oracle for every other workspace on this installation:
+ * type an id, and read from the error message whether it exists somewhere.
  *
- * ── DEZELFDE VRAAG ALS DE RUN, MAAR EEN DAG EERDER ──────────────────
- * `mayAutomationUseAgent` hieronder stelt exact de vraag die
- * `core/automationRunner/aiStepAgent.js` (`_mayUseAgent`) bij ELKE run opnieuw
- * stelt. Dat die twee gelijk blijven is niet vanzelfsprekend, dus het is een
- * test (automation/validate.agentStep.test.js) en geen belofte: de test draait
- * beide over dezelfde tabel gevallen en vergelijkt de uitkomst.
+ * ── THE SAME QUESTION AS THE RUN, BUT A DAY EARLIER ─────────────────
+ * `mayAutomationUseAgent` below asks exactly the question that `core/automationRunner/aiStepAgent.js`
+ * (`_mayUseAgent`) asks on EVERY run. That those two stay equal is not self-evident, so it is a test
+ * (automation/validate.agentStep.test.js) and not a promise: the test runs both over the same table of
+ * cases and compares the outcome.
  *
- * De run is de echte poort. Deze pass draait bij opslaan en bij activeren; de
- * agent kan dagen later worden verwijderd, gedepubliceerd of uit de deling
- * gehaald, en geen enkele validatie ziet dat aankomen. `resolveStepAgent`
- * GOOIT dan, zodat de stap faalt in plaats van stilzwijgend zonder agent door
- * te lopen. Daarom mag deze pass fail-open zijn — en daarom alleen in zijn
- * geheel: een id dat we niet konden nagaan wordt nooit als "mag niet"
- * gerapporteerd (dat zou een verkeerd antwoord zijn op een storing), en ook
- * nooit stilletjes goedgekeurd. Dan is er gewoon geen catalogus.
+ * The run is the real gate. This pass runs at save and at activation; the agent may be deleted,
+ * unpublished or withdrawn from sharing days later, and no validation sees that coming.
+ * `resolveStepAgent` THROWS then, so that the step fails instead of running on without an agent. That is
+ * why this pass may be fail-open — and why only as a whole: an id that we could not check is never
+ * reported as "not allowed" (that would be a wrong answer to a failure), and never quietly approved
+ * either. Then there is simply no catalogue.
  */
 const log = require('../telemetry/log');
 // Does this row run on its PUBLISHED config? Pure, so it lives below the
@@ -45,11 +38,10 @@ const { servesPublishedConfig } = require('../core/automationModel/agentPublicat
 const isObject = (v) => v && typeof v === 'object' && !Array.isArray(v);
 
 /**
- * Loop de stappen af, inclusief lus-bodies en parallelle takken — dezelfde
- * nesting die `validate/`, `portability.js` en `automationKbCheck.js` aflopen.
- * Overgeschreven in plaats van geïmporteerd, om de reden die
- * `automationKbCheck.js` over zichzelf geeft: dit moet vanuit een route te
- * requiren zijn zonder de hele automation-feature mee te trekken.
+ * Walk the steps, including loop bodies and parallel branches — the same nesting that `validate/`,
+ * `portability.js` and `automationKbCheck.js` walk. Rewritten rather than imported, for the reason that
+ * `automationKbCheck.js` gives about itself: this must be requirable from a route without dragging the
+ * whole automation feature along.
  */
 function walkSteps(steps, fn) {
     if (!Array.isArray(steps)) return;
@@ -64,8 +56,8 @@ function walkSteps(steps, fn) {
 }
 
 /**
- * Elke agent-id die deze definitie noemt — in de hoofdgraaf en in elke inline
- * laag. Alleen de ids; welke stap ze noemt weet `stepRules.js` al.
+ * Every agent id that this definition names — in the main graph and in every inline layer. Only the ids;
+ * which step names them is already known to `stepRules.js`.
  */
 function collectAgentIds(definition) {
     const ids = new Set();
@@ -83,36 +75,33 @@ function collectAgentIds(definition) {
 }
 
 /**
- * Mag deze automatisering deze agent inzetten?
+ * May this automation deploy this agent?
  *
- * De vier regels, in de volgorde waarin ze beslissen:
+ * The four rules, in the order in which they decide:
  *
- *   eigenaar                → ja, ook ongepubliceerd. Je eigen agent in je
- *                             eigen automation is geen deel-vraag.
- *   niet gepubliceerd       → nee. Publiceren is wat een agent van een concept
- *                             tot iets maakt waar een ander op kan bouwen — en
- *                             dat geldt voor de VERSIE net zo goed als voor de
- *                             deel-schakelaar (`servesPublishedConfig`).
- *   andere organisatie      → nee, en een org-agent tegenover iemand zonder
- *                             organisatie net zo min.
- *   gedeeld met groepen     → alleen als de eigenaar in één van die groepen zit.
+ *   owner                   → yes, also unpublished. Your own agent in your own automation is not a sub-question.
+ *   not published           → no. Publishing is what turns an agent from a draft into something another person
+ *                             can build on — and that holds for the VERSION just as much as for the sharing
+ *                             switch (`servesPublishedConfig`).
+ *   other organisation      → no, and an org agent towards someone without an organisation just as little.
+ *   shared with groups      → only if the owner is in one of those groups.
  *
- * Een groepenlijst die niet te lezen was is leeg, en leeg betekent hier "in geen
- * enkele groep": onbekend versmalt, ook hier.
+ * A group list that could not be read is empty, and empty means here "in no group at all": unknown
+ * narrows, here too.
  *
- * `owner_id`-gelijkheid alléén zou te streng zijn (een automatisering mag een gedeelde
- * org-agent inzetten) en `organization_id`-gelijkheid alléén te ruim (de
- * ongedeelde agent van een collega hoort niet in de automatisering van een ander).
+ * `owner_id` equality alone would be too strict (an automation may use a shared org agent) and
+ * `organization_id` equality alone too broad (a colleague's unshared agent does not belong in someone
+ * else's automation).
  *
- * @param {object} agent   een rij zoals `agentStore.getForRuntime` hem geeft
- * @param {object} p       { userId, orgId, groups } van de AUTOMATION-EIGENAAR
+ * @param {object} agent   a row as `agentStore.getForRuntime` gives it
+ * @param {object} p       { userId, orgId, groups } of the AUTOMATION OWNER
  */
 
 function mayAutomationUseAgent(agent, { userId = null, orgId = null, groups = [] } = {}) {
     if (!agent) return false;
     if (agent.owner_id && userId && agent.owner_id === userId) return true;
     if (!agent.is_published) return false;
-    // Gedeeld is nog niet gepubliceerd — zie `servesPublishedConfig`.
+    // Shared is not yet published — see `servesPublishedConfig`.
     if (!servesPublishedConfig(agent)) return false;
     if (orgId) {
         if (!agent.organization_id || agent.organization_id !== orgId) return false;
@@ -126,21 +115,19 @@ function mayAutomationUseAgent(agent, { userId = null, orgId = null, groups = []
 }
 
 /**
- * De catalogus voor één definitie: de agent-ids die deze automatisering mag gebruiken.
+ * The catalogue for one definition: the agent ids that this automation may use.
  *
- * Alleen de ids die de definitie NOEMT worden opgezocht — niet de hele
- * bibliotheek. Een automatisering noemt er hooguit een handvol, en de vraag "welke
- * agents bestaan er nog meer" hoeft nergens beantwoord te worden om deze te
- * beantwoorden.
+ * Only the ids that the definition NAMES are looked up — not the whole library. An automation names at
+ * most a handful, and the question "which other agents exist" need not be answered anywhere to answer
+ * this one.
  *
- * @returns {Promise<Set<string>|null>} `null` = niet na te gaan (geen
- *   catalogus, dus geen regel; de run controleert opnieuw). Nooit een
- *   halve Set: één mislukte lookup zet de hele pass uit.
+ * @returns {Promise<Set<string>|null>} `null` = not checkable (no catalogue, so no rule; the run checks
+ *   again). Never a half Set: one failed lookup switches the whole pass off.
  */
 async function agentCatalogFor(definition, { userId = null, orgId = null, groups = [], deps = {} } = {}) {
     const ids = collectAgentIds(definition);
-    // Geen agent-stap ⇒ een lege catalogus, geen `null`: er valt niets na te
-    // gaan, en `null` zou "de check kon niet draaien" betekenen.
+    // No agent step ⇒ an empty catalogue, not `null`: there is nothing to check, and `null` would mean
+    // "the check could not run".
     if (!ids.length) return new Set();
     try {
         const store = deps.agentStore || require('../stores/agentStore');
@@ -151,43 +138,39 @@ async function agentCatalogFor(definition, { userId = null, orgId = null, groups
         }
         return usable;
     } catch (e) {
-        // Zie de kop: een storing mag geen weigering worden. Zonder catalogus
-        // slaat `stepRules.js` de identiteitsregel over en blijft de run-check
-        // de poort.
+        // See the heading: a failure must not become a refusal. Without a catalogue `stepRules.js` skips the
+        // identity rule and the run check remains the gate.
         log.warn('[automation/agentCatalog] agent lookup unavailable — saving without the agent check:', e.message);
         return null;
     }
 }
 
 /**
- * De catalogus voor één definitie, met de IDENTITEIT die de run gebruikt.
+ * The catalogue for one definition, with the IDENTITY that the run uses.
  *
- * ── WAAROM DIT NAAST agentCatalogFor STAAT ──────────────────────────
- * `agentCatalogFor` krijgt `{userId, orgId, groups}` aangereikt, en dat is
- * precies het stuk dat elke aanroeper anders deed: de activatie-route pakte de
- * STEMPEL op de automation-rij (`a.organizationId`) met de sessie als terugval, de
- * run leest het LIDMAATSCHAP van de eigenaar vers uit `users`
- * (`ctx.userHomeOrgId`, execution.js), en de kiezer weer iets anders. Drie
- * antwoorden op één vraag betekent dat een van de drie een automatisering goedkeurt
- * die de run weigert — groen op het scherm, elke nacht `agent_unavailable`.
+ * ── WHY THIS STANDS BESIDE agentCatalogFor ──────────────────────────
+ * `agentCatalogFor` is given `{userId, orgId, groups}`, and that is precisely the part that each caller
+ * did differently: the activation route took the STAMP on the automation row (`a.organizationId`) with
+ * the session as fallback, the run reads the MEMBERSHIP of the owner fresh from `users`
+ * (`ctx.userHomeOrgId`, execution.js), and the picker something else again. Three answers to one question
+ * means that one of the three approves an automation that the run refuses — green on screen,
+ * `agent_unavailable` every night.
  *
- * Dus staat de vraag hier één keer, en stellen alle save- en activatiepaden hem
- * zo: de EIGENAAR van de automatisering, zijn huidige organisatie, zijn huidige
- * groepen. Een beheerder die iemand naar een andere organisatie verplaatst
- * verandert daarmee wat zijn automatiseringen mogen — dat is het antwoord dat klopt,
- * want het is ook wat de run doet.
+ * So the question is asked here once, and all save and activation paths ask it in this way: the OWNER of
+ * the automation, his current organisation, his current groups. An administrator who moves someone to
+ * another organisation thereby changes what that person's automations may do — that is the answer that is
+ * right, because it is also what the run does.
  *
- * Fail-open in zijn GEHEEL, net als `agentCatalogFor`: een identiteitslezing
- * die niet lukt levert `null` (geen catalogus, dus geen regel), nooit een halve
- * Set waarin een agent ten onrechte als "mag niet" wordt gerapporteerd.
+ * Fail-open as a WHOLE, just like `agentCatalogFor`: an identity read that fails yields `null` (no catalogue,
+ * so no rule), never a half Set in which an agent is wrongly reported as "not allowed".
  *
- * @param {object} definition  de automation-definitie
- * @param {string} ownerId     de EIGENAAR van de automatisering (niet de drukker)
+ * @param {object} definition  the automation definition
+ * @param {string} ownerId     the OWNER of the automation (not the person pressing the button)
  * @returns {Promise<Set<string>|null>}
  */
 async function agentCatalogForOwner(definition, ownerId, { deps = {} } = {}) {
-    // Geen agent-stap ⇒ geen enkele lookup. Een lege Set, niet `null`: er valt
-    // niets na te gaan, en `null` zou "de check kon niet draaien" betekenen.
+    // No agent step ⇒ no lookup at all. An empty Set, not `null`: there is nothing to check, and `null` would
+    // mean "the check could not run".
     if (!collectAgentIds(definition).length) return new Set();
     if (!ownerId) return null;
     let orgId = null;

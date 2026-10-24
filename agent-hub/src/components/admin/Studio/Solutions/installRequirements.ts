@@ -5,33 +5,32 @@ const ENTITY_KINDS = ['automations', 'apps', 'webpages', 'datatables', 'agents',
 /** The sentinel a table row uses for "make me an empty one". */
 export const CREATE_EMPTY = '__create_empty__';
 
-/** Hoe lang een bewering uit een bestand mag zijn voor hij wordt afgekapt. */
+/** How long a claim from a file may be before it is truncated. */
 const MAX_CLAIM_CHARS = 200;
 
 /**
- * Wat het bestand over zijn eigen herkomst BEWEERT.
+ * What the file CLAIMS about its own origin.
  *
- * ── Waarom dit een eigen functie is, en niet `manifest.source` ────────────
+ * ── Why this is its own function, and not `manifest.source` ────────────
  *
- * Dit is invoer van buiten: het bestand komt van de schijf van de installateur
- * en iedereen met een teksteditor kan er in zetten wat hij wil. Drie regels
- * gelden daarom hier, en ze hebben allemaal met TONEN te maken — beslissen doet
- * dit scherm niets:
+ * This is input from outside: the file comes from the installer's disk, and anyone
+ * with a text editor can put in whatever they want. Three rules therefore apply
+ * here, and they all have to do with DISPLAY — deciding is not something this
+ * screen does:
  *
- *   1. GEEN TOEGANG. `orgId` en `orgName` geven nergens recht op. De server
- *      beslist met blueprintStore.canRead over de ECHTE galerijrij; wat hier
- *      staat raakt die vraag niet aan (server/projects/packaging/install.js,
- *      `provenanceOf`).
- *   2. EEN NAAM UIT EEN BESTAND IS EEN BEWERING. De wizard zet er de zin
- *      "dit bestand zégt…" omheen, nooit een kale afzender — anders leest
- *      andermans naam als een vastgesteld feit.
- *   3. ALLEEN STRINGS, EN BEGRENSD. Een object, een array of een naam van
- *      tienduizend tekens wordt hier null of afgekapt, zodat de rest van dit
- *      scherm nooit iets anders dan tekst in handen krijgt.
+ *   1. NO ACCESS. `orgId` and `orgName` grant nothing. The server decides with
+ *      blueprintStore.canRead on the REAL gallery row; what is here does not touch
+ *      that question (server/projects/packaging/install.js, `provenanceOf`).
+ *   2. A NAME FROM A FILE IS A CLAIM. The wizard wraps it in the sentence “this file
+ *      claims…”, never a bare sender — otherwise another person's name reads as an
+ *      established fact.
+ *   3. STRINGS ONLY, AND BOUNDED. An object, an array or a name of ten thousand
+ *      characters becomes null or is truncated here, so that the rest of this screen
+ *      never receives anything but text.
  *
- * Dezelfde normalisatie als `readSource` op de server, en met opzet niet
- * gedeeld: dit is de TONENDE helft, en zij mag nooit de indruk wekken dat het
- * scherm de bewering ergens voor gebruikt.
+ * The same normalisation as `readSource` on the server, and deliberately not shared:
+ * this is the DISPLAYING half, and it must never give the impression that the screen
+ * uses the claim for anything.
  */
 function readSourceClaim(manifest: unknown): SourceClaim {
     const raw: Obj = isObject(manifest) && isObject(manifest.source) ? manifest.source : {};
@@ -219,8 +218,8 @@ export function readBlueprint(manifest: unknown): BlueprintRead {
         // verbatim: it is the most valuable thing on the export screen, and it
         // is worth exactly as much to whoever is about to install.
         notCarried: list((solution.report as Obj | undefined)?.warnings).filter(w => typeof w === 'string'),
-        // Wat het BESTAND over zijn eigen herkomst zegt. Een bewering, en het
-        // scherm toont hem als bewering — zie readSourceClaim.
+        // What the FILE says about its own origin. A claim, and the screen shows it as a
+        // claim — see readSourceClaim.
         source: readSourceClaim(manifest),
         requires: { tables: [...tables.values()], connections, approvers },
         grants: collectGrantRows(entities),

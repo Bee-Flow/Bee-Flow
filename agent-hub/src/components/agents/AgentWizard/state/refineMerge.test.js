@@ -58,8 +58,8 @@ describe('buildRefineContext', () => {
             does: ['Answer questions'],
             doesNot: ['Never promise a refund.'],
         });
-        // De drie velden met gevolgen (een app, strenge kennis, een grant) en
-        // de modus zijn niet van het model.
+        // The three fields with consequences (an app, strict knowledge, a grant) and
+        // the mode are not the model's.
         expect(ctx.plan.persona.unknown).toBeUndefined();
         expect(ctx.plan.persona.mode).toBeUndefined();
     });
@@ -193,22 +193,21 @@ describe('mergeRefinedPlan — persona (A1c)', () => {
     });
 
     it('een persona die NIET GELEZEN kon worden laat de kolom met rust', () => {
-        // De lijstroute strippt `persona` (agentCrud._stripPersona), dus alles
-        // hangt aan de extra `GET /agents/:id?draft=1` — en die kan 403'en. Op
-        // dat antwoord bouwde deze functie een verse persona in VRIJE modus over
-        // een agent die in de kolom `{mode:'fields', unknown:{mode:'handoff',
-        // automationId:'auto-1'}, language:'nl'}` kan hebben staan: de
-        // doorgeef-automation en de taalregel stil weg, en de vijf rolkaarten
-        // alleen-lezen. `undefined` laat de PUT het veld weg.
+        // The list route strips `persona` (agentCrud._stripPersona), so everything hangs on
+        // the extra `GET /agents/:id?draft=1`, and that can 403. On that answer this function
+        // built a fresh persona in FREE mode over an agent that may have
+        // `{mode:'fields', unknown:{mode:'handoff', automationId:'auto-1'}, language:'nl'}`
+        // in the column: the hand-off automation and the language rule silently gone, and the
+        // five role cards read-only. `undefined` lets the PUT omit the field.
         const merged = mergeRefinedPlan(currentState(), { systemPrompt: 'Be warm.' }, {}, opts);
         expect(merged.persona).toBeUndefined();
         expect(merged.systemPrompt).toBe('Be warm.');
     });
 
     it('…maar een agent die nog GEEN rij heeft krijgt er wél een', () => {
-        // `noStoredPersona` is het enige antwoord dat zegt "er staat niets in de
-        // kolom". Zonder die uitzondering zou de eerste verfijning van een verse
-        // agent nooit een persona schrijven en bleef de Rol-tab alleen-lezen.
+        // `noStoredPersona` is the only answer that says "there is nothing in the column".
+        // Without that exception, the first refinement of a fresh agent would never write a
+        // persona, and the Role tab would stay read-only.
         const fresh = { ...currentState(), noStoredPersona: true };
         const merged = mergeRefinedPlan(fresh, { systemPrompt: 'Be warm.' }, {}, opts);
         expect(merged.persona).toEqual({
@@ -220,11 +219,10 @@ describe('mergeRefinedPlan — persona (A1c)', () => {
     });
 
     it('een verfijning kan een regel ook WEGHALEN als het plan een rolblok draagt', () => {
-        // "Absent/leeg ⇒ behouden" was ongevaarlijk toen het prompt de bron was.
-        // Nu de velden de bron zijn, betekende het dat de eigenaar "je mág
-        // voortaan over terugbetalingen praten" kon vragen, het model de regel
-        // netjes uit `doesNot` én uit het prompt haalde, en de server hem
-        // daarna gewoon terugrendeerde uit de bewaarde `doesNot`.
+        // "Absent/empty means keep" was harmless when the prompt was the source.
+        // Now that the fields are the source, it meant that the owner could say "you may
+        // now talk about refunds", the model neatly removed the rule from `doesNot` and from
+        // the prompt, and the server then simply re-rendered it from the stored `doesNot`.
         const merged = mergeRefinedPlan(withPersona(), {
             systemPrompt: 'Be warm and helpful.',
             persona: { who: 'Support', tone: { chips: [], text: '' }, does: ['answer'], doesNot: [] },
@@ -232,7 +230,7 @@ describe('mergeRefinedPlan — persona (A1c)', () => {
         expect(merged.persona.doesNot).toEqual([]);
         expect(merged.persona.does).toEqual(['answer']);
         expect(merged.persona.tone).toEqual({ chips: [], text: '' });
-        // De instellingen die het plan niet noemt reizen nog steeds mee.
+        // The settings that the plan does not mention still travel along.
         expect(merged.persona.unknown).toEqual({ mode: 'web', automationId: null });
         expect(merged.persona.language).toBe('nl');
     });
@@ -243,21 +241,21 @@ describe('mergeRefinedPlan — persona (A1c)', () => {
     });
 });
 
-// ── A3: de wizard schrijft de eerste versie naar de VELDEN ──────────
+// ── A3: the wizard writes the first version to the FIELDS ──────────
 //
-// De wizard maakt eerst een lege agent (`POST /agents` met systemPrompt: '')
-// en geeft de ene zin dan aan de verfijn-rail. Dat is de "eerste versie", en
-// vanaf A3 is de rol een VELD, geen prozablok — anders staan de vijf kaarten
-// van de Rol-tab bij vrijwel elke agent alleen-lezen.
+// The wizard first creates an empty agent (`POST /agents` with systemPrompt: '') and
+// then hands the one sentence to the refine rail. That is the "first version", and from
+// A3 on the role is a FIELD, not a prose block. Otherwise the five cards of the Role tab
+// would be read-only for nearly every agent.
 describe('mergeRefinedPlan — de eerste versie uit één zin', () => {
     const opts = {
         availableIntegrationIds: ['gmail'],
         selectableTierKeys: ['fast', 'thinking'],
     };
-    // De agent zoals de wizard hem net aanmaakte: geen prompt, en nog geen RIJ.
-    // `noStoredPersona` zegt dat er niets in de kolom staat om te beschermen —
-    // iets anders dan een persona die we niet KONDEN lezen (die krijgt hieronder
-    // zijn eigen tests, en die laat de kolom met rust).
+    // The agent as the wizard just created it: no prompt, and no ROW yet.
+    // `noStoredPersona` says there is nothing in the column to protect. Something other
+    // than a persona we could not READ (that gets its own tests below, and it leaves the
+    // column alone).
     const freshAgent = () => ({
         name: 'Untitled',
         description: '',
@@ -291,8 +289,8 @@ describe('mergeRefinedPlan — de eerste versie uit één zin', () => {
     });
 
     it('laat een agent die AL een vrije instructie heeft in vrije modus staan', () => {
-        // De harde belofte: wie zijn instructie zelf schrijft, vindt hem na een
-        // verfijning niet vervangen door vijf velden.
+        // The hard promise: whoever writes his instruction himself must not find it, after a
+        // refinement, replaced by five fields.
         const current = { ...freshAgent(), systemPrompt: 'Ik heb dit zelf getypt.' };
         const merged = mergeRefinedPlan(current, planWithRole(), {}, opts);
         expect(merged.persona.mode).toBe('free');
@@ -322,9 +320,9 @@ describe('mergeRefinedPlan — de eerste versie uit één zin', () => {
     });
 
     it('valt terug op vrije modus als het plan geen rol draagt', () => {
-        // Een oudere server, of een model dat het blok oversloeg. Dan is de
-        // prozatekst het enige dat er is, en die mag niet weggegooid worden
-        // voor velden die uit description + capabilities geraden zijn.
+        // An older server, or a model that skipped the block. Then the prose text is the only
+        // thing there is, and it may not be thrown away for fields guessed from
+        // description + capabilities.
         const plan = planWithRole();
         delete plan.persona;
         const merged = mergeRefinedPlan(freshAgent(), plan, {}, opts);
@@ -346,7 +344,7 @@ describe('hasFreeInstruction', () => {
         expect(hasFreeInstruction({ systemPrompt: 'iets' })).toBe(true);
         expect(hasFreeInstruction({ persona: { mode: 'free', freeText: 'iets' } })).toBe(true);
         expect(hasFreeInstruction({ persona: { mode: 'free', freeText: '' }, systemPrompt: '' })).toBe(false);
-        // Veldmodus: het prompt is de rendering van de velden, geen eigen tekst.
+        // Field mode: the prompt is the rendering of the fields, not text of its own.
         expect(hasFreeInstruction({ persona: { mode: 'fields' }, systemPrompt: 'gerenderd' })).toBe(false);
         // Onbekende persona + tekst in het prompt ⇒ de smalle lezing: die tekst
         // is van iemand tot het tegendeel blijkt.

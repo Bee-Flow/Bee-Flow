@@ -145,10 +145,9 @@ async function discoverUser(userId) {
     const ended = await listRecentlyEndedMeetMeetings({ session, lookbackHours: settings.lookbackHours });
     for (const m of ended) {
         if (settings.importScope === 'organizer' && !m.organizerSelf) continue;
-        // autoImport is hierboven al gecontroleerd; binnen die schakelaar
-        // beslist de voorkeur, inclusief de 1-op-1-standaard (het aantal komt
-        // uit de deelnemerslijst van de agenda-afspraak; ontbreekt die, dan is
-        // het onbekend en versmalt het).
+        // autoImport was already checked above; within that switch the preference decides,
+        // including the 1-on-1 default (the count comes from the participant list of the calendar
+        // appointment; if that is missing, the count is unknown and it narrows).
         const decision = prefs.decide({
             ids: meetingPrefs.gmeetIds({ eventId: m.eventId, meetingCode: m.meetingCode }),
             participantCount: meetingPrefs.participantCountOf(m),
@@ -370,11 +369,10 @@ async function processClaimedJob(job) {
     // Re-resolve settings at claim time — an exclusion or opt-out flipped
     // after seeding must still win.
     const settings = await resolveGmeetNotesSettings({ orgId: job.orgId, userId: job.userId });
-    // Alleen de EXPLICIETE mening wordt hier opnieuw gelezen, niet de hele
-    // beslissing: de 1-op-1-standaard is bij het seeden al toegepast met de
-    // deelnemerslijst van de agenda, en de jobrij draagt die lijst niet. Zou je
-    // decide() hier herhalen, dan las "geen deelnemers bekend" als onbekend en
-    // werd élke job overgeslagen.
+    // Only the EXPLICIT opinion is read again here, not the whole decision: the 1-on-1 default was already
+    // applied when seeding, with the participant list of the agenda, and the job row does not carry that
+    // list. Were one to repeat decide() here, "no participants known" would read as unknown and
+    // EVERY job would be skipped.
     const meetingPrefs = require('../../stores/meetingPrefsStore');
     const prefs = await meetingPrefs.loadMeetingPrefs({ provider: 'gmeet', userId: job.userId, orgId: job.orgId });
     const excluded = prefs.opinionFor(

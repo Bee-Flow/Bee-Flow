@@ -52,39 +52,28 @@ function _buildAppIndex() {
     try {
         const registry = featureModule('automation/toolRegistry');
         const { ALL_TOOL_APPS } = registry;
-        // ── "LOADTOOLS GOOIDE" WAS GEEN SIGNAAL (A2-tegenspraak) ────
-        // De echte `loadTools` vangt zijn eigen fout en geeft `[]` terug, dus
-        // de catch hieronder ging NOOIT af: een module die niet laadt leverde
-        // `byApp.set(app, [])`, `ok` bleef true, en elke naam van die app werd
-        // ONGEATTRIBUEERD — de lezing die voor `set_reminder` bedoeld is en die
-        // elke per-app-grant passeert. `loadToolsResult` geeft de storing terug
-        // als waarde; dat is het verschil tussen "deze app heeft geen tools" en
-        // "ik kon deze app niet lezen".
+        // ── "LOADTOOLS THREW" WAS NOT A SIGNAL (A2 contradiction) ────
+        // The real `loadTools` catches its own error and returns `[]`, so the catch below NEVER fired: a module that did not load
+        // yielded `byApp.set(app, [])`, `ok` stayed true, and every name of that app became UNATTRIBUTED — the reading that is
+        // meant for `set_reminder` and that every per-app grant passes. `loadToolsResult` returns the fault as a value; that is the
+        // difference between "this app has no tools" and "I could not read this app".
         //
-        // Een registry ZONDER die functie (een oudere stub) kan die twee niet
-        // uit elkaar houden. Dan is leeg het smalle antwoord: liever een
-        // degraded index — waarin een gecureerde agent niets uit het registry
-        // krijgt — dan een index die stilzwijgend alles doorlaat.
+        // A registry WITHOUT that function (an older stub) cannot tell those two apart. Then empty is the narrow answer: better a
+        // degraded index — in which a curated agent gets nothing from the registry — than an index that silently lets everything through.
         const readTools = typeof registry.loadToolsResult === 'function'
             ? (e) => registry.loadToolsResult(e)
             : (e) => { const t = registry.loadTools(e) || []; return { tools: t, ok: t.length > 0 }; };
         for (const entry of ALL_TOOL_APPS || []) {
             if (!entry || !entry.app) continue;
             if (entry.grantsRequireEntry === true) requiresEntry.add(entry.app);
-            // ── TWEE ENTRIES, ÉÉN SET NAMEN (A2-4) ──────────────────
-            // `outlook` en `outlook-readonly` laden dezelfde module: dezelfde
-            // namen, dezelfde credentials, waarvan de tweede een strikte
-            // subset levert. Eigendom volgde tot A2-4 de VOLGORDE van het
-            // registry ("de eerste wint"), dus bezat `outlook-readonly` geen
-            // enkele naam en ging een grant die daarop was opgeslagen nergens
-            // over — opslaanbaar en stil dood, precies wat de modulekop
-            // verbiedt.
+            // ── TWO ENTRIES, ONE SET OF NAMES (A2-4) ──────────────────
+            // `outlook` and `outlook-readonly` load the same module: the same names, the same credentials, of which the second supplies
+            // a strict subset. Ownership followed the ORDER of the registry until A2-4 ("the first wins"), so `outlook-readonly` owned
+            // no name and a grant stored on it went nowhere — storable and silently dead, exactly what the module header forbids.
             //
-            // Nu wijst het registry de eigenaar AAN (`grantsVia`): een entry
-            // die zijn grants elders laat lopen, bezit nooit een naam. Twee
-            // rijen omwisselen kan het eigendom dus niet meer verplaatsen — en
-            // daarmee ook niet de plek waar de identiteitsvraag (`actAs`)
-            // wordt beantwoord.
+            // Now the registry points the owner OUT (`grantsVia`): an entry that lets its grants run elsewhere never owns a name.
+            // Swapping two rows can therefore no longer move the ownership — and with it the place where the identity question
+            // (`actAs`) is answered.
             const defersTo = typeof entry.grantsVia === 'string' && entry.grantsVia ? entry.grantsVia : null;
             if (defersTo) defersGrants.add(entry.app);
             let res;
@@ -96,9 +85,8 @@ function _buildAppIndex() {
                 const name = t && t.function && t.function.name;
                 if (typeof name !== 'string' || !name) continue;
                 names.push(name);
-                // Iedereen die de naam LEVERT wordt onthouden, ook de app die
-                // hem niet bezit: `isToolAllowed` laat elke claimende app zijn
-                // grant uitspreken, zodat de smalste wint.
+                // Everyone who SUPPLIES the name is remembered, including the app that
+                // does not own it: `isToolAllowed` lets every claiming app state its grant, so the narrowest wins.
                 if (!claimants.has(name)) claimants.set(name, []);
                 const ids = claimants.get(name);
                 if (!ids.includes(entry.app)) ids.push(entry.app);
@@ -106,11 +94,9 @@ function _buildAppIndex() {
             }
             byApp.set(entry.app, names);
         }
-        // Een naam die alleen door uitstellende entries wordt geleverd (de
-        // eigenaar ontbreekt of laadde niet) mag niet als ONGEATTRIBUEERD
-        // eindigen: dat is de lezing die voor `set_reminder` is bedoeld en die
-        // elke per-app-grant zou passeren. De eerste claimende app is dan de
-        // eigenaar, en de grants van de rest blijven meebeslissen.
+        // A name that is supplied only by deferring entries (the owner is missing or did not load) may not end up UNATTRIBUTED: that is
+        // the reading that is meant for `set_reminder` and that every per-app grant would pass. The first claiming app is then the
+        // owner, and the grants of the rest keep deciding.
         for (const [name, ids] of claimants) {
             if (!byTool.has(name) && ids.length) byTool.set(name, ids[0]);
         }
@@ -131,11 +117,9 @@ function _buildAppIndex() {
         ok = false;
         log.error('[ToolPolicy] Tool registry produced an empty index — treating attribution as degraded');
     } else if (failed.length) {
-        // Precies zeggen wat er gebeurt: de namen van DEZE apps zijn niet meer
-        // te attribueren, en een gecureerde agent krijgt die dus niet meer. De
-        // apps die wél laadden blijven gewoon door hun eigen grant beslist —
-        // dat is geen verbreding (het was daar al zo) en het scheelt een
-        // volledige toolbelt bij één kapotte module.
+        // Say precisely what happens: the names of THESE apps can no longer be attributed, and a curated agent therefore no longer gets
+        // them. The apps that DID load remain decided by their own grant — that is not a widening (it was that way there already),
+        // and it saves a complete tool belt when one module breaks.
         log.error(`[ToolPolicy] Tool registry entries failed to load (${failed.join(', ')}) — ` +
             'attribution is incomplete: a curated agent is served NONE of their tools until it recovers');
     }
@@ -220,11 +204,9 @@ function _decidingApps(appId, toolName) {
  * could not show until A2-1 — `grantsRequireEntry` in
  * automation/toolRegistry.js.
  *
- * De DECLARATIE wordt gelezen voordat de module wordt geladen, dus een app
- * waarvan alleen de tools niet laden staat er nog steeds in — de smalle kant.
- * Een registry die als geheel onleesbaar is levert een lege set en dus `false`;
- * dat verbreedt niets, want de degraded tak in `isToolAllowed` hierboven
- * weigert die namen dan sowieso.
+ * The DECLARATION is read before the module is loaded, so an app whose tools alone do not load is still in there — the narrow
+ * side. A registry that is unreadable as a whole yields an empty set and therefore `false`; that widens nothing, because the
+ * degraded branch in `isToolAllowed` above refuses those names anyway.
  */
 function appRequiresExplicitGrant(appId) {
     if (typeof appId !== 'string' || !appId) return false;

@@ -93,9 +93,9 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
                 enabledIntegrations: stateRef.current.config?.enabledIntegrations || [],
                 attachedSkills,
                 knowledge_base_ids: stateRef.current.config?.knowledge_base_ids || [],
-                // De rol zoals hij NU is, zodat een verfijning hem kan
-                // bijstellen in plaats van hem opnieuw te verzinnen. Alleen de
-                // vier beschrijvende velden reizen mee — zie personaFieldsOf.
+                // The role as it IS NOW, so that a refinement can adjust it
+                // instead of inventing it anew. Only the four descriptive fields travel
+                // along. See personaFieldsOf.
                 persona: currentPersona,
             });
             const res = await authFetch(`${API_BASE}/agents/wizard/refine`, {
@@ -126,16 +126,15 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
             }
             const { plan: updated, preserved } = await res.json();
 
-            // HET UNDO-PUNT, vóór de merge. Een pre_refine-rij is een gewone
-            // agent_versions-rij, dus "ongedaan maken" is daarna een gewone
-            // restore — één niveau diep, en van precies dit moment.
+            // THE UNDO POINT, before the merge. A pre_refine row is an ordinary
+            // agent_versions row, so "undo" afterwards is an ordinary restore: one
+            // level deep, and of exactly this moment.
             //
-            // De snapshot wordt pas NA een geslaagd antwoord genomen: een
-            // mislukte verfijning verandert niets en hoort dus geen
-            // herstelpunt achter te laten. Lukt de snapshot niet, dan gaat de
-            // verfijning gewoon door (de gebruiker vroeg erom) maar draagt de
-            // beurt `undoVersionId: null` en zégt de knop dat er niets te
-            // herstellen is.
+            // The snapshot is only taken AFTER a successful answer. A failed
+            // refinement changes nothing and therefore should not leave a restore
+            // point behind. If the snapshot does not succeed, the refinement simply
+            // goes ahead (the user asked for it), but the turn carries
+            // `undoVersionId: null` and the button says there is nothing to restore.
             let undoVersionId: string | null = null;
             if (agent?.id) {
                 try {
@@ -171,18 +170,17 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
             }
             const resolvedSkillIds = Array.from(attach);
 
-            // De staat ZOALS HIJ NU IS — één object, want het is tegelijk de
-            // invoer van de merge en de linkerkant van de diff die de
-            // "Gedaan"-beurt toont. `config` is hier nog de OUDE referentie;
-            // mergeRefinedPlan bouwt een nieuw object, dus de diff blijft
-            // achteraf leesbaar.
+            // The state AS IT IS NOW: one object, because it is at once the input of the
+            // merge and the left side of the diff that the "Done" turn shows. `config`
+            // here is still the OLD reference; mergeRefinedPlan builds a new object, so
+            // the diff remains readable afterwards.
             //
-            // `persona` komt NIET uit stateRef maar uit de geladen agent: dat
-            // is wat er echt in de kolom staat, en zonder die invoer zou een
-            // tweede verfijning de instellingen die de verfijning niet noemt
-            // (toon, taal) verliezen — personaAfterRefine draagt ze alleen over
-            // als hij ze meekrijgt. Onbekend blijft `undefined`, en dat betekent
-            // "laat de kolom staan", niet "wis hem".
+            // `persona` does NOT come from stateRef but from the loaded agent. That is
+            // what is actually in the column, and without that input a second refinement
+            // would lose the settings that the refinement does not mention (tone,
+            // language). personaAfterRefine carries them over only if it receives them.
+            // Unknown stays `undefined`, and that means "leave the column alone", not
+            // "wipe it".
             const before = {
                 name,
                 description,
@@ -191,11 +189,10 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
                 model: stateRef.current.model,
                 config: stateRef.current.config,
                 persona: currentPersona ?? undefined,
-                // "Er is nog geen rij" — het enige antwoord dat de merge een
-                // verse persona laat schrijven. Zonder deze vlag betekent een
-                // ontbrekende persona "niet gelezen", en dan blijft de kolom
-                // staan in plaats van overschreven te worden met een persona
-                // waar `unknown` en `language` uit weggevallen zijn.
+                // "There is no row yet": the only answer that lets the merge write a
+                // fresh persona. Without this flag a missing persona means "not read",
+                // and then the column stays in place instead of being overwritten with
+                // a persona from which `unknown` and `language` have been dropped.
                 noStoredPersona,
             };
 
@@ -219,13 +216,12 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
             stateRef.current.avatar = merged.avatar;
             stateRef.current.model = merged.model;
             stateRef.current.config = merged.config;
-            // De persona reist mee. Zonder deze regel beschreef `agents.persona`
-            // na een verfijning een prompt die niet meer bestaat: de merge
-            // rekende hem al uit (A1c), maar niemand schreef hem weg — en bij
-            // de eerstvolgende opslag rendert de server de OUDE velden gewoon
-            // over de nieuwe instructies heen. Eenmalig: getSnapshot stuurt hem
-            // mee en de bevestigde opslag ruimt hem weer op, zodat een gewone
-            // bewerking nooit ongevraagd een persona meestuurt.
+            // The persona travels along. Without this line `agents.persona` described a
+            // prompt that no longer exists after a refinement. The merge already
+            // calculated it (A1c), but nobody wrote it away, and at the next save the
+            // server renders the OLD fields straight over the new instructions.
+            // One-off: getSnapshot sends it along and the confirmed save clears it
+            // again, so that an ordinary edit never sends a persona unasked.
             stateRef.current.persona = merged.persona;
             setName(merged.name);
             setDescription(merged.description);
@@ -240,11 +236,10 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
             // ONE atomic save of the merged snapshot.
             queueSave(true);
 
-            // De "Gedaan: …"-beurt: wat er FEITELIJK veranderde (de diff van de
-            // merge, niet het plan dat het model terugstuurde) plus het
-            // undo-punt. `undoVersionId: null` is een echte waarde — de kaart
-            // zegt dan dat er niets te herstellen valt, in plaats van iets
-            // anders terug te zetten.
+            // The "Done: …" turn: what ACTUALLY changed (the diff of the merge, not the
+            // plan that the model sent back), plus the undo point. `undoVersionId: null`
+            // is a real value: the card then says there is nothing to restore, instead
+            // of putting something else back.
             setChat(prev => [...prev, {
                 role: 'done',
                 changes: diffRefinedPlan(before, merged),

@@ -2,40 +2,38 @@
 'use strict';
 
 /**
- * Knowledge Store — INGETROKKEN (Track Z, Z5). Bewust een lege stub.
+ * Knowledge Store — WITHDRAWN (Track Z, Z5). Deliberately an empty stub.
  *
- * (a) De tabel `knowledge_metadata` (per-agent kennis) is ingetrokken. De REST-router
- *     die er als enige naar schreef — server/routes/knowledge.js, gemount op
- *     /agents/:id/knowledge — is verwijderd, samen met zijn twee testbestanden en de
- *     mountregel in server/index.js. Niets in het product las die tabel ooit: de
- *     agent-runtime doet retrieval over knowledge_bases/documents/chunks
- *     (core/agentRuntime/knowledgeSearch.js, core/kb/*), de frontend en de mobiele
- *     app praten uitsluitend met /api/kb. Wat hier werd opgeslagen bereikte dus nooit
- *     een prompt — het werd wel geëmbed, betaald en bewaard.
+ * (a) The table `knowledge_metadata` (per-agent knowledge) is withdrawn. The REST router
+ *     that was its only writer — server/routes/knowledge.js, mounted on
+ *     /agents/:id/knowledge — has been deleted, together with its two test files and the mount
+ *     line in server/index.js. Nothing in the product ever read that table: the
+ *     agent runtime retrieves over knowledge_bases/documents/chunks
+ *     (core/agentRuntime/knowledgeSearch.js, core/kb/*), and the frontend and the mobile
+ *     app talk exclusively to /api/kb. What was stored here therefore never
+ *     reached a prompt — it was embedded, paid for and kept.
  *
- *     Meegenomen defecten die met dit bestand de codebase verlaten: een ongescopete
- *     verwijder-query (op id, zonder agent_id — een BOLA: agent A kon een item van
- *     agent B raken), een fail-open entitlementcheck (`.length` op een Promise → altijd
- *     0 → de limiet beet nooit) en leespaden die sinds de pgvector-herschrijving `{}`
- *     teruggaven omdat er niet geawait werd.
+ *     Defects that leave the codebase with this file: an unscoped delete query (on id, without
+ *     agent_id — a BOLA: agent A could touch an item of agent B), a fail-open entitlement check
+ *     (`.length` on a Promise → always 0 → the limit never bit) and read paths that returned `{}`
+ *     since the pgvector rewrite because nothing was awaited.
  *
- *     Ook de tabeldefinitie is geschrapt, niet alleen de CRUD: zou de DDL hier blijven
- *     staan, dan maakt de migratieladder de tabel na de drop hieronder stil opnieuw aan.
+ *     The table definition has been dropped, not only the CRUD: if the DDL stayed here,
+ *     the migration ladder would silently recreate the table after the drop below.
  *
- * (b) Bestaande rijen worden NIET door deze code aangeraakt. Ze bevatten door gebruikers
- *     geüploade documenttekst en opgehaalde webpagina's — potentieel persoonsgegevens,
- *     die het verwijderen van een agent overleven en via geen enkel scherm meer wisbaar
- *     zijn. De EIGENAAR exporteert of wist ze als onderdeel van het bewaartermijnbeleid
- *     (per omgeving eerst tellen: aantal rijen en aantal distinct agent_id) en dropt de
- *     tabel daarna.
+ * (b) Existing rows are NOT touched by this code. They contain user-uploaded document
+ *     text and fetched web pages — potentially personal data, which survives the
+ *     deletion of an agent and can no longer be wiped through any screen. The OWNER exports or wipes
+ *     them as part of the retention policy (count first per environment: number of rows and
+ *     number of distinct agent_id) and drops the table afterwards.
  *
- * (c) Pas ná die drop mogen de laatste twee regels weg: de STORE_MODULES-entry
+ * (c) Only after that drop may the last two lines go: the STORE_MODULES entry
  *     `{ name: 'knowledgeStore', file: './stores/knowledgeStore' }` in
- *     server/migrateDb.js (regel 54) en dit bestand zelf. Die entry blijft tot dan staan
- *     omdat migrateDb.registration.test.js eist dat elk geregistreerd bestand bestaat en
- *     een awaitbare initDB exporteert; daarom staat hieronder een no-op initDB.
+ *     server/migrateDb.js (line 54) and this file itself. That entry stays until then
+ *     because migrateDb.registration.test.js requires that every registered file exists and
+ *     exports an awaitable initDB; that is why a no-op initDB sits below.
  *
- * De guard-tests bij dit bestand staan in stores/knowledgeStore.test.js.
+ * The guard tests for this file are in stores/knowledgeStore.test.js.
  */
 
 /**

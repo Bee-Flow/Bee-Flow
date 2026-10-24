@@ -1,43 +1,28 @@
 /**
- * De metaregel van een Gepland-rij: `tijd · duur · deelnemers` (de provider
- * staat als chip achter die stukken), plus de voetregel over wat er met de
- * ANDERE deelnemers gebeurt. Pure functies, zodat de regels waar het hier om
- * gaat los van de DOM te toetsen zijn.
+ * The meta line of a Scheduled row: `time · duration · participants` (the provider stands as a chip behind those pieces), plus the footer line about what happens to the OTHER participants. Pure functions, so that the rules that matter here can be tested without the DOM.
  *
- * ── WAT WE NIET WETEN, ZEGGEN WE NIET ─────────────────────────────────
- * Geen enkele provider levert een DUUR (gmeetCalendar.js:29-49 en
- * talkCalendar.js:66-75 geven alleen start/end), dus die wordt hier uit
- * `end - start` afgeleid. Ontbreekt `end`, of is de afspraak een hele dag (een
- * DATUM zonder tijd), dan is de duur ONBEKEND en staat er niets — geen "0 min".
- * Hetzelfde voor deelnemers: Talk leest ze uit de ICS-ATTENDEE-property
- * (nextcloudCalendarTools.js:205-208) en een ad-hoc room zonder agenda-afspraak
- * levert een LEGE lijst; leeg is "de agenda vertelde ons niets", niet "nul
- * mensen". Een nul die eigenlijk onbekend is, was in dit programma al drie keer
- * een bevinding.
+ * ── WHAT WE DO NOT KNOW, WE DO NOT SAY ─────────────────────────────────
+ * No single provider supplies a DURATION (gmeetCalendar.js:29-49 and talkCalendar.js:66-75 give only start/end), so that is derived here from `end - start`. If `end` is missing, or the appointment is a whole day (a DATE without a time), the duration is UNKNOWN and nothing is shown — not "0 min".
+ * The same goes for participants: Talk reads them from the ICS ATTENDEE property (nextcloudCalendarTools.js:205-208), and an ad-hoc room without a calendar appointment supplies an EMPTY list; empty means "the calendar told us nothing", not "zero people". A zero that is actually unknown has been a finding in this program three times already.
  */
 
 import { nOf } from '../../../components/admin/Studio/KnowledgeStudio/plural';
 import type { TranslateFn } from '../../../hooks/useTranslation';
 import { parseWhen, meetingDurationMinutes, dateBlockParts, timeRange } from './upcomingWhen';
 
-// De datumregels staan in een IMPORTLOZE buurmodule, zodat de hele-dag-fix in
-// een kindproces onder een negatieve tijdzone getoetst kan worden — in UTC
-// geven de goede en de foute implementatie hetzelfde antwoord. Hier
-// her-geëxporteerd zodat aanroepers en tests niets merken.
+// The date rules sit in an IMPORT-FREE sibling module, so that the whole-day fix
+// can be tested in a child process under a negative time zone — in UTC the good
+// and the bad implementation give the same answer. Re-exported here so that
+// callers and tests notice nothing.
 export { parseWhen, meetingDurationMinutes, dateBlockParts, timeRange };
 
 /**
- * Het aantal deelnemers, of NULL als de agenda er niets over zei.
+ * The number of participants, or NULL if the calendar said nothing about it.
  *
- * Dit spiegelt `meetingPrefsStore.participantCountOf` (server) — dezelfde
- * telling, want de server beslist er de 1-op-1-standaard mee en een rij die
- * "4 participants" toont terwijl de server met 5 rekende, verklaart de stand
- * van de toggle niet. De server-module is CommonJS in `server/` en dus niet
- * importeerbaar in de SPA; komt er ooit een `participantCount` in de payload,
- * dan wint die (en is deze afleiding alleen nog de terugval).
+ * This mirrors `meetingPrefsStore.participantCountOf` (server) — the same count, because the server uses it to decide the 1-on-1 default, and a row that shows "4 participants" while the server counted 5 does not explain the state of the toggle. The server module is CommonJS in `server/` and so cannot be imported into the SPA; if a `participantCount` ever appears in the payload, that wins, and this derivation is then only the fallback.
  *
- * Een LEGE deelnemerslijst levert NULL: dat is "de agenda vertelde ons niets".
- * Een 0 uit de payload is om dezelfde reden onbekend, niet nul mensen.
+ * An EMPTY participant list yields NULL: that is "the calendar told us nothing".
+ * A 0 from the payload is unknown for the same reason, not zero people.
  */
 export interface Attendee {
     email?: string;
@@ -126,7 +111,7 @@ export function attendeeCountOf(meeting: UpcomingMeeting | null | undefined): nu
     for (const entry of meeting.attendees) {
         const ident = identityOf(entry);
         if (ident) ids.add(String(ident).trim().toLowerCase());
-        else anon += 1;   // een deelnemer zonder naam is nog steeds een deelnemer
+        else anon += 1;   // a participant without a name is still a participant
     }
     const organizer = organizerIdentityOf(meeting);
     if (organizer) ids.add(String(organizer).trim().toLowerCase());
@@ -135,7 +120,7 @@ export function attendeeCountOf(meeting: UpcomingMeeting | null | undefined): nu
     return total > 0 ? total : null;
 }
 
-/** De tags van deze vergadering (meeting_prefs). Alles wat geen tekst is valt weg. */
+/** The tags of this meeting (meeting_prefs). Anything that is not text is dropped. */
 export function meetingTags(m: UpcomingMeeting | null | undefined): string[] {
     return (Array.isArray(m?.tags) ? m.tags : []).filter((x: string) => typeof x === 'string' && x.trim()).map((x: string) => x.trim());
 }
@@ -151,15 +136,11 @@ export function durationPhrase(minutes: number | null | undefined, t: TranslateF
 }
 
 /**
- * De stukken van de metaregel: tijd · duur · deelnemers.
+ * The pieces of the meta line: time · duration · participants.
  *
- * Een stuk dat we niet weten, staat er NIET. De enige uitzondering is het
- * aantal deelnemers: dat wordt "participants unknown", want het is precies de
- * reden dat de toggle standaard uit staat (`recordReason: 'unknown_size'`) en
- * een lege plek zou die stand onverklaard laten.
+ * A piece we do not know is NOT shown. The only exception is the number of participants: that becomes "participants unknown", because it is precisely the reason the toggle is off by default (`recordReason: 'unknown_size'`), and an empty spot would leave that state unexplained.
  *
- * `nOf` zet de ternary om de SLEUTEL heen (basis + `_plural`), nooit een
- * "participant(s)" in de zin.
+ * `nOf` places the ternary AROUND the KEY (base + `_plural`), never a "participant(s)" in the sentence.
  */
 export function metaSegments(m: UpcomingMeeting | null | undefined, t: TranslateFn): MetaSegment[] {
     const out: MetaSegment[] = [];
@@ -187,16 +168,11 @@ export function metaSegments(m: UpcomingMeeting | null | undefined, t: Translate
 }
 
 /**
- * Waarom staat deze toggle uit? Alleen als de server een reden meestuurde.
+ * Why is this toggle off? Only if the server sent a reason.
  *
- * `recordDecided === false` betekent: de server gaat er nog naar kijken (Talk
- * telt bij de start van het gesprek wie er echt in zit). Dan is "staat uit" de
- * verkeerde zin — die stand is nog niet genomen.
+ * `recordDecided === false` means: the server is still going to look at it (Talk counts who is really in the call at its start). Then "off" is the wrong sentence — that state has not yet been decided.
  *
- * `opted_out` krijgt een uitleg zodra de keuze NIET van de lezer zelf kwam
- * (`overridden`): een org-brede uitsluiting, of de serie-rij naast de
- * occurrence. Zonder dat onderscheid zag een gebruiker zijn eigen klik
- * terugspringen zonder één woord waarom.
+ * `opted_out` gets an explanation as soon as the choice did NOT come from the reader themselves (`overridden`): an organisation-wide exclusion, or the series row beside the occurrence. Without that distinction a user saw his own click jump back without a single word of why.
  */
 export function recordReasonHint(reason: string | null | undefined, record: boolean, t: TranslateFn, opts: RecordHintOptions = {}): string | undefined {
     const { recordDecided, overridden } = opts;
@@ -216,8 +192,7 @@ export function recordReasonHint(reason: string | null | undefined, record: bool
 }
 
 /**
- * Het woord onder de toggle. "Skip" is een BEWERING dat er niets gebeurt; bij
- * een nog niet genomen beslissing is dat onwaar.
+ * The word under the toggle. "Skip" is a CLAIM that nothing happens; with a decision not yet taken, that is untrue.
  */
 export function toggleStateLabel(record: boolean, recordDecided: boolean | undefined, t: TranslateFn): string {
     if (record) return t('meetings.upcoming_record', 'Record');
@@ -227,45 +202,20 @@ export function toggleStateLabel(record: boolean, recordDecided: boolean | undef
 }
 
 /**
- * Wat er met de ANDERE deelnemers gebeurt, en alleen wat waar is.
+ * What happens to the OTHER participants, and only what is true.
  *
- * Claim / ontken / zwijg:
- *   - Talk post de samenvatting alleen terug als `postSummaryBack` aan staat
- *     (default UIT, talkNotesSettings.js) — en dan nog met `silent: true`
- *     (ingestNextcloudRecording.js), dus het bericht staat in het gesprek
- *     zónder melding. "Deelnemers krijgen een melding" is daar dus óók niet
- *     waar; de zin zegt wat er echt gebeurt.
- *   - Staat `postSummaryBack` op false, dan mogen we dat ontkennen.
- *   - Zegt de payload er NIETS over (het veld ontbreekt), dan zwijgen we:
- *     onbekend is geen belofte en ook geen ontkenning.
- *   - Meet meldt zelf niets over de NOTITIE, maar deelt wél leesrecht met
- *     deelnemers die een eigen Bee Flow-account op hetzelfde Google-adres
- *     hebben (ingestGmeetRecording.js → resolveSharedWith). Leesrecht is geen
- *     melding — dat verschil staat in de zin.
+ * Claim / deny / stay silent:
+ *   - Talk posts the summary back only if `postSummaryBack` is on (default OFF, talkNotesSettings.js) — and even then with `silent: true` (ingestNextcloudRecording.js), so the message stands in the conversation WITHOUT a notification. "Participants receive a notification" is therefore not true there either; the sentence says what really happens.
+ *   - If `postSummaryBack` is false, we may deny that.
+ *   - If the payload says NOTHING about it (the field is missing), we stay silent: unknown is neither a promise nor a denial.
+ *   - Meet itself says nothing about the NOTE, but it does share read rights with participants who have their own Bee Flow account on the same Google address (ingestGmeetRecording.js → resolveSharedWith). Read rights are not a notification — that difference is in the sentence.
  *
- * ── DE OPNAMEMELDING VAN GOOGLE MEET ZELF ─────────────────────────────
- * De Meet-zin eindigde op "They are not notified", terwijl DEZELFDE toggle
- * Google Meets EIGEN auto-opname kan aanzetten: bij `record: true` met een
- * meetingCode roept de PATCH `setAutoRecording(...)` aan, wat `spaces.patch`
- * doet met `autoRecordingGeneration: 'ON'` (gmeetArtifacts.js). Meet kondigt
- * een lopende opname ALTIJD aan bij alle deelnemers. Die zin ontkende dus een
- * melding die de knop eronder juist veroorzaakt.
- * Vandaar de tweede Meet-regel, en alleen wanneer hij echt van toepassing is:
- * de org/gebruiker heeft `autoRecordConfig` aan, de Google-koppeling heeft de
- * settings-scope, en de lezer organiseert minstens één van de rijen die
- * daadwerkelijk geïmporteerd worden. Bij Talk staat de opnamemelding er
- * bewust NIET: die zet Nextcloud Talk zelf, op de server van de klant — dat is
- * gedrag van een ander product, geen belofte van ons. Hier zet Bee Flow de
- * vlag zélf, vanuit deze knop, dus hier is het wél onze uitspraak.
+ * ── THE GOOGLE MEET RECORDING NOTICE ITSELF ─────────────────────────
+ * The Meet sentence ended on "They are not notified", while THIS SAME toggle can switch on Google Meet's OWN auto-recording: with `record: true` and a meetingCode, the PATCH calls `setAutoRecording(...)`, which does `spaces.patch` with `autoRecordingGeneration: 'ON'` (gmeetArtifacts.js). Meet ALWAYS announces an ongoing recording to all participants. That sentence therefore denied a notification that the button beneath it actually causes.
+ * Hence the second Meet line, and only when it truly applies: the org/user has `autoRecordConfig` on, the Google connection has the settings scope, and the reader organises at least one of the rows that are actually imported. With Talk the recording notice is deliberately NOT there: Nextcloud Talk sets that itself, on the customer's server — that is behaviour of another product, not a promise from us. Here Bee Flow sets the flag ITSELF, from this button, so here it IS our statement.
  *
- * ── ALLEEN OVER RIJEN DIE ECHT EEN NOTITIE OPLEVEREN ──────────────────
- * `!excluded` is de stand van de SCHAKELAAR, niet de uitkomst: de route rekent
- * hem met `fallback: true` en heeft voor `will_record` óók de globale
- * schakelaar, de opnameback-end en het moderatorschap nodig (Meet: `autoImport`
- * plus de scopes). Op `!excluded` afgaan zette de belofte "de samenvatting
- * wordt teruggepost" onder een lijst waar de banner erboven meldde dat de
- * opname-back-end helemaal niet geconfigureerd is. Daarom telt hier de
- * STATUS die de rij zelf al draagt.
+ * ── ONLY ABOUT ROWS THAT ACTUALLY YIELD A NOTE ──────────────────────
+ * `!excluded` is the state of the SWITCH, not the outcome: the route computes it with `fallback: true` and for `will_record` also needs the global switch, the recording back-end and the moderator status (Meet: `autoImport` plus the scopes). Going by `!excluded` set the promise "the summary will be posted back" under a list where the banner above reported that the recording back-end is not configured at all. Therefore the STATUS that the row itself already carries counts here.
  */
 export const NOTICE_TALK_POST = Object.freeze({
     key: 'meetings.upcoming_notice_talk_post',
@@ -293,7 +243,7 @@ export const NOTICE_TEAMS_AUTORECORD = Object.freeze({
     en: 'Microsoft Teams: switching a meeting you organise on also turns on Teams’ own automatic recording, and Teams shows everyone in the call that it is being recorded.',
 });
 
-/** De statussen waarin er werkelijk een notitie uit deze rij gaat komen. */
+/** The states in which a note will really come out of this row. */
 const PRODUCES_NOTE = new Set<string | undefined>(['will_record', 'recording_now', 'will_import', 'manual_record', 'manual_record_teams']);
 
 export function producesNote(row: NoticeRow | null | undefined): boolean {
@@ -301,12 +251,8 @@ export function producesNote(row: NoticeRow | null | undefined): boolean {
 }
 
 /**
- * `rows` is [{ provider, m, status }] — `status` is de EFFECTIEVE chipstatus
- * van de rij, niet `!excluded`. `postSummaryBack` undefined = de payload zei
- * niets. `meetAutoRecordArmed`: Meets eigen auto-opname kan door deze knop
- * worden aangezet (autoRecordConfig aan, settings-scope aanwezig).
- * `teamsAutoRecordArmed`: same for Teams' "record automatically"
- * (autoRecordConfig on, OnlineMeetings.ReadWrite granted).
+ * `rows` is [{ provider, m, status }] — `status` is the EFFECTIVE chip status of the row, not `!excluded`. `postSummaryBack` undefined = the payload said nothing. `meetAutoRecordArmed`: Meet's own auto-recording can be switched on by this button (autoRecordConfig on, settings scope present).
+ * `teamsAutoRecordArmed`: same for Teams' "record automatically" (autoRecordConfig on, OnlineMeetings.ReadWrite granted).
  */
 export function attendeeNotices({ rows = [], postSummaryBack, meetAutoRecordArmed = false, teamsAutoRecordArmed = false }: AttendeeNoticeInput = {}): AttendeeNotice[] {
     const on = (provider: string) => rows.some((r: NoticeRow) => r && r.provider === provider && producesNote(r));
@@ -314,12 +260,12 @@ export function attendeeNotices({ rows = [], postSummaryBack, meetAutoRecordArme
     if (on('talk')) {
         if (postSummaryBack === true) notices.push(NOTICE_TALK_POST);
         else if (postSummaryBack === false) notices.push(NOTICE_TALK_QUIET);
-        // undefined → de payload zei het niet; dan zeggen wij het ook niet.
+        // undefined → the payload did not say it; then we do not say it either.
     }
     if (on('gmeet')) {
         notices.push(NOTICE_MEET_SHARE);
-        // Alleen als de knop die melding ook echt kan veroorzaken: de vlag
-        // wordt uitsluitend gezet voor een vergadering die de lezer ORGANISEERT.
+        // Only if the button can actually cause that notice: the flag is set
+        // exclusively for a meeting that the reader ORGANISES.
         const organises = rows.some((r: NoticeRow) => r && r.provider === 'gmeet' && producesNote(r) && r.m?.organizerSelf === true);
         if (meetAutoRecordArmed && organises) notices.push(NOTICE_MEET_AUTORECORD);
     }

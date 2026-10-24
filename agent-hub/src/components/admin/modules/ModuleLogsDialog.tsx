@@ -49,7 +49,7 @@ export default function ModuleLogsDialog({ module, onClose }: ModuleLogsDialogPr
             zIndex={60}
             title={
                 <span className="flex items-center gap-2 min-w-0">
-                    <ScrollText className="w-4 h-4 flex-shrink-0" style={{ color: '#f59e0b' }} aria-hidden="true" />
+                    <ScrollText className="w-4 h-4 flex-shrink-0 [color:#f59e0b]" aria-hidden="true" />
                     <span className="truncate">{t('modules.logs_title', { name: module.name || module.id })}</span>
                 </span>
             }

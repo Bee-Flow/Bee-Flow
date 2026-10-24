@@ -1,28 +1,25 @@
 /**
- * De schrijver van de usage-index voor een WEBPAGINA (W5 deel A).
+ * The writer of the usage index for a WEBPAGE (W5 part A).
  *
- * Wat hier vastligt is niet "hij schrijft rijen", maar de drie manieren waarop
- * een reconciler op een gedeelde index stil fout gaat:
+ * What is fixed here is not "it writes rows", but the three ways in which a reconciler on a
+ * shared index silently goes wrong:
  *
- *   1. WISSEN OP EEN MISLUKTE SCAN. `reconcileUsageFor` is delete-then-insert:
- *      een lege lijst is geen "niets gevonden" maar een opdracht om alles weg
- *      te gooien. Kan de scan de bestanden niet lezen, dan MOET er niets
- *      geschreven worden — anders zet een storing in de objectopslag de
- *      409-poort op elke tabel eronder open zonder dat er iets van te zien is.
- *   2. EEN SLEUTEL DIE MEEBEWEEGT. `step_id` is de halve primaire sleutel; een
- *      regelnummer of een elementvolgnummer zou bij elke bewerking een nieuwe
- *      rij schrijven en de index laten groeien tot hij niets meer betekent.
- *   3. EEN VERWIJDERDE PAGINA DIE RIJEN ACHTERLAAT. Er is geen FK naar
- *      `webpages`, dus alleen een expliciete purge ruimt ze op — en een
- *      reconcile die de pagina niet meer vindt mag niet alsnog schrijven.
+ *   1. WIPING ON A FAILED SCAN. `reconcileUsageFor` is delete-then-insert: an empty list is
+ *      not "nothing found" but an instruction to throw everything away. If the scan cannot read
+ *      the files, then NOTHING may be written — otherwise a fault in the object store would
+ *      open the 409 gate on every table beneath it without anything being visible.
+ *   2. A KEY THAT MOVES ALONG. `step_id` is half of the primary key; a line number or an
+ *      element sequence number would write a new row on every edit and let the index grow until
+ *      it means nothing.
+ *   3. A DELETED PAGE THAT LEAVES ROWS BEHIND. There is no FK to `webpages`, so only an explicit
+ *      purge cleans them up — and a reconcile that no longer finds the page may not write anyway.
  *
- * Plus de reden dat de index breder is dan de scan: de POORT
- * (`bridge_grants.tables`) is de enige weg waarlangs `window.beeflowTables`
- * leest, en die weg draagt geen enkel `bf-*`-element. Een pagina die haar
- * rijen uit eigen JS haalt zou anders de zwaarste gebruiker zijn die nergens
- * staat.
+ * Plus the reason that the index is wider than the scan: the GATE (`bridge_grants.tables`) is
+ * the only route by which `window.beeflowTables` reads, and that route carries no `bf-*` element
+ * at all. A page that fetches its rows from its own JS would otherwise be the heaviest user who
+ * is listed nowhere.
  *
- * Draaien: cd server && node --test --test-reporter=tap core/webpages/webpageUsageSync.test.js
+ * Run: cd server && node --test --test-reporter=tap core/webpages/webpageUsageSync.test.js
  */
 
 const test = require('node:test');
@@ -42,7 +39,7 @@ function silentLog() {
     return { warn: (m) => lines.warn.push(String(m)), log: (m) => lines.log.push(String(m)), lines };
 }
 
-/** Een store die één paginarij kent. `row: null` = de pagina bestaat niet. */
+/** A store that knows one page row. `row: null` = the page does not exist. */
 function pageStore(row, { normalize } = {}) {
     return {
         getWebpageRaw: async () => (typeof row === 'function' ? row() : row),
@@ -54,9 +51,9 @@ function pageStore(row, { normalize } = {}) {
 }
 
 /**
- * De echte scan, met alleen het LEZEN vervangen. Zo loopt elke test door
- * `scanBfElements` + `collectUses` heen in plaats van door een namaakuitslag —
- * een verandering in het vocabulaire komt hier dus ook aan.
+ * The real scan, with only the READING replaced. That way every test runs through
+ * `scanBfElements` + `collectUses` instead of through a fake result — so a change in the
+ * vocabulary reaches here too.
  */
 function bindingsReading(code) {
     return { ...realBindings, readPageCode: async () => code };
@@ -76,13 +73,12 @@ function fakeDatatableStore() {
 }
 
 /**
- * De rechtenlaag die de scope van de EIGENAAR oplevert.
+ * The authorisation layer that yields the scope of the OWNER.
  *
- * Dit is de bron waarop de reconciler draait sinds de scope niet meer uit
- * `webpages.organization_id` komt: die kolom is NULL tot een pagina naar de org
- * wordt gepubliceerd, terwijl de tabellen van een org-lid vanaf hun eerste rij
- * ORG-scoped zijn. `orgId: null` is dus een solo-account, niet "nog niet
- * gepubliceerd".
+ * This is the source on which the reconciler has run since the scope no longer comes from
+ * `webpages.organization_id`: that column is NULL until a page is published to the org,
+ * whereas the tables of an org member are ORG-scoped from their first row. `orgId: null` is
+ * therefore a solo account, not "not yet published".
  */
 function fakeAccess({ orgId = null, identityError = null, throws = false } = {}) {
     const dt = fakeDatatableStore();
@@ -101,13 +97,12 @@ function fakeAccess({ orgId = null, identityError = null, throws = false } = {})
 }
 
 /**
- * Vangt wat er naar de index zou gaan. `written` bepaalt wat syncUsageFor
- * teruggeeft.
+ * Catches what would go to the index. `written` determines what syncUsageFor returns.
  *
- * De standaard is `entries.length` — "alles is geland". Dat is de gelukkige
- * uitkomst, en juist daarom moet `written: 0` bij een NIET-lege lijst apart
- * worden gedraaid: dat is hoe een verkeerde scope zich meldt (de DELETE liep,
- * de INSERT matchte niets), en zonder die tak heet dat `{ok:true, written:0}`.
+ * The default is `entries.length` — "everything has landed". That is the happy outcome, and
+ * precisely for that reason `written: 0` on a NON-empty list must be run apart: that is how
+ * a wrong scope announces itself (the DELETE ran, the INSERT matched nothing), and without
+ * that branch it would be called `{ok:true, written:0}`.
  */
 function recordingSync({ written = null } = {}) {
     const calls = { sync: [], purge: [] };
@@ -150,12 +145,11 @@ function deps({
 const TWO_TABLES = '<bf-table source="tbl_a"></bf-table>\n<bf-stat source="tbl_b" agg="count"></bf-stat>';
 const ONE_TABLE = '<bf-table source="tbl_a"></bf-table>';
 
-// ── 1. van twee tabellen naar één ─────────────────────────────────────
+// ── 1. from two tables to one ─────────────────────────────────────────
 //
-// Het gewone geval, en meteen het geval dat de index bestaat: wat de pagina
-// NIET meer bindt, moet er ook uit. reconcileUsageFor is delete-then-insert, dus
-// "eruit" betekent hier: de tweede tabel zit niet meer in de lijst die wordt
-// aangeboden.
+// The ordinary case, and at once the case that the index exists for: what the page NO
+// LONGER binds must also go out. reconcileUsageFor is delete-then-insert, so "out" means here:
+// the second table is not in the list that is offered.
 
 test('twee gebonden tabellen leveren twee rijen, met een sleutel per tabel', async () => {
     const sync = recordingSync();
@@ -183,8 +177,8 @@ test('een pagina die van twee tabellen naar één gaat, biedt nog maar één rij
 
     assert.strictEqual(res.ok, true);
     assert.deepStrictEqual(after.calls.sync[0].entries.map(e => e.datatableId), ['tbl_a']);
-    // En de verdwenen tabel wordt NIET meegestuurd: hij verdwijnt doordat de
-    // reconcile hem niet meer noemt, niet doordat iemand hem apart wist.
+    // And the vanished table is NOT sent along: it disappears because the
+    // reconcile no longer names it, not because someone deletes it separately.
     assert.ok(!after.calls.sync[0].entries.some(e => e.datatableId === 'tbl_b'));
 });
 
@@ -193,10 +187,9 @@ test('de sleutel volgt de TABEL, niet de plek in het bestand — idempotent over
     const two = recordingSync();
     await usageSyncModule.reconcileWebpageUsage(PAGE,
         deps({ code: readable({ html: TWO_TABLES }), sync: one }));
-    // Dezelfde twee tabellen, maar verplaatst: andere regels, andere volgorde,
-    // en de tweede staat nu in een extra bestand in plaats van in het html-slot.
-    // Zou `step_id` aan een regelnummer, een volgnummer of een bestandsnaam
-    // hangen, dan schreef deze save vier rijen in plaats van dezelfde twee.
+    // The same two tables, but moved: other lines, other order, and the second one now sits in
+    // an extra file instead of in the html slot. Were `step_id` tied to a line number, a sequence
+    // number or a file name, this save would write four rows instead of the same two.
     await usageSyncModule.reconcileWebpageUsage(PAGE, deps({
         code: readable({
             html: '\n\n\n<div>\n  <bf-table source="tbl_a"></bf-table>\n</div>',
@@ -226,11 +219,10 @@ test('een element in een EXTRA bestand telt mee — een react-app heeft geen htm
     assert.deepStrictEqual(sync.calls.sync[0].entries.map(e => e.datatableId), ['tbl_x']);
 });
 
-// ── 2. een scan die omvalt ────────────────────────────────────────────
+// ── 2. a scan that falls over ─────────────────────────────────────────
 //
-// De kern van dit hele bestand. `readable:false` betekent "onbekend", en
-// onbekend versmalt naar NIETS DOEN — niet naar een lege lijst, want die lijst
-// wist de index en daarmee de poort.
+// The core of this entire file. `readable:false` means "unknown", and unknown narrows to
+// DOING NOTHING — not to an empty list, because that list would wipe the index and with it the gate.
 
 test('een onleesbare scan schrijft NIETS en laat de rijen staan', async () => {
     const sync = recordingSync();
@@ -240,7 +232,7 @@ test('een onleesbare scan schrijft NIETS en laat de rijen staan', async () => {
     assert.strictEqual(res.ok, false);
     assert.strictEqual(res.reason, 'unreadable-code');
     assert.strictEqual(res.written, 0);
-    // Niet gewist, niet geschreven: geen enkele aanraking van de index.
+    // Not cleared, not written: no contact at all with the index.
     assert.strictEqual(sync.calls.sync.length, 0, 'een mislukte scan mag de reconciler niet bereiken');
     assert.strictEqual(sync.calls.purge.length, 0, 'een mislukte scan is geen verwijderde pagina');
 });
@@ -302,11 +294,10 @@ test('een reconcile op een pagina die niet meer bestaat RUIMT OP in plaats van t
 });
 
 test('een purge TIJDENS een lopende pass laat die pass niet alsnog schrijven', async () => {
-    // De timer afzeggen dekt alleen een pass die nog niet gevuurd heeft. Deze
-    // is al aan het lezen: hij heeft de paginarij nog gezien, en zou zonder
-    // vangnet de rijen terugzetten vlak nadat de verwijdering ze weghaalde.
-    // Een spookrij houdt daarna de verwijdering van een tabel met 409 tegen
-    // namens een pagina die niemand meer kan openen.
+    // Cancelling the timer covers only a pass that has not yet fired. This one
+    // is already reading: it has seen the page row, and without a safety net it would write the
+    // rows back just after the deletion had removed them. A ghost row then holds back the
+    // deletion of a table with 409, on behalf of a page nobody can open any more.
     const sync = recordingSync();
     let releaseRead;
     const held = new Promise((r) => { releaseRead = r; });
@@ -336,7 +327,7 @@ test('purgeWebpageUsage zegt een wachtende reconcile af — anders schrijft die 
     assert.strictEqual(sync.calls.sync.length, 0, 'de afgezegde pass mag niet alsnog schrijven');
 });
 
-// ── de poort telt mee, niet alleen de code ────────────────────────────
+// ── the gate counts too, not only the code ────────────────────────────
 
 test('een tabel die alleen GEBONDEN is, zonder element, krijgt toch een rij', async () => {
     const sync = recordingSync();
@@ -345,8 +336,8 @@ test('een tabel die alleen GEBONDEN is, zonder element, krijgt toch een rij', as
         code: readable({ html: '<p>geen enkel bf-element</p>' }),
         sync,
     }));
-    // Zonder deze regel is een pagina die haar rijen met
-    // beeflowTables.query() ophaalt onzichtbaar in de index.
+    // Without this line a page that fetches its rows with
+    // beeflowTables.query() is invisible in the index.
     assert.deepStrictEqual(sync.calls.sync[0].entries, [
         { datatableId: 'tbl_hidden', stepId: 'dt:tbl_hidden', mode: 'read', columns: ['naam'] },
     ]);
@@ -365,7 +356,7 @@ test('mode en columns komen uit de BINDING — een element noemt geen kolommen',
     assert.deepStrictEqual(byId.tbl_a, {
         datatableId: 'tbl_a', stepId: 'dt:tbl_a', mode: 'readwrite', columns: ['naam', 'email'],
     });
-    // tbl_b staat wel in de code maar is niet gebonden: de smalle kant.
+    // tbl_b is in the code but is not bound: the narrow side.
     assert.deepStrictEqual(byId.tbl_b, {
         datatableId: 'tbl_b', stepId: 'dt:tbl_b', mode: 'read', columns: [],
     });
@@ -391,15 +382,15 @@ test('een adres dat de pagina ter plekke bouwt levert GEEN verzonnen rij op', as
         sync,
     }));
     assert.deepStrictEqual(sync.calls.sync[0].entries, []);
-    // Maar hij verdwijnt niet in stilte: de reconcile telt wat hij niet
-    // kon aanwijzen.
+    // But it does not vanish silently: the reconcile counts what it could not
+    // point at.
     assert.strictEqual(res.unresolved, 1);
 });
 
 test('een adres dat de scan niet kan aanwijzen komt in het LOG — anders is het nul signaal', async () => {
-    // De kop belooft dat `unresolved` wordt gemeld. Het detached pad gooit de
-    // returnwaarde weg, dus zonder een logregel levert een pagina met tien
-    // onaanwijsbare verwijzingen niets op waar iemand naar kan kijken.
+    // The heading promises that `unresolved` is reported. The detached path throws away the
+    // return value, so without a log line a page with ten unpointable references yields nothing
+    // anyone could look at.
     const log = silentLog();
     await usageSyncModule.reconcileWebpageUsage(PAGE, deps({
         code: readable({ extras: [{ path: 'src/App.jsx', text: '<bf-table source={id} />' }] }),
@@ -424,19 +415,17 @@ test('uitgecommentarieerde code is geen koppeling', async () => {
     assert.deepStrictEqual(sync.calls.sync[0].entries, []);
 });
 
-// ── de scope ──────────────────────────────────────────────────────────
+// ── the scope ─────────────────────────────────────────────────────────
 //
-// De scherpste bug die dit bestand bewaakt, en hij is niet zichtbaar aan de
-// uitslag: een reconcile met de VERKEERDE scope meldt zich als geslaagd.
-// `reconcileUsageFor` grendelt zijn INSERT op `(scope_kind, scope_id)` van de
-// tabel, dus de DELETE loopt wél en de INSERT matcht nul rijen — `{ok:true,
-// written:0}` — en daarmee staat de 409-poort op elke genoemde tabel open.
+// The sharpest bug that this file guards against, and it is not visible in the result: a reconcile
+// with the WRONG scope reports itself as successful. `reconcileUsageFor` locks its INSERT on
+// `(scope_kind, scope_id)` of the table, so the DELETE does run and the INSERT matches zero rows —
+// `{ok:true, written:0}` — and with that the 409 gate on every named table stands open.
 //
-// De scope kwam eerst uit `page.organizationId`. Die kolom is NULL tot een
-// pagina naar de ORG wordt gepubliceerd (setWebpagePublished is de enige
-// schrijver; een kloon zet hem terug op null), terwijl de tabellen van datzelfde
-// org-lid ORG-scoped zijn vanaf hun eerste rij. Elke niet-gepubliceerde pagina
-// van een org-lid landde dus op nul rijen. De bron is nu de EIGENAAR.
+// The scope first came from `page.organizationId`. That column is NULL until a page is published to
+// the ORG (setWebpagePublished is the only writer; a clone sets it back to null), whereas the tables of
+// that same org member are ORG-scoped from their first row. Every unpublished page of an org member
+// therefore landed on zero rows. The source is now the OWNER.
 
 test('een pagina van een ORG-LID wordt onder de org-scope geïndexeerd — óók als zij nooit is gepubliceerd', async () => {
     const sync = recordingSync();
@@ -476,9 +465,9 @@ test('een SOLO-account (geen organisatie) valt terug op zijn persoonlijke tabell
 test('de scope komt NIET uit organization_id — een gepubliceerde pagina van een solo-account blijft persoonlijk', async () => {
     const sync = recordingSync();
     await usageSyncModule.reconcileWebpageUsage(PAGE, deps({
-        // De kolom zegt ORG, de rechtenlaag zegt: deze eigenaar heeft er geen.
-        // De rechtenlaag wint — de kolom is een gevolg van publiceren, niet de
-        // adressering van tabellen.
+        // The column says ORG, the authorisation layer says: this owner has none.
+        // The authorisation layer wins — the column is a consequence of publishing, not the
+        // addressing of tables.
         row: page({ organizationId: ORG }),
         access: fakeAccess({ orgId: null }),
         code: readable({ html: ONE_TABLE }),
@@ -506,8 +495,8 @@ test('een rechtenlaag die de organisatie niet kon lezen gokt niet op de persoonl
         code: readable({ html: ONE_TABLE }),
         sync,
     }));
-    // Alleen de persoonlijke scope aanbieden zou de org-tabellen van deze
-    // eigenaar stil uit de index laten vallen. Onbekend versmalt naar niets doen.
+    // Offering only the personal scope would silently drop this owner's org tables from
+    // the index. Unknown narrows to doing nothing.
     assert.strictEqual(res.ok, false);
     assert.strictEqual(res.reason, 'no-scope');
     assert.strictEqual(sync.calls.sync.length, 0);
@@ -527,11 +516,10 @@ test('een onleesbare rechtenlaag valt terug op de kolom als die iets wéét — 
     ]);
 });
 
-// ── nul rijen op een niet-lege lijst ──────────────────────────────────
+// ── zero rows on a non-empty list ─────────────────────────────────────
 //
-// De tak die de bug hierboven ZICHTBAAR maakt. Zonder hem blijft de suite groen
-// terwijl er in productie nul rijen landen: de test die groen blijft als je de
-// werking weghaalt.
+// The branch that makes the bug above VISIBLE. Without it the suite stays green while zero rows
+// land in production: the test that stays green when you remove the behaviour.
 
 test('een niet-lege lijst die NUL rijen schrijft is een MISLUKTE reconcile, geen lege', async () => {
     const sync = recordingSync({ written: 0 });
@@ -611,8 +599,8 @@ test('een reconcile die zelf omvalt meldt zich als mislukt, niet als leeg', asyn
     assert.strictEqual(res.reason, 'failed');
 });
 
-// "Gooit nooit" is een belofte aan de save eromheen, en die mag niet afhangen
-// van de vraag of de laag eronder zijn eigen belofte nakomt.
+// "Never throws" is a promise to the save around it, and that must not depend on whether the
+// layer underneath keeps its own promise.
 
 test('een indexlaag die GOOIT laat de reconcile niet gooien', async () => {
     const d = deps({ code: readable({ html: ONE_TABLE }) });

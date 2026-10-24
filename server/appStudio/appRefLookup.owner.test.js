@@ -1,20 +1,17 @@
 'use strict';
 
 /**
- * appRefOwnerVerdict — onder WIENS naam een automatisering ontstaat die vanuit een
- * app-knop wordt gemaakt.
+ * appRefOwnerVerdict: under WHOSE name an automation is created that is made from an app button.
  *
- * De regel is niet cosmetisch. Een `run_automation`-actie draait de automatisering
- * ALS DE EIGENAAR van de app (appStudio/actionExecutor/automationBridge.js
- * weigert bij ongelijke eigenaars), dus wie de nieuwe automatisering bezit bepaalt
- * met wiens rechten hij straks draait. Twee manieren om dat fout te doen:
- * onder de klikker (de knop is stuk vanaf het moment dat hij bedraad wordt) of
- * onder de app-eigenaar terwijl iemand ánders klikt (dan heeft die iemand
- * zojuist een automatisering geschreven die met andermans rechten draait). Allebei
- * weigeren; alleen "dezelfde persoon" gaat door.
+ * The rule is not cosmetic. A `run_automation` action runs the automation AS THE OWNER of the app
+ * (appStudio/actionExecutor/automationBridge.js refuses when the owners differ), so who owns the
+ * new automation determines with whose rights it later runs. There are two ways to get that wrong:
+ * under the clicker (the button is broken from the moment it is wired), or under the app owner
+ * while someone ELSE clicks (then that someone has just written an automation that runs with
+ * someone else's rights). Both are refused; only "the same person" goes through.
  *
- * Draaien: cd server && node --test --test-reporter=tap appStudio/appRefLookup.owner.test.js
- * Puur — geen DB, geen route, geen sessie.
+ * Run: cd server && node --test --test-reporter=tap appStudio/appRefLookup.owner.test.js
+ * Pure: no DB, no route, no session.
  */
 
 const { test, describe } = require('node:test');
@@ -33,9 +30,9 @@ describe('de klikker IS de app-eigenaar', () => {
     });
 
     test('de eigenaar komt van de APP-RIJ, niet van de klikker', () => {
-        // Dezelfde waarde in het geslaagde geval — maar hij komt uit het
-        // enige object dat het antwoord kán geven. Een route die dit veld
-        // gebruikt schrijft de regel op in plaats van hem aan te nemen.
+        // The same value in the successful case, but it comes from the
+        // only object that can give the answer. A route that uses this field
+        // writes the rule down instead of accepting it.
         const got = appRefOwnerVerdict({ app: { ...APP, userId: OWNER }, actorUserId: OWNER });
         assert.equal(got.ownerId, APP.userId);
     });
@@ -51,9 +48,9 @@ describe('elke andere uitkomst is een weigering', () => {
     });
 
     test('geen app-rij — weg, of onleesbaar — is een weigering, geen gok', () => {
-        // De aanroeper zet een mislukte lees om in `app: null`. Beide gevallen
-        // komen hier als hetzelfde binnen, en het antwoord is hetzelfde:
-        // onbekend versmalt.
+        // The caller turns a failed read into `app: null`. Both cases
+        // arrive here as the same thing, and the answer is the same:
+        // unknown narrows.
         const got = appRefOwnerVerdict({ app: null, actorUserId: OWNER });
         assert.equal(got.ok, false);
         assert.equal(got.code, 'app_unknown');
@@ -82,8 +79,8 @@ describe('elke andere uitkomst is een weigering', () => {
     });
 
     test('elke code heeft een zin die uitlegt waarom', () => {
-        // "Weigert met uitleg" is de opdracht. Een code zonder zin is een
-        // foutmelding die op het scherm leeg is.
+        // "Refuses with an explanation" is the instruction. A code without a sentence is an
+        // error message that is blank on screen.
         for (const [code, message] of Object.entries(OWNER_REFUSALS)) {
             assert.equal(typeof message, 'string', `${code} heeft geen zin`);
             assert.ok(message.trim().length > 20, `${code} legt niets uit: ${message}`);

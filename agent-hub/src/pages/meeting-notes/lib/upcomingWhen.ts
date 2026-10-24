@@ -1,16 +1,10 @@
 /**
- * Wanneer een vergadering is: parsen, duur, tijdvak en het datumblok.
+ * When a meeting is: parsing, duration, time window and the date block.
  *
- * ── WAAROM DIT LOS VAN upcomingMeta.js STAAT ──────────────────────────
- * Dit bestand heeft met opzet GEEN imports. De hele-dag-regel hieronder is
- * alleen te toetsen in een tijdzone met een NEGATIEVE offset — in UTC geven de
- * goede en de foute implementatie hetzelfde antwoord, dus een assertie die in
- * de container (TZ=UTC) draait houdt de fix niet tegen. `upcomingWhen.test.js`
- * draait deze module daarom óók in een kindproces onder
- * TZ=America/New_York, en dat kan alleen als het bestand zonder bundler te
- * importeren is.
+ * ── WHY THIS IS SEPARATE FROM upcomingMeta.js ───────────────────────
+ * This file deliberately has NO imports. The whole-day rule below can only be tested in a time zone with a NEGATIVE offset — in UTC the good and the bad implementation give the same answer, so an assertion that runs in the container (TZ=UTC) does not hold the fix back. `upcomingWhen.test.js` therefore also runs this module in a child process under TZ=America/New_York, and that is only possible if the file can be imported without a bundler.
  *
- * `upcomingMeta.js` her-exporteert alles hier, zodat aanroepers niets merken.
+ * `upcomingMeta.js` re-exports everything here, so callers notice nothing.
  */
 
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -30,14 +24,9 @@ export interface DateBlockParts {
 }
 
 /**
- * Eén agendamoment. Geeft `{ date, dateOnly }` of NULL als er niets bruikbaars
- * staat — `null` betekent hier "onbekend", nooit "nu".
+ * One calendar moment. Gives `{ date, dateOnly }`, or NULL if nothing usable is stated — `null` here means "unknown", never "now".
  *
- * Een hele-dag-afspraak komt bij beide providers binnen als een kale DATUM
- * ("2026-07-18"; gmeetCalendar valt terug op `start.date`). `new Date()` leest
- * die als UTC-middernacht, waardoor hij in een negatieve tijdzone een dag te
- * vroeg op het scherm komt. Daarom parsen we hem als LOKALE middernacht en
- * markeren we hem als `dateOnly`: er staat een dag in, geen tijdstip.
+ * A whole-day appointment arrives at both providers as a bare DATE ("2026-07-18"; gmeetCalendar falls back to `start.date`). `new Date()` reads that as UTC midnight, which in a negative time zone puts it a day too early on the screen. Therefore we parse it as LOCAL midnight and mark it `dateOnly`: there is a day in it, not a time of day.
  */
 export function parseWhen(value: WhenInput): ParsedWhen | null {
     if (!value) return null;
@@ -54,9 +43,7 @@ export function parseWhen(value: WhenInput): ParsedWhen | null {
 }
 
 /**
- * De duur in hele minuten, of NULL als we hem niet kennen. Onbekend blijft
- * onbekend bij: een ontbrekende of onleesbare kant, een hele-dag-afspraak (een
- * datum is geen lengte) en een einde dat niet ná het begin ligt.
+ * The duration in whole minutes, or NULL if we do not know it. Unknown stays unknown with: a missing or unreadable side, a whole-day appointment (a date is not a length), and an end that does not lie after the start.
  */
 export function meetingDurationMinutes(start: WhenInput, end: WhenInput): number | null {
     const s = parseWhen(start);
@@ -80,7 +67,7 @@ export function dateBlockParts(start: WhenInput): DateBlockParts | null {
 
 const hhmm = (d: Date) => d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
-/** `14:00–15:00`, `14:00`, of '' — een hele dag heeft geen tijdvak. */
+/** `14:00–15:00`, `14:00`, or '' — a whole day has no time window. */
 export function timeRange(start: WhenInput, end: WhenInput): string {
     const s = parseWhen(start);
     if (!s || s.dateOnly) return '';

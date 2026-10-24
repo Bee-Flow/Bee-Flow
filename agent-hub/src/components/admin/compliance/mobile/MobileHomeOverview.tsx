@@ -171,8 +171,7 @@ export default function MobileHomeOverview({ data, navigate, onTab = undefined }
                     const ink = TONES[tone].ink;
                     return (
                         <button key={s.id} type="button" data-testid={`mobile-fw-${s.id}`}
-                            onClick={() => navigate(s.id)} className={`${MOBILE_ROW_CLASS} border-b last:border-b-0`}
-                            style={{ borderColor: 'var(--border-default)' }}>
+                            onClick={() => navigate(s.id)} className={`${MOBILE_ROW_CLASS} border-b last:border-b-0 [border-color:var(--border-default)]!`}>
                             <ScoreRing score={score} size={36} tone={tone} label={t(s.labelKey, s.labelFallback)} testId={`mobile-fw-ring-${s.id}`} />
                             <span className="flex-1 min-w-0">
                                 <span className="block text-[13px] font-semibold truncate text-[var(--text-primary)]">
@@ -208,7 +207,7 @@ export default function MobileHomeOverview({ data, navigate, onTab = undefined }
                     return (
                         <button key={item.id} type="button" data-testid={`mobile-attention-${item.id}`}
                             onClick={() => navigate(target.section, target.id || undefined, target.tab)}
-                            className={`${MOBILE_ROW_CLASS} border-b last:border-b-0`} style={{ borderColor: 'var(--border-default)' }}>
+                            className={`${MOBILE_ROW_CLASS} border-b last:border-b-0 [border-color:var(--border-default)]!`}>
                             <Glyph size={16} aria-hidden="true" className="flex-shrink-0" style={{ color: TONES[tone].ink }} />
                             <span className="flex-1 min-w-0">
                                 <span className="block text-[13px] font-medium truncate text-[var(--text-primary)]">{item.title}</span>
@@ -260,7 +259,7 @@ export default function MobileHomeOverview({ data, navigate, onTab = undefined }
                     return (
                         <button key={d.id} type="button" data-testid={`mobile-deadline-${d.id}`}
                             onClick={() => { if (target?.section) navigate(target.section, target.id || undefined, target.tab); }}
-                            className={`${MOBILE_ROW_CLASS} border-b last:border-b-0`} style={{ borderColor: 'var(--border-default)' }}>
+                            className={`${MOBILE_ROW_CLASS} border-b last:border-b-0 [border-color:var(--border-default)]!`}>
                             <span className="flex-1 min-w-0">
                                 <span className="block text-[13px] font-medium truncate text-[var(--text-primary)]">{title}</span>
                                 {meta && <span className="block text-[11px] truncate text-[var(--text-tertiary)]">{meta}</span>}

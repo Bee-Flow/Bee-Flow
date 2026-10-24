@@ -15,16 +15,15 @@ const { z } = require('../../utils/zod');
 const { worded, bodyOf, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
 
-// ── Wat de bestandenroutes mogen dragen ─────────────────────────────
+// ── What the file routes may carry ─────────────────────────────────
 //
-// Het PAD is in alle vier de gevallen de sleutel, en `?paht=src/App.jsx` gaf
-// de LIJST terug in plaats van een 400 — een client die dacht een bestand te
-// lezen kreeg een inhoudsopgave. Strict op de query maakt daar een vraag van
-// die beantwoord wordt of geweigerd.
+// The PATH is the key in all four cases, and `?paht=src/App.jsx` returned the LIST instead
+// of a 400 — a client that thought it was reading a file got a table of contents. Strict
+// on the query makes that a question that is either answered or refused.
 //
-// Wat een pad MAG zijn blijft van de store: upsertExtraFile weigert
-// gereserveerde paden, `..`-stappen en de primaire slots bij naam, en die
-// regels horen bij de opslag, niet bij de HTTP-laag.
+// What a path MAY be stays with the store: upsertExtraFile refuses reserved paths, `..`
+// steps and the primary slots by name, and those rules belong to the storage, not to the
+// HTTP layer.
 const PATH_TEXT = 'path is required';
 const pathText = () => worded(PATH_TEXT).trim().min(1, PATH_TEXT);
 const FileQuery = z.object({ path: pathText().optional() }).strict();
@@ -40,8 +39,8 @@ const MoveBody = bodyOf({
     to: pathText(),
 });
 
-// De tekstvelden naast het bestand. FormData draagt alleen tekst, en dit is
-// het enige veld dat de editor meestuurt.
+// The text fields beside the file. FormData carries only text, and this is the
+// only field the editor sends along.
 const AssetBody = bodyOf({ path: pathText() });
 
 function register(router, { upload }) {
@@ -96,8 +95,8 @@ function register(router, { upload }) {
             });
             // React-mui apps live in extra files, so refresh public-share snapshots.
             reSnapshotWebpageShares(req.params.id, userId);
-            // …en om precies dezelfde reden de dependents-index: een react-mui-pagina
-            // heeft haar tabelelementen in `src/App.jsx` staan, niet in het html-slot.
+            // …and for exactly the same reason, the dependents index: a react-mui page has its table
+            // elements in `src/App.jsx`, not in the html slot.
             webpageUsageSync.reconcileWebpageUsageDetached(req.params.id);
             res.json({ file });
         } catch (err) {
@@ -120,8 +119,8 @@ function register(router, { upload }) {
         const ok = await webpageStore.deleteExtraFile({ webpageId: req.params.id, userId, path: req.query.path });
         if (!ok) return res.status(404).json({ error: 'File not found' });
         reSnapshotWebpageShares(req.params.id, userId);
-        // Een weggegooid bestand is de kant waarop de index STIL fout gaat: de
-        // rij van de tabel die alleen dáár stond blijft anders eeuwig staan.
+        // A discarded file is the side where the index silently goes WRONG: otherwise the row of
+        // the table that stood only there stays forever.
         webpageUsageSync.reconcileWebpageUsageDetached(req.params.id);
         res.json({ success: true });
     });
@@ -131,9 +130,9 @@ function register(router, { upload }) {
     // Returns the file meta + base64 content so the client can build a data: URL
     // for the preview without a follow-up GET. The store derives the MIME from the
     // path extension and stores it as a binary (is_text=false) extra.
-    // Multipart, dus het schema staat ACHTER multer: die leest de stream en
-    // vult `req.body` pas daarna (het bestand gaat naar `req.file`). Een
-    // validate() ervóór zou een lege body zien.
+    // Multipart, so the schema sits BEHIND multer: that reads the stream and only
+    // then fills `req.body` (the file goes to `req.file`). A validate() in front of
+    // it would see an empty body.
     router.post('/:id/assets', requireAuth, validate({ query: NO_QUERY }), upload.single('file'),
         validate({ body: AssetBody }), async (req, res) => {
         try {
@@ -187,10 +186,9 @@ function register(router, { upload }) {
             }
             await webpageStore.deleteExtraFile({ webpageId: req.params.id, userId, path: from });
             reSnapshotWebpageShares(req.params.id, userId);
-            // Een verplaatsing verandert de INHOUD niet, dus de tabellenlijst blijft
-            // gelijk — maar dat is een redenering over een implementatiedetail
-            // (`source` is alleen een label in de scan), en een uitzondering op "elk
-            // pad dat bestanden vastlegt" is precies hoe zo'n lijst gaat schuiven.
+            // A move does not change the CONTENT, so the table list stays the same — but that is
+            // reasoning about an implementation detail (`source` is only a label in the scan), and
+            // an exception to "every path that records files" is exactly how such a list drifts.
             webpageUsageSync.reconcileWebpageUsageDetached(req.params.id);
             res.json({ file });
         } catch (err) {

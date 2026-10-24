@@ -1,34 +1,33 @@
 /**
- * automationUsageStore — de index "welke knop draait deze automation" (P4 deel C).
+ * automationUsageStore — the index "which button runs this automation" (P4 part C).
  *
- * Wat hier vastligt, in volgorde van hoe erg het is als het breekt:
+ * What is fixed here, in order of how bad it is if it breaks:
  *
- *   1. DE EIGENDOMSGRENDEL ZIT IN DE INSERT. Een app mag alleen een automatisering
- *      van DEZELFDE eigenaar indexeren. `automationBridge` weigert bij
- *      `automation.userId !== app.userId`, dus een verwijzing over die grens
- *      kan niet draaien; hem tóch indexeren zou de automation-eigenaar de naam
- *      van andermans app tonen. En omdat de grendel in de INSERT zit, is een
- *      niet-lege lijst die NUL rijen schrijft de manier waarop dat zich meldt.
- *   2. DE DELETE IS OP TWEE KOLOMMEN. Delete-then-insert op
- *      `(consumer_kind, consumer_id)` — nooit op het id alleen, want dan zou
- *      een toekomstige tweede soort de rijen van de eerste kunnen wissen.
- *   3. HET automation_id ZIT IN DE SLEUTEL. Eén actie kan twee automatiseringen
- *      draaien (twee run_automation-stappen in dezelfde sequence). Zonder het
- *      automation-id in de PK overschrijft de tweede de eerste en ziet één van de
- *      twee automatiseringen zichzelf als ongebruikt.
- *   4. SCOPE EN EIGENAAR KOMEN VAN DE AUTOMATISERING, NIET VAN DE AANROEPER.
- *      `owner_user_id` en `organization_id` worden uit de `automations`-rij
- *      gelezen; anders zijn het twee feiten die uit elkaar kunnen lopen.
- *   5. EEN ONTBREKENDE studio_apps-TABEL GEEFT MINDER TITEL, NOOIT MINDER
- *      RIJEN. Op een verse installatie bestaat die tabel pas als iemand App
- *      Studio opent, en een JOIN naar een niet-bestaande relatie is een 500 op
- *      de capsule.
+ *   1. THE OWNERSHIP LOCK IS IN THE INSERT. An app may only index an automation of the
+ *      SAME owner. `automationBridge` refuses when `automation.userId !== app.userId`,
+ *      so a reference across that boundary cannot run; indexing it anyway would show the
+ *      automation's owner the name of someone else's app. And because the lock sits in the INSERT, a
+ *      non-empty list that writes ZERO rows is how that shows itself.
+ *   2. THE DELETE IS ON TWO COLUMNS. Delete-then-insert on
+ *      `(consumer_kind, consumer_id)` — never on the id alone, because then a
+ *      future second kind could wipe the rows of the first.
+ *   3. THE automation_id IS IN THE KEY. One action can run two automations
+ *      (two run_automation steps in the same sequence). Without the automation id in the PK
+ *      the second overwrites the first and one of the two automations sees
+ *      itself as unused.
+ *   4. SCOPE AND OWNER COME FROM THE AUTOMATION, NOT FROM THE CALLER.
+ *      `owner_user_id` and `organization_id` are read from the `automations` row;
+ *      otherwise they are two facts that can drift apart.
+ *   5. A MISSING studio_apps TABLE GIVES FEWER TITLES, NEVER FEWER ROWS. On a fresh
+ *      installation that table only exists once someone opens App
+ *      Studio, and a JOIN to a non-existent relation is a 500 on
+ *      the capsule.
  *
- * DB-vrij: ../db wordt via require.cache vervangen. De nep-db is geen loze
- * recorder maar een mini-Postgres voor precies deze tabel: hij kent de
- * primaire sleutel, de `FROM automations`-grendel en ON CONFLICT DO UPDATE, en
- * hij WEIGERT elk statement dat hij niet herkent — zo valt een gewijzigde
- * vorm op in plaats van dat hij stil door glipt.
+ * DB-free: ../db is replaced via require.cache. The fake db is not a blank
+ * recorder but a mini Postgres for exactly this table: it knows the
+ * primary key, the `FROM automations` lock and ON CONFLICT DO UPDATE, and
+ * it REFUSES every statement it does not recognise — so a changed
+ * shape shows up instead of slipping through silently.
  *
  * Run: cd server && node --test --test-reporter=tap stores/automationUsageStore.test.js
  */
@@ -47,8 +46,8 @@ const PK = ['consumer_kind', 'consumer_id', 'ref_id', 'automation_id'];
 
 const db = {
     ddl: [],
-    // Niet door reset() gewist: de DDL draait bij module-load, dus vóór de
-    // eerste test. Zou dit in `statements` zitten, dan was het bewijs weg.
+    // Not wiped by reset(): the DDL runs at module load, so before the
+    // first test. Were this in `statements`, the evidence would be gone.
     locks: [],
     statements: [],
     rows: [],           // automation_usage
@@ -70,9 +69,9 @@ function reset() {
 }
 
 function applyInsert(sql, params) {
-    // De grendel MOET er staan, en de plaatshouders worden eruit gelezen in
-    // plaats van geraden — zo faalt deze test als de grendel verdwijnt, en niet
-    // als iemand de kolomvolgorde wijzigt.
+    // The lock MUST be there, and the placeholders are read out of it instead of
+    // guessed — so this test fails if the lock disappears, and not
+    // if someone changes the column order.
     assert.match(sql, /FROM automations a/, 'de INSERT hoort uit `automations` te selecteren');
     const guard = sql.match(/WHERE a\.id = \$(\d+) AND a\.user_id = \$(\d+)/);
     assert.ok(guard, `de eigendomsgrendel ontbreekt in: ${sql}`);
@@ -82,8 +81,8 @@ function applyInsert(sql, params) {
     const a = db.automations.find(r => r.id === automationId && r.user_id === ownerId);
     if (!a) return { rowCount: 0, rows: [] };   // bestaat niet, of is van iemand anders
 
-    // De kolomvolgorde uit het statement zelf, zodat de test niet op een
-    // vaste volgorde leunt. `a.*` komt van de automation-rij, `$n` van de params.
+    // The column order from the statement itself, so the test does not lean on a
+    // fixed order. `a.*` comes from the automation row, `$n` from the params.
     const cols = sql.match(/INSERT INTO automation_usage\s*\(([^)]+)\)/)[1].split(',').map(s => s.trim());
     const vals = sql.match(/SELECT (.+?) FROM automations/)[1].split(',').map(s => s.trim());
     assert.equal(cols.length, vals.length, 'kolommen en waarden lopen niet gelijk op');
@@ -118,15 +117,15 @@ function applyDelete(sql, params) {
     } else if (/WHERE automation_id = \$1$/.test(sql)) {
         db.rows = db.rows.filter(r => r.automation_id !== params[0]);
     } else {
-        // Een DELETE op alleen consumer_id (of op iets anders) mag NOOIT stil
-        // slagen — dat is regel 2.
+        // A DELETE on consumer_id alone (or on something else) must NEVER succeed
+        // silently — that is rule 2.
         throw new Error(`onverwachte DELETE-vorm — sleuteling veranderd: ${sql}`);
     }
     return { rowCount: before - db.rows.length, rows: [] };
 }
 
 function applySelect(sql, params) {
-    // De dekkingsvraag: hoeveel apps zijn nog nooit geindexeerd?
+    // The coverage question: how many apps have never been indexed?
     if (/FROM studio_apps a/.test(sql) && /automation_usage_indexed/.test(sql)) {
         const unindexed = [...db.apps.keys()]
             .filter(id => !db.indexed.some(r => r.consumer_kind === 'app' && r.consumer_id === id));
@@ -152,11 +151,10 @@ function applySelect(sql, params) {
     throw new Error(`onverwachte SELECT: ${sql}`);
 }
 
-// ── de dekkingsmarkering ─────────────────────────────────────────────
-// `automation_usage_indexed` is de tabel die "leeg" en "nog nooit gekeken" uit
-// elkaar houdt. Hij wordt in DEZELFDE transactie geschreven als de rijen zelf,
-// en de purge haalt hem mee weg — die twee feiten worden hieronder getest, dus
-// de nep-db moet ze echt uitvoeren en niet alleen slikken.
+// ── the coverage marker ──────────────────────────────────────────────
+// `automation_usage_indexed` is the table that keeps "empty" and "never looked at" apart.
+// It is written in the SAME transaction as the rows themselves, and the purge removes it
+// too — those two facts are tested below, so the fake db must actually execute them and not just swallow them.
 function applyIndexedInsert(sql, params) {
     const [kind, id] = params;
     const hit = db.indexed.find(r => r.consumer_kind === kind && r.consumer_id === id);
@@ -213,8 +211,8 @@ require.cache[dbPath] = {
     },
 };
 
-// De tabel bestaat op een verse installatie NIET; test 5 draait daarom eerst,
-// want de probe onthoudt zijn antwoord zodra hij hem wél vindt.
+// The table does NOT exist on a fresh installation; test 5 therefore runs first,
+// because the probe remembers its answer as soon as it does find it.
 db.hasAppsTable = false;
 
 const store = require('./automationUsageStore');
@@ -262,7 +260,7 @@ test('een automatisering van een ANDERE eigenaar wordt niet geindexeerd, en dat 
     const written = await store.reconcileAutomationUsage('app', APP, OWNER, [entry()]);
     assert.equal(written, 0, 'niets geschreven');
     assert.equal(db.rows.length, 0);
-    // En de aanroeper kan het zien: een niet-lege lijst die 0 schrijft.
+    // And the caller can see it: a non-empty list that writes 0.
     assert.deepEqual(await store.listUsageOfAutomation(RID), []);
 });
 
@@ -423,27 +421,27 @@ test('de tabel en haar indexen komen uit de runDdl-ladder van deze store', () =>
     assert.match(all, /CREATE INDEX IF NOT EXISTS idx_automation_usage_consumer/);
     assert.match(all, /CREATE TABLE IF NOT EXISTS automation_usage_indexed/);
     assert.match(all, /PRIMARY KEY \(consumer_kind, consumer_id\)/);
-    // De lock van _ddl.js is meegedraaid, onder de tag van DEZE store — dus
-    // dit was echt de runDdl-weg en niet een losse exec ernaast.
+    // The lock of _ddl.js was run along too, under the tag of THIS store — so
+    // this really was the runDdl path and not a loose exec beside it.
     assert.deepEqual(db.locks, ['beeflow:ddl:automationUsageStore'],
         'de DDL hoort door runDdl te lopen, niet door een kale exec');
 });
 
-// ── het derde antwoord: "nog nooit gekeken" ──────────────────────────
+// ── the third answer: "never looked at" ──────────────────────────────
 //
-// `automation_usage` kan alleen rijen tonen, en nul rijen betekent daar twee
-// dingen tegelijk: "geen enkele knop draait deze automation" en "deze index is
-// voor die app nog nooit gebouwd". Op de dag van uitrol is dat tweede waar voor
-// élke bestaande app — de tabel wordt leeg aangelegd en vult zich pas als
-// iemand een app opslaat — en dan leest elke automation-eigenaar "wordt nergens
-// gebruikt" over knoppen die gewoon draaien.
+// `automation_usage` can only show rows, and zero rows there means two
+// things at once: "no button at all runs this automation" and "this index has
+// never been built for that app yet". On the day of rollout the second is true for
+// EVERY existing app — the table is created empty and only fills when
+// someone saves an app — and then every automation owner reads "used nowhere"
+// about buttons that do run.
 
 test('een reconcile markeert de app als bekeken — ook een die niets aanzet', async () => {
     reset();
     db.apps.set(APP, 'Expenses');
     assert.deepEqual(await store.usageIndexCoverage(), { complete: false, pending: 1 });
 
-    // Een LEGE lijst is een geldige uitslag: deze app zet echt niets aan.
+    // An EMPTY list is a valid outcome: this app really switches nothing on.
     await store.reconcileAutomationUsage('app', APP, OWNER, []);
     assert.deepEqual(await store.usageIndexCoverage(), { complete: true, pending: 0 });
     assert.deepEqual(await store.listUnindexedApps(10), []);

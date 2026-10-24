@@ -544,18 +544,18 @@ test('a person\'s note may never keep an extractor id, whatever it claims', () =
 });
 
 
-// ── Menselijke invoer wint van hergeneratie (M4) ─────────────────────
+// ── Human input beats regeneration (M4) ─────────────────────────────
 //
-// M3 liet deze vraag expliciet aan M4 over ("What `done` and an edited text
-// should count for is a real question and M4's to settle"). Tot hier gooide
-// "Opnieuw" van elk AI-punt twee dingen weg: of het afgevinkt was, en de
-// tekst die iemand met de hand had gecorrigeerd. Allebei zijn handelingen van
-// een mens, allebei zonder undo, en allebei onzichtbaar — het punt kwam terug
-// ONDER DEZELFDE `ai-<n>`-id, met andere tekst en het vinkje weer open.
+// M3 left this question explicitly to M4 ("What `done` and an edited text
+// should count for is a real question and M4's to settle"). Up to here, "Regenerate"
+// threw away two things from every AI point: whether it was ticked, and the text
+// that someone had corrected by hand. Both are acts of a human, both without undo,
+// and both invisible. The point came back UNDER THE SAME `ai-<n>` id, with other
+// text and the tick open again.
 //
-// De sleutel waarmee een hergenereerd punt als HETZELFDE punt wordt herkend
-// is het transcriptanker (timestamp + assignee), niet de id en niet de tekst.
-// Zie de kop boven `anchorKey` in actionItems.js voor waarom.
+// The key by which a regenerated point is recognised as THE SAME point is the
+// transcript anchor (timestamp + assignee), not the id and not the text.
+// See the header above `anchorKey` in actionItems.js for why.
 
 test('een afgevinkt AI-punt blijft afgevinkt als de nieuwe pass het weer oplevert', () => {
     const existing = [{ id: 'ai-0', source: 'ai', text: 'Klant bellen', assignee: 'Tom', timestamp: '12:30', done: true }];
@@ -569,8 +569,8 @@ test('een afgevinkt AI-punt blijft afgevinkt als de nieuwe pass het weer oplever
 });
 
 test('handmatig gecorrigeerde tekst wordt niet teruggezet naar de AI-versie', () => {
-    // `aiText` is wat het model zelf schreef; wijkt `text` daarvan af, dan
-    // heeft een mens hem overgetypt.
+    // `aiText` is what the model itself wrote; if `text` deviates from it, then
+    // a person has retyped it.
     const existing = [{ id: 'ai-0', source: 'ai', text: 'Jansen BV bellen', aiText: 'Klant bellen', assignee: 'Tom', timestamp: '12:30' }];
     const fresh = [{ id: 'ai-0', source: 'ai', text: 'Klant bellen', assignee: 'Tom', timestamp: '12:30' }];
 
@@ -601,10 +601,9 @@ test('de twee helften werken los van elkaar: alleen afgevinkt, en alleen hertypt
 });
 
 test('de sleutel is het anker, niet de id — een verschoven ai-<n> zet het vinkje niet op een ander punt', () => {
-    // DE VAL. `ai-<n>` is de POSITIE in de uitvoer van deze pass. Laat het
-    // model één punt weg, dan schuift alles op en heet het afgevinkte punt
-    // opeens ai-0. Wie op id vergelijkt, verplaatst het vinkje naar een actie
-    // die niemand heeft afgevinkt.
+    // THE TRAP. `ai-<n>` is the POSITION in the output of this pass. If the
+    // model leaves out one point, everything shifts and the ticked point is suddenly
+    // ai-0. Whoever compares on id moves the tick to an action that nobody ticked.
     const existing = [
         { id: 'ai-0', source: 'ai', text: 'Notulen rondsturen', assignee: 'Sandra', timestamp: '02:00', done: false },
         { id: 'ai-1', source: 'ai', text: 'Klant bellen', assignee: 'Tom', timestamp: '12:30', done: true },
@@ -632,9 +631,9 @@ test('een AI-punt waar niemand aan zat wordt nog steeds vervangen, ook als het a
 });
 
 test('een aangeraakt punt dat de AI NIET meer oplevert wordt bewaard én gemarkeerd', () => {
-    // Verwijderen-en-opnieuw-aanmaken zou de menselijke invoer alsnog wissen.
-    // Dus blijft het punt staan zoals het is, met een vlag zodat het scherm
-    // kan zeggen waaróm het er nog staat.
+    // Deleting and re-creating would wipe the human input after all.
+    // So the point stays as it is, with a flag, so that the screen can say
+    // WHY it is still there.
     const existing = [{ id: 'ai-0', source: 'ai', text: 'Klant bellen', assignee: 'Tom', timestamp: '12:30', done: true }];
     const fresh = [{ id: 'ai-0', source: 'ai', text: 'Iets heel anders', assignee: 'Ewald', timestamp: '30:00', done: false }];
 
@@ -649,15 +648,15 @@ test('een aangeraakt punt dat de AI NIET meer oplevert wordt bewaard én gemarke
     assert.notStrictEqual(kept.id, other.id, 'en de twee botsen niet op één id');
 });
 
-// ── EEN ANKER DAT NIETS ONDERSCHEIDT IS GEEN ANKER ───────────────────
+// ── AN ANCHOR THAT DISTINGUISHES NOTHING IS NO ANCHOR ───────────────
 //
-// Het anker is timestamp + assignee. `sanitizeTimestamp` geeft '' terug voor
-// elke stempel die niet te parsen is of voorbij het einde van de vergadering
-// ligt, en `assignee` valt terug op de CONSTANTE 'Niet toegewezen'/'Unassigned'
-// — de prompt vraagt daar zelfs expliciet om. Alle punten zonder bruikbare
-// stempel en zonder genoemde eigenaar kregen dan LETTERLIJK dezelfde sleutel,
-// viel de hele lijst in één emmer, en matchte de merge op VOLGORDE: precies de
-// `ai-<n>`-val die de kop boven `anchorKey` zegt te vermijden.
+// The anchor is timestamp + assignee. `sanitizeTimestamp` returns '' for every
+// stamp that cannot be parsed or lies beyond the end of the meeting, and `assignee`
+// falls back to the CONSTANT 'Niet toegewezen'/'Unassigned': the prompt even explicitly
+// asks for that. All points without a usable stamp and without a named owner then
+// got LITERALLY the same key, the whole list fell into one bucket, and the merge
+// matched on ORDER: precisely the `ai-<n>` trap that the header above `anchorKey`
+// says to avoid.
 
 test('zonder stempel wordt er niet gematcht — het vinkje verhuist niet naar de actie eronder', () => {
     const existing = [
@@ -685,11 +684,10 @@ test('zonder stempel wordt er niet gematcht — het vinkje verhuist niet naar de
 });
 
 test('zonder stempel matcht ook een LIJST VAN ÉÉN niet — een lege sleutel is geen bewijs', () => {
-    // De regel staat los van de emmergrootte. Twee punten die allebei geen
-    // anker hebben, hebben niets gemeen behalve dat: dat er toevallig maar één
-    // van elk is, maakt van "geen bewijs" geen bewijs. Zonder deze regel
-    // verhuist het vinkje naar een actie die niemand afvinkte zodra het model
-    // de tekst verandert.
+    // The rule stands apart from the bucket size. Two points that both have no anchor
+    // have nothing in common except that: there happens to be only one of each. That
+    // makes "no evidence" no evidence. Without this rule, the tick moves to an action
+    // that nobody ticked as soon as the model changes the text.
     const merged = mergeRegeneratedActionItems(
         [{ id: 'ai-0', source: 'ai', text: 'Contract tekenen', assignee: 'Unassigned', timestamp: '', done: true }],
         [{ id: 'ai-0', source: 'ai', text: 'Zaal reserveren', assignee: 'Unassigned', timestamp: '', done: false }],
@@ -723,10 +721,10 @@ test('zonder stempel wordt een overgetypte tekst niet op een andere actie geplak
 });
 
 test('één regelstart in het transcript: dezelfde stempel voor alles matcht ook niet', () => {
-    // De degradatie die transcriptArtifacts.js zelf beschrijft — een
-    // solo-dictaat, of een run waarin diarisatie naar één label terugvalt.
-    // Elke stempel is dan geldig én identiek, dus is de emmer weer de hele
-    // lijst. Een emmer met meer dan één kandidaat is geen bewijs.
+    // The degradation that transcriptArtifacts.js itself describes: a solo dictation,
+    // or a run in which diarisation falls back to a single label. Every stamp is then
+    // valid AND identical, so the bucket is the whole list again. A bucket with more
+    // than one candidate is not evidence.
     const existing = [
         { id: 'ai-0', source: 'ai', text: 'Contract tekenen', assignee: 'Tom', timestamp: '00:00', done: true },
         { id: 'ai-1', source: 'ai', text: 'Offerte sturen', assignee: 'Tom', timestamp: '00:00', done: false },
@@ -744,8 +742,8 @@ test('één regelstart in het transcript: dezelfde stempel voor alles matcht ook
 });
 
 test('een ondubbelzinnig anker matcht nog gewoon — versmallen is geen "nooit meer matchen"', () => {
-    // De keerzijde: zolang de stempel er is en maar één punt hem draagt, is
-    // dit precies het geval waar de sleutel voor bestaat.
+    // The flip side: as long as the stamp exists and only one point carries it, this
+    // is exactly the case for which the key exists.
     const merged = mergeRegeneratedActionItems(
         [
             { id: 'ai-0', source: 'ai', text: 'Klant bellen', assignee: 'Tom', timestamp: '12:30', done: true },
@@ -779,10 +777,9 @@ test('de weesmarkering verdwijnt zodra de AI het punt weer oplevert', () => {
 });
 
 test('na een hertranscriptie wordt niet gematcht — het anker is weg, dus alles wat een mens aanraakte blijft als wees', () => {
-    // /reprocess vervangt het transcript. Het anker waarop we herkennen is
-    // dan niet meer van dezelfde vergaderregels afgeleid, dus is er niets te
-    // bewijzen. Onbekend versmalt: bewaren en markeren, nooit een vinkje op
-    // goed geluk op een ander punt zetten.
+    // /reprocess replaces the transcript. The anchor on which we recognise is then no
+    // longer derived from the same meeting lines, so there is nothing to prove.
+    // Unknown narrows: keep and mark, never put a tick on another point by good luck.
     const merged = mergeRegeneratedActionItems(
         [{ id: 'ai-0', source: 'ai', text: 'Klant bellen', assignee: 'Tom', timestamp: '12:30', done: true }],
         [{ id: 'ai-0', source: 'ai', text: 'Klant bellen', assignee: 'Tom', timestamp: '12:31', done: false }],
@@ -796,16 +793,15 @@ test('na een hertranscriptie wordt niet gematcht — het anker is weg, dus alles
 });
 
 test('aiText overleeft de rondgang door PATCH — anders is het bewijs weg bij het eerste vinkje', () => {
-    // De webclient stuurt de HELE lijst terug bij elke toggle. Valt `aiText`
-    // uit de allow-list, dan is de correctie na één klik niet meer als
-    // correctie herkenbaar.
+    // The web client sends the WHOLE list back with every toggle. If `aiText` falls out of the
+    // allow-list, the correction is no longer recognisable as a correction after one click.
     const [item] = ok(validateActionItems([
         { id: 'ai-0', source: 'ai', text: 'Jansen BV bellen', aiText: 'Klant bellen', done: true },
     ]));
     assert.strictEqual(item.aiText, 'Klant bellen');
-    // Ook als hij gelijk is aan `text`: dat is het ijkpunt voor de VOLGENDE
-    // correctie. Wegstrippen zou betekenen dat wie vandaag afvinkt en morgen
-    // de tekst verbetert, die verbetering weer onbeschermd maakt.
+    // Also when it equals `text`: that is the reference point for the NEXT
+    // correction. Stripping it would mean that whoever ticks today and improves the text
+    // tomorrow leaves that improvement unprotected again.
     const [same] = ok(validateActionItems([{ id: 'ai-0', source: 'ai', text: 'Klant bellen', aiText: 'Klant bellen' }]));
     assert.strictEqual(same.aiText, 'Klant bellen');
 });

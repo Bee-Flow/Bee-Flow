@@ -222,27 +222,26 @@ async function addProvenanceColumns(runDdl) {
     // it, and the only query is "the ones installed from this id". `projects`
     // is not one of the volume tables the _ddl.js runbook rule names, so a boot
     // build is free here.
-    // ── En wat die herkomst er verder over zegt (O4) ────────────────────────
+    // ── And what that provenance further says (O4) ─────────────────────────
     //
-    // `installed_from_org_id` is de organisatie waar de Oplossing vandaan komt,
-    // en de TROUW ervan verschilt per pad: bij een galerij-installatie heeft de
-    // server de galerijrij zelf gelezen, bij een BESTANDSinstallatie is het de
-    // bewering van het bestand (manifest.source). Daarom beslist deze kolom
-    // NOOIT iets: wie de installatietelling van een Blueprint mag zien wordt
-    // beantwoord door `blueprintStore.canRead` over de echte galerijrij, nooit
-    // door wat hier is opgeslagen. De kolom is geschiedenis, geen recht.
+    // `installed_from_org_id` is the organization the Solution comes from, and its
+    // RELIABILITY differs per path: for a gallery install the server read the
+    // gallery row itself; for a FILE install it is the file's own claim
+    // (manifest.source). That is why this column NEVER decides anything: who may
+    // see a Blueprint's install count is answered by `blueprintStore.canRead` over
+    // the real gallery row, never by what is stored here. The column is history,
+    // not a right.
     //
-    // `installed_version` is het versienummer waarop deze Oplossing binnenkwam
-    // — hetzelfde nummer dat de stempels per entiteit dragen
-    // (`project_solution_entities.installed_version`). Twee getallen die kunnen
-    // verschillen zouden een bron van bugs zijn, dus er wordt er precies één
-    // gelezen: `manifest.solution.version`. NULL betekent "niet vastgelegd" en
-    // is iets anders dan 0 of 1 — een installatie zonder nummer mag nooit als
-    // "bij" lezen.
+    // `installed_version` is the version number under which this Solution came in —
+    // the same number the stamps per entity carry
+    // (`project_solution_entities.installed_version`). Two numbers that could differ
+    // would be a source of bugs, so exactly one is read: `manifest.solution.version`.
+    // NULL means "not recorded" and is something other than 0 or 1 — an install
+    // without a number must never read as "up to date".
     //
-    // Geen extra index: beide kolommen worden gelezen bij het project dat je al
-    // te pakken hebt. De enige telling loopt over `installed_from_blueprint_id`
-    // en die heeft zijn eigen partiële index hierboven.
+    // No extra index: both columns are read on the project you already have. The
+    // only count runs over `installed_from_blueprint_id`, and that has its own
+    // partial index above.
     await runDdl('projectStore', [
         `ALTER TABLE projects ADD COLUMN IF NOT EXISTS installed_from_blueprint_id TEXT`,
         `CREATE INDEX IF NOT EXISTS idx_projects_installed_from

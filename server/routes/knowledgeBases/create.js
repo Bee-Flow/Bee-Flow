@@ -144,25 +144,25 @@ router.post('/:id/duplicate', requireAuth, requirePermission('manage_knowledge')
                 if (src.kind === 'upload') continue;
                 try {
                     /**
-                     * ── DE CONFIG IS NIET ALTIJD ALLEEN INHOUD ────────
-                     * Een `text`-bron kan een BEWERING dragen:
-                     * `config.metadata.transcriptionId` plakt de regel op
-                     * de tijdlijn van die vergadering — de uitvoerbalk,
-                     * het Gebruikt-door-tabblad en de verwijderpoort van
-                     * de notitie lezen hem alle drie. Het recht dat deze
-                     * route eist (`manage_knowledge` + leesrecht op de
-                     * BRON-kennisbank) is leesrecht op een gepubliceerde
-                     * kennisbank, en dat zegt niets over de vergadering
-                     * waarnaar die regel wijst. Zonder deze zeef kon
-                     * iedereen met een org-brede KB in beeld met één
-                     * `?withSources=1` een regel op de besloten
-                     * vergadering van een collega plakken — herhaalbaar,
-                     * en zichtbaar bij die collega op het scherm.
+                     * ── THE CONFIG IS NOT ALWAYS JUST CONTENT ────────
+                     * A `text` source can carry an ASSERTION:
+                     * `config.metadata.transcriptionId` pins the line onto
+                     * the timeline of that meeting — the run bar,
+                     * the Used-by tab and the delete gate of
+                     * the note all read it. The right that this route
+                     * demands (`manage_knowledge` + read access to the
+                     * SOURCE knowledge base) is read access to a published
+                     * knowledge base, and that says nothing about the meeting
+                     * to which that line points. Without this sieve
+                     * anyone with an org-wide KB in view could, with one
+                     * `?withSources=1`, paste a line onto the private
+                     * meeting of a colleague — repeatably, and
+                     * visible to that colleague on screen.
                      *
-                     * De BRON kopieert gewoon mee (dat is inhoud die de
-                     * aanroeper mag lezen); alleen de claim valt weg als
-                     * hij die vergadering niet mag zien — of als we het
-                     * niet konden vaststellen.
+                     * The SOURCE simply copies along (that is content the
+                     * caller may read); only the claim is dropped if he
+                     * may not see that meeting — or if we could not
+                     * establish it.
                      */
                     const safeConfig = await stripUnauthorizedTranscriptOrigin(src.config, userId);
                     await kbSourcesStore.create({

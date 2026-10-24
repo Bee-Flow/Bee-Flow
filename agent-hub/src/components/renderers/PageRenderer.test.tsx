@@ -6,9 +6,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../../hooks/useTranslation', () => ({
-    useTranslation: () => ({ t: (key: string, fallback?: string) => fallback ?? key }),
-}));
+vi.mock('../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
 import PageRenderer from './PageRenderer';
 

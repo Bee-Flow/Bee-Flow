@@ -129,8 +129,8 @@ export function TestTabPanel({ t, ro, rel, agent, testSet }: Loose) {
                     onRun={testSet.runTests}
                 />
             ) : (
-                // Een agent zonder id is nog nergens opgeslagen,
-                // dus er is niets om vragen aan te hangen.
+                // An agent without an id is not saved anywhere yet,
+                // so there is nothing to attach the questions to.
                 <EmptyState
                     icon={<FlaskConical size={28} aria-hidden="true" />}
                     title={t('agent_studio.test.soon_title', 'Test questions land here')}
@@ -146,13 +146,11 @@ export function UsedByTabPanel({ t, user, usageError, refetchUsage, agentUsage }
     return (
         <div className="max-w-4xl mx-auto px-10 py-6">
             {usageError ? (
-                // "Niet gelezen" mag nooit als "niemand gebruikt
-                // dit" op het scherm komen. UsedByTab zet bij een
-                // fout de waarschuwing BOVEN zijn lege-lijst-zin
-                // ("Nothing uses this yet."), en die zin is precies
-                // de bewering die een mislukte lezing niet mag doen
-                // — dus tekenen we hem hier niet, we vragen het
-                // opnieuw.
+                // "Not read" must never appear on the screen as "nobody uses
+                // this". On an error, UsedByTab places the warning ABOVE its
+                // empty-list sentence ("Nothing uses this yet."), and that sentence
+                // is exactly the claim a failed read may not make. So we do not draw
+                // it here; we ask again.
                 <div role="status" data-testid="agent-usage-error" className="text-sm text-[var(--text-secondary)] flex flex-col items-start gap-2">
                     <span className="text-[var(--warning)]">
                         {t('agent_studio.used_by.unreadable', 'Could not load who uses this agent, so nothing is claimed here.')}

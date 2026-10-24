@@ -198,7 +198,7 @@ export default function AppDatasetUpload({ node }: NodeProps<DatasetUploadProps>
                     <div
                         className="flex items-center gap-2 p-1.5 text-xs border w-fit [background:var(--bg-tertiary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)]"
                     >
-                        <Dna className="w-3.5 h-3.5 shrink-0" aria-hidden="true" style={{ color: 'var(--app-primary)' }} />
+                        <Dna className="w-3.5 h-3.5 shrink-0 [color:var(--app-primary)]" aria-hidden="true" />
                         <span className="truncate text-[var(--text-primary)]">
                             {selected.name}{selected.build ? ` · ${selected.build}` : ''}
                         </span>

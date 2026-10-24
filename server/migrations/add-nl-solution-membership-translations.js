@@ -23,8 +23,8 @@ const NL_TRANSLATIONS = {
     // ── Overzicht ──────────────────────────────────────────────
     'projects.running_now': 'Draait nu',
     'projects.recent_activity': 'Recente activiteit',
-    // 'Routine' is wat de goedkeuringenkaarten een automation noemen
-    // (zie add-nl-approvals-translations.js) — hier hetzelfde woord.
+    // 'Routine' is what the approval cards call an automation
+    // (see add-nl-approvals-translations.js) — the same word here.
     'projects.untitled_automation': 'Naamloze automatisering',
     // ── Flow ───────────────────────────────────────────────────
     'projects.flow_health': 'Status',

@@ -1,15 +1,14 @@
 /**
- * Het formulier waarin een VOORSTEL een test wordt (A4 deel D).
+ * The form in which a PROPOSAL becomes a test (A4 part D).
  *
- * Drie beloftes, en alle drie zijn ze er om te voorkomen dat er straks een
- * test staat die iets anders bewaakt dan iemand dacht:
+ * Three promises, and all three are there to prevent a test from standing there later that
+ * guards something other than what someone thought:
  *
- *   • elk voorgesteld veld is te bewerken vóór opslag, en wat wordt opgeslagen
- *     is wat er STAAT — niet wat het model schreef;
- *   • het scherm zegt dat een AI het schreef, per veld, en houdt daarmee op
- *     zodra jij het veld aanraakt;
- *   • is er niets voorgesteld, dan staat er ook geen AI-vlag boven een leeg
- *     formulier.
+ *   • every proposed field is editable before saving, and what is saved is what STANDS,
+ *     not what the model wrote;
+ *   • the screen says, per field, that an AI wrote it, and stops saying so as soon as you
+ *     touch that field;
+ *   • if nothing was proposed, there is no AI flag above an empty form either.
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/tests/SuggestedTestForm.test.jsx
  */
@@ -59,7 +58,7 @@ describe('SuggestedTestForm — wie schreef dit', () => {
         render(<SuggestedTestForm t={t} turn={TURN} suggestion={SUGGESTION} />);
         expect(screen.getByTestId('agent-tests-field-source-mustMention')).toHaveAttribute('data-source', 'ai');
         expect(screen.getByTestId('agent-tests-field-source-toolsExpected')).toHaveAttribute('data-source', 'observed');
-        // Een verbod stelt niemand voor, dus daar hangt geen merkje.
+        // A prohibition proposes nobody, so no marker hangs there.
         expect(screen.queryByTestId('agent-tests-field-source-mustNotMention')).toBeNull();
     });
 

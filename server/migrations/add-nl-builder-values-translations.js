@@ -12,8 +12,9 @@
  * WHAT IS IN HERE, AND WHY IT IS NOT DECORATION: the list chooser. When an
  * author drops a list of e-mail addresses onto a field that takes one value,
  * this is the vocabulary of the box that opens — "Hoe moet dit veld het
- * gebruiken?", "Alleen de eerste", "Alles achter elkaar, als één tekst",
- * "Deze stap één keer per rij draaien". Half-translated, that box is a page of
+ * gebruiken?" (how should this field use it?), "Alleen de eerste" (only the first),
+ * "Alles achter elkaar, als één tekst" (all one after another, as one text), "Deze stap één keer per rij draaien"
+ * (run this step once per row). Half-translated, that box is a page of
  * English in a Dutch workspace on the one control whose job is to stop a
  * silent array-into-scalar binding. The author clicks past it, and the
  * routine fails hours later inside a provider — or worse, does not fail and
@@ -35,7 +36,7 @@
  */
 
 const NL_TRANSLATIONS = {
-    // ── Een pad kiezen dat een lijst moet zijn (LoopOverPicker, PathField) ──
+    // ── Choosing a path that must be a list (LoopOverPicker, PathField) ──
     'automations.builder.path_placeholder': 'Kies een veld met de knop { }',
     'automations.builder.node_generic': 'Stap',
     'automations.builder.path_example_title': 'Of typ zelf een pad, zoals {path}',
@@ -97,9 +98,9 @@ const NL_TRANSLATIONS = {
     'automations.builder.autosave_note': 'Wijzigingen worden vanzelf opgeslagen.',
     'automations.builder.undo_changes': 'Wijzigingen ongedaan maken',
 
-    // ── Wat er in een slot zit, en wat het slot wil (artboard 2b/2c) ────────
-    // "nog leeg" en "verwacht:" staan naast het veldlabel. Ze zijn kort omdat
-    // ze op één regel naast de naam passen moeten — geen zin, een etiket.
+    // ── What sits in a slot, and what the slot wants (artboard 2b/2c) ────────
+    // "nog leeg" (still empty) and "verwacht:" (expected:) stand beside the field label. They are short
+    // because they must fit on one line beside the name — not a sentence, a label.
     'automations.builder.still_empty': 'nog leeg',
     'automations.builder.expects_kind': 'verwacht: {kind}',
     'automations.builder.how_it_looks': 'Zo ziet het eruit:',
@@ -133,7 +134,7 @@ const NL_TRANSLATIONS = {
     'automations.builder.adjust_aria': 'De waarde aanpassen',
     'automations.builder.use_as_is': 'gebruik het zoals het is',
 
-    // ── "Dit is een lijst" in badge-vorm ────────────────────────────────────
+    // ── "This is a list" in badge form ────────────────────────────────────
     'automations.builder.list_word': 'lijst',
     'automations.builder.list_of_n': 'lijst van {n}',
     'automations.builder.badge_list_items': 'Een lijst — {n} items',
@@ -149,10 +150,10 @@ const NL_TRANSLATIONS = {
     'automations.builder.column_path_label': '{step} ▸ {field} (in elke rij)',
     'automations.builder.list_empty_sample': 'Hier staat niets in de voorbeeldgegevens — controleer de veldnaam, of draai de stap hierboven voor echte gegevens.',
 
-    // ── DE VRAAG: een lijst op een plek waar één waarde past ────────────────
-    // Dit is het scherm dat iemand tegenhoudt die een lijst adressen in een
-    // e-mailonderwerp bindt. De woorden zijn dezelfde als in de mismatch-doos
-    // (routines.mismatch.*) — twee renderers, één vocabulaire.
+    // ── THE QUESTION: a list in a place where one value fits ────────────────
+    // This is the screen that stops someone who binds a list of addresses into an
+    // e-mail subject. The words are the same as in the mismatch box
+    // (routines.mismatch.*) — two renderers, one vocabulary.
     'automations.builder.list_chooser_title': 'Hoe moet dit veld het gebruiken?',
     'automations.builder.list_chooser_list': '“{field}” is een lijst van {n} items.',
     'automations.builder.list_chooser_column': '“{field}” is één waarde uit elk van de {rows} rijen.',

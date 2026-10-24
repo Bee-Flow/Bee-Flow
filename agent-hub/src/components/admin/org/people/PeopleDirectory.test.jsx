@@ -3,17 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import PeopleDirectory from './PeopleDirectory';
 
-vi.mock('../../../../hooks/useTranslation', () => ({
-    useTranslation: () => ({
-        t: (key, fallbackOrParams, maybeParams) => {
-            const fallback = typeof fallbackOrParams === 'string' ? fallbackOrParams : null;
-            const params = typeof fallbackOrParams === 'object' ? fallbackOrParams : maybeParams;
-            let out = fallback || key;
-            if (params) for (const [k, v] of Object.entries(params)) out = out.replaceAll(`{${k}}`, String(v));
-            return out;
-        },
-    }),
-}));
+vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const ORGS = [
     { id: 'orgA', name: 'Acme B.V.', status: 'active' },

@@ -1,12 +1,11 @@
 /**
- * versionFacts — de feiten achter één rij in de geschiedenislijst.
+ * versionFacts — the facts behind one row in the history list.
  *
- * De regel die elke test hieronder verdedigt is dezelfde:
- * ONBEKEND IS NIET NUL EN NIET JIJ. Een geschiedenis die "0 regels" of "jij"
- * zegt op grond van niets, is erger dan een geschiedenis die zwijgt: de eerste
- * wordt geloofd.
+ * The rule that every test below defends is the same:
+ * UNKNOWN IS NOT ZERO AND NOT YOU. A history that says "0 lines" or "you" on the basis of
+ * nothing is worse than a history that stays silent: the first is believed.
  *
- * Zuivere module, dus geen harnas — geen database, geen opslag, geen mocks.
+ * Pure module, so no harness — no database, no storage, no mocks.
  *
  * Run: node --test --test-force-exit core/webpages/versionFacts.test.js
  */
@@ -28,8 +27,8 @@ test('een leeg bestand heeft nul regels, niet één lege regel', () => {
 });
 
 test('een afsluitende newline maakt geen extra regel', () => {
-    // BIJT: `split('\n').length` geeft hier 2, en dan zou elke bewerking die
-    // alleen het bestand netjes afsluit als "+1 regel" in de lijst komen.
+    // BITES: `split('\n').length` gives 2 here, and then every edit that
+    // merely closes the file neatly would come into the list as "+1 line".
     assert.strictEqual(countLines('a\n'), 1);
     assert.strictEqual(countLines('a\nb'), 2);
     assert.strictEqual(countLines('a\nb\n'), 2);
@@ -51,9 +50,8 @@ test('het verschil telt beide kanten op', () => {
 });
 
 test('BIJT: een kant die ontbreekt levert null, nooit een getal', () => {
-    // Dit is het hele punt van de kolom. Zou dit 0 (of het aantal regels van
-    // de bekende kant) opleveren, dan zou een rij waar niets gemeten kon
-    // worden in de lijst als "geen wijziging" verschijnen — een bewering.
+    // This is the whole point of the column. Were this to yield 0 (or the number of lines of
+    // the known side), then a row in which nothing could be measured would appear in the list as "no change" — a claim.
     assert.strictEqual(lineDelta(null, 'a\nb'), null);
     assert.strictEqual(lineDelta('a\nb', null), null);
     assert.strictEqual(lineDelta(undefined, undefined), null);
@@ -90,9 +88,9 @@ test('bestandsnamen worden als zin aan elkaar geregen', () => {
 
 test('de AI-beurt noemt de bestanden die hij schreef, in een vaste volgorde', () => {
     assert.strictEqual(aiTurnSummary(new Set(['html'])), 'AI edited index.html');
-    // BIJT: css eerst toegevoegd, maar html wordt eerst genoemd — twee
-    // identieke beurten moeten dezelfde regel opleveren, ook als de
-    // gereedschappen in een andere volgorde vuurden.
+    // BITES: css was added first, but html is named first — two
+    // identical turns must yield the same line, even if the
+    // tools fired in a different order.
     assert.strictEqual(aiTurnSummary(new Set(['css', 'html'])), 'AI edited index.html and style.css');
     assert.strictEqual(aiTurnSummary(new Set(['js', 'css', 'html'])),
         'AI edited index.html, style.css and script.js');
@@ -106,8 +104,8 @@ test('een beurt zonder herkenbaar slot valt terug op de oude, eerlijke tekst', (
 });
 
 test('de slotnamen zijn de namen die het hele product gebruikt', () => {
-    // Niet "styles.css"/"app.js": de opslag, de bestandsverkenner, de
-    // ZIP-export en de snapshot-renderer schrijven deze drie zo op.
+    // Not "styles.css"/"app.js": the storage, the file browser, the
+    // ZIP export and the snapshot renderer write these three this way.
     assert.deepStrictEqual(SLOT_FILES, { html: 'index.html', css: 'style.css', js: 'script.js' });
 });
 
@@ -128,8 +126,8 @@ test('de terugzet-momentopname zegt dat hij van VÓÓR het terugzetten is', () =
 // ── De maker ──────────────────────────────────────────────────────────
 
 test('BIJT: een niet-vastgelegde maker is null — niet de lezer', () => {
-    // Zou dit terugvallen op viewerId, dan zou elke rij van vóór de kolom
-    // beweren dat de huidige gebruiker hem maakte.
+    // Were this to fall back to viewerId, then every row from before the column
+    // would claim that the current user made it.
     assert.strictEqual(actorOf(null, { viewerId: 'alice' }), null);
     assert.strictEqual(actorOf('', { viewerId: 'alice' }), null);
     assert.strictEqual(actorOf('   ', { viewerId: 'alice' }), null);
@@ -137,7 +135,7 @@ test('BIJT: een niet-vastgelegde maker is null — niet de lezer', () => {
 });
 
 test('BIJT: een maker die niet op te zoeken is houdt zijn id en verliest zijn naam', () => {
-    // Niet leeg (er stáát een maker) en niet "jij" (hij is het niet).
+    // Not empty (there IS an author) and not "you" (he is not).
     const a = actorOf('ghost', { viewerId: 'alice', names: new Map() });
     assert.deepStrictEqual(a, { id: 'ghost', name: null, isYou: false });
 });

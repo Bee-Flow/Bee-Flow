@@ -78,12 +78,10 @@ const inflight = new Map<string, Promise<AppRefRecord | null>>();
 /** Cache key for a reference. Null for anything that is not a whole one. */
 export function appRefKey(ref: AppRef | null | undefined) {
     if (!ref?.appId || !ref?.screenId) return null;
-    // Scheidingsteken: een ESCAPE (`\u0001`), geen letterlijke byte. Een echte
-    // 0x00 in de bron maakt het bestand voor git BINAIR — dan is er in een PR
-    // geen diff te zien, slaat `grep`/ripgrep de regels over en gaat het
-    // bestand langs de secret-scan heen die vóór elke commit hoort te draaien.
-    // Een teken dat in geen enkel id kan voorkomen is genoeg; het hoeft niet
-    // ononderdrukbaar te zijn.
+    // Separator: an ESCAPE (`\u0001`), not a literal byte. A real 0x00 in the source makes the
+    // file BINARY for git. Then a PR shows no diff, grep/ripgrep skip the lines, and the file
+    // slips past the secret scan that should run before every commit. A character that cannot
+    // occur in any id is enough; it does not need to be unprintable.
     return `${ref.appId}\u0001${ref.screenId}\u0001${ref.nodeId || ''}`;
 }
 
@@ -126,19 +124,17 @@ export function loadAppRef(ref: AppRef | null | undefined): Promise<AppRefRecord
 /**
  * Drop everything cached.
  *
- * DIT IS GEEN TEST-ONLY FUNCTIE MEER. De sleutel is `appId + screenId +
- * nodeId` en noemt de KIJKER niet, terwijl het antwoord wél per kijker
- * verschilt: een app die je niet bezit levert `restricted` zonder namen en
- * zonder link. Uitloggen herlaadt de pagina niet — `setUser(null)` rendert het
- * loginscherm in dezelfde JS-context — dus zonder deze aanroep leest de
- * VOLGENDE gebruiker op hetzelfde werkstation binnen het TTL-venster de
- * appnaam, de schermnaam, het knoplabel én `canOpen:true` van de vorige. Dat
- * zijn precies de twee dingen die appRefLookup.js zelf verbiedt: een naam die
- * deze kijker niet mocht lezen, en een link die op een 403 landt.
+ * THIS IS NO LONGER A TEST-ONLY FUNCTION. The key is `appId + screenId + nodeId` and does NOT
+ * name the VIEWER, while the answer DOES differ per viewer: an app you do not own yields
+ * `restricted`, without names and without a link. Logging out does not reload the page:
+ * `setUser(null)` renders the login screen in the same JS context. So without this call, the
+ * NEXT user on the same workstation reads, within the TTL window, the app name, the screen
+ * name, the button label and `canOpen:true` of the previous one. Those are exactly the two
+ * things that appRefLookup.js forbids itself: a name this viewer was not allowed to read, and
+ * a link that lands on a 403.
  *
- * Aangeroepen door hooks/sessionCaches.clearSessionCaches() — de lijst die
- * bestaat voor deze hele klasse ("een cache die op niets gekeyd is, is op de
- * sessie gekeyd, dus hij sterft met de sessie").
+ * Called by hooks/sessionCaches.clearSessionCaches(), the list that exists for this whole
+ * class ("a cache that is keyed on nothing is keyed on the session, so it dies with the session").
  */
 export function clearAppRefCache() {
     cache.clear();

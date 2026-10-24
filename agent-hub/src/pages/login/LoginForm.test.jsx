@@ -95,9 +95,9 @@ describe('what the form offers on a first visit', () => {
         expect(screen.getByTestId('sso-google-button')).toBeInTheDocument();
         expect(screen.queryByTestId('sso-microsoft-button')).toBeNull();
         expect(screen.queryByTestId('sso-nextcloud-button')).toBeNull();
-        // Ook de omgekeerde kant, per knop: zonder de vlag hoort Google weg te
-        // blijven. Een test die alleen de AAN-stand van Google toont, laat een
-        // altijd-zichtbare Google-knop ongemerkt door.
+        // The other side, per button: without the flag, Google must stay away. A test that
+        // only shows the ON state of Google lets an always-visible Google button through
+        // unnoticed.
         unmount();
         renderForm({ isMicrosoftConfigured: true });
         expect(screen.getByTestId('sso-microsoft-button')).toBeInTheDocument();
@@ -174,17 +174,16 @@ describe('what the form remembers about you', () => {
         expect(screen.queryByTestId('sso-google-button')).toBeNull();
     });
 
-    // De ingeklapte weergave rendert een EIGEN create-account-knop, met een
-    // eigen `allowSignups && setSignupMode`-poort; het volledige formulier heeft
-    // verderop een tweede. Beide staan hier gepind — een test die alleen het
-    // volledige formulier afdekt, laat een server met gesloten aanmeldingen in
-    // de ingeklapte weergave alsnog een aanmeldknop tonen.
+    // The collapsed view renders its OWN create-account button, with its own
+    // `allowSignups && setSignupMode` gate. The full form has a second one further down.
+    // Both are pinned here. A test that covers only the full form lets a server with
+    // closed sign-ups show a sign-up button in the collapsed view after all.
     it('applies both signup locks in the single-method view as well', () => {
         document.cookie = 'bf_preferred_login=password;path=/';
 
-        // Eerst de AAN-stand, zodat "weg" straks niet gewoon "deze weergave
-        // heeft die knop sowieso niet" betekent. De ontbrekende scheidingslijn
-        // bewijst dat dit de ingeklapte weergave is en niet het volle formulier.
+        // The ON state first, so that "gone" later does not simply mean "this view has no
+        // such button at all". The missing dividing line proves that this is the collapsed
+        // view and not the full form.
         const open = renderForm();
         expect(screen.getByTestId('create-account-button')).toBeInTheDocument();
         expect(screen.queryByText('login.or_continue_with')).toBeNull();

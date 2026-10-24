@@ -177,10 +177,9 @@ async function appDryRun(input = {}, opts = {}) {
     const unknown = unknownTarget(def, dataModel, screenId, asRole);
     if (unknown) return unknown;
 
-    // 1. STATIC — the data-aware cross-ref checker (unknown table/dataset/field).
-    // `datatables` (de Studio-tabellen die de eigenaar heeft) rijdt mee zodat de
-    // droogloop dezelfde harde fout geeft als het publiceren, in plaats van de
-    // waarschuwing die je krijgt als niemand de lijst meestuurde.
+    // 1. STATIC: the data-aware cross-ref checker (unknown table/dataset/field).
+    // `datatables` (the Studio tables the owner has) rides along so that the dry run gives the
+    // same hard error as publishing, instead of the warning you get when nobody sent the list.
     const staticResult = validateAppDefinition(def, { dataModel, datasets, datatables });
     const staticOut = { errors: staticResult.errors, warnings: staticResult.warnings };
 

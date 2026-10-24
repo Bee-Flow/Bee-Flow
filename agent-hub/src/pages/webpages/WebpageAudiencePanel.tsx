@@ -20,12 +20,9 @@ async function readJson(res: Response) {
 }
 
 /**
- * De kolomkeuze waarmee het formulier OPENT.
+ * The column choice with which the form OPENS.
  *
- * Al openbaar → de huidige stand, want dat is een feit en geen aanname.
- * Nog niet openbaar → leeg, voor elke tabel. Vooraf aanvinken zou van de vraag
- * "welke kolommen mogen naar buiten" een "akkoord" maken dat niemand las.
- * Puur en geëxporteerd, want dit is de enige plek waar die regel woont.
+ * Already public → the current state, because that is a fact and not an assumption. Not yet public → empty, for every table. Pre-ticking would turn the question "which columns may go outside" into a "consent" that nobody read. Pure and exported, because this is the only place where that rule lives.
  */
 export function initialColumnChoice(columnGate: ColumnGate | null | undefined, isPublic: boolean) {
     const out: ColumnChoice = {};
@@ -35,17 +32,15 @@ export function initialColumnChoice(columnGate: ColumnGate | null | undefined, i
     return out;
 }
 
-/** Hoeveel kolommen er in totaal naar buiten zouden gaan met deze keuze. */
+/** How many columns would go outside in total with this choice. */
 export function countChosenColumns(choice: ColumnChoice | null | undefined) {
     return Object.values(choice || {}).reduce((n, list) => n + (Array.isArray(list) ? list.length : 0), 0);
 }
 
 /**
- * Hoeveel kolommen er VANDAAG naar buiten gaan, volgens de server.
+ * How many columns go outside TODAY, according to the server.
  *
- * Bewust kolommen en geen tabellen: "1 van 1 gebonden tabellen" is geen zin, en
- * bovendien is het aantal KOLOMMEN het getal waar het om gaat — dat is wat er
- * op de openbare pagina staat.
+ * Deliberately columns and not tables: "1 of 1 bound tables" is not a sentence, and moreover the number of COLUMNS is the number that matters — that is what is on the public page.
  */
 export function countPublicColumns(columnGate: ColumnGate | null | undefined) {
     return (columnGate?.tables || []).reduce(
@@ -53,28 +48,17 @@ export function countPublicColumns(columnGate: ColumnGate | null | undefined) {
 }
 
 /**
- * Welke zin er onder het adres hoort over de ANDERE externe links.
+ * Which sentence goes beneath the address, about the OTHER external links.
  *
- * "Openbaar uit" zegt alleen iets over het ADRES. De server trekt bij
- * `{on:false}` uitsluitend de CANONIEKE share in; een losse /share/<token> van
- * dezelfde pagina blijft daarna gewoon de bevroren snapshot serveren, mét de
- * gerenderde tabelrijen. Zwijgt dit scherm daarover, dan leest de eigenaar
- * "Off" en "Not serving" over een pagina die anoniem bereikbaar is — precies de
- * richting die de vierde rij moet uitsluiten.
+ * "Public off" says something only about the ADDRESS. The server withdraws, on `{on:false}`, exclusively the CANONICAL share; a loose /share/<token> of the same page keeps serving the frozen snapshot afterwards, with the rendered table rows included. If this screen is silent about that, the owner reads "Off" and "Not serving" about a page that is anonymously reachable — precisely the direction that the fourth row must rule out.
  *
- * Vier standen:
- *   'while_on'  openbaar AAN met meer dan één link: één ervan IS het adres,
- *               de rest staat ernaast;
- *   'while_off' openbaar UIT en er staat er nog minstens één open: geen enkele
- *               daarvan is het adres, en ze serveren door;
- *   'unknown'   openbaar UIT maar de sharelijst was onleesbaar. Dan wordt er
- *               niets beweerd — 0 uit een mislukte lezing is geen "leeg", en
- *               juist hier zou dat de waarschuwing laten verdwijnen;
- *   'none'      er valt niets te melden.
+ * Four states:
+ *   'while_on'  public ON with more than one link: one of them IS the address, the rest stands beside it;
+ *   'while_off' public OFF and at least one is still open: none of them is the address, and they keep serving;
+ *   'unknown'   public OFF but the share list was unreadable. Then nothing is claimed — 0 from a failed read is not "empty", and precisely here that would make the warning disappear;
+ *   'none'      there is nothing to report.
  *
- * Bij een ONBEKENDE openbaar-stand (`public.known === false`) zwijgt deze zin:
- * de rij hierboven zegt dan al dat de stand niet te lezen was, en "Openbaar is
- * uit, maar…" zou daar een bewering aan toevoegen die niemand kan waarmaken.
+ * With an UNKNOWN public state (`public.known === false`) this sentence stays silent: the row above then already says that the state could not be read, and "Public is off, but…" would add a claim to it that nobody can make good.
  */
 export function otherLinksNotice(model: AudienceModel | null | undefined) {
     const known = model?.public?.known !== false;
@@ -87,14 +71,9 @@ export function otherLinksNotice(model: AudienceModel | null | undefined) {
 }
 
 /**
- * De publieke AI-brug, driewaardig — de derde eigenschap van het publieke
- * oppervlak en de enige die een SCHAKELAAR is.
+ * The public AI bridge, three-valued — the third property of the public surface, and the only one that is a SWITCH.
  *
- * `aiKnown !== true` betekent NIET GELEZEN, niet "uit": zou dat als uit tellen,
- * dan beweert het scherm "publiek draait er geen AI" op een veld dat niemand
- * bekeek — dezelfde gevaarlijke richting die `public.known` hierboven uitsluit.
- * Daarom hangt `runs` aan `known` en `grounds` aan `runs`: elke bewering hier
- * staat op de lezing eronder.
+ * `aiKnown !== true` means NOT READ, not "off": if that counted as off, the screen would claim "no AI runs publicly" about a field that nobody looked at — the same dangerous direction that `public.known` excludes above. Therefore `runs` hangs on `known` and `grounds` on `runs`: every claim here stands on the reading beneath it.
  */
 export function publicAiState(model: AudienceModel | null | undefined) {
     const known = model?.public?.aiKnown === true;
@@ -136,17 +115,16 @@ function PublicAiNotes({ t, ai }: PublicAiNotesProps) {
 
 function PublicRow({ t, model, busy, onOpen, onTurnOff, disabled }: PublicRowProps) {
     const on = !!model?.public?.on;
-    // Driewaardig, net als `agent.known` in de kolom hiernaast: kon de share
-    // niet gelezen worden, dan is "Off" een bewering over blootstelling die we
-    // niet kunnen waarmaken. Dan zegt de rij dat, en er valt niets te
-    // schakelen — aan- of uitzetten op een onbekende stand is erger dan
-    // wachten.
+    // Three-valued, just like `agent.known` in the column beside it: if the share
+    // could not be read, "Off" is a claim about exposure that we cannot make good.
+    // Then the row says so, and there is nothing to switch — switching an unknown
+    // state on or off is worse than waiting.
     const known = model?.public?.known !== false;
     const ai = publicAiState(model);
     return (
         <Card tone={known ? 'default' : 'warning'}>
             <div className="flex items-center gap-2 flex-wrap">
-                <Globe size={14} style={{ color: 'var(--kind-web)' }} />
+                <Globe size={14} className="[color:var(--kind-web)]" />
                 <span className="text-sm font-medium">{t('webpages.visibility.public', 'Public')}</span>
                 {!known
                     ? <Chip label={t('webpages.audience.public_unknown', 'Could not be checked')} tone="muted" dashed />
@@ -193,11 +171,10 @@ function PublicRow({ t, model, busy, onOpen, onTurnOff, disabled }: PublicRowPro
             <ul className="text-[11px] list-disc pl-4 text-[var(--text-secondary)]">
                 <li>{t('webpages.audience.public_tables_read_only',
                     'Table blocks are read-only here. Writing back to a table is only possible for Personal, Entire organisation and Groups.')}</li>
-                {/* De staart van deze zin ("blijft leeg") is precies ONWAAR
-                    zodra de publieke AI aanstaat: het Agent-blok draait er
-                    inderdaad niet, maar de kale chat antwoordt wel. Daarom
-                    staat de ternary om de SLEUTEL heen en niet om een halve
-                    zin. */}
+                {/* The tail of this sentence ("stays empty") is precisely FALSE as soon as public
+                    AI is on: the Agent block indeed does not run there, but the bare chat
+                    does answer. That is why the ternary is around the KEY and not around
+                    a half sentence. */}
                 <li>{ai.runs
                     ? t('webpages.audience.public_agent_never_ai_on',
                         'An agent block never runs on a public share. The plain AI chat below is a different thing, and it does answer outside readers.')
@@ -291,9 +268,9 @@ function AddressCard({ t, model, options, setOptions, onSaveOptions, busy }: Add
     const [open, setOpen] = useState(false);
     const address = model?.address;
     const isPublic = !!model?.public?.on;
-    // Wat er over de ANDERE externe links gezegd moet worden — de regel staat
-    // apart en puur, want hij hangt van drie velden af en is het enige dat
-    // "Not serving" ervan weerhoudt te lezen als "niemand kan er nog bij".
+    // What must be said about the OTHER external links — the line stands apart and
+    // pure, because it depends on three fields and is the only thing that keeps
+    // "Not serving" from being read as "nobody can get at it any more".
     const notice = otherLinksNotice(model);
 
     const copy = async () => {
@@ -436,9 +413,9 @@ function AddressCard({ t, model, options, setOptions, onSaveOptions, busy }: Add
                 </div>
             )}
 
-            {/* Zolang Openbaar AAN staat: alleen bij méér dan één, want dan is
-                één van die links het adres en de rest staat ernaast. De zin is
-                daarom altijd meervoud en heeft geen enkelvoudsvorm nodig. */}
+            {/* While Public is ON: only with more than one, because then one of those links
+                is the address and the rest stands beside it. The sentence is therefore
+                always plural and needs no singular form. */}
             {notice === 'while_on' && (
                 <p className="text-[11px] text-[var(--text-secondary)]">
                     {t('webpages.address.other_links',
@@ -447,9 +424,9 @@ function AddressCard({ t, model, options, setOptions, onSaveOptions, busy }: Add
                 </p>
             )}
 
-            {/* Staat Openbaar UIT, dan geldt die drempel niet meer: geen van de
-                overgebleven links is nog het adres, en ze serveren allemaal
-                door. Eén link is dan juist het geval dat gemeld MOET worden. */}
+            {/* If Public is OFF, that threshold no longer applies: none of the remaining links
+                is the address any more, and they all keep serving. One link is then
+                precisely the case that MUST be reported. */}
             {notice === 'while_off' && (
                 <p
                     data-testid="other-links-while-off"
@@ -504,14 +481,13 @@ export default function WebpageAudiencePanel({
     const [options, setOptions] = useState<AddressOptions>({ accessMode: 'unlisted', password: '', emails: '', expiresAt: '' });
 
     /**
-     * Neem het servermodel over als lokale staat.
+     * Take over the server model as local state.
      *
-     * Hier hoort `choice` bij, en dat is niet cosmetisch: `publishBody` stuurt
-     * `choice` altijd mee, en de server leest een ontbrekende tabel als NUL
-     * kolommen. Zou `choice` leeg blijven staan omdat de gebruiker de
-     * kolomkeuze niet had geopend, dan zou "Apply" onder Alle opties de hele
-     * poort dichtgooien zonder dat iemand daarom vroeg. Dus: na elke lezing en
-     * na elke schrijfactie staat hier de WERKELIJKE stand.
+     * `choice` belongs here, and that is not cosmetic: `publishBody` always sends
+     * `choice` along, and the server reads a missing table as ZERO columns. Were
+     * `choice` to stay empty because the user had not opened the column choice, then
+     * "Apply" under All options would shut the entire gate without anyone having asked
+     * for that. So: after every read and after every write, the ACTUAL state stands here.
      */
     const adopt = useCallback((body: AudienceModel | null) => {
         setState({ loading: false, error: null, data: body });
@@ -542,7 +518,7 @@ export default function WebpageAudiencePanel({
     const boundTables = useMemo(() => (model?.columnGate?.tables || []), [model]);
     const publicColumnCount = useMemo(() => countPublicColumns(model?.columnGate), [model]);
 
-    /** De body van PUT /audience/public — één plek, zodat aan en bij-stellen niet uiteenlopen. */
+    /** The body of PUT /audience/public — one place, so that enabling and adjusting do not diverge. */
     const publishBody = (on: boolean) => ({
         on,
         publicColumns: choice,
@@ -575,8 +551,8 @@ export default function WebpageAudiencePanel({
     const openGate = () => {
         const start = initialColumnChoice(model?.columnGate, !!model?.public?.on);
         setChoice(start);
-        // Geen gebonden tabellen = niets te vragen. De keuze wordt dan een lege
-        // map, en dat is precies wat de server als "niets naar buiten" leest.
+        // No bound tables = nothing to ask. The choice then becomes an empty map, and
+        // that is precisely what the server reads as "nothing outside".
         if (boundTables.length === 0) {
             send({ ...publishBody(true), publicColumns: {} });
             return;
@@ -667,8 +643,7 @@ export default function WebpageAudiencePanel({
                         onSaveOptions={() => send(publishBody(true))}
                     />
 
-                    {/* Wat er vandaag daadwerkelijk naar buiten gaat — de poort in
-                        één zin, ook als hij dicht staat. */}
+                    {/* What actually goes outside today — the gate in one sentence, even when it is closed. */}
                     <p className="text-[11px] text-[var(--text-secondary)]">
                         <Lock size={11} className="inline mr-1" aria-hidden="true" />
                         {!model.columnGate?.anyBound

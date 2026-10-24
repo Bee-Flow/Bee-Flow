@@ -21,10 +21,7 @@ import {
 } from './upcomingMeta';
 
 /**
- * De regels achter de Gepland-metaregel. Waar het hier om gaat is EERLIJKHEID
- * over wat niet bekend is: geen provider levert een duur, Talk levert alleen
- * de ICS-ATTENDEE-lijst (leeg bij een ad-hoc room), en een nul die eigenlijk
- * onbekend is, is in dit programma al drie keer een bevinding geweest.
+ * The rules behind the Scheduled meta line. What matters here is HONESTY about what is not known: no provider supplies a duration, Talk supplies only the ICS ATTENDEE list (empty for an ad-hoc room), and a zero that is actually unknown has been a finding in this program three times already.
  */
 
 const t = (key, fallback, vars) => String(fallback).replace(/\{(\w+)\}/g, (_, k) => String(vars?.[k] ?? ''));
@@ -44,9 +41,9 @@ describe('upcomingMeta — duur', () => {
         // Geen einde: talkCalendar geeft `end: ev.dtend || null`.
         expect(meetingDurationMinutes('2026-07-18T09:00:00Z', null)).toBeNull();
         expect(meetingDurationMinutes(null, '2026-07-18T09:30:00Z')).toBeNull();
-        // Hele dag: een DATUM is geen lengte (gmeetCalendar valt terug op start.date).
+        // All day: a DATE is not a length (gmeetCalendar falls back to start.date).
         expect(meetingDurationMinutes('2026-07-18', '2026-07-19')).toBeNull();
-        // Een einde vóór of op het begin is geen duur van -30 en geen 0.
+        // An end before or at the start is not a duration of -30, nor 0.
         expect(meetingDurationMinutes('2026-07-18T09:00:00Z', '2026-07-18T08:30:00Z')).toBeNull();
         expect(meetingDurationMinutes('2026-07-18T09:00:00Z', '2026-07-18T09:00:00Z')).toBeNull();
         expect(meetingDurationMinutes('geen-datum', '2026-07-18T09:30:00Z')).toBeNull();
@@ -92,7 +89,7 @@ describe('upcomingMeta — deelnemers', () => {
         // Ad-hoc Talk-room zonder agenda-afspraak: de lijst is leeg, niet nul.
         expect(attendeeCountOf(talkMeeting({ attendees: [], organizer: null }))).toBeNull();
         expect(attendeeCountOf(talkMeeting({ attendees: undefined, organizer: null }))).toBeNull();
-        // Een deelnemer zonder naam of adres is nog steeds een deelnemer.
+        // A participant without a name or address is still a participant.
         expect(attendeeCountOf({ attendees: [{}, {}] })).toBe(2);
         // Dubbele adressen zijn één mens.
         expect(attendeeCountOf({ attendees: [{ email: 'A@e.nl' }, { email: 'a@e.nl' }] })).toBe(1);
@@ -141,7 +138,7 @@ describe('upcomingMeta — waarom de toggle uit staat', () => {
     it('legt alleen uit wat de server als reden meestuurde', () => {
         expect(recordReasonHint('small_meeting', false, t)).toBe('Off by default: this looks like a one-on-one.');
         expect(recordReasonHint('unknown_size', false, t)).toBe("Off by default: the calendar doesn't say who is coming.");
-        expect(recordReasonHint('opted_out', false, t)).toBeUndefined();      // een eigen keuze hoeft geen uitleg
+        expect(recordReasonHint('opted_out', false, t)).toBeUndefined();      // a choice of one's own needs no explanation
         expect(recordReasonHint(undefined, false, t)).toBeUndefined();
         expect(recordReasonHint('small_meeting', true, t)).toBeUndefined();   // hij staat aan
     });
@@ -153,7 +150,7 @@ describe('upcomingMeta — de voetregel belooft alleen wat de bot echt doet', ()
     it('claimt, ontkent of zwijgt over de Talk-write-back', () => {
         expect(attendeeNotices({ rows: talkRows, postSummaryBack: true })).toEqual([NOTICE_TALK_POST]);
         expect(attendeeNotices({ rows: talkRows, postSummaryBack: false })).toEqual([NOTICE_TALK_QUIET]);
-        // Het veld ontbreekt in de payload → onbekend → geen zin over Talk.
+        // The field is missing from the payload → unknown → no sentence about Talk.
         expect(attendeeNotices({ rows: talkRows, postSummaryBack: undefined })).toEqual([]);
         expect(attendeeNotices({ rows: talkRows })).toEqual([]);
         expect(attendeeNotices({ rows: talkRows, postSummaryBack: 'ja' })).toEqual([]);
@@ -181,12 +178,11 @@ describe('upcomingMeta — de voetregel belooft alleen wat de bot echt doet', ()
     });
 
     it('DE STAND VAN DE SCHAKELAAR IS NIET DE UITKOMST', () => {
-        // `!excluded` betekende "de toggle staat aan", niet "er komt een
-        // notitie": de route rekent `excluded` met `fallback: true` en heeft
-        // voor `will_record` óók de globale schakelaar, de opnameback-end en
-        // het moderatorschap nodig. Zo stond de belofte "de samenvatting wordt
-        // teruggepost" onder een lijst waar de banner erboven meldde dat de
-        // opnameback-end niet eens geconfigureerd is.
+        // `!excluded` meant "the toggle is on", not "a note will come": the route
+        // computes `excluded` with `fallback: true` and for `will_record` also needs
+        // the global switch, the recording back-end and the moderator status. So the
+        // promise "the summary will be posted back" stood under a list where the banner
+        // above reported that the recording back-end is not even configured.
         const notRecording = [
             { provider: 'talk', status: 'upcoming', m: { excluded: false } },
             { provider: 'talk', status: 'not_moderator', m: { excluded: false } },
@@ -206,10 +202,10 @@ describe('upcomingMeta — de voetregel belooft alleen wat de bot echt doet', ()
         const organiser = [{ provider: 'gmeet', status: 'will_import', m: { organizerSelf: true } }];
         expect(attendeeNotices({ rows: organiser, meetAutoRecordArmed: true }))
             .toEqual([NOTICE_MEET_SHARE, NOTICE_MEET_AUTORECORD]);
-        // Alleen als de knop hem ook echt kan zetten.
+        // Only if the button can actually set it.
         expect(attendeeNotices({ rows: organiser, meetAutoRecordArmed: false })).toEqual([NOTICE_MEET_SHARE]);
-        // En alleen voor een vergadering die de lezer ORGANISEERT: bij een
-        // gast doet setAutoRecording niets (`not_host`).
+        // And only for a meeting that the reader ORGANISES: with a guest,
+        // setAutoRecording does nothing (`not_host`).
         const guest = [{ provider: 'gmeet', status: 'manual_record', m: { organizerSelf: false } }];
         expect(attendeeNotices({ rows: guest, meetAutoRecordArmed: true })).toEqual([NOTICE_MEET_SHARE]);
     });
@@ -231,7 +227,7 @@ describe('upcomingMeta — onbeslist is geen "uit"', () => {
     it('zegt bij recordDecided=false dat er nog geteld wordt', () => {
         const hint = recordReasonHint('unknown_size', false, t, { recordDecided: false });
         expect(hint).toContain('counts who is in the call when it starts');
-        // En de reden-zin van "uit" komt er dan NIET bij.
+        // And the reason sentence for "off" then does NOT come along.
         expect(hint).not.toContain('Off by default');
     });
 

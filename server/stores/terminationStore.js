@@ -1,11 +1,11 @@
 // @typecheck
 /**
- * Termination Store — logs vroegtijdig beëindigde AI-taken (max_tokens,
- * max_iterations, errors, client aborts) naar PostgreSQL.
+ * Termination Store — logs AI tasks that ended early (max_tokens,
+ * max_iterations, errors, client aborts) to PostgreSQL.
  *
- * Privacy contract: bevat alleen metadata, token-totalen, error categorie en
- * gesanitiseerde error class + eerste stack-regel. Géén kolommen voor user
- * messages, assistant content, tool args of tool output.
+ * Privacy contract: contains only metadata, token totals, an error category and a
+ * sanitised error class + first stack line. NO columns for user messages,
+ * assistant content, tool args or tool output.
  */
 
 const { run, getAll, exec } = require('../db');
@@ -46,9 +46,10 @@ async function _initDB() {
         )
     `);
     // Idempotent column adds for upgraded installs — via runDdl
-    // (stores/lib/_ddl.js): fouten per statement luid verzameld i.p.v. stil
-    // ingeslikt. NB (runbookregel in _ddl.js): ai_task_termination_log is een
-    // volumetabel zonder retentie — nieuwe indexen alleen via CONCURRENTLY.
+    // (stores/lib/_ddl.js): errors are collected per statement and reported loudly
+    // instead of being swallowed silently. NB (runbook rule in _ddl.js):
+    // ai_task_termination_log is a volume table without retention — new indexes
+    // only via CONCURRENTLY.
     await runDdl('terminationStore', [
         `ALTER TABLE ai_task_termination_log ADD COLUMN IF NOT EXISTS attachment_count INTEGER DEFAULT 0`,
         `ALTER TABLE ai_task_termination_log ADD COLUMN IF NOT EXISTS attachment_bytes BIGINT DEFAULT 0`,

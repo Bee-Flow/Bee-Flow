@@ -22,68 +22,38 @@ import { describeError, errorCode, errorMessage, errorStatus, messageOf } from '
 import { logger } from '../../../utils/logger';
 
 /**
- * "Rules" (Regels) — de automations die op een AFGERONDE vergadernotitie
- * draaien, als leesbare zinnen (M5, deel D).
+ * "Rules" — the automations that run on a COMPLETED meeting note, as readable sentences (M5, part D).
  *
- * Eén kaart per automatisering met een `app_event`-trigger op provider
- * `meeting-notes`: "Als <tagfilter> is afgerond → <consequenties>". Wat waar
- * is staat in ../lib/meetingRules.js; dit bestand maakt er zinnen van.
+ * One card per automation with an `app_event` trigger on provider `meeting-notes`: "When <tag filter> is finished → <consequences>". What is true is stated in ../lib/meetingRules.js; this file turns it into sentences.
  *
- * De bron is `GET /api/automation?triggerProvider=meeting-notes` (M2,
- * routes/automation/crud.js) — een lijst die per contract ALLEEN de eigen
- * automatiseringen van de lezer bevat (`getAutomationsForUser` is `WHERE user_id =
- * $1`). Dat staat ook op het scherm: een collega die dezelfde vergadering
- * opent ziet niet dezelfde regels, en "geen regels" zou anders een leugen zijn.
+ * The source is `GET /api/automation?triggerProvider=meeting-notes` (M2, routes/automation/crud.js) — a list that by contract contains ONLY the reader's own automations (`getAutomationsForUser` is `WHERE user_id = $1`). That is also stated on screen: a colleague who opens the same meeting does not see the same rules, and "no rules" would otherwise be a lie.
  *
- * ── DE CONSEQUENTIE-ZIN KOMT UIT DE STAPSOORTEN ──────────────────────
- * Niet uit een tweede, met de hand bijgehouden lijst naast de definitie:
- * `consequencesOf` leest `definition.steps` (inclusief loop-bodies,
- * parallelle takken, switch-cases en inline layers). Drie soorten krijgen een
- * zin, alles wat deze kaart niet kent wordt GETELD en de zin zegt dat er meer
- * gebeurt dan er staat — nooit stilte. Datzelfde geldt voor de trigger-filter:
- * elke sleutel naast `tags` en `reprocessed` maakt de regel smaller dan de zin
- * zegt, en dan zegt de kaart dát.
+ * ── THE CONSEQUENCE SENTENCE COMES FROM THE STEP TYPES ──────────────
+ * Not from a second, hand-maintained list beside the definition: `consequencesOf` reads `definition.steps` (including loop bodies, parallel branches, switch cases and inline layers). Three types get a sentence; everything this card does not know is COUNTED, and the sentence says that more happens than is stated — never silence. The same holds for the trigger filter: every key beside `tags` and `reprocessed` makes the rule narrower than the sentence says, and then the card says that.
  *
- * ── DE RUN-TELLING IS PER GEBRUIKER, EN DE ZIN ZEGT HET ──────────────
- * `/_runs/facets` telt `r.user_id = <ik>` — MIJN runs, niet die van de
- * organisatie; de org-variant is een ANDER endpoint met een eigen
- * permissiecheck (`/_runs/org/facets`, `manage_automations`). Een kaart die "3
- * keer gedraaid" zegt terwijl het "3 van jouw runs" is, is precies de telling
- * die over andermans runs zou gaan. Daarom staat "of yours" in de zin en niet
- * in een voetnoot.
+ * ── THE RUN COUNT IS PER USER, AND THE SENTENCE SAYS SO ─────────────
+ * `/_runs/facets` counts `r.user_id = <me>` — MY runs, not those of the organisation; the org variant is a DIFFERENT endpoint with its own permission check (`/_runs/org/facets`, `manage_automations`). A card that says "ran 3 times" while it is "3 of your runs" is exactly the count that would concern someone else's runs. That is why "of yours" is in the sentence and not in a footnote.
  *
- * En: een MISLUKTE facetten-lees toont NIETS — geen 0. Nul en onleesbaar zijn
- * verschillende antwoorden; het paneel zegt één keer bovenaan dat de tellingen
- * niet gelezen konden worden. Is de lees WEL gelukt en staat deze automatisering er
- * niet in, dan is dat een echte nul over een echt bereik, en die zin is
- * expliciet over allebei ("no runs of yours in the last 24 hours").
+ * And: a FAILED facets read shows NOTHING — not 0. Zero and unreadable are different answers; the panel says once at the top that the counts could not be read. If the read DID succeed and this automation is not in it, that is a real zero over a real range, and that sentence is explicit about both ("no runs of yours in the last 24 hours").
  *
- * ── GEEN LINK DIE OP EEN 403 UITKOMT ────────────────────────────────
- * `GET /api/automation/:id` weigert met 403 zodra `a.userId !== ik`. De kaart
- * linkt daarom alleen bij `openability(row, ik) === 'ok'`, oftewel alleen als
- * het eigendom POSITIEF vastgesteld is.
+ * ── NO LINK THAT ENDS IN A 403 ──────────────────────────────────────
+ * `GET /api/automation/:id` refuses with 403 as soon as `a.userId !== me`. The card therefore links only when `openability(row, me) === 'ok'`, in other words only if the ownership is POSITIVELY established.
  */
 
-// Het venster van de run-telling. Zelfde keuze als AutomationTile: een
-// ROLLEND venster van 24 uur, en de zin zegt "in the last 24 hours" en niet
-// "today" — een kalenderdag is een ander getal.
+// The window of the run count. Same choice as AutomationTile: a ROLLING
+// window of 24 hours, and the sentence says "in the last 24 hours" and not
+// "today" — a calendar day is a different number.
 const RANGE_HOURS = 24;
 
-// Hoeveel ideeën de composer toont. De server levert er hoogstens zes
-// (SUGGEST_MAX_SUGGESTIONS); in een rail van 300px zijn er drie genoeg.
+// How many ideas the composer shows. The server supplies at most six
+// (SUGGEST_MAX_SUGGESTIONS); in a 300px rail three are enough.
 const MAX_IDEAS = 3;
 const list = <T,>(v: T[] | null | undefined): T[] => (Array.isArray(v) ? v : []);
 
 /**
- * De licentiepoort spreekt in MACHINETOKENS, niet in Engelse zinnen.
+ * The licence gate speaks in MACHINE TOKENS, not in English sentences.
  *
- * Heel `/api/automation` hangt achter `requireLicenseFeature('automations')`
- * en die middleware antwoordt `{error:'feature_locked'}` (of `'tier_required'`
- * op een 201-pad). `safeText` in useAutomationApi geeft daarvan `j.error`
- * terug, dus `err.message` IS dat token — en `err.status` is er niet, want
- * `send` hangt hem niet aan de Error. Een test op /403|forbidden|licen/ was
- * dus altijd onwaar: de klant kreeg de kale string `feature_locked` in de
- * rode banner en de sleutel `rules_not_licensed` was onbereikbaar.
+ * All of `/api/automation` sits behind `requireLicenseFeature('automations')`, and that middleware answers `{error:'feature_locked'}` (or `'tier_required'` on a 201 path). `safeText` in useAutomationApi returns `j.error` from that, so `err.message` IS that token — and `err.status` is not there, because `send` does not attach it to the Error. A test on /403|forbidden|licen/ was therefore always false: the customer got the bare string `feature_locked` in the red banner, and the key `rules_not_licensed` was unreachable.
  */
 const LICENCE_TOKENS = new Set(['feature_locked', 'tier_required', 'license_required', 'licence_required']);
 
@@ -106,15 +76,9 @@ export function licenceMessage(err: unknown, t: TranslateFn): string | null {
 /* ── zinnen ──────────────────────────────────────────────────────────── */
 
 /**
- * "When a meeting tagged sales, support is finished" — de ALS-helft.
+ * "When a meeting tagged sales, support is finished" — the WHEN half.
  *
- * "… is finished" is de zin van `meeting.processed`, en die staat er alleen
- * als dát het event is. `meetingTriggersOf` filtert bewust op de PROVIDER en
- * niet op het event, zodat een later `meeting.scheduled` vanzelf in de lijst
- * komt — maar dan zou deze zin over elk toekomstig event het verhaal van
- * `meeting.processed` vertellen. Ook vandaag al bereikbaar: een onbekend
- * app_event-event is voor de validator een WARNING, geen error, dus zo'n
- * definitie slaat op, verschijnt hier, en vuurt nooit.
+ * "… is finished" is the sentence of `meeting.processed`, and that appears only when THAT is the event. `meetingTriggersOf` deliberately filters on the PROVIDER and not on the event, so that a later `meeting.scheduled` automatically lands in the list — but then this sentence would tell the story of `meeting.processed` about every future event. Also reachable today: an unknown app_event event is a WARNING for the validator, not an error, so such a definition is saved, appears here, and never fires.
  */
 export function conditionSentence(condition: TriggerCondition, t: TranslateFn): string | null {
     if (!condition) return null;
@@ -135,11 +99,9 @@ export function conditionSentence(condition: TriggerCondition, t: TranslateFn): 
 }
 
 /**
- * De DAN-helft, als losse stukken (de kaart zet er ` · ` tussen).
+ * The THEN half, as separate pieces (the card places ` · ` between them).
  *
- * Losse stukken en geen kant-en-klare zin: een opsomming met "and" ertussen
- * is per taal anders, en de scheider is hier hetzelfde teken dat de rest van
- * dit product tussen feiten zet (AutomationTile).
+ * Separate pieces and not a ready-made sentence: a list with "and" between is different in every language, and the separator here is the same character that the rest of this product places between facts (AutomationTile).
  */
 export function consequenceParts(consequences: Consequences, t: TranslateFn): string[] {
     if (!consequences || consequences.readable === false) {
@@ -157,9 +119,9 @@ export function consequenceParts(consequences: Consequences, t: TranslateFn): st
         ));
     }
     if (!parts.length) {
-        // "Geen stappen" en "wel stappen, maar niets wat deze kaart als een
-        // gevolg telt" zijn verschillende antwoorden. Ze samen als "has no
-        // steps" tonen laat een auteur denken dat zijn werk niet is opgeslagen.
+        // "No steps" and "steps present, but none that this card counts as a
+        // consequence" are different answers. Showing them together as "has no
+        // steps" makes an author think his work was not saved.
         parts.push(consequences.steps > 0
             ? nOf(
                 t, 'meetings.rules_does_internal', consequences.steps,
@@ -172,19 +134,16 @@ export function consequenceParts(consequences: Consequences, t: TranslateFn): st
 }
 
 /**
- * De run-regel van één kaart, of NULL als er niets te zeggen valt.
+ * The run line of one card, or NULL if there is nothing to say.
  *
- * NULL bij een mislukte of nog lopende lees — nooit een 0, want die zou een
- * bewering zijn over runs die we niet hebben kunnen tellen. Is de lees gelukt
- * en staat de automatisering niet in de facetten, dan is dat een echte nul over een
- * echt bereik en zegt de zin dat óók met zoveel woorden.
+ * NULL for a failed or still-running read — never a 0, because that would be a claim about runs we could not count. If the read succeeded and the automation is not in the facets, that is a real zero over a real range, and the sentence says so.
  */
 export function runLabel({ facets, facetsError, automationId, hours }: RunLabelInput, t: TranslateFn): string | null {
     if (facetsError || !facets) return null;
     const n = runCountOf(facets, automationId);
-    // NULL is hier "niemand heeft geteld" (geen automationId-map in het
-    // antwoord), niet "nul runs". Dat waren twee verschillende dingen met
-    // hetzelfde antwoord, en de kaart maakte er "no runs of yours" van.
+    // NULL here means "nobody has counted" (no automationId map in the answer),
+    // not "zero runs". Those were two different things with the same answer, and
+    // the card made "no runs of yours" of it.
     if (n === null) return null;
     if (n === 0) {
         return t('meetings.rules_runs_none', 'no runs of yours in the last {hours} hours', { hours });
@@ -213,18 +172,10 @@ const WARN_BANNER = {
 const smallButton = 'inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium border disabled:opacity-50 flex-shrink-0';
 
 /**
- * Actief / gepauzeerd / CONCEPT — de gedeelde drie-toestandenwoordenlijst
- * (`components/shared/statusOf.automation`, waar `isDraft` van `isActive`
- * wint). Twee toestanden was hier een echte fout: élke regel die de knop
- * "+ Rule" van dit paneel maakt komt als `is_active=FALSE, is_draft=TRUE` uit
- * de store, en kreeg dus het woord "Paused" — hetzelfde woord als een
- * afgemaakte regel die je bewust hebt uitgezet. De trigger-bus slaat een
- * concept om een ANDERE reden over (`dispatch.js` kijkt naar `!isActive` én
- * naar `isDraft`), en `crud.js` rekent om dezelfde reden `live = isActive &&
- * !isDraft`.
+ * Active / paused / DRAFT — the shared three-state word list (`components/shared/statusOf.automation`, where `isDraft` beats `isActive`). Two states was a real error here: every rule that the "+ Rule" button of this panel creates comes out of the store as `is_active=FALSE, is_draft=TRUE`, and therefore got the word "Paused" — the same word as a finished rule that you deliberately switched off. The trigger bus skips a draft for a DIFFERENT reason (`dispatch.js` looks at `!isActive` AND at `isDraft`), and `crud.js` computes for the same reason `live = isActive && !isDraft`.
  */
 function StateChip({ row, t }: { row: RuleRow; t: TranslateFn }) {
-    // `undefined` is geen "uit": een rij zonder deze kolommen krijgt geen chip.
+    // `undefined` is not "off": a row without these columns gets no chip.
     if (typeof row?.isActive !== 'boolean' && typeof row?.isDraft !== 'boolean') return null;
     const status = automationStatus(row);
     const style = status === 'live'
@@ -248,7 +199,7 @@ function StateChip({ row, t }: { row: RuleRow; t: TranslateFn }) {
     );
 }
 
-/** De regel onder de zin: wiens runs het zijn, en of hij te openen is. */
+/** The line under the sentence: whose runs they are, and whether the rule can be opened. */
 function RuleFooter({ row, runs, open, onOpen, t }: RuleFooterProps) {
     return (
         <div className="flex items-center justify-between gap-2 min-w-0">
@@ -339,8 +290,7 @@ function Composer({ text, onText, ideas, onRun, onUseIdea, creating, t }: Compos
             />
             <button
                 type="button" onClick={onRun} disabled={ideas.busy}
-                className={`${smallButton} self-start`}
-                style={{ borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)' }}
+                className={`${smallButton} self-start [border-color:var(--accent-primary)] [color:var(--accent-primary)]`}
                 data-testid="rules-composer-run"
             >
                 {ideas.busy
@@ -371,8 +321,7 @@ function Composer({ text, onText, ideas, onRun, onUseIdea, creating, t }: Compos
                     )}
                     <button
                         type="button" onClick={() => onUseIdea(idea)} disabled={creating}
-                        className={`${smallButton} self-start`}
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                        className={`${smallButton} self-start [border-color:var(--border-default)] [color:var(--text-secondary)]`}
                     >
                         {t('meetings.rules_idea_build', 'Start this rule')}
                     </button>
@@ -400,8 +349,8 @@ export default function RulesPanel({
 
     const [composerOpen, setComposerOpen] = useState(false);
     const [composerText, setComposerText] = useState('');
-    // `ran` scheidt "nog niet gevraagd" van "gevraagd en niets gekregen" — de
-    // banner hieronder gaat alleen over dat tweede.
+    // `ran` separates "not yet asked" from "asked and got nothing" — the banner
+    // below is only about the second.
     const [ideas, setIdeas] = useState<IdeasState>({ busy: false, ran: false, error: null, reason: null, items: [] });
     const abortRef = useRef<AbortController | null>(null);
 
@@ -411,8 +360,8 @@ export default function RulesPanel({
             const body = await api.listAutomations<{ automations?: RuleRow[] }>({ triggerProvider: RULE_TRIGGER_PROVIDER });
             setRules({ loading: false, error: null, rows: list(body?.automations) });
         } catch (err) {
-            // Geen lege lijst bij een fout: "geen regels" en "ik kon het niet
-            // lezen" zijn verschillende antwoorden.
+            // No empty list on an error: "no rules" and "I could not read it" are
+            // different answers.
             setRules({ loading: false, error: err, rows: null });
         }
     }, [api]);
@@ -420,15 +369,15 @@ export default function RulesPanel({
     const loadRuns = useCallback(async () => {
         setRuns((s: RunsState) => ({ ...s, loading: true, error: null }));
         try {
-            // `mode: 'live'` — een DRY-RUN is geen run die vanzelf draait, en de
-            // kop van dit paneel zegt precies dat ("What runs by itself once a
-            // meeting note is ready"). Zonder mode telt `parseRunFilters` alle
-            // modi mee, terwijl de store-helper die dezelfde vraag elders
-            // beantwoordt wél `mode = 'live'` als default kiest.
+            // `mode: 'live'` — a DRY-RUN is not a run that runs by itself, and the heading
+            // of this panel says exactly that ("What runs by itself once a meeting note
+            // is ready"). Without mode, `parseRunFilters` counts all modes, while the
+            // store helper that answers the same question elsewhere does choose
+            // `mode = 'live'` as its default.
             const body = (await api.getRunFacets({ range: RANGE_HOURS, mode: 'live' })) as RunFacetsBody;
-            // De server klemt `range` op [1,720] en kan dus een ANDER venster
-            // terugmelden dan gevraagd; de zin noemt dat getal, dus hij komt uit
-            // het antwoord en niet uit de constante.
+            // The server clamps `range` to [1,720] and can therefore report a DIFFERENT
+            // window than requested; the sentence names that number, so it comes from
+            // the answer and not from the constant.
             const hours = Number.isFinite(body?.rangeHours) ? (body.rangeHours as number) : RANGE_HOURS;
             setRuns({ loading: false, error: null, facets: body?.facets ?? null, hours });
         } catch (err) {
@@ -440,14 +389,14 @@ export default function RulesPanel({
     useEffect(() => { load(); }, [load]);
     useEffect(() => () => { try { abortRef.current?.abort(); } catch (err) { logger.debug('al gesloten', err); } }, []);
 
-    // Onleesbaar is niet nul. Een 200 met een body zonder `automationId`-map is
-    // geen "geen runs" maar "niemand heeft geteld"; die landde stilzwijgend als
-    // een nul op elke kaart terwijl de banner uitbleef.
+    // Unreadable is not zero. A 200 with a body without an `automationId` map is
+    // not "no runs" but "nobody has counted"; that landed silently as a zero on
+    // every card while the banner stayed away.
     const runsUnreadable = !runs.loading && (!!runs.error || !facetsReadable(runs.facets));
 
     const rows = rules.rows;
-    // Pas melden als de lijst er echt is; tijdens het laden en na een fout
-    // draagt het segment geen getal in plaats van een 0 die "geen" leest.
+    // Report only once the list is really there; during loading and after an error
+    // the segment carries no number, instead of a 0 that reads as "none".
     const ruleCount = rows ? rows.length : null;
     useEffect(() => { onRulesChange?.(ruleCount); }, [ruleCount, onRulesChange]);
 
@@ -484,8 +433,8 @@ export default function RulesPanel({
         let done = null as SuggestDone | null;
         try {
             await api.suggestAutomationsStream(
-                // Geen integratiekeuze: leeg betekent server-side "alles wat
-                // deze gebruiker heeft", en de scope zit in de seed.
+                // No integration choice: empty means server-side "everything this user has",
+                // and the scope sits in the seed.
                 // Ideas mode: the model proposes rules; the default pattern
                 // scan only reports work the user already repeats.
                 { mode: 'ideas', integrationIds: [], focus: composerSeed(composerText) },
@@ -500,11 +449,10 @@ export default function RulesPanel({
                 busy: false,
                 ran: true,
                 error: s.error
-                    // EEN STREAM DIE ZONDER `done` EINDIGT IS GEEN LEGE UITSLAG.
-                    // Een afgekapte verbinding of een crash na de headers gaf
-                    // 0 kaarten, geen banner en een knop die weer op "Get
-                    // ideas" stond: "onbekend" en "niets gevonden" werden
-                    // hetzelfde scherm.
+                    // A STREAM THAT ENDS WITHOUT `done` IS NOT AN EMPTY RESULT.
+                    // A truncated connection or a crash after the headers gave
+                    // 0 cards, no banner, and a button that stood back on "Get
+                    // ideas": "unknown" and "nothing found" became the same screen.
                     || (done ? null : t('meetings.rules_ai_cut_off', 'The scan stopped before it finished, so this is not an answer — try again.')),
                 reason: done?.reason || null,
                 items,
@@ -525,11 +473,11 @@ export default function RulesPanel({
     }, [api, composerText, t]);
 
     const startIdea = useCallback((suggestion: RuleIdea) => {
-        // De composer LEVERT een spec, hij bouwt niets: de aanroeper mag hem in
-        // de bouw-assistent laten vallen. Kan die dat niet, dan blijft er iets
-        // bruikbaars over — een concept met de juiste trigger, de titel en de
-        // omschrijving van het idee. De prompt zelf gaat nooit in `description`:
-        // dat veld is een zin voor mensen, geen opdracht voor een model.
+        // The composer DELIVERS a spec, it builds nothing: the caller may hand it to
+        // the build assistant. If that cannot, something usable remains — a draft
+        // with the right trigger, the title and the description of the idea. The
+        // prompt itself never goes into `description`: that field is a sentence for
+        // people, not an instruction for a model.
         if (typeof onComposeRule === 'function') {
             onComposeRule(buildMessageFromSuggestion(suggestion), suggestion);
             return;
@@ -606,12 +554,12 @@ export default function RulesPanel({
                         </div>
                     </div>
                 )}
-                {/* Eén keer bovenaan, niet per kaart: de tellingen ontbreken
-                    allemaal om dezelfde reden, en een 0 per kaart zou een
-                    bewering zijn over runs die niemand heeft kunnen tellen. */}
+                {/* Once at the top, not per card: the counts are all missing for the same
+                    reason, and a 0 per card would be a claim about runs that nobody
+                    could count. */}
                 {!loading && !rules.error && !runs.loading && runsUnreadable && (
                     <div className="flex items-start gap-2 px-3 py-2 mb-1 rounded-lg border text-[11px]" style={WARN_BANNER} data-testid="rules-runs-error">
-                        <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--warning)' }} aria-hidden="true" />
+                        <AlertCircle className="w-4 h-4 flex-shrink-0 [color:var(--warning)]" aria-hidden="true" />
                         <span>{t('meetings.rules_runs_unreadable', 'Couldn’t read how often these ran, so no rule shows a count.')}</span>
                     </div>
                 )}

@@ -51,8 +51,7 @@ export default function CoworkModeSwitch({ value = 'chat', onChange, size = 'md'
             role="tablist"
             aria-label={t('cowork.mode_switch_label', 'Chat or Cowork')}
             data-testid="cowork-mode-switch"
-            className={`inline-flex items-center rounded-full p-0.5 border ${className}`}
-            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}
+            className={`inline-flex items-center rounded-full p-0.5 border ${className} [background:var(--bg-secondary)] [border-color:var(--border-subtle)]`}
         >
             {MODES.map(({ id, label, icon: Icon, hintKey, hintEn }) => {
                 const active = value === id;

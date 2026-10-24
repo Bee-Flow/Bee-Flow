@@ -15,7 +15,7 @@ const { restoreVersion } = require('./versions');
 const { setBuilderSession } = require('./builderSession');
 const log = require('../../telemetry/log');
 
-const { run, getOne, getAll, getClient } = dep('db');
+const { run, getOne, getAll, getClient, withTransaction } = dep('db');
 
 // ── The guarded writers, over one database ─────────────────────────
 //
@@ -26,7 +26,7 @@ const { run, getOne, getAll, getClient } = dep('db');
 // proven against a real Postgres without replacing a module.
 
 /**
- * @param {{ run: Function, getOne: Function, getAll: Function, getClient: () => Promise<any> }} db
+ * @param {{ run: Function, getOne: Function, getAll: Function, getClient: () => Promise<any>, withTransaction: (fn: (client: any) => Promise<any>) => Promise<any> }} db
  * @param {{ ready?: () => Promise<unknown>, managedParts?: { assertManagedWrite: Function }|null }} [opts]
  */
 function makeStudioAppWriters(db, { ready = async () => {}, managedParts = null } = {}) {
@@ -53,6 +53,7 @@ const writers = makeStudioAppWriters({
     getOne: (sql, params) => getOne(sql, params),
     getAll: (sql, params) => getAll(sql, params),
     getClient: () => getClient(),
+    withTransaction: (fn) => withTransaction(fn),
 }, { ready: initDB });
 
 // ── THE AUTOMATION INDEX HANGS ON THE WRITER, NOT ON THE ROUTE ─────

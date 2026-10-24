@@ -1,29 +1,26 @@
 // @vitest-environment node
 //
-// DE LIJST-BEWAKER (clienthelft) — het canvas en de server zijn het eens over
-// welke stappen een run beëindigen.
+// THE LIST GUARD (client half): the canvas and the server agree on which steps end a run.
 //
-// Een `end`-familie betekent dat een stuk of tien plekken weten dat er na deze
-// stap geen rand meer mag komen. Mis je er één, dan is dezelfde graaf op de ene
-// plek geldig en op de andere niet, en dat merkt iemand pas als een automatisering
-// halverwege stopt of de editor een rand accepteert die de validator weigert.
+// An `end` family means that some ten places know that no edge may follow this step. If you
+// miss one, the same graph is valid in one place and not in another, and someone notices that
+// only when an automation stops halfway, or when the editor accepts an edge that the validator
+// refuses.
 //
-// Dit bestand faalt op DRIE manieren, en dat zijn precies de drie manieren
-// waarop die kennis wegdrijft:
+// This file fails in THREE ways, and those are precisely the three ways in which that knowledge
+// drifts away:
 //
-//   1. DE TWEE LIJSTEN LOPEN UITEEN. Geen enkele module kruist de
-//      server/agent-hub-grens, dus flow/terminalSteps.js is een KOPIE van
-//      validate/constants.js TERMINAL_STEP_TYPES. Die kopie wordt hier tegen de
-//      bron gelezen — als tekst, want de serverkant is CommonJS.
-//   2. ER KOMT EEN `end`-FAMILIE BIJ DIE NERGENS TERMINAAL IS. De familie is
-//      pure presentatie (nodeDefs.js zegt dat zelf), en `layer_output` bewijst
-//      dat: familie `end`, maar wél connecteerbaar. Precies daarom moet een
-//      NIEUWE end-familie een keuze afdwingen — terminaal, of hieronder
-//      opgeschreven mét reden. Erven mag niet.
-//   3. EEN CANVASPLEK GAAT WEER OP EEN TYPE-LITERAL DRAAIEN. Dan bestaat de
-//      gedeelde lijst nog wel, maar geldt de regel weer voor één soort.
+//   1. THE TWO LISTS DIVERGE. No module crosses the server/agent-hub boundary, so
+//      flow/terminalSteps.js is a COPY of validate/constants.js TERMINAL_STEP_TYPES. That copy is
+//      read here against the source, as text, because the server side is CommonJS.
+//   2. AN `end` FAMILY ARRIVES THAT IS TERMINAL NOWHERE. The family is pure presentation
+//      (nodeDefs.js says so itself), and `layer_output` proves it: family `end`, but connectable.
+//      That is precisely why a NEW end family must force a choice: terminal, or written down below
+//      with a reason. Inheriting is not allowed.
+//   3. A CANVAS PLACE RUNS ON A TYPE LITERAL AGAIN. Then the shared list still exists, but the rule
+//      applies to one type only.
 //
-// De SERVERHELFT staat in server/automation/validate/terminalSteps.test.js.
+// The SERVER half is in server/automation/validate/terminalSteps.test.js.
 //
 // Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/automation/Builder/flow/terminalSteps.test.js
 
@@ -44,9 +41,9 @@ const readHere = (rel) => fs.readFileSync(path.join(HERE, rel), 'utf8');
 /**
  * Source with its comments removed.
  *
- * Nodig omdat de regel hieronder over het ONTBREKEN van iets gaat: een node die
- * in zijn koptekst UITLEGT dat hij `onAddAfter` bewust niet doorgeeft, mag daar
- * niet op struikelen — dat is juist de documentatie die je wilt.
+ * Needed because the rule below concerns the ABSENCE of something. A node that EXPLAINS in its
+ * header that it deliberately does not pass `onAddAfter` may not stumble over that. That is
+ * precisely the documentation you want.
  */
 const codeOf = (rel) => readHere(rel).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
@@ -131,8 +128,8 @@ describe('terminalSteps — a new `end` family cannot inherit terminality by acc
     });
 
     it('the family and the rule are separate ideas — layer_output proves it', () => {
-        // Deze staat er expliciet omdat hij de hele reden is dat de lijst en de
-        // familie twee dingen zijn. Verdwijnt hij, dan verdwijnt het bewijs.
+        // This one is stated explicitly, because it is the whole reason that the list and the family
+        // are two things. If it disappears, the proof disappears with it.
         expect(stepFamily('layer_output')).toBe('end');
         expect(isTerminalStepType('layer_output')).toBe(false);
         expect(codeOf('nodes/FlowletOutputNode.tsx')).toMatch(/onAddAfter/);
@@ -155,20 +152,18 @@ describe('terminalSteps — every canvas gesture asks the shared list', () => {
             expect(rel, `${type} has no canvas component registered in nodeTypes.js`).toBeTruthy();
             const src = codeOf(rel);
             expect(src, `${rel} must refuse new outgoing connections`).toMatch(/sourceConnectable=\{false\}/);
-            // Het WEGLATEN van onAddAfter is de regel: StepNodeBase tekent de
-            // "+"-knop alleen als de prop er is, en dat bestand noemt geen
-            // enkele stapsoort.
+            // LEAVING OUT onAddAfter is the rule: StepNodeBase draws the "+" button only if the prop is
+            // there, and that file names no step type at all.
             expect(src.includes('onAddAfter'), `${rel} must not pass onAddAfter — there is nothing to add after a terminal step`).toBe(false);
         });
     }
 });
 
-// DE ZESDE CANVASPLEK — HET PALET — staat in stepPalette.nested.test.js, en
-// niet hier: dit bestand draait bewust in de `node`-omgeving (het leest
-// serverbronnen met fs) en stepPalette trekt via de icoonlaag `window` binnen.
-// Wat daar bewaakt wordt: wat de validator binnen een flowlet/Step of een
-// loop-body weigert (`layer.return_to_app_forbidden`,
-// `return_to_app.nested_forbidden`), wordt daar ook niet aangeboden.
+// THE SIXTH CANVAS PLACE (THE PALETTE) is in stepPalette.nested.test.js, and not here. This file
+// deliberately runs in the `node` environment (it reads server sources with fs), and stepPalette
+// pulls `window` in via the icon layer. What is guarded there: what the validator refuses inside a
+// flowlet/Step or a loop body (`layer.return_to_app_forbidden`, `return_to_app.nested_forbidden`)
+// is not offered there either.
 
 describe('terminalSteps — the behaviour, not just the wiring', () => {
     for (const type of TERMINALS) {
@@ -192,8 +187,8 @@ describe('terminalSteps — the behaviour, not just the wiring', () => {
     });
 
     it('…while the same geometry DOES chain onto an ordinary step', () => {
-        // De tegenproef: zonder deze zou de test hierboven ook slagen als de
-        // geometrie gewoon nooit een doel oplevert.
+        // The counter-proof: without this, the test above would also pass if the geometry simply never
+        // yielded a target.
         const ordinary = { id: 's1', type: 'notification' };
         const loose = { id: 's2', type: 'notification' };
         const definition = { trigger: { id: 'trg', kind: 'manual' }, steps: [ordinary, loose], edges: [{ from: 'trg', to: 's1' }] };

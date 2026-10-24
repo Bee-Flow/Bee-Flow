@@ -1,11 +1,9 @@
 /**
- * De Kennis-kaart van "Kan gebruiken" (A2 stap 2).
+ * The Knowledge card of "Can use" (A2 step 2).
  *
- * Wat hier vastligt: de ondertitels die het artboard belooft, en het verschil
- * tussen "er is niets" en "ik kon het niet lezen". Dat laatste is de reden dat
- * deze kaart bestaat in plaats van een lijstje: een agent met vijf
- * kennisbanken achter een 500 mag er nooit uitzien als een agent zonder
- * kennis.
+ * What is fixed here: the subtitles that the artboard promises, and the difference between "there is
+ * nothing" and "I could not read it". That second point is the reason this card exists instead of a plain
+ * list: an agent with five knowledge bases behind a 500 must never look like an agent without knowledge.
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/canUse/KnowledgeCard.test.jsx
  */
@@ -93,8 +91,8 @@ describe('KnowledgeCard — de tabelrij', () => {
 
 describe('KnowledgeCard — leeg is niet hetzelfde als onleesbaar', () => {
     it('zegt "niets gekoppeld" zodra de config nul koppelingen heeft — dat is geen lezing', () => {
-        // Rijen komen uit de agentconfig, niet uit een fetch. Nul rijen is dus
-        // een feit dat we vóór elke lezing al weten.
+        // Rows come from the agent config, not from a fetch. Zero rows is therefore
+        // a fact that we already know before any read.
         const { rerender } = render(<KnowledgeCard {...base} />);
         expect(screen.getByTestId('agent-knowledge-empty')).toBeTruthy();
         rerender(<KnowledgeCard {...base} kbState={READ.LOADING} />);
@@ -102,8 +100,8 @@ describe('KnowledgeCard — leeg is niet hetzelfde als onleesbaar', () => {
     });
 
     it('waarschuwt niet over kennisbanken die deze agent niet heeft', () => {
-        // Geen koppelingen: dan valt er ook niets te benoemen, en een
-        // waarschuwing zou permanent staan.
+        // No links: then there is also nothing to name, and a warning would stay
+        // there permanently.
         render(<KnowledgeCard {...base} kbState={READ.ERROR} tableState={READ.ERROR} />);
         expect(screen.queryByTestId('agent-knowledge-kbs-unreadable')).toBeNull();
         expect(screen.queryByTestId('agent-knowledge-tables-unreadable')).toBeNull();

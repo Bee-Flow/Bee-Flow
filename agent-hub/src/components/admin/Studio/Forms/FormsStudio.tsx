@@ -194,7 +194,7 @@ function CopyLinkButton({ form, t, onError }: CopyLinkButtonProps) {
             className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium border transition-colors hover:bg-[var(--bg-tertiary)] border-[var(--border-subtle)] text-[var(--text-secondary)]"
             data-testid="form-copy-link"
         >
-            {copied ? <Check className="w-3 h-3" style={{ color: 'var(--success)' }} /> : <Link2 className="w-3 h-3" />}
+            {copied ? <Check className="w-3 h-3 [color:var(--success)]" /> : <Link2 className="w-3 h-3" />}
             {copied ? t('forms.studio.copied', 'Link copied') : t('forms.studio.copy_link', 'Copy the link')}
         </button>
     );

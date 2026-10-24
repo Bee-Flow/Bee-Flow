@@ -69,12 +69,12 @@ describe('ActionItemsList due dates', () => {
 });
 
 /**
- * Een punt dat de laatste AI-pass niet meer opleverde, maar dat bewaard bleef
- * omdat iemand het had afgevinkt of de tekst had gecorrigeerd (M4).
+ * A point that the latest AI pass no longer produced, but that was kept because
+ * someone had ticked it off or corrected the text (M4).
  *
- * Zwijgend bewaren mag niet: dan beweert de kaart dat de AI dit punt zojuist
- * heeft opgeleverd, terwijl het uit een vorige ronde komt. Verwijderen mag
- * óók niet — dan is de menselijke invoer alsnog weg.
+ * Keeping it silently may not happen: then the card claims that the AI has just
+ * produced this point, while it comes from an earlier round. Deleting it may not
+ * happen either, because then the human input would be gone after all.
  */
 describe('ActionItemsList kept-from-an-earlier-pass marker', () => {
     afterEach(cleanup);

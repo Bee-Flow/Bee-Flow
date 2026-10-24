@@ -1,13 +1,12 @@
-// Het tagfilter voor meeting-notes.meeting.processed — en vooral: zegt het
-// scherm wat een LEGE tagfilter betekent?
+// The tag filter for meeting-notes.meeting.processed. And above all: does the screen say what an
+// EMPTY tag filter means?
 //
-// De keuze (leeg = elke afgeronde meeting, niet geen enkele) is verdedigbaar,
-// maar hij is alleen goed als hij er STAAT. Een leeg vak dat stilzwijgend
-// "alles" betekent is de fout die dit programma al twee keer als HOOG heeft
-// opgeschreven, dus de zin onder het invoerveld wordt hier vastgepind — niet
-// alleen de opgeslagen waarde.
+// The choice (empty = every completed meeting, not none at all) is defensible, but it is only
+// good if it IS STATED. An empty field that silently means "everything" is the mistake this
+// project has already written down twice as HIGH, so the sentence under the input field is
+// pinned here, not just the stored value.
 //
-// Draai vanuit agent-hub:
+// Run from agent-hub:
 //   ./node_modules/.bin/vitest run src/components/automation/Builder/flow/settings/triggerFilters.meetingNotes.test.jsx
 
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -21,7 +20,7 @@ function setup(initial = {}) {
         else filter[k] = v;
     });
     const view = render(<MeetingNotesProcessedFilterFields filter={filter} setFilter={setFilter} />);
-    // Niet getByLabelText: FieldHint zet dezelfde naam op zijn ⓘ-knop.
+    // Not getByLabelText: FieldHint sets the same name on its ⓘ button.
     const tagBox = () => screen.getByRole('textbox');
     const type = (text) => fireEvent.change(tagBox(), { target: { value: text } });
     const rerender = () => view.rerender(<MeetingNotesProcessedFilterFields filter={{ ...filter }} setFilter={setFilter} />);
@@ -30,16 +29,15 @@ function setup(initial = {}) {
 
 describe('het meeting-notes tagfilter', () => {
     it('is geregistreerd op de (provider, event) die AppEventFields opzoekt', () => {
-        // Zonder deze sleutel rendert de builder geen filterformulier en is de
-        // hele beslissing hieronder onzichtbaar voor de auteur.
+        // Without this key the builder renders no filter form, and the whole decision below is
+        // invisible to the author.
         expect(FILTER_FORM_BY_KEY['meeting-notes.meeting.processed']).toBe(MeetingNotesProcessedFilterFields);
     });
 
     it('ZEGT dat geen tags "elke afgeronde meeting" betekent', () => {
         setup();
         expect(screen.getByText(/runs after EVERY finished meeting note/i)).toBeTruthy();
-        // En het zegt ook wat je eraan doet, want anders is het een mededeling
-        // zonder uitweg.
+        // And it also says what you can do about it, otherwise it is a notice without a way out.
         expect(screen.getByText(/Name a tag to narrow it/i)).toBeTruthy();
     });
 
@@ -65,8 +63,8 @@ describe('het meeting-notes tagfilter', () => {
 
         type('');
         rerender();
-        // undefined, niet []: de sleutel verdwijnt uit het opgeslagen filter,
-        // precies zoals elk ander filterveld in dit bestand doet.
+        // undefined, not []: the key disappears from the stored filter, exactly as every other filter
+        // field in this file does.
         expect(setFilter).toHaveBeenCalledWith('tags', undefined);
         expect('tags' in filter).toBe(false);
         // …en het scherm valt terug op de "elke meeting"-zin in plaats van
@@ -81,9 +79,9 @@ describe('het meeting-notes tagfilter', () => {
     });
 
     it('zegt ZICHTBAAR dat er exact en hoofdlettergevoelig vergeleken wordt', () => {
-        // De matcher doet dat (net als de meeting_tag-kennisbron); wie het niet
-        // weet, typt "Sales" en wacht vergeefs op een run. Die zin hoort dus
-        // niet in de ⓘ-popover te staan, die pas na een klik in de DOM komt.
+        // The matcher does that (as the meeting_tag knowledge source does). Whoever does not know it
+        // types "Sales" and waits in vain for a run. That sentence therefore does not belong in the ⓘ
+        // popover, which only appears in the DOM after a click.
         const { type, rerender } = setup();
         type('sales');
         rerender();
@@ -103,7 +101,7 @@ describe('het meeting-notes tagfilter', () => {
         expect(setFilter).toHaveBeenCalledWith('reprocessed', true);
 
         fireEvent.change(select, { target: { value: '' } });
-        // Weglaten is iets anders dan false — de sleutel wordt gewist.
+        // Leaving it out is something other than false: the key is cleared.
         expect(setFilter).toHaveBeenCalledWith('reprocessed', undefined);
         expect('reprocessed' in filter).toBe(false);
     });
@@ -114,10 +112,9 @@ describe('het meeting-notes tagfilter', () => {
     });
 
     it('belooft GEEN vervolgstap die niet bestaat', () => {
-        // Er is geen actie in de catalogus die een transcriptionId aanneemt
-        // (grep over server/integrations: nul treffers; transcribe_audio
-        // verwerkt een geüpload BESTAND). Het scherm noemde er wel een, en de
-        // declaratie leunde op diezelfde belofte.
+        // No action in the catalogue accepts a transcriptionId (grep over server/integrations: zero
+        // hits; transcribe_audio processes an uploaded FILE). The screen did name one, and the
+        // declaration leaned on that same promise.
         setup();
         expect(screen.queryByText(/Meeting Notes action/i)).toBeNull();
         expect(screen.getByText(/no step that reads a note by id/i)).toBeTruthy();

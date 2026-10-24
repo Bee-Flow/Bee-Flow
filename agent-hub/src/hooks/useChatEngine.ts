@@ -38,9 +38,9 @@ export interface DirectMode {
 }
 
 /**
- * De TESTCHAT (A4). Eén object in plaats van twee losse vlaggen, omdat
- * `asGroup` zonder testchat een ander (bestaand) pad is en de twee niet per
- * ongeluk half aan mogen staan.
+ * The TEST CHAT (A4). One object instead of two loose flags, because `asGroup`
+ * without a test chat is another, existing path, and the two may not accidentally
+ * be half on at once.
  */
 export interface TestChatMode {
     enabled?: boolean;
@@ -161,16 +161,16 @@ export default function useChatEngine({
     const messagesRef = useRef(messages);
     useEffect(() => { messagesRef.current = messages; }, [messages]);
 
-    // ── Testchat: de modus, en wat er op de kaarten geklikt is ──────────
-    // De modus in een ref zodat hij `sendMessage` niet elke render opnieuw
-    // maakt (zelfde reden als tRef hieronder).
+    // ── Test chat: the mode, and what has been clicked on the cards ──────────
+    // The mode lives in a ref so that it does not make `sendMessage` anew on every
+    // render (same reason as tRef below).
     const testChatRef = useRef(testChat);
     useEffect(() => { testChatRef.current = testChat; }, [testChat]);
-    // De sleutel van DEZE testsessie. Opaak, alleen bedoeld om de efemere
-    // conversatie van de server over meerdere beurten dezelfde id te geven
-    // (`testChat.ephemeralConversationId` hasht hem met gebruiker en agent).
-    // Een aanroeper die zijn eigen id meegeeft (`testChat.sessionId`) wint —
-    // dat is de haak waarmee "nieuw testgesprek" straks één regel is.
+    // The key of THIS test session. Opaque, meant only to give the ephemeral
+    // conversation on the server the same id over several turns
+    // (`testChat.ephemeralConversationId` hashes it with user and agent).
+    // A caller that passes its own id (`testChat.sessionId`) wins. That is the hook
+    // with which "new test conversation" becomes one line later.
     const testSessionIdRef = useRef<string | null>(null);
     if (testSessionIdRef.current === null) {
         testSessionIdRef.current = `tc-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
@@ -179,40 +179,37 @@ export default function useChatEngine({
         const given = testChat && typeof testChat.sessionId === 'string' ? testChat.sessionId.trim() : '';
         if (given.length >= 8) testSessionIdRef.current = given;
     }, [testChat]);
-    // Beslissingen wachten op de VOLGENDE beurt: de vastgehouden call zat in
-    // een beurt die al afgelopen is, dus "ja" betekent "doe het als je het zo
-    // weer voorstelt".
+    // Decisions wait for the NEXT turn: the held call sat in a turn that has already
+    // ended, so "yes" means "do it if you propose it that way again".
     //
-    // ── TWEE KAARTEN, WANT TWEE VERSCHILLENDE VRAGEN ────────────────────
-    // Er stond er één, en dat was fout op de gevaarlijke manier. De server
-    // VERBRUIKT een goedkeuring per request (`_toolDecisions.delete`), maar
-    // bouwt zijn Map elke beurt opnieuw uit de body — dus zolang de client
-    // dezelfde verzameling bleef meesturen, kocht één klik op "Approve and
-    // run" élke latere beurt waarin het model diezelfde call met dezelfde
-    // argumenten voorstelde. Zonder kaart, zonder klik.
+    // ── TWO CARDS, BECAUSE THERE ARE TWO DIFFERENT QUESTIONS ────────────
+    // There used to be one, and that was wrong in the dangerous way. The server
+    // CONSUMES an approval per request (`_toolDecisions.delete`), but it builds its
+    // Map afresh each turn from the body. So as long as the client kept sending the
+    // same collection, one click on "Approve and run" bought EVERY later turn in
+    // which the model proposed that same call with the same arguments. Without a
+    // card, without a click.
     //
-    //   OUTBOX (`toolDecisionsRef`)  wat er nog MEE moet met een volgend
-    //     bericht, op `argsKey` — de sleutel die de server begrijpt. Wordt bij
-    //     het versturen geleegd: één ja draait één actie, en een model dat de
-    //     call herhaalt krijgt een verse kaart in plaats van een vrijbrief.
-    //     Mislukt het versturen, dan is de beslissing weg en moet er opnieuw
-    //     geklikt worden — dat is de kant waar niets gebeurt.
+    //   OUTBOX (`toolDecisionsRef`)  what still has to go WITH a following message,
+    //     on `argsKey`, the key the server understands. It is emptied on sending:
+    //     one yes runs one action, and a model that repeats the call gets a fresh
+    //     card instead of a blank cheque. If sending fails, the decision is gone and
+    //     one has to click again. That is the side where nothing happens.
     //
-    //   LEDGER (`toolDecisions`)  wat deze persoon geklikt HEEFT, op `callId`
-    //     — die is per ronde nieuw, dus de aantekening kleurt precies de kaart
-    //     waarop geklikt is en nooit een latere kaart voor dezelfde actie. Op
-    //     `argsKey` bewaren zou een nieuwe kaart in beurt 5 laten zeggen "You
-    //     declined this" op een beslissing van vijf beurten geleden, én de
-    //     knoppen weghalen waarmee je dat had kunnen herzien.
+    //   LEDGER (`toolDecisions`)  what this person HAS clicked, on `callId`. That is
+    //     new per round, so the note colours exactly the card that was clicked, and
+    //     never a later card for the same action. Keeping it on `argsKey` would let a
+    //     new card in turn 5 say "You declined this" about a decision from five turns
+    //     ago, and remove the buttons with which you could have revised it.
     const [toolDecisions, setToolDecisions] = useState<Record<string, string>>({});
     const toolDecisionsLedgerRef = useRef<Record<string, string>>({});
     const toolDecisionsRef = useRef<Record<string, string>>({});
     const decideTool = useCallback((argsKey: string, decision: string, call: { callId?: string } | null = null) => {
         if (!argsKey || (decision !== 'approve' && decision !== 'decline')) return;
         const ledgerKey = (call && typeof call.callId === 'string' && call.callId) || argsKey;
-        // Een tweede klik op DEZELFDE kaart is geen nieuwe toestemming — hier
-        // én op de server. Een nieuwe kaart (nieuwe callId) mag wel opnieuw
-        // beslist worden; anders blijft een "nee" de rest van de sessie plakken.
+        // A second click on the SAME card is no new permission, here or on the server. A
+        // new card (new callId) may be decided again. Otherwise a "no" would stick for
+        // the rest of the session.
         if (toolDecisionsLedgerRef.current[ledgerKey]) return;
         if (toolDecisionsRef.current[argsKey]) return;
         toolDecisionsLedgerRef.current = { ...toolDecisionsLedgerRef.current, [ledgerKey]: decision };

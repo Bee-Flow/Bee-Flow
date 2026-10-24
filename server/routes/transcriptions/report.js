@@ -30,9 +30,9 @@ const llmClient = require('../../core/llm/llmClient');
 // full transcripts while they fit the budget, summaries + artifacts otherwise.
 const REPORT_MAX_NOTES = 10;
 
-// Wat een rapport mag dragen. `.strict()`, want dit is de route die tot tien
-// VERBATIM transcripten naar een taalmodel stuurt: een sleutel die niemand
-// leest hoort hier niet stil weg te vallen maar benoemd te worden.
+// What a report may carry. `.strict()`, because this is the route that sends up
+// to ten VERBATIM transcripts to a language model: a key that nobody reads should
+// not silently drop out here, but be named.
 const IDS_TEXT = 'Select at least one meeting';
 const PROMPT_TEXT = 'A question or instruction is required';
 const ReportBody = bodyOf({

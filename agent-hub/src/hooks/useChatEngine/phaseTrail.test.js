@@ -4,16 +4,13 @@ import { describe, it, expect } from 'vitest';
 import { appendPhase, MAX_TRAIL_STEPS } from './phaseTrail';
 
 /**
- * Het spoor van de fase-events, en de twee manieren waarop het stil onwaar
- * wordt:
+ * The trail of the phase events, and the two ways in which it silently becomes untrue:
  *
- *   • een 'end' zonder 'start' zou een stap opleveren waarvan we het begin
- *     nooit gezien hebben;
- *   • een herhaalde 'start' van dezelfde lopende fase (privacy_scan zendt er
- *     één per gescand venster) zou één scan als zes stappen tonen.
+ *   • an 'end' without a 'start' would yield a step whose beginning we never saw;
+ *   • a repeated 'start' of the same open phase (privacy_scan sends one per scanned
+ *     window) would show one scan as six steps.
  *
- * Allebei maken ze het spoor VOLLER dan de werkelijkheid, en dat is de
- * richting die er hier toe doet.
+ * Both make the trail FULLER than reality, and that is the direction that matters here.
  */
 
 const start = (stage, detail) => ({ stage, status: 'start', detail });
@@ -26,8 +23,8 @@ describe('een stap opnemen', () => {
     });
 
     it('een end sluit hem, met de duur die de SERVER mat', () => {
-        // De server meet zijn eigen duur; die is nauwkeuriger dan het verschil
-        // van twee kloktikken hier.
+        // The server measures its own duration. That is more accurate than the difference
+        // of two clock ticks here.
         let t = appendPhase(undefined, start('kb_search'), 1000);
         t = appendPhase(t, end('kb_search', 137), 1500);
         expect(t[0]).toMatchObject({ endedAt: 1500, durationMs: 137 });
@@ -40,7 +37,7 @@ describe('een stap opnemen', () => {
     });
 
     it('BIJT — een end zonder start maakt GEEN rij', () => {
-        // Een afsluiting die bij niets hoort is geen stap die gebeurd is.
+        // A closing that belongs to nothing is not a step that happened.
         expect(appendPhase(undefined, end('guardrails', 20), 1000)).toBeUndefined();
         const existing = [{ stage: 'kb_search', detail: null, startedAt: 1, endedAt: 2, durationMs: 1 }];
         expect(appendPhase(existing, end('guardrails', 20), 1000)).toBe(existing);
@@ -57,9 +54,9 @@ describe('een stap opnemen', () => {
 
 describe('dezelfde fase twee keer', () => {
     it('BIJT — een herhaalde start van een LOPENDE fase is één stap', () => {
-        // `startPrivacyScanPhase` zendt per venster opnieuw een start met
-        // detail '2/6'. Naïef opstapelen toont één scan als zes stappen — een
-        // spoor met meer werk erin dan er gedaan is.
+        // `startPrivacyScanPhase` sends a start again for each window, with a detail of
+        // '2/6'. Naively stacking them shows one scan as six steps: a trail with more work
+        // in it than was done.
         let t = appendPhase(undefined, start('privacy_scan_large', '1/6'), 1000);
         t = appendPhase(t, start('privacy_scan_large', '2/6'), 1100);
         t = appendPhase(t, start('privacy_scan_large', '3/6'), 1200);
@@ -87,9 +84,9 @@ describe('dezelfde fase twee keer', () => {
 
 describe('fases die over elkaar heen schuiven', () => {
     it('guardrails sluit ná privacy_scan, en dat einde landt gewoon', () => {
-        // Op het agentpad loopt guardrails OM privacy_scan heen. De live regel
-        // laat dit einde vallen (currentPhase is dan al iets anders); het spoor
-        // mag dat niet doen, anders verdwijnt de duur van een echte stap.
+        // On the agent path, guardrails runs AROUND privacy_scan. The live line drops this
+        // end (currentPhase is then already something else). The trail may not do that,
+        // otherwise the duration of a real step disappears.
         let t = appendPhase(undefined, start('guardrails'), 1000);
         t = appendPhase(t, start('privacy_scan'), 1010);
         t = appendPhase(t, end('privacy_scan', 40), 1050);

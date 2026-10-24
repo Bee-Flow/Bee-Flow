@@ -136,13 +136,12 @@ export default function UsedByButtonsCapsule({ automationId, onNavigate = null }
 }
 
 /**
- * Eén regel: app › knop.
+ * One line: app › button.
  *
- * De naam van de app komt uit de LEFT JOIN op de index; is hij leeg, dan is de
- * app weg of nog niet joinbaar en toont de regel het kale id — eerlijk, en
- * onbruikbaar voor wie het niet toekomt. Het knoplabel komt uit de definitie
- * zoals die bij de laatste save stond; een actie die aan geen enkele knop hangt
- * zegt dat met zoveel woorden in plaats van met een lege plek.
+ * The name of the app comes from the LEFT JOIN on the index. If it is empty, the app is gone
+ * or not yet joinable, and the line shows the bare id: honest, and unusable for whoever is not
+ * meant to have it. The button label comes from the definition as it stood at the last save.
+ * An action that hangs on no button says so in so many words, instead of with an empty spot.
  */
 function UsageRow({ row, t, onNavigate }: UsageRowProps) {
     const appText = row.consumerTitle || row.consumerId;
@@ -165,9 +164,8 @@ function UsageRow({ row, t, onNavigate }: UsageRowProps) {
                     <ExternalLink className="w-3 h-3 shrink-0" aria-hidden="true" />
                 </a>
             ) : (
-                // Geen `canOpen` = geen link. De naam blijft staan (hij komt uit
-                // een rij die deze kijker mocht lezen), maar een link die op een
-                // 403 landt is erger dan geen link.
+                // No `canOpen` means no link. The name stays (it comes from a row that this viewer was
+                // allowed to read), but a link that lands on a 403 is worse than no link.
                 <span className="truncate text-[var(--text-secondary)]">{appText}</span>
             )}
             <ChevronRight className="w-3 h-3 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />

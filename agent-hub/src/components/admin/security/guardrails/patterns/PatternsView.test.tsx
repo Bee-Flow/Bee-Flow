@@ -12,9 +12,7 @@ vi.mock('../api/guardrailsApi', () => ({
     generateRegexWithAi: vi.fn(),
 }));
 vi.mock('../../../../shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
-vi.mock('../../../../../hooks/useTranslation', () => ({
-    useTranslation: () => ({ t: (key: string, fallback?: unknown) => (typeof fallback === 'string' ? fallback : key) }),
-}));
+vi.mock('../../../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
 let latest: { rules: RegexRule[]; collections: RuleCollection[] } = { rules: [], collections: [] };
 

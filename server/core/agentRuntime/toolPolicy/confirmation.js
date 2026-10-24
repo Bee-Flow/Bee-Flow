@@ -30,10 +30,8 @@ function confirmForTool(toolName, toolsConfig, { legacyDefault = 'direct' } = {}
     const effect = effectOf(toolName);          // sideEffectMap — no registry involved
     if (effect === 'reads') return 'direct';
     if (effect === 'sends') return 'ask';
-    // De opt-in-grens, ook hier: een agent zonder grants-map heeft geen
-    // beslissing die opgezocht kan worden, dus de registry wordt niet eens
-    // aangeraakt. Zonder deze afslag raakt elke oude agent hem alsnog op elke
-    // beurt — precies wat "onzichtbaar shipbaar" uitsluit.
+    // The opt-in boundary, here too: an agent without a grants map has no decision that can be looked up, so the registry is not
+    // even touched. Without this shortcut every old agent would touch it on every turn anyway — precisely what "invisibly shippable" excludes.
     if (!_plainObject(toolsConfig)) return CONFIRM_MODES.includes(legacyDefault) ? legacyDefault : 'direct';
     const appId = appIdForTool(toolName);
     // Same rule as isToolAllowed: with attribution degraded, the owner's
@@ -42,10 +40,9 @@ function confirmForTool(toolName, toolsConfig, { legacyDefault = 'direct' } = {}
     // an agent without one has no decision to lose.
     if (!appId && !isAttributionAvailable() && hasCuratedGrants(toolsConfig)) return 'ask';
     if (!appId) return CONFIRM_MODES.includes(legacyDefault) ? legacyDefault : 'direct';
-    // Levert meer dan één app deze tool, dan telt de SMALSTE keuze: één 'ask'
-    // ergens is een bevestiging die iemand heeft aangezet, en de andere rij mag
-    // hem niet wegdrukken. Zonder dit gold alleen de keuze van de eigenaar van
-    // de naam en was de `confirm` op de andere rij opslaanbaar en dood.
+    // If more than one app supplies this tool, the NARROWEST choice counts: one 'ask' anywhere is a confirmation that someone switched
+    // on, and the other row may not push it aside. Without this only the choice of the owner of the name applied, and the `confirm`
+    // on the other row was storable and dead.
     let sawDirect = false;
     for (const id of _decidingApps(appId, toolName)) {
         const entry = toolsConfig[id];
@@ -64,10 +61,9 @@ function confirmForTool(toolName, toolsConfig, { legacyDefault = 'direct' } = {}
  * owner chose that or said nothing at all. Dispatch must not use it directly —
  * see `mayLendOwnerConnection`, which keeps those two apart.
  *
- * Sinds A2-2 geven de twee op een GECUREERDE agent hetzelfde antwoord, en dat
- * maakt ze nog steeds niet uitwisselbaar: op een agent die niemand cureerde
- * zegt deze functie 'viewer' terwijl de poort (de opt-in-grens) juist wél
- * leent. Wie hier zijn dispatchvraag stelt, stelt hem aan de verkeerde.
+ * Since A2-2 the two give the same answer on a CURATED agent, and that still does not make them interchangeable: on an agent that
+ * nobody curated this function says 'viewer' while the gate (the opt-in boundary) does lend. Whoever asks his dispatch question
+ * here asks it of the wrong one.
  */
 function actAsForTool(toolName, toolsConfig) {
     const appId = appIdForTool(toolName);
@@ -80,97 +76,68 @@ function actAsForTool(toolName, toolsConfig) {
  * May this call borrow the OWNER's connection? The `actAs` question in the
  * shape the dispatch sites need it, so both of them ask it the same way.
  *
- * ── ALLEEN EEN OPGESLAGEN JA LEENT (A2-2) ───────────────────────────
- * Op een gecureerde agent leent dit uitsluitend waar de eigenaar `actAs:
- * 'owner'` heeft OPGESLAGEN. Geen entry voor deze app, een entry zonder
- * `actAs`, of een `actAs` die niemand kan lezen: alle drie "er is niets
- * opgeschreven", en niets opgeschreven is geen ja.
+ * ── ONLY A STORED YES LENDS (A2-2) ──────────────────────────────────
+ * On a curated agent this lends only where the owner has STORED `actAs:
+ * 'owner'`. No entry for this app, an entry without `actAs`, or an `actAs` that nobody can read: all three "nothing has been written
+ * down", and nothing written down is no yes.
  *
- * Tot A2-2 gaf de ontbrekende entry hier `true`, met het argument dat
- * "Gmail cureren geen uitspraak over Outlook is" — hetzelfde argument dat bij
- * `actions` klopt. Bij `actAs` klopt het niet, en het verschil zit in wat er
- * misgaat als je je vergist:
+ * Until A2-2 the missing entry gave `true` here, with the argument that
+ * "curating Gmail is no statement about Outlook" — the same argument that holds for `actions`. For `actAs` it does not hold, and the
+ * difference lies in what goes wrong when you make a mistake:
  *
- *   `actions`  is een VERMOGEN-vraag. Een ontbrekende entry breed lezen geeft
- *              de agent de toolbelt die hij gisteren ook had — niemand krijgt
- *              iets wat hij nog niet had, en te smal lezen zou een agent stil
- *              uitkleden. Breed is daar de voorzichtige kant.
- *   `actAs`    is een IDENTITEIT-vraag. Breed lezen zet de LIVE verbinding van
- *              de eigenaar (mailbox, Drive, agenda) onder de vingers van een
- *              ANDERE persoon die de agent draait. Onbekend moet daar
- *              versmallen — dezelfde regel die deze functie twee regels
- *              hierboven al toepast (attributie stuk ⇒ false) en in haar catch
- *              (onleesbare config ⇒ false), en die `normaliseToolsConfig` op
- *              `lentProviders === null` toepast ("ik kon het niet nagaan" is
- *              geen ja).
+ *   `actions`  is a CAPABILITY question. A missing entry read broadly gives the agent the tool belt it had yesterday too — nobody gets
+ *              anything they did not already have, and reading too narrowly would silently strip an agent. Broad is the cautious side there.
+ *   `actAs`    is an IDENTITY question. Reading broadly puts the LIVE connection of the owner (mailbox, Drive, calendar) under the fingers of
+ *              ANOTHER person who runs the agent. Unknown must narrow there — the same rule that this function already applies two lines up
+ *              (attribution broken ⇒ false) and in its catch (unreadable config ⇒ false), and that `normaliseToolsConfig` applies to
+ *              `lentProviders === null` ("I could not check" is not a yes).
  *
- * En het scherm zei het al: de Tools-kaart tekent "As: the person asking"
- * zodra er geen `actAs` is opgeslagen (agent-hub canUse/toolGrants.js →
- * `storedActAsOf` is null ⇒ ACT_AS.VIEWER), en `actAsForTool` hierboven
- * antwoordt op diezelfde toestand ook 'viewer'. Twee van de drie lezers zeiden
- * dus al "de vrager"; alleen deze poort leende. De kant die de eigenaar op zijn
- * scherm leest is de kant die waar moet zijn — de andere kant kost het meest en
- * is onzichtbaar.
+ * And the screen already said so: the Tools card draws "As: the person asking" as soon as no `actAs` is stored (agent-hub
+ * canUse/toolGrants.js → `storedActAsOf` is null ⇒ ACT_AS.VIEWER), and `actAsForTool` above answers that same state with 'viewer' too.
+ * Two of the three readers therefore already said "the person asking"; only this gate lent. The side that the owner reads on his screen is the
+ * side that must be correct — the other side costs the most and is invisible.
  *
- * ── WELKE AGENTS DIT MERKEN ─────────────────────────────────────────
- * Alleen waar ALLE vijf tegelijk gelden:
- *   1. `INTEGRATION_CONNECTION_LENDING_ENABLED` staat aan (default UIT, zie
- *      integrations/connectionResolution.js);
- *   2. de agent heeft een GECUREERDE map (`hasCuratedGrants`);
- *   3. de app van deze tool heeft daarin geen entry, of geen leesbare `actAs`
- *      (normalisatie schrijft er een op elke entry die zij uitgeeft, dus dit is
- *      een app die de eigenaar nooit opende — of een map die de route oversloeg);
- *   4. de agent wordt gedraaid door iemand anders dan de eigenaar
- *      (`resolveEffectiveIdentity` leent nooit van jezelf);
- *   5. er is een levende leen-grant van de eigenaar voor de provider van die app.
- * Die aanroep liep op de verbinding van de EIGENAAR en loopt nu op die van de
- * vrager zelf — met, als de vrager die app niet gekoppeld heeft, een "niet
- * verbonden" in plaats van stilzwijgend andermans postbus. De Tools-kaart zegt
- * dat per rij hardop (`ownerLendingUnset` in canUse/toolGrants.js), zodat dit
- * geen stille gedragswijziging is maar een zichtbare.
+ * ── WHICH AGENTS NOTICE THIS ────────────────────────────────────────
+ * Only where ALL FIVE hold at the same time:
+ *   1. `INTEGRATION_CONNECTION_LENDING_ENABLED` is on (default OFF, see integrations/connectionResolution.js);
+ *   2. the agent has a CURATED map (`hasCuratedGrants`);
+ *   3. the app of this tool has no entry there, or no readable `actAs` (normalisation writes one on every entry that it hands
+ *      out, so this is an app that the owner never opened — or a map that the route skipped);
+ *   4. the agent is run by someone other than the owner (`resolveEffectiveIdentity` never lends from yourself);
+ *   5. there is a live lending grant from the owner for the provider of that app.
+ * That call ran on the connection of the OWNER and now runs on that of the requester himself — with, if the requester has not connected
+ * that app, a "not connected" instead of silently someone else's mailbox. The Tools card says so per row out loud (`ownerLendingUnset` in
+ * canUse/toolGrants.js), so that this is not a silent change of behaviour but a visible one.
  *
- * ── WAT ONVERANDERD BLIJFT ──────────────────────────────────────────
- *   VERSTUURT ⇒ nee, altijd. Zie de eerste regel van de functie: dat is geen
- *   grant-vraag maar de bodem onder alle drie de takken, en hij geldt dus ook
- *   op de niet-gecureerde agent hieronder.
+ * ── WHAT REMAINS UNCHANGED ──────────────────────────────────────────
+ *   SENDS ⇒ no, always. See the first line of the function: that is not a grant question but the floor under all three branches, and
+ *   it therefore also holds on the non-curated agent below.
  *
- *   NIET GECUREERD ⇒ ja. De fence is `hasCuratedGrants`, niet de aanwezigheid
- *   van de sleutel. `{}` — wat `_clampRuntimeTools` en `applyConfigValidation`
- *   allebei WEGSCHRIJVEN zodra een geweigerde sectie het enige was wat een map
- *   hield — en junk-only maps zijn overal hier "precies als geen map"; de poort
- *   aan de kale sleutel hangen zette lenen uit voor al die agents. Een agent die
- *   niemand cureerde leent dus nog steeds als vóór deze laag, en de kaart meldt
- *   dát op zijn beurt (`ownerLendsUncurated`).
+ *   NOT CURATED ⇒ yes. The fence is `hasCuratedGrants`, not the presence of the key. `{}` — what `_clampRuntimeTools` and
+ *   `applyConfigValidation` BOTH write back once a refused section was the only thing a map held — and junk-only maps are
+ *   "exactly like no map" everywhere here; hanging the gate on the bare key would switch lending off for all those agents. An agent that
+ *   nobody curated still lends as it did before this layer, and the card reports that on its turn (`ownerLendsUncurated`).
  *
- *   NIET TE ZEGGEN WELKE APP ⇒ nee, voor een agent met grants. Zelfde regel als
- *   `isToolAllowed` en `confirmForTool`: met de attributie stuk lijkt elke naam
- *   onbekend, en "ik kon het antwoord van de eigenaar niet vinden" is geen
- *   "de eigenaar zei ja". Met een gezonde index blijft een naam die GEEN app
- *   claimt wél lenen: een grant op een app kan niets zeggen over een naam die
- *   geen app bezit. Let op — dat is niet inert: `providerForTool` herkent een
- *   provider op PREFIX, dus een dynamisch geïnjecteerde naam buiten het
- *   registry (`n8n_run_<slug>`) leent hier nog steeds terwijl de kiezer er geen
- *   rij voor heeft om ja te zeggen. Dat gat hoort bij de tools-die-de-kiezer-
- *   niet-kan-tonen, niet bij deze poort, en het wordt daar gedicht.
+ *   NOT TO SAY WHICH APP ⇒ no, for an agent with grants. The same rule as `isToolAllowed` and `confirmForTool`: with the attribution
+ *   broken every name looks unknown, and "I could not find the owner's answer" is not "the owner said yes". With a healthy index a name
+ *   that NO app claims still lends: a grant on an app can say nothing about a name that no app owns. Note — that is not inert: `providerForTool`
+ *   recognises a provider by PREFIX, so a dynamically injected name outside the registry (`n8n_run_<slug>`) still lends here while the picker
+ *   has no row for it to say yes on. That gap belongs to the tools-that-the-picker-cannot-show, not to this gate, and it is closed there.
  *
  * Total: it is read inside a dispatch path, so it never throws. An agentConfig
  * that cannot even be read at all lands on `false`, the closed side.
  */
 function mayLendOwnerConnection(toolName, agentConfig) {
     try {
-        // ── EEN VERZENDENDE TOOL LEENT NOOIT (A2-tegenspraak) ───────
-        // `normaliseToolsConfig` weigert `actAs: 'owner'` zodra de grant een
-        // sends-actie bevat ("een geleende verbinding verstuurt nooit zonder de
-        // eigenaar erbij"), en de kaart weigert de eigenaar-optie op dezelfde
-        // grond. Die regel gold alleen op de GECUREERDE tak; de wijdste tak —
-        // een agent die niemand cureerde, wat elke agent van vóór deze laag is
-        // — leende ook `signrequest_send_document` en `linkedin_create_post`,
-        // onder de naam van de eigenaar, gestuurd door een ander. Niemand kan
-        // dat AANvinken, dus het hoort ook niet te kunnen gebeuren.
+        // ── A SENDING TOOL NEVER LENDS (A2 contradiction) ───────
+        // `normaliseToolsConfig` refuses `actAs: 'owner'` as soon as the grant contains a sends action ("a borrowed connection never sends
+        // without the owner present"), and the card refuses the owner option on the same ground. That rule applied only on the CURATED
+        // branch; the widest branch — an agent that nobody curated, which is every agent from before this layer — still lent
+        // `signrequest_send_document` and `linkedin_create_post` under the name of the owner, sent by someone else. Nobody can
+        // TICK that on, so it should not be possible to happen either.
         //
-        // Vóór de opt-in-grens, want het is geen grant-vraag: het is dezelfde
-        // bodem als `confirmForTool`'s `sends ⇒ ask`, en die kent ook geen
-        // uitzondering voor een agent zonder map.
+        // Ahead of the opt-in boundary, because it is not a grant question: it is the same floor as `confirmForTool`'s
+        // `sends ⇒ ask`, and that one knows no exception for an agent without a map either.
         if (effectOf(toolName) === 'sends') return false;
         const cfg = toolsConfigOf(agentConfig);
         if (!hasCuratedGrants(cfg)) return true;
@@ -180,18 +147,14 @@ function mayLendOwnerConnection(toolName, agentConfig) {
             _warnDegraded(`refusing the owner's connection for "${toolName}" on an agent with stored grants`);
             return false;
         }
-        // Bewust ALLEEN de entry van de app die de naam bezit, ook wanneer een
-        // tweede registry-entry dezelfde tool levert (`_decidingApps`). Bij
-        // `actions` en `confirm` spreken die twee allebei mee omdat elk van hen
-        // kan VERSMALLEN; identiteit is één vraag over één credential, en
-        // `normaliseToolsConfig` weigert `actAs: 'owner'` daarom op de app die
-        // zijn grants elders laat lopen (`appDefersGrants`). Haar `viewer` is
-        // dus geen keuze maar de afwezigheid ervan, en die als veto lezen zou
-        // de rij van de eigenaar onbruikbaar maken.
+        // Deliberately ONLY the entry of the app that owns the name, also when a second registry entry supplies the same tool
+        // (`_decidingApps`). With `actions` and `confirm` those two both have a say because each of them can NARROW; identity is one
+        // question about one credential, and `normaliseToolsConfig` refuses `actAs: 'owner'` on the app that lets its grants run
+        // elsewhere (`appDefersGrants`) for that reason. Its `viewer` is therefore not a choice but the absence of one, and reading
+        // that as a veto would make the row of the owner unusable.
         const entry = cfg[appId];
-        // Alleen een opgeslagen ja. Geen entry, geen `actAs` en een onleesbare
-        // `actAs` zijn hetzelfde antwoord: er staat niets, dus er wordt niets
-        // geleend — precies wat de kaart voor deze toestand tekent.
+        // Only a stored yes. No entry, no `actAs`, and an unreadable `actAs` are the same answer: nothing is there, so nothing is lent —
+        // precisely what the card draws for this state.
         return _plainObject(entry) && entry.actAs === 'owner';
     } catch (_) {
         return false;

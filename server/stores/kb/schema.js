@@ -37,24 +37,24 @@ function makeSchemaInit({ exec, getOne, runDdl, CODES, log, ensureSourcesSchema 
         )
     `);
         await exec(`CREATE INDEX IF NOT EXISTS idx_kb_tenant ON knowledge_bases(tenant_id)`);
-        // Losse migratiebestanden: nog steeds niet-fataal (de store moet kunnen
-        // starten), maar een falende migratie hoort in de log — de oude
-        // /* tolerate */ liet ook een timeout of dode verbinding stil passeren.
+        // Separate migration files: still non-fatal (the store must be able to
+        // start), but a failing migration belongs in the log — the old
+        // /* tolerate */ also let a timeout or dead connection pass silently.
         // Drop the deprecated per-KB default_lang column on existing deployments
         // (no-op once applied). Idempotent.
         try { await require('../../migrations/drop-kb-default-lang').up(); } catch (e) { log.error('[KnowledgeBases] migratie drop-kb-default-lang gefaald:', e.message); }
         // Add usage_contexts + source_kind columns and backfill auto-created KBs.
         try { await require('../../migrations/add-kb-usage-contexts').up(); } catch (e) { log.error('[KnowledgeBases] migratie add-kb-usage-contexts gefaald:', e.message); }
-        // UITGEZET (Track Z): de migratie `add-nl-kb-usage-translations` zaaide NL-waarden
-        // voor de zeven sleutels kb_detail.usage_label / .usage_agents / .usage_agents_hint /
+        // SWITCHED OFF (Track Z): the migration `add-nl-kb-usage-translations` seeded NL values
+        // for the seven keys kb_detail.usage_label / .usage_agents / .usage_agents_hint /
         // .usage_direct_chat / .usage_direct_chat_hint / .usage_webpages / .usage_webpages_hint.
-        // Die zijn in Track Z uit BEIDE Engelse woordenboeken verwijderd (agent-hub/src/i18n/
-        // en-defaults.js en server/i18n/defaults/en.js kennen de hele kb_detail-namespace niet
-        // meer), dus de migratie schreef bij elke boot DB-rijen voor sleutels die niet bestaan.
-        // Het migratiebestand blijft bewust op schijf staan zodat replay van de migratiereeks
-        // mogelijk blijft; alleen de aanroep is weg. Komen die sleutels ooit terug, zet dan
-        // deze regel weer aan (zie migrations/add-nl-kb-usage-translations.test.js, die rood
-        // wordt zodra een van de zeven weer in een woordenboek opduikt).
+        // Those were removed in Track Z from BOTH English dictionaries (agent-hub/src/i18n/
+        // en-defaults.js and server/i18n/defaults/en.js no longer know the whole kb_detail namespace),
+        // so the migration wrote DB rows on every boot for keys that do not exist.
+        // The migration file deliberately stays on disk so that replay of the migration series
+        // remains possible; only the call is gone. If those keys ever return, then
+        // switch this line back on (see migrations/add-nl-kb-usage-translations.test.js, which turns
+        // red as soon as one of the seven reappears in a dictionary).
         // Give every agent-usable KB the 'ai_step' context BEFORE the link-time
         // check starts demanding it — otherwise every existing automation fails its
         // next activation on a base nobody changed.
@@ -210,8 +210,8 @@ function makeSchemaInit({ exec, getOne, runDdl, CODES, log, ensureSourcesSchema 
             `ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS last_content_at TIMESTAMPTZ`,
             ...docColumns.map((col) => `ALTER TABLE documents ADD COLUMN IF NOT EXISTS ${col}`),
             // CHECK constraints can't be added IF NOT EXISTS; guard on pg_constraint.
-            // Legacy-rijen die de check schenden mogen db:migrate niet breken
-            // (tolerate 23514) — al het andere is een echte, luide fout.
+            // Legacy rows that violate the check must not break db:migrate
+            // (tolerate 23514) — everything else is a real, loud error.
             {
                 sql: `DO $$ BEGIN
                 IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'documents_status_check') THEN

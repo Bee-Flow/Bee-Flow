@@ -69,9 +69,9 @@ describe('RoleCards — onbekend is geen lege rol', () => {
     });
 
     it('een MISLUKTE conceptlezing geeft de waarschuwing, niet vijf lege kaarten', () => {
-        // De hele reden dat `useAgentConceptFacts` een `personaState` heeft: een
-        // 403 op `?draft=1`, of een antwoord zonder persona, mag niet als "deze
-        // agent heeft geen rol" op het scherm komen.
+        // The whole reason `useAgentConceptFacts` has a `personaState`: a
+        // 403 on `?draft=1`, or a response without a persona, must not show on screen as "this
+        // agent has no role".
         render(<RoleCards {...base} persona={null} personaState={READ.ERROR} />);
         expect(screen.getByTestId('agent-role-unreadable-note').textContent)
             .toMatch(/not the same as the agent having no role/i);
@@ -79,9 +79,9 @@ describe('RoleCards — onbekend is geen lege rol', () => {
     });
 
     it('een persona die we WEL hebben wint van een mislukte tweede lezing', () => {
-        // De aanroeper stelt `persona={agent?.persona ?? conceptFacts.persona}`
-        // samen; als die eerste helft leesbaar is, is een mislukte `?draft=1`
-        // geen reden om een rol te verbergen die we hebben.
+        // The caller composes `persona={agent?.persona ?? conceptFacts.persona}`;
+        // if that first half is readable, a failed `?draft=1` is no reason to hide a role
+        // we do have.
         render(<RoleCards {...base} persona={PERSONA} personaState={READ.ERROR} />);
         expect(screen.getByTestId('agent-role-who-input').value).toBe('An experienced colleague.');
         expect(screen.queryByTestId('agent-role-unreadable')).toBeNull();
@@ -201,11 +201,11 @@ describe('RoleCards — vrije modus', () => {
     });
 
     it('belooft NIET dat de velden hem beschrijven als er niets in staat', () => {
-        // Het meerderheidsgeval, niet de rand: elke agent van vóór A1c leest via
-        // `personaOf` terug als `{mode:'free', freeText: system_prompt}` met alle
-        // velden leeg. De oude banner zei "The fields below describe it" boven
-        // vijf kaarten die "Nothing written down yet." zeggen, over een agent
-        // die aantoonbaar een rol, een toon en regels heeft.
+        // The majority case, not the edge: every agent from before A1c reads back via
+        // `personaOf` as `{mode:'free', freeText: system_prompt}` with all fields
+        // empty. The old banner said "The fields below describe it" above
+        // five cards that say "Nothing written down yet.", about an agent that
+        // demonstrably has a role, a tone and rules.
         const underived = {
             who: '', tone: { chips: [], text: '' }, does: [], doesNot: [],
             unknown: { mode: 'honest', automationId: null }, language: null,

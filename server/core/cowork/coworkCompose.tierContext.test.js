@@ -1,10 +1,9 @@
 // @typecheck
 /**
- * De composer schrijft de opdracht UIT DE WOORDEN VAN DE GEBRUIKER — dus ook
- * hij lost zijn model op onder de org van die gebruiker (EU-overrides en
- * org-tiers meegerekend), niet onder de globale kaart. De route levert
- * {userId, userOrgId}; dit bewijst dat compose ze werkelijk doorgeeft, en
- * dat een mislukte resolutie nog steeds netjes in de fallback-spec eindigt.
+ * The composer writes the instruction FROM THE WORDS OF THE USER, so it too resolves its model
+ * under the org of that user (EU overrides and org tiers included), not under the global map.
+ * The route supplies {userId, userOrgId}; this proves that compose really passes them on,
+ * and that a failed resolution still ends neatly in the fallback spec.
  *
  * Run: node --test --test-force-exit core/cowork/coworkCompose.tierContext.test.js
  */

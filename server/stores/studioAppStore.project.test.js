@@ -75,6 +75,7 @@ const mockDb = {
     exec: async () => {},
     getClient: async () => ({ query: async () => ({ rows: [], rowCount: 0 }), release() {} }),
 };
+mockDb.withTransaction = require('../testUtils/txFake').withTransactionVia(() => mockDb.getClient());
 
 const Module = require('module');
 const originalResolve = Module._resolveFilename;

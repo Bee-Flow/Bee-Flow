@@ -181,14 +181,13 @@ function WebpagesPageInner({ user, onBack, initialWebpageId, onWebpageChange, em
 
     const handleClone = async (id: string) => {
         const source = webpages.find(w => w.id === id);
-        // Localized prefix client-side so the new name matches the user's
-        // language without the server having to know the locale. Falls back
-        // to the server's "Copy of …" default when source isn't found.
+        // Localized prefix client-side so the new name matches the user's language without
+        // the server having to know the locale. Falls back to the server's "Copy of …"
+        // default when the source isn't found.
         //
-        // Dit stond hier hardgecodeerd in het NEDERLANDS in een Engelstalige
-        // UI — en het is geen label maar DATA: de naam gaat via POST /:id/clone
-        // de rij in, dus een latere vertaalronde repareert de bestaande pagina's
-        // niet meer. Vandaar t() met een Engelse fallback.
+        // This was hard-coded here in DUTCH in an English-language UI. It is not a label
+        // but DATA: the name goes into the row via POST /:id/clone, so a later translation
+        // round does not repair the existing pages. Hence t() with an English fallback.
         const cloneName = source
             ? t('webpages.copy_of', 'Copy of {name}', { name: source.name || '' })
             : undefined;

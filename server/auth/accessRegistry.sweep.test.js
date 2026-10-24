@@ -1,33 +1,31 @@
 'use strict';
 
 /**
- * Elke route is verantwoord — afgedwongen, app-breed. (U4)
+ * Every route is accounted for: enforced, app-wide. (U4)
  *
- * De opvolger van de /auth-drifttest voor de rest van het oppervlak. De twee
- * tests verdelen het werk:
+ * The successor of the /auth drift test for the rest of the surface. The two tests split the work:
  *
- *   accessRegistry.drift.test.js  laadt de ECHTE app in een wegwerp-kindproces
- *       (routeWalk.cli.js) en verifieert de triagedPrefixes diepgaand —
- *       machinale gate-tags, chain-equivalentie, probe⟷declaratie.
- *   deze test  leest index.js en elk bereikbaar routebestand als TEKST
- *       (testUtils/routeSurfaceSweep.js — nooit een require van de app: dat start
- *       schedulers) en eist app-breed VERANTWOORDING: elke route heeft een
- *       gate op mount, router of route, een gate-vormige check in de handler,
- *       een declaratie in accessRegistry, of een expliciete vrijstelling
- *       hieronder met een controleerbare reden. Routes onder triagedPrefixes
- *       slaat de sweep over — die dekt de drifttest al, en dieper.
+ *   accessRegistry.drift.test.js  loads the REAL app in a throwaway child process
+ *       (routeWalk.cli.js) and verifies the triagedPrefixes in depth:
+ *       machine gate tags, chain equivalence, probe <-> declaration.
+ *   this test  reads index.js and every reachable route file as TEXT
+ *       (testUtils/routeSurfaceSweep.js; never a require of the app, which
+ *       starts schedulers) and demands app-wide ACCOUNTABILITY: every route has a
+ *       gate on the mount, router or route, a gate-shaped check in the handler,
+ *       a declaration in accessRegistry, or an explicit exemption
+ *       below with a verifiable reason. The sweep skips routes under
+ *       triagedPrefixes; the drift test already covers those, and deeper.
  *
- * Een nieuwe route die nergens in past is een RODE TEST met een aanwijzing,
- * geen stil open endpoint. Dat dit mechanisme echt bijt bewijzen de
- * synthetische fixtures onderaan: een fixture-app met een ongegate,
- * niet-geregistreerde route levert aantoonbaar rood op — zonder
- * canary-bestanden in de echte boom.
+ * A new route that fits nowhere is a RED TEST with a hint, not a silently
+ * open endpoint. That this mechanism really bites is proven by the synthetic
+ * fixtures at the bottom: a fixture app with an ungated, unregistered route
+ * demonstrably goes red, without canary files in the real tree.
  *
- * WAT DIT BEWIJST: verantwoording, geen toereikendheid. "requireAuth in de
- * keten" zegt niet dat de JUISTE caller binnenkomt — dat blijft het werk van
- * de per-route authz-tests en van de drifttest naarmate triagedPrefixes
- * groeit. En net als migrateDb.registration.test.js is dit bewust statisch:
- * verantwoording is een tekstueel feit.
+ * WHAT THIS PROVES: accountability, not sufficiency. "requireAuth in the
+ * chain" does not say the RIGHT caller gets in; that stays the job of
+ * the per-route authz tests and of the drift test as triagedPrefixes
+ * grows. And like migrateDb.registration.test.js this is deliberately static:
+ * accountability is a textual fact.
  *
  * Run: cd server && node --test --test-force-exit auth/accessRegistry.sweep.test.js
  */
@@ -43,14 +41,14 @@ const { parseSurface, sweepSurface } = require('../testUtils/routeSurfaceSweep')
 const SERVER = path.resolve(__dirname, '..');
 
 /**
- * Bewust zonder keten-gate bereikbaar — elk met de reden. Een entry is een
- * claim die een reviewer kan controleren, geen ontsnappingsluik zonder
- * verhaal; een entry met `bewijs` wordt hieronder ook machinaal gecontroleerd
- * (bestand bestaat én bevat de marker nog — het ABSORBED-patroon uit
+ * Deliberately reachable without a chain gate, each with its reason. An entry is a
+ * claim a reviewer can check, not an escape hatch without a
+ * story; an entry with `bewijs` (proof) is also checked mechanically below
+ * (the file exists and still contains the marker, the ABSORBED pattern from
  * boot/bootMigrations.test.js).
  *
- * Sleutels: 'METHOD /pad' (één route, zelfde vorm als accessRegistry),
- * 'file:<pad>' (heel bestand), 'mount:/prefix' (hele mount, ook dynamische).
+ * Keys: 'METHOD /path' (one route, same shape as accessRegistry),
+ * 'file:<path>' (a whole file), 'mount:/prefix' (a whole mount, dynamic ones too).
  */
 const BEWUST_OPEN = new Map([
     // ── Health & API-naamkaartje ─────────────────────────────────────────
@@ -111,6 +109,10 @@ const BEWUST_OPEN = new Map([
     ['GET /api/integrations/gmail/messages/:messageId', 'als GET /api/integrations/gmail/messages — sessie-token-gescoped'],
     ['GET /api/integrations/gdrive/files', 'als gmail/messages: Drive-client komt uit req.session-tokens, anoniem → 401 NOT_CONNECTED (routes/integrations/googleDrive.js)'],
     ['GET /api/integrations/gdrive/export/:fileId', 'als GET /api/integrations/gdrive/files — sessie-token-gescoped'],
+    ['GET /api/support/csat/:threadId/done', {
+        reden: 'tokenloze bedankpagina na een CSAT-stem: vaste tekst uit het score-getal in de query, leest en schrijft geen thread. Bestaat zodat de stem-URL (mét token) na gebruik wordt vervangen door een URL zonder.',
+        bewijs: { file: 'routes/support/satisfaction.js', marker: "'/csat/:threadId/done'" },
+    }],
     ['GET /api/support/threads/mine', {
         reden: 'de eigen supporttickets van de ingelogde gebruiker. Geen keten-gate omdat /api/support ook anonieme marketing-intake draagt, maar de handler weigert zelf: geen userId → 401, en de query is gescoped op requesterUserId — er is niets van een ander te lezen. De handler-probe ziet dit patroon niet omdat getUserId(req) buiten haar werkwoordenlijst valt en er geen req.session in de body staat; dat is een gat in de PROBE, niet in de route.',
         bewijs: { file: 'routes/support/threads.js', marker: 'requesterUserId: userId' },
@@ -124,7 +126,7 @@ const BEWUST_OPEN = new Map([
     ['GET /share/_brand/icon.svg', 'statisch brand-icoon op de publieke share-pagina\'s — de inhoudsroutes van /share zijn share-token-gated in routes/publicViewer.js'],
     ['GET /w/_brand/icon.svg', 'zelfde statische brand-icoon, tweede mount: routes/publicViewer.js hangt sinds W3 stap 4 óók op /w/<slug> (het adres van de pagina in plaats van dat van de share) — één router, één poort, dus dezelfde reden'],
 
-    // ── GDPR: inname moet bereikbaar zijn (Art. 12) ──────────────────────
+    // ── GDPR: intake must be reachable (Art. 12) ──────────────────────────
     ['POST /api/dsr/requests', {
         reden: 'DSR-inname: een betrokkene zonder account moet een verzoek kunnen indienen (GDPR Art. 12); per-IP publicSubmitLimiter in de router, admin-kant zit achter requirePermission.',
         bewijs: { file: 'routes/dsr.js', marker: 'publicSubmitLimiter' },
@@ -138,7 +140,7 @@ const BEWUST_OPEN = new Map([
     // stuk gewogen: 41 dragen een gate-vormige check in hun handler
     // (admin_support-staf, eigenaarschap, of het anonieme toegangstoken van
     // POST /threads), en de ene die overbleef staat hieronder met naam en
-    // toenaam. Eén blanket-vrijstelling minder, één precieze erbij.
+    // reden. Eén blanket-vrijstelling minder, één precieze erbij.
 
     // ── Gast-chatoppervlak (bewust ontwerp: rijen gescoped op guest-id) ──
     ['GET /agents/:id/embed', 'publieke agent-embed met embedLimiter en 404-vervaging voor ongepubliceerde agents (routes/agents/chat.js:158)'],
@@ -161,28 +163,28 @@ const BEWUST_OPEN = new Map([
 ]);
 
 /**
- * Gaten die vandaag bestaan en hier expliciet GEPIND staan in plaats van stil
- * te blijven. Deze test wijzigt bewust géén gedrag: een route die gegate zou
- * moeten zijn maar het niet is, blijft zoals hij is en staat hier — zichtbaar,
- * met ernst. De weg eruit: gate toevoegen (aparte, bewuste wijziging) en de
- * entry verwijderen; de redundantie-test hieronder dwingt dat verwijderen af
- * zodra de gate er echt is, zodat deze lijst alleen kan krimpen naar de
- * waarheid toe.
+ * Gaps that exist today and are explicitly PINNED here instead of staying
+ * silent. This test deliberately changes no behaviour: a route that should be
+ * gated but is not stays as it is and is listed here, visibly,
+ * with severity. The way out: add a gate (a separate, deliberate change) and
+ * remove the entry; the redundancy test below forces that removal as soon as
+ * the gate is really there, so this list can only shrink towards the
+ * truth.
  */
 const GEPIND_ONGEGATE = new Map([
-    // /versions/* (4 routes) gedicht 2026-09-05: router.use(requireAuth) +
-    // canModifyAgent per route (het routes/agents/publishVersion.js-idioom);
-    // bewezen door routes/versions.authz.test.js, gedeclareerd in accessRegistry.js.
-    // /api/documents/* (3 routes) gedicht 2026-09-05: router.use(requireAuth)
-    // (zelfde idioom; classificatie: vergeten gate, geen gastpad — geen enkele
-    // anonieme caller bestaat, de mobiele "Generated"-tab stuurt de sessiecookie).
-    // Bewezen door routes/documents.authz.test.js, gedeclareerd in accessRegistry.js.
-    // RESTPUNT (bewust, gedocumenteerd in de header van routes/documents.js):
-    // /list blijft gedeeld tussen ingelogde gebruikers — de tmp-map draagt geen
-    // eigenaarschap, dus per-user scopen kan niet zonder een verzonnen ledger.
-    // file:routes/memory.js geclassificeerd 2026-09-05 (dossier 4a) als bewust
-    // gastpad; sinds de memory-overhaul gedicht met router.use(requireAuth)
-    // (zie de toelichting bij BEWUST_OPEN hierboven).
+    // /versions/* (4 routes) closed 2026-09-05: router.use(requireAuth) +
+    // canModifyAgent per route (the routes/agents/publishVersion.js idiom);
+    // proven by routes/versions.authz.test.js, declared in accessRegistry.js.
+    // /api/documents/* (3 routes) closed 2026-09-05: router.use(requireAuth)
+    // (same idiom; classification: forgotten gate, not a guest path; no
+    // anonymous caller exists, the mobile "Generated" tab sends the session cookie).
+    // Proven by routes/documents.authz.test.js, declared in accessRegistry.js.
+    // REMAINING POINT (deliberate, documented in the header of routes/documents.js):
+    // /list stays shared between logged-in users; the tmp folder carries no
+    // ownership, so scoping per user is impossible without an invented ledger.
+    // file:routes/memory.js classified 2026-09-05 (dossier 4a) as a deliberate
+    // guest path; since the memory overhaul closed with router.use(requireAuth)
+    // (see the note at BEWUST_OPEN above).
 ]);
 
 const redenVan = (v) => (typeof v === 'string' ? v : v.reden);
@@ -242,17 +244,17 @@ test('elke statisch onleesbare mount is verantwoord', () => {
 });
 
 test('elke vrijstelling wijst nog naar iets dat bestaat', () => {
-    // Het anti-verrottingsmechanisme voor de lijsten zelf (migrateDb-patroon):
-    // een sleutel die geen enkele route of mount meer raakt, is een dode claim.
+    // The anti-rot mechanism for the lists themselves (migrateDb pattern):
+    // a key that no longer touches any route or mount is a dead claim.
     assert.deepStrictEqual(result.staleExempt, [],
         'deze vrijstellingen raken geen enkele bestaande route of mount meer — de route is\n' +
         'verdwenen of hernoemd. Verwijder de entry, of corrigeer de sleutel.');
 });
 
 test('een gepind gat dat gedicht is, verlaat de lijst', () => {
-    // Zodra een route uit GEPIND_ONGEGATE structureel gegate raakt, is de entry
-    // overbodig en MOET hij weg — zo krimpt de schuld-lijst naar de waarheid toe
-    // en blijft "wat staat hier nog open" een eerlijk antwoord.
+    // As soon as a route from GEPIND_ONGEGATE becomes structurally gated, the entry
+    // is redundant and MUST go; that way the debt list shrinks towards the truth
+    // and "what is still open here" remains an honest answer.
     const dichtgezet = result.redundantExempt.filter((k) => GEPIND_ONGEGATE.has(k));
     assert.deepStrictEqual(dichtgezet, [],
         'deze GEPIND_ONGEGATE-entries dekken alleen nog routes die inmiddels gegate zijn —\n' +
@@ -281,9 +283,9 @@ test('elke reden is een verhaal, geen invuloefening', () => {
     }
 });
 
-// ═══ Synthetische fixtures: bewijs dat deze test bijt ═══════════════════════
-// Dezelfde parser en dezelfde pure sweep, gevoed met een in-memory mini-app.
-// Als de rood-case hier ooit groen wordt, is de sweep zijn tanden kwijt.
+// ═══ Synthetic fixtures: proof that this test bites ═════════════════════════
+// The same parser and the same pure sweep, fed with an in-memory mini app.
+// If the red case here ever turns green, the sweep has lost its teeth.
 describe('synthetisch: het mechanisme zelf', () => {
     const FIXTURE = {
         'index.js': `
@@ -419,14 +421,14 @@ describe('synthetisch: het mechanisme zelf', () => {
         assert.deepEqual(met.unaccountedOpaque, []);
     });
 
-    // ── De over een map gesplitste router ────────────────────────────────────
-    // Een router die in een map is gesplitst, mount zijn groepen niet met
-    // router.use(...) maar laat elke groep zichzelf registreren. Toen
-    // routes/{webpages,datatables,playbooks}.js zo werden gesplitst, verdwenen
-    // er 91 routes geruisloos uit dit oppervlak terwijl 'elke route is
-    // verantwoord' vrolijk groen bleef — een poort die OPEN faalde. Deze
-    // fixtures pinnen de vorm vast, inclusief het enige wat er echt aan kan
-    // breken: de VOLGORDE.
+    // ── The router split over a folder ───────────────────────────────────────
+    // A router split into a folder does not mount its groups with
+    // router.use(...) but lets each group register itself. When
+    // routes/{webpages,datatables,playbooks}.js were split like this, 91 routes
+    // silently vanished from this surface while 'every route is
+    // accounted for' stayed happily green: a gate that failed OPEN. These
+    // fixtures pin the shape down, including the one thing that can really
+    // break: the ORDER.
     const GESPLITST = {
         'index.js': `
             const express = require('express');

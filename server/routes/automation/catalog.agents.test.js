@@ -1,28 +1,22 @@
 'use strict';
 
 /**
- * De agent-kant van de builder-catalogus (R2, deel C):
+ * The agent side of the builder catalogue (R2, part C):
  *   GET /catalog                 → `agents` + `agentsError`
- *   GET /catalog/agent/:agentId  → wat één agent in deze stap meebrengt
+ *   GET /catalog/agent/:agentId  → what one agent brings along in this step
  *
- * Twee eigenschappen die alleen HIER kunnen worden vastgelegd, want ze zitten
- * in de route en niet in de pure module ernaast:
+ * Two properties that can ONLY be pinned HERE, because they sit in the route and not in the pure module next to it:
  *
- *   1. EEN MISLUKTE LEZING IS GEEN LEGE LIJST. Elke andere lijst in deze
- *      catalogus (tabellen, kennisbanken) valt bij een storing terug op `[]`,
- *      en dat mag daar: "nog niets gekoppeld" is een normale toestand. Bij
- *      agents niet — een lege lijst zou de auteur vertellen dat zijn agents weg
- *      zijn. Daarom `agentsError`, en de editor leest die eerst.
- *   2. EEN WEIGERING IS ONGEDIFFERENTIEERD. Het id komt bij de preview van de
- *      client, dus "bestaat niet", "andere organisatie" en "niet gedeeld"
- *      geven exact hetzelfde antwoord. De KIEZER mag de reden wel noemen (die
- *      toont alleen rijen die de vrager toch al ziet); deze route niet.
+ *   1. A FAILED READ IS NOT AN EMPTY LIST. Every other list in this catalogue (tables, knowledge bases) falls back to `[]` on a failure, and that is
+ *      allowed there: "nothing connected yet" is a normal state. For agents it is not — an empty list would tell the author that his agents are gone.
+ *      Hence `agentsError`, and the editor reads that first.
+ *   2. A REFUSAL IS UNDIFFERENTIATED. The id comes in via the client's preview, so "does not exist", "other organisation" and "not shared"
+ *      give exactly the same answer. The PICKER may name the reason (it shows only rows that the requester already sees anyway); this route may not.
  *
- * Zelfde mocktechniek als routes/automation/catalog.test.js: de module-cache
- * wordt gevuld vóór de router wordt geladen, en de handler wordt rechtstreeks
- * aangeroepen met een nep-req/res.
+ * The same mock technique as routes/automation/catalog.test.js: the module cache
+ * is filled before the router is loaded, and the handler is called directly with a fake req/res.
  *
- * Draaien: cd server && node --test --test-reporter=tap routes/automation/catalog.agents.test.js
+ * Run: cd server && node --test --test-reporter=tap routes/automation/catalog.agents.test.js
  */
 
 const { test } = require('node:test');
@@ -40,7 +34,7 @@ let RUNTIME_AGENT = null;          // wat getForRuntime/resolveStepAgent oplever
 let GATE = { tools: [], withheld: [], degraded: false, catalogError: null };
 let CONFIRM_BY_NAME = {};
 
-// ── De rest van de catalogus: stil, zodat alleen de agent-tak spreekt ──
+// ── The rest of the catalogue: silent, so that only the agent branch speaks ──
 let PRINCIPAL_ORG = 'org1';
 let PRINCIPAL_ERROR = null;
 let LAST_GATE_ARGS = null;
@@ -83,9 +77,9 @@ mock(path.join(SERVER, 'auth/audience'), {
     resolveUserGroups: async () => ['g1'],
 });
 mock(path.join(SERVER, 'auth/datatableAccess'), {
-    // `organizationId` is de HOME-org uit de gebruikersrij — dezelfde kolom die
-    // de save-check en de run lezen. `identityError` is niet-null zodra die
-    // lezing niet lukte, en dat is een storing, geen beleid.
+    // `organizationId` is the HOME org from the user row — the same column that
+    // the save check and the run read. `identityError` is non-null as soon as that
+    // read failed, and that is a fault, not a policy.
     resolveDatatablePrincipal: async () => ({ orgId: 'org1', organizationId: PRINCIPAL_ORG, identityError: PRINCIPAL_ERROR }),
     datatableScopesFor: () => [],
     gradeForPrincipal: () => null,
@@ -150,11 +144,9 @@ function reset() {
     LAST_GATE_ARGS = null;
 }
 
-// `published_version` hoort erbij: gedeeld (`is_published`) en "serveert een
-// gepubliceerde config" zijn twee schakelaars, en alleen de tweede bepaalt wat
-// er draait. `getPublishedAgentsForUser` levert de rijen door `projectRuntime`
-// heen, dus in productie draagt zo'n rij `runtimeSource`; `getAgents` levert de
-// kale rij met de kolom.
+// `published_version` belongs here: shared (`is_published`) and "serves a published
+// config" are two switches, and only the second determines what runs. `getPublishedAgentsForUser` returns the rows through `projectRuntime`,
+// so in production such a row carries `runtimeSource`; `getAgents` returns the bare row with the column.
 const agent = (over = {}) => ({
     id: 'agt_1', name: 'Sales bot', description: null, owner_id: 'u2',
     organization_id: 'org1', is_published: true, published_version: 2, runtimeSource: 'published',
@@ -214,11 +206,10 @@ test('de preview noemt welke tools worden weggehouden omdat ze bevestiging vrage
     GATE = {
         tools: [{ function: { name: 'gmail_search' } }],
         withheld: ['gmail_compose', 'drive_delete'],
-        // De reden komt van de poort die de tool WEGNAM, niet van een tweede
-        // lezing hier. Opnieuw beoordelen met `confirmForTool` gaf elke
-        // verzendende tool 'confirm', ook als hij op een uitgezette schakelaar
-        // sneuvelde — en dan adviseert het scherm een goedkeuringsstap die
-        // niets verandert.
+        // The reason comes from the gate that REMOVES the tool, not from a second
+        // reading here. Re-judging with `confirmForTool` gave every sending tool 'confirm', also when it
+        // failed on a switch that was off — and then the screen advises an approval step that
+        // changes nothing.
         reasons: { gmail_compose: 'confirm', drive_delete: 'unavailable' },
         degraded: false, catalogError: null,
     };
@@ -252,8 +243,8 @@ test('een agent die deze automatisering niet mag gebruiken krijgt één ongediff
     assert.strictEqual(res.body.canUse, false);
     assert.deepStrictEqual(res.body.withheld, []);
     assert.deepStrictEqual(res.body.allowed, []);
-    // GEEN reden, geen naam, geen errorClass: de vrager mag hieraan niet
-    // kunnen aflezen of dit id ergens anders bestaat.
+    // NO reason, no name, no errorClass: the requester must not be able to
+    // tell from this whether this id exists somewhere else.
     assert.strictEqual(res.body.reason, undefined);
     assert.strictEqual(res.body.name, undefined);
     assert.strictEqual(JSON.stringify(res.body).includes('forbidden'), false);
@@ -285,10 +276,9 @@ test('een degraded registry en een catalogusfout komen mee terug in plaats van a
 });
 
 test('een tool die op een SCHAKELAAR sneuvelde krijgt niet het bevestigingsadvies', async () => {
-    // `permission` en `confirm` zijn twee zinnen met twee verschillende
-    // handelingen. In de stand "startAutomations aan, useTools uit" wordt de
-    // catalogus wél gebouwd en valt elke niet-automation-tool op de schakelaar —
-    // waarna "zet er een goedkeuringsstap achter" advies is dat niet kan werken.
+    // `permission` and `confirm` are two sentences with two different actions. In the state "startAutomations on, useTools off" the
+    // catalogue IS built and every non-automation tool falls on the switch —
+    // after which "add an approval step behind it" is advice that cannot work.
     reset();
     RUNTIME_AGENT = { agent: { name: 'A' }, agentId: 'agt_1', config: {}, runtimeSource: 'published' };
     GATE = { tools: [], withheld: ['gmail_compose'], reasons: { gmail_compose: 'permission' }, degraded: false, catalogError: null };
@@ -298,25 +288,24 @@ test('een tool die op een SCHAKELAAR sneuvelde krijgt niet het bevestigingsadvie
 });
 
 test('de expliciete toollijst van de STAP gaat mee, zodat de capsule telt wat de run biedt', async () => {
-    // `step.tools` is een allowlist en `[]` betekent NUL tools (execAi leest een
-    // expliciete array zo). Zonder deze parameter telde de preview de hele
-    // agentcatalogus en beloofde tools die de stap nooit krijgt.
+    // `step.tools` is an allowlist and `[]` means ZERO tools (execAi reads an
+    // explicit array that way). Without this parameter the preview counted the whole agent
+    // catalogue and promised tools that the step never gets.
     reset();
     RUNTIME_AGENT = { agent: { name: 'A' }, agentId: 'agt_1', config: {}, runtimeSource: 'published' };
     await getAgentPreview('agt_1', { useTools: '1', tools: 'gmail_search, drive_search' });
     assert.deepStrictEqual(LAST_GATE_ARGS.allowList, ['gmail_search', 'drive_search']);
 
-    // Afwezig is iets anders dan leeg: geen lijst = de auteur heeft er geen
-    // gezet, en dan versmalt er niets.
+    // Absent is something different from empty: no list = the author has set none,
+    // and then nothing is narrowed.
     await getAgentPreview('agt_1', { useTools: '1' });
     assert.strictEqual(LAST_GATE_ARGS.allowList, null);
 });
 
 test('een identiteitslezing die faalde is geen agent van een andere organisatie', async () => {
-    // Met `orgId` null omdat de gebruikersrij niet te lezen was, kreeg élke
-    // gedeelde org-agent `reason: 'other_org'` ("Belongs to another
-    // workspace") en haalde de auteur een prima agent uit zijn automatisering op grond
-    // van een databasehik. `agentsError` bestaat precies voor die zin.
+    // With `orgId` null because the user row could not be read, EVERY
+    // shared org agent got `reason: 'other_org'` ("Belongs to another
+    // workspace") and the author would drop a perfectly good agent from his automation on the grounds of a database hiccup. `agentsError` exists for exactly that case.
     reset();
     PRINCIPAL_ERROR = 'the user row could not be read';
     MY_AGENTS = [agent({ id: 'agt_mine', owner_id: 'u1' })];
@@ -328,9 +317,9 @@ test('een identiteitslezing die faalde is geen agent van een andere organisatie'
 });
 
 test('de preview weigert te antwoorden als de identiteit niet gelezen kon worden', async () => {
-    // `canUse: false` zou hier "publiceer en deel hem" adviseren voor een agent
-    // waar niets mis mee is. De capsule tekent op een niet-ok antwoord haar
-    // eigen "kon niet nakijken"-zin.
+    // `canUse: false` would here advise "publish and share it" for an agent
+    // where nothing is wrong. On a not-ok answer the capsule draws its own
+    // "could not check" sentence.
     reset();
     PRINCIPAL_ERROR = 'the user row could not be read';
     RUNTIME_AGENT = { agent: { name: 'A' }, agentId: 'agt_1', config: {}, runtimeSource: 'published' };
@@ -344,9 +333,9 @@ test('de preview weigert te antwoorden als de identiteit niet gelezen kon worden
 });
 
 test('de HOME-org beslist, niet de groepsafgeleide terugval', async () => {
-    // `principal.orgId` draagt een groepsafgeleide terugval die de save-check en
-    // de run niet hebben. Eén van de drie lezers een extra terugval geven is
-    // een rij die hier goed lijkt en om 03:00 faalt.
+    // `principal.orgId` carries a group-derived fallback that the save check and
+    // the run do not have. Giving one of the three readers an extra fallback is
+    // a row that looks right here and fails at 03:00.
     reset();
     PRINCIPAL_ORG = null;                       // geen home-org
     PUBLISHED_AGENTS = [agent({ id: 'agt_ok', organization_id: 'org1' })];
@@ -357,10 +346,8 @@ test('de HOME-org beslist, niet de groepsafgeleide terugval', async () => {
 });
 
 test('gedeeld zonder ooit een VERSIE te publiceren is niet kiesbaar, met de juiste raad', async () => {
-    // De publiceer-schakelaar staat aan, maar `getForRuntime` serveert nog het
-    // levende klad van de eigenaar. Een onbewaakte automatisering van een ander mag
-    // daar niet op draaien; de zin die de kiezer toont is "publiceer hem", en
-    // dat is precies de handeling die het oplost.
+    // The publish switch is on, but `getForRuntime` still serves the owner's live draft. An unguarded automation of someone else
+    // may not run on that; the sentence the picker shows is "publish it", and that is exactly the action that resolves it.
     reset();
     PUBLISHED_AGENTS = [agent({ id: 'agt_draftish', published_version: 0, runtimeSource: 'live' })];
     const body = await getCatalog();

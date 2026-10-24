@@ -34,8 +34,8 @@ function formatDateTime(iso: string | number | Date) {
 }
 
 /**
- * De duur van een afspraak, als vertaalde zin. `t` komt binnen als argument
- * omdat dit een pure functie buiten de component is — een hook mag hier niet.
+ * The duration of an appointment, as a translated sentence. `t` comes in as an argument because this is a
+ * pure function outside the component; a hook may not be used here.
  */
 function formatDuration(t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string, start: string | number | Date | undefined, end: string | number | Date | undefined) {
     if (!start || !end) return null;

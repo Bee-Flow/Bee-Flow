@@ -102,13 +102,11 @@ export default function useComposerClaims({
     // is drawn (ComposerActions.jsx) — a tone is a fact, an icon is a rendering.
     const shieldClaim = shieldApplies ? shieldLine(shieldStatus) : null;
 
-    // C11 — de voetregel. De redenering staat in composerClaims.footerNotice():
-    // van de twee artboardzinnen is er precies één te bewijzen, en de andere
-    // ("Gesprekken verlaten je organisatie niet") staat er daarom niet — ook
-    // niet achter een conditie. Dit is een SCHERMOVERSTIJGENDE regel: acht
-    // call-sites delen deze box, waarvan één (EmbedChat) zijn eigen
-    // `warningText` meegeeft. Die wint onverkort — een widget op de website van
-    // een klant maakt geen uitspraken over wiens server dit is.
+    // C11, the footer line. The reasoning is in composerClaims.footerNotice(): of the two artboard sentences,
+    // exactly one can be proven, and the other ("Conversations never leave your organisation") is therefore NOT
+    // there, not even behind a condition. This is a SCREEN-SPANNING rule: eight call sites share this box, of
+    // which one (EmbedChat) passes its own `warningText`. That one wins unabridged. A widget on a customer's
+    // website makes no statements about whose server this is.
     const { mode: deploymentMode } = useDeploymentMode();
     const footerLine = useMemo(
         () => footerNotice({ deploymentMode, signedIn: !!user }).map(l => t(l.key, l.en)).join(' '),

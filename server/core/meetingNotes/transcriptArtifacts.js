@@ -349,43 +349,36 @@ function sanitizeTimestamp(raw, { starts = [], lastEnd = 0 } = {}) {
 }
 
 /**
- * ── DRIE UITKOMSTEN, DRIE WAARDEN ───────────────────────────────────
+ * ── THREE OUTCOMES, THREE VALUES ───────────────────────────────────
  *
- * Een artefactpass (summaryHelpers.extractMeetingArtifacts) kan drie dingen
- * doen, en alleen de eerste twee mogen bestaande actiepunten, besluiten en
- * vragen vervangen:
+ * An artifact pass (summaryHelpers.extractMeetingArtifacts) can do three things, and only the first two
+ * may replace existing action items, decisions and questions:
  *
- *   1. gelukt, met resultaat  → de vier lijsten, `ok: true`
- *   2. gelukt, en leeg        → vier LEGE lijsten, `ok: true`
- *      ("in deze vergadering is niets afgesproken" — dit MOET de oude
- *       AI-rijen opruimen, anders blijven ze eeuwig staan)
- *   3. mislukt                → ARTIFACTS_FAILED
- *      (onparseerbaar antwoord, time-out, omgevallen call — er is niets
- *       gelezen, dus er valt niets te vervangen)
+ *   1. succeeded, with result → the four lists, `ok: true`
+ *   2. succeeded, and empty   → four EMPTY lists, `ok: true`
+ *      ("nothing was agreed in this meeting" — this MUST clear the old
+ *       AI rows, otherwise they stay there forever)
+ *   3. failed                 → ARTIFACTS_FAILED
+ *      (unparseable answer, time-out, call that fell over — nothing was
+ *       read, so there is nothing to replace)
  *
- * Uitkomst 2 en 3 zagen er ooit identiek uit: vier lege lijsten. Het verschil
- * werd toen gedragen door een LOSSE VLAG naast die lijsten (`ok`), en dat is
- * precies het soort onderscheid dat een schrijver vergeet mee te nemen — twee
- * van de vier schrijvers deden dat ook, en een handvol testfixtures ook.
+ * Outcome 2 and 3 once looked identical: four empty lists. The difference was carried by a
+ * LOOSE FLAG next to those lists (`ok`), and that is exactly the kind of distinction a
+ * writer forgets to take along — two of the four writers did that too, and a handful of test fixtures.
  *
- * Daarom draagt de WAARDE het nu zelf: een mislukte pass heeft helemaal geen
- * lijsten. Wie ze toch doorgeeft aan `updateTranscription` geeft `undefined`
- * door, en dat betekent daar "raak deze kolom niet aan" — de veilige uitkomst
- * is de uitkomst die je per ongeluk krijgt.
+ * Therefore the VALUE now carries it itself: a failed pass has no lists at all. Whoever still passes them
+ * to `updateTranscription` passes `undefined`, which there means "do not touch this column" —
+ * the safe outcome is the outcome you get by accident.
  */
 const ARTIFACTS_FAILED = Object.freeze({ ok: false });
 
 /**
- * De ene vraag die elke schrijver stelt: heeft deze pass daadwerkelijk een
- * antwoord gelezen?
+ * The one question every writer asks: did this pass actually read an answer?
  *
- * ONBEKEND VERSMALT. Niet `ok !== false` — dat liet alles door wat de vlag
- * niet zette, ook een antwoord zonder lijsten, en de merge maakte daar "de
- * vergadering was leeg" van. Bruikbaar is alleen wat er als afgeronde pass
- * uitziet: de drie lijsten zijn er, en de vlag zegt niet nee.
+ * UNKNOWN NARROWS. Not `ok !== false` — that let through everything the flag did not set, including an answer without lists, and the merge made "the meeting was empty" out of that. Only what looks like a completed pass is usable: the three lists are there, and the flag does not say no.
  *
- * @param {any} artifacts wat extractMeetingArtifacts teruggaf
- * @returns {boolean} true = deze uitkomst mag bestaande artefacten vervangen
+ * @param {any} artifacts what extractMeetingArtifacts returned
+ * @returns {boolean} true = this outcome may replace existing artifacts
  */
 function artifactsUsable(artifacts) {
     if (!artifacts || typeof artifacts !== 'object' || artifacts.ok === false) return false;
@@ -441,11 +434,10 @@ function buildPipelineNotices({ providerFallback = null, truncated = null, voice
             ? `ℹ️ Je organisatie heeft meer dan 50 stemprofielen; voor deze opname zijn de 50 meest waarschijnlijke gebruikt.`
             : `ℹ️ Your organisation has more than 50 voice profiles; the 50 most likely ones were used for this recording.`);
     }
-    // Een MISLUKTE artefactpass moet het zeggen. Zonder deze regel is het
-    // resultaat niet te onderscheiden van een vergadering waarin niets is
-    // afgesproken: geen actiepunten, geen besluiten, geen vragen — en niemand
-    // die op 'Opnieuw' drukt, want er lijkt niets mis. Wat er al stond is
-    // bewaard; dat is de andere helft en die staat er ook in.
+    // A FAILED artifact pass must say so. Without this line the result is not
+    // distinguishable from a meeting in which nothing was agreed: no action items, no decisions, no
+    // questions — and nobody presses 'Retry', because nothing seems wrong. What was already there
+    // is kept; that is the other half, and that is in there too.
     if (artifactsFailed) {
         lines.push(nl
             ? `⚠️ Het bepalen van actiepunten, besluiten en vragen is niet gelukt voor deze opname; wat er al stond is bewaard. Probeer 'Opnieuw'.`

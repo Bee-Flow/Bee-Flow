@@ -712,15 +712,13 @@ export function useBuildChoreography({
     }, [fx]);
 
     // ── The canvas changed shape ────────────────────────────────────────
-    // React Flow keeps its viewport when its container resizes, so opening the
-    // assistant, closing it, the plan panel arriving or the window changing
-    // left the build framed for a canvas that no longer exists (owner,
-    // 2026-09-16: "het beeld moet zich automatisch aan de canvas grootte
-    // aanpassen"). While the AI is building AND the camera is still ours, a
-    // settled resize re-frames: a wide shot, so everything built so far and
-    // the slot ahead are in view at a legible zoom. It never fires for a
-    // presenter who has taken the camera (`following === false`), and never
-    // outside a build — someone who zoomed in by hand keeps their view.
+    // React Flow keeps its viewport when its container resizes, so opening the assistant, closing it,
+    // the plan panel arriving or the window changing left the build framed for a canvas that no longer
+    // exists (owner, 2026-09-16: "the view must adjust automatically to the canvas size"). While the AI
+    // is building AND the camera is still ours, a settled resize re-frames: a wide shot, so everything
+    // built so far and the slot ahead are in view at a legible zoom. It never fires for a presenter who
+    // has taken the camera (`following === false`), and never outside a build. Someone who zoomed in by
+    // hand keeps their view.
     useEffect(() => {
         const el = wrapperRef?.current;
         if (!active || !el || typeof ResizeObserver === 'undefined') return undefined;

@@ -21,20 +21,18 @@ const {
 const { validateConnectors } = require('./connectorValidate');
 
 /**
- * De VORM van `table.source` — waar de rijen van deze tabel staan.
+ * The SHAPE of `table.source` — where the rows of this table live.
  *
- * Afwezig (of null) betekent: de app bezit haar eigen opslag. Dat is de soort
- * die er altijd al was, dus die tak zwijgt en er verandert niets aan bestaande
- * modellen.
+ * Absent (or null) means: the app owns its own storage. That is the kind that always
+ * existed, so that branch stays silent and nothing changes for existing models.
  *
- * Alles wat er wél staat wordt bij naam beoordeeld. Geen enkele tak repareert
- * stilzwijgend: een onbekende `mode` naar 'read' duwen zou een typefout in een
- * recht veranderen dat niemand heeft aangevraagd, en de auteur zou een tabel
- * zien die "readwrite" heet en niet schrijft. Een ONTBREKENDE mode is iets
- * anders — daar is nooit om gevraagd, en canonicalizeDataModel vult daar 'read'
- * in voordat dit draait.
+ * Anything that IS there is judged by name. No branch repairs silently: pushing an unknown
+ * `mode` to 'read' would change a typo into a permission that nobody asked for, and the
+ * author would see a table called "readwrite" that does not write. A MISSING mode is
+ * something else — that was never asked for, and canonicalizeDataModel fills in 'read'
+ * before this runs.
  *
- * @returns {string[]} foutmeldingen (leeg = in orde)
+ * @returns {string[]} error messages (empty = OK)
  */
 function tableSourceErrors(source, where) {
     if (source === undefined || source === null) return [];
@@ -51,9 +49,9 @@ function tableSourceErrors(source, where) {
     if (!TABLE_SOURCE_MODES.includes(source.mode)) {
         errors.push(`${where}.source.mode ${JSON.stringify(source.mode)} must be one of: ${TABLE_SOURCE_MODES.join(', ')}`);
     }
-    // Een sleutel die hier niet hoort is een sleutel waarvan iemand dacht dat
-    // hij iets deed. Stil negeren is hoe een `readOnly: true` er ingeschakeld
-    // uitziet en niets doet. Zelfde regel als model.directory.
+    // A key that does not belong here is a key that someone thought did something.
+    // Silently ignoring it is how a `readOnly: true` looks switched on and does nothing.
+    // Same rule as model.directory.
     const extra = Object.keys(source).filter((k) => !TABLE_SOURCE_KEYS.includes(k));
     if (extra.length) errors.push(`${where}.source has unknown keys: ${extra.join(', ')}`);
     return errors;

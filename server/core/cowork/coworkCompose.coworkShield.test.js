@@ -1,24 +1,23 @@
 // @typecheck
 /**
- * CW-10 — het privacyschild op de Work-composer (composeCowork).
+ * CW-10: the privacy shield on the Work composer (composeCowork).
  *
- * De composer stuurt de ruwe brief van de gebruiker naar het model. Achter de
- * per-org opt-in-vlag (org_cowork_shield_<orgId>, default UIT) loopt die
- * brief nu eerst door dezelfde schildpassage als het agent-pad. De composer
- * houdt zijn eigen faal-envelop: elke schildworp (PII-blok óf fail-closed
- * guard-storing) betekent géén model-call en de fallback-spec — de eigen
- * woorden van de gebruiker terug naar de gebruiker zelf, en de run die
- * daaruit ontstaat wordt bij uitvoering door de runner opnieuw geschild.
+ * The composer sends the user's raw brief to the model. Behind the per-org opt-in flag
+ * (org_cowork_shield_<orgId>, default OFF) that brief now first runs through the same
+ * shield passage as the agent path. The composer keeps its own failure envelope: every shield
+ * throw (a PII block OR a fail-closed guard failure) means NO model call and the fallback
+ * spec: the user's own words back to the user, and the run that results from that is
+ * shielded again by the runner at execution time.
  *
- * Gepind:
- *   1. vlag uit → guard niet aangeroepen, spec komt gewoon uit het model;
- *   2. vlag aan → de guard scant exact de brief;
- *   3. PII + blokactie → geen model-call, fallback-spec (composed:false);
- *   4. guard stuk (default fail_closed) → geen model-call, fallback-spec.
+ * Pinned:
+ *   1. flag off → guard not called, spec simply comes from the model;
+ *   2. flag on → the guard scans exactly the brief;
+ *   3. PII + block action → no model call, fallback spec (composed:false);
+ *   4. guard broken (default fail_closed) → no model call, fallback spec.
  *
- * Zelfde installResolveStub-patroon als de tierContext/usageLog-tests; de
- * schildketen (coworkShieldFlag, orgShield, piiDetection) draait echt, met
- * de guard als lokale HTTP-server.
+ * Same installResolveStub pattern as the tierContext/usageLog tests; the shield chain
+ * (coworkShieldFlag, orgShield, piiDetection) runs for real, with the guard as a local
+ * HTTP server.
  *
  * Run: node --test --test-force-exit core/cowork/coworkCompose.coworkShield.test.js
  */
@@ -120,8 +119,8 @@ after(() => {
     restore();
 });
 
-/** Eigen org + eigen brief per scenario (vlagmemo + scancache); endpointcache
- *  en circuit breaker zijn modulestaat en worden expliciet gereset. */
+/** Own org + own brief per scenario (flag memo + scan cache); endpoint cache
+ *  and circuit breaker are module state and are explicitly reset. */
 function resetScenario({ orgId, flag, shield, guard }) {
     guardCalls.length = 0; chats.length = 0; usage.length = 0;
     guardEntities = [];
@@ -136,7 +135,7 @@ function resetScenario({ orgId, flag, shield, guard }) {
 test('vlag uit → guard niet aangeroepen, de spec komt gewoon uit het model', async () => {
     resetScenario({
         orgId: 'corg-uit',
-        flag: undefined, // schild wél geconfigureerd, vlag niet — moet niets doen
+        flag: undefined, // shield configured, flag not: must do nothing
         shield: { enabled: true, piiDetectionAction: 'block', piiDetectionConfidenceThreshold: 0.5 },
         guard: guardUrl,
     });
@@ -185,9 +184,9 @@ test('PII + blokactie → geen model-call, fallback-spec met de eigen woorden', 
 });
 
 test('guard stuk (default fail_closed) → geen model-call, fallback-spec', async () => {
-    // Geen piiFailureMode → fail_closed, de default van het agent-pad
-    // (BFSF-269). De composer vertaalt de privacyUnavailable-worp naar zijn
-    // bestaande envelop: geen model-call, de fallback-spec.
+    // No piiFailureMode → fail_closed, the default of the agent path
+    // (BFSF-269). The composer translates the privacyUnavailable throw into its
+    // existing envelope: no model call, the fallback spec.
     resetScenario({
         orgId: 'corg-dicht',
         flag: true,

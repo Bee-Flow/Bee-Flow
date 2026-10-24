@@ -12,16 +12,16 @@ export const RUN_STATE = Object.freeze({
 export const ITEM_STATUS = Object.freeze(['pass', 'fail', 'blocked', 'error']);
 
 /**
- * De volgorde waarin een probleem om aandacht vraagt.
+ * The order in which a problem asks for attention.
  *
- * `fail` eerst: dat is het enige oordeel over de AGENT. `error` daarna — daar
- * weten we het niet, en niet-weten is dringender dan een verwachting die deze
- * run per definitie niet kon controleren. `blocked` als laatste: die zegt iets
- * over de sandbox, niet over de agent.
+ * `fail` first: that is the only verdict about the AGENT. `error` after that: there we do
+ * not know, and not knowing is more urgent than an expectation that this run could not
+ * check by definition. `blocked` last: that says something about the sandbox, not about
+ * the agent.
  */
 const PROBLEM_RANK = Object.freeze<Record<string, number>>({ fail: 0, error: 1, blocked: 2 });
 
-/** Een eindig, niet-negatief geheel getal, of null. */
+/** A finite, non-negative integer, or null. */
 function intOrNull(value: unknown) {
     if (value === null || value === undefined || value === '') return null;
     const n = Number(value);
@@ -40,10 +40,10 @@ function timeOf(value: string | number | Date | null | undefined) {
 }
 
 /**
- * Is deze rij een AFGEROND resultaat?
+ * Is this row a COMPLETED result?
  *
- * Alle drie de checks zijn "spreekt de rij zichzelf tegen", en alle drie
- * landen op `unfinished` in plaats van op een getal.
+ * All three checks ask "does the row contradict itself", and all three land on
+ * `unfinished` instead of on a number.
  */
 function looksFinished(run: TestRun) {
     const total = intOrNull(run.total);
@@ -68,8 +68,8 @@ export function summariseRun({ lastRun = null, lastRunUnknown = false, tests = n
         isStale: false,
     };
 
-    // Onbekend gaat vóór alles: een mislukte lezing die toevallig ook geen rij
-    // opleverde is niet "nog nooit gedraaid".
+    // Unknown goes before everything: a failed read that happened to yield no row is not
+    // "never run".
     if (lastRunUnknown === true) return { ...empty, state: RUN_STATE.UNKNOWN };
     if (!lastRun || typeof lastRun !== 'object') return empty;
 
@@ -91,10 +91,9 @@ export function summariseRun({ lastRun = null, lastRunUnknown = false, tests = n
     const total = intOrNull(lastRun.total);
     const passed = Math.min(Number(intOrNull(lastRun.passed)), Number(total));
 
-    // Dekking: deze run ging over `total` vragen; er staan er nu `of`. Bij de
-    // rij hoort ook `results.testCount` — hoeveel er tóen waren — maar de
-    // kaart praat tegen iemand die naar de lijst van NU kijkt, dus dat is het
-    // getal dat naast de teller hoort.
+    // Coverage: this run covered `total` questions; there are `of` now. Next to the row comes
+    // `results.testCount`, how many there were THEN, but the card speaks to someone who looks
+    // at the list of NOW, so that is the number that belongs next to the counter.
     const ranAtMs = timeOf(ranAt);
     const ranIds = new Set((items || []).map(i => i && i.testId).filter(id => typeof id === 'string'));
     const stale = { added: false, changed: false, removed: false };
@@ -115,12 +114,11 @@ export function summariseRun({ lastRun = null, lastRunUnknown = false, tests = n
         ...base,
         state: RUN_STATE.RESULT,
         passed, total,
-        // `of` is hoeveel vragen er NU staan — de kaart praat tegen iemand die
-        // naar de lijst van nu kijkt. Kent hij die lijst niet (de lezing werd
-        // geweigerd of mislukte), dan valt hij terug op `results.testCount`:
-        // hoeveel er stónden toen deze run liep. `when` zegt welke van de twee
-        // het is, zodat de zin erbij niet gaat liegen over WANNEER er zoveel
-        // vragen waren.
+        // `of` is how many questions stand NOW, because the card speaks to someone who looks at
+        // the list of now. If it does not know that list (the read was refused or failed), it
+        // falls back on `results.testCount`: how many stood when this run ran. `when` says which
+        // of the two it is, so that the sentence next to it does not lie about WHEN there were
+        // that many questions.
         coverage: knowTests
             ? { ran: total, of: now.length, when: 'now' }
             : (intOrNull(results.testCount) === null
@@ -132,12 +130,11 @@ export function summariseRun({ lastRun = null, lastRunUnknown = false, tests = n
 }
 
 /**
- * Waarom deze test niet groen is — als FEIT, niet als zin.
+ * Why this test is not green, as a FACT and not as a sentence.
  *
- * De `reason` die de server opsloeg is Engels en komt uit een gesloten lijst;
- * de kaart schrijft zijn eigen vertaalbare regel uit `kind` + `names` en valt
- * alleen terug op die tekst als er niets anders is (`error`, waar de reden de
- * échte oorzaak draagt).
+ * The `reason` the server stored is English and comes from a closed list. The card writes
+ * its own translatable rule from `kind` + `names`, and falls back on that text only if
+ * there is nothing else (`error`, where the reason carries the real cause).
  */
 export function problemFor(item: TestItem | null | undefined) {
     if (!item || typeof item !== 'object') return null;
@@ -150,21 +147,20 @@ export function problemFor(item: TestItem | null | undefined) {
 
     if (status === 'blocked') return { status, kind: 'withheld', names: withheld, reason: item.reason || '' };
     if (status === 'error') return { status, kind: 'ungraded', names: [], reason: item.reason || '' };
-    // Een fail die door een FEIT beslist is, zegt welk feit — dat is preciezer
-    // dan de zin van de gesloten lijst en het is niet door een model geschreven.
+    // A fail that is decided by a FACT says which fact. That is more precise than the sentence
+    // from the closed list, and it is not written by a model.
     if (forbidden.length) return { status, kind: 'forbidden', names: forbidden, reason: item.reason || '' };
     if (missing.length) return { status, kind: 'tools_missing', names: missing, reason: item.reason || '' };
     return { status, kind: `decided:${item.decidedBy || 'overall'}`, names: [], reason: item.reason || '' };
 }
 
 /**
- * De FAALREGEL: het ene niet-groene resultaat dat de kaart toont, plus hoeveel
- * er nog meer zijn.
+ * The FAILURE LINE: the one non-green result that the card shows, plus how many more
+ * there are.
  *
- * Eén regel en niet alle — de kaart is een samenvatting; "Bekijk" is waar de
- * rest staat. Welke er getoond wordt is niet willekeurig maar de dringendste
- * (zie PROBLEM_RANK), want de eerste in de lijst kan een `blocked` zijn
- * terwijl er verderop een echte fout staat.
+ * One line and not all of them: the card is a summary, and "View" is where the rest is.
+ * Which one is shown is not arbitrary but the most urgent (see PROBLEM_RANK), because the
+ * first in the list can be a `blocked` while further down there is a real error.
  */
 export function firstProblem(items: unknown) {
     const rows = asArray<TestItem>(items).filter(i => i && typeof i === 'object' && i.status !== 'pass');
@@ -187,11 +183,11 @@ export function firstProblem(items: unknown) {
 // ── Weigeringen ──────────────────────────────────────────────────────
 
 /**
- * Het gesloten vocabulaire waarin de kaart een weigering kan tekenen.
+ * The closed vocabulary in which the card can draw a refusal.
  *
- * `retryable` is "heeft opnieuw proberen zin": een leescheck die omviel wel,
- * een model dat niet is ingericht niet. Een knop die belooft dat het aan jou
- * ligt terwijl er niets is ingericht, laat mensen dertig keer drukken.
+ * `retryable` means "does trying again make sense". A read check that fell over does; a
+ * model that is not set up does not. A button that promises it is up to you, while
+ * nothing is set up, makes people press thirty times.
  */
 export const REFUSAL = Object.freeze({
     NO_GRADER: 'no_grader',
@@ -206,10 +202,10 @@ export const REFUSAL = Object.freeze({
     TOO_MANY: 'too_many',
     NOT_SAVED: 'not_saved',
     /**
-     * De stream brak MIDDENIN af. Anders dan elke weigering hierboven: er is
-     * wél getest, alleen niet alles. `run_failed` komt van de server pas nadat
-     * er al `test_result`-events over de lijn zijn gegaan, dus de zin erbij
-     * mag niet "Nothing was tested" zijn terwijl de uitslagen eronder staan.
+     * The stream broke OFF halfway. Unlike every refusal above, tests WERE run, just not all
+     * of them. `run_failed` comes from the server only after `test_result` events have
+     * already gone over the line, so the sentence beside it may not be "Nothing was tested"
+     * while the results are shown beneath it.
      */
     RUN_STOPPED: 'run_stopped',
     UNKNOWN: 'unknown',
@@ -229,10 +225,9 @@ const BY_CODE = Object.freeze<Record<string, { kind: string; retryable: boolean 
     agent_not_editable: { kind: REFUSAL.NOT_EDITABLE, retryable: false },
     too_many_tests: { kind: REFUSAL.TOO_MANY, retryable: false },
     not_saved: { kind: REFUSAL.NOT_SAVED, retryable: true },
-    // De catch-all van de route (`/:id/tests/run`), en die vuurt PAS als de
-    // stream al liep. Zonder deze regel viel hij op REFUSAL.UNKNOWN en dus op
-    // "Could not run the tests. Nothing was tested." — met vijf resultaten
-    // eronder op het scherm.
+    // The catch-all of the route (`/:id/tests/run`), and that fires ONLY once the stream was
+    // already running. Without this rule it fell on REFUSAL.UNKNOWN, and therefore on
+    // "Could not run the tests. Nothing was tested.", with five results shown beneath it.
     run_failed: { kind: REFUSAL.RUN_STOPPED, retryable: true },
 });
 
@@ -255,25 +250,24 @@ export function refusalFor({ status = 0, body = null, code = null }: RefusalForA
 
 // ── Een run terwijl hij loopt ────────────────────────────────────────
 
-/** Wat een lopende run kan zijn. Alleen COMPLETE is een resultaat. */
+/** What a running run can be. Only COMPLETE is a result. */
 export const PROGRESS = Object.freeze({
     RUNNING: 'running',
     COMPLETE: 'complete',
     UNFINISHED: 'unfinished',
 });
 
-/** De begintoestand van een druk op Run — nog vóór het `start`-event. */
+/** The starting state of a press on Run, before the `start` event. */
 export function startProgress(): RunProgress {
     return { status: PROGRESS.RUNNING, total: null, done: 0, items: [], passed: null, notStored: null };
 }
 
 /**
- * Eén SSE-event van `POST /:id/tests/run` erin, de nieuwe toestand eruit.
+ * One SSE event of `POST /:id/tests/run` goes in, the new state comes out.
  *
- * Puur en zonder React, zodat de belangrijkste regel testbaar is zonder een
- * stream: zolang `done` niet gezien is, is dit GEEN resultaat. Een `error`-
- * event zet hem op `unfinished`, niet op "0 goed" — een run die omviel heeft
- * geen uitslag, ook niet de slechtste.
+ * Pure and without React, so the most important rule is testable without a stream: as
+ * long as `done` has not been seen, this is NOT a result. An `error` event sets it to
+ * `unfinished`, not to "0 passed". A run that fell over has no result, not even the worst one.
  */
 export function applyRunEvent(state: RunProgress | null | undefined, event: string, data: unknown): RunProgress {
     const s = state && typeof state === 'object' ? state : startProgress();
@@ -291,8 +285,8 @@ export function applyRunEvent(state: RunProgress | null | undefined, event: stri
                 status: PROGRESS.COMPLETE,
                 passed: intOrNull(payload.passed),
                 total: intOrNull(payload.total) === null ? s.total : intOrNull(payload.total),
-                // Een "Test als"-run wordt bewust niet opgeslagen; de kaart mag
-                // hem dus tonen maar niet als de nieuwe laatste run bewaren.
+                // A "Test as" run is deliberately not stored; the card may therefore show it, but must
+                // not keep it as the new last run.
                 notStored: typeof payload.notStored === 'string' ? payload.notStored : null,
                 run: (payload.run as TestRun | undefined) || null,
             };
@@ -319,23 +313,20 @@ export function countPassed(items: unknown) {
 }
 
 /**
- * De uitslag van de run die je ZOJUIST zag lopen.
+ * The result of the run you JUST saw running.
  *
- * Waarom dit bestaat: de kaart viel na een afgeronde run terug op
- * `summariseRun(lastRun)`, en `lastRun` wordt met opzet NIET bijgewerkt voor
- * een run die niet bewaard is — een "Test als"-simulatie (per ontwerp nooit
- * opgeslagen) of een run waarvan het opslaan mislukte. De kopregel toonde dan
- * de telling van de VORIGE run terwijl de faalregel, de vraagregels en de
- * weigering eronder over de zojuist gedraaide run gingen. "11 of 12 passed"
- * boven twaalf rode vragen.
+ * Why this exists: the card fell back after a completed run on `summariseRun(lastRun)`, and
+ * `lastRun` is deliberately NOT updated for a run that is not stored: a "Test as"
+ * simulation (by design never stored) or a run whose storing failed. The header then showed
+ * the tally of the PREVIOUS run, while the failure line, the question lines and the refusal
+ * beneath it were about the run just executed. "11 of 12 passed" above twelve red questions.
  *
- * `passed` komt bij voorkeur van het `done`-event (de server telt zelf) en valt
- * terug op onze eigen telling over de binnengekomen resultaten. `kept` zegt of
- * deze uitslag ergens is blijven staan; is hij dat niet, dan mag er geen
- * versieregel bij die over een ándere run gaat.
+ * `passed` comes preferably from the `done` event (the server counts itself), and falls back
+ * on our own tally over the results that came in. `kept` says whether this result stayed
+ * anywhere. If it did not, no version line may accompany it that is about a DIFFERENT run.
  *
  * @returns {{passed: number, total: number, kept: boolean, notStored: string|null}|null}
- *   null zolang er geen afgeronde run is om over te praten.
+ *   null as long as there is no completed run to talk about.
  */
 export function justRanScore(progress: RunProgress | null | undefined) {
     if (!progress || typeof progress !== 'object') return null;

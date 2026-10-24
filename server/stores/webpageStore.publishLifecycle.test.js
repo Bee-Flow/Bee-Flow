@@ -106,10 +106,9 @@ test('the prune excludes the live pointer by id, and a NULL pointer excludes not
 
 // ── 2. The source column ──────────────────────────────────────────────
 
-// De INSERT loopt sinds W4 via getOne (INSERT … RETURNING seq, zie
-// _insertVersionRow) en draagt achter `source` nog twee parameters. `source`
-// staat op $8 en wordt dus op INDEX 7 gelezen — niet meer op de laatste
-// positie, want dan zou deze test straks stilletjes line_delta controleren.
+// Since W4 the INSERT runs via getOne (INSERT … RETURNING seq, see _insertVersionRow) and carries
+// two more parameters after `source`. `source` sits at $8 and is therefore read at INDEX 7 — no
+// longer at the last position, because then this test would quietly check line_delta instead.
 const insertCall = () => calls.getOne.find(c => /INSERT INTO webpage_versions/i.test(c.sql));
 const SOURCE_PARAM = 7;
 

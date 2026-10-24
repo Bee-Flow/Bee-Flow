@@ -23,8 +23,7 @@ export function ResizeHandle({ orientation, onMouseDown, onKeyDown, label }: {
             tabIndex={0}
             onMouseDown={onMouseDown}
             onKeyDown={onKeyDown}
-            className={`shrink-0 group/handle ${vertical ? 'w-1 cursor-col-resize' : 'h-1 cursor-row-resize'} focus:outline-none`}
-            style={{ background: 'var(--vsc-border)', transition: 'background 0.12s' }}
+            className={`shrink-0 group/handle ${vertical ? 'w-1 cursor-col-resize' : 'h-1 cursor-row-resize'} focus:outline-none [background:var(--vsc-border)] [transition:background_0.12s]`}
             onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--accent-primary)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--vsc-border)')}
             onFocus={(e) => (e.currentTarget.style.boxShadow = '0 0 0 2px var(--accent-primary)')}
@@ -87,7 +86,7 @@ export function BinaryPreview({ path, mimeType, dataUrl, size }: {
                     className="max-w-[100%] max-h-[70%] [object-fit:contain] [border:1px_solid_var(--vsc-border)]"
                 />
             ) : (
-                <FileImage size={48} style={{ opacity: 0.5 }} />
+                <FileImage size={48} className="[opacity:0.5]" />
             )}
             <div className="text-[12px] mt-3 font-mono">{path}</div>
             <div className="text-[11px] mt-1">{mimeType || 'application/octet-stream'}{shown ? ` · ${shown}` : ''}</div>
@@ -103,7 +102,7 @@ export function MissingFile({ path }: { path: string }) {
     const { t } = useTranslation();
     return (
         <div className="flex flex-col items-center justify-center h-full p-6 text-[12px] text-[var(--vsc-fg-muted)]">
-            <AlertCircle size={32} style={{ opacity: 0.5 }} />
+            <AlertCircle size={32} className="[opacity:0.5]" />
             <div className="mt-3 font-mono">{path}</div>
             <div className="mt-1">{t('webpages.ide.file_not_loaded', 'File content not loaded yet.')}</div>
         </div>

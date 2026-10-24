@@ -251,9 +251,9 @@ export default function WorkspaceNotebook({
 
         setExporting(format);
         setExportMenuOpen(false);
-        // De alt-tekst van een gerenderd mermaid-diagram in de export. Hij
-        // wordt in een HTML-string geïnterpoleerd, dus hij moet hier al
-        // vertaald zijn — in die string is geen t() meer bereikbaar.
+        // The alt text of a rendered mermaid diagram in the export. It is interpolated
+        // into an HTML string, so it must already be translated here. Inside that
+        // string no t() is reachable.
         const diagramAlt = t('notebooks.diagram_alt', 'Diagram');
         try {
             let htmlContent = getHTML();

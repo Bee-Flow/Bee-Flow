@@ -230,14 +230,13 @@ export const ROUTES = {
     'GET /agents/all': ({ state }: { state: AgentsState }) => state.agents,
     'GET /agents/system': () => [],
     /**
-     * Wie deze agent gebruikt. A2 stap 1 gaf de editor een Gebruikt-door-tab
-     * die deze route op élke opening bevraagt; zonder fixture was het een
-     * stille 404, die de tab (terecht) als "kon niet gelezen worden" tekent —
-     * in een demo waar niets stuk is. Staat vóór `GET /agents/:id`, dezelfde
-     * volgorde als knowledge.js aanhoudt.
+     * Who uses this agent. A2 step 1 gave the editor a Used-by tab that queries this
+     * route on EVERY opening. Without a fixture it was a silent 404, which the tab
+     * (rightly) draws as "could not be read", in a demo where nothing is broken.
+     * It stands before `GET /agents/:id`, the same order that knowledge.js keeps.
      *
-     * De twee routines dragen de namen uit de ai-tasks-lijst hieronder, zodat
-     * de demo niet twee verschillende verhalen vertelt over dezelfde agent.
+     * The two routines carry the names from the ai-tasks list below, so that the demo
+     * does not tell two different stories about the same agent.
      */
     'GET /agents/:id/usage': () => ({
         usage: [
@@ -247,14 +246,14 @@ export const ROUTES = {
     }),
 
     /**
-     * De app-actiecatalogus die de Tools-kaart leest (A2 stap 3). Staat vóór
-     * `GET /agents/:id`, anders vangt die hem als een agent met het id
-     * "tool-catalog" en levert een 404 — waarna de kaart in een demo waar
-     * niets stuk is meldt dat hij de catalogus niet kon lezen.
+     * The app action catalogue that the Tools card reads (A2 step 3). It stands before
+     * `GET /agents/:id`, otherwise that route catches it as an agent with the id
+     * "tool-catalog" and yields a 404. The card then reports, in a demo where nothing
+     * is broken, that it could not read the catalogue.
      *
-     * Klein met opzet: twee apps met een leesactie en een verzendactie, zodat
-     * de demo zowel een vrije als een vergrendelde bevestigingsschakelaar
-     * laat zien, plus één app zonder gebruikersverbinding ("Als: Bee Flow").
+     * Small on purpose: two apps with a read action and a send action, so that the
+     * demo shows both an open and a locked confirmation switch, plus one app without
+     * a user connection ("As: Bee Flow").
      */
     'GET /agents/tool-catalog': () => ({
         apps: [

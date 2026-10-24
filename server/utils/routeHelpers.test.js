@@ -1,16 +1,14 @@
 /**
- * `getUserAuth` — de workspace waar de MODELKEUZE op wordt opgezocht.
+ * `getUserAuth` — the workspace in which the MODEL CHOICE is looked up.
  *
- * Deze helper vult `userOrgId`, en dat veld reist mee als
- * `messageMetadata.userOrgId` naar core/agentRuntime/modelResolver.js en
- * chatStream.js. Daar is het de sleutel waarop de EU-override en de org-eigen
- * tiermap worden gevonden: `globalConfig?.organizationId || globalConfig?.userOrgId`.
- * Is hij null, dan wordt er tegen de GLOBALE (niet-EU) tiermap opgelost.
+ * This helper fills `userOrgId`, and that field travels as `messageMetadata.userOrgId` to
+ * core/agentRuntime/modelResolver.js and chatStream.js. There it is the key under which the EU
+ * override and the org's own tier map are found: `globalConfig?.organizationId || globalConfig?.userOrgId`.
+ * If it is null, resolution happens against the GLOBAL (non-EU) tier map.
  *
- * De aanroep van `resolveUserOrgIds` miste een `await`, dus `orgIds` was een
- * Promise: `.size` is `undefined`, `undefined > 0` is false, en `userOrgId` was
- * ALTIJD null. De testsuite van de route verborg dat door `getUserAuth` zelf te
- * stubben met een veld dat de echte bron nooit vulde.
+ * The call to `resolveUserOrgIds` lacked an `await`, so `orgIds` was a Promise: `.size` is `undefined`,
+ * `undefined > 0` is false, and `userOrgId` was ALWAYS null. The route's test suite hid that by stubbing
+ * `getUserAuth` itself with a field that the real source never filled.
  *
  * Run: cd server && node --test --test-force-exit utils/routeHelpers.test.js
  */

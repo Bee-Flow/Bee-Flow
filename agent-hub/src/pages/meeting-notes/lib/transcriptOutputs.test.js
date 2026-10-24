@@ -1,18 +1,13 @@
 // @vitest-environment node
 /**
- * Wat er uit dit transcript kwam (plan M4 stap 2, artboard 1b).
+ * What came out of this transcript (plan M4 step 2, artboard 1b).
  *
- * TWEE DINGEN ZIJN HIER DRAGEND, de rest is vorm:
+ * TWO THINGS HERE ARE LOAD-BEARING, the rest is form:
  *
- *  1. ONBEKEND IS GEEN NUL. Een kb-scan die niet kon draaien mag nooit lezen
- *     als "er staat niets van deze vergadering in een kennisbank" — dat is
- *     dezelfde fail-open die de verwijderbevestiging en de outputs-balk
- *     overal vermijden, één scherm verderop.
- *  2. DE GATE HEEFT GEEN ACHTERDEUR. Met per-persoonsstatistiek uit mag de
- *     vraag over een niet-herkende spreker geen NAAM noemen. De aantallen
- *     mogen blijven; de toeschrijving niet.
+ *  1. UNKNOWN IS NOT ZERO. A KB scan that could not run must never be read as "nothing from this meeting is in a knowledge base" — that is the same fail-open that the deletion confirmation and the outputs bar avoid everywhere, one screen further on.
+ *  2. THE GATE HAS NO BACK DOOR. With per-person statistics switched off, the question about an unrecognised speaker may not name a NAME. The counts may remain; the attribution may not.
  *
- * Draaien: cd agent-hub && npx vitest run src/pages/meeting-notes/lib/transcriptOutputs.test.js
+ * Run: cd agent-hub && npx vitest run src/pages/meeting-notes/lib/transcriptOutputs.test.js
  */
 import { describe, expect, it } from 'vitest';
 
@@ -27,7 +22,7 @@ import {
 const filed = (id, lineCount, over = {}) => ({
     kind: 'kb', id, title: id.toUpperCase(), role: 'contains', lineCount, ownerId: 'me', ...over,
 });
-/** Een kb die deze vergadering via een TAG verzamelt — een andere bewering. */
+/** A kb that gathers this meeting via a TAG — a different claim. */
 const byTag = (id) => ({ kind: 'kb', id, title: id, role: 'contains', siteLabel: 'sales', ownerId: 'me' });
 
 /** Het stukje insights-model dat buildSpeakerCheck leest. */

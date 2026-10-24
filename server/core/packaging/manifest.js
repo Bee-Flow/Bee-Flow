@@ -156,28 +156,26 @@ function rewriteRefs(value, refMap, unresolved = []) {
     return out;
 }
 
-// ── `source`: waar dit bestand zegt vandaan te komen ────────────────────────
+// ── `source`: where this file says it comes from ────────────────────────
 //
-// EEN BEWERING, GEEN AUTORISATIE. Dit blok wordt door de exportroute gestempeld
-// en reist daarna in een bestand dat iedereen met een teksteditor kan wijzigen.
-// Elke lezer moet het dus behandelen als invoer van buiten:
+// A CLAIM, NOT AUTHORIZATION. This block is stamped by the export route and
+// travels in a file that anyone with a text editor can change. Every reader must
+// therefore treat it as input from outside:
 //
-//   • `orgId` en `orgName` geven NOOIT toegang tot iets. De enige vraag die
-//     toegang beslist is `blueprintStore.canRead` over de ECHTE galerijrij; een
-//     bestand dat beweert uit org X te komen krijgt daarmee geen enkel recht
-//     dat het zonder die bewering niet had.
-//   • `orgName` is een NAAM UIT EEN BESTAND. Het scherm mag hem tonen — de
-//     ontvanger wil weten wie beweert dit gestuurd te hebben — maar alleen
-//     gelabeld als bewering, nooit als vastgesteld feit.
-//   • `blueprintId` wordt bij een BESTANDSinstallatie wél vastgelegd, omdat het
-//     de enige manier is waarop een installatie uit een doorgestuurd bestand
-//     zichzelf aan zijn Blueprint kan koppelen. Wijst hij nergens naar, dan
-//     leest hij als ONBEKEND — precies zoals een verwijderde Blueprint.
+//   • `orgId` and `orgName` NEVER grant access to anything. The only question that
+//     decides access is `blueprintStore.canRead` on the REAL gallery row; a file
+//     claiming to come from org X gets no right from that claim which
+//     it could not have had without it.
+//   • `orgName` is a NAME FROM A FILE. The screen may show it — the recipient wants to know
+//     who claims to have sent this — but only labelled as a claim, never as an established fact.
+//   • `blueprintId` IS recorded for a FILE installation, because it is the only way
+//     an installation from a forwarded file can attach itself to its Blueprint. If it points
+//     nowhere, it reads as UNKNOWN — exactly like a deleted Blueprint.
 //
-// De genormaliseerde vorm is er ALTIJD (met nulls waar niets bekend is), zodat
-// een lezer nooit hoeft te raden tussen "geen bron" en "oud bestand".
+// The normalized form is ALWAYS there (with nulls where nothing is known), so that
+// a reader never has to guess between "no source" and "old file".
 
-/** Hoe lang een bewering uit een bestand mag zijn voor hij wordt afgekapt. */
+/** How long a claim from a file may be before it is truncated. */
 const MAX_CLAIM_CHARS = { id: 64, name: 200 };
 
 function claimText(value, max) {
@@ -187,12 +185,11 @@ function claimText(value, max) {
 }
 
 /**
- * Het `source`-blok van een manifest, als genormaliseerde BEWERING.
+ * The `source` block of a manifest, as a normalized CLAIM.
  *
- * Eén plek die beslist wat een herkomstbewering mag bevatten, zodat geen enkele
- * lezer `manifest.source.orgName` rechtstreeks aanraakt: een object, een array
- * of een tienduizend tekens lange naam wordt hier een null of een afgekapte
- * string, en nergens anders.
+ * One place that decides what a provenance claim may contain, so that no reader
+ * touches `manifest.source.orgName` directly: an object, an array or a ten-thousand-character
+ * name becomes a null or a truncated string here, and nowhere else.
  */
 function readSource(manifest) {
     const raw = isObject(manifest) && isObject(manifest.source) ? manifest.source : {};
@@ -206,12 +203,12 @@ function readSource(manifest) {
 }
 
 /**
- * Een KOPIE van dit manifest met een nieuw herkomstblok.
+ * A COPY of this manifest with a new provenance block.
  *
- * Gestempeld door de exportroute en niet door `captureSolution`, om twee
- * redenen die allebei over volgorde gaan: het Blueprint-id bestaat pas nadat de
- * publicatie geslaagd is, en de naam van de organisatie is niets wat een
- * capture hoort te lezen — die kent alleen het project.
+ * Stamped by the export route and not by `captureSolution`, for two
+ * reasons that both concern order: the Blueprint id only exists once the
+ * publication has succeeded, and the name of the organisation is not something a
+ * capture should read — it only knows the project.
  */
 function withSource(manifest, source) {
     if (!isObject(manifest)) return manifest;
@@ -358,11 +355,10 @@ function sanitizeManifest(rawInput) {
     const input = isObject(rawInput) ? stripNeverInstallable(rawInput) : rawInput;
     const errors = [];
     if (!isObject(input)) return { ok: false, errors: ['That is not a Blueprint file.'] };
-    // Het herkomstblok wordt hier GENORMALISEERD en niet geweigerd: een
-    // onzinnige bewering is geen reden om een verder geldige Blueprint niet te
-    // installeren, en de bewering geeft toch geen enkel recht. Wat er wél
-    // gebeurt is dat elke lezer voorbij dit punt een blok met vier velden ziet
-    // — strings of null — in plaats van wat het bestand ook maar meestuurde.
+    // The provenance block is NORMALIZED here and not refused: a nonsensical
+    // claim is no reason not to install an otherwise valid Blueprint, and the claim
+    // grants no right at all anyway. What DOES happen is that every reader beyond this
+    // point sees a block with four fields — strings or null — instead of whatever the file also sent.
     input.source = readSource(input);
     if (input.format !== FORMAT) errors.push(`Expected a ${FORMAT} file.`);
     if (!SUPPORTED_VERSIONS.includes(input.schemaVersion)) {

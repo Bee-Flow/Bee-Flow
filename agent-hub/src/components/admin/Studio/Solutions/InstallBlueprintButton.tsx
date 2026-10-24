@@ -49,7 +49,7 @@ function SavedGallery({ saved, status, onInstall }: SavedGalleryProps) {
         return (
             <p className="w-full flex items-start gap-1.5 text-xs text-[var(--text-tertiary)]"
                data-testid="blueprint-gallery-unavailable">
-                <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" style={{ color: 'var(--warning)' }} />
+                <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0 [color:var(--warning)]" />
                 {t('solutions.install_gallery_failed',
                     'The Blueprints kept on this instance could not be listed, so this is not "there are none". Installing from a file still works.')}
             </p>
@@ -136,7 +136,7 @@ export default function InstallBlueprintButton({ onInstalled, showGallery = true
 
             {error && (
                 <p className="w-full flex items-start gap-2 text-sm text-[var(--text-primary)]">
-                    <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--warning)' }} />
+                    <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0 [color:var(--warning)]" />
                     {error}
                 </p>
             )}

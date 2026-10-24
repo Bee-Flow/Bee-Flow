@@ -18,6 +18,7 @@
 'use strict';
 
 const { PGlite } = require('@electric-sql/pglite');
+const { withTransactionVia } = require('./txFake');
 
 /** PGlite's result in node-postgres's shape (rowCount from affectedRows for a write). */
 function asPgResult(r) {
@@ -73,6 +74,7 @@ function dbFacade(db) {
         getOne: async (sql, params) => (await db.query(sql, params)).rows[0] || null,
         getAll: async (sql, params) => (await db.query(sql, params)).rows,
         getClient: async () => ({ query: db.query, release() {} }),
+        withTransaction: withTransactionVia(async () => ({ query: db.query, release() {} })),
     };
 }
 

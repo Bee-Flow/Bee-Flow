@@ -18,17 +18,17 @@
 
 // All store modules that contain database migrations
 const STORE_MODULES = [
-    // userStore is een facade; het schema (users, groups, orgs, …) woont in
-    // user/schema.js en initialiseerde onder de oude runner dus nooit
-    // aantoonbaar. Eerst, want half de rest hangt er met FK's of joins aan.
+    // userStore is a facade; the schema (users, groups, orgs, …) lives in
+    // user/schema.js and under the old runner was therefore never
+    // demonstrably initialised. First, because half the rest hangs on it with FKs or joins.
     { name: 'userSchema', file: './stores/user/schema' },
     { name: 'userStore', file: './stores/userStore' },
     { name: 'watcherStateStore', file: './stores/watcherStateStore' },
     { name: 'workflowStore', file: './stores/workflowStore' },
     { name: 'configStore', file: './stores/configStore' },
-    // agents / conversations / direct_conversations: agentStore is een facade
-    // en initSchema wordt pas bij het eerste datagebruik aangeroepen — onder
-    // de oude runner ontbraken deze tabellen dus na een "geslaagde" migratie.
+    // agents / conversations / direct_conversations: agentStore is a facade
+    // and initSchema is only called at the first data use — under
+    // the old runner these tables were therefore missing after a "successful" migration.
     { name: 'agentSchema', file: './stores/agent/initSchema' },
     { name: 'agentStore', file: './stores/agentStore' },
     { name: 'appStore', file: './stores/appStore' },
@@ -104,9 +104,9 @@ const STORE_MODULES = [
     // appeared once the app booted and something required the store.
     { name: 'coworkStore', file: './stores/coworkStore' },
     { name: 'automationCredentialStore', file: './stores/automationCredentialStore' },
-    // Bezit integration_activity_log — en integrationCacheStore's
-    // scopes-migratie leest die tabel. Zonder deze registratie faalde die
-    // migratie hier bij ELKE run, stil (waargenomen in de upgrade-analyse).
+    // Owns integration_activity_log — and integrationCacheStore's
+    // scopes migration reads that table. Without this registration that
+    // migration failed here on EVERY run, silently (observed in the upgrade analysis).
     { name: 'integrationActivityStore', file: './stores/integrationActivityStore' },
     // The durable "ask this app only once" cache. Owns its own DDL (via
     // migrations/integration-response-cache-2026-09) and self-inits on load,
@@ -164,12 +164,12 @@ const STORE_MODULES = [
     // upload state + ingest claims + artifact keys. Own DDL, no FK.
     { name: 'datasetFileStore', file: './stores/datasetFileStore' },
 
-    // ── Door de registratie-sweep gevonden DDL-eigenaren (U1) ────────────
-    // Vóór deze sectie bestond geen van deze tabellen na een "geslaagde"
-    // `npm run db:migrate`: de no-op-runner verhulde dat 30+ stores nooit
-    // geregistreerd waren. migrateDb.registration.test.js houdt de lijst
-    // voortaan compleet — een nieuwe store met CREATE TABLE die hier (of in
-    // de exempt-lijst dáár) niet staat, is een rode test.
+    // ── DDL owners found by the registration sweep (U1) ────────────────
+    // Before this section none of these tables existed after a "successful"
+    // `npm run db:migrate`: the no-op runner concealed that 30+ stores were never
+    // registered. migrateDb.registration.test.js now keeps the list
+    // complete — a new store with CREATE TABLE that is not listed here (or in the
+    // exempt list there) is a red test.
     { name: 'knowledgeBases', file: './stores/knowledgeBases' },      // RAG: knowledge_bases + documents + chunks
     { name: 'kbSources', file: './stores/kbSources' },                // kb_sources (wacht zelf op knowledgeBases)
     { name: 'conversationMessages', file: './stores/agent/conversationMessages' },
@@ -188,9 +188,9 @@ const STORE_MODULES = [
     { name: 'ipGeoCacheStore', file: './stores/ipGeoCacheStore' },
     { name: 'githubSyncStore', file: './stores/githubSyncStore' },
     { name: 'gmeetImportStore', file: './stores/gmeetImportStore' },
-    // meeting_prefs (M5): de per-vergadering opnamekeuze. Draagt naast zijn
-    // DDL ook de eenmalige backfill uit de oude uitsluitlijsten, dus hij hoort
-    // NA configStore te staan — die leest hij daarvoor.
+    // meeting_prefs (M5): the per-meeting recording choice. Alongside its
+    // DDL it also carries the one-off backfill from the old exclusion lists, so it belongs
+    // AFTER configStore — it reads from that for this.
     { name: 'meetingPrefsStore', file: './stores/meetingPrefsStore' },
     { name: 'summaryTemplateStore', file: './stores/summaryTemplateStore' },
     { name: 'releaseNotesStore', file: './stores/releaseNotesStore' },

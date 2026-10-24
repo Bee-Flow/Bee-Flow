@@ -36,7 +36,7 @@
  */
 
 const { randomUUID } = require('crypto');
-const { run, getOne, getAll, exec, getClient } = require('../../db');
+const { run, getOne, getAll, exec, withTransaction } = require('../../db');
 const { makeStoreInit } = require('../lib/storeInit');
 const { runDdl } = require('../lib/_ddl');
 const { encryptField, decryptField, isEnvelope } = require('../lib/fieldEnvelope');
@@ -411,10 +411,7 @@ async function replaceMessages(conversationId, type, messagesArray, ctx = PLAINT
     await initMessagesTable();
     await _refuseSilentDowngrade(conversationId, ctx);
 
-    const client = await getClient();
-    try {
-        await client.query('BEGIN');
-
+    return withTransaction(async (client) => {
         // 1. Wipe existing rows for this conversation
         await client.query(
             'DELETE FROM conversation_messages WHERE conversation_id = $1',
@@ -427,13 +424,7 @@ async function replaceMessages(conversationId, type, messagesArray, ctx = PLAINT
             await _bulkInsert(rows, client);
         }
 
-        await client.query('COMMIT');
-    } catch (err) {
-        await client.query('ROLLBACK');
-        throw err;
-    } finally {
-        client.release();
-    }
+    });
 }
 
 /**
@@ -476,10 +467,7 @@ async function appendMessages(conversationId, type, messagesArray, ctx = PLAINTE
 
     const parentTable = type === 'direct' ? 'direct_conversations' : 'agent_conversations';
 
-    const client = await getClient();
-    try {
-        await client.query('BEGIN');
-
+    return withTransaction(async (client) => {
         // Serialise appenders on this conversation. Without the row lock two
         // concurrent appends compute the same MAX(seq)+1 and one loses to the
         // unique index — correct, but a needless 500 for the user.
@@ -495,18 +483,12 @@ async function appendMessages(conversationId, type, messagesArray, ctx = PLAINTE
         // A duplicate clientMsgId means "already delivered" — keep the original.
         await _bulkInsert(rows, client, 'ON CONFLICT DO NOTHING');
 
-        await client.query('COMMIT');
         return {
             appended: rows.length,
             firstSeq: startSeq,
             lastSeq: startSeq + rows.length - 1,
         };
-    } catch (err) {
-        await client.query('ROLLBACK');
-        throw err;
-    } finally {
-        client.release();
-    }
+    });
 }
 
 /**
@@ -552,9 +534,7 @@ async function rekeyConversation(conversationId, type, fromCtx, toCtx) {
         _seq: r.seq,
     }));
 
-    const client = await getClient();
-    try {
-        await client.query('BEGIN');
+    return withTransaction(async (client) => {
         await client.query('DELETE FROM conversation_messages WHERE conversation_id = $1', [conversationId]);
 
         const rows = messagesToRows(conversationId, type, decoded, toCtx);
@@ -563,14 +543,8 @@ async function rekeyConversation(conversationId, type, fromCtx, toCtx) {
         rows.forEach((row, i) => { row.seq = decoded[i]._seq; });
         await _bulkInsert(rows, client);
 
-        await client.query('COMMIT');
         return rows.length;
-    } catch (err) {
-        await client.query('ROLLBACK');
-        throw err;
-    } finally {
-        client.release();
-    }
+    });
 }
 
 /**

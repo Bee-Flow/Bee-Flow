@@ -1,51 +1,46 @@
 // @typecheck
 /**
- * "Wie ziet de pagina" — de vier rijen, en wat er bij de vierde hoort.
+ * "Who sees the page" — the four rows, and what belongs to the fourth.
  *
- * Drie van de vier rijen zijn het gewone Studio-publiek dat elk object heeft:
- * Persoonlijk, Hele organisatie, Groepen (afgeleid uit `is_published` +
- * `shared_groups`, precies zoals de frontend `audienceModeOf` het doet). De
- * vierde is van een andere soort en die moet dat blijven.
+ * Three of the four rows are the ordinary Studio audience that every object has:
+ * Personal, Whole organisation, Groups (derived from `is_published` +
+ * `shared_groups`, exactly as the frontend `audienceModeOf` does it). The
+ * fourth is of another kind and must remain so.
  *
- * ── EEN PUBLIEKE SHARE IS GEEN INGELOGDE PAGINA MET MINDER RECHTEN ──
+ * ── A PUBLIC SHARE IS NOT A LOGGED-IN PAGE WITH FEWER RIGHTS ──────
  *
- * Op /w/<slug> staat een script-vrije, door DOMPurify gehaalde MOMENTOPNAME
- * (services/webpageSnapshot.js). Er draait daar geen `beeflowTables`, en de
- * anonieme bridge kent alleen /ai/chat en /ai/stream (publicShareBridge.js).
- * Daaruit volgt alles wat deze module afdwingt:
+ * At /w/<slug> stands a script-free, DOMPurify-cleaned SNAPSHOT (services/webpageSnapshot.js). No
+ * `beeflowTables` runs there, and the anonymous bridge knows only /ai/chat and /ai/stream (publicShareBridge.js).
+ * From that follows everything that this module enforces:
  *
- *   1. PUBLIEKE TABELBINDINGEN ZIJN ALLEEN-LEZEN. `readwrite` bestaat voor
- *      Persoonlijk, Organisatie en Groepen. Naar buiten gaat een gerenderde
- *      tabel, geen kanaal terug.
- *   2. `publicColumns` IS DE POORT, en die wordt GEVRAAGD. Openbaar zetten
- *      zonder kolomkeuze mag niet stilzwijgend "dan maar alles" betekenen —
- *      en ook niet stilzwijgend het vorige antwoord hergebruiken. Een tabel
- *      die niet in de keuze voorkomt, gaat op NUL kolommen.
- *   3. HET AGENT-BLOK IS INTERN-ONLY. `ai.ask` is bewust uit de anonieme
- *      bridge gehouden, dus een openbare bezoeker draait het niet. De
- *      Openbaar-rij zegt dat erbij in plaats van het blok stil niets te laten
- *      doen (dat is de zin die WebpageActionsPanel al aankondigde).
- *   4. MAAR /ai/chat EN /ai/stream ZITTEN ER WÉL IN. Staat
- *      `bridge_grants.ai.publicEnabled` aan, dan injecteert publicViewer.js in
- *      de react-tak een ECHTE beeflowAI-brug in het publieke document en chat
- *      een anonieme bezoeker op het LLM-budget van de auteur — met
- *      `publicGroundOnPage` zelfs gegrond op de kennis van de pagina. Dat is de
- *      enige eigenschap van dit oppervlak die GELD KOST en de enige die een
- *      bezoeker een levend kanaal geeft, dus hij hoort hier net zo hard te
- *      staan als de twee hierboven. Punten 1-3 zijn constanten; deze is een
- *      SCHAKELAAR, en er is nergens anders een scherm dat hem toont.
+ *   1. PUBLIC TABLE BINDINGS ARE READ-ONLY. `readwrite` exists for
+ *      Personal, Organisation and Groups. Outward goes a rendered
+ *      table, no channel back.
+ *   2. `publicColumns` IS THE GATE, and it is ASKED for. Making public without
+ *      a column choice may not silently mean "then everything" —
+ *      and also not silently reuse the previous answer. A table
+ *      that does not occur in the choice goes to ZERO columns.
+ *   3. THE AGENT BLOCK IS INTERNAL-ONLY. `ai.ask` is deliberately kept out of the anonymous
+ *      bridge, so a public visitor does not run it. The Public row
+ *      says so in the block instead of silently letting it do nothing (that is the sentence
+ *      that WebpageActionsPanel already announced).
+ *   4. BUT /ai/chat AND /ai/stream ARE IN IT. If `bridge_grants.ai.publicEnabled` is on, then publicViewer.js
+ *      injects a REAL beeflowAI bridge into the public document in the react branch, and an anonymous
+ *      visitor chats on the author's LLM budget — with `publicGroundOnPage` even
+ *      grounded on the knowledge of the page. That is the only property of this surface that COSTS MONEY and the only one that gives a visitor a
+ *      live channel, so it must be stated here just as firmly as the two above.
+ *      Points 1-3 are constants; this one is a SWITCH, and nowhere else is there a screen that shows it.
  *
- * ── HET ADRES OVERLEEFT DE SHARE ────────────────────────────────────
+ * ── THE ADDRESS SURVIVES THE SHARE ──────────────────────────────────
  *
- * `slug` staat op de PAGINA, `public_share_id` wijst naar de share die dat
- * adres bedient. Daarom kan de onderliggende link vervangen worden — ander
- * token, ander wachtwoord, andere ontvangerslijst — zonder dat het adres
- * verandert. Dat is de winst van "één share is het adres"; het N-share-model
- * eronder blijft gewoon bestaan (losse /share/<token>-links naast de
- * canonieke).
+ * `slug` stands on the PAGE, `public_share_id` points to the share that serves that address.
+ * Therefore the underlying link can be replaced — other token, other password, other
+ * recipient list — without the address changing. That is the gain of "one share is the address";
+ * the N-share model beneath it simply continues to exist (separate /share/<token> links alongside the
+ * canonical one).
  *
- * Alles hieronder is puur. De I/O staat in routes/webpagesAudience.js, zodat
- * deze beslissingen zonder database te bijten zijn.
+ * Everything below is pure. The I/O stands in routes/webpagesAudience.js, so that
+ * these decisions can be bitten without a database.
  */
 
 'use strict';
@@ -56,12 +51,11 @@ const ORG = 'org';
 const GROUPS = 'groups';
 
 /**
- * Dezelfde afleiding als de frontend (`VisibilityCapsule.audienceModeOf`), met
- * dezelfde drie waarden: een gepubliceerd ding ZONDER groepen is van de hele
- * organisatie, mét groepen van die groepen, en niet-gepubliceerd is
- * persoonlijk. Hier herhaald omdat de server het antwoord ook los moet kunnen
- * geven — één regel, twee plekken, en de namen letterlijk gelijk zodat een
- * verschil meteen opvalt.
+ * The same derivation as the frontend (`VisibilityCapsule.audienceModeOf`), with
+ * the same three values: a published thing WITHOUT groups belongs to the whole
+ * organisation, WITH groups to those groups, and unpublished is
+ * personal. Repeated here because the server must also be able to give the answer on its own — one rule, two places, and the names literally equal so that a difference
+ * is noticed at once.
  */
 function audienceModeOf({ isPublished, sharedGroups }) {
     if (!isPublished) return PERSONAL;
@@ -70,18 +64,17 @@ function audienceModeOf({ isPublished, sharedGroups }) {
 }
 
 /**
- * De poort: welke kolommen van welke gebonden tabel mogen naar buiten?
+ * The gate: which columns of which bound table may go outward?
  *
- * Per binding twee lijsten die verschillend moeten blijven:
- *   columns        wat de pagina INTERN mag lezen
- *   publicColumns  wat er op /w/<slug> in de snapshot terechtkomt
+ * Per binding two lists that must remain different:
+ *   columns        what the page may read INTERNALLY
+ *   publicColumns  what ends up in the snapshot on /w/<slug>
  *
- * Er is met opzet GEEN veld "is hier al over besloten". Nul publieke kolommen
- * is een geldige, veilige uitkomst — "de tabel hangt eraan en er gaat niets
- * naar buiten" — en niet te onderscheiden van "nog niet gevraagd" zonder een
- * derde stand die niets toevoegt: het scherm VRAAGT de keuze bij openbaar
- * zetten, en `applyColumnChoice` zet elke tabel die in dat antwoord ontbreekt
- * terug op nul. Onbekend versmalt daar, niet hier.
+ * There is deliberately NO field "already decided about this". Zero public columns
+ * is a valid, safe outcome — "the table hangs on it and nothing goes outward" — and is not
+ * distinguishable from "not yet asked" without a third state that adds nothing: the screen ASKS for the
+ * choice when making public, and `applyColumnChoice` resets every table that is missing from that answer to zero.
+ * Unknown narrows there, not here.
  */
 function describeColumnGate(tables) {
     const list = Array.isArray(tables) ? tables : [];
@@ -101,29 +94,28 @@ function describeColumnGate(tables) {
     return {
         tables: rows,
         anyBound: rows.length > 0,
-        // Hoeveel tabellen daadwerkelijk iets naar buiten sturen. Nul gebonden
-        // tabellen én nul delende tabellen zien er op het scherm hetzelfde uit
-        // en zijn dat niet: het eerste is "er hangt niets aan", het tweede is
-        // "er hangt iets aan en het blijft binnen".
+        // How many tables actually send something outward. Zero bound
+        // tables and zero sharing tables look the same on the screen
+        // and are not: the first is "nothing hangs on it", the second is
+        // "something hangs on it and it stays inside".
         sharingCount: rows.filter(r => r.share).length,
     };
 }
 
 /**
- * Pas de kolomkeuze toe op de bindingen — de schrijfkant van diezelfde poort.
+ * Apply the column choice to the bindings — the write side of that same gate.
  *
- * `choice` is `{ [datatableId]: string[] }`, zoals het scherm hem bij "Openbaar
- * zetten" oplevert. De regels, allemaal in de versmallende richting:
+ * `choice` is `{ [datatableId]: string[] }`, as the screen delivers it at "Making public".
+ * The rules, all in the narrowing direction:
  *
- *   - een tabel die NIET in `choice` staat, krijgt een LEGE publicColumns.
- *     Weglaten is geen instemming, en het vorige antwoord hergebruiken zou
- *     betekenen dat een kolom die vorig jaar goedgekeurd is vandaag opnieuw
- *     naar buiten glipt zonder dat iemand ernaar keek;
- *   - een gekozen kolom die niet in `columns` staat, valt af (normalizeTableGrant
- *     doet dat óók nog eens bij het opslaan — twee sloten op dezelfde deur is
- *     hier de bedoeling);
- *   - `choice` mag geen tabellen TOEVOEGEN. Wat er niet gebonden is, wordt hier
- *     niet gebonden.
+ *   - a table that is NOT in `choice` gets an EMPTY publicColumns.
+ *     Omitting is no consent, and reusing the previous answer would mean
+ *     that a column approved last year slips out again today without
+ *     anyone looking at it;
+ *   - a chosen column that is not in `columns` falls away (normalizeTableGrant
+ *     also does that again on saving — two locks on the same door is
+ *     the intention here);
+ *   - `choice` may not ADD tables. What is not bound is not bound here.
  */
 function applyColumnChoice(tables, choice) {
     const list = Array.isArray(tables) ? tables : [];
@@ -144,16 +136,14 @@ function applyColumnChoice(tables, choice) {
 }
 
 /**
- * Is de toegangsinstelling van de bestaande canonieke share anders dan wat er
- * nu gevraagd wordt?
+ * Does the access setting of the existing canonical share differ from what is now
+ * asked?
  *
- * Bepaalt of "Openbaar" opslaan de bestaande link kan HOUDEN of hem moet
- * VERVANGEN. Vervangen betekent een nieuw token — bestaande links werken niet
- * meer — dus dat mag alleen als de eigenaar echt iets anders vroeg.
+ * Determines whether "Public" on saving can KEEP the existing link or must REPLACE it. Replacing means a new token — existing links no
+ * longer work — so that may only happen if the owner really asked for something different.
  *
- * Een MEEGESTUURD wachtwoord telt altijd als een wijziging: we kunnen het niet
- * met de argon2-hash vergelijken zonder te verifiëren, en "misschien hetzelfde"
- * mag geen reden zijn om een wachtwoordwissel stilletjes te laten vallen.
+ * A SUBMITTED password always counts as a change: we cannot compare it with the argon2 hash
+ * without verifying, and "possibly the same" may not be a reason to let a password change silently fall away.
  */
 function accessOptionsChanged(share, requested) {
     if (!share) return true;
@@ -183,11 +173,11 @@ function normalizeEmails(raw) {
 }
 
 /**
- * Het model dat het scherm tekent. Puur: alle rijen komen als argument binnen.
+ * The model that the screen draws. Pure: all rows come in as argument.
  *
- * `canonicalShare` is de LEVENDE share waar `public_share_id` naar wijst, of
- * null. Een wijzer naar een ingetrokken share hoort hier als null binnen te
- * komen — "openbaar" is dan uit, niet "openbaar met een kapotte link".
+ * `canonicalShare` is the LIVE share that `public_share_id` points to, or
+ * null. A pointer to a revoked share should arrive here as null — "public" is then off, not
+ * "public with a broken link".
  */
 function buildAudienceModel({
     webpage,
@@ -203,8 +193,8 @@ function buildAudienceModel({
     const slug = wp.slug || null;
     const gate = describeColumnGate(tables);
     const isPublic = !!canonicalShare;
-    // De ai-plak van `bridge_grants`, of niets. Ontbreekt hij, dan is dat een
-    // NIET-GELEZEN stand en geen "uit": zie `aiKnown` hieronder.
+    // The ai part of `bridge_grants`, or nothing. If it is missing, that is an
+    // UNREAD state and not "off": see `aiKnown` below.
     const aiGrant = (ai && typeof ai === 'object' && !Array.isArray(ai)) ? ai : null;
     return {
         internal: {
@@ -215,12 +205,12 @@ function buildAudienceModel({
         },
         public: {
             on: isPublic,
-            // DRIE standen, niet twee. Kon de share niet opgezocht worden (de
-            // database hikte), dan is `on: false` een BEWERING over blootstelling
-            // die we niet kunnen waarmaken — en die kant op liegen is de
-            // gevaarlijke: de eigenaar leest "niet openbaar" over een pagina die
-            // het misschien wél is. `known: false` zegt "niet te controleren",
-            // en het scherm hoort dan niets uit te zetten of aan te zetten.
+            // THREE states, not two. If the share could not be looked up (the
+            // database stalled), then `on: false` is an ASSERTION about exposure that
+            // we cannot make good — and lying in that direction is the
+            // dangerous one: the owner reads "not public" about a page that
+            // perhaps is. `known: false` says "not checkable", and the screen then
+            // should neither switch anything on nor off.
             known: canonicalShareKnown !== false,
             shareId: canonicalShare?.id || null,
             accessMode: canonicalShare?.accessMode || 'unlisted',
@@ -229,45 +219,43 @@ function buildAudienceModel({
             expiresAt: canonicalShare?.expiresAt || null,
             viewCount: canonicalShare?.viewCount || 0,
             lastViewedAt: canonicalShare?.lastViewedAt || null,
-            // Twee eigenschappen van het publieke oppervlak die het scherm moet
-            // uitspreken, niet impliceren. Ze zijn niet instelbaar: ze volgen
-            // uit wat een snapshot is.
+            // Two properties of the public surface that the screen must state, not
+            // imply. They are not configurable: they follow from
+            // what a snapshot is.
             tablesReadOnly: true,
             agentRuns: false,
-            // En de DERDE, die dat wél is. `bridge_grants.ai.publicEnabled` zet
-            // een echte beeflowAI-brug in het publieke document (publicViewer.js
-            // → routes/publicShareBridge.js): anonieme bezoekers chatten dan op
-            // het budget van de auteur. Zwijgt het model hierover, dan leest de
-            // eigenaar de twee regels hierboven als "er draait publiek geen AI"
-            // — de gevaarlijke richting.
+            // And the THIRD, which is configurable. `bridge_grants.ai.publicEnabled` puts
+            // a real beeflowAI bridge into the public document (publicViewer.js
+            // → routes/publicShareBridge.js): anonymous visitors then chat on
+            // the author's budget. If the model stays silent about this, the owner reads the
+            // two lines above as "no AI runs publicly" — the dangerous direction.
             //
-            // Driewaardig, net als `known` hierboven en om dezelfde reden: kwam
-            // de ai-plak niet mee, dan is `aiRuns:false` een bewering over
-            // blootstelling die niemand kan waarmaken. Onbekend versmalt: het
-            // scherm zegt dan dat het niet te lezen was en beweert niets.
+            // Three-valued, like `known` above and for the same reason: if the ai part
+            // did not come along, then `aiRuns:false` is an assertion about exposure that
+            // nobody can make good. Unknown narrows: the screen then says that it was not readable and asserts nothing.
             aiKnown: !!aiGrant,
             aiRuns: aiGrant?.publicEnabled === true,
-            // Grondt die publieke AI ook op de kennis van de pagina? Dan gaat
-            // niet alleen budget naar buiten maar ook inhoud, langs de kolompoort
-            // heen die dit scherm zo zorgvuldig telt.
+            // Does that public AI also ground itself on the knowledge of the page? Then
+            // not only budget but also content goes outward, past the column gate
+            // that this screen counts so carefully.
             aiGroundsOnPage: aiGrant?.publicGroundOnPage === true,
         },
         address: slug
             ? { slug, path: `/w/${slug}`, url: baseUrl ? `${String(baseUrl).replace(/\/+$/, '')}/w/${slug}` : null }
             : null,
         columnGate: gate,
-        // Het N-share-model blijft: dit telt ALLE levende shares, canoniek of
-        // niet, zodat "er staan nog drie losse links open" zichtbaar is.
+        // The N-share model remains: this counts ALL live shares, canonical or
+        // not, so that "three loose links are still open" is visible.
         //
-        // Dat getal is niet decoratief. "Openbaar uit" trekt uitsluitend de
-        // CANONIEKE share in — een losse /share/<token> van dezelfde pagina
-        // blijft daarna serveren — dus dit is het enige veld waaraan het
-        // scherm kan zien dat "Off" niet hetzelfde is als "niemand kan er
-        // meer bij".
+        // That number is not decorative. "Public off" withdraws exclusively the
+        // CANONICAL share — a loose /share/<token> of the same page
+        // continues to be served afterwards — so this is the only field by which the
+        // screen can see that "Off" is not the same as "nobody can get at it
+        // any more".
         shareCount: Number(shareCount) || 0,
-        // En daarom driewaardig, net als `public.known`: was de lijst
-        // onleesbaar (`null`), dan is 0 geen feit maar een mislukte lezing, en
-        // "er staat verder niets open" mag daar niet uit volgen.
+        // And therefore three-valued, like `public.known`: if the list was unreadable (`null`),
+        // then 0 is not a fact but a failed reading, and "nothing else is open"
+        // may not follow from that.
         shareCountKnown: shareCount !== null && shareCount !== undefined,
         solution: solution ? { id: solution.id, name: solution.name || '' } : null,
     };

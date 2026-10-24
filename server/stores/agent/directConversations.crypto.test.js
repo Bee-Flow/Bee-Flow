@@ -90,6 +90,7 @@ const dbStub = {
         };
     },
 };
+dbStub.withTransaction = require('../../testUtils/txFake').withTransactionVia(() => dbStub.getClient());
 
 // Tier is driven per test; the real messageCrypto is kept for conversationKey()
 // and messageAad(), only the tier lookup (which reads escrow rows out of the DB)

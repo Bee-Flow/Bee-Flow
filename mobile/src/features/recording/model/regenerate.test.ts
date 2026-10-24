@@ -1,17 +1,17 @@
 /**
- * `describeRegenerateOutcome` — wat de Android-client na "Opnieuw" zegt.
+ * `describeRegenerateOutcome` — what the Android client says after "Opnieuw".
  *
- * ── WAAROM DIT BESTAAT ──────────────────────────────────────────────
- * POST /:id/regenerate-summary antwoordt 200 óók als het uitwerken van de
- * actiepunten, besluiten en vragen is omgevallen: de server bewaart dan de
- * OUDE lijsten en meldt dat in `artifactsRegenerated: false`. De samenvatting
- * is wél vernieuwd, dus aan het scherm is niets te zien — dat antwoordveld is
- * het enige kanaal. De mutatie hier toonde onvoorwaardelijk een groene
- * "Summary rewritten", precies het symptoom ("niemand drukt nog eens op
- * Opnieuw") dat de serverfix heet te dichten, alleen op de client die geen
- * WebView-wrapper is.
+ * ── WHY THIS EXISTS ─────────────────────────────────────────────────
+ * POST /:id/regenerate-summary answers 200 ALSO when the elaboration of the
+ * action items, decisions and questions has failed: the server then keeps the
+ * OLD lists and reports that in `artifactsRegenerated: false`. The summary has
+ * been refreshed, so nothing is visible on screen — that response field is the
+ * only channel. The mutation here showed an unconditional green
+ * "Summary rewritten", precisely the symptom ("nobody presses Opnieuw again")
+ * that the server fix is supposed to close, only on the client that is not a
+ * WebView wrapper.
  *
- * Draaien: cd mobile && ./node_modules/.bin/jest src/features/recording/model/regenerate.test.ts
+ * Run: cd mobile && ./node_modules/.bin/jest src/features/recording/model/regenerate.test.ts
  */
 
 import { describeRegenerateOutcome, type RegenerateResult } from './regenerate';
@@ -39,7 +39,7 @@ describe('describeRegenerateOutcome', () => {
     });
 
     it('een oudere server zonder het veld beweert niets — dat blijft groen', () => {
-        // `undefined` is geen nieuws. Alleen een expliciete `false` is dat.
+        // `undefined` is not news. Only an explicit `false` is that.
         const { artifactsRegenerated, ...withoutField } = OK;
         expect(describeRegenerateOutcome(withoutField as RegenerateResult).kind).toBe('success');
     });

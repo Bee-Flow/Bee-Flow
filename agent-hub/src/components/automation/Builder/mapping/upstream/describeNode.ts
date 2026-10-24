@@ -91,10 +91,9 @@ export function describeNode(node: UpstreamNode | null | undefined, definition: 
     if (node.type === 'wait')       return describeWait(node);
     if (node.type === 'approval')   return describeApproval(node);
     if (node.type === 'form_page')  return describeFormPage(node);
-    // Een TERMINALE stap heeft geen benedenstrooms: er is niets dat aan zijn
-    // uitvoer zou kunnen binden, want er komt niets na. Gedreven door de ene
-    // gedeelde lijst (flow/terminalSteps.js), niet door een type-literal —
-    // anders krijgt de volgende eindstap wél een kaart en géén variabelengroep.
+    // A TERMINAL step has no downstream: there is nothing that could bind to its output, because
+    // nothing comes after it. Driven by the one shared list (flow/terminalSteps.js), not by a type
+    // literal. Otherwise the next end step would get a card but NO variable group.
     if (isTerminalStepType(node.type)) return null;
     if (node.type === 'switch')     return describeSwitch(node, sampleRoot);
     if (node.type === 'filter')     return describeCollectionItems(node, ROUTE_STEP_NAME, sampleRoot);

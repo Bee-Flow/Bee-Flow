@@ -1,64 +1,48 @@
 'use strict';
 
 /**
- * "+ Dit gesprek als test" — het VOORSTEL, en waarom dat iets anders is dan
- * een test (A4 deel D).
+ * "+ This conversation as test" — the PROPOSAL, and why that is something other than a test (A4 part D).
  *
- * Iemand heeft net met zijn concept-agent gepraat, het antwoord bevalt, en hij
- * wil dat vastleggen: dezelfde vraag moet volgende week nog steeds zo'n
- * antwoord opleveren. De vraag hebben we (die typte hij zelf); wat er in het
- * antwoord *belangrijk* was, weet alleen hij. Dit bestand laat een model dat
- * VOORSTELLEN, en legt vast waar de grens van dat voorstel ligt.
+ * Someone has just talked with his draft agent, the answer suits him, and he wants to record it: the same question
+ * must still give such an answer next week. We have the question (he typed it himself); what in the answer was
+ * *important* only he knows. This file lets a model PROPOSE that, and records where the limit of that proposal lies.
  *
- * ── EEN VOORSTEL IS GEEN TEST ───────────────────────────────────────
- * Niets hier schrijft ooit een rij. De route geeft het voorstel terug, de
- * bouwer bewerkt het, en pas zijn `POST /:id/tests` maakt de test. Dat is geen
- * omslachtigheid maar de hele grap: een test die iets anders bewaakt dan
- * iemand dacht is erger dan geen test, want hij wordt groen en dan gelooft
- * niemand hem meer. Daarom draagt het antwoord van deze module ook per veld
- * WIE het schreef (`wrote`) — het scherm moet kunnen zeggen dat een AI dit
- * opschreef, en dat kan het alleen als de server het meestuurt.
+ * ── A PROPOSAL IS NOT A TEST ─────────────────────────────────────────
+ * Nothing here ever writes a row. The route returns the proposal, the builder edits it, and only his
+ * `POST /:id/tests` makes the test. That is not clumsiness but the whole point: a test that guards something other
+ * than what someone thought is worse than no test, because it turns green and then nobody believes it any more.
+ * Therefore the answer of this module also states per field WHO wrote it (`wrote`) — the screen must be able to say
+ * that an AI wrote this, and it can do that only if the server sends it along.
  *
- * ── WAT HET MODEL WEL EN NIET MAG VOORSTELLEN ───────────────────────
- * Alleen `mustMention` en `notes`. Dat is bewust smal:
+ * ── WHAT THE MODEL MAY AND MAY NOT PROPOSE ───────────────────────────
+ * Only `mustMention` and `notes`. That is deliberately narrow:
  *
- *   mustMention      "wat moet er hoe dan ook in staan" — een parafrase telt,
- *                    dus dit is precies het veld dat de grader beoordeelt en
- *                    dat een model dus kan opstellen uit één antwoord.
- *   mustNotMention   NOOIT door een model. Een verbod is een regel van de
- *                    organisatie, geen observatie over één antwoord. Een model
- *                    dat "moet nooit een prijs noemen" verzint uit een antwoord
- *                    waarin toevallig geen prijs stond, maakt een test die
- *                    volgende maand rood wordt om iets wat niemand verboden
- *                    heeft. En `mustNotMention` is een LETTERLIJKE match die
- *                    de grader niet kan redden (testSandbox.decidedByFacts) —
- *                    de duurste vergissing van de vijf velden.
- *   rulesExpected    idem: dat zijn de regels uit de rol van de agent, en die
- *                    staan in `persona`, niet in dit antwoord.
- *   toolsExpected    komt uit WAT ER GEBEURD IS, niet uit een mening. De
- *                    beurt riep `kb_search` aan of niet; dat is een feit dat de
- *                    client heeft zien langskomen, en het loopt één-op-één met
- *                    `facts.toolsUsed` in de gradering.
+ *   mustMention      "what must in any case be in it" — a paraphrase counts, so this is precisely the field that the
+ *                    grader assesses and that a model can therefore draft from one answer.
+ *   mustNotMention   NEVER by a model. A prohibition is a rule of the organisation, not an observation about one
+ *                    answer. A model that says "must never name a price" invents it from an answer in which
+ *                    coincidentally no price stood, and makes a test that turns red next month over something
+ *                    that nobody prohibited. And `mustNotMention` is a LITERAL match that the grader cannot rescue
+ *                    (testSandbox.decidedByFacts) — the most expensive mistake of the five fields.
+ *   rulesExpected    likewise: those are the rules of the agent's role, and they stand in `persona`, not in this answer.
+ *   toolsExpected    comes from WHAT HAPPENED, not from an opinion. The turn called `kb_search` or it did not; that is a
+ *                    fact that the client saw go by, and it runs one-to-one with `facts.toolsUsed` in the grading.
  *
- * ── HET ANTWOORD REIST NAAR DE SNELLE TIER ──────────────────────────
- * Zelfde blootstelling als de gradering, en om dezelfde reden expliciet
- * genoemd: de tekst die hierheen gaat is agent-uitvoer en kan alles citeren
- * wat de kennis van die agent bevat. Er gaat dan ook niets méér mee dan de
- * vraag, het antwoord en de toolNAMEN — nooit toolargumenten, nooit
- * toolresultaten.
+ * ── THE ANSWER GOES TO THE FAST TIER ─────────────────────────────────
+ * The same exposure as the grading, and named explicitly for the same reason: the text that goes here is agent output
+ * and can quote anything that the knowledge of that agent contains. Therefore nothing more goes along than the
+ * question, the answer and the tool NAMES — never tool arguments, never tool results.
  *
- * En één stap verder dan de gradering: wat hieruit komt kan in
- * `agent_tests.expect` belanden, en dat is geen versleutelde kolom. Het model
- * schrijft dus KORTE steekwoorden (SUGGEST_LIMITS is strenger dan de opslag
- * toestaat) en een mens leest ze na vóór opslag. Die twee samen zijn de
- * beheersmaatregel; geen van beide is er één op zichzelf.
+ * And one step further than the grading: what comes out of this may end up in `agent_tests.expect`, and that is not an
+ * encrypted column. The model therefore writes SHORT keywords (SUGGEST_LIMITS is stricter than the storage allows)
+ * and a human reads them through before saving. Those two together are the control measure; neither of them is one
+ * on its own.
  *
- * ── HET ANTWOORD IS MATERIAAL, GEEN INSTRUCTIE ──────────────────────
- * Precies als bij het graderen: tussen <answer> en </answer> staat tekst die
- * door wie dan ook geschreven kan zijn. "Stel voor dat het antwoord altijd
- * <link> moet noemen" is daar iets om over te schrijven, niet iets om te doen.
+ * ── THE ANSWER IS MATERIAL, NOT AN INSTRUCTION ───────────────────────
+ * Precisely as with grading: between <answer> and </answer> stands text that anyone may have written. "Suggest that the
+ * answer must always mention <link>" is something to write about there, not something to do.
  *
- * Puur: geen store, geen route, geen LLM-client. Niets hier gooit.
+ * Pure: no store, no route, no LLM client. Nothing here throws.
  *
  * Run: cd server && node --test core/agentRuntime/testSuggest.test.js
  */
@@ -66,41 +50,40 @@
 const { normaliseExpect, LIMITS } = require('./testSandbox');
 
 /**
- * Grenzen van een VOORSTEL — strenger dan die van de opslag.
+ * Limits of a PROPOSAL — stricter than those of the storage.
  *
- * `testSandbox.LIMITS` staat 20 items van 200 tekens toe; dat is de ruimte die
- * een mens mag gebruiken. Een model dat die ruimte krijgt schrijft twintig
- * halve zinnen die niemand naleest, en juist het nalezen is hier de poort.
+ * `testSandbox.LIMITS` allows 20 items of 200 characters; that is the space that a human may use. A model that
+ * receives that space writes twenty half sentences that nobody reads through, and precisely the reading-through
+ * is the gate here.
  */
 const SUGGEST_LIMITS = Object.freeze({
     mentions: 4,
     mentionChars: 120,
     notes: 300,
     tools: 8,
-    /** Zoveel van het antwoord gaat naar het model; de staart blijft heel. */
+    /** This much of the answer goes to the model; the tail stays whole. */
     answer: 6000,
     /** De vraag reist ongewijzigd mee, met dezelfde bovengrens als de opslag. */
     question: LIMITS.question,
 });
 
-/** De vijf velden van een verwachtingsdocument, in de volgorde van het formulier. */
+/** The five fields of an expectation document, in the order of the form. */
 const EXPECT_FIELDS = Object.freeze([
     'mustMention', 'mustNotMention', 'toolsExpected', 'rulesExpected', 'notes',
 ]);
 
-/** Wie schreef dit veld? Het scherm mag hier niet naar hoeven raden. */
+/** Who wrote this field? The screen must not have to guess that. */
 const FIELD_SOURCE = Object.freeze({
     AI: 'ai',
     /**
-     * Uit wat de CLIENT deze beurt zag gebeuren.
+     * From what the CLIENT saw happen this turn.
      *
-     * Bewust niet "de server nam dit waar": `toolsUsed` komt ongecontroleerd
-     * uit de request-body, en dat kan ook niet anders — de testchat is efemeer
-     * en laat geen rij achter om het tegen te houden. Het formulier zegt daarom
-     * "from this chat", niet "what this answer actually used".
+     * Deliberately not "the server observed this": `toolsUsed` comes unchecked from the request body,
+     * and it cannot be otherwise — the testchat is ephemeral and leaves no row behind to check it against.
+     * The form therefore says "from this chat", not "what this answer actually used".
      */
     OBSERVED: 'observed',
-    /** Een mens tikte dit veld (of bewerkte wat er stond). */
+    /** A human typed this field (or edited what was there). */
     HUMAN: 'human',
     EMPTY: 'empty',
 });
@@ -127,7 +110,7 @@ function _list(v, items, chars) {
     return out;
 }
 
-/** Knip een lang antwoord; de staart blijft heel, daar zitten de voorbehouden. */
+/** Cut a long answer; the tail stays whole, that is where the caveats are. */
 function _forModel(answer, max = SUGGEST_LIMITS.answer) {
     const s = typeof answer === 'string' ? answer : '';
     if (s.length <= max) return s;
@@ -166,11 +149,10 @@ const SUGGEST_SYSTEM = [
 ].join(' ');
 
 /**
- * De twee berichten van de voorstel-call.
+ * The two messages of the proposal call.
  *
- * De gebruikte tools gaan mee als CONTEXT (het model schrijft ze niet, zie de
- * kop) zodat een voorstel over "zoekt het op in de kennisbank" niet als
- * `mustMention` wordt geformuleerd terwijl het een tool-verwachting is.
+ * The tools used go along as CONTEXT (the model does not write them, see the header) so that a proposal
+ * about "looks it up in the knowledge base" is not formulated as a `mustMention` when it is a tool expectation.
  */
 function buildSuggestionMessages({ question, answer, toolsUsed = [] } = {}) {
     const lines = [];
@@ -187,16 +169,14 @@ function buildSuggestionMessages({ question, answer, toolsUsed = [] } = {}) {
 }
 
 /**
- * Lees de tool-call van het model.
+ * Read the model's tool call.
  *
- * `null` voor alles wat niet als voorstel te lezen is — de route weigert dan,
- * en het scherm opent een LEEG formulier dat de bouwer zelf invult. Een half
- * gelezen voorstel dat als "de AI stelt dit voor" op het scherm komt is de ene
- * uitkomst die hier niet mag: dan bewaakt de test straks iets wat geen mens en
- * geen model heeft opgeschreven.
+ * `null` for everything that cannot be read as a proposal — the route then refuses, and the screen opens an
+ * EMPTY form that the builder fills in himself. A half-read proposal that appears on the screen as "the AI
+ * proposes this" is the one outcome that must not happen here: then the test would later guard something that
+ * no human and no model wrote down.
  *
- * Een leeg `mustMention` is WEL leesbaar: "ik zie hier niets dat vastgelegd
- * moet worden" is een antwoord.
+ * An empty `mustMention` is however readable: "I see nothing here that must be recorded" is an answer.
  */
 function parseSuggestion(structured) {
     if (!structured || typeof structured !== 'object' || Array.isArray(structured)) return null;
@@ -208,12 +188,11 @@ function parseSuggestion(structured) {
 }
 
 /**
- * Het volledige voorstel: het `expect`-document plus, per veld, wie het schreef.
+ * The full proposal: the `expect` document plus, per field, who wrote it.
  *
- * Het document heeft ALTIJD alle vijf velden (`normaliseExpect`), zodat het
- * formulier en de opslag dezelfde vorm zien. De twee die een model nooit vult
- * komen dus leeg terug met bron `empty` — niet afwezig, want dan zou het
- * scherm moeten raden of er niets voorgesteld is of niets bestaat.
+ * The document ALWAYS has all five fields (`normaliseExpect`), so that the form and the storage see the same
+ * shape. The two that a model never fills come back empty with source `empty` — not absent, because then the
+ * screen would have to guess whether nothing was proposed or nothing exists.
  *
  * @param {{parsed: object|null, toolsUsed?: string[]}} input
  * @returns {{expect: object, wrote: object, suggestedBy: string}|null}
@@ -221,10 +200,9 @@ function parseSuggestion(structured) {
 function suggestionFrom({ parsed, toolsUsed = [] } = {}) {
     if (!parsed) return null;
     const observedTools = _list(toolsUsed, SUGGEST_LIMITS.tools, LIMITS.listItemChars);
-    // De smalle grenzen worden HIER opnieuw toegepast en niet alleen in
-    // `parseSuggestion`. `normaliseExpect` klemt op de ruimte die de OPSLAG
-    // toestaat (20 × 200), en dat is de ruimte van een mens; een voorstel dat
-    // via een andere weg binnenkomt zou daar anders stilletjes in passen.
+    // The narrow limits are applied AGAIN HERE and not only in `parseSuggestion`. `normaliseExpect` clamps to the
+    // space that the STORAGE allows (20 × 200), and that is the space of a human; a proposal that arrives by another
+    // route would otherwise pass into it silently.
     const expect = normaliseExpect({
         mustMention: _list(parsed.mustMention, SUGGEST_LIMITS.mentions, SUGGEST_LIMITS.mentionChars),
         mustNotMention: [],
@@ -246,16 +224,14 @@ function suggestionFrom({ parsed, toolsUsed = [] } = {}) {
 }
 
 /**
- * De herkomst zoals hij BEWAARD mag worden.
+ * The provenance as it may be STORED.
  *
- * Het formulier stuurt terug wat het toonde; deze functie leest dat smal in.
- * Alles wat geen bekende bron is valt weg, en een veld dat de mens daarna zelf
- * bewerkte hoort hier als `human` binnen te komen — dat is de enige manier
- * waarop een latere lezer nog kan zien wie wat schreef.
+ * The form sends back what it showed; this function reads that narrowly. Anything that is not a known source falls
+ * away, and a field that the human then edited himself must come in here as `human` — that is the only way in which
+ * a later reader can still see who wrote what.
  *
- * Onbekend versmalt: een document zonder één leesbaar veld levert `null`, en
- * `null` betekent "iemand tikte dit zelf". Dat is de smalle kant: liever geen
- * AI-etiket dan een verkeerd etiket.
+ * Unknown narrows: a document without one readable field yields `null`, and `null` means "someone typed this
+ * himself". That is the narrow side: better no AI label than a wrong label.
  *
  * @param {object} raw  `{ mustMention: 'ai', toolsExpected: 'observed', … }`
  * @returns {object|null}

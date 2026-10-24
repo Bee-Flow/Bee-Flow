@@ -6,12 +6,11 @@ import { READ } from './canUseFacts';
 import ToolChooser from './ToolChooser';
 
 /**
- * De tool-kiezer, van klik tot config.
+ * The tool picker, from click to config.
  *
- * `toolChooserModel.test.js` pint de rekenkant; hier staat wat de EIGENAAR
- * doet: openen, vinken, toepassen. De schil is de echte
- * `shared/AppActionPicker` — een kiezer die alleen met een nep-schil werkt,
- * bewijst niets over het scherm dat gebruikers zien.
+ * `toolChooserModel.test.js` pins the calculation side. Here is what the OWNER does: open, tick, apply.
+ * The shell is the real `shared/AppActionPicker`. A picker that only works with a fake shell proves nothing
+ * about the screen that users see.
  */
 
 const t = (key, fallback, vars) => {
@@ -88,11 +87,10 @@ describe('ToolChooser — wat er te kiezen valt', () => {
     });
 });
 
-// ── Apps die de kiezer nooit kon tonen (A2-1) ───────────────────────
-// `browse_web` zit achter een docker-probe: op de ene installatie is hij er en
-// op de andere niet. AFWEZIG, NIET BESCHIKBAAR OP DEZE INSTALLATIE en NIET
-// TOEGEKEND zijn drie verschillende dingen, en de kiezer mag alleen zeggen wat
-// waar is — hem verzwijgen is het enige antwoord dat geen van drieën is.
+// ── Apps that the picker could never show (A2-1) ────────────────────
+// `browse_web` sits behind a docker probe: on one installation it is there, and on another it is not.
+// ABSENT, NOT AVAILABLE ON THIS INSTALLATION and NOT GRANTED are three different things, and the picker may
+// only say what is true. Saying nothing about them is the only answer that is none of the three.
 describe('ToolChooser — een app die deze installatie niet heeft', () => {
     const BROWSER = {
         id: 'browser-fetch', label: 'Browse Web', available: false, actionsKnown: true,
@@ -209,12 +207,10 @@ describe('ToolChooser — de eerste curatie', () => {
 describe('ToolChooser — de gefaseerde selectie overleeft de ouder', () => {
     it('houdt de vinkjes vast als de EDITOR opnieuw tekent', async () => {
         const user = userEvent.setup();
-        // De editor tekent opnieuw bij van alles wat niets met de kiezer te
-        // maken heeft (een opslagstatus, een binnenkomende lezing, een
-        // relatieve tijd). Hij geeft daarbij verse `apps`- en `labels`-objecten
-        // door. Als de kiezer daarop opnieuw uitgaat van de config, veegt hij
-        // weg waar iemand middenin staat — en dat is precies het soort verlies
-        // dat je pas merkt als je op "toepassen" drukt.
+        // The editor redraws for everything that has nothing to do with the picker (a save status, an incoming
+        // read, a relative time). It passes along fresh `apps` and `labels` objects. If the picker goes back to
+        // the config based on those, it wipes out what someone is in the middle of, and that is exactly the kind
+        // of loss you only notice when you press "apply".
         const props = {
             t, open: true, focusAppId: 'gmail', catalogState: READ.OK,
             toolsConfig: null, enabledIntegrations: ['gmail'],

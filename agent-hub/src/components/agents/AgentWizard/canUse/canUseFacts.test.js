@@ -1,10 +1,9 @@
 // @vitest-environment node
 /**
- * canUseFacts — de feiten achter de tab "Kan gebruiken" (A2 stap 2).
+ * canUseFacts: the facts behind the "Can use" tab (A2 step 2).
  *
- * Wat hier vastgepind wordt, is telkens hetzelfde onderscheid: LEEG en
- * ONLEESBAAR zijn twee antwoorden, en alleen het eerste mag als "de agent
- * heeft dit niet" gelezen worden.
+ * What is pinned here is always the same distinction: EMPTY and UNREADABLE are two answers, and only the first
+ * may be read as "the agent does not have this".
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/canUse/canUseFacts.test.js
  */

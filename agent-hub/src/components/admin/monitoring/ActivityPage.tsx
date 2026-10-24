@@ -62,7 +62,7 @@ export function ActivityPage({ recent, modelCosts, filterSources, filterModels }
                 <div className="[display:flex] [gap:8px] [margin-bottom:14px] [flex-wrap:wrap] [align-items:center]">
                     {/* Search */}
                     <div className="[display:flex] [align-items:center] [gap:6px] [padding:5px_10px] [border-radius:8px] [background:var(--bg-primary,#0f0f1a)] [border:1px_solid_var(--border-default,rgba(255,255,255,0.08))] [flex:0_1_200px]">
-                        <Search style={{ width: 12, height: 12, color: 'var(--text-muted, #888)' }} />
+                        <Search className="w-[12px] h-[12px] [color:var(--text-muted,#888)]" />
                         <input
                             value={search}
                             onChange={e => { setSearch(e.target.value); setPageNum(0); }}
@@ -73,7 +73,7 @@ export function ActivityPage({ recent, modelCosts, filterSources, filterModels }
 
                     {/* Source filter */}
                     <div style={filterSelectWrapper}>
-                        <Activity style={{ width: 12, height: 12, color: 'var(--text-muted, #888)' }} />
+                        <Activity className="w-[12px] h-[12px] [color:var(--text-muted,#888)]" />
                         <select
                             value={filterSource}
                             onChange={e => { setFilterSource(e.target.value); setPageNum(0); }}
@@ -86,7 +86,7 @@ export function ActivityPage({ recent, modelCosts, filterSources, filterModels }
 
                     {/* Model filter */}
                     <div style={filterSelectWrapper}>
-                        <Cpu style={{ width: 12, height: 12, color: 'var(--text-muted, #888)' }} />
+                        <Cpu className="w-[12px] h-[12px] [color:var(--text-muted,#888)]" />
                         <select
                             value={filterModel}
                             onChange={e => { setFilterModel(e.target.value); setPageNum(0); }}

@@ -18,10 +18,7 @@ const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { flag } = require('./schemas');
 
-// `?download=1` is de reddingsluik-parameter en de enige die deze route leest.
-// Strict, want `?downlaod=1` streamde de opname `inline` terug: de browser
-// speelde hem af in plaats van hem op te slaan, en dát opslaan is voor een
-// browseropname die geen duurzame kopie heeft de enige uitweg.
+// `?download=1` is the rescue-hatch parameter and the only one this route reads. Strict, because `?downlaod=1` streamed the recording back `inline`: the browser played it instead of saving it, and for a browser recording without a durable copy, saving it is the only way out.
 const DOWNLOAD_TEXT = 'download is true of false.';
 const AudioQuery = z.object({ download: flag(DOWNLOAD_TEXT) }).strict();
 

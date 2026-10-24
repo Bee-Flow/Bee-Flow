@@ -2,19 +2,17 @@ import React from 'react';
 import type { ReactNode } from 'react';
 
 /**
- * De kaartvorm van de tab "Rol" (Agents-artboard 1c): een gekleurd glyph, een
- * titel, een grijze bijzin, en daaronder wat de kaart te zeggen heeft.
+ * The card shape of the "Role" tab (Agents artboard 1c): a coloured glyph, a title, a grey subtitle, and underneath what the
+ * card has to say.
  *
- * ── WAAROM NIET `canUse/CanUseCard` ─────────────────────────────────
- * Die schil tekent een KINDTEGEL uit `shared/kindColors` — de legenda voor
- * dingen die je in Studio MAAKT (een kennisbank, een skill, een tabel). De
- * vijf kaarten hier zijn geen gekoppelde objecten maar vijf stukken van één
- * beschrijving; ze zouden alle vijf dezelfde blauwe agenttegel krijgen, wat de
- * legenda juist betekenisloos maakt. De schil is daarom apart, en bewust
- * dunner: geen "+ Koppelen", geen ⋯-menu, geen rijen met scheidingslijnen.
+ * ── WHY NOT `canUse/CanUseCard` ─────────────────────────────────────
+ * That shell draws a KIND TILE from `shared/kindColors`, the legend for things that you MAKE in Studio (a knowledge base, a
+ * skill, a table). The five cards here are not linked objects but five pieces of one description. They would all receive the
+ * same blue agent tile, which makes the legend meaningless. The shell is therefore separate, and deliberately thinner: no
+ * "+ Link", no ⋯ menu, no rows with dividing lines.
  *
- * De kaart tekent GEEN gedrag. Hij weet niet wat een toonchip is, en dat is
- * precies waarom de vijf kaarten niet uit elkaar kunnen groeien in vorm.
+ * The card draws NO behaviour. It does not know what a tone chip is, and that is precisely why the five cards cannot grow
+ * apart in shape.
  */
 export default function RoleCard({ icon, iconColor = 'var(--type-ai)', title, hint, action, children, testId, wide = false }: {
     icon?: ReactNode;
@@ -43,21 +41,17 @@ export default function RoleCard({ icon, iconColor = 'var(--type-ai)', title, hi
 }
 
 /**
- * De regel onder een kaart die zegt wat er met de inhoud GEBEURT.
+ * The line under a card that says what will HAPPEN with the content.
  *
- * Drie tonen, en het verschil is niet cosmetisch:
- *   'muted'   een uitleg;
- *   'warn'    iets klopt niet of kon niet gelezen worden — `role="status"`,
- *             want het gaat over de toestand van het scherm;
- *   'promise' de belofte-regel: wat hier staat is een INSTRUCTIE en geen
- *             blokkade. Zie de docblock bij `BulletsCard`.
+ * Three tones, and the difference is not cosmetic:
+ *   'muted'   an explanation;
+ *   'warn'    something is not right, or could not be read. `role="status"`, because it is about the state of the screen;
+ *   'promise' the promise line: what stands here is an INSTRUCTION and not a block. See the docblock at `BulletsCard`.
  */
 /**
- * `announce={false}` voor een notitie die AL in een `aria-live`-blok hangt.
- * Twee live regions genest laat een schermlezer dezelfde zin twee keer
- * voorlezen; dezelfde regel als in AgentStudio/AgentOverview.tsx en het
- * precedent Studio/Datatables/DatatablesStudio.jsx, waar de wisselende inhoud
- * in één kale wrapper staat met rolloze kinderen.
+ * `announce={false}` for a note that is ALREADY inside an `aria-live` block. Two live regions nested cause a screen reader to
+ * read the same sentence twice. The same rule applies as in AgentStudio/AgentOverview.tsx and the precedent
+ * Studio/Datatables/DatatablesStudio.jsx, where the changing content stands in one bare wrapper with role-less children.
  */
 export function RoleNote({ tone = 'muted', children, testId, announce = true }: {
     tone?: 'muted' | 'warn' | 'promise';
@@ -80,7 +74,7 @@ export function RoleNote({ tone = 'muted', children, testId, announce = true }: 
     );
 }
 
-/** Het lege vak: gelezen, en er staat echt niets. Nooit bij een mislukte lezing. */
+/** The empty box: read, and there is really nothing in it. Never on a failed read. */
 export function RoleEmpty({ children, testId }: { children?: ReactNode; testId?: string }) {
     return (
         <p data-testid={testId} className="text-[12px] leading-[17px] m-0 text-[var(--text-tertiary)] italic">
@@ -90,8 +84,8 @@ export function RoleEmpty({ children, testId }: { children?: ReactNode; testId?:
 }
 
 /**
- * Een teller "412 / 600". Staat er pas als het ergens over gaat: onder 80% van
- * de grens is hij ruis, en ruis leert mensen om tellers weg te kijken.
+ * A counter "412 / 600". It only appears when it matters: below 80% of
+ * the limit it is noise, and noise teaches people to look away from counters.
  */
 export function RoleCounter({ value = '', max, testId, label }: { value?: string; max: number; testId?: string; label?: string }) {
     const used = typeof value === 'string' ? value.length : 0;
@@ -109,14 +103,14 @@ export function RoleCounter({ value = '', max, testId, label }: { value?: string
 }
 
 /**
- * Het tekstvak van een rolkaart.
+ * The text box of a role card.
  *
- * Zelfde vorm als `builderSplit/InstructionsEditor`, en om dezelfde reden: de
- * editor eromheen is groot, dus de aanslagen blijven lokaal en de ouder ziet
- * alleen wat er staat. Hij ontdubbelt niet en knipt niet — dat doet
- * `personaFacts` bij het schrijven — maar `maxLength` staat wél, want de
- * server knipt zonder iets te zeggen en dan is de laatste zin weg zonder dat
- * hij ooit rood werd.
+ * Same shape as `builderSplit/InstructionsEditor`, and for the same reason: the
+ * editor around it is large, so the keystrokes stay local and the parent only sees
+ * what is there. It does not deduplicate and does not truncate (that is done by
+ * `personaFacts` when writing), but `maxLength` IS here, because the
+ * server truncates without saying anything, and then the last sentence is gone
+ * without the box ever turning red.
  */
 export function RoleTextArea({ value, onChange, placeholder, maxLength, rows = 3, disabled = false, testId, ariaLabel }: {
     value?: string;

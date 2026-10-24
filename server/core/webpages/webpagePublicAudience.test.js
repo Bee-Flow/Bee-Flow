@@ -1,11 +1,11 @@
 // @typecheck
 /**
- * De poort naar buiten, puur getest.
+ * The gate to the outside, tested purely.
  *
- * Elke test hier gaat over één zin uit het ontwerp: "Bij Openbaar zetten wordt
- * publicColumns gevraagd — zonder die keuze gaat er niets naar buiten." Dat is
- * geen UI-belofte maar een regel die in `applyColumnChoice` staat, en die moet
- * in de VERSMALLENDE richting fout gaan als hij ooit verschuift.
+ * Every test here concerns one sentence from the design: "When making public, publicColumns
+ * is asked — without that choice nothing goes outward." That is
+ * not a UI promise but a rule that stands in `applyColumnChoice`, and that must
+ * fail in the NARROWING direction if it ever shifts.
  *
  * Run: node --test --test-force-exit core/webpages/webpagePublicAudience.test.js
  */
@@ -38,7 +38,7 @@ test('een tabel die NIET in de keuze staat, gaat op nul publieke kolommen', () =
         { datatableId: 't1', mode: 'read', columns: ['naam', 'bsn'], publicColumns: ['naam', 'bsn'] },
         { datatableId: 't2', mode: 'read', columns: ['status'], publicColumns: ['status'] },
     ];
-    // t2 ontbreekt in het antwoord: weglaten is geen instemming.
+    // t2 is missing from the answer: omitting is no consent.
     const out = applyColumnChoice(tables, { t1: ['naam'] });
     assert.deepStrictEqual(out[0].publicColumns, ['naam']);
     assert.deepStrictEqual(out[1].publicColumns, [],
@@ -169,10 +169,10 @@ test('het model spreekt de twee eigenschappen van het publieke oppervlak uit', (
 });
 
 test('de publieke AI-brug staat in het model — de enige eigenschap die geld kost', () => {
-    // publicViewer.js injecteert bij `publicEnabled` een ECHTE beeflowAI-brug in
-    // het publieke document; anonieme bezoekers chatten dan op het budget van de
-    // auteur. Zwijgt het model daarover, dan lezen de twee constanten
-    // (tablesReadOnly / agentRuns) als "publiek draait er geen AI".
+    // publicViewer.js injects, when `publicEnabled` is set, a REAL beeflowAI bridge into
+    // the public document; anonymous visitors then chat on the author's budget.
+    // If the model stays silent about that, then the two constants
+    // (tablesReadOnly / agentRuns) read as "no AI runs publicly".
     const aan = buildAudienceModel({
         webpage: { slug: 's' },
         canonicalShare: { id: 'sh1' },

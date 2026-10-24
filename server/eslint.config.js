@@ -89,6 +89,40 @@ module.exports = [
         rules: { 'no-console': 'off' },
     },
     {
+        // A route fetches URLs it was handed or that an admin configured: a bare
+        // fetch() has no SSRF layer (private ranges, cloud metadata, DNS
+        // rebinding, redirect hops). Use utils/ssrfGuard.safeFetch (user URLs),
+        // core/http/configuredEndpointFetch.fetchConfiguredEndpoint (admin-set
+        // provider URLs, private networks allowed) or, for a FIXED trusted host,
+        // allow-list the file in the override below with a comment saying why.
+        files: ['routes/**/*.js'],
+        ignores: ['**/*.test.js'],
+        rules: {
+            'no-restricted-globals': ['error', {
+                name: 'fetch',
+                message: 'Bare fetch() in a route has no SSRF guard: use utils/ssrfGuard.safeFetch or core/http/configuredEndpointFetch (see eslint.config.js).',
+            }],
+        },
+    },
+    {
+        // Fixed, hard-coded trusted hosts (or an operator-set internal service
+        // URL from the environment): no user-controlled URL reaches these.
+        files: [
+            'routes/integrations/github.js',          // api.github.com
+            'routes/integrations/githubSync.js',      // api.github.com (owner/repo are validated path segments)
+            'routes/integrations/googleWorkspace.js', // Google OAuth token/userinfo endpoints (constants)
+            'routes/integrations/linkedin.js',        // linkedin.com / api.linkedin.com
+            'routes/integrations/microsoft365.js',    // login.microsoftonline.com / graph.microsoft.com
+            'routes/integrations/withings.js',        // Withings OAuth token endpoint (constant)
+            'routes/publicGithubStats.js',            // api.github.com
+            'routes/search.js',                       // google.serper.dev
+            'routes/templates.js',                    // SEARCH_SERVICE_URL, the operator's own search service (env)
+            'routes/knowledgeBases/search.js',        // SEARCH_SERVICE_URL (env)
+            'routes/projects/collab.testkit.js',      // test helper against a local test server
+        ],
+        rules: { 'no-restricted-globals': 'off' },
+    },
+    {
         // Functions these files hand to page.evaluate() / waitForFunction()
         // run inside the headless browser, where window and document exist.
         files: [

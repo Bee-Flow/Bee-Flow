@@ -26,10 +26,7 @@ vi.mock('../../../licensing/LicenseContext', () => ({
         granted.has(feature) ? children : <div data-testid="upgrade-prompt">{feature}</div>
     ),
 }));
-vi.mock('../../../../hooks/useTranslation', () => ({
-    default: () => ({ t: (_k, d) => d || _k, locale: 'en' }),
-    useTranslation: () => ({ t: (_k, d) => d || _k, locale: 'en' }),
-}));
+vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 vi.mock('./ApprovalDetail', () => ({
     default: ({ approvalId }) => <div data-testid="approval-detail">{approvalId}</div>,
 }));

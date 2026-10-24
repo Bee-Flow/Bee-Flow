@@ -113,11 +113,10 @@ router.post('/layer-agent', requireAuth, layerAgentRateLimit, validate({ body: L
             .buildPickerCatalogsForUser(userId, req.session, catalog, { providers: false }));
         // ai_step modelTier gate: sub-agents may only pick the user's tiers.
         //
-        // Een onleesbare tiermap WEIGERT, net als de `!modelId` hierboven. Hij
-        // werd hier stil geslikt, waarna `_allowedModelTiers` ongezet bleef en
-        // stepBuilders dat las als "alles mag": dezelfde configuratiebron, twee
-        // tegengestelde antwoorden op "ik kan het niet lezen", en de ruimste
-        // ervan op de tak die duurdere modellen vastlegt in elke volgende run.
+        // An unreadable tier map REFUSES, just like the `!modelId` above. It was
+        // swallowed silently here, after which `_allowedModelTiers` stayed unset and stepBuilders read that as
+        // "everything is allowed": the same configuration source, two opposite answers to "I cannot read it", and the
+        // broader of them on the branch that locks in more expensive models in every following run.
         try {
             const tierMap = await getUserTierMap({ userOrgId: userOrgForTiers, userId });
             draftWrap._allowedModelTiers = new Set(['auto', ...Object.keys(tierMap).filter(k => k !== 'swarm' && k !== 'standard')]);

@@ -483,21 +483,20 @@ export function NextcloudCalendarMutationFilterFields({ filter, setFilter }: Fil
 }
 
 /**
- * meeting-notes.meeting.processed — de tagregel voor Meeting Notes (M5).
+ * meeting-notes.meeting.processed: the tag rule for Meeting Notes (M5).
  *
- * DE LEGE TAGFILTER STAAT OP HET SCHERM. Geen tags = ELKE afgeronde
- * vergadernotitie, niet geen enkele; de afweging staat bij de matcher
- * (server/automation/triggerBus/filters.js). Het gevaar van die keuze is niet
- * de regel zelf maar de stilte eromheen: een leeg vak dat "alles" betekent
- * moet dat zéggen, anders ontdekt de auteur het pas aan de runs. Daarom is de
- * zin onder het invoerveld altijd zichtbaar en verandert hij mee — hij is
- * geen waarschuwing bij een fout, hij is de stand van zaken.
+ * THE EMPTY TAG FILTER IS ON THE SCREEN. No tags means EVERY completed meeting note, not none
+ * at all. The considerations are at the matcher (server/automation/triggerBus/filters.js). The
+ * danger of that choice is not the rule itself but the silence around it: an empty field that
+ * means "everything" must SAY so, otherwise the author discovers it only from the runs. That is
+ * why the sentence under the input field is always visible and changes along with it. It is not
+ * a warning on an error; it is the state of affairs.
  *
- * De tags zelf zijn geen keuzelijst: de woordenschat hangt aan de NOTITIE (GET
- * /api/transcriptions/tags) en niet aan deze trigger, en dat endpoint zit
- * achter de Meeting-Notes-gate. Een vrij tekstveld matcht wat de gebruiker
- * intypt zonder eerst een tweede rechtenvraag te stellen; het scherm zegt
- * daarom expliciet dat er exact en hoofdlettergevoelig vergeleken wordt.
+ * The tags themselves are not a choice list. The vocabulary hangs on the NOTE (GET
+ * /api/transcriptions/tags) and not on this trigger, and that endpoint sits behind the
+ * Meeting-Notes gate. A free text field matches what the user types without first asking a
+ * second rights question. The screen therefore says explicitly that the comparison is exact
+ * and case-sensitive.
  */
 export function MeetingNotesProcessedFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
@@ -511,9 +510,9 @@ export function MeetingNotesProcessedFilterFields({ filter, setFilter }: FilterF
     if (splitCsv(tagText).join(',') !== splitCsv(stored).join(',')) setTagText(stored);
     const tags = splitCsv(tagText);
 
-    // '' = geen mening (alle drie de aanleidingen), 'no' = alleen een eerste
-    // notitie, 'yes' = alleen een herverwerking. Weglaten is iets anders dan
-    // `false`, dus de sleutel wordt gewist in plaats van op false gezet.
+    // '' = no opinion (all three occasions), 'no' = only a first note, 'yes' = only a
+    // reprocessing. Leaving it out is something other than `false`, so the key is cleared
+    // instead of set to false.
     const reprocessed = filter.reprocessed === true ? 'yes' : (filter.reprocessed === false ? 'no' : '');
 
     return (
@@ -535,8 +534,8 @@ export function MeetingNotesProcessedFilterFields({ filter, setFilter }: FilterF
                     placeholder={t('automations.trigger_filters.sales_klant_van_dijk', 'sales, klant-van-dijk')}
                     className={inputClass()}
                 />
-                {/* Altijd zichtbaar, nooit in de ⓘ-popover: dit is de stand van
-                    zaken van de regel, geen achtergrondinformatie. */}
+                {/* Always visible, never in the ⓘ popover: this is the state of the rule, not background
+                    information. */}
                 {tags.length === 0
                     ? (
                         <div className={`${AMBER_NOTE} mt-1 leading-snug`}>
@@ -552,8 +551,7 @@ export function MeetingNotesProcessedFilterFields({ filter, setFilter }: FilterF
                                     'Runs only for a note carrying any of these {count} tags.',
                                 )}
                             </div>
-                            {/* De tweede stille val: "Sales" matcht "sales" niet.
-                                Dat hoort niet achter een klik te zitten. */}
+                            {/* The second silent trap: "Sales" does not match "sales". That should not sit behind a click. */}
                             <div className={hintTextClass()}>
                                 {t('meetings.trigger_tags_exact', 'Matched exactly and case-sensitively, the same way a meeting-tag knowledge source matches.')}
                             </div>
@@ -577,12 +575,10 @@ export function MeetingNotesProcessedFilterFields({ filter, setFilter }: FilterF
                     <option value="yes">{t('meetings.trigger_reprocessed_again', 'Only a reprocess or a new summary')}</option>
                 </select>
             </FormRow>
-            {/* Geen belofte van een vervolgstap die niet bestaat: er is
-                vandaag GEEN actie die een transcriptionId aanneemt (grep over
-                server/integrations levert nul treffers; transcribe_audio
-                verwerkt een geüpload bestand, geen bestaande notitie). De zin
-                zegt daarom wat de regel wél kan: doorgeven welke vergadering
-                klaar is. */}
+            {/* No promise of a follow-up step that does not exist: there is today NO action that accepts a
+                transcriptionId (grep over server/integrations gives zero hits; transcribe_audio processes
+                an uploaded file, not an existing note). The sentence therefore says what the rule CAN
+                do: pass along which meeting is ready. */}
             <div className={`${hintTextClass()} leading-snug`}>
                 {t('meetings.trigger_payload_note', 'The trigger carries the note id, its tags and the organisation — no summary, title or attendees. There is no step that reads a note by id, so a rule acts on WHICH meeting finished: pass the id on and open the note in Bee Flow.')}
             </div>

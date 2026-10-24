@@ -1,38 +1,29 @@
 /**
- * canUseFacts — de FEITEN achter de tab "Kan gebruiken", los van hoe ze
- * getekend worden (Bee Flow Builder-herontwerp, sep 2026; Agents-artboard 1a,
- * A2 stap 2).
+ * canUseFacts: the FACTS behind the "Can use" tab, separate from how they are drawn (Bee Flow Builder redesign,
+ * Sep 2026; Agents artboard 1a, A2 step 2).
  *
- * Alles hier is puur: in gaan de rauwe antwoorden van de server plus de eigen
- * config van de agent, eruit komen rijen met FEITEN — geen zinnen. De zinnen
- * staan in de kaarten, want daar staan ook de letterlijke t()-sleutels die de
- * i18n-guard leest.
+ * Everything here is pure: the raw answers of the server go in, plus the agent's own config, and rows of FACTS
+ * come out. No sentences. The sentences are in the cards, because that is where the literal t() keys that the
+ * i18n guard reads are.
  *
- * ── DRIE TOESTANDEN, NIET TWEE ──────────────────────────────────────
- * Elke bron draagt een `READ`-toestand mee, want "nog niet gelezen", "gelezen
- * en leeg" en "niet te lezen" zijn drie verschillende antwoorden en maar één
- * ervan mag als "de agent heeft niets" op het scherm komen. Een mislukte fetch
- * die op `[]` landt is de klassieke manier om dat verschil te verliezen: de
- * kaart zegt dan doodleuk "geen kennis gekoppeld" over een agent met vijf
- * kennisbanken.
+ * ── THREE STATES, NOT TWO ───────────────────────────────────────────
+ * Every source carries a `READ` state, because "not read yet", "read and empty" and "cannot be read" are three
+ * different answers, and only one of them may reach the screen as "the agent has nothing". A failed fetch that
+ * lands on `[]` is the classic way to lose that difference: the card then says flatly "no knowledge linked"
+ * about an agent with five knowledge bases.
  *
- * ── EEN GEKOPPELD ID DAT NIEMAND KENT VERDWIJNT NIET ────────────────
- * De KOPPELING staat in de config van de agent en die lezen we altijd; de
- * NAAM komt uit een lijst die kan ontbreken (een kennisbank buiten
- * `?context=agent`, een tabel achter de automations-module, een skill zonder
- * `skills`-capability). Zo'n rij wordt daarom `readable: false` — hij blijft
- * staan, met zijn id, en de kaart zegt erbij dat de naam niet gelezen kon
- * worden. Wegfilteren zou de koppeling zelf ontkennen: de agent gebruikt hem
- * wél.
+ * ── A LINKED ID THAT NOBODY KNOWS DOES NOT DISAPPEAR ────────────────
+ * The LINK is in the agent's config, and we always read that. The NAME comes from a list that may be missing (a
+ * knowledge base outside `?context=agent`, a table behind the automations module, a skill without the `skills`
+ * capability). Such a row therefore becomes `readable: false`. It stays, with its id, and the card says that the
+ * name could not be read. Filtering it out would deny the link itself: the agent does use it.
  *
- * ── DE TABELKANT SPIEGELT DE SERVER, INCLUSIEF ZIJN VERSMALLINGEN ───
- * `server/core/agentRuntime/toolPolicy.js` (`datatableGrantsOf` /
- * `normaliseToolsConfig`) leest `config.tools.datatables` aan BEIDE kanten
- * opnieuw en versmalt daarbij: een onbekende `scope` wordt `'own'`, een
- * onleesbare `columns` wordt `[]` (= de tabel wordt geweigerd), en boven de
- * 25 grants telt alleen de eerste 25. Deze module doet exact hetzelfde, want
- * een kaart die "alle rijen" zegt waar de runtime "alleen eigen rijen" doet is
- * precies de opgeslagen-belofte-zonder-handhaving die dat bestand verbiedt.
+ * ── THE TABLE SIDE MIRRORS THE SERVER, INCLUDING ITS NARROWINGS ─────
+ * `server/core/agentRuntime/toolPolicy.js` (`datatableGrantsOf` / `normaliseToolsConfig`) reads
+ * `config.tools.datatables` again on BOTH sides, and narrows while doing so: an unknown `scope` becomes `'own'`,
+ * an unreadable `columns` becomes `[]` (= the table is refused), and above 25 grants only the first 25 count.
+ * This module does exactly the same, because a card that says "all rows" where the runtime does "only own rows"
+ * is precisely the stored promise without enforcement that that file forbids.
  */
 
 /** De leesbaarheid van een bron. `LOADING` is nooit hetzelfde als `OK` met nul rijen. */
@@ -51,7 +42,7 @@ export interface DatatableGrant {
 
 export interface DatatableGrants {
     grants: DatatableGrant[];
-    /** Het aantal grants dat de runtime NIET meer meeneemt. */
+    /** The number of grants that the runtime NO LONGER takes along. */
     truncated: number;
 }
 
@@ -116,7 +107,7 @@ export const MAX_DATATABLE_GRANTS = 25;
 /** Spiegelt toolPolicy.js: `scope` is een TOEGANGSvraag, dus onbekend ⇒ de smalle. */
 const DATATABLE_SCOPES: readonly unknown[] = Object.freeze(['own', 'all']);
 
-/** Sleutels die een gewoon object niet veilig kan dragen (toolPolicy.js). */
+/** Keys that a plain object cannot safely carry (toolPolicy.js). */
 const UNSAFE_OBJECT_KEYS: ReadonlySet<string> = Object.freeze(new Set(['__proto__', 'constructor', 'prototype']));
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -124,12 +115,11 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
 }
 
 /**
- * Een eindig, niet-negatief geheel getal, of `null` als het dat niet is.
+ * A finite, non-negative integer, or `null` if it is not one.
  *
- * `null`, `undefined` en `''` worden EERST afgevangen, vóór `Number()` — die
- * maakt van `null` en `''` namelijk 0, en dat is precies de nul die deze
- * functie hoort tegen te houden: een ontbrekende teller die als "nul
- * documenten" op het scherm komt.
+ * `null`, `undefined` and `''` are caught FIRST, before `Number()`. That function turns `null` and `''` into 0,
+ * and that is precisely the zero this function is supposed to keep out: a missing counter that appears on the
+ * screen as "zero documents".
  */
 export function countOrNull(value?: unknown): number | null {
     if (value === null || value === undefined || value === '') return null;
@@ -138,9 +128,8 @@ export function countOrNull(value?: unknown): number | null {
 }
 
 /**
- * `'*'` (elke gedeclareerde kolom) of de gekozen lijst — spiegel van
- * `_datatableColumns` in toolPolicy.js. Onleesbaar ⇒ `[]`, en `[]` betekent
- * daar "geen kolommen", niet "alle".
+ * `'*'` (every declared column) or the chosen list. Mirror of `_datatableColumns` in toolPolicy.js.
+ * Unreadable ⇒ `[]`, and `[]` there means "no columns", not "all".
  */
 export function datatableColumnsOf(raw?: unknown): string[] | '*' {
     if (raw === undefined || raw === null || raw === '*') return '*';
@@ -156,8 +145,8 @@ export function datatableColumnsOf(raw?: unknown): string[] | '*' {
 }
 
 /**
- * De gegunde tabellen uit `config.tools`, als `[{ id, scope, columns }]` in
- * configvolgorde. Nooit een exception: dit draait in een render.
+ * The granted tables from `config.tools`, as `[{ id, scope, columns }]` in config order. Never an exception:
+ * this runs in a render.
  */
 export function datatableGrantsOf(toolsConfig?: unknown): DatatableGrants {
     const empty: DatatableGrants = { grants: [], truncated: 0 };
@@ -167,8 +156,8 @@ export function datatableGrantsOf(toolsConfig?: unknown): DatatableGrants {
         const ids = allIds.slice(0, MAX_DATATABLE_GRANTS);
         const grants = ids.map((id): DatatableGrant => {
             const raw = (toolsConfig.datatables as Record<string, unknown>)[id];
-            // Geen object ⇒ smalst mogelijk, net als de server: de tabel blijft
-            // staan (het id is de leesbare helft) maar levert niets.
+            // No object ⇒ narrowest possible, just like the server: the table stays in place (the id is the readable
+            // half) but yields nothing.
             if (!isPlainObject(raw)) return { id, scope: 'own', columns: [] };
             return {
                 id,
@@ -178,16 +167,15 @@ export function datatableGrantsOf(toolsConfig?: unknown): DatatableGrants {
         });
         return { grants, truncated: allIds.length - ids.length };
     } catch (_) {
-        // Een onleesbare sectie gunt niets — en zegt dat via READ.ERROR bij de
-        // aanroeper, niet via een stille lege lijst hier.
+        // An unreadable section grants nothing, and says so via READ.ERROR to the caller, not via a silent empty
+        // list here.
         return empty;
     }
 }
 
 /**
- * Zet een lijst objecten om in een `Map` op id. Een lijst die geen lijst is
- * levert een LEGE map plus `false` — de aanroeper weet daarmee dat hij niets
- * heeft kunnen indexeren en mag dat niet als "er is niets" lezen.
+ * Turns a list of objects into a `Map` keyed by id. A list that is not a list yields an EMPTY map plus `false`.
+ * That tells the caller that it could not index anything, and it must not read that as "there is nothing".
  */
 function indexById<T extends Identified>(list: (T | null | undefined)[] | null | undefined): Map<string, T | null | undefined> | null {
     if (!Array.isArray(list)) return null;
@@ -199,7 +187,7 @@ function indexById<T extends Identified>(list: (T | null | undefined)[] | null |
     return map;
 }
 
-/** Uniek, in volgorde, alleen niet-lege strings. */
+/** Unique, in order, non-empty strings only. */
 function uniqueIds(ids: unknown): string[] {
     const seen = new Set<string>();
     const out: string[] = [];
@@ -212,14 +200,12 @@ function uniqueIds(ids: unknown): string[] {
 }
 
 /**
- * De kennisbankrijen: de gekoppelde ids van de agent, aangevuld met wat de
- * lijst uit `GET /api/kb?context=agent` erover weet.
+ * The knowledge base rows: the linked ids of the agent, supplemented with what the list from
+ * `GET /api/kb?context=agent` knows about them.
  *
- * `documentCount` en `lastContentAt` staan op die route in SNAKE_CASE
- * (`decorateKbList` draait alleen op de detailroutes), dus beide spellingen
- * worden gelezen. Een ontbrekende teller wordt `null` en NOOIT 0: "nul
- * documenten" is een bewering over een kennisbank die je dan niet gemeten
- * hebt.
+ * `documentCount` and `lastContentAt` are on that route in SNAKE_CASE (`decorateKbList` only runs on
+ * the detail routes), so both spellings are read. A missing counter becomes `null` and NEVER 0: "zero
+ * documents" is a claim about a knowledge base that you have not measured.
  */
 export function knowledgeBaseRows({ ids, kbs, state = READ.OK }: {
     ids?: readonly string[] | null;
@@ -260,8 +246,8 @@ export function datatableRows({ toolsConfig, tables, state = READ.OK }: {
             name: table && typeof table.name === 'string' && table.name ? table.name : null,
             scope: g.scope,
             columns: g.columns,
-            // Geen kolommen = de runtime weigert deze tabel hardop. Dat is een
-            // FEIT over de grant en staat los van of we de naam konden lezen.
+            // No columns = the runtime refuses this table outright. That is a FACT about the grant, and it stands
+            // apart from whether we could read the name.
             grantsNothing: Array.isArray(g.columns) && g.columns.length === 0,
             readable: !!table,
         };
@@ -270,12 +256,11 @@ export function datatableRows({ toolsConfig, tables, state = READ.OK }: {
 }
 
 /**
- * "ook gebruikt door k ANDERE agents".
+ * "also used by k OTHER agents".
  *
- * De samenvatting (`GET /api/skills/usage-summary`) telt élke agent die de
- * skill koppelt — deze erbij. `selfCounted` zegt of dat zo is; alleen dan gaat
- * er één af. Onbekend blijft `null`, want een teller die niet gelezen is mag
- * niet als 0 ("verder gebruikt niemand dit") gelezen worden.
+ * The summary (`GET /api/skills/usage-summary`) counts EVERY agent that links the skill, this one
+ * included. `selfCounted` says whether that is so; only then does one come off. Unknown stays `null`,
+ * because a counter that was not read may not be read as 0 ("nobody else uses this").
  */
 export function otherAgentUsers(count?: unknown, selfCounted?: boolean): number | null {
     const n = countOrNull(count);
@@ -284,13 +269,11 @@ export function otherAgentUsers(count?: unknown, selfCounted?: boolean): number 
 }
 
 /**
- * De skillrijen: de gekoppelde ids, aangevuld met de skill zelf en met de
- * gebruikstelling.
+ * The skill rows: the linked ids, supplemented with the skill itself and with the usage count.
  *
- * `steps` en `rulesV2` zijn `[]` zolang de eenmalige parse niet gelopen heeft
- * (skillStore.mapRow presenteert NULL als `[]`), dus 0 stappen is hier een
- * echte 0 en geen gemis. `usage` is een aparte lezing met een eigen toestand:
- * die kan mislukken terwijl de skills zelf prima gelezen zijn.
+ * `steps` and `rulesV2` are `[]` as long as the one-time parse has not run (skillStore.mapRow presents
+ * NULL as `[]`), so 0 steps here is a real 0 and not a gap. `usage` is a separate read with its own state:
+ * that can fail while the skills themselves were read fine.
  */
 export function skillRows({ ids, skills, state = READ.OK, usage, usageState = READ.OK, savedSkillIds, agentSaved = false }: {
     ids?: readonly string[] | null;
@@ -307,9 +290,8 @@ export function skillRows({ ids, skills, state = READ.OK, usage, usageState = RE
     const summary = usageState === READ.OK && isPlainObject(usage) ? usage : null;
     return attached.map((id) => {
         const skill = index ? index.get(id) : null;
-        // De telling komt van de server en kent alleen de OPGESLAGEN config.
-        // Een skill die je zojuist aanvinkte zit er nog niet in, dus telt hij
-        // zichzelf ook niet mee — en dan mag er niets af.
+        // The count comes from the server and knows only the SAVED config.
+        // A skill that you just ticked is not in it yet, so it does not count itself either, and then nothing may come off.
         const selfCounted = agentSaved && saved.has(id);
         const entry = summary ? summary[id] : null;
         const others = summary ? otherAgentUsers(isPlainObject(entry) ? entry.agents : null, selfCounted) : null;
@@ -329,10 +311,10 @@ export function skillRows({ ids, skills, state = READ.OK, usage, usageState = RE
 }
 
 /**
- * Mag de kaart "hier staat niets" zeggen?
+ * May the card say "nothing is here"?
  *
- * Alleen als élke bron gelezen ís én geen enkele rij opleverde. Eén bron die
- * nog laadt of stukging maakt het antwoord onbekend, en onbekend is geen leeg.
+ * Only if EVERY source has been read AND no single row came out of it. One source that is still loading,
+ * or that broke, makes the answer unknown, and unknown is not empty.
  */
 export function isTrulyEmpty(states?: ReadState[] | null, rowCounts?: number[] | null): boolean {
     const allRead = (Array.isArray(states) ? states : []).every(s => s === READ.OK);

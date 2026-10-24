@@ -10,15 +10,7 @@ import { unchangedSincePublished } from './policyDraft';
  * acknowledge it again. The drawer used to do that on one click, even when
  * nothing had changed; it now refuses an unchanged text and asks first.
  */
-vi.mock('../../../../../hooks/useTranslation', () => {
-    const t = (key: string, fallback?: unknown, vars?: Record<string, unknown>) => {
-        let s = typeof fallback === 'string' ? fallback : key;
-        for (const [k, v] of Object.entries(vars || {})) s = s.split(`{${k}}`).join(String(v));
-        return s;
-    };
-    const hook = () => ({ t, locale: 'en', resolvedLocale: 'en' });
-    return { useTranslation: hook, default: hook };
-});
+vi.mock('../../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 interface Doc { slug: string; title: string; status: string; current_version?: number; ack_count?: number; edited?: boolean }
 interface FullDoc extends Doc {

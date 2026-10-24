@@ -2,55 +2,54 @@
 'use strict';
 
 /**
- * Hoeveel mensen doen er mee aan een Talk-vergadering — de bronnen die de
- * Gepland-LIJST en de opname-ENGINE allebei hebben.
+ * How many people take part in a Talk meeting — the sources that both the Scheduled
+ * LIST and the recording ENGINE have.
  *
- * ── WAAROM DIT EEN GEDEELDE MODULE IS ────────────────────────────────
- * De lijst en de engine namen dezelfde beslissing met ANDERE gegevens. De
- * route rekende alleen met de agenda (`participantCountOf(m)`); de engine had
- * die agenda PLUS het conversatietype PLUS een live telling bij Talk. Bij een
- * agenda-afspraak zonder ATTENDEE-regels — de gewone "Talk-ruimte met een
- * gedeelde link"-vorm — zei de route `unknown_size` → toggle UIT, terwijl de
- * engine er vier deelnemers telde en OPNAM. Het scherm zei het tegenovergestelde
- * van wat de server deed, in een privacyproduct. Deze module is de helft die
- * BEIDE kanten kunnen weten; wat alleen de engine kan weten (de live telling)
- * staat er expliciet buiten, en dat verschil draagt de route als
- * `recordDecided: false` naar het scherm in plaats van als een stille "uit".
+ * ── WHY THIS IS A SHARED MODULE ──────────────────────────────────────
+ * The list and the engine made the same decision with OTHER data. The
+ * route only counted with the calendar (`participantCountOf(m)`); the engine had
+ * that calendar PLUS the conversation type PLUS a live count from Talk. With a calendar
+ * appointment without ATTENDEE lines — the usual "Talk room with a shared
+ * link" form — the route said `unknown_size` → toggle OFF, while the
+ * engine counted four participants and RECORDED. The screen said the opposite of
+ * what the server did, in a privacy product. This module is the half that
+ * BOTH sides can know; what only the engine can know (the live count)
+ * is explicitly outside it, and that difference is carried by the route as
+ * `recordDecided: false` to the screen instead of as a silent "off".
  *
- * ── DE SCOPE BEPAALT OF DE AGENDA MEETELT ────────────────────────────
- * Bij `autoRecordScope: 'all'` kijkt de engine niet naar de agenda
- * (talkAutoRecord vult `calendarByToken` alleen in calendar-scope). Een
- * uitnodiging met zes genodigden zou dan "Will record" op het scherm zetten
- * terwijl de engine op de live telling beslist. Dus: in scope 'all' telt de
- * agenda hier ook niet mee.
+ * ── THE SCOPE DECIDES WHETHER THE CALENDAR COUNTS ────────────────────
+ * With `autoRecordScope: 'all'` the engine does not look at the calendar
+ * (talkAutoRecord fills `calendarByToken` only in calendar scope). An invitation with six
+ * invitees would then show "Will record" on the screen while the engine decides on the live count. So: in scope 'all' the
+ * calendar does not count here either.
  *
- * ── ONBEKEND VERSMALT ────────────────────────────────────────────────
- * `null` is "we weten het niet", nooit "nul". `decideRecord` maakt daar
- * `record: false, reason: 'unknown_size'` van — onbekend telt niet als "meer
- * dan twee".
+ * ── UNKNOWN NARROWS ──────────────────────────────────────────────────
+ * `null` is "we do not know", never "zero". `decideRecord` makes
+ * `record: false, reason: 'unknown_size'` of that — unknown does not count as "more
+ * than two".
  */
 
 /**
- * Het deelnemersaantal dat ZONDER een extra Talk-aanroep vast te stellen is.
+ * The participant count that can be established WITHOUT an extra Talk call.
  *
  * @param {object} p
- * @param {any|null} p.room      een rij uit `nextcloud_talk_list_rooms`
- * @param {any|null} p.meeting   de agenda-afspraak (talkCalendar), of null
+ * @param {any|null} p.room      a row from `nextcloud_talk_list_rooms`
+ * @param {any|null} p.meeting   the calendar appointment (talkCalendar), or null
  * @param {string} p.autoRecordScope 'calendar' | 'all'
- * @returns {number|null} het aantal, of null als het van hieruit niet te weten is
+ * @returns {number|null} the count, or null if it cannot be known from here
  */
 function knownParticipantCount({ room = null, meeting = null, autoRecordScope = 'calendar' } = /** @type {any} */ ({})) {
     const meetingPrefs = require('../../stores/meetingPrefsStore');
 
-    // 1. De agenda — maar alleen als de engine er ook naar kijkt.
+    // 1. The calendar — but only if the engine looks at it too.
     if (autoRecordScope !== 'all') {
         const fromCalendar = meetingPrefs.participantCountOf(meeting);
         if (fromCalendar !== null) return fromCalendar;
     }
 
-    // 2. Het conversatietype. Een Talk-room van type 1 is per definitie een
-    //    één-op-één; dat weet de route net zo goed als de engine, want beide
-    //    hebben de kamerlijst al in handen.
+    // 2. The conversation type. A Talk room of type 1 is by definition a
+    //    one-on-one; the route knows that just as well as the engine, because both
+    //    already have the room list in hand.
     if (room && room.type === 1) return 2;
 
     return null;

@@ -1,10 +1,10 @@
 /**
- * knownParticipantCount — de helft van de deelnemerstelling die de Gepland-
- * lijst en de opname-engine ALLEBEI kunnen weten.
+ * knownParticipantCount — the half of the participant count that the Scheduled
+ * list and the recording engine can BOTH know.
  *
- * Waarom dit een eigen bestand is: deze twee gaven ooit een verschillend
- * antwoord op dezelfde vergadering, met een toggle die UIT stond terwijl de
- * opname liep. Deze module is de plek waar dat niet meer kan.
+ * Why this is a file of its own: these two once gave a different answer for the same meeting,
+ * with a toggle that was OFF while the recording was running. This module is the place where
+ * that can no longer happen.
  *
  * Run: cd server && node --test --test-force-exit core/meetingNotes/talkParticipants.test.js
  */
@@ -25,10 +25,10 @@ test('de agenda telt in calendar-scope', () => {
 });
 
 test('in scope "all" telt de agenda NIET — de engine kijkt er daar ook niet naar', () => {
-    // talkAutoRecord vult `calendarByToken` alleen in calendar-scope. Zou de
-    // route hier wél de agenda gebruiken, dan zette hij "Will record" bij een
-    // uitnodiging met zes genodigden terwijl de engine op de live telling
-    // beslist en bij twee aanwezigen niets doet.
+    // talkAutoRecord fills `calendarByToken` only in calendar scope. If the
+    // route did use the calendar here too, it would set "Will record" on an
+    // invitation with six invitees while the engine decides on the live count
+    // and does nothing at two participants.
     assert.equal(knownParticipantCount({ room: groupRoom, meeting: invite, autoRecordScope: 'all' }), null);
 });
 

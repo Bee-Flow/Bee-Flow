@@ -18,47 +18,45 @@ import type { MeetingNote } from './meetingDetailTypes';
 import type { InsightsModel } from './insights/insights.types';
 
 /**
- * "UIT DIT TRANSCRIPT GEHAALD" — het zijpaneel naast de transcriptregels
- * (Meeting Notes artboard 1b, plan M4 stap 2).
+ * "EXTRACTED FROM THIS TRANSCRIPT": the side panel next to the transcript lines
+ * (Meeting Notes artboard 1b, plan M4 step 2).
  *
- * Stap 1 maakte van elke regel een knop: actie, besluit, kennisregel,
- * tabelrij. Dit paneel staat ernaast en zegt wat die knop inmiddels heeft
- * opgeleverd — anders is het enige bewijs dat er iets gebeurd is een chip in
- * de derde kolom, driehonderd regels verderop.
+ * Step 1 made every line a button: action, decision, knowledge rule, table row. This
+ * panel stands beside it and says what that button has meanwhile delivered. Otherwise
+ * the only evidence that something happened is a chip in the third column, three
+ * hundred lines further down.
  *
- * ── ÉÉN TELLING, DRIE SCHERMEN ──────────────────────────────────────
- * De aantallen komen van `buildFollowUpStats`, dezelfde functie die de
- * Inzichten-tab en de kop voedt. De sprekers komen uit
- * `buildInsightsModel().people` — de data die PeopleTab tekent. Er wordt hier
- * niets geteld en niets afgeleid wat elders al bestaat: een paneel dat "3
- * besluiten" zegt terwijl de Inzichten-tab er 4 telt is erger dan een paneel
- * dat er niet is.
+ * ── ONE COUNT, THREE SCREENS ───────────────────────────────────────
+ * The figures come from `buildFollowUpStats`, the same function that feeds the
+ * Insights tab and the heading. The speakers come from `buildInsightsModel().people`,
+ * the data that PeopleTab draws. Nothing is counted here, and nothing is derived that
+ * already exists elsewhere. A panel that says "3 decisions" while the Insights tab
+ * counts 4 is worse than a panel that is not there.
  *
- * ── DE PER-PERSOONS-GATE ZIT IN HET MODEL ───────────────────────────
- * `buildInsightsModel(meeting, { perPersonEnabled })` bouwt `people` helemaal
- * niet als de organisatie per-persoonsstatistiek uit heeft staan, en dit
- * paneel leest dat model in plaats van de segmenten. Er is dus geen
- * achterdeur: de sprekersregels kunnen niet getekend worden omdat ze niet
- * bestaan, en de vraag over een niet-herkende spreker noemt met de gate dicht
- * geen naam maar twee aantallen (zie lib/transcriptOutputs.js).
+ * ── THE PER-PERSON GATE LIVES IN THE MODEL ─────────────────────────
+ * `buildInsightsModel(meeting, { perPersonEnabled })` does not build `people` at all
+ * when the organisation has the per-person statistic switched off. This panel reads
+ * that model instead of the segments. There is thus no back door: the speaker lines
+ * cannot be drawn because they do not exist, and the question about an unrecognised
+ * speaker with the gate closed names no name, only two counts (see
+ * lib/transcriptOutputs.js).
  *
- * ── DE VRAAG WORDT ALLEEN GESTELD ALS ZE TE BEANTWOORDEN IS ─────────
- * De prompt "was X aanwezig?" verschijnt alleen met `onEditSpeakers` erbij —
- * dezelfde regel als de popover van stap 1: een rij die op de notitie
- * schrijft, wordt zonder handler niet getekend. Een collega die een gedeelde
- * notitie leest kan de sprekers niet corrigeren, en een vraag stellen die
- * alleen de eigenaar kan beantwoorden is geen informatie maar ruis.
+ * ── THE QUESTION IS ONLY ASKED IF IT CAN BE ANSWERED ───────────────
+ * The prompt "was X present?" appears only with `onEditSpeakers` attached. That is the
+ * same rule as the popover of step 1: a row that writes to the note is not drawn
+ * without a handler. A colleague who reads a shared note cannot correct the speakers,
+ * and asking a question that only the owner can answer is not information but noise.
  *
- * ── WAAROM HIER GEEN <PeopleTab> STAAT ──────────────────────────────
- * PeopleTab tekent een rij van ~350px (naam, balk, percentage, duur, langste
- * monoloog, disclosure). In een kolom van 300px zou die de pagina horizontaal
- * laten scrollen. Dus: dezelfde DATA, en de gedeelde bouwstenen uit
- * ./insights/primitives, in één regel per spreker. Wie het hele verhaal wil,
- * opent de Inzichten-tab — daar staat PeopleTab zelf.
+ * ── WHY NO <PeopleTab> HERE ────────────────────────────────────────
+ * PeopleTab draws a row of about 350px (name, bar, percentage, duration, longest
+ * monologue, disclosure). In a column of 300px that would make the page scroll
+ * horizontally. So: the same DATA, and the shared building blocks from
+ * ./insights/primitives, in one line per speaker. Whoever wants the whole story opens
+ * the Insights tab, where PeopleTab itself stands.
  */
 /**
- * Eén array voor de standaardwaarde. Een verse `[]` per render is een nieuwe
- * identiteit, en dan draait de useMemo eronder alsnog bij elke render.
+ * One array for the default value. A fresh `[]` per render is a new identity, and then
+ * the useMemo beneath it runs on every render anyway.
  */
 const NOTHING_UNCHECKED = Object.freeze([]);
 
@@ -104,8 +102,7 @@ export default function ExtractedPanel({
 
     return (
         <aside
-            className={`flex flex-col gap-4 rounded-xl border px-3 py-3 h-fit ${className}`}
-            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+            className={`flex flex-col gap-4 rounded-xl border px-3 py-3 h-fit ${className} [background:var(--bg-secondary)] [border-color:var(--border-default)]`}
             aria-label={t('meetings.extracted_title', 'Pulled from this transcript')}
             data-testid="extracted-panel"
         >
@@ -147,12 +144,12 @@ export default function ExtractedPanel({
 }
 
 /**
- * Welke kennisbanken regels uit dit transcript bevatten.
+ * Which knowledge bases contain rules from this transcript.
  *
- * Vier uitkomsten, en drie ervan zijn zinnen die niet door elkaar mogen: nog
- * aan het laden, niet kunnen kijken, wél gekeken en niets gevonden, en de
- * lijst zelf. "Kon niet kijken" als "er staat niets" tonen is precies de
- * fail-open die de rest van dit scherm overal vermijdt.
+ * Four outcomes, and three of them are sentences that may not be mixed up: still
+ * loading, not able to look, looked and found nothing, and the list itself. "Could
+ * not look" shown as "there is nothing" is precisely the fail-open that the rest of
+ * this screen avoids everywhere.
  */
 interface KnowledgeLinesProps {
     knowledge: ReturnType<typeof buildKnowledgeLines>;
@@ -184,8 +181,7 @@ function KnowledgeLines({ knowledge, currentUserId, onNavigate, t }: KnowledgeLi
 
             {knowledge.state === KNOWLEDGE_LINES.READY && (
                 <>
-                    {/* Gekeken, maar niet overal: "minstens dit" hoort vóór de
-                        lijst te staan, niet eronder. */}
+                    {/* Looked, but not everywhere: "at least this" belongs before the list, not beneath it. */}
                     {knowledge.partial && (
                         <p className="flex items-start gap-1.5 text-xs text-[var(--warning)]" role="status">
                             <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" aria-hidden="true" />
@@ -214,11 +210,11 @@ function KnowledgeLines({ knowledge, currentUserId, onNavigate, t }: KnowledgeLi
 }
 
 /**
- * "2 kennisregels → Sales".
+ * "2 knowledge rules → Sales".
  *
- * De navigatieregel is die van UsedByTab, bewust hergebruikt: een kennisbank
- * van iemand anders is PLATTE TEKST die zegt van wie hij is, want een link
- * naar een pagina die dit account niet mag openen is erger dan geen link.
+ * The navigation line is that of UsedByTab, deliberately reused. Someone else's
+ * knowledge base is PLAIN TEXT that says whose it is, because a link to a page that
+ * this account may not open is worse than no link.
  */
 interface KnowledgeRowProps {
     row: UsageRow;
@@ -236,8 +232,8 @@ function KnowledgeRow({ row, currentUserId, onNavigate, t }: KnowledgeRowProps) 
         || (foreign
             ? t('usage.someone_elses_kind', 'Someone else’s {kind}', { kind: kindLabel })
             : t('usage.untitled_kind', 'Untitled {kind}', { kind: kindLabel }));
-    // De ternary staat om de SLEUTEL heen, nooit om een woorddeel: "1 line"
-    // en "2 lines" zijn twee zinnen, geen zin met een aangeplakte s.
+    // The ternary goes around the KEY, never around a part of a word. "1 line" and
+    // "2 lines" are two sentences, not a sentence with a plural s stuck on.
     const lines = row.lineCount === 1
         ? t('meetings.extracted_lines', '{count} knowledge line', { count: row.lineCount })
         : t('meetings.extracted_lines_plural', '{count} knowledge lines', { count: row.lineCount });
@@ -263,11 +259,11 @@ function KnowledgeRow({ row, currentUserId, onNavigate, t }: KnowledgeRowProps) 
 }
 
 /**
- * Wie er herkend is, en de vraag als dat er minder zijn dan er aanwezig waren.
+ * Who was recognised, and the question if there are fewer than were present.
  *
- * De drie toestanden van `buildSpeakerCheck` staan hier één op één in de
- * opmaak, inclusief de saaiste: COMPLETE tekent niets. De vraag verschijnt
- * alleen als er iemand is die hem kan beantwoorden.
+ * The three states of `buildSpeakerCheck` map here one-to-one onto the layout,
+ * including the most boring one: COMPLETE draws nothing. The question appears only if
+ * there is someone who can answer it.
  */
 interface SpeakersProps {
     model: InsightsModel | null;
@@ -280,9 +276,9 @@ interface SpeakersProps {
 
 function Speakers({ model, check, colorFor, perPersonEnabled, onEditSpeakers, t }: SpeakersProps) {
     const rows = model?.people?.rows || [];
-    // Er is niets te vergelijken als er geen aanwezigenlijst was; dan is er
-    // ook niets te melden. Alleen als er WÉL een lijst is (of hij onleesbaar
-    // is) hoort het onbekende antwoord op het scherm.
+    // There is nothing to compare if there was no attendee list, and then there is nothing
+    // to report either. Only if there IS a list (or it is unreadable) does the unknown
+    // answer belong on the screen.
     const showUnknown = check.state === SPEAKER_CHECK.UNKNOWN && check.attendeeCount !== 0;
     const showGap = check.state === SPEAKER_CHECK.GAP && !!onEditSpeakers;
     // Nooit een kale kop: een sectie die niets zegt, zegt dat.
@@ -346,18 +342,18 @@ function Speakers({ model, check, colorFor, perPersonEnabled, onEditSpeakers, t 
 }
 
 /**
- * De vraag zelf. Drie sleutels, en welke er gekozen wordt hangt af van WAT er
- * te zeggen valt — nooit van een woordje dat in de zin geplakt wordt:
+ * The question itself. Three keys, and which one is chosen depends on WHAT there is to
+ * say, never on a little word that is stuck into the sentence:
  *
- *   één naam      "was X aanwezig?" — de zin van het artboard, en de enige
- *                 waarin een vraag over één persoon ook waar is.
- *   meer namen    een MEDEDELING, geen vraag. `buildSilentAttendees` levert
- *                 iedereen die aan geen enkel sprekerlabel te koppelen was, en
- *                 dat zijn er bij "Guest-1 / Guest-2" alle drie terwijl er maar
- *                 één spreker ontbreekt. "3 sprekers niet herkend" zou dan
- *                 onwaar zijn; de knop eronder draagt de actie.
- *   geen naam     twee aantallen. Dat is de zin met de gate dicht, en ook de
- *                 zin als er geen naam over is om te noemen.
+ *   one name      "was X present?": the sentence of the artboard, and the only form in
+ *                 which a question about one person is also true.
+ *   several names a STATEMENT, not a question. `buildSilentAttendees` yields everyone
+ *                 who could not be linked to any speaker label. In "Guest-1 /
+ *                 Guest-2" that is all three, while only one speaker is missing.
+ *                 "3 speakers not recognised" would then be untrue. The button
+ *                 beneath carries the action.
+ *   no name       two counts. That is the sentence with the gate closed, and also the
+ *                 sentence when no name is left to mention.
  */
 export function speakerGapText(check: { state: string; speakerCount: number; attendeeCount: number | null; names: string[] | null }, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
     const names = Array.isArray(check?.names) ? check.names : [];

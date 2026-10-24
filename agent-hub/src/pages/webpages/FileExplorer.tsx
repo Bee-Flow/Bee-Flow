@@ -32,11 +32,7 @@ import type { FileSelect, Creating, TreeActions, InlineInputProps, ActionIconPro
  */
 
 /**
- * De drie slots komen uit webpageCodeFiles.js — dezelfde lijst die de
- * bestandenstrip van de Code-tab leest. De namen (`index.html` / `style.css` /
- * `script.js`) liggen vast in het hele product; ze hier nog eens overtikken
- * zou een tweede lijst zijn die kan gaan afwijken. Het ICOON is wel van deze
- * boom: dat is presentatie, geen naam.
+ * The three slots come from webpageCodeFiles.js — the same list that the file strip of the Code tab reads. The names (`index.html` / `style.css` / `script.js`) are fixed throughout the whole product; retyping them here would be a second list that could diverge. The ICON does come from this tree: that is presentation, not a name.
  */
 const SLOT_ICON: Record<string, LucideIcon> = { html: Code, css: Palette, js: Cpu };
 const PRIMARIES = PRIMARY_SLOTS.map(({ slot, name }) => ({
@@ -60,8 +56,7 @@ function pickIconForPath(path: string) {
  * Client-side mirror of the server's validateExtraPath so bad names fail fast
  * with a clear inline message instead of a round-trip error.
  *
- * `t` komt van de aanroeper: dit is een pure functie, dus de hook hoort hier
- * niet — de meldingen moeten wel in de taal van de gebruiker staan.
+ * `t` comes from the caller: this is a pure function, so the hook does not belong here — but the messages must be in the user's language.
  */
 function validatePath(path: string, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
     if (!path || !path.trim()) return t('webpages.explorer.err_name_required', 'Name is required');
@@ -136,7 +131,7 @@ function FolderNode({ node, depth, expanded, toggle, activePath, onFileSelect, a
                 style={{ paddingLeft: 4 + depth * 10, color: 'var(--vsc-fg)' }}
             >
                 <ChevronDown size={12} style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.15s' }} />
-                <Icon size={12} style={{ color: 'var(--vsc-fg-muted)' }} />
+                <Icon size={12} className="[color:var(--vsc-fg-muted)]" />
                 <span className="flex-1 truncate">{node.name}</span>
                 {actions && (
                     <span className="flex items-center pr-1">
@@ -389,7 +384,7 @@ export default function FileExplorer({
             {/* Copy/rename toast */}
             {toast && (
                 <div className="absolute bottom-2 left-2 right-2 px-2 py-1 rounded text-[11px] flex items-center gap-1 [background:var(--vsc-editor-bg)] [color:var(--vsc-fg)]! [border:1px_solid_var(--vsc-border)]">
-                    <Check size={11} style={{ color: 'var(--vsc-accent)' }} /> {toast}
+                    <Check size={11} className="[color:var(--vsc-accent)]" /> {toast}
                 </div>
             )}
         </div>

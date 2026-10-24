@@ -30,7 +30,7 @@ export function ServerOverrideNotice() {
     const { t } = useLicenseText();
     return (
         <div className="rounded-2xl border px-5 py-4 flex items-start gap-3 [border-color:rgba(59,130,246,0.3)] [background:rgba(59,130,246,0.06)]">
-            <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'rgb(59,130,246)' }} />
+            <Shield className="w-4 h-4 mt-0.5 flex-shrink-0 [color:rgb(59,130,246)]" />
             <div className="text-xs text-[var(--text-secondary)]">
                 <div className="font-semibold mb-0.5 text-[var(--text-primary)]">
                     {t('license.server_override_title', 'Tier is managed server-wide')}
@@ -51,7 +51,7 @@ export function CheckoutSettlingNotice() {
         <div
             className="rounded-2xl border px-4 py-3 flex items-center gap-3 [border-color:rgba(59,130,246,0.3)] [background:rgba(59,130,246,0.06)]"
         >
-            <Loader2 className="w-4 h-4 animate-spin shrink-0" style={{ color: '#3b82f6' }} />
+            <Loader2 className="w-4 h-4 animate-spin shrink-0 [color:#3b82f6]" />
             <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-[var(--text-primary)]">
                     {t('org.activating_subscription', 'Activating your subscription…')}
@@ -81,7 +81,7 @@ export function ScheduledDowngradeBanner({ sub, busy, onUndo }: UndoBannerProps)
         <div
             className="rounded-2xl border px-4 py-3 flex items-center gap-3 [border-color:rgba(100,116,139,0.35)] [background:rgba(100,116,139,0.06)]"
         >
-            <Clock className="w-4 h-4 shrink-0" style={{ color: '#64748b' }} />
+            <Clock className="w-4 h-4 shrink-0 [color:#64748b]" />
             <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-[var(--text-primary)]">
                     {t('org.downgrade_scheduled', 'Downgrade to')} {sub.pending_plan_name || t('org.a_lower_plan', 'a lower plan')} {t('org.downgrade_scheduled_on', 'on')} {sub.pending_plan_effective ? fmtDate(sub.pending_plan_effective) : t('org.period_end', 'the end of this period')}.
@@ -112,7 +112,7 @@ export function ScheduledCancelBanner({ sub, busy, onUndo }: UndoBannerProps) {
         <div
             className="rounded-2xl border px-4 py-3 flex items-center gap-3 [border-color:rgba(59,130,246,0.3)] [background:rgba(59,130,246,0.06)]"
         >
-            <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: '#3b82f6' }} />
+            <AlertTriangle className="w-4 h-4 shrink-0 [color:#3b82f6]" />
             <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-[var(--text-primary)]">
                     {t('org.cancel_scheduled', 'Subscription cancels on')} {sub.cancel_at ? fmtDate(sub.cancel_at) : t('org.period_end', 'the end of this period')}.

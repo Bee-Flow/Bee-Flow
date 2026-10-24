@@ -19,7 +19,8 @@
  */
 
 const crypto = require('crypto');
-const { run, getOne, getAll, getClient } = require('../db');
+const { run, getOne, getAll, withTransaction } = require('../db');
+const { rollback } = require('../utils/txRollback');
 const { makeStoreInit } = require('./lib/storeInit');
 // Same '__default_org__' sentinel funnel as named connections — custom
 // integrations and their credentials must agree on the org id.
@@ -168,9 +169,7 @@ async function saveDefinition(id, definition, userId, { lastValidation } = {}) {
     await initDB();
     const defJson = JSON.stringify(definition || {});
     const hasValidation = lastValidation !== undefined;
-    const client = await getClient();
-    try {
-        await client.query('BEGIN');
+    return withTransaction(async (client) => {
         const { rows } = await client.query(`
             UPDATE org_custom_integrations
                SET definition = $2::jsonb,
@@ -181,8 +180,7 @@ async function saveDefinition(id, definition, userId, { lastValidation } = {}) {
              RETURNING *
         `, [id, defJson, hasValidation ? JSON.stringify(lastValidation) : null, hasValidation]);
         if (!rows[0]) {
-            await client.query('ROLLBACK');
-            return null;
+            return rollback(null);
         }
         await client.query(`
             INSERT INTO org_custom_integration_versions (integration_id, version, definition, created_by)
@@ -190,14 +188,8 @@ async function saveDefinition(id, definition, userId, { lastValidation } = {}) {
             ON CONFLICT (integration_id, version)
             DO UPDATE SET definition = EXCLUDED.definition, created_by = EXCLUDED.created_by
         `, [id, rows[0].definition_version, defJson, userId]);
-        await client.query('COMMIT');
         return shapeIntegration(rows[0]);
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
+    });
 }
 
 /**

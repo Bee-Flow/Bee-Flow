@@ -249,7 +249,7 @@ test('when the projection is unavailable the key is OMITTED, never set to null',
     assert.strictEqual(views.draft.name, 'seed', 'and the rest of the agent still loads');
 });
 
-// ── snapshotAgent: het undo-punt van een verfijning ─────────────────
+// ── snapshotAgent: the undo point of a refinement ───────────────────
 
 test('snapshotAgent snapshot de RAUWE rij, niet de weergave van getAgent', async () => {
     seed('a1', { persona: FIELDS_PERSONA, config: JSON.stringify({ memoryEnabled: true }) });
@@ -270,10 +270,10 @@ test('snapshotAgent snapshot de RAUWE rij, niet de weergave van getAgent', async
 });
 
 test('een kapotte persona-projectie maakt de snapshot niet persona-loos', async () => {
-    // Dit is de reden dat snapshotAgent NIET via getAgent() leest: daar valt
-    // `persona` bij een leesfout helemaal weg (_withPersona laat de sleutel
-    // dan weg), en de restore leest zo'n ontbrekende sleutel als null en
-    // schrijft de kolom leeg. De rauwe rij draagt hem hoe dan ook.
+    // This is the reason that snapshotAgent does NOT read via getAgent(): there
+    // `persona` drops away entirely on a read error (_withPersona then omits the key),
+    // and the restore reads such a missing key as null and writes the column
+    // empty. The raw row carries it in any case.
     seed('a1', { persona: FIELDS_PERSONA });
     personaProjectionBroken = true;
 

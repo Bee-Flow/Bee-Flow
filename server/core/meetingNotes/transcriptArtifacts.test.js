@@ -478,24 +478,24 @@ test('assignSpeakersByOverlap leaves gap segments unattributed', () => {
     assert.strictEqual(out[0].speakerId, 'speaker_0', 'the 5s of overlap must not claim 600s');
 });
 
-// ── DRIE UITKOMSTEN, DRIE WAARDEN ────────────────────────────────────
+// ── THREE OUTCOMES, THREE VALUES ────────────────────────────────────
 //
-// Een artefactpass kan drie dingen doen: iets vinden, niets vinden, of niet
-// draaien. De eerste twee mogen bestaande actiepunten/besluiten/vragen
-// vervangen, de derde niet. Dat verschil zat in een LOSSE VLAG (`ok`) naast
-// vier lege lijsten — en een vlag naast een lijst is precies wat een schrijver
-// vergeet: twee van de vier schrijvers (upload.js, ingestRecordingCore.js)
-// deden dat ook, en zes testfixtures ook.
+// An artifact pass can do three things: find something, find nothing, or not
+// run. The first two may replace existing action items/decisions/questions, the
+// third may not. That difference sat in a LOOSE FLAG (`ok`) next to
+// four empty lists — and a flag next to a list is exactly what a writer
+// forgets: two of the four writers (upload.js, ingestRecordingCore.js)
+// did that too, and six test fixtures too.
 //
-// Nu draagt de WAARDE zelf het onderscheid: een geslaagde pass HEEFT de vier
-// lijsten, een mislukte pass heeft ze NIET. `artifactsUsable` is de ene vraag
-// die elke schrijver stelt, en onbekend versmalt daar — geen lijsten betekent
-// niets om mee te schrijven, nooit "de vergadering was leeg".
+// Now the VALUE itself carries the distinction: a successful pass HAS the four
+// lists, a failed pass does NOT have them. `artifactsUsable` is the one
+// question every writer asks, and unknown narrows there — no lists means
+// nothing to write with, never "the meeting was empty".
 
 test('a failed pass carries NO artifact lists at all — the value is the difference', () => {
-    // Geen `actionItems: []` om per ongeluk overheen te schrijven: wie de
-    // lijsten van een mislukte pass doorgeeft aan updateTranscription geeft
-    // `undefined` door, en dat betekent daar "deze kolom niet aanraken".
+    // No `actionItems: []` to accidentally write over: whoever passes the
+    // lists of a failed pass to updateTranscription passes `undefined`, and
+    // that means there "do not touch this column".
     assert.strictEqual(ARTIFACTS_FAILED.ok, false);
     assert.strictEqual(ARTIFACTS_FAILED.actionItems, undefined);
     assert.strictEqual(ARTIFACTS_FAILED.decisions, undefined);
@@ -509,12 +509,11 @@ test('artifactsUsable says yes to a pass with results AND to a genuinely empty o
     assert.strictEqual(artifactsUsable({
         actionItems: [{ id: 'ai-0', text: 'Bellen' }], decisions: [], questions: [], tags: ['planning'], ok: true,
     }), true);
-    // "In deze vergadering is niets afgesproken" is een GESLAAGDE pass en moet
-    // de oude AI-rijen wél opruimen — anders blijven verouderde actiepunten
-    // eeuwig staan.
+    // "Nothing was agreed in this meeting" is a SUCCESSFUL pass and must
+    // clear the old AI rows — otherwise outdated action items stay forever.
     assert.strictEqual(artifactsUsable({ actionItems: [], decisions: [], questions: [], tags: [], ok: true }), true);
-    // Back-compat: een fixture/oude aanroeper zonder `ok` maar mét de vier
-    // lijsten is een geslaagde pass, precies zoals voorheen.
+    // Back-compat: a fixture/old caller without `ok` but with the four
+    // lists is a successful pass, exactly as before.
     assert.strictEqual(artifactsUsable({ actionItems: [], decisions: [], questions: [], tags: [] }), true);
 });
 
@@ -528,7 +527,7 @@ test('artifactsUsable narrows on everything it does not recognise as a finished 
     assert.strictEqual(artifactsUsable({ ok: true }), false, 'ok:true zonder lijsten blijft onbruikbaar');
     assert.strictEqual(artifactsUsable({ actionItems: [], decisions: [], tags: [] }), false, 'questions ontbreekt');
     assert.strictEqual(artifactsUsable({ actionItems: 'geen lijst', decisions: [], questions: [], tags: [] }), false);
-    // De vlag mag nog steeds nee zeggen, ook als de lijsten er wél zijn.
+    // The flag may still say no, even if the lists are there.
     assert.strictEqual(artifactsUsable({ actionItems: [], decisions: [], questions: [], tags: [], ok: false }), false);
 });
 
@@ -536,14 +535,14 @@ test('buildPipelineNotices says on screen that the artifacts could not be extrac
     const nl = buildPipelineNotices({ artifactsFailed: true, language: 'nl' });
     assert.strictEqual(nl.length, 1);
     assert.match(nl[0], /actiepunten/i);
-    // Het moet zeggen dat er NIETS is weggegooid — anders leest een lege lijst
-    // als "er is niets afgesproken".
+    // It must say that NOTHING was discarded — otherwise an empty list reads
+    // as "nothing was agreed".
     assert.match(nl[0], /niet gelukt|mislukt/i);
 
     const en = buildPipelineNotices({ artifactsFailed: true, language: 'en' });
     assert.strictEqual(en.length, 1);
     assert.match(en[0], /action items/i);
 
-    // Een GESLAAGDE pass zegt niets — de lijsten zijn zelf het bericht.
+    // A SUCCESSFUL pass says nothing — the lists are the message themselves.
     assert.deepStrictEqual(buildPipelineNotices({ artifactsFailed: false, language: 'nl' }), []);
 });

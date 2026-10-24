@@ -7,9 +7,9 @@ import { toast } from '../../../shared/Toast';
 // Avatar can be either an emoji string OR a data-URL / http URL / server
 // upload path for an image. The picker offers both: tabbed emoji grid + a
 // file upload. Detection / resolution is shared via utils/agentAvatar.
-// Maten van de trigger. `hero` is de 56px tegel van de agent-editor
-// (AgentHero, artboard 1b); de literalen staan uitgeschreven omdat Tailwind
-// alleen klassen kan uitgeven die het als één literal in de bron leest.
+// Sizes of the trigger. `hero` is the 56px tile of the agent editor
+// (AgentHero, artboard 1b). The literals are spelled out because Tailwind
+// can only generate classes that it reads as one literal in the source.
 const AVATAR_SIZE_CLASS: Record<string, string> = {
     lg: 'w-20 h-20 text-4xl rounded-2xl',
     hero: 'w-14 h-14 text-2xl rounded-2xl',

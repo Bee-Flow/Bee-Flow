@@ -1,13 +1,13 @@
 /**
- * De agentkaart (A5 deel C).
+ * The agent card (A5 part C).
  *
- * Vier dingen die op deze kaart mis kunnen gaan en die geen van alle uit een
- * screenshot blijken:
- *   1. de drie pillen met een NIET-ingevulde placeholder ("{count} tools");
- *   2. een onleesbare config die als drie nullen op het scherm komt;
- *   3. de prullenbak op een rij waarvan we het bewerkrecht niet weten;
- *   4. LIVE geplakt op `is_published` (het publiek) in plaats van op
- *      `published_version` (wat de runtime serveert).
+ * Four things that can go wrong on this card and that cannot be seen from a
+ * screenshot:
+ *   1. the three pills with an UNFILLED placeholder ("{count} tools");
+ *   2. an unreadable config that comes out on screen as three zeros;
+ *   3. the bin on a row whose edit right we do not know;
+ *   4. LIVE pasted on `is_published` (the audience) instead of on
+ *      `published_version` (what the runtime serves).
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentStudio/AgentCard.test.jsx
  */
@@ -42,11 +42,11 @@ describe('de drie pillen', () => {
         const pills = screen.getByTestId('agent-card-counts').textContent;
         expect(pills).toContain('2 knowledge bases');
         expect(pills).toContain('1 skill');
-        // "at least": deze agent heeft geen `config.tools.automations`, dus de
-        // runtime legt er élke agent-callable automatisering van de vrager bovenop.
+        // "at least": this agent has no `config.tools.automations`, so the runtime lays
+        // every agent-callable automation of the asker on top of it.
         expect(pills).toContain('at least 2 tools');
-        // De placeholder is INGEVULD — een pil die "{count} tools" zegt is
-        // erger dan geen pil (zelfde reden als `tx` in VisibilityCapsule).
+        // The placeholder is FILLED — a pill that says "{count} tools" is worse than no
+        // pill (same reason as `tx` in VisibilityCapsule).
         expect(pills).not.toContain('{count}');
     });
 
@@ -82,10 +82,10 @@ describe('de drie pillen', () => {
 
 describe('leeg is niet onleesbaar', () => {
     it('nul kennisbanken is een gemeten nul: de pil zegt het, en verder niets', () => {
-        // De gestippelde rij "No knowledge base" stond hier en is weg: dat was
-        // een tweede lezing van een regel die op de server staat, en op één
-        // kaart naast de voetregel die hetzelfde zegt. De PIL blijft — een
-        // telling is geen bewering over gedrag.
+        // The dotted row "No knowledge base" was here and is gone: it was a second reading
+        // of a rule that lives on the server, and it sat on one card next to the footer
+        // line that says the same thing. The PILL stays — a count is not a claim about
+        // behaviour.
         draw({ id: 'a1', name: 'Blanco', can_edit: true, config: { attachedSkillIds: ['s1'] } });
         expect(screen.queryByTestId('agent-card-no-knowledge')).toBeNull();
         expect(screen.getByTestId('agent-card-counts').textContent).toContain('0 knowledge bases');
@@ -102,8 +102,8 @@ describe('leeg is niet onleesbaar', () => {
     });
 
     it('de server noemt hem grounded: de voet waarschuwt niet', () => {
-        // Nul kennisbanken, maar een tabelgrant — de kaart mag de server niet
-        // tegenspreken met een rood alarm.
+        // Zero knowledge bases, but a table grant — the card may not contradict the server
+        // with a red alarm.
         draw({
             id: 'a1', name: 'Tabel', can_edit: true, config: {},
             is_published: true, published_version: 0,
@@ -115,9 +115,9 @@ describe('leeg is niet onleesbaar', () => {
     });
 
     it('een config die de server NIET kon lezen levert geen waarschuwing op', () => {
-        // `verdict: null` is een derde waarde naast gegrond en ongegrond. De
-        // oude client-regel viel hier terug op zijn eigen nul en zette er rood
-        // alarm bij, terwijl Studio's Start-scherm dit als een GAT boekt.
+        // `verdict: null` is a third value next to grounded and ungrounded. The old client
+        // rule fell back here on its own zero and added a red alarm, while Studio's start
+        // screen books this as a GAP.
         draw({
             id: 'a1', name: 'Half', can_edit: true, config: { knowledge_base_ids: 'kb-1' },
             is_published: true, published_version: 0,
@@ -154,10 +154,10 @@ describe('bewerkrecht — onbekend versmalt (BFSF-271)', () => {
     it('geen can_edit (/agents/system): geen prullenbak, en het zegt dat het onbekend is', () => {
         draw({ id: 'sys-1', name: 'Helpdesk', config: {} }, { onDelete: vi.fn() });
         expect(screen.queryByLabelText('Delete: Helpdesk')).toBeNull();
-        // Niet "View only" — dat zou een antwoord zijn dat we niet hebben.
+        // Not "View only" — that would be an answer we do not have.
         expect(screen.queryByTestId('agent-card-view-only')).toBeNull();
-        // De TEKST, niet alleen de testid: "Edit rights unknown" bestaat omdat
-        // "View only" een antwoord zou zijn dat we niet hebben.
+        // The TEXT, not just the testid: "Edit rights unknown" exists because
+        // "View only" would be an answer we do not have.
         expect(screen.getByTestId('agent-card-edit-unknown').textContent).toBe('Edit rights unknown');
     });
 });

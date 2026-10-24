@@ -1,17 +1,11 @@
 /**
- * RulesPanel — de regels op een afgeronde vergadernotitie (M5, deel D).
+ * RulesPanel — the rules on a completed meeting note (M5, part D).
  *
- * Wat hier vastligt is niet dat er kaarten renderen, maar wat een kaart mag
- * BEWEREN. De afleidingen zelf (welke stapsoorten, welk filter, wie mag
- * openen) staan in ../lib/meetingRules.test.js; dit bestand toetst de ZINNEN
- * en het gedrag van het paneel:
+ * What is fixed here is not that cards render, but what a card may CLAIM. The derivations themselves (which step types, which filter, who may open) are in ../lib/meetingRules.test.js; this file tests the SENTENCES and the behaviour of the panel:
  *
- *   1. een stapsoort die deze kaart niet kent, verdwijnt niet stil uit de
- *      consequentie-zin;
- *   2. de run-telling is PER GEBRUIKER (`/_runs/facets` is `r.user_id = ik`),
- *      dus de zin zegt "of yours", en een mislukte lees toont NIETS — geen 0;
- *   3. een regel die de lezer niet mag openen krijgt geen link, want
- *      `GET /api/automation/:id` geeft daar 403.
+ *   1. a step type that this card does not know does not silently disappear from the consequence sentence;
+ *   2. the run count is PER USER (`/_runs/facets` is `r.user_id = me`), so the sentence says "of yours", and a failed read shows NOTHING — not 0;
+ *   3. a rule that the reader may not open gets no link, because `GET /api/automation/:id` returns 403 there.
  */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -26,15 +20,7 @@ const api = {
 };
 vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => api }));
 
-vi.mock('../../../hooks/useTranslation', () => ({
-    default: () => ({
-        t: (key, fallback, vars) => {
-            let out = fallback || key;
-            for (const [k, v] of Object.entries(vars || {})) out = out.split(`{${k}}`).join(String(v));
-            return out;
-        },
-    }),
-}));
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import RulesPanel, { consequenceParts, runLabel } from './RulesPanel';
 import { COMPOSER_SEED } from '../lib/meetingRules';
@@ -88,9 +74,9 @@ describe('consequenceParts', () => {
     });
 
     it('"geen stappen" is iets anders dan "alleen stappen die ik niet meetel"', () => {
-        // Een regel met set + condition + parse_json kreeg "this rule has no
-        // steps" terwijl de definitie er drie bevat — de auteur die zijn eigen
-        // regel terugleest denkt dan dat zijn werk niet is opgeslagen.
+        // A rule with set + condition + parse_json got "this rule has no
+        // steps" while the definition contains three of them — the author who
+        // reads back his own rule then thinks his work was not saved.
         expect(consequenceParts({ readable: true, kb: false, notify: false, table: false, other: 0, steps: 3 }, t))
             .toEqual(['3 steps that only prepare data — nothing leaves the run']);
         expect(consequenceParts({ readable: true, kb: false, notify: false, table: false, other: 0, steps: 1 }, t))
@@ -111,8 +97,8 @@ describe('runLabel', () => {
     it('shows nothing at all when the count could not be read', () => {
         expect(runLabel({ ...base, facets: null, facetsError: true }, t)).toBeNull();
         expect(runLabel({ ...base, facets: null }, t)).toBeNull();
-        // Een 200 met een body die GEEN automationId-map draagt is óók
-        // onleesbaar; die landde stilzwijgend als een nul.
+        // A 200 with a body that does NOT carry an automationId map is also
+        // unreadable; that landed silently as a zero.
         expect(runLabel({ ...base, facets: { status: {} } }, t)).toBeNull();
         // …and a real zero over a real window is said out loud instead.
         expect(runLabel({ ...base, facets: { automationId: {} } }, t))
@@ -333,10 +319,10 @@ describe('RulesPanel', () => {
 
 describe('RulesPanel — wat een kaart NIET mag beweren', () => {
     it('een verse regel heet "Draft", niet "Paused"', async () => {
-        // Élke regel die de knop "+ Rule" hier maakt komt als
-        // `is_active=FALSE, is_draft=TRUE` uit de store. "Paused" is hetzelfde
-        // woord als een afgemaakte regel die je bewust hebt uitgezet, en de
-        // trigger-bus slaat een concept om een ANDERE reden over.
+        // Every rule that the "+ Rule" button creates here comes out of the store as
+        // `is_active=FALSE, is_draft=TRUE`. "Paused" is the same word as a finished
+        // rule that you deliberately switched off, and the trigger bus skips a draft
+        // for a DIFFERENT reason.
         api.listAutomations.mockResolvedValue({ automations: [rule({ isActive: false, isDraft: true })] });
         render(<RulesPanel currentUserId="me" />);
         await screen.findByTestId('rule-card');
@@ -368,9 +354,9 @@ describe('RulesPanel — wat een kaart NIET mag beweren', () => {
     });
 
     it('een ander event krijgt niet de zin van meeting.processed', async () => {
-        // `meetingTriggersOf` filtert bewust alleen op de PROVIDER. Vandaag al
-        // bereikbaar: een onbekend app_event-event is voor de validator een
-        // WARNING, dus zo'n definitie slaat op en verschijnt hier.
+        // `meetingTriggersOf` deliberately filters only on the PROVIDER. Already
+        // reachable today: an unknown app_event event is a WARNING for the
+        // validator, so such a definition is saved and appears here.
         api.listAutomations.mockResolvedValue({
             automations: [rule({
                 definition: {
@@ -415,10 +401,10 @@ describe('RulesPanel — wat een kaart NIET mag beweren', () => {
 
     it('vertaalt het licentietoken dat de server echt stuurt', async () => {
         const user = userEvent.setup();
-        // De gate antwoordt `{error:'feature_locked'}`; `safeText` geeft dat
-        // als `err.message` terug en `send` hangt er geen `.status` aan. Een
-        // test op /403|forbidden|licen/ was dus altijd onwaar en de klant kreeg
-        // de kale string te zien.
+        // The gate answers `{error:'feature_locked'}`; `safeText` returns that as
+        // `err.message`, and `send` does not attach a `.status` to it. A test on
+        // /403|forbidden|licen/ was therefore always false, and the customer saw the
+        // bare string.
         api.createAutomation.mockRejectedValue(new Error('feature_locked'));
         render(<RulesPanel currentUserId="me" />);
         await screen.findByTestId('rules-empty');
@@ -449,9 +435,9 @@ describe('RulesPanel — wat een kaart NIET mag beweren', () => {
 
     it('een stream die zonder `done` eindigt is geen lege uitslag', async () => {
         const user = userEvent.setup();
-        // Afgekapte verbinding, of een crash na de headers: 0 kaarten, geen
-        // banner en een knop die weer op "Get ideas" staat — "onbekend" en
-        // "niets gevonden" werden hetzelfde scherm.
+        // Truncated connection, or a crash after the headers: 0 cards, no banner, and
+        // a button that is back on "Get ideas" — "unknown" and "nothing found"
+        // became the same screen.
         api.suggestAutomationsStream.mockImplementation(async () => { /* geen enkel event */ });
         render(<RulesPanel currentUserId="me" />);
         await screen.findByTestId('rules-empty');

@@ -1,43 +1,19 @@
 /**
- * De kaartvoet van een agent — de WOORDEN.
+ * The card footer of an agent — the WORDS.
  *
- * Wat hier op het spel staat is niet de opmaak maar de zin. Drie dingen die
- * een screenshot niet vangt en een assertie wel:
+ * What is at stake here is not the layout but the sentence. Three things that a screenshot does not catch and an assertion does:
  *
- *   • enkelvoud en meervoud komen uit een SLEUTELPAAR, met de ternary om de
- *     sleutel (nOf → `<key>` / `<key>_plural`). "1 conversations" is precies
- *     het soort fout dat een zorgvuldig product slordig laat lijken, en
- *     "conversation(s)" is geen oplossing maar een vertaler die niets kan;
- *   • een telling die niet gelezen kon worden krijgt WOORDEN. Er mag dan geen
- *     enkel cijfer op die regel staan — een nul zou een bewering zijn die
- *     niemand heeft gedaan;
- *   • de waarschuwing staat er alleen. Ze verdringt de tellingen, want zij is
- *     de enige van de drie vormen die om iets vraagt.
+ *   • singular and plural come from a KEY PAIR, with the ternary around the key (nOf → `<key>` / `<key>_plural`). "1 conversations" is exactly the kind of error that a careful product lets slip, and "conversation(s)" is not a solution but a translator that cannot do anything;
+ *   • a count that could not be read gets WORDS. There may be no single digit on that line — a zero would be a claim that nobody has made;
+ *   • the warning stands alone. It displaces the counts, because it is the only one of the three forms that asks for something.
  *
- * Draaien: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentStudio/AgentCardFooter.test.jsx
+ * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentStudio/AgentCardFooter.test.jsx
  */
 import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, afterEach, vi } from 'vitest';
 
-// Eigen factory in plaats van de gedeelde stub: die geeft de fallback terug
-// ZONDER `{count}` in te vullen, en dan zou elke assertie hieronder over een
-// letterlijke "{count} conversations" gaan. Dit is de provider-loze tak van de
-// echte hook, inclusief interpolatie.
-vi.mock('../../../hooks/useTranslation', () => ({
-    default: () => ({
-        t: (key, fallbackOrParams, paramsArg) => {
-            const hasFallback = typeof fallbackOrParams === 'string';
-            const params = hasFallback ? paramsArg : fallbackOrParams;
-            let value = hasFallback ? fallbackOrParams : key;
-            if (params && typeof params === 'object') {
-                for (const [k, v] of Object.entries(params)) {
-                    value = value.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
-                }
-            }
-            return value;
-        },
-    }),
-}));
+// The shared params mock fills in `{count}`, so the assertions below see real interpolation.
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import AgentCardFooter from './AgentCardFooter';
 
@@ -131,9 +107,7 @@ describe('the warning', () => {
 
 describe('nothing to say is nothing said', () => {
     it('renders no footer at all for a row that carries no counts (/agents/system)', () => {
-        // Die route rekent geen tellingen uit en draagt het veld dus niet. "The
-        // conversation count could not be read" zou daar beweren dat er iets
-        // misging.
+        // That route calculates no counts and does not carry the field. "The conversation count could not be read" would claim there that something went wrong.
         const { stats: _stats, ...rest } = agent();
         const { container } = render(<AgentCardFooter agent={rest} viewerId="u1" />);
         expect(screen.queryByTestId('agent-card-footer')).toBeNull();
@@ -143,10 +117,7 @@ describe('nothing to say is nothing said', () => {
 
 describe('"only you"', () => {
     it('says "Only you · 4 conversations" on your own unpublished agent', () => {
-        // Geen "test conversations": dit product heeft een eersteklas
-        // testbegrip met eigen tabellen (`agent_tests`) en een eigen teller op
-        // het Test-tabblad van dezelfde agent. Twee getallen die niets met
-        // elkaar te maken hebben mogen niet hetzelfde woord dragen.
+        // Not "test conversations": this product has a first-class notion of testing, with its own tables (`agent_tests`) and its own counter on the Test tab of the same agent. Two numbers that have nothing to do with each other may not carry the same word.
         render(<AgentCardFooter agent={agent({
             is_published: false,
             stats: { conversationCount: 4, userCount: 1, othersConversationCount: 0 },
@@ -179,8 +150,7 @@ describe('"only you"', () => {
     });
 
     it('renders only phrasing content — it lives inside the card BUTTON', () => {
-        // `<button>` neemt alleen phrasing content; een `<p>` erin is ongeldige
-        // HTML en zet blokinhoud in de a11y-boom van de knop.
+        // `<button>` only takes phrasing content; a `<p>` inside it is invalid HTML and puts block content into the button's accessibility tree.
         const { container } = render(<AgentCardFooter agent={agent()} viewerId="u1" />);
         expect(container.querySelector('p')).toBeNull();
         expect(footer().tagName).toBe('SPAN');

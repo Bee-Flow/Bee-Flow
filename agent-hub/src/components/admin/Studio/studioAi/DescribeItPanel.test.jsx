@@ -4,20 +4,20 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 /**
- * "Beschrijf het — AI kiest de bouwstenen", het scherm.
+ * "Describe it — AI picks the building blocks", the screen.
  *
- * Vijf dingen liggen hier vast, en vier ervan zijn een belofte die makkelijk
- * te ver gaat:
+ * Five things are fixed here, and four of them are a promise that is easy to
+ * overstate:
  *
- *   1. drie toestanden — leeg, bezig, schema-kaart — en niets ertussenin;
- *   2. de metgezellen worden GETOOND en NIET AANGEMAAKT (dat is H4b);
- *   3. annuleren breekt af zonder een fout te verzinnen;
- *   4. de brief overleeft elke mislukte poging én elke "iets anders";
- *   5. een soort die de brief niet meeneemt zegt dat, met een kopieerknop —
- *      in plaats van te doen alsof er iets gezaaid wordt; idem voor de NAAM,
- *      die een eigen vlag en een eigen zin heeft;
- *   6. soorten waarvan de server de poort niet kon lezen (`undecided`) staan
- *      bij naam op de kaart: anders ziet een storing eruit als een plan.
+ *   1. three states — empty, busy, schema card — and nothing in between;
+ *   2. the companions are SHOWN and NOT CREATED (that is H4b);
+ *   3. cancelling aborts without inventing an error;
+ *   4. the brief survives every failed attempt AND every "something else";
+ *   5. a kind that the brief does not carry says so, with a copy button —
+ *      instead of pretending something gets seeded; likewise for the NAME,
+ *      which has its own flag and its own sentence;
+ *   6. kinds whose gate the server could not read (`undecided`) are named on
+ *      the card: otherwise a fault looks like a plan.
  */
 
 const { fetchMock, routeMock } = vi.hoisted(() => ({ fetchMock: vi.fn(), routeMock: vi.fn() }));
@@ -27,20 +27,7 @@ vi.mock('./routeApi', () => ({ routeDescription: (...a) => routeMock(...a), ROUT
 vi.mock('../../../automation/Builder/flow/settings/FormBuilderFields', () => ({
     defaultFormDeclaration: () => ({ pages: [] }),
 }));
-vi.mock('../../../../hooks/useTranslation', () => {
-    const useTranslation = () => ({
-        t: (key, fallback, params) => {
-            let value = typeof fallback === 'string' ? fallback : key;
-            const p = typeof fallback === 'string' ? params : fallback;
-            if (p && typeof p === 'object') {
-                for (const [k, v] of Object.entries(p)) value = value.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
-            }
-            return value;
-        },
-        locale: 'en',
-    });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import { STUDIO_APPS, resolveStudioNav } from '../studioApps';
 import DescribeItPanel from './DescribeItPanel';
@@ -109,10 +96,10 @@ describe('toestand 2 — bezig', () => {
         await waitFor(() => expect(screen.getByTestId('studio-ai-plan')).toBeTruthy());
     });
 
-    // Twee wegen naar hetzelfde "geen fout": het signal staat op afgebroken
-    // (de test hieronder), én de router gooit een AbortError terwijl het
-    // signal dat nog niet zegt — bijvoorbeeld omdat de fetch-laag zelf
-    // afbreekt. Allebei mogen ze geen foutzin op het scherm zetten.
+    // Two roads to the same "no error": the signal is set to aborted (the test
+    // below), and the router throws an AbortError while the signal does not yet
+    // say so — for example because the fetch layer itself aborts. Both must not
+    // put an error message on the screen.
     it('een AbortError van de router is geen fout op het scherm', async () => {
         const user = userEvent.setup();
         routeMock.mockRejectedValue(Object.assign(new Error('aborted'), { name: 'AbortError' }));
@@ -227,10 +214,10 @@ describe('zaaien-eerlijkheid', () => {
         await waitFor(() => expect(writeText).toHaveBeenCalledWith('alles over onze offertes'));
     });
 
-    // DE REGRESSIE DIE DIT MOET VANGEN: automation droeg de NAAM mee, stond
-    // daarom op "seedable", en het scherm verzweeg daar juist de brief — op de
-    // meest waarschijnlijke route van dit scherm. De brief komt vandaag bij
-    // GEEN ENKELE bouwer aan, dus staat hij overal.
+    // THE REGRESSION THIS MUST CATCH: automation carried the NAME, so it was
+    // marked "seedable", and the screen concealed the brief there — on the most
+    // likely route of this screen. Today the brief reaches NO builder at all, so
+    // the flag is false everywhere.
     it('ook bij automation staat de brief er, met de kopieerknop', async () => {
         await showPlan();
         expect(screen.getByTestId('studio-ai-seed')).toBeTruthy();
@@ -239,9 +226,9 @@ describe('zaaien-eerlijkheid', () => {
     });
 });
 
-// De kop zegt "New <soort>: <naam>". Bij form, skill en kb ontstaat er
-// vervolgens echt een rij — onder "Untitled form" / "Untitled skill" / "New
-// knowledge base". Dat mag het scherm niet verzwijgen.
+// The heading says "New <kind>: <name>". For form, skill and kb a row then
+// really comes into being — under "Untitled form" / "Untitled skill" / "New
+// knowledge base". The screen may not conceal that.
 describe('naam-eerlijkheid', () => {
     const showPlan = async (over = {}) => {
         routeMock.mockResolvedValue(plan(over));
@@ -275,9 +262,9 @@ describe('naam-eerlijkheid', () => {
     });
 });
 
-// Huisregel 12 op de plan-kaart: de server heeft de smalle keuze al gemaakt
-// (een onleesbare poort haalt de soort uit de woordenlijst van het model), en
-// zonder een woord daarover ziet een storing eruit als een zelfverzekerd plan.
+// House rule 12 on the plan card: the server has already made the narrow choice
+// (an unreadable gate removes the kind from the model's word list), and without
+// a word about that a fault looks like a confident plan.
 describe('onleesbare poorten staan op de kaart', () => {
     const showPlan = async (over = {}) => {
         routeMock.mockResolvedValue(plan(over));
@@ -293,7 +280,7 @@ describe('onleesbare poorten staan op de kaart', () => {
         expect(line).toMatch(/could not check every building block/i);
         expect(line).toMatch(/App/);
         expect(line).toMatch(/Webpage/);
-        // …en de kaart blijft bruikbaar: dit is een voorbehoud, geen blokkade.
+        // …and the card stays usable: this is a caveat, not a block.
         expect(screen.getByTestId('studio-ai-create').disabled).toBe(false);
     });
 
@@ -351,9 +338,9 @@ describe('fouten — nooit stilletjes een soort kiezen', () => {
         expect(screen.queryByTestId('studio-ai-plan')).toBe(null);
     });
 
-    // Huisregel 12 op het scherm: "je mag hier niets bouwen" en "we konden het
-    // niet uitzoeken" zien er allebei uit als een leeg antwoord en zijn het
-    // niet. Eén zin voor allebei zou het verschil weggummen.
+    // House rule 12 on the screen: "you may not build anything here" and "we could
+    // not work it out" look like an empty answer, and they are not. One sentence
+    // for both would wipe out the difference.
     it('"je mag hier niets bouwen" krijgt zijn eigen zin', async () => {
         await submitWith({ ok: true, kind: null, name: '', seed: '', companions: [], available: [], undecided: [] });
         expect(screen.getByTestId('studio-ai-error').textContent).toMatch(/nothing here you can build yet/i);

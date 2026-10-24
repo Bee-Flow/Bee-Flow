@@ -46,10 +46,7 @@ const serve = ({ facets = null, orgFacets = null, forms = null } = {}) => {
     };
 };
 
-vi.mock('../../hooks/useTranslation', () => {
-    const useTranslation = () => ({ t: (key, fallback) => fallback || key, locale: 'en' });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 vi.mock('../appearance/ThemeContext', () => ({ useTheme: () => ({}) }));
 vi.mock('../licensing/LicenseContext', () => ({
     useLicenseContext: () => ({ hasFeature: (f) => licenseMock.hasFeature(f), deploymentMode: 'cloud' }),
@@ -363,10 +360,9 @@ describe('Sidebar — Studio flyout (registry-driven)', () => {
     });
 
     it('een module zonder eigen label() krijgt haar id als naam — nooit een lege rij', () => {
-        // De flyout hield ooit zijn eigen kopie van studioSectionLabel, zonder
-        // de terugval van de gedeelde versie: een beschrijver zonder label() én
-        // zonder labelKey vroeg daar `t(undefined)`, en dan staat er een rij
-        // zonder naam in het menu.
+        // The flyout once kept its own copy of studioSectionLabel, without the fallback of
+        // the shared version. A describer without label() and without labelKey asked
+        // `t(undefined)` there, and then there was a row with no name in the menu.
         runtimeMock.apps = [{ id: 'uptime', runtime: true, gate: () => true, urlSegment: 'uptime' }];
         renderSidebar();
         openStudioFlyout();

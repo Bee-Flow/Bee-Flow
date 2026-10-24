@@ -203,9 +203,9 @@ async function persistWebpage({ userId, name, description, html, css, icon, acce
     if (accentColor !== undefined) meta.accentColor = accentColor;
     if (tagline !== undefined) meta.tagline = tagline;
     await wps.updateWebpageMetadata(webpageId, userId, meta);
-    // Ook een door een module neergezette rapportpagina hoort in de
-    // dependents-index: hij draagt gewone html en kan dus `bf-*`-elementen
-    // bevatten. Gedebouncet en detached — een module wacht er niet op.
+    // A report page placed by a module also belongs in the
+    // dependents index: it carries plain html and can therefore contain `bf-*` elements.
+    // Debounced and detached — a module does not wait for it.
     require('../core/webpages/webpageUsageSync').reconcileWebpageUsageDetached(webpageId);
     return webpageId;
 }

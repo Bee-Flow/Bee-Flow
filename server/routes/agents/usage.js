@@ -135,13 +135,11 @@ async function gatherUsage(agent, askerId) {
     // of zeros, never null.
     if (!chat) unchecked.push('chat');
 
-    // ── Testgesprekken (A4) ──────────────────────────────────────────
-    // Een testchat schrijft GEEN conversatierij, dus hij zit per constructie
-    // niet in `chat` hierboven, niet in de kaartvoet en niet in de historie.
-    // Hij kost wel geld, dus hij staat onder zijn eigen bron in het
-    // verbruikslogboek — en dáár is hij te tellen, zonder ooit op te tellen
-    // bij het getal ernaast. Twee getallen die niets met elkaar te maken
-    // hebben dragen hier dus ook twee namen.
+    // ── Test conversations (A4) ──────────────────────────────────────
+    // A test chat writes NO conversation row, so by construction it is not in `chat`
+    // above, not in the footer and not in the history. It does cost money, though, so it sits under its own source in the
+    // usage log — and THERE it can be counted, without ever being added to the number next to it. Two numbers that have
+    // nothing to do with each other therefore also carry two names here.
     let testChats = null;
     try {
         const usageStore = require('../../stores/usageStore');
@@ -149,16 +147,14 @@ async function gatherUsage(agent, askerId) {
         const n = counted && typeof counted.get === 'function' ? counted.get(agent.id) : undefined;
         testChats = Number.isFinite(n) ? n : null;
     } catch (e) {
-        // Onbekend, niet nul. Nul is een bewering.
+        // Unknown, not zero. Zero is a claim.
         log.warn('[agents] test-chat count unavailable:', e.message);
     }
-    // BEWUST NIET in `unchecked`. Die lijst is wat de verwijdergarantie leest
-    // als "in gebruik", en dat is daar terecht: een onleesbare scan kan
-    // andermans automatisering of pagina verbergen. Een testgesprek kan dat per
-    // definitie niet — het schreef nooit een rij, dus er gaat bij verwijderen
-    // niets verloren. Een teller die het niet wist zou dan een agent
-    // onverwijderbaar maken om een getal dat nergens over gaat. `testChats:
-    // null` is het onbekend-signaal van dit veld zelf.
+    // DELIBERATELY NOT in `unchecked`. That list is what the deletion guarantee reads as
+    // "in use", and rightly so: an unreadable scan could hide someone else's automation or page. A test chat
+    // cannot do that by definition — it never wrote a row, so nothing is lost on deletion. A counter that did not know
+    // this would make an agent undeletable over a number that has nothing to do with it. `testChats:
+    // null` is the unknown signal of this field itself.
 
     const counts = {};
     for (const r of rows) counts[r.kind] = (counts[r.kind] || 0) + 1;

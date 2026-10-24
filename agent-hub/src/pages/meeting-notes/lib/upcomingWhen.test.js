@@ -8,24 +8,15 @@ import { describe, it, expect } from 'vitest';
 import { parseWhen, meetingDurationMinutes, timeRange } from './upcomingWhen';
 
 /**
- * De datumregels van een Gepland-rij.
+ * The date rules of a Scheduled row.
  *
- * ── WAAROM HIER EEN KINDPROCES IN STAAT ───────────────────────────────
- * De hele-dag-fix (een kale DATUM is LOKALE middernacht, niet UTC-middernacht)
- * is in UTC NIET te toetsen: daar geven `new Date('2026-07-18')` en
- * `new Date(2026, 6, 18)` exact dezelfde dag, dus elke assertie erover blijft
- * groen als iemand de fix terugdraait — en de container draait op TZ=UTC. Een
- * POSITIEVE offset (Europe/Amsterdam) haalt hem net zo min binnen: UTC-
- * middernacht valt daar op dezelfde kalenderdag. Alleen westwaarts schuift de
- * dag terug.
- * `process.env.TZ` tijdens de test aanpassen werkt niet in de vitest-worker
- * (die heeft zijn zone al vast). Daarom draait de assertie in een kindproces
- * met TZ=America/New_York — en daarom heeft `upcomingWhen.js` geen imports:
- * zonder bundler is hij dan gewoon te importeren.
+ * ── WHY A CHILD PROCESS IS IN HERE ───────────────────────────────────
+ * The whole-day fix (a bare DATE is LOCAL midnight, not UTC midnight) cannot be tested in UTC: there `new Date('2026-07-18')` and `new Date(2026, 6, 18)` give exactly the same day, so every assertion about it stays green if someone reverts the fix — and the container runs on TZ=UTC. A POSITIVE offset (Europe/Amsterdam) does not catch it either: UTC midnight falls on the same calendar day there. Only westward does the day shift back.
+ * Changing `process.env.TZ` during the test does not work in the vitest worker (which has already fixed its zone). Therefore the assertion runs in a child process with TZ=America/New_York — and that is why `upcomingWhen.js` has no imports: without a bundler it is then simply importable.
  */
 
-// `import.meta.url` is in de vitest-worker geen file:-URL, dus het pad komt
-// uit de werkmap (de suite draait per contract vanuit agent-hub/).
+// `import.meta.url` is not a file: URL in the vitest worker, so the path
+// comes from the working directory (the suite runs from agent-hub/ by contract).
 const MODULE_PATH = path.resolve(process.cwd(), 'src/pages/meeting-notes/lib/upcomingWhen.ts');
 const MODULE_URL = pathToFileURL(MODULE_PATH).href;
 
@@ -83,7 +74,7 @@ describe('upcomingWhen — de hele-dag-fix, in de zone waar hij over gaat', () =
     });
 
     it('een kale datum staat in een NEGATIEVE offset op de juiste dag', () => {
-        // De regressie: met `new Date(s)` staat de afspraak hier een dag te vroeg.
+        // The regression: with `new Date(s)` the appointment stands here a day too early.
         expect(inZone('America/New_York', "m.parseWhen('2026-07-18').date.getDate()")).toBe(18);
         expect(inZone('America/New_York', "new Date('2026-07-18').getDate()")).toBe(17);
         expect(inZone('Pacific/Honolulu', "m.dateBlockParts('2026-07-18').day")).toBe('18');

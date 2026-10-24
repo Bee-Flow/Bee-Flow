@@ -1,16 +1,15 @@
-// Unit tests voor "Laatst bewerkt" (recentWork.js).
+// Unit tests for "Recently edited" (recentWork.js).
 //
-// Twee helften, net als bij attentionChecks.test.js:
-//   - de PURE lezer en samenvoeger, gevoerd met exact de payload die het
-//     endpoint van die sectie teruggeeft;
-//   - de runner, door een gestubde authFetch, zodat de drie antwoorden
-//     (gelezen / geweigerd / gevallen) langs de weg lopen die het scherm ook
-//     neemt.
+// Two halves, just like attentionChecks.test.js:
+//   - the PURE reader and merger, fed with exactly the payload that the
+//     endpoint of that section returns;
+//   - the runner, through a stubbed authFetch, so the three answers
+//     (read / refused / fell over) take the same path the screen takes.
 //
-// De regels die dit bestand eerlijk moet houden:
-//   1. "niets gevonden" en "niet kunnen kijken" zijn twee verdicten;
-//   2. een soort die geen status meldt krijgt er geen verzonnen;
-//   3. een 403 is niet van jou en dus geen gat — een 500 wél.
+// The rules this file must keep honest:
+//   1. "nothing found" and "could not look" are two verdicts;
+//   2. a kind that reports no status gets none invented;
+//   3. a 403 is not yours and therefore not a gap — a 500 is.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -33,7 +32,7 @@ import { RECENT_STATUS, STUDIO_RECENT_SOURCES } from '../../../../utils/studioRe
 const ok = (body) => ({ ok: true, status: 200, json: async () => body });
 const fail = (status) => ({ ok: false, status, json: async () => ({}) });
 
-/** Een sectie zoals studioNavSections hem oplevert (alleen wat dit model leest). */
+/** A section as studioNavSections yields it (only what this model reads). */
 const section = (id, over = {}) => ({
     id, urlSegment: id, kind: null, locked: null, ...over,
 });
@@ -52,9 +51,9 @@ describe('recentSourcesFor', () => {
         const { asked, skipped } = recentSourcesFor([
             section('aiTasks', { urlSegment: 'automations', kind: 'automation' }),
             section('skills', { kind: 'skill' }),
-            // Gelockt: een bordje, geen deur — niets te lezen, en geen gat.
+            // Locked: a sign, not a door — nothing to read, and no gap.
             section('apps', { kind: 'app', locked: 'ceiling' }),
-            // Geen bron in het register: Formulieren en Runs hebben er bewust geen.
+            // No source in the register: Forms and Runs deliberately have none.
             section('forms', { kind: 'form' }),
             section('runs'),
         ]);
@@ -106,8 +105,7 @@ describe('evaluateRecentSection', () => {
     });
 
     it('houdt de RUWE rij bij de genormaliseerde rij, ook als er rijen wegvallen', () => {
-        // De eerste rij heeft geen id en verdwijnt in de mapper. Een koppeling
-        // op index zou de status van de weggevallen rij op de tweede plakken.
+        // The first row has no id and disappears in the mapper. A link by index would stick the status of the dropped row onto the second one.
         const { entries } = evaluateRecentSection(AI_TASKS, {
             automations: [
                 { title: 'geen id', isDraft: true },
@@ -124,8 +122,7 @@ describe('evaluateRecentSection', () => {
     });
 
     it('een body die geen lijst is, is GEEN lege sectie maar een gat', () => {
-        // De envelope ontbreekt (`{ }` in plaats van `{ automations: [] }`):
-        // dat is een antwoord dat deze client niet kan lezen.
+        // The envelope is missing (`{ }` instead of `{ automations: [] }`): that is an answer this client cannot read.
         expect(evaluateRecentSection(AI_TASKS, {})).toEqual({ entries: [], whole: false });
         expect(evaluateRecentSection(AI_TASKS, null)).toEqual({ entries: [], whole: false });
         // Een ECHT lege lijst is wél heel: niets gevonden, en dat weten we.
@@ -241,8 +238,7 @@ describe('runRecentWork', () => {
         const result = await runRecentWork(twoSections);
         expect(result.items.map((i) => i.key)).toEqual(['knowledge:k1']);
         expect(result.unavailable).toEqual(['aiTasks']);
-        // Er staat werk op de lijst, en toch is hij niet heel: dat verschil is
-        // precies wat het scherm moet kunnen zeggen.
+        // There is work on the list, and yet it is not complete: that difference is exactly what the screen must be able to say.
         expect(result.complete).toBe(false);
     });
 
@@ -254,7 +250,7 @@ describe('runRecentWork', () => {
         const result = await runRecentWork([...twoSections, section('apps', { kind: 'app', locked: 'ceiling' })]);
         expect(result.skipped).toEqual(['aiTasks', 'apps']);
         expect(result.unavailable).toEqual([]);
-        // Leeg én heel: hier mag "nog niets bewerkt" op het scherm.
+        // Empty AND complete: here "nothing edited yet" may appear on the screen.
         expect(result.complete).toBe(true);
         expect(result.items).toEqual([]);
     });
@@ -285,12 +281,7 @@ describe('STATUS_LABELS', () => {
     });
 
     it('precies vier secties melden geen status — de drift-wacht', () => {
-        // Deze vier sturen de zin onder de lijst ("sommige soorten melden hier
-        // geen status"). Krijgt er één er alsnog een, dan hoort die zin mee te
-        // veranderen; verliest er één de zijne, dan verdwijnt er stilzwijgend
-        // een woord van een rij. Tabellen kwamen erbij: hun `isPublished` is
-        // een DOELGROEP, geen levenscyclus, en "Draft" op een tabel die
-        // dagelijks gebruikt wordt is een verzonnen woord.
+        // These four supply the sentence under the list ("some kinds report no status here"). If one of them gets a status after all, that sentence must change with it; if one loses its own, a word silently disappears from a row. Tables came in: their `isPublished` is an AUDIENCE, not a lifecycle, and "Draft" on a table that is used daily is an invented word.
         const zonder = Object.entries(STUDIO_RECENT_SOURCES)
             .filter(([, source]) => typeof source.status !== 'function')
             .map(([id]) => id)
@@ -323,7 +314,7 @@ describe('statuslessKinds', () => {
             { kind: 'kb', status: RECENT_STATUS.UNSUPPORTED },
             { kind: 'skill', status: RECENT_STATUS.UNSUPPORTED },
             { kind: 'kb', status: RECENT_STATUS.UNSUPPORTED },
-            // "onbekend" is iets anders dan "meldt er geen" en hoort hier niet.
+            // "unknown" is something other than "reports none" and does not belong here.
             { kind: 'agent', status: RECENT_STATUS.UNKNOWN },
         ])).toEqual(['kb', 'skill']);
     });
@@ -335,15 +326,11 @@ describe('statuslessKinds', () => {
     });
 });
 
-/* ── De poorten zelf, en wat deze build niet kan lezen ────────────────────── */
+/* ── The gates themselves, and what this build cannot read ────────────────────── */
 
 describe('runRecentWork — twee stiltes die geen stilte mogen zijn', () => {
     it('zonder antwoord op de poorten is er geen recht op "nog niets bewerkt"', async () => {
-        // resolveStudioNav laat een gegate sectie helemaal WEG zolang de
-        // entitlements laden of omvielen, dus die secties staan niet in
-        // `sections` en kunnen hier niet gemist worden. Zonder deze vlag is
-        // het gevolg: zeven lijsten nooit gevraagd, en "Nothing edited yet"
-        // met complete: true eroverheen.
+        // resolveStudioNav leaves a gated section out ENTIRELY for as long as the entitlements are loading or have fallen away, so those sections are not in `sections` and cannot be missed here. Without this flag the result is: seven lists never asked for, and "Nothing edited yet" with complete: true laid over them.
         const result = await runRecentWork([], { gatesResolved: false });
         expect(result.complete).toBe(false);
         expect(result.unavailable).toContain('gates');
@@ -356,9 +343,7 @@ describe('runRecentWork — twee stiltes die geen stilte mogen zijn', () => {
     });
 
     it('een runtime-module zonder bron valt niet stil weg maar wordt genoemd', async () => {
-        // Ze staat wél in `sections` (StudioStart voegt runtimeStudioApps toe)
-        // maar heeft geen endpoint-contract dat deze lijst kan lezen. Zwijgen
-        // zou iemand die alleen daarin werkt "Nothing edited yet" opleveren.
+        // It IS in `sections` (StudioStart adds runtimeStudioApps) but has no endpoint contract this list can read. Staying silent would give someone who only works in it "Nothing edited yet".
         const remote = { id: 'security', urlSegment: 'security', label: () => 'Security', kind: null };
         const result = await runRecentWork([remote]);
         expect(result.unsupported).toEqual(['security']);
@@ -367,8 +352,7 @@ describe('runRecentWork — twee stiltes die geen stilte mogen zijn', () => {
     });
 
     it('een INGEBOUWDE sectie zonder bron blijft bewust stil', async () => {
-        // Formulieren en Runs hebben er met opzet geen: een formulier IS een
-        // automation, en een run is een gebeurtenis. Dat is geen gat.
+        // Forms and Runs deliberately have none: a form IS an automation, and a run is an event. That is not a gap.
         const result = await runRecentWork([{ id: 'forms', urlSegment: 'forms', labelKey: 'x' }]);
         expect(result.unsupported).toEqual([]);
         expect(result.complete).toBe(true);

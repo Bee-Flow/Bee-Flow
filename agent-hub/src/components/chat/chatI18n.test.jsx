@@ -1,30 +1,29 @@
 /**
- * C12 — het chatscherm praat Nederlands zodra het woordenboek dat doet.
+ * C12: the chat screen speaks Dutch as soon as the dictionary does that.
  *
- * Twee soorten test, want de bevinding heeft twee helften.
+ * Two kinds of test, because the finding has two halves.
  *
- * ── 1. DE SCAN ──────────────────────────────────────────────────────────────
- * De retrofit is klaar op het moment dat er in `components/chat/**` geen
- * gebruikerstekst meer LOS in de bron staat. Dat is mechanisch te controleren
- * en dus staat het hier als test, in dezelfde geest als
- * `src/i18n/i18nGuard.test.js`: de guard daar controleert of een SLEUTEL
- * bestaat, deze controleert of er überhaupt een sleutel is.
+ * ── 1. THE SCAN ─────────────────────────────────────────────────────────────
+ * The retrofit is done at the moment that there is no user text LOOSE in the
+ * source in `components/chat/**` any more. That is mechanically checkable, so it
+ * sits here as a test, in the same spirit as `src/i18n/i18nGuard.test.js`. That
+ * guard checks whether a KEY exists, and this one checks whether there is a key at
+ * all.
  *
- * De regel is een toelatingslijst, geen patroon. Een patroon dat "leest dit als
- * Engels?" probeert te beantwoorden heeft twee uitwegen die allebei fout zijn —
- * de zin herschrijven tot het patroon hem niet meer ziet, of het patroon
- * verbreden tot het niets meer vangt. Een naam die niet vertaalt (Gmail, Google
- * Drive, ElevenLabs) staat daarom met zoveel woorden op BRAND_LITERALS, en al
- * het andere moet door t(). De lijst heeft zelf een rotcontrole: een merknaam
- * die nergens meer voorkomt moet eraf, anders vrijwaart hij stilletjes wat er
- * later op die plek komt te staan.
+ * The rule is an allow-list, not a pattern. A pattern that tries to answer "does
+ * this read as English?" has two ways out, and both are wrong: rewriting the
+ * sentence until the pattern no longer sees it, or broadening the pattern until it
+ * catches nothing. A name that does not translate (Gmail, Google Drive,
+ * ElevenLabs) is therefore listed by name on BRAND_LITERALS, and everything else
+ * must go through t(). The list has its own rot check: a brand name that appears
+ * nowhere any more must be removed, otherwise it silently excuses whatever later
+ * stands in that place.
  *
- * ── 2. HET GEDRAG ───────────────────────────────────────────────────────────
- * Een scan bewijst alleen dat er een t() STAAT. Of de tekst die je op het
- * scherm ziet er ook daadwerkelijk doorheen komt, bewijst alleen een render.
- * Daarom hieronder een handvol componenten met een t() die elke sleutel als
- * «sleutel» teruggeeft: wat er dan nog Engels op het scherm staat, stond er
- * buiten t() om.
+ * ── 2. THE BEHAVIOUR ────────────────────────────────────────────────────────
+ * A scan only proves that a t() IS there. Whether the text you see on the screen
+ * actually comes through it, only a render proves. Therefore, below, a handful of
+ * components with a t() that returns every key as «key»: whatever English is then
+ * still on the screen was outside t().
  */
 
 import fs from 'node:fs';
@@ -42,22 +41,22 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 // ---------------------------------------------------------------------------
 
 /**
- * Namen die niet vertalen. Merk- en productnamen van derden: ze staan in élke
- * taal zo op het scherm, en een vertaler die ze te zien krijgt kan alleen maar
- * schade aanrichten. Elke regel moet vandaag nog ergens voorkomen — zie de
- * rotcontrole onderaan.
+ * Names that do not translate. Brand and product names of third parties: they
+ * appear on screen in that form in every language, and a translator who gets to
+ * see them can only do harm. Each line must appear somewhere today. See the rot
+ * check at the bottom.
  */
 const BRAND_LITERALS = new Set(['Gmail', 'Google Drive', 'ElevenLabs', 'Nano Banana', 'BPM']);
 
-/** Attributen waarvan de waarde als tekst op het scherm of in een schermlezer belandt. */
+/** Attributes whose value lands as text on the screen or in a screen reader. */
 const TEXT_ATTRS = ['title', 'aria-label', 'placeholder', 'alt', 'label', 'tooltip', 'aria-description'];
 
 /**
- * Twee echte woorden achter elkaar: dat is een zin. Eén woord of een reeks
- * symbolen draagt geen grammatica en levert een vertaler niets op. Een zin die
- * met een CIJFER begint telt gewoon mee — "3 items redacted before sending" is
- * precies de vorm die deze batch wegnam, en die mag niet via de voordeur
- * terugkomen omdat het patroon op een letter begon te matchen.
+ * Two real words in a row: that is a sentence. One word, or a run of symbols,
+ * carries no grammar and gives a translator nothing. A sentence that begins with a
+ * DIGIT counts too. "3 items redacted before sending" is exactly the form that this
+ * batch removed, and it may not come back through the front door just because the
+ * pattern began to match on a letter.
  */
 const isSentence = (text) => /[A-Za-z]{2,} +[A-Za-z]{2,}/.test(text);
 
@@ -72,7 +71,7 @@ function* walk(dir) {
     }
 }
 
-/** Commentaar eruit — daar staat het meeste Engels, en niets ervan rendert. */
+/** Comments out. That is where most of the English is, and none of it renders. */
 function stripComments(src) {
     return src
         .replace(/\/\*[\s\S]*?\*\//g, '')
@@ -86,18 +85,18 @@ const chatSources = [...walk(HERE)].map(file => ({
 
 describe('C12 — geen losse gebruikerstekst meer in het chatscherm', () => {
     it('elk zichtbaar attribuut krijgt zijn waarde van t(), op merknamen na', () => {
-        // Twee vormen, want een attribuut kan zijn tekst ook in een EXPRESSIE
-        // dragen: `title="Stop"` en `title={'Stop'}` zetten hetzelfde woord op
-        // het scherm, en een scan die alleen de eerste kent geeft de tweede
-        // een vrije doorgang. Hetzelfde geldt voor de backtick-vorm.
+        // Two forms, because an attribute can carry its text in an EXPRESSION too:
+        // `title="Stop"` and `title={'Stop'}` put the same word on the screen. A scan
+        // that knows only the first gives the second a free pass. The same goes for
+        // the backtick form.
         const PLAIN = new RegExp(`\\b(${TEXT_ATTRS.join('|')})="([^"]*)"`, 'g');
         const EXPR = new RegExp(`\\b(${TEXT_ATTRS.join('|')})=\\{\\s*(['"\`])([^'"\`]*)\\2\\s*\\}`, 'g');
         const loose = [];
         for (const { rel, src } of chatSources) {
             for (const m of src.matchAll(PLAIN)) {
                 const value = m[2].trim();
-                // Leeg is bewust: een decoratieve <img alt=""> hoort leeg te zijn.
-                // Een `${…}` is al een uitdrukking; die is elders vertaald.
+                // Empty is deliberate: a decorative <img alt=""> should be empty.
+                // A `${…}` is already an expression, and that is translated elsewhere.
                 if (exempt(value)) continue;
                 loose.push(`${rel}: ${m[1]}="${value}"`);
             }
@@ -115,20 +114,20 @@ describe('C12 — geen losse gebruikerstekst meer in het chatscherm', () => {
     });
 
     it('geen kale Engelse zin als tekst tussen twee JSX-tags', () => {
-        // Een tekstknoop met een spatie erin is een ZIN, geen symbool: "Send
-        // message", "Awaiting Approval", "Drop files here". Losse woorden en
-        // leestekens (·, →, ✓, een emoji) blijven buiten schot — die dragen
-        // geen taal en een sleutel eromheen levert een vertaler niets op.
-        // Eén regel, en tussen de tags alleen tekens die in proza voorkomen.
-        // Dat laatste is wat de scan uit de CODE houdt: een `>` in
-        // `steps.filter(s => s.status === 'done')` is een groter-dan, en een
-        // patroon dat leestekens toelaat leest de halve module als zin.
+        // A text node with a space in it is a SENTENCE, not a symbol: "Send
+        // message", "Awaiting Approval", "Drop files here". Loose words and
+        // punctuation (·, →, ✓, an emoji) stay outside the sights, because those
+        // carry no language, and a key around them gives a translator nothing.
+        // One line, and between the tags only characters that occur in prose.
+        // That last part is what the scan keeps out of the CODE. A `>` in
+        // `steps.filter(s => s.status === 'done')` is a greater-than, and a pattern
+        // that allows punctuation reads half the module as a sentence.
         //
-        // Twee dingen die een eerdere versie hiervan doorliet, allebei de
-        // NORMALE opmaakvorm en dus geen randgeval: een zin die na het
-        // formatteren over meer dan één regel staat, en een zin die met een
-        // cijfer begint. En de derde vorm: dezelfde zin als STRING-EXPRESSIE
-        // tussen de tags, `<span>{'Nothing here is translated'}</span>`.
+        // Two things that an earlier version of this let through, both in the NORMAL
+        // formatting form and therefore no edge case: a sentence that, after
+        // formatting, runs over more than one line, and a sentence that begins with a
+        // digit. And the third form: the same sentence as a STRING EXPRESSION between
+        // the tags, `<span>{'Nothing here is translated'}</span>`.
         const RX = />[ \t]*\n?[ \t]*([A-Za-z0-9][A-Za-z0-9 ,'’&+/·—–\-\n\t]*[A-Za-z.!?])[ \t]*\n?[ \t]*</g;
         const EXPR = />[^<>]*\{\s*(['"])([^'"]+)\1\s*\}/g;
         const loose = [];
@@ -166,9 +165,9 @@ describe('C12 — geen losse gebruikerstekst meer in het chatscherm', () => {
 // Het gedrag
 // ---------------------------------------------------------------------------
 
-// Eén t() voor alle componenten hieronder: hij geeft «sleutel» terug in plaats
-// van de Engelse reservetekst. Wat er na een render nog aan Engels op het
-// scherm staat, is dus tekst die t() nooit heeft gezien.
+// One t() for all components below: it returns «key» instead of the English
+// fallback text. Whatever English is still on the screen after a render is
+// therefore text that t() never saw.
 const MARK = (key) => `«${key}»`;
 vi.mock('../../hooks/useTranslation', () => ({
     __esModule: true,

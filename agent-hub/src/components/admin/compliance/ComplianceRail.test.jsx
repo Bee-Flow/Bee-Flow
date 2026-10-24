@@ -4,14 +4,7 @@ import { describe, it, expect, vi } from 'vitest';
 import ComplianceRail, { visibleSections, hasOpenItem } from './ComplianceRail';
 import { SECTIONS } from './sections';
 
-vi.mock('../../../hooks/useTranslation', () => {
-    const t = (key, fallback, vars) => {
-        let s = typeof fallback === 'string' ? fallback : key;
-        for (const [k, v] of Object.entries((typeof fallback === 'object' ? fallback : vars) || {})) s = s.replace(`{${k}}`, String(v));
-        return s;
-    };
-    return { useTranslation: () => ({ t }), default: () => ({ t }) };
-});
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const COUNTS = {
     attention_open: 7,

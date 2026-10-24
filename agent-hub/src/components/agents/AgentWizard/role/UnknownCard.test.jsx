@@ -1,9 +1,9 @@
 /**
- * UnknownCard — "Als het niet weet" (A3 deel A).
+ * UnknownCard: "If it does not know" (A3 part A).
  *
- * De harde eis: een routinelijst die niet gelezen kon worden is NIET "geen
- * automations". Dat onderscheid is de reden dat de kaart een `READ`-toestand
- * krijgt in plaats van alleen een array.
+ * The hard requirement: a routine list that could not be read is NOT "no
+ * automations". That distinction is the reason the card gets a `READ` state
+ * instead of just an array.
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/role/UnknownCard.test.jsx
  */
@@ -44,11 +44,11 @@ describe('UnknownCard — de drie keuzes', () => {
     });
 
     it('meldt bij "zeg eerlijk" het neveneffect zoals de server het doet — alleen mét KENNISBANK', () => {
-        // `applyPersonaToConfig` zet `strictKnowledge` alleen als de agent een
-        // KENNISBANK heeft (`config.knowledge_base_ids`); een tabelgrant telt
-        // daar niet, omdat knowledgeSearch.js de KNOWLEDGE BASE RESULTS-sectie
-        // alleen uit die sleutel bouwt en de agent anders ALLES zou weigeren.
-        // De omschrijving mag dus geen bredere "kennis" beloven.
+        // `applyPersonaToConfig` sets `strictKnowledge` only if the agent has a
+        // KNOWLEDGE BASE (`config.knowledge_base_ids`); a table grant does not count
+        // there, because knowledgeSearch.js only builds the KNOWLEDGE BASE RESULTS section
+        // from that key, and otherwise the agent would refuse EVERYTHING.
+        // The description must therefore not promise a broader "knowledge".
         render(<UnknownCard t={t} persona={persona('honest')} {...mine} />);
         const desc = screen.getByText(/knowledge base linked/i);
         expect(desc.textContent).toMatch(/a table on its own does not count here/i);
@@ -98,11 +98,11 @@ describe('UnknownCard — onleesbaar is geen "geen automations"', () => {
     });
 
     it('de STANDAARDWAARDEN zijn onleesbaar, niet leeg — één kaart mag zichzelf niet tegenspreken', () => {
-        // Zonder automations-props (`automations = null, automationsState =
-        // READ.OK`) zei deze kaart tegelijk "No automation can be started by an
-        // agent yet" én "This automation could not be read here". Dat is de nul
-        // die niemand gemeten heeft, in de module die daar juist tegen bestaat
-        // — en dat is precies de plek waar de bedrading vergeten kan worden.
+        // Without automations props (`automations = null, automationsState =
+        // READ.OK`) this card said at the same time "No automation can be started by an
+        // agent yet" and "This automation could not be read here". That is the zero nobody
+        // measured, in the module that exists precisely against that, and that is exactly
+        // the place where the wiring can be forgotten.
         render(<UnknownCard t={t} persona={persona('handoff', 'a1')} {...mine} />);
         expect(screen.getByTestId('agent-role-handoff-unreadable-list')).toBeTruthy();
         expect(screen.queryByTestId('agent-role-handoff-empty')).toBeNull();
@@ -117,9 +117,9 @@ describe('UnknownCard — onleesbaar is geen "geen automations"', () => {
     });
 
     it('ÉÉN live region: de notities BINNEN het blok dragen geen eigen rol', () => {
-        // Twee live regions genest laat de schermlezer dezelfde zin twee keer
-        // voorlezen. De notities BUITEN het blok (de pil eronder) houden hun
-        // `role="status"` wél — daar is niets omheen dat al aankondigt.
+        // Two live regions nested make the screen reader read the same sentence twice. The notes
+        // OUTSIDE the block (the pill below it) keep their `role="status"`, because there is
+        // nothing around them that already announces it.
         render(<UnknownCard t={t} persona={persona('handoff', 'a1')} automations={null} automationsState={READ.ERROR} {...mine} />);
         const live = document.querySelector('[aria-live="polite"]');
         expect(live.querySelector('[role="status"]')).toBeNull();
@@ -149,11 +149,10 @@ describe('UnknownCard — de agent_call-poort en het eigenaarschap', () => {
     });
 
     it('noemt de aan/uit-schakelaar, niet de trigger, als ALLE automatiseringen uit staan', () => {
-        // De lege tak koos op `offered.length === 0` en noemde dan de trigger
-        // als reden terwijl de trigger juist klopte, met één regel lager de
-        // tegenspraak "2 automations are switched off". Twee zinnen die elkaar
-        // tegenspreken, en de eerste stuurde de eigenaar naar het verkeerde
-        // scherm.
+        // The empty branch chose on `offered.length === 0` and then named the trigger
+        // as the reason, while the trigger was actually correct; one line lower came the
+        // contradiction "2 automations are switched off". Two sentences that contradict
+        // each other, and the first one sent the owner to the wrong screen.
         render(<UnknownCard t={t} persona={persona('handoff')} automations={[OFF, { ...OFF, id: 'a4' }]} {...mine} />);
         expect(screen.queryByTestId('agent-role-handoff-empty')).toBeNull();
         expect(screen.getByTestId('agent-role-handoff-all-off').textContent)
@@ -168,9 +167,9 @@ describe('UnknownCard — de agent_call-poort en het eigenaarschap', () => {
     });
 
     it('telt geen uitgeschakelde automatiseringen op ANDERMANS agent', () => {
-        // `GET /api/automation` geeft de automatiseringen van de INGELOGDE gebruiker.
-        // Die telling onder andermans agent zetten presenteert een feit over
-        // jouw lijst als een feit over zijn agent.
+        // `GET /api/automation` returns the automations of the LOGGED-IN user.
+        // Putting that count under someone else's agent presents a fact about your list
+        // as a fact about his agent.
         render(<UnknownCard t={t} persona={persona('handoff')} automations={[CALLABLE, OFF]} agentOwnerId="u2" userId="u1" />);
         expect(screen.getByTestId('agent-role-handoff-blocked')).toBeTruthy();
         expect(screen.queryByTestId('agent-role-handoff-switched-off')).toBeNull();

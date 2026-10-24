@@ -32,9 +32,9 @@ export default function ReviewView({ t, locale, progressMap, reviewDue, reviewBu
 
     return (
         <div className="flex flex-col gap-4 [padding:22px_28px] [font-size:13px] [color:var(--text-primary)]" data-testid="review-view">
-            <Card className="flex items-center gap-3.5" style={{ padding: '14px 16px' }}>
+            <Card className="flex items-center gap-3.5 [padding:14px_16px]!">
                 <div className="grid place-items-center flex-shrink-0 w-[48px] h-[48px] [border-radius:12px] [background:color-mix(in_srgb,var(--accent-primary)_18%,transparent)] [color:var(--accent-primary)]">
-                    {reviewBuilding ? <Loader2 className="animate-spin" style={{ width: 22, height: 22 }} /> : <RotateCcw style={{ width: 22, height: 22 }} aria-hidden="true" />}
+                    {reviewBuilding ? <Loader2 className="animate-spin w-[22px] h-[22px]" /> : <RotateCcw className="w-[22px] h-[22px]" aria-hidden="true" />}
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
                     <Eyebrow accent>{t('learn.rail.review', 'Review')}</Eyebrow>
@@ -50,7 +50,7 @@ export default function ReviewView({ t, locale, progressMap, reviewDue, reviewBu
                     </div>
                 </div>
                 <PrimaryButton onClick={onStartReview} disabled={!reviewDue?.due || reviewBuilding} data-testid="review-start">
-                    <RotateCcw style={{ width: 13, height: 13 }} aria-hidden="true" />
+                    <RotateCcw className="w-[13px] h-[13px]" aria-hidden="true" />
                     {reviewBuilding ? t('learn.review.building', 'Putting your session together…') : t('learn.hero.review_start', 'Start review')}
                 </PrimaryButton>
             </Card>
@@ -58,7 +58,7 @@ export default function ReviewView({ t, locale, progressMap, reviewDue, reviewBu
             <div className="grid gap-4 [grid-template-columns:minmax(0,1fr)_minmax(0,1fr)]">
                 <Card className="overflow-hidden text-[12px]">
                     <div className="flex items-center gap-2 [padding:12px_14px]">
-                        <ListChecks style={{ width: 15, height: 15, color: 'var(--text-secondary)' }} aria-hidden="true" />
+                        <ListChecks className="w-[15px] h-[15px] [color:var(--text-secondary)]" aria-hidden="true" />
                         <span className="font-semibold">{t('learn.review.mistakes_title', 'Mistakes to clear')}</span>
                         <span className="text-[11px] text-[var(--text-tertiary)]">{mistakes.length}</span>
                     </div>
@@ -73,11 +73,11 @@ export default function ReviewView({ t, locale, progressMap, reviewDue, reviewBu
                                 <div className="min-w-0">
                                     <div className="font-medium truncate">{tOpt(t, step?.titleKey, step?.titleFallback) || tOpt(t, step?.questionKey, step?.questionFallback) || tOpt(t, lesson?.titleKey, lesson?.titleFallback)}</div>
                                     <div className="text-[11px] truncate flex items-center gap-1 text-[var(--text-tertiary)]">
-                                        {m.kind === STEP_TYPES.SIM ? <Puzzle style={{ width: 11, height: 11 }} aria-hidden="true" /> : <ListChecks style={{ width: 11, height: 11 }} aria-hidden="true" />}
+                                        {m.kind === STEP_TYPES.SIM ? <Puzzle className="w-[11px] h-[11px]" aria-hidden="true" /> : <ListChecks className="w-[11px] h-[11px]" aria-hidden="true" />}
                                         {tOpt(t, lesson?.titleKey, lesson?.titleFallback)}{m.at && <> · {shortDate(m.at, locale)}</>}
                                     </div>
                                 </div>
-                                <SecondaryButton small onClick={() => onOpenLesson(m.lessonId)}><Play style={{ width: 12, height: 12 }} aria-hidden="true" />{t('learn.table.replay', 'Replay')}</SecondaryButton>
+                                <SecondaryButton small onClick={() => onOpenLesson(m.lessonId)}><Play className="w-[12px] h-[12px]" aria-hidden="true" />{t('learn.table.replay', 'Replay')}</SecondaryButton>
                             </div>
                         );
                     })}
@@ -85,7 +85,7 @@ export default function ReviewView({ t, locale, progressMap, reviewDue, reviewBu
 
                 <Card className="overflow-hidden text-[12px]">
                     <div className="flex items-center gap-2 [padding:12px_14px]">
-                        <Clock style={{ width: 15, height: 15, color: 'var(--text-secondary)' }} aria-hidden="true" />
+                        <Clock className="w-[15px] h-[15px] [color:var(--text-secondary)]" aria-hidden="true" />
                         <span className="font-semibold">{t('learn.review.stale_title', 'Going stale')}</span>
                         <span className="text-[11px] text-[var(--text-tertiary)]">{t('learn.review.stale_sub', 'complete, not mastered, older than {days} days').replace('{days}', String(REVIEW_STALE_DAYS))}</span>
                     </div>
@@ -102,9 +102,9 @@ export default function ReviewView({ t, locale, progressMap, reviewDue, reviewBu
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     {practiceableIds.has(s.lessonId) && (
-                                        <SecondaryButton small onClick={() => onPractice(s.lessonId)} disabled={reviewBuilding}><Sparkles style={{ width: 12, height: 12 }} aria-hidden="true" />{t('learn.practice.button', 'Practice')}</SecondaryButton>
+                                        <SecondaryButton small onClick={() => onPractice(s.lessonId)} disabled={reviewBuilding}><Sparkles className="w-[12px] h-[12px]" aria-hidden="true" />{t('learn.practice.button', 'Practice')}</SecondaryButton>
                                     )}
-                                    <SecondaryButton small onClick={() => onOpenLesson(s.lessonId)}><Play style={{ width: 12, height: 12 }} aria-hidden="true" />{t('learn.table.replay', 'Replay')}</SecondaryButton>
+                                    <SecondaryButton small onClick={() => onOpenLesson(s.lessonId)}><Play className="w-[12px] h-[12px]" aria-hidden="true" />{t('learn.table.replay', 'Replay')}</SecondaryButton>
                                 </div>
                             </div>
                         );

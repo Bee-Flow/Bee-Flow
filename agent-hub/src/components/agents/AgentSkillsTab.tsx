@@ -159,7 +159,7 @@ export default function AgentSkillsTab({ user, attachedSkillIds = [], onChangeAt
 
             {attachedSkillIds.length > 0 && (
                 <div className="flex items-center gap-2 text-[12px] pt-1 text-[var(--text-secondary)]">
-                    <Check size={13} style={{ color: 'var(--success)' }} aria-hidden="true" />
+                    <Check size={13} className="[color:var(--success)]" aria-hidden="true" />
                     {t('agent_skills.attached_count', '{count} skills attached', { count: attachedSkillIds.length })}
                 </div>
             )}

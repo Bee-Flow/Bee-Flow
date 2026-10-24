@@ -33,8 +33,8 @@ test('zonder APP_BUILD_SHA valt de stempel terug op "dev"', () => {
 });
 
 test('een lege string telt als afwezig — de Dockerfile-default is ""', () => {
-    // Een kale `docker build` zonder build-arg bakt ENV APP_BUILD_SHA="" in het
-    // image; ook dan moet de stempel bruikbaar (niet-leeg) zijn.
+    // A bare `docker build` without a build arg bakes ENV APP_BUILD_SHA="" into the image; even then the
+    // stamp must be usable (non-empty).
     const info = freshBuildInfo('');
     assert.strictEqual(info.APP_BUILD_SHA, 'dev');
 });

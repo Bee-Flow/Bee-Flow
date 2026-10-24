@@ -1,12 +1,11 @@
 'use strict';
 
 /**
- * /api/health/schema — degradeert, crasht nooit, lekt niets.
+ * /api/health/schema — degrades, never crashes, leaks nothing.
  *
- * De db.js-facade wordt vóór het requiren van de router gestubd via
- * require.cache (zelfde patroon als migrateDb.integration.test.js), zodat elke
- * case zelf bepaalt wat "de database" antwoordt — inclusief helemaal niet.
- * De router draait op een ephemeral poort (patroon: routes/maintenance.test.js).
+ * The db.js facade is stubbed via require.cache before the router is required (same pattern as migrateDb.integration.test.js), so that each
+ * case itself decides what "the database" answers — including not at all.
+ * The router runs on an ephemeral port (pattern: routes/maintenance.test.js).
  *
  * Run: cd server && node --test --test-force-exit routes/healthSchema.test.js
  */
@@ -17,7 +16,7 @@ const path = require('node:path');
 const Module = require('node:module');
 const express = require('express');
 
-// De stempel moet in deze suite deterministisch 'dev' zijn.
+// The stamp must be deterministically 'dev' in this suite.
 delete process.env.APP_BUILD_SHA;
 
 // ── db.js-stub, geïnstalleerd vóór de router hem kan requiren ──────────────
@@ -100,8 +99,8 @@ test('database onbereikbaar ⇒ 200 { ok:false, schemaReady:false } zonder foutt
 
 test('een synchroon werpende facade degradeert net zo netjes', async () => {
     reset();
-    // Niet elke fout is een nette async rejection; ook een throw vóór de
-    // eerste await mag het endpoint niet omleggen.
+    // Not every error is a neat async rejection; a throw before the
+    // first await must not change the endpoint's answer either.
     getAllImpl = () => { throw new Error('pool is exhausted'); };
     const res = await fetch(base);
     assert.strictEqual(res.status, 200);

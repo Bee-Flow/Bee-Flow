@@ -1,10 +1,10 @@
 // @typecheck
 /**
- * De retentiesweep-bedrading in de cowork-runner: hetzelfde configpatroon als
- * jobs/runRetention.js (COWORK_RUN_RETENTION_DAYS, default 90, 0 = uit) en
- * dezelfde begrensde batchlus — doorgaan zolang een batch vol terugkomt,
- * stoppen bij een korte. Een storefout laat de pass niet klappen: retentie is
- * huishouden, de volgende uurpass haalt het in.
+ * The retention sweep wiring in the cowork runner: the same config pattern as
+ * jobs/runRetention.js (COWORK_RUN_RETENTION_DAYS, default 90, 0 = off) and the same
+ * bounded batch loop: keep going as long as a batch comes back full, stop at a short one.
+ * A storage error does not fail the pass: retention is housekeeping, and the next hourly
+ * pass catches it up.
  *
  * Run: node --test --test-force-exit core/cowork/coworkRunner.retention.test.js
  */
@@ -33,9 +33,9 @@ const restore = installResolveStub({
 
 const RUNNER_PATH = path.join(__dirname, 'coworkRunner.js');
 
-// RETENTION_DAYS wordt bij load uit de env gelezen (net als runRetention.js),
-// dus per scenario de module vers laden. Alle timers in de module zijn
-// unref'd, dus herladen lekt geen levend proces.
+// RETENTION_DAYS is read from the env at load (just like runRetention.js), so per
+// scenario the module is loaded fresh. All timers in the module are unref'd, so
+// reloading leaks no live process.
 function loadRunner(days) {
     evictModule(RUNNER_PATH);
     if (days === undefined) delete process.env.COWORK_RUN_RETENTION_DAYS;
@@ -50,7 +50,7 @@ test('default venster is 90 dagen en de lus batcht tot een korte batch', async (
     assert.strictEqual(runner.RETENTION_DAYS, 90);
 
     pruneCalls.length = 0;
-    script = [5000, 2]; // volle batch → nog een; korte batch → klaar
+    script = [5000, 2]; // full batch → another one; short batch → done
     const res = await runner.pruneOldRuns();
 
     assert.strictEqual(pruneCalls.length, 2);

@@ -12,22 +12,22 @@
  * ── The in-process CPU model (fallback) ──
  * Transformers.js (Whisper-base).
  *
- * Patroon gespiegeld op `server/core/localPiiDetection.js`:
- *  - Lazy load van de pipeline op de eerste call (snelle server-boot).
- *  - Single-flight queue zodat twee gelijktijdige uploads niet samen het
- *    geheugen verdubbelen.
- *  - Hard wallclock-timeout én een max audio-duur cap zodat een grote
- *    upload de host niet kan vastzetten.
- *  - Fail-open: als het model niet kan laden of de inference faalt,
- *    retourneren we null en de caller geeft de gebruiker een nette
- *    foutmelding (i.p.v. een crash).
+ * Pattern mirrored on `server/core/localPiiDetection.js`:
+ *  - Lazy load of the pipeline on the first call (fast server boot).
+ *  - Single-flight queue so that two simultaneous uploads do not double
+ *    the memory together.
+ *  - Hard wallclock timeout and a max audio-duration cap so that a large
+ *    upload cannot pin the host.
+ *  - Fail-open: if the model cannot load or the inference fails, we return
+ *    null and the caller gives the user a neat error message
+ *    (instead of a crash).
  *
- * Output match `transcribeWithWhisperX()` in `server/routes/transcriptions.js`:
+ * Output matches `transcribeWithWhisperX()` in `server/routes/transcriptions.js`:
  *   { text, segments: [{ text, start, end, speakerId }] }
  *
- * Speaker-diarization is **out of scope** voor lokaal — alle segments
- * krijgen `speaker_0`. Voor multi-speaker meetings blijft de cloud-route
- * (Voxtral / WhisperX / Azure) de juiste keuze.
+ * Speaker diarization is **out of scope** for local — all segments
+ * get `speaker_0`. For multi-speaker meetings the cloud route
+ * (Voxtral / WhisperX / Azure) remains the right choice.
  */
 
 const crypto = require('crypto');
@@ -120,10 +120,10 @@ function withTimeout(promise, ms, label) {
 
 // ── ffmpeg → 16 kHz mono Float32Array ────────────────────────────────
 //
-// Transformers.js Whisper verwacht een Float32Array met audio-samples.
-// We laten ffmpeg het input-formaat decoderen en uitschrijven als raw
-// 32-bit float little-endian @ 16 kHz mono. Daarna lezen we het buffer
-// en mappen 'm 1-op-1 op een Float32Array.
+// Transformers.js Whisper expects a Float32Array of audio samples.
+// We let ffmpeg decode the input format and write it out as raw
+// 32-bit float little-endian @ 16 kHz mono. Then we read the buffer
+// and map it 1-to-1 onto a Float32Array.
 function decodeArgs(audioPath, tmpRaw) {
     return buildAudioArgs({
         input: audioPath,
@@ -251,8 +251,8 @@ async function transcribeLocally(audioPath, options = {}) {
             speakerId: 'speaker_0',
         }));
 
-    // Als er geen chunks zijn (bv. heel korte clip) maken we toch één segment
-    // van de hele tekst zodat downstream code niet stuk gaat.
+    // If there are no chunks (e.g. a very short clip) we still make one segment
+    // of the whole text so that downstream code does not break.
     if (segments.length === 0 && text) {
         segments.push({ text, start: 0, end: durationSec, speakerId: 'speaker_0' });
     }

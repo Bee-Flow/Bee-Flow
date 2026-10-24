@@ -87,18 +87,18 @@ export function subtreeIds(node: AppNode) {
 // events a given component TYPE actually supports is governed by the inspector
 // (styleKnobMeta.TYPE_EVENT_LISTS) and validated server-side.
 //
-// `onDecided` hoorde hier al thuis en ontbrak. Serverzijdig bestaat het
-// (componentSpecs/screenSpec.js), approval_list staat het toe
-// (recordListSpecs.js), de inspector RENDERT het slot (styleKnobMeta.
-// TYPE_EVENT_LISTS + ActionsSection.EVENT_LABELS) en de runtime VOERT het uit
-// (runtime/components/AppApprovalList.jsx). Alleen deze lijst wist er niets
-// van, met vier stille gevolgen: setNodeEvent viel op de guard hieronder terug
-// en gaf de def ONGEWIJZIGD terug (een mens kon het slot dus niet bedraden —
-// klik, geen effect, geen fout), nodeLogicSummary/countLogicMarks telden de
-// bedrading niet mee, ActionsSection's eventRefsToAction liet bij het
-// verwijderen van een actie een onDecided-verwijzing hangen, en eventText zette
-// de rauwe identifier in een zin. Een event dat stil verdwijnt is precies wat
-// de Logica-tab moet uitsluiten, dus de lijst is nu compleet.
+// `onDecided` already belonged here and was missing. Server-side it exists
+// (componentSpecs/screenSpec.js), approval_list allows it (recordListSpecs.js),
+// the inspector RENDERS the slot (styleKnobMeta.TYPE_EVENT_LISTS +
+// ActionsSection.EVENT_LABELS) and the runtime EXECUTES it
+// (runtime/components/AppApprovalList.jsx). Only this list erased it, with four
+// silent consequences: setNodeEvent fell back on the guard below and returned the
+// def UNCHANGED (a human could therefore not wire the slot — click, no effect, no
+// error), nodeLogicSummary/countLogicMarks did not count the wiring,
+// ActionsSection's eventRefsToAction left an onDecided reference dangling when an
+// action was removed, and eventText put the raw identifier in a sentence. An event
+// that silently disappears is exactly what the Logic tab must exclude, so the list
+// is now complete.
 export const NODE_EVENTS = ['onClick', 'onSubmit', 'onRowClick', 'onRowSelect', 'onCardMove', 'onChange', 'onDecided'];
 
 /** Wire (or clear, with null) a node's event to an action id. */
@@ -592,31 +592,29 @@ export function removeSection(def: AppDefinition, sectionId: string) {
 /**
  * Remove an action and strip EVERY reference to it that a node can carry.
  *
- * Dat waren er lang maar twee: `onClick` en `onSubmit`. De overige vijf events
- * (onRowClick, onRowSelect, onCardMove, onChange, onDecided) en de zes
- * actie-oppervlakken (rowActions, itemActions, bulkActions, toolbarActions,
- * props.addRowActionId, props.columns[].actionId) bleven hangen — en een
- * hangende verwijzing is serverzijdig een HARDE fout (`event.action_unresolved`,
- * validate/nodes.js), dus 422 op PUT /:id/definition, useAppAutosave dat zijn
- * basislijn niet verzet, en elke volgende toetsaanslag die dezelfde afgewezen
- * save opnieuw afvuurt. Precies de vastloper die de doc van `removeNode`
- * hierboven zegt te hebben opgelost: een dialoog verwijderen jamde de hele
- * editor met een fout over een component dat niet meer bestond.
+ * For a long time there were only two: `onClick` and `onSubmit`. The other five
+ * events (onRowClick, onRowSelect, onCardMove, onChange, onDecided) and the six
+ * action surfaces (rowActions, itemActions, bulkActions, toolbarActions,
+ * props.addRowActionId, props.columns[].actionId) remained dangling — and a
+ * dangling reference is a HARD error on the server (`event.action_unresolved`,
+ * validate/nodes.js), so 422 on PUT /:id/definition, useAppAutosave that does not
+ * move its baseline, and every next keystroke firing the same rejected save again.
+ * Exactly the jam the doc of `removeNode` above says it solved: deleting a dialog
+ * jammed the whole editor with an error about a component that no longer existed.
  *
- * De lijst events komt uit NODE_EVENTS — één lijst, zodat een event dat daar
- * bijkomt hier niet vergeten kan worden. De oppervlakken staan hieronder
- * uitgeschreven in dezelfde volgorde als collectReferencedActions op de server.
+ * The list of events comes from NODE_EVENTS — one list, so an event added there
+ * cannot be forgotten here. The surfaces are written out below in the same order
+ * as collectReferencedActions on the server.
  */
 const NODE_ACTION_LISTS = ['rowActions', 'itemActions', 'bulkActions', 'toolbarActions'];
 
 /**
- * De zes actie-oppervlakken van één node, zonder deze actie — of `null` als er
- * niets naar wees.
+ * The six action surfaces of one node, without this action — or `null` if nothing
+ * pointed to it.
  *
- * Een LIJST-entry gaat er HELEMAAL uit: een rijknop zonder actie is een knop die
- * niets doet, en die stilletjes laten staan is dezelfde stilte als een hangende
- * verwijzing. Een KOLOM blijft wel bestaan (hij toont een waarde) en raakt
- * alleen zijn actie kwijt.
+ * A LIST entry goes out COMPLETELY: a row button without an action is a button that
+ * does nothing, and leaving it standing silently is the same silence as a dangling
+ * reference. A COLUMN remains (it shows a value) and only loses its action.
  */
 function propsWithoutAction(props: Record<string, unknown> | null | undefined, actionId: string) {
     if (!props || typeof props !== 'object') return null;

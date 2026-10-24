@@ -736,11 +736,11 @@ test('a file install claims no provenance', async () => {
     assert.strictEqual(called('createProject')[0].args.installedFromBlueprintId, null);
 });
 
-// ═══ O4: een manifest is INVOER, geen autorisatie ════════════════════
+// ═══ O4: a manifest is INPUT, not authorisation ════════════════════
 //
-// Het herkomstblok (`manifest.source`) reist in een bestand dat iedereen met
-// een teksteditor kan wijzigen. Deze sectie pint precies wat er met zo'n
-// bewering gebeurt — vastgelegd, nooit geloofd — en wat er NIET mee gebeurt.
+// The provenance block (`manifest.source`) travels in a file that anyone with a text editor can
+// change. This section pins exactly what happens with such a claim — recorded, never believed — and
+// what does NOT happen with it.
 
 const { provenanceOf } = require('./install');
 
@@ -753,10 +753,9 @@ const withClaim = (source, over = {}) => buildManifest({
 });
 
 test('een bestandsinstallatie legt de bewering vast ZODRA zij klopt, zodat zij mee kan tellen', async () => {
-    // Dit is de enige manier waarop een doorgestuurd bestand zichzelf aan zijn
-    // Blueprint kan koppelen; zonder deze koppeling telt geen enkele
-    // bestandsinstallatie mee in "hoe vaak is dit geïnstalleerd". Maar de
-    // koppeling wordt eerst nagelopen — zie de test hierna.
+    // This is the only way in which a forwarded file can couple itself to its Blueprint; without this
+    // coupling no file installation counts towards "how often is this installed". But the
+    // coupling is first verified — see the test that follows.
     reset();
     gallery.set('bp_abc', { id: 'bp_abc', solutionKey: 'sol_p1' });
     await installBlueprint({
@@ -772,12 +771,11 @@ test('een bestandsinstallatie legt de bewering vast ZODRA zij klopt, zodat zij m
 });
 
 test('een bewering die naar de Blueprint van een ANDERE Oplossing wijst, telt niet mee', async () => {
-    // DE VERVALSING. Organisatie A stuurt twee bestanden weg: file-X (bp_x) en
-    // file-Y (bp_y). Wie file-X in een teksteditor opent en er `bp_y` in zet,
-    // liet vroeger de teller van bp_y oplopen terwijl bp_y nul keer is
-    // geïnstalleerd — en het scherm noemt dat getal een ONDERGRENS. De
-    // `solution_key` van de galerijrij is wat dat onmogelijk maakt: file-X
-    // beweert `sol_p1` te zijn en bp_y draagt `sol_p9`.
+    // THE FORGERY. Organisation A sends away two files: file-X (bp_x) and
+    // file-Y (bp_y). Whoever opened file-X in a text editor and put `bp_y` in it
+    // used to make the counter of bp_y rise while bp_y had been installed zero times — and the
+    // screen presents that number as a LOWER bound. The `solution_key` of the gallery row is what
+    // makes that impossible: file-X claims to be `sol_p1` and bp_y carries `sol_p9`.
     reset();
     gallery.set('bp_y', { id: 'bp_y', solutionKey: 'sol_p9' });
     await installBlueprint({
@@ -811,10 +809,9 @@ test('een galerij-installatie loopt geen bewering na — de server heeft de rij 
 });
 
 test('een vijandig manifest verhuist zijn installatie niet naar de organisatie die het noemt', async () => {
-    // DE KERN. `source.orgId` is een bewering; de organisatie van het PROJECT
-    // is die van de installateur, en niets in het bestand verandert daar iets
-    // aan. Zou dat wel zo zijn, dan schreef een bestand zichzelf de leesrechten
-    // van een andere organisatie toe.
+    // THE CORE. `source.orgId` is a claim; the organisation of the PROJECT
+    // is that of the installer, and nothing in the file changes that. Were that otherwise, a file
+    // would grant itself the read rights of another organisation.
     reset();
     await installBlueprint({
         manifest: withClaim({ blueprintId: 'bp_victim', orgId: 'org_victim', orgName: 'Not Us' }),
@@ -823,18 +820,16 @@ test('een vijandig manifest verhuist zijn installatie niet naar de organisatie d
     const args = called('createProject')[0].args;
     assert.strictEqual(args.organizationId, 'org_receiver',
         'de installatie hoort bij de installateur, niet bij de organisatie die het bestand noemt');
-    // En de bewering zelf is niet eens opgeschreven: er is geen galerijrij
-    // `bp_victim` die deze Oplossing draagt, dus zij is niet na te lopen. Zou zij
-    // dat wél zijn, dan was zij geschiedenis en nog steeds geen recht — wie de
-    // installatietelling mag zien beslist de eigenaarsrol op het bronproject.
+    // And the claim itself is not even written down: there is no gallery row
+    // `bp_victim` that carries this Solution, so it cannot be verified. Were it to be, it would be history and
+    // still no right — who may see the installation count is decided by the owner role on the source project.
     assert.strictEqual(args.installedFromOrgId, null);
 });
 
 test('een vijandig manifest kan zijn eigen versienummer niet opblazen', async () => {
-    // Twee nummers in hetzelfde bestand: `solution.version` (dat elke stempel
-    // meekrijgt) en `source.version`. Er wordt er precies ÉÉN gelezen, anders
-    // zegt het project iets anders dan zijn eigen stempels — en dan leest een
-    // achterstallige installatie als bijgewerkt.
+    // Two numbers in the same file: `solution.version` (which every stamp carries) and
+    // `source.version`. Exactly ONE of them is read, otherwise the project says something different from
+    // its own stamps — and then a lagging installation reads as up to date.
     reset();
     await installBlueprint({
         manifest: withClaim({ blueprintId: 'bp_abc', version: 99 }, { version: 2 }),
@@ -846,8 +841,8 @@ test('een vijandig manifest kan zijn eigen versienummer niet opblazen', async ()
 });
 
 test('wat de server zelf heeft gelezen wint van wat het bestand beweert', () => {
-    // Op het galerijpad heeft resolveManifest de rij zélf gelezen (na canRead).
-    // De bewering van het bestand mag daar niet overheen schrijven.
+    // On the gallery path resolveManifest has itself read the row (after canRead).
+    // The file's claim may not write over that.
     const claimed = { blueprintId: 'bp_fake', orgId: 'org_fake', orgName: 'Fake', version: 9 };
     assert.deepStrictEqual(
         provenanceOf({
@@ -859,9 +854,8 @@ test('wat de server zelf heeft gelezen wint van wat het bestand beweert', () => 
 });
 
 test('een galerijrij zonder organisatie erft die niet uit het bestand', () => {
-    // Een persoonlijke Blueprint heeft organization_id NULL. Zou de bewering
-    // dan invullen, dan kreeg een persoonlijke installatie stilletjes een
-    // organisatie toegeschreven die zij nooit had.
+    // A personal Blueprint has organization_id NULL. Were the claim to fill it in,
+    // a personal installation would quietly be assigned an organisation it never had.
     const out = provenanceOf({
         blueprintId: 'bp_real', blueprintOrgId: null,
         manifest: withClaim({ orgId: 'org_fake' }),
@@ -1109,12 +1103,10 @@ test('A RESOLUTIONS BODY CANNOT GRANT WHAT THE FILE ASKED FOR', async () => {
 });
 
 test('provenanceOf leest een RUW herkomstblok, niet alleen een genormaliseerd', async () => {
-    // `provenanceOf` is puur en geëxporteerd "zodat de vijandige gevallen op
-    // zichzelf te toetsen zijn" — maar elke test hierboven voert hem uitvoer van
-    // buildManifest of checked.manifest, en die zijn allebei al door readSource
-    // gegaan. Dan is de normalisatie in provenanceOf vandaag dubbelop en zou een
-    // volgende aanroeper met een ONgecontroleerd manifest een object of een
-    // string van 10.000 tekens in installed_from_blueprint_id krijgen.
+    // `provenanceOf` is pure and exported "so that the hostile cases can be tested on their own" — but every
+    // test above feeds it the output of buildManifest or checked.manifest, and both have already passed
+    // through readSource. The normalisation in provenanceOf is therefore redundant today, and a next caller
+    // with an UNCHECKED manifest would get an object or a string of 10,000 characters in installed_from_blueprint_id.
     const raw = {
         solution: { key: 'sol_p1', version: 3 },
         source: { blueprintId: 'bp_' + 'x'.repeat(400), orgId: { $ne: null }, orgName: [1, 2], version: 'negen' },

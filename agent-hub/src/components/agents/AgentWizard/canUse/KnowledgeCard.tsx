@@ -11,35 +11,31 @@ import type { ReadState } from '../agentEditor.types';
 import type { datatableRows, knowledgeBaseRows } from './canUseFacts';
 
 /**
- * De Kennis-kaart van de tab "Kan gebruiken" — waarin de agent zoekt vóór hij
- * antwoordt (Agents-artboard 1a, A2 stap 2).
+ * The Knowledge card of the "Can use" tab, where the agent searches before it answers
+ * (Agents artboard 1a, A2 step 2).
  *
- * Drie soorten rijen, want de agent leest op drie manieren:
- *   KENNISBANK   een geïndexeerde verzameling documenten. De ondertitel is
- *                "kennisbank · 42 documenten · bijgewerkt gisteren";
- *   TABEL        een `datatable_query`-grant. Die leest LIVE — er is geen
- *                index en dus geen "bijgewerkt", en de rij zegt in plaats
- *                daarvan wat de grant écht toestaat: wiens rijen, en dat er
- *                niet geschreven wordt;
- *   TIP          meeting notes met een tag lopen vanzelf een kennisbank in.
- *                Geen rij die iets aan heeft staan, maar een wegwijzer — de
- *                tag zelf staat op de kennisbank, niet op de agent.
+ * Three kinds of rows, because the agent reads in three ways:
+ *   KNOWLEDGE BASE   an indexed collection of documents. The subtitle is
+ *                    "knowledge base · 42 documents · updated yesterday";
+ *   TABLE            a `datatable_query` grant. That one reads LIVE. There is no index and
+ *                    therefore no "updated", and the row says instead what the grant really
+ *                    permits: whose rows, and that nothing is written;
+ *   TIP              meeting notes with a tag flow into a knowledge base by themselves. Not a row
+ *                    that something is attached to, but a signpost. The tag itself sits on the
+ *                    knowledge base, not on the agent.
  *
- * ── DE UPLOADMODAL ZIT HIER NIET IN ─────────────────────────────────
- * "+ Koppelen" opent de TOOL-KIEZER op "Uit Studio › Kennisbanken"
- * (`toolChooser.js`), niet `FilesUploadModal`. Bestanden uploaden is werk aan
- * een KENNISBANK, niet aan een agent: die modal maakte stilzwijgend een
- * kennisbank per agent aan en verstopte er twee agentinstellingen in.
- * `strictKnowledge` staat sindsdien op Rol ("Als het niet weet") en
- * `includeSourceReferences` in het ⋯-menu hiernaast — waar ze over de
- * ANTWOORDEN gaan die je hier configureert.
+ * ── THE UPLOAD MODAL IS NOT IN HERE ─────────────────────────────────
+ * "+ Link" opens the TOOL PICKER at "From Studio › Knowledge bases" (`toolChooser.js`), not
+ * `FilesUploadModal`. Uploading files is work on a KNOWLEDGE BASE, not on an agent: that modal silently
+ * created a knowledge base per agent and hid two agent settings in it. `strictKnowledge` has since moved
+ * to Role ("If it does not know"), and `includeSourceReferences` to the ⋯ menu next to it, where they
+ * concern the ANSWERS you configure here.
  *
- * ── EEN LEZING DIE MISLUKTE IS GEEN LEGE KAART ──────────────────────
- * De koppelingen staan in de config van de agent en die hebben we altijd; de
- * NAMEN komen van routes die kunnen ontbreken (`/api/datatables` hangt achter
- * de automations-module, `/api/kb?context=agent` kan 500'en). Zo'n rij blijft
- * dus staan zonder naam, met een waarschuwing erboven — nooit weggefilterd,
- * want dan zou de kaart beweren dat de agent die kennis niet heeft.
+ * ── A READ THAT FAILED IS NOT AN EMPTY CARD ─────────────────────────
+ * The links are in the agent's config, and we always have those. The NAMES come from routes that may be
+ * missing (`/api/datatables` sits behind the automations module, `/api/kb?context=agent` can return a 500).
+ * Such a row stays in place without a name, with a warning above it. It is never filtered out, because then
+ * the card would claim that the agent does not have that knowledge.
  */
 
 /** One linked knowledge base, as `canUseFacts.knowledgeBaseRows` builds it. */
@@ -53,10 +49,10 @@ function RowWarning({ children }: { children?: ReactNode }) {
 }
 
 /**
- * Eén kennisbank: "kennisbank · 42 documenten · bijgewerkt gisteren".
+ * One knowledge base: "knowledge base · 42 documents · updated yesterday".
  *
- * Een deel dat niemand gemeten heeft valt weg — geen "0 documenten" voor een
- * kennisbank waarvan de teller ontbrak, en geen "bijgewerkt" zonder datum.
+ * A part that nobody measured drops out: no "0 documents" for a knowledge base whose counter was missing,
+ * and no "updated" without a date.
  */
 function KbRow({ t, rel, row, pending = false }: { t: TranslateFn; rel: (when: string) => string; row: KbCardRow; pending?: boolean }) {
     return (
@@ -84,12 +80,10 @@ function KbRow({ t, rel, row, pending = false }: { t: TranslateFn; rel: (when: s
 }
 
 /**
- * Eén tabel-grant: "live · alleen eigen rijen van de vrager · leest, schrijft
- * niet".
+ * One table grant: "live · only the asker's own rows · reads, does not write".
  *
- * Geen "bijgewerkt": een tabel wordt niet geïndexeerd maar op het moment van
- * de vraag gelezen. Wat er in plaats daarvan staat is wat de grant tóestaat —
- * en dat is precies wat `datatable_query` afdwingt, aan beide kanten
+ * No "updated": a table is not indexed but read at the moment of the question. What appears instead is what
+ * the grant PERMITS, and that is exactly what `datatable_query` enforces, on both sides
  * (server/core/tools/datatableTools.js).
  */
 function TableRow({ t, row, pending = false }: { t: TranslateFn; row: TableCardRow; pending?: boolean }) {
@@ -125,10 +119,9 @@ function TableRow({ t, row, pending = false }: { t: TranslateFn; row: TableCardR
 }
 
 /**
- * De tip over meeting notes. Geen schakelaar: de tag hoort bij de KENNISBANK
- * (een `meeting_tag`-bron, K7), niet bij de agent, dus het enige eerlijke wat
- * deze kaart kan doen is de weg wijzen. Zonder `onNavigate` staat er geen knop
- * — een knop die niets doet is erger dan geen knop.
+ * The tip about meeting notes. Not a switch: the tag belongs to the KNOWLEDGE BASE (a `meeting_tag` source,
+ * K7), not to the agent, so the only honest thing this card can do is point the way. Without `onNavigate`
+ * there is no button: a button that does nothing is worse than no button.
  */
 function MeetingTip({ t, onNavigate, tipKbId }: { t: TranslateFn; onNavigate?: ((path: string) => void) | null; tipKbId?: string | null }) {
     return (
@@ -155,7 +148,7 @@ function MeetingTip({ t, onNavigate, tipKbId }: { t: TranslateFn; onNavigate?: (
     );
 }
 
-/** Het ⋯-menu: één schakelaar, over de ANTWOORDEN die deze kennis oplevert. */
+/** The ⋯ menu: one switch, about the ANSWERS that this knowledge yields. */
 function KnowledgeMenu({ t, ro, includeSourceReferences, onIncludeSourceReferencesChange }: { t: TranslateFn; ro?: boolean; includeSourceReferences?: boolean; onIncludeSourceReferencesChange?: (next: boolean) => void }) {
     const [open, setOpen] = useState(false);
     return (
@@ -204,16 +197,13 @@ export default function KnowledgeCard({
     onNavigate = null, tipKbId = null,
 }: KnowledgeCardProps) {
     /**
-     * "Niets gekoppeld" is een CONFIG-vraag, geen lezing.
+     * "Nothing linked" is a CONFIG question, not a read.
      *
-     * Elke rij hier komt uit `config.knowledge_base_ids` en
-     * `config.tools.datatables` — die hebben we altijd, ook als de namen
-     * ontbreken. Nul rijen betekent dus écht nul koppelingen, en dat mag
-     * gezegd worden zonder op een fetch te wachten. Andersom: de
-     * waarschuwing hoort alleen te staan als er iets IS dat we niet konden
-     * benoemen. Een organisatie zonder tabellen-module kreeg anders een
-     * eeuwige waarschuwing over tabellen die deze agent niet heeft, en een
-     * waarschuwing die altijd staat leert mensen om ze weg te kijken.
+     * Every row here comes from `config.knowledge_base_ids` and `config.tools.datatables`, which we always
+     * have, even if the names are missing. Zero rows therefore really means zero links, and that may be said
+     * without waiting for a fetch. The other way round: the warning should only appear if there is something
+     * that we could not name. An organisation without a tables module got a permanent warning about tables
+     * that this agent does not have, and a warning that always stands teaches people to look away from it.
      */
     const nothingLinked = kbRows.length === 0 && tableRows.length === 0;
     const kbPending = kbState === READ.LOADING;

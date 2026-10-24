@@ -18,55 +18,45 @@ import type { TranslateParams } from '../../../../../hooks/useTranslation';
 import type { TFn, LogicTableRow, RowStatus, RevealFn, LogicaTabProps, LogicRowProps, StatusCellProps, GroupHeadingProps, LogicTableProps } from './LogicaTab.types';
 
 /**
- * De Logica-tab — Wanneer · Gebeurt · Status · ↗, over alle schermen heen.
+ * The Logic tab — When · Happens · Status · ↗, across all screens.
  *
- * Vervangt LogicView, die alleen bedrade NODE_EVENTS opsomde. Wat die weg liet
- * vallen (onbedrade slots, de vier lijst-oppervlakken, acties waar niets naar
- * wijst) staat in editor/logicRows.js beschreven; dit bestand tekent het en
- * haalt de twee dingen op die de definitie NIET weet — hoe vaak er gedraaid is
- * en hoeveel beslissingen er wachten.
+ * Replaces LogicView, which listed only wired NODE_EVENTS. What that one dropped (unwired slots, the four
+ * list surfaces, actions that nothing points to) is described in editor/logicRows.js; this file draws it and
+ * fetches the two things the definition does NOT know — how often it has run and how many decisions are waiting.
  *
- * ── De statuskolom mag niets beweren ──────────────────────────────────────
- * Beide tellingen zijn KIJKERGESCOOPT, en dat is geen detail:
+ * ── The status column may not claim anything ──────────────────────────────
+ * Both counts are VIEWER-SCOPED, and that is no detail:
  *
- *   runs      GET /api/automation/_runs/facets telt de runs van de INGELOGDE
- *             gebruiker over een ROLLEND venster van 24 uur (runs.js: "Always
- *             scoped to the requesting user — no admin-wide endpoint"). Het is
- *             dus niet "38 vandaag": niet vandaag (een kalenderdag is een
- *             ander getal) en niet van iedereen. De zin zegt allebei hardop.
- *             De org-brede tweeling (/_runs/org/facets) wordt hier BEWUST niet
- *             gebruikt — die zou een getal tonen over runs van collega's die
- *             de lezer nergens kan openen.
- *   approvals GET /api/automation/approvals/facets?scope=mine telt alleen de
- *             beslissingen waar de kijker zelf een zetel in heeft. De
- *             app-brede teller die de server óók heeft
- *             (countPendingApprovalsForApp) is een quotumrem zonder enige
- *             kijkerscoping: dat getal tonen betekent "1 wacht" naast een
- *             lijst die leeg blijft als je hem opent.
+ *   runs      GET /api/automation/_runs/facets counts the runs of the LOGGED-IN user over a ROLLING window of
+ *             24 hours (runs.js: "Always scoped to the requesting user — no admin-wide endpoint"). So it is not
+ *             "38 today": not today (a calendar day is a different number) and not of everyone. The sentence says
+ *             both out loud. The org-wide twin (/_runs/org/facets) is deliberately NOT used here — it would show
+ *             a number over runs of colleagues that the reader cannot open anywhere.
+ *   approvals GET /api/automation/approvals/facets?scope=mine counts only the decisions in which the viewer
+ *             themselves has a seat. The app-wide count that the server ALSO has (countPendingApprovalsForApp) is
+ *             a quota brake with no viewer scoping at all: showing that number means "1 waiting" next to a list
+ *             that stays empty when you open it.
  *
- * En: onbekend is geen nul. Approvals zit achter een licentie- én modulepoort
- * (approvals.js), dus 403/404 is een normaal antwoord op een gezonde
- * installatie. Een mislukte lezing schrijft "Not available" — niet "0", want
- * "er wacht niets" en "ik mocht niet kijken" zijn verschillende dingen en het
- * verschil is precies wat iemand moet weten.
+ * And: unknown is not zero. Approvals sits behind a licence AND module gate (approvals.js), so 403/404 is a
+ * normal answer on a healthy installation. A failed reading writes "Not available" — not "0", because "nothing is
+ * waiting" and "I was not allowed to look" are different things, and the difference is precisely what someone
+ * needs to know.
  *
- * NB voor wie hier een test omheen zet: dit is de eerste editor-VIEW die
- * react-query gebruikt (de Data-view deed het al via TablesManager, maar pas
- * ná een klik). De app-shell heeft zijn QueryClientProvider in main.jsx, dus
- * in productie is er niets te regelen; een test die deze tab mount heeft er
- * zelf een nodig.
+ * NB for anyone wrapping a test around this: this is the first editor VIEW that uses react-query (the Data
+ * view did already via TablesManager, but only after a click). The app shell has its QueryClientProvider in
+ * main.jsx, so in production there is nothing to arrange; a test that mounts this tab must supply one itself.
  */
 
 const RANGE_HOURS = 24;
 
-/** De facets van de EIGEN runs over het venster, of null als het niet gelezen kon worden. */
+/** The facets of the OWN runs over the window, or null if they could not be read. */
 async function fetchRunFacets() {
     const res = await authFetch(`${API_BASE}/api/automation/_runs/facets?range=${RANGE_HOURS}`);
     if (!res.ok) return null;
     try { return (await res.json())?.facets ?? null; } catch { return null; }
 }
 
-/** De approval-facets voor deze app, kijkergescoopt, of null bij een weigering. */
+/** The approval facets for this app, viewer-scoped, or null on a refusal. */
 async function fetchApprovalFacets(appId: string) {
     const res = await authFetch(
         `${API_BASE}/api/automation/approvals/facets?scope=mine&appId=${encodeURIComponent(appId)}`,
@@ -76,12 +66,11 @@ async function fetchApprovalFacets(appId: string) {
 }
 
 /**
- * Runs voor één automation. `null` = niet gelezen; een getal = gelezen.
+ * Runs for one automation. `null` = not read; a number = read.
  *
- * getRunFacetsScoped geeft de vier maps ALTIJD terug, ook leeg — een automatisering
- * die niet in `automationId` staat heeft dus echt nul runs gehad in het
- * venster, en dat is een gelezen antwoord. Ontbreekt de map zelf, dan is de
- * vorm onbekend en is er niets gelezen.
+ * getRunFacetsScoped always returns the four maps, even when empty — so an automation that is not in
+ * `automationId` really had zero runs in the window, and that is a read answer. If the map itself is
+ * missing, the shape is unknown and nothing was read.
  */
 export function runCountOf(facets: { automationId?: Record<string, number> } | null, automationId: string) {
     if (!facets || typeof facets !== 'object') return null;
@@ -162,9 +151,8 @@ export default function LogicaTab({
     });
 
     /**
-     * Wat er in de statuskolom staat. Vier toestanden, en drie ervan tekenen
-     * bewust NIETS of het woord "onbekend" — nooit een getal dat we niet
-     * hebben.
+     * What goes in the status column. Four states, and three of them deliberately draw NOTHING or the word
+     * "unknown" — never a number we do not have.
      */
     const statusOf = (row: { automationId: string | null; nodeType: string | null }): RowStatus => {
         if (row.automationId) {
@@ -333,8 +321,7 @@ function StatusCell({ status, t }: StatusCellProps) {
                 <span className="text-[var(--text-secondary)]">{status.text}</span>
             ) : null}
             {status.state === 'unknown' ? (
-                // Geen streepje en geen nul: het woord zelf, want het verschil
-                // met "er is niets" is de hele mededeling.
+                // No dash and no zero: the word itself, because the difference from "there is nothing" is the whole message.
                 <span className="text-[var(--text-tertiary)]">
                     {t('app_studio.logic.status_unknown', 'Not available')}
                 </span>
@@ -344,11 +331,10 @@ function StatusCell({ status, t }: StatusCellProps) {
 }
 
 /**
- * ↗ betekent overal "breng me erheen". Voor een rij die op een component zit is
- * dat het canvas — ook als er een automatisering achter hangt, want de bedrading
- * verander je bij de knop. Alleen een rij zónder component (een automatisering van
- * deze oplossing, een actie waar niets naar wijst) heeft geen plek op het
- * canvas en linkt naar de Automations-builder.
+ * ↗ means "take me there" everywhere. For a row that sits on a component that is the canvas — also when an
+ * automation is behind it, because the wiring is changed at the button. Only a row WITHOUT a component (an
+ * automation of this solution, an action that nothing points to) has no place on the canvas and links to the
+ * Automations builder.
  */
 function JumpCell({ row, onReveal, t }: { row: LogicTableRow; onReveal?: RevealFn; t: TFn }) {
     const canReveal = typeof onReveal === 'function' && !!row.screenId;
@@ -436,14 +422,11 @@ function LogicTable({ groups, automations, statusOf, noticesByRow, onReveal, t }
 
             {automations.length ? (
                 <tbody data-logic-automations>
-                    {/* "Jouw" staat in de kop omdat de lijst het zegt. De rijen
-                        komen uit GET /api/automation → getAutomationsForUser
-                        (`WHERE user_id = $1`), dus dit zijn de automatiseringen die de
-                        KIJKER bezit. De nachtelijke automatisering van een collega, in
-                        dezelfde oplossing en op dezelfde tabel, staat er niet —
-                        en een lege sectie is niet te onderscheiden van "die zijn
-                        er niet". Versmallen mag; er stilzwijgend "Automations in
-                        this solution" boven zetten niet. */}
+                    {/* "Yours" is in the heading because the list says so. The rows come from GET /api/automation →
+                        getAutomationsForUser (`WHERE user_id = $1`), so these are the automations the VIEWER owns.
+                        A colleague's nightly automation, in the same solution and on the same table, is not in it —
+                        and an empty section is not distinguishable from "there are none". Narrowing is allowed;
+                        silently putting "Automations in this solution" above it is not. */}
                     <GroupHeading
                         title={t('app_studio.logic.automations_title', 'Your automations in this solution')}
                         hint={t(
