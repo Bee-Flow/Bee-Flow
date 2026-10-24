@@ -17,6 +17,7 @@
  * allowed" (a hard zero).
  */
 const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 function userStore() { return require('../stores/userStore'); }
 
@@ -108,7 +109,7 @@ function applyCap(requested, cap) {
  */
 async function auditPlanCapDrift({ trim = false } = {}) {
     const store = userStore();
-    const subs = await store.getAllOrgSubscriptions().catch(() => []);
+    const subs = await store.getAllOrgSubscriptions().catch((e) => fallback('services/planEntitlements:auditPlanCapDrift', e, []));
     let scanned = 0;
     let drifted = 0;
     let trimmed = 0;
@@ -119,8 +120,8 @@ async function auditPlanCapDrift({ trim = false } = {}) {
         if (sub.status !== 'active') continue;
         scanned++;
         const caps = await getOrgCaps(sub.organization_id).catch(() => ({ integrations: null, betaFeatures: null }));
-        const enabledIntegrations = await store.getOrgEnabledIntegrations(sub.organization_id).catch(() => []);
-        const enabledBeta = await store.getOrgEnabledBetaFeatures(sub.organization_id).catch(() => []);
+        const enabledIntegrations = await store.getOrgEnabledIntegrations(sub.organization_id).catch((e) => fallback('services/planEntitlements:auditPlanCapDrift#2', e, []));
+        const enabledBeta = await store.getOrgEnabledBetaFeatures(sub.organization_id).catch((e) => fallback('services/planEntitlements:auditPlanCapDrift#3', e, []));
         const trimmedIntegrations = caps.integrations == null ? enabledIntegrations : intersect(caps.integrations, enabledIntegrations);
         const trimmedBeta = caps.betaFeatures == null ? enabledBeta : intersect(caps.betaFeatures, enabledBeta);
         const lostIntegrations = enabledIntegrations.filter(id => !trimmedIntegrations.includes(id));
@@ -145,7 +146,7 @@ async function auditPlanCapDrift({ trim = false } = {}) {
                 { plan_id: sub.plan_id, lost_integrations: lostIntegrations, lost_beta_features: lostBeta, trimmed: trim },
                 sub.organization_id,
             );
-        } catch (err) { log.debug('audit best-effort', err); }
+        } catch (err) { bestEffort('services/planEntitlements:auditPlanCapDrift#4', err); /* audit best-effort */ }
 
         if (trim) {
             try {

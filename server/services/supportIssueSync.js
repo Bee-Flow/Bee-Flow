@@ -23,6 +23,7 @@ const notificationStore = require('../stores/notificationStore');
 const chat = require('./outboundChatNotifier');
 const supportBus = require('../support/events');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 let _timer = null;
 
@@ -149,7 +150,7 @@ async function syncIssue(creds, issue, { fetchComments = true } = {}) {
         await supportStore.recordThreadEvent({
             threadId, actorKind: 'system', action: 'issue_update',
             payload: { issueId: issue.id, reason, state: stateLabel(issue) },
-        }).catch(() => {});
+        }).catch((e) => bestEffort('services/supportIssueSync:syncIssue', e));
 
         if (thread.assignee_user_id) {
             notificationStore.createNotification({
@@ -158,7 +159,7 @@ async function syncIssue(creds, issue, { fetchComments = true } = {}) {
                 title: `${thread.ticket_ref || 'Ticket'} needs a follow-up`,
                 message: what,
                 link: require('../utils/appPaths').adminSupportTicketPath(threadId),
-            }).catch(() => {});
+            }).catch((e) => bestEffort('services/supportIssueSync:syncIssue#2', e));
         }
 
         // The team chat channel, when an admin ticked "A linked issue is
@@ -170,7 +171,7 @@ async function syncIssue(creds, issue, { fetchComments = true } = {}) {
                 thread,
                 event: 'issue_resolved',
                 detail: `${issue.id} is now ${stateLabel(issue) || 'resolved'}`,
-            }).catch(() => {});
+            }).catch((e) => bestEffort('services/supportIssueSync:syncIssue#3', e));
         }
         emitThreadUpdated(threadId);
     }
@@ -203,7 +204,7 @@ async function syncTick({ chunkSize = 50 } = {}) {
             // "couldn't reach YouTrack, showing the state from 14:05" instead
             // of showing a stale row as if it were current.
             for (const id of chunk) {
-                await supportStore.updateLinkSnapshot(id, { syncError: err.message }).catch(() => {});
+                await supportStore.updateLinkSnapshot(id, { syncError: err.message }).catch((e) => bestEffort('services/supportIssueSync:syncTick', e));
             }
             log.warn(`[SupportIssueSync] batch failed: ${err.message}`);
             continue;
@@ -221,7 +222,7 @@ async function syncTick({ chunkSize = 50 } = {}) {
             if (!returned.has(id)) {
                 await supportStore.updateLinkSnapshot(id, {
                     syncError: 'not found in YouTrack — deleted, moved, or not visible to the support connection',
-                }).catch(() => {});
+                }).catch((e) => bestEffort('services/supportIssueSync:syncTick#2', e));
             }
         }
     }

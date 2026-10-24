@@ -27,6 +27,7 @@ const {
     isServerInContainer, imageExists, pullImage: pullImageStream, ensureNetwork,
     connectSelfToNetwork: connectSelf, removeContainerIfExists,
 } = require('./docker/dockerKit');
+const { bestEffort } = require('../utils/bestEffort');
 
 // The runner image MUST match the server's Playwright version (connect()
 // rejects a minor-version mismatch). Derive the version and bake it into the
@@ -260,7 +261,7 @@ function followLogs(docker, container, onLine) {
             while ((idx = buf.indexOf('\n')) !== -1) {
                 const line = buf.slice(0, idx).trim();
                 buf = buf.slice(idx + 1);
-                if (line && onLine) { try { onLine(line); } catch (_) { log.debug('log line consumer threw, the stream continues', _); } }
+                if (line && onLine) { try { onLine(line); } catch (_) { bestEffort('services/pwtRunner:write', _); /* log line consumer threw, the stream continues */ } }
             }
             cb();
         },
@@ -384,14 +385,14 @@ async function ensureBrowserSingleton({ onLine } = {}) {
             _browserSingleton = { wsEndpoint, containerId: container.id };
             return _browserSingleton;
         } catch (e) {
-            try { detach(); } catch (_) { log.debug('log follower already detached', _); }
+            try { detach(); } catch (_) { bestEffort('services/pwtRunner:ensureBrowserSingleton', _); /* log follower already detached */ }
             try { await container.stop({ t: 3 }); } catch (_) { log.debug('container already stopped', _); }
             try { await container.remove({ force: true }); } catch (_) { log.debug('container already removed', _); }
             throw e;
         } finally {
             // We only needed logs to capture the endpoint line; liveness is
             // tracked via inspect afterwards, so stop following.
-            try { detach(); } catch (_) { log.debug('log follower already detached', _); }
+            try { detach(); } catch (_) { bestEffort('services/pwtRunner:ensureBrowserSingleton#2', _); /* log follower already detached */ }
         }
     })().finally(() => { _browserStarting = null; });
 

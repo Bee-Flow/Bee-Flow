@@ -46,6 +46,7 @@ const { resolveFramework } = require('../integrations/webpageFramework');
 const { composeReactDoc } = require('./reactBundleServer');
 const { loadReactFiles } = require('./webpageReactFiles');
 const { expandBfElements } = require('./webpageBfTable');
+const { fallback } = require('../utils/bestEffort');
 
 // Single shared DOMPurify instance — jsdom window is expensive to create.
 const _window = new JSDOM('<!doctype html><html><body></body></html>').window;
@@ -243,7 +244,7 @@ async function writeSnapshot({ shareId, webpageId, ownerId, includeExtraFiles = 
         throw new Error('RustFS not configured — cannot snapshot webpage for public share');
     }
 
-    const wp = await webpageStore.getWebpageRaw(webpageId).catch(() => null);
+    const wp = await webpageStore.getWebpageRaw(webpageId).catch((e) => fallback('services/webpageSnapshot:writeSnapshot', e, null));
     const framework = resolveFramework(wp);
 
     if (framework === 'react-mui') {

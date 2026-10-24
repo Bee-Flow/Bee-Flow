@@ -24,6 +24,7 @@ const {
     _escapeHtml,
 } = require('./email/send');
 const supportInboxStore = require('../stores/supportInboxStore');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * AI-disclosure footer appended to EVERY automatic AI reply (not to human-sent
@@ -62,7 +63,7 @@ async function sendReply(inboxId, thread, opts = {}) {
     if (!inbox.tokens || !inbox.tokens.accessToken) throw new Error('Inbox is not connected — reconnect the mailbox.');
     if (!SUPPORTED_PROVIDERS.has(inbox.provider)) throw new Error(`Unsupported provider: ${inbox.provider}`);
 
-    const onRefresh = (t) => supportInboxStore.updateTokens(inbox.id, t).catch(() => {});
+    const onRefresh = (t) => supportInboxStore.updateTokens(inbox.id, t).catch((e) => fallback('services/supportMailer:onRefresh', e));
     const baseSubject = opts.subject || thread.subject || '(no subject)';
     const subject = /^\s*re:/i.test(baseSubject) ? baseSubject : `Re: ${baseSubject}`;
     const sig = inbox.signature ? String(inbox.signature) : '';

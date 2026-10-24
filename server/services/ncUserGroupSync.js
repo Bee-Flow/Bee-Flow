@@ -28,6 +28,7 @@ const configStore = require('../stores/configStore');
 const { signedConnectorHeaders } = require('../integrations/ncSigning');
 const orgHealth = require('./orgHealth');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 // Org-health code for "the full sync could not read the NC user list". Open
 // while the connection is broken; the backstop backs off on it
@@ -160,7 +161,7 @@ async function _applyUserCreated(org, ncUid) {
                 const ncDisplay = ncUser.displayname || ncUser.displayName;
                 if (ncDisplay && ncDisplay !== existing.displayName) updates.displayName = ncDisplay;
             }
-        } catch (err) { log.debug('leave identity untouched on transient errors', err); }
+        } catch (err) { fallback('services/ncUserGroupSync:_applyUserCreated', err); /* leave identity untouched on transient errors */ }
         // Groups must be resolved BEFORE the reactivation decision below.
         let ncGroups = null;
         try {
@@ -169,7 +170,7 @@ async function _applyUserCreated(org, ncUid) {
             const current = Array.isArray(existing.groups) ? existing.groups.slice().sort() : [];
             const next = expected.slice().sort();
             if (current.join(',') !== next.join(',')) updates.groups = expected;
-        } catch (err) { log.debug('leave groups untouched on transient errors', err); }
+        } catch (err) { fallback('services/ncUserGroupSync:_applyUserCreated#2', err); /* leave groups untouched on transient errors */ }
         // Reactivate only when the sync mode still admits this user.
         //
         // This used to be an unconditional `status = 'active'` at the top of

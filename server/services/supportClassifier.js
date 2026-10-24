@@ -18,6 +18,7 @@
 const supportStore = require('../stores/supportStore');
 const { parseAddress } = require('./email/parse');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // Reserved markers — kept out of band so the inbox/insights views can exclude them.
 const NOT_SUPPORT_TAG = 'not-support';
@@ -119,7 +120,7 @@ async function maybeFilterNonSupport(inbox, thread, message) {
             actorKind: 'automation',
             action: 'classified_not_support',
             payload: { confidence: verdict.confidence, reason: verdict.reason },
-        })).catch(() => {});
+        })).catch((e) => bestEffort('services/supportClassifier:maybeFilterNonSupport', e));
         return { filtered: true, reason: verdict.reason };
     } catch (e) {
         log.warn('[SupportClassifier] maybeFilterNonSupport failed:', e.message);

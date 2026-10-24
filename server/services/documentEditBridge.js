@@ -45,6 +45,7 @@
 
 const { bridgeCore, bridgeDraw } = require('./documentEditBridgeParts');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /* global document, window, parent */
 // The bridge is built from three parts that share one object, B, because the
@@ -143,7 +144,7 @@ function bridgeWire(B) {
         if (!B.isEditing()) return;
         e.preventDefault();
         var text = (e.clipboardData || window.clipboardData).getData('text/plain');
-        try { document.execCommand('insertText', false, text); } catch (err) { log.debug('engine without execCommand', err); }
+        try { document.execCommand('insertText', false, text); } catch (err) { bestEffort('services/documentEditBridge:bridgeWire', err); /* engine without execCommand */ }
     }, true);
     // A link inside an editable document is a navigation waiting to happen.
     document.addEventListener('click', function (e) {

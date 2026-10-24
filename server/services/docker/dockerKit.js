@@ -10,6 +10,7 @@
 
 const fs = require('fs');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Detect whether the server itself is running inside a Docker container.
@@ -19,11 +20,11 @@ const log = require('../../telemetry/log');
 function isServerInContainer() {
     try {
         if (fs.existsSync('/.dockerenv')) return true;
-    } catch (err) { log.debug('ignore', err); }
+    } catch (err) { bestEffort('services/docker/dockerKit:isServerInContainer', err); /* ignore */ }
     try {
         const cgroup = fs.readFileSync('/proc/1/cgroup', 'utf8');
         return /docker|containerd|kubepods/.test(cgroup);
-    } catch (err) { log.debug('not Linux or no /proc — assume native', err); }
+    } catch (err) { bestEffort('services/docker/dockerKit:isServerInContainer#2', err); /* not Linux or no /proc — assume native */ }
     return false;
 }
 
@@ -87,7 +88,7 @@ async function connectSelfToNetwork(docker, network, onError) {
 async function removeContainerIfExists(docker, name, stopTimeoutSec) {
     try {
         const c = docker.getContainer(name);
-        try { await c.stop({ t: stopTimeoutSec }); } catch (err) { log.debug('may already be stopped', err); }
+        try { await c.stop({ t: stopTimeoutSec }); } catch (err) { bestEffort('services/docker/dockerKit:removeContainerIfExists', err); /* may already be stopped */ }
         await c.remove({ force: true });
     } catch (err) {
         if (err.statusCode !== 404) throw err;

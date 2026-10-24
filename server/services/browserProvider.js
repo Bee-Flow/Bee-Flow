@@ -24,6 +24,7 @@
  */
 
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const DEFAULT_DEPS = {
     pwtRunner: require('./pwtRunner'),
@@ -137,7 +138,7 @@ async function withContext(contextOptions, fn) {
     try {
         return await fn(context);
     } finally {
-        try { await context.close(); } catch (err) { log.debug('ignore', err); }
+        try { await context.close(); } catch (err) { bestEffort('services/browserProvider:withContext', err); /* ignore */ }
     }
 }
 
@@ -160,7 +161,7 @@ async function getBrowserEndpoint() {
 async function close() {
     const b = _conn;
     _conn = null;
-    if (b) { try { await b.close(); } catch (err) { log.debug('ignore', err); } }
+    if (b) { try { await b.close(); } catch (err) { bestEffort('services/browserProvider:close', err); /* ignore */ } }
 }
 
 /**

@@ -21,6 +21,7 @@ const crypto = require('crypto');
 const configStore = require('../stores/configStore');
 const githubSyncStore = require('../stores/githubSyncStore');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const GITHUB_API = 'https://api.github.com';
 
@@ -461,7 +462,7 @@ async function syncAll(orgId, userId) {
                 // Skills — delete individual files
                 const basePath = `skills/${del.resource_id}`;
                 for (const f of ['skill.json', 'instructions.md', 'rules.md', 'examples.md', 'workflow.md']) {
-                    try { await deleteFile(token, repoOwner, repoName, `${basePath}/${f}`, `Delete skill ${del.resource_id}`, branch); } catch (err) { log.debug('ok', err); }
+                    try { await deleteFile(token, repoOwner, repoName, `${basePath}/${f}`, `Delete skill ${del.resource_id}`, branch); } catch (err) { bestEffort('services/githubSyncService:syncAll', err); /* ok */ }
                 }
                 await githubSyncStore.removeSyncState(orgId, 'skill', del.resource_id);
             }
@@ -501,7 +502,7 @@ async function syncPending(orgId, userId) {
                 } else {
                     const basePath = `skills/${item.resource_id}`;
                     for (const f of ['skill.json', 'instructions.md', 'rules.md', 'examples.md', 'workflow.md']) {
-                        try { await deleteFile(token, repoOwner, repoName, `${basePath}/${f}`, `Delete skill`, branch); } catch (err) { log.debug('ok', err); }
+                        try { await deleteFile(token, repoOwner, repoName, `${basePath}/${f}`, `Delete skill`, branch); } catch (err) { bestEffort('services/githubSyncService:syncPending', err); /* ok */ }
                     }
                     await githubSyncStore.removeSyncState(orgId, 'skill', item.resource_id);
                 }
@@ -570,7 +571,7 @@ async function _pushSingleResource(orgId, resourceType, resourceId, action) {
         } else {
             const basePath = `skills/${resourceId}`;
             for (const f of ['skill.json', 'instructions.md', 'rules.md', 'examples.md', 'workflow.md']) {
-                try { await deleteFile(token, repoOwner, repoName, `${basePath}/${f}`, `Delete skill`, branch); } catch (err) { log.debug('ok', err); }
+                try { await deleteFile(token, repoOwner, repoName, `${basePath}/${f}`, `Delete skill`, branch); } catch (err) { bestEffort('services/githubSyncService:_pushSingleResource', err); /* ok */ }
             }
             await githubSyncStore.removeSyncState(orgId, 'skill', resourceId);
         }

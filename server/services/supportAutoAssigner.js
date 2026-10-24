@@ -22,6 +22,7 @@ const CACHE_TTL_MS = 60_000;
 
 const { hasSupportPerms: _hasSupport } = require('../support/staffAccess');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 async function _eligibleStaffForOrg(orgId) {
     const key = orgId || '__global__';
@@ -53,7 +54,7 @@ async function _userGroups(userId) {
         if (!u) return [];
         if (Array.isArray(u.groups)) return u.groups;
         if (typeof u.groups === 'string') { try { return JSON.parse(u.groups || '[]'); } catch { return []; } }
-    } catch (err) { log.debug('ignore', err); }
+    } catch (err) { bestEffort('services/supportAutoAssigner:_userGroups', err); /* ignore */ }
     return [];
 }
 

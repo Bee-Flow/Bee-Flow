@@ -24,6 +24,7 @@ const parse = require('./email/parse');
 const supportMailer = require('./supportMailer');
 const { runAiAutoResponder } = require('./supportAiResponder');
 const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const TICK_INTERVAL_MS = parseInt(process.env.SUPPORT_INBOX_TICK_MS || '90000', 10);
 const MAX_CONCURRENT = parseInt(process.env.SUPPORT_INBOX_MAX_CONCURRENT || '3', 10);
@@ -44,7 +45,7 @@ function _emit(event, inboxId, data = {}) {
             _emitEvent = (e, d) => supportEvents.emit('event', { event: e, data: d });
         }
         _emitEvent(event, { ...data, inboxId });
-    } catch (err) { log.debug('never block sync on the event bus', err); }
+    } catch (err) { fallback('services/supportInboxSyncEngine:_emit', err); /* never block sync on the event bus */ }
 }
 
 /**
@@ -118,7 +119,7 @@ async function syncOneInbox(inboxRow) {
         if (!inbox || !inbox.tokens || !inbox.tokens.accessToken) {
             throw new Error('mailbox not connected (no tokens)');
         }
-        const onRefresh = (t) => supportInboxStore.updateTokens(inbox.id, t).catch(() => {});
+        const onRefresh = (t) => supportInboxStore.updateTokens(inbox.id, t).catch((e) => fallback('services/supportInboxSyncEngine:onRefresh', e));
         if (inbox.provider === 'gmail') count = await syncGmail(inbox, onRefresh);
         else if (inbox.provider === 'outlook') count = await syncOutlook(inbox, onRefresh);
         await supportInboxStore.updateSyncState(inbox.id, { syncStatus: 'idle', syncError: null, lastSyncAt: new Date().toISOString() });
@@ -264,7 +265,7 @@ async function ingestNormalized(inbox, n) {
             if (due && (due.first || due.resolution)) {
                 await supportStore.setThreadSla(thread.id, { firstDueAt: due.first, resolutionDueAt: due.resolution });
             }
-        } catch (err) { log.debug('SLA is best-effort', err); }
+        } catch (err) { bestEffort('services/supportInboxSyncEngine:ingestNormalized', err); /* SLA is best-effort */ }
     }
 
     const bodyText = n.text || supportMailer.htmlToText(n.html) || '(no content)';
@@ -287,7 +288,7 @@ async function ingestNormalized(inbox, n) {
         organizationId: inbox.organization_id, inboxId: inbox.id, threadId: thread.id,
         actorKind: 'system', action: 'email_ingested',
         payload: { from: n.from, subject: n.subject, isNew, providerMessageId: n.providerMessageId || null },
-    }).catch(() => {});
+    }).catch((e) => bestEffort('services/supportInboxSyncEngine:ingestNormalized#2', e));
 
     if (!isNew) {
         // A new inbound message always returns the ticket to the agent queue.
@@ -302,7 +303,7 @@ async function ingestNormalized(inbox, n) {
             await supportStore.recordThreadEvent({
                 threadId: thread.id, actorKind: 'requester', action: 'reopened',
                 payload: { from: thread.status },
-            }).catch(() => {});
+            }).catch((e) => bestEffort('services/supportInboxSyncEngine:ingestNormalized#3', e));
         }
     }
     _emit(isNew ? 'thread_created' : 'thread_updated', inbox.id, { threadId: thread.id });
@@ -354,7 +355,7 @@ async function triggerAi(inbox, thread) {
     // AI auto-resolved the ticket → fire the resolved trigger (the responder
     // transitioned status without going through the route, so dispatch here).
     if (result && result.resolved) {
-        dispatchResolved(inbox, thread.id).catch(() => {});
+        dispatchResolved(inbox, thread.id).catch((e) => bestEffort('services/supportInboxSyncEngine:triggerAi', e));
     }
 }
 

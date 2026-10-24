@@ -18,6 +18,7 @@ const supportInboxStore = require('../stores/supportInboxStore');
 const { gmailClientFromTokens, graphFetchFromTokens } = require('./email/providerClients');
 const parse = require('./email/parse');
 const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const SCAN_TICK_MS = parseInt(process.env.SUPPORT_SCAN_TICK_MS || '30000', 10);
 const DEFAULT_WINDOW_DAYS = parseInt(process.env.SUPPORT_SCAN_WINDOW_DAYS || '180', 10);
@@ -35,7 +36,7 @@ function _emit(event, inboxId, data = {}) {
             _emitEvent = (e, d) => supportEvents.emit('event', { event: e, data: d });
         }
         _emitEvent(event, { ...data, inboxId });
-    } catch (err) { log.debug('never block the scan on the event bus', err); }
+    } catch (err) { fallback('services/supportInboxScanEngine:_emit', err); /* never block the scan on the event bus */ }
 }
 
 function _percentile(sorted, p) {
@@ -167,9 +168,9 @@ async function runScanForInbox(inboxRow) {
     try {
         const inbox = await supportInboxStore.getInboxWithTokens(inboxRow.id);
         if (!inbox || !inbox.tokens || !inbox.tokens.accessToken) throw new Error('mailbox not connected (no tokens)');
-        const onRefresh = (t) => supportInboxStore.updateTokens(inbox.id, t).catch(() => {});
+        const onRefresh = (t) => supportInboxStore.updateTokens(inbox.id, t).catch((e) => fallback('services/supportInboxScanEngine:onRefresh', e));
         const onProgress = (p) => {
-            supportInboxStore.setScanState(inbox.id, { progress: { ...p, startedAt } }).catch(() => {});
+            supportInboxStore.setScanState(inbox.id, { progress: { ...p, startedAt } }).catch((e) => bestEffort('services/supportInboxScanEngine:onProgress', e));
             _emit('scan_progress', inbox.id, p);
         };
         await supportInboxStore.setScanState(inbox.id, { status: 'running', progress: { processedThreads: 0, pairsFound: 0, startedAt } });
@@ -192,11 +193,11 @@ async function runScanForInbox(inboxRow) {
         return true;
     } catch (e) {
         log.warn(`[SupportScan] inbox ${inboxRow.id}:`, e.message);
-        await supportInboxStore.setScanState(inboxRow.id, { status: 'error', progress: { error: String(e.message).slice(0, 300), finishedAt: new Date().toISOString() } }).catch(() => {});
+        await supportInboxStore.setScanState(inboxRow.id, { status: 'error', progress: { error: String(e.message).slice(0, 300), finishedAt: new Date().toISOString() } }).catch((e) => bestEffort('services/supportInboxScanEngine:runScanForInbox', e));
         _emit('scan_done', inboxRow.id, { ok: false, error: String(e.message).slice(0, 200) });
         return false;
     } finally {
-        await supportInboxStore.releaseScanLock(inboxRow.id).catch(() => {});
+        await supportInboxStore.releaseScanLock(inboxRow.id).catch((e) => bestEffort('services/supportInboxScanEngine:runScanForInbox#2', e));
     }
 }
 

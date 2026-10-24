@@ -43,6 +43,7 @@ const {
     isServerInContainer, imageExists, pullImage, ensureNetwork: ensureNamedNetwork,
     connectSelfToNetwork: connectSelf, removeContainerIfExists: removeContainer,
 } = require('./docker/dockerKit');
+const { fallback: fallbackSwallowed, bestEffort } = require('../utils/bestEffort');
 
 // ── Gate + tunables ─────────────────────────────────────────────────────────
 
@@ -224,18 +225,18 @@ async function hydrateProject(webpageId, userId, workdir) {
         count++;
     };
 
-    const slots = await webpageStore.readAllSlots(userId, webpageId).catch(() => ({}));
+    const slots = await webpageStore.readAllSlots(userId, webpageId).catch((e) => fallbackSwallowed('services/webpageRuntimeManager:hydrateProject', e, {}));
     if (slots.html) await writeFile('index.html', slots.html);
     if (slots.css) await writeFile('style.css', slots.css);
     if (slots.js) await writeFile('script.js', slots.js);
 
-    const extras = await webpageStore.listExtraFiles(webpageId).catch(() => []);
+    const extras = await webpageStore.listExtraFiles(webpageId).catch((e) => fallbackSwallowed('services/webpageRuntimeManager:hydrateProject#2', e, []));
     for (const meta of extras) {
         try {
             const f = await webpageStore.readExtraFile({ webpageId, userId, path: meta.path });
             if (!f) continue;
             await writeFile(meta.path, f.meta.isText ? f.text : f.bytes);
-        } catch (err) { log.debug('skip individual file failures', err); }
+        } catch (err) { bestEffort('services/webpageRuntimeManager:hydrateProject#3', err); /* skip individual file failures */ }
     }
     return count;
 }
@@ -277,7 +278,7 @@ function withOrgLock(orgId, fn) {
     // The chain's tail must never reject (or every later caller for this org
     // would inherit a stale rejection) — the real error/result still reaches
     // this call's own caller via `result`.
-    orgLocks.set(orgId, result.catch(() => {}));
+    orgLocks.set(orgId, result.catch((e) => fallbackSwallowed('services/webpageRuntimeManager:withOrgLock', e)));
     return result;
 }
 
@@ -365,12 +366,12 @@ async function createRuntime({ webpageId, userId, orgId }) {
     } else {
         const info = await container.inspect();
         const binding = info?.NetworkSettings?.Ports?.[`${DEV_PORT}/tcp`]?.[0];
-        if (!binding?.HostPort) { await container.remove({ force: true }).catch(() => {}); throw new Error('dev container did not publish a port'); }
+        if (!binding?.HostPort) { await container.remove({ force: true }).catch((e) => bestEffort('services/webpageRuntimeManager:createRuntime', e)); throw new Error('dev container did not publish a port'); }
         reachableHost = `127.0.0.1:${binding.HostPort}`;
     }
 
     await waitForReady(reachableHost).catch(async (e) => {
-        await container.remove({ force: true }).catch(() => {});
+        await container.remove({ force: true }).catch((e) => bestEffort('services/webpageRuntimeManager:createRuntime#2', e));
         throw e;
     });
 
@@ -390,7 +391,7 @@ async function waitForReady(reachableHost) {
             const res = await fetch(url, { signal: ctrl.signal });
             clearTimeout(t);
             if (res.status > 0) return true;
-        } catch (err) { log.debug('not up yet', err); }
+        } catch (err) { bestEffort('services/webpageRuntimeManager:waitForReady', err); /* not up yet */ }
         await new Promise(r => setTimeout(r, 750));
     }
     throw new Error('dev server did not become ready in time');
@@ -408,9 +409,9 @@ async function stopRuntime(webpageId) {
     const e = runtimes.get(webpageId);
     runtimes.delete(webpageId);
     if (!(await dockerAvailable())) return;
-    try { await removeContainerIfExists(getDocker(), containerName(webpageId)); } catch (err) { log.debug('ignore', err); }
+    try { await removeContainerIfExists(getDocker(), containerName(webpageId)); } catch (err) { bestEffort('services/webpageRuntimeManager:stopRuntime', err); /* ignore */ }
     if (e) {
-        try { await fsp.rm(path.join(WORK_ROOT, String(webpageId)), { recursive: true, force: true }); } catch (err) { log.debug('ignore', err); }
+        try { await fsp.rm(path.join(WORK_ROOT, String(webpageId)), { recursive: true, force: true }); } catch (err) { bestEffort('services/webpageRuntimeManager:stopRuntime#2', err); /* ignore */ }
     }
 }
 
@@ -480,7 +481,7 @@ async function reapIdle() {
 let _reaperTimer = null;
 function startReaper() {
     if (!isEnabled() || _reaperTimer) return;
-    _reaperTimer = setInterval(() => { reapIdle().catch(() => {}); }, 60_000);
+    _reaperTimer = setInterval(() => { reapIdle().catch((e) => bestEffort('services/webpageRuntimeManager:startReaper', e)); }, 60_000);
     _reaperTimer.unref?.();
 }
 function stopReaper() {

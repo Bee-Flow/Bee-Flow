@@ -64,6 +64,7 @@ function throttleKey(threadId, event) {
 }
 
 const { clientHost, adminSupportInboxPath, adminSupportTicketPath } = require('../utils/appPaths');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 /**
  * getConfig JSON-parses what setConfig stored, so the route's 'true' comes back
@@ -102,7 +103,7 @@ async function getSettings() {
 async function getPublicSettings() {
     const s = await getSettings();
     let host = null;
-    try { if (s.url) host = new URL(s.url).host; } catch (err) { log.debug('malformed: shown as configured-but-broken', err); }
+    try { if (s.url) host = new URL(s.url).host; } catch (err) { fallback('services/outboundChatNotifier:getPublicSettings', err); /* malformed: shown as configured-but-broken */ }
     return {
         configured: !!s.url,
         enabled: s.enabled,
@@ -236,7 +237,7 @@ async function subjectMayTravel(thread, event) {
         actorKind: 'system',
         action: 'chat_subject_withheld',
         payload: { event, findings: (screen.findings || []).map(f => f.category), scanned: !!screen.scanned },
-    }).catch(() => {});
+    }).catch((e) => bestEffort('services/outboundChatNotifier:subjectMayTravel', e));
     return false;
 }
 
@@ -271,7 +272,7 @@ async function notify({ thread, event, detail = null, force = false }) {
             actorKind: 'system',
             action: 'chat_notification_sent',
             payload: { event, provider: s.provider },
-        }).catch(() => {});
+        }).catch((e) => bestEffort('services/outboundChatNotifier:notify', e));
         return { sent: true };
     } catch (err) {
         // A notification that fails silently is worse than none: the team
@@ -283,7 +284,7 @@ async function notify({ thread, event, detail = null, force = false }) {
             actorKind: 'system',
             action: 'chat_notification_failed',
             payload: { event, provider: s.provider, error: err.message },
-        }).catch(() => {});
+        }).catch((e) => bestEffort('services/outboundChatNotifier:notify#2', e));
         return { sent: false, reason: err.message };
     }
 }

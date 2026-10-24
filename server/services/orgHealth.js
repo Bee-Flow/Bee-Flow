@@ -22,6 +22,7 @@
 
 const { sanitizeError } = require('../core/privacy/errorSanitizer');
 const log = require('../telemetry/log');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 // Lazy store indirection so tests can inject a stub without ever loading the
 // real store (which would open a pg pool). _setStore(null) restores the real one.
@@ -350,7 +351,7 @@ async function _problemAsync(code, opts) {
             meta: (result && result.count > 1) ? { ...meta, occurrenceCount: result.count } : meta,
             ip: _clientIp(opts.req),
         });
-    } catch (err) { log.debug('swallow', err); }
+    } catch (err) { bestEffort('services/orgHealth:_problemAsync', err); /* swallow */ }
 }
 
 /**
@@ -360,7 +361,7 @@ async function _problemAsync(code, opts) {
  */
 function problem(code, opts = {}) {
     try {
-        return _problemAsync(code, opts || {}).catch(() => { });
+        return _problemAsync(code, opts || {}).catch((e) => fallback('services/orgHealth:problem', e));
     } catch (_) {
         return Promise.resolve();
     }
@@ -384,7 +385,7 @@ async function _eventAsync(code, opts) {
             meta: _sanitizeMeta(opts.meta),
             ip: _clientIp(opts.req),
         });
-    } catch (err) { log.debug('swallow', err); }
+    } catch (err) { bestEffort('services/orgHealth:_eventAsync', err); /* swallow */ }
 }
 
 /**
@@ -394,7 +395,7 @@ async function _eventAsync(code, opts) {
  */
 function event(code, opts = {}) {
     try {
-        return _eventAsync(code, opts || {}).catch(() => { });
+        return _eventAsync(code, opts || {}).catch((e) => fallback('services/orgHealth:event', e));
     } catch (_) {
         return Promise.resolve();
     }
@@ -425,7 +426,7 @@ async function _resolveAsync(subjectOrOrgId, codes, { resolvedBy = 'system', app
                 message: `Resolved: ${list.join(', ')}`,
                 meta: { codes: list },
             });
-        } catch (err) { log.debug('swallow', err); }
+        } catch (err) { bestEffort('services/orgHealth:_resolveAsync', err); /* swallow */ }
     }
     return count;
 }
@@ -491,7 +492,7 @@ async function _touchLivenessAsync(orgId, kind, { connectorVersion } = {}) {
     _capMap(_livenessMarks);
     try {
         await _getStore().touchLiveness(String(orgId), { [k]: true, connectorVersion: connectorVersion || null });
-    } catch (err) { log.debug('swallow', err); }
+    } catch (err) { bestEffort('services/orgHealth:_touchLivenessAsync', err); /* swallow */ }
 }
 
 /**
@@ -501,7 +502,7 @@ async function _touchLivenessAsync(orgId, kind, { connectorVersion } = {}) {
  */
 function touchLiveness(orgId, kind = 'authOk', opts = {}) {
     try {
-        return _touchLivenessAsync(orgId, kind, opts || {}).catch(() => { });
+        return _touchLivenessAsync(orgId, kind, opts || {}).catch((e) => fallback('services/orgHealth:touchLiveness', e));
     } catch (_) {
         return Promise.resolve();
     }

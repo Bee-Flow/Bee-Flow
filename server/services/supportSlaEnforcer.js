@@ -15,6 +15,7 @@
 const supportStore = require('../stores/supportStore');
 const notificationStore = require('../stores/notificationStore');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 let _timer = null;
 
@@ -36,7 +37,7 @@ async function computeSlaDueAt(thread) {
 async function _notifyBreach(row, which) {
     // Lazy-require to avoid a circular dependency (routes/support requires this).
     let notifyStaff;
-    try { notifyStaff = require('../support/notifications').notifyStaff; } catch (err) { log.debug('noop', err); }
+    try { notifyStaff = require('../support/notifications').notifyStaff; } catch (err) { if (err?.code !== 'MODULE_NOT_FOUND') throw err; log.debug('noop', err); }
     const label = which === 'first' ? 'First-response' : 'Resolution';
     try {
         await supportStore.recordThreadEvent(/** @type {any} */ ({
@@ -60,7 +61,7 @@ async function _notifyBreach(row, which) {
             category: 'urgent',
             title: `SLA breach: ${row.subject}`,
             message: `${label} SLA missed`,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('services/supportSlaEnforcer:_notifyBreach', e));
     }
     // The team chat channel, when an admin ticked "An SLA is breached". Company
     // inbox only: this sweep covers every organisation's inbox, and a customer
@@ -72,7 +73,7 @@ async function _notifyBreach(row, which) {
             if (thread) {
                 require('./outboundChatNotifier')
                     .notify({ thread, event: 'sla_breach', detail: `${label} SLA missed` })
-                    .catch(() => {});
+                    .catch((e) => bestEffort('services/supportSlaEnforcer:_notifyBreach#2', e));
             }
         } catch (e) { log.warn('[SupportSLA] chat notification skipped:', e.message); }
     }
@@ -80,7 +81,7 @@ async function _notifyBreach(row, which) {
         require('../support/events').supportEvents.emit('event', {
             event: 'thread_updated', data: { threadId: row.id },
         });
-    } catch (err) { log.debug('noop', err); }
+    } catch (err) { bestEffort('services/supportSlaEnforcer:_notifyBreach#3', err); /* noop */ }
 }
 
 async function slaTick() {
