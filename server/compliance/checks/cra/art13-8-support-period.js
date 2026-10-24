@@ -31,6 +31,7 @@
 
 const db = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const RENEWAL_HORIZON_DAYS = 365;
 const DAY_MS = 86400e3;
@@ -57,7 +58,7 @@ function _daysUntil(dateOnly, now) {
 }
 
 function _isNotProvisioned(e) {
-    return e && (e.code === '42703' || e.code === '42P01');
+    return isMissingTable(e);
 }
 
 /**

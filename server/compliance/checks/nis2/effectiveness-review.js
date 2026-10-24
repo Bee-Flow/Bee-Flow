@@ -15,12 +15,12 @@
 
 const { getOne } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const DAY = 86400 * 1000;
 const REVIEW_OK_DAYS = 365;
 const REVIEW_GRACE_DAYS = 540;
 const SWEEP_FRESH_DAYS = 7;
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
@@ -37,7 +37,7 @@ async function _latest(sql, orgId) {
         const t = new Date(v).getTime();
         return { at: Number.isFinite(t) ? new Date(t).toISOString() : null, provisioned: true };
     } catch (e) {
-        if (NOT_PROVISIONED.has(e?.code)) return { at: null, provisioned: false };
+        if (isMissingTable(e)) return { at: null, provisioned: false };
         throw e;
     }
 }

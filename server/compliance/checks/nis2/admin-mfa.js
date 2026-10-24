@@ -19,11 +19,11 @@ const { getAll } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
 const configStore = require('../../../stores/configStore');
 const { configuredSsoProviders } = require('../../lib/ssoProviders');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 // users."orgRole" values that make someone an org admin (auth/permissions.js
 // ORG_ADMIN_VARIANTS: the current 'org_admin' and the legacy 'admin').
 const ORG_ADMIN_ROLES = ['org_admin', 'admin'];
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
@@ -79,7 +79,7 @@ module.exports = {
                   AND COALESCE(status, 'active') <> 'suspended'
             `, [orgId, ORG_ADMIN_ROLES]);
         } catch (e) {
-            if (NOT_PROVISIONED.has(e?.code)) {
+            if (isMissingTable(e)) {
                 return {
                     status: 'warn',
                     evidence: { provisioned: false, missing: e.code },

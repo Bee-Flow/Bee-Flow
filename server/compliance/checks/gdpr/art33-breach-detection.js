@@ -21,9 +21,9 @@
 
 const complianceStore = require('../../../stores/complianceStore');
 const incidentStore = require('../../../stores/incidentStore');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 // Undefined table / column: the registry is not provisioned on this install.
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 module.exports = {
     id: 'GDPR-Art33-breach-detection',
@@ -49,7 +49,7 @@ module.exports = {
             deadlines = await incidentStore.getDeadlineStats(orgId);
         } catch (e) {
             // Not provisioned: readiness signal only. Anything else: unknown.
-            if (!NOT_PROVISIONED.has(e?.code)) registryError = e?.code || 'unknown';
+            if (!isMissingTable(e)) registryError = e?.code || 'unknown';
         }
         // The Art. 33 clock only; the roll-up is a fallback for a store (or a
         // stub) that does not report the GDPR counts.

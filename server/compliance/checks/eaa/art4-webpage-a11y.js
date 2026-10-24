@@ -36,10 +36,10 @@ const { getAll } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
 const htmlLint = require('../../a11y/htmlLint');
 const { errorLabel } = require('../../lib/errorShape');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const SUBJECT_CAP = 200;
 const MAX_HTML_BYTES = 2 * 1024 * 1024;
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
@@ -81,7 +81,7 @@ async function _webpageSubjects(orgId, limit) {
             [orgId, limit + 1]
         );
     } catch (e) {
-        if (NOT_PROVISIONED.has(e?.code)) return { subjects: [], total: 0, skipped: 'webpages not provisioned' };
+        if (isMissingTable(e)) return { subjects: [], total: 0, skipped: 'webpages not provisioned' };
         throw e;
     }
     const subjects = rows.slice(0, limit).map(r => {
@@ -266,7 +266,7 @@ module.exports = {
                 if (!/<html[\s>]/i.test(html)) html = _wrapFragment(html);
             }
         } catch (e) {
-            if (NOT_PROVISIONED.has(e?.code)) {
+            if (isMissingTable(e)) {
                 return { status: 'warn', evidence: { ...extra, subject_id: subject.id, reason: 'not provisioned yet' }, details: 'not provisioned yet' };
             }
             // Class and code only: a store or driver message can quote values (lib/errorShape.js).

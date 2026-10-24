@@ -22,12 +22,12 @@
 
 const { getAll, getOne } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const REQUIRED_SLUGS = ['acceptable-use', 'information-security-policy'];
 const ATTEST_MAX_DAYS = 365;
 const PASS_PCT = 90;
 const WARN_PCT = 60;
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
@@ -101,7 +101,7 @@ module.exports = {
                 ) m
             `, [orgId, REQUIRED_SLUGS, REQUIRED_SLUGS.length, String(ATTEST_MAX_DAYS)]);
         } catch (e) {
-            if (NOT_PROVISIONED.has(e?.code)) {
+            if (isMissingTable(e)) {
                 return {
                     status: 'warn',
                     evidence: { provisioned: false, missing: e.code },

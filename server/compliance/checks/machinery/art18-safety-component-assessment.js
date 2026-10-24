@@ -37,9 +37,9 @@
 
 const complianceStore = require('../../../stores/complianceStore');
 const detector = require('../../detectors/industrialIntegrations');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const MAX_AGE_DAYS = 365;
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 const CLASSIFICATIONS = new Set(['safety_component', 'monitoring_only', 'not_safety_component']);
 const MARKER_RE = /^\s*\[\s*(safety_component|monitoring_only|not_safety_component)\s*\]/i;
 
@@ -181,7 +181,7 @@ module.exports = {
         try {
             row = await _latestAttestation(orgId, module.exports.id, subject.id);
         } catch (e) {
-            if (NOT_PROVISIONED.has(e?.code)) {
+            if (isMissingTable(e)) {
                 return { status: 'warn', evidence: { ...evidence, reason: 'not provisioned yet' }, details: 'not provisioned yet' };
             }
             throw e;

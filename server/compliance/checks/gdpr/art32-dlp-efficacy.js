@@ -35,13 +35,13 @@
 
 const { getOne } = require('../../../db');
 const configStore = require('../../../stores/configStore');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const WINDOW_DAYS = 30;
 const MIN_TRAFFIC = 25; // below this, silence is expected, not suspicious
 // undefined_table / undefined_column: this install has no such ledger yet.
 // Every other SQLSTATE (a timeout, a dropped connection, a permission error)
 // means the ledger exists and the count FAILED — which is not zero.
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 /**
  * The org id under which the platform files everything that belongs to NO
@@ -196,7 +196,7 @@ async function _countInWindow(table, orgId) {
         const row = await getOne(sql, scoped ? [orgId] : []);
         return { count: row?.c ?? 0, unattributed: row?.unattributed ?? 0, missing: false, error_code: null };
     } catch (e) {
-        if (NOT_PROVISIONED.has(e?.code)) {
+        if (isMissingTable(e)) {
             return { count: null, unattributed: null, missing: true, error_code: e.code };
         }
         // Only the SQLSTATE — a driver message can echo query values into the

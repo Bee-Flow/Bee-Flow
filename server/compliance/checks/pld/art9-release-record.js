@@ -44,6 +44,7 @@ const sbomLocator = require('../../lib/sbomLocator');
 const { APP_BUILD_SHA } = require('../../../utils/buildInfo');
 const { APP_VERSION } = require('../../../version');
 const telemetryLog = require('../../../telemetry/log');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const GRACE_DAYS = 7;
 const DAY_MS = 86400e3;
@@ -51,7 +52,7 @@ const SUBJECT_LIMIT = 200;
 const PLATFORM_SUBJECT_ID = 'platform';
 
 function _isNotProvisioned(e) {
-    return e && (e.code === '42703' || e.code === '42P01');
+    return isMissingTable(e);
 }
 
 function _ts(value) {

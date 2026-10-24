@@ -23,12 +23,12 @@
 
 const { getAll, getOne } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const REQUIRED_SLUGS = ['supplier-security', 'incident-response', 'business-continuity', 'information-security-policy'];
 const SWEEP_FRESH_DAYS = 7;
 const BUNDLE_ACTIONS = ['evidence_bundle_exported', 'evidence_bundle_generated'];
 const DAY = 86400 * 1000;
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
@@ -84,7 +84,7 @@ module.exports = {
                       WHERE organization_id = $1 AND payload->>'action' = ANY($2)) AS last_bundle_export_at
             `, [orgId, BUNDLE_ACTIONS]);
         } catch (e) {
-            if (NOT_PROVISIONED.has(e?.code)) {
+            if (isMissingTable(e)) {
                 return {
                     status: 'warn',
                     evidence: { provisioned: false, missing: e.code },

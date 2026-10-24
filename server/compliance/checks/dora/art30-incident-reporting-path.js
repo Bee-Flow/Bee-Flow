@@ -37,11 +37,11 @@
 const { getAll } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
 const incidentStore = require('../../../stores/incidentStore');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const HOUR = 3600 * 1000;
 const DEFAULT_NOTICE_HOURS = 4;
 const URGENT_HOURS = 1;
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 function _relevance(settings) {
     let rel = settings && settings.framework_relevance;
@@ -90,7 +90,7 @@ async function _openDoraIncidents(orgId) {
                 return { rows: rows.filter(r => r && r.status !== 'closed' && _isDora(r)), source: 'incidentStore.listOpenClocks' };
             }
         } catch (e) {
-            if (!NOT_PROVISIONED.has(e?.code)) throw e;
+            if (!isMissingTable(e)) throw e;
             return { rows: null, source: 'incidentStore.listOpenClocks', missing: e.code };
         }
     }
@@ -106,7 +106,7 @@ async function _openDoraIncidents(orgId) {
         `, [orgId]);
         return { rows, source: 'query' };
     } catch (e) {
-        if (NOT_PROVISIONED.has(e?.code)) return { rows: null, source: 'query', missing: e.code };
+        if (isMissingTable(e)) return { rows: null, source: 'query', missing: e.code };
         throw e;
     }
 }

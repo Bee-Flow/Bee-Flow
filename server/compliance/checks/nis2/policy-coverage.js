@@ -17,6 +17,7 @@
 
 const { getAll } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const LETTER_SLUGS = Object.freeze({
     a: ['risk-management', 'information-security-policy'],
@@ -31,7 +32,6 @@ const LETTER_SLUGS = Object.freeze({
     j: ['access-control'],
 });
 const ALL_SLUGS = Array.from(new Set(Object.values(LETTER_SLUGS).flat()));
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
@@ -73,7 +73,7 @@ module.exports = {
                 WHERE organization_id = $1 AND slug = ANY($2)
             `, [orgId, ALL_SLUGS]);
         } catch (e) {
-            if (NOT_PROVISIONED.has(e?.code)) {
+            if (isMissingTable(e)) {
                 return {
                     status: 'warn',
                     evidence: { provisioned: false, missing: e.code },

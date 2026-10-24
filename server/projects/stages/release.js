@@ -39,6 +39,7 @@
 const { HttpError } = require('../../core/http/errors');
 const { stableStringify, hashOf } = require('./model');
 const { fallback } = require('../../utils/bestEffort');
+const { isMissingTable } = require('../../utils/isMissingTable');
 
 const MAX_CUT_ATTEMPTS = 3;
 const MAX_NOTE_TEXT = 4000;
@@ -64,7 +65,7 @@ function connectionIdsOf(definitions) {
 
 async function tolerantRows(q, sql, params) {
     try { return rowsOf(await q.query(sql, params)); } catch (err) {
-        if (err && (err.code === '42P01' || err.code === '42703')) return [];
+        if (isMissingTable(err)) return [];
         throw err;
     }
 }

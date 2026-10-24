@@ -23,12 +23,12 @@
 
 const { getOne } = require('../../../db');
 const configStore = require('../../../stores/configStore');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const WINDOW_DAYS = 30;
 const MIN_TRAFFIC = 25; // below this, a silent guardrail log proves nothing
 // Not provisioned on this install (undefined table or column). Every other
 // SQLSTATE is a count that FAILED, which is not zero.
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 // The bucket the platform files org-less rows under (routes/compliance/shared.js
 // resolveOrgId); it is not a tenant.
 const NO_ORG_ORG_ID = 'default';
@@ -57,7 +57,7 @@ async function _read(sql, scope) {
     try {
         return { row: (await getOne(sql, [scope])) || null };
     } catch (e) {
-        if (NOT_PROVISIONED.has(e?.code)) return { row: null, missing: true };
+        if (isMissingTable(e)) return { row: null, missing: true };
         return { row: null, failed: e?.code || 'unknown' };
     }
 }

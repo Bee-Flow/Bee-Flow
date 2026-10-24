@@ -18,6 +18,7 @@
 const { getOne } = require('../../../db');
 const { addCalendarMonths } = require('../../../utils/calendarMonths');
 const { LEDGER_ORG_SQL } = require('../../../stores/integrationLocationSql');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const REQUIRED_MONTHS = 6;
 const DAY_MS = 86400 * 1000;
@@ -30,7 +31,6 @@ function requiredDays(nowMs) {
 // undefined_table / undefined_column: the ledger is not provisioned on this
 // install. Any other SQLSTATE is a FAILED read, and "could not read the logs"
 // must never be reported as "no logs recorded yet".
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 /**
  * `{ age }` in whole days (null: no rows or not provisioned), plus `failed`
@@ -45,7 +45,7 @@ async function _oldestAgeDays(table, orgScoped, orgId) {
             : await getOne(`SELECT EXTRACT(EPOCH FROM (NOW() - MIN(timestamp))) / 86400 AS age FROM ${table}`);
         return { age: row?.age == null ? null : Math.floor(Number(row.age)) };
     } catch (e) {
-        return NOT_PROVISIONED.has(e?.code) ? { age: null } : { age: null, failed: e?.code || 'unknown' };
+        return isMissingTable(e) ? { age: null } : { age: null, failed: e?.code || 'unknown' };
     }
 }
 

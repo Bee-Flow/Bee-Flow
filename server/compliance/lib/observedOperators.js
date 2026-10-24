@@ -32,6 +32,7 @@ const configStore = require('../../stores/configStore');
 const { SUPPLIER_ROW, LEDGER_ORG_SQL } = require('../../stores/integrationLocationSql');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
+const { isMissingTable } = require('../../utils/isMissingTable');
 
 const WINDOW_DAYS = 30;
 
@@ -41,7 +42,6 @@ const WINDOW_DAYS = 30;
  * with "no ledger". A timeout or a dropped connection is a failed read, and
  * that is not the same claim.
  */
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 // LEDGER_ORG_SQL, the org filter for `integration_activity_log` (the 'default'
 // bucket also owns org-less rows), lives in stores/integrationLocationSql.js
@@ -102,7 +102,7 @@ async function fromActivityLog(orgId, { withCountry = false } = {}) {
             GROUP BY COALESCE(operator, 'unknown')
         `, [orgId]);
     } catch (e) {
-        if (NOT_PROVISIONED.has(e?.code)) return null;
+        if (isMissingTable(e)) return null;
         throw e;
     }
 }

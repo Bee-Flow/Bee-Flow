@@ -61,6 +61,7 @@ const { getAll, run } = require('../../../db');
 const { classifyDisclosure, applyVerdict } = require('../../../core/privacy/disclosureClassifier');
 const log = require('../../../telemetry/log');
 const pd = require('../../projects/projectData');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const DISCLOSURE_PATTERNS = [
     /\bI['’]?m an AI\b/i,
@@ -142,7 +143,6 @@ async function _defaultLocale() {
 // undefined_table / undefined_column. Anything else (a dropped connection, a
 // statement timeout, a permission error) is a FAILED READ and must never be
 // reported as "nothing to assess".
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 /**
  * Wall-clock budget for the whole consult phase, not per call.
@@ -189,7 +189,7 @@ async function _missingForOrg(orgId, { consult = false, classify = classifyDiscl
             FROM agents WHERE is_published = TRUE${orgId ? ` AND ${pd.orgMatch('organization_id')}` : ''}
         `, orgId ? [orgId] : []);
     } catch (e) {
-        if (NOT_PROVISIONED.has(e?.code)) {
+        if (isMissingTable(e)) {
             return { agents: [], missing: [], tableMissing: true };
         }
         return { agents: [], missing: [], readFailed: { code: e?.code || null } };

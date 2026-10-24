@@ -34,12 +34,12 @@
 const { getAll } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
 const incidentStore = require('../../../stores/incidentStore');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const HOUR = 3600 * 1000;
 const URGENT_HOURS = 6;
 // NIS2 Art. 23(4)(b): incident notification within 72 h of becoming aware.
 const NOTIFICATION_HOURS = 72;
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
@@ -68,7 +68,7 @@ async function _openNis2Incidents(orgId) {
                 return { rows: rows.filter(r => r && r.status !== 'closed' && _isNis2(r)), source: 'incidentStore.listOpenClocks' };
             }
         } catch (e) {
-            if (!NOT_PROVISIONED.has(e?.code)) throw e;
+            if (!isMissingTable(e)) throw e;
             return { rows: null, source: 'incidentStore.listOpenClocks', missing: e.code };
         }
     }
@@ -86,7 +86,7 @@ async function _openNis2Incidents(orgId) {
         `, [orgId]);
         return { rows, source: 'query' };
     } catch (e) {
-        if (NOT_PROVISIONED.has(e?.code)) return { rows: null, source: 'query', missing: e.code };
+        if (isMissingTable(e)) return { rows: null, source: 'query', missing: e.code };
         throw e;
     }
 }

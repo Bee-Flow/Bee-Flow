@@ -47,6 +47,7 @@ const db = require('../../db');
 const { errorLabel } = require('../lib/errorShape');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
+const { isMissingTable } = require('../../utils/isMissingTable');
 
 const HEURISTICS_VERSION = '1.0.0';
 const ACTIVITY_WINDOW_DAYS = 90;
@@ -110,7 +111,7 @@ const URL_RE = /\b([a-z][a-z0-9+.-]{1,20}):\/\/([^\s"'<>\\)\]}]+)/gi;
 const HOSTPORT_RE = /(?:^|[\s"'=(\[{,])((?:\d{1,3}\.){3}\d{1,3}|[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?)*\.?):(\d{2,5})(?![\d.])/gi;
 
 function _isNotProvisioned(e) {
-    return !!e && (e.code === '42703' || e.code === '42P01');
+    return isMissingTable(e);
 }
 
 function _stripUserinfo(hostPart) {

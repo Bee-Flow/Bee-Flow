@@ -18,11 +18,11 @@ const complianceStore = require('../../../stores/complianceStore');
 const { canonical } = require('../../lib/observedOperators');
 const pd = require('../../projects/projectData');
 const log = require('../../../telemetry/log');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 // undefined_table / undefined_column: the agent register is not provisioned
 // yet. Any other SQLSTATE is a FAILED read: the inventory would then pass on
 // the providers alone while the agents' models went unlisted.
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 /**
  * The AI-Act classification register (stores/aiActAssessmentStore) rides
@@ -105,7 +105,7 @@ module.exports = {
                 [scope],
             );
         } catch (e) {
-            if (!NOT_PROVISIONED.has(e?.code)) {
+            if (!isMissingTable(e)) {
                 // Only the SQLSTATE goes into the evidence: a driver message
                 // can echo query values.
                 const code = e?.code || null;

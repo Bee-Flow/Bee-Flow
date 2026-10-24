@@ -507,6 +507,44 @@ export function rewriteText(text, file, buckets) {
 }
 
 
+// ── hand-written 42P01 / 42703 checks ─────────────────────────────────────────
+
+const ESC = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const SET_DECL = /^[ \t]*const (\w+) = new Set\(\s*\[\s*(?:'42P01'\s*,\s*'42703'|'42703'\s*,\s*'42P01')\s*,?\s*\]\s*\);?[ \t]*\n/gm;
+// `e && (e.code === '42703' || e.code === '42P01')`, optional chaining and either order, with or without `!!`.
+const PAIR_CHECK = /(?:!!\s*)?\b([\w$]+)\s*(?:&&\s*)?\(?\s*\1\??\.code === '(42P01|42703)'\s*\|\|\s*\1\??\.code === '(?:42P01|42703)'\s*\)?/g;
+
+/**
+ * Replace the hand-written "table or column missing" checks that test both codes with isMissingTable():
+ * a `new Set(['42P01', '42703'])` consulted as `NAME.has(x.code)`, and the inline pair of comparisons.
+ * A check of 42P01 alone stays: isMissingTable also answers true for a missing column.
+ * @returns {{ text: string|null, applied: number }}
+ */
+export function dedupeMissingTable(text, file) {
+    const ts = loadTs();
+    if (/\bisMissingTable\b/.test(text)) return { text: null, applied: 0 };
+    let out = text;
+    let applied = 0;
+    for (const m of [...text.matchAll(SET_DECL)]) {
+        const name = m[1];
+        const has = new RegExp(`\\b${ESC(name)}\\.has\\(\\s*([\\w$.?]+?)\\??\\.code\\s*\\)`, 'g');
+        out = out.replace(has, (_, expr) => { applied++; return `isMissingTable(${expr.replace(/\?$/, '')})`; });
+        const uses = out.match(new RegExp(`\\b${ESC(name)}\\b`, 'g')) ?? [];
+        if (uses.length === 1) out = out.replace(m[0], '');
+    }
+    out = out.replace(PAIR_CHECK, (full, v) => {
+        if (!/^[\w$]+$/.test(v)) return full;
+        applied++;
+        return `isMissingTable(${v})`;
+    });
+    if (!applied || out === text) return { text: null, applied: 0 };
+    const sf = parse(out, file);
+    const withImport = addImports(ts, out, file, sf, ['isMissingTable'], (h) => h);
+    if (!withImport.text) return { text: null, applied: 0 };
+    const bad = ts.transpileModule(withImport.text, { reportDiagnostics: true, fileName: file, compilerOptions: { allowJs: true } }).diagnostics ?? [];
+    return bad.length ? { text: null, applied: 0 } : { text: withImport.text, applied };
+}
+
 // ── test gate ─────────────────────────────────────────────────────────────────
 
 const SERVER_ENV = {
@@ -612,6 +650,26 @@ async function main(argv) {
     const dir = flags.get('--dir');
     const files = flags.get('--files') ? new Set(String(flags.get('--files')).split(',')) : null;
     const filter = (r) => (!dir || r.startsWith(dir)) && (!files || files.has(r));
+
+    if (flags.has('--dedupe-42p01')) {
+        const changes = new Map();
+        let n = 0;
+        for (const file of listServerFiles()) {
+            const r = rel(file);
+            if (!filter(r) || OUT_OF_PROCESS.test(r) || SECURITY_PATH.test(r)) continue;
+            const text = fs.readFileSync(file, 'utf8');
+            if (!text.includes("'42P01'")) continue;
+            const res = dedupeMissingTable(text, file);
+            if (!res.text) continue;
+            n += res.applied;
+            changes.set(r, { original: text, rewritten: res.text });
+            if (!flags.has('--dry')) fs.writeFileSync(file, res.text);
+        }
+        let gated = null;
+        if (flags.has('--gate') && !flags.has('--dry')) gated = await gate(changes);
+        console.log(JSON.stringify({ applied: n, files: [...changes.keys()], gate: gated }, null, 2));
+        return 0;
+    }
 
     if (flags.has('--apply')) {
         const which = flags.get('--apply');

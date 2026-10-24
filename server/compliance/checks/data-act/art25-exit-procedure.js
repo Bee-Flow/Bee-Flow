@@ -28,11 +28,11 @@ const { getAll } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
 const ismsDocStore = require('../../../stores/ismsDocStore');
 const exportRegistry = require('../../dataPortability/exportRegistry');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const DOC_SLUG = 'exit-procedure';
 const WINDOW_DAYS = 365;
 const DAY_MS = 86400e3;
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 const STAMP_ACTION = 'data_export_performed';
 
 function _relevance(settings) {
@@ -63,7 +63,7 @@ async function _exportStamps(orgId, checkId) {
             GROUP BY payload->>'kind'
         `, [orgId, checkId, STAMP_ACTION]);
     } catch (e) {
-        if (NOT_PROVISIONED.has(e?.code)) return null;
+        if (isMissingTable(e)) return null;
         throw e;
     }
 }
@@ -98,7 +98,7 @@ module.exports = {
         try {
             doc = await ismsDocStore.getPublishedBody(orgId, DOC_SLUG);
         } catch (e) {
-            if (NOT_PROVISIONED.has(e?.code)) {
+            if (isMissingTable(e)) {
                 return {
                     status: 'warn',
                     evidence: { document_slug: DOC_SLUG, documents_provisioned: false },
