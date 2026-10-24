@@ -125,6 +125,17 @@
  *                     only comments: a failure swallowed without a trace. A
  *                     promise `.catch(() => {})` is a call, not a clause, and
  *                     is not counted. Measured in server and agent-hub.
+ *   swallowed-error  server catches that leave no trace above debug level: a catch
+ *                     clause whose only statement is `log.debug(...)`, an empty
+ *                     catch, and a promise `.catch(() => null|undefined|{}|[])`
+ *                     (or an empty function). Parse-or-default on the filesystem
+ *                     or a body (`fs.promises.stat(p).catch(() => null)`,
+ *                     `res.json().catch(() => null)`) is not counted. The AST
+ *                     predicate lives in scripts/catch-classify.mjs, which also
+ *                     buckets the sites and rewrites them. The convention is
+ *                     bestEffort() / fallback() from utils/bestEffort.js (a counter
+ *                     plus a rate-limited warn) or isMissingTable() from
+ *                     utils/isMissingTable.js, so only the expected error is swallowed.
  *   rollback-in-store a ROLLBACK written into a query string in stores/
  *                     (non-test): a hand-rolled BEGIN/COMMIT/ROLLBACK. The
  *                     convention is db.withTransaction() from server/db.js,
@@ -547,6 +558,13 @@ const METRICS = {
         what: 'empty catch blocks',
         advice: 'handle the error, log it (log.warn / log.debug with the reason it is safe to go on), or rethrow it; a comment alone hides the failure',
     },
+    'swallowed-error': {
+        include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('testUtils/'),
+        // Server only: the sites are `log.debug` catches and promise fallbacks of the Node code.
+        measure: (text, pkg, rel) => (pkg === 'server' ? countSwallowed(text, path.join(ROOT, pkg, rel)) : 0),
+        what: 'catches that swallow an error without a trace above debug level',
+        advice: 'use bestEffort(label, e) or fallback(label, e, value) from utils/bestEffort.js, or `if (!isMissingTable(e)) throw e;` from utils/isMissingTable.js; node scripts/catch-classify.mjs --list shows the buckets',
+    },
     'rollback-in-store': {
         include: (rel) => !TEST_FILE.test(rel) && rel.startsWith('stores/'),
         measure: countMatches(LITERAL_ROLLBACK),
@@ -575,6 +593,9 @@ const METRICS = {
 
 const args = process.argv.slice(2);
 const [metricName, pkg] = args.filter((a) => !a.startsWith('--'));
+// The one metric that needs a parser: loaded on demand, so the others run without it.
+let countSwallowed;
+if (metricName === 'swallowed-error') ({ countSwallowed } = await import('./catch-classify.mjs'));
 const metric = METRICS[metricName];
 if (!metric || !pkg) {
     console.error(`count-ratchet: usage: node scripts/count-ratchet.mjs <${Object.keys(METRICS).join('|')}> <package> [--update] [--list]`);
