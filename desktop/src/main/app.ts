@@ -14,28 +14,28 @@ import * as path from 'node:path';
 
 import type { AppCommand, UpdateState } from '../shared/ipc.ts';
 import { EVENT } from '../shared/ipc.ts';
-import type { DesktopSettings, NextcloudStatus, Platform, ServerProbeResult, WatchedFileEvent } from '../shared/types.ts';
+import type { DesktopSettings, NextcloudStatus, Platform, ServerProbeResult } from '../shared/types.ts';
 import { SecretStore } from './config/secrets.ts';
 import { SettingsStore } from './config/store.ts';
-import { confirmationPrompt, parseDeepLink } from './deepLink.ts';
+import { routeDeepLink } from './deepLinkRouter.ts';
+import { openExternally, revealPath } from './externalActions.ts';
 import { Logger } from './logging.ts';
 import { buildMenu } from './menu.ts';
 import { NextcloudBridge } from './nextcloud/bridge.ts';
-import type { LoginFlowCredential } from './nextcloud/loginFlow.ts';
-import { pairingTarget, pairNextcloud, sendAppPasswordToServer, type PairingResult } from './nextcloud/pairing.ts';
+import { NextcloudActions, type NextcloudHost } from './nextcloudActions.ts';
+import type { PairingResult } from './nextcloud/pairing.ts';
 import { nextcloudSummary } from './nextcloud/summary.ts';
 import { noNextcloudFolder } from './dialogs.ts';
 import { chromiumFetch } from './server/chromiumFetch.ts';
-import { secureContextOrigin } from './server/secureOrigin.ts';
 import { probeServer, type ProbeOptions } from './server/probe.ts';
 import { isServerNavigation, isUnencrypted, titleSuffix } from './server/serverPage.ts';
-import { failedLoadVerdict, redirectVerdict } from './server/unreachable.ts';
 import { createPermissionHandlers, type PermissionPrompt } from './security/permissions.ts';
 import { permissionDecision, senderTrust, type PolicyContext } from './security/policy.ts';
-import { revealDecision } from './security/reveal.ts';
 import { withClientHeader } from './security/sessionHeaders.ts';
 import { settingsForServerPage } from './config/schema.ts';
 import { AppTray } from './tray.ts';
+import { RestartOffer } from './restartOffer.ts';
+import { UnreachableFlow } from './unreachableFlow.ts';
 import { Updater } from './updater.ts';
 import { buildInfoFrom, detectPackaging, updateCapability, type BuildInfo, type Packaging } from './updatePolicy.ts';
 import { Notifier } from './notifications.ts';
@@ -59,16 +59,13 @@ export class DesktopApp {
 
     private mainWindow: BrowserWindow | null = null;
     private settingsWindow: BrowserWindow | null = null;
-    private nextcloudStatus: NextcloudStatus = { installed: false, running: false, accounts: [] };
+    private nc!: NextcloudActions;
+    /** The server-will-not-load flow: its state and its decisions live in unreachableFlow.ts. */
+    private readonly unreachable: UnreachableFlow;
+    private readonly restartOffer: RestartOffer;
     private quitting = false;
-    /** One quiet reload when a load fails but the server answers the probe. */
-    private retriedAfterGoodProbe = false;
     /** The bridge check runs once, on the first page of ours. */
     private bridgeChecked = false;
-    /** Main-frame navigations started in the workspace window, for spotting stale verdicts. */
-    private mainNavigations = 0;
-    /** Where the current main-frame navigation began, before any redirect. */
-    private mainNavigationStart = '';
 
     /** The origin started with the secure-context switch, if any (see server/secureOrigin.ts). */
     private readonly secureOrigin: string | null;
@@ -96,6 +93,25 @@ export class DesktopApp {
             env: process.env,
             packaged: app.isPackaged,
             windowsStore: process.windowsStore,
+        });
+        this.restartOffer = new RestartOffer({
+            secureOrigin: this.secureOrigin,
+            ask: async (options) => {
+                const window = this.mainWindow && !this.mainWindow.isDestroyed() ? this.mainWindow : null;
+                const { response } = await (window ? dialog.showMessageBox(window, options) : dialog.showMessageBox(options));
+                return response;
+            },
+            relaunch: () => this.relaunch(),
+        });
+        this.unreachable = new UnreachableFlow({
+            serverUrl: () => this.settings.get().server.url,
+            mainWindowUrl: () => (this.mainWindow && !this.mainWindow.isDestroyed() ? this.mainWindow.webContents.getURL() : null),
+            probe: (url) => this.probe(url),
+            load: (url) => this.load(this.mainWindow, url),
+            unreachablePage: (server, error, code, redirectTarget) => unreachableUrl(server, error, code, redirectTarget),
+            setServer: (url) => this.setServer(url),
+            isServerNavigation: (url) => this.isServerNavigation(url),
+            warn: (tag, message) => this.log.warn(tag, message),
         });
     }
 
@@ -126,10 +142,11 @@ export class DesktopApp {
         this.nextcloud = new NextcloudBridge({
             settings: () => this.settings.get(),
             createWatcher: (watchPath, options) => watch(watchPath, options),
-            onStatusChanged: (status) => this.onNextcloudStatus(status),
-            onWatchedFile: (event) => this.onWatchedFile(event),
+            onStatusChanged: (status) => this.nc.onStatus(status),
+            onWatchedFile: (event) => this.nc.onWatchedFile(event),
             onWarning: this.log.warnFor('Nextcloud'),
         });
+        this.nc = new NextcloudActions(this.nextcloudHost());
 
         this.notifier = new Notifier({
             settings: () => this.settings.get(),
@@ -165,10 +182,10 @@ export class DesktopApp {
                 quickAsk: () => this.quickAsk.toggle(),
                 openSettings: () => this.showSettings(),
                 refreshNextcloud: () => void this.refreshNextcloud(),
-                openNextcloudFolder: () => void this.openNextcloudFolder(),
+                openNextcloudFolder: () => void this.nc.openFolder(),
                 quit: () => this.quit(),
             },
-            nextcloud: () => this.nextcloudStatus,
+            nextcloud: () => this.nc.status,
             serverUrl: () => this.settings.get().server.url,
         });
 
@@ -255,7 +272,7 @@ export class DesktopApp {
         window.on('unmaximize', remember);
         window.webContents.on('did-finish-load', () => {
             const loaded = window.webContents.getURL();
-            if (this.isServerNavigation(loaded)) this.retriedAfterGoodProbe = false;
+            this.unreachable.loaded(loaded);
             void this.checkBridge(window, loaded);
         });
         window.webContents.on('did-fail-load', (_event, code, description, failedUrl, isMainFrame) => {
@@ -269,7 +286,7 @@ export class DesktopApp {
             // somewhere else (an identity provider mid-sign-in, say) is that
             // page's problem, and the probe below would test the wrong host.
             if (!this.isServerNavigation(failedUrl)) return;
-            void this.showUnreachable(description);
+            void this.unreachable.show(description);
         });
         window.webContents.setZoomLevel(settings.appearance.zoomLevel);
         // Plain http to another machine works, and says so where it cannot be
@@ -288,8 +305,7 @@ export class DesktopApp {
         window.webContents.on('did-start-navigation', (details) => {
             if (!details.isMainFrame || details.isSameDocument) return;
             // Fired once per navigation; its redirects arrive as will-redirect.
-            this.mainNavigations += 1;
-            this.mainNavigationStart = details.url;
+            this.unreachable.navigationStarted(details.url);
         });
 
         await this.loadWorkspace(window);
@@ -333,69 +349,6 @@ export class DesktopApp {
 
     private isServerNavigation(url: string): boolean {
         return isServerNavigation(url, this.settings.get().server.url);
-    }
-
-    private unreachableInFlight: Promise<void> | null = null;
-
-    private showUnreachable(reason: string): Promise<void> {
-        // One at a time: two failures close together would otherwise race to
-        // put different pages on screen.
-        this.unreachableInFlight ??= this.explainUnreachable(reason).finally(() => {
-            this.unreachableInFlight = null;
-        });
-        return this.unreachableInFlight;
-    }
-
-    private async explainUnreachable(reason: string): Promise<void> {
-        const url = this.settings.get().server.url;
-        if (!url || !this.mainWindow || this.mainWindow.isDestroyed()) return;
-        // A failure to load the error page would otherwise put this straight
-        // back on screen, forever. One attempt is the whole budget.
-        if (this.mainWindow.webContents.getURL().startsWith('file://')) return;
-        // Probe rather than repeat Chromium's message: the probe distinguishes
-        // "certificate expired" from "nothing listening" from "not Bee Flow",
-        // and those have three different fixes.
-        const before = this.mainNavigations;
-        const probe = await this.probe(url);
-        // The probe can take a while. If the window has moved on meanwhile —
-        // the user reloaded, or navigated somewhere that worked — this verdict
-        // is about a page nobody is looking at any more.
-        if (this.mainNavigations !== before || !this.mainWindow || this.mainWindow.isDestroyed()) return;
-        const verdict = failedLoadVerdict(probe, this.retriedAfterGoodProbe, reason);
-        if (verdict.kind === 'retry') {
-            // The server answers the probe, so this was a blip (a restart, a
-            // network change mid-load). One quiet retry beats an error page
-            // with a green "the server answered" on it.
-            this.retriedAfterGoodProbe = true;
-            this.load(this.mainWindow, url);
-            return;
-        }
-        this.retriedAfterGoodProbe = false;
-        this.load(this.mainWindow, unreachableUrl(url, verdict.error, verdict.code, verdict.redirectTarget));
-    }
-
-    /**
-     * The saved server answered its own address with a redirect somewhere the
-     * window may not follow — it moved, or someone moved it. Refusing and
-     * handing the target to the browser left the window blank, with a new
-     * browser tab on every launch and nothing in the log. Instead: a move
-     * that is strictly the same server (http becoming https, another port on
-     * the same host) is adopted through setServer, which checks it; anything
-     * else goes to the unreachable page, which names the new address and lets
-     * the person choose it.
-     */
-    private onServerRedirectRefused(target: string): boolean {
-        const server = this.settings.get().server.url;
-        if (!server || !this.mainWindow || this.mainWindow.isDestroyed()) return false;
-        if (!this.isServerNavigation(this.mainNavigationStart)) return false;
-        this.log.warn('Server', `${server} now redirects to ${target}`);
-        const verdict = redirectVerdict(server, target);
-        if (verdict.kind === 'adopt') {
-            void this.setServer(verdict.url);
-            return true;
-        }
-        this.load(this.mainWindow, unreachableUrl(server, verdict.error, verdict.code, verdict.redirectTarget));
-        return true;
     }
 
     private titleSuffix(url: string): string {
@@ -456,35 +409,8 @@ export class DesktopApp {
         this.broadcast(EVENT.serverChanged, probe.url);
         this.load(this.mainWindow, probe.url);
         this.tray.refresh();
-        this.offerRestartForSecureContext(probe.url);
+        this.restartOffer.offer(probe.url);
         return probe;
-    }
-
-    /**
-     * A new plain-http server on a private address needs the secure-context
-     * switch, which only takes effect at startup. The workspace works without
-     * it; encrypted sign-in (OPAQUE, PIN unlock) does not. So: ask.
-     */
-    private restartOffered = false;
-
-    private offerRestartForSecureContext(serverUrl: string): void {
-        const wanted = secureContextOrigin(serverUrl);
-        if (!wanted || wanted === this.secureOrigin || this.restartOffered) return;
-        this.restartOffered = true;
-        const options = {
-            type: 'info' as const,
-            buttons: ['Restart now', 'Later'],
-            defaultId: 0,
-            cancelId: 1,
-            title: 'Restart to finish connecting',
-            message: `Restart Bee Flow to finish connecting to ${wanted}.`,
-            detail: 'This server is reached over plain http. Bee Flow can still use encrypted sign-in with it on your own network, but only after a restart.',
-        };
-        const window = this.mainWindow && !this.mainWindow.isDestroyed() ? this.mainWindow : null;
-        void (window ? dialog.showMessageBox(window, options) : dialog.showMessageBox(options)).then(({ response }) => {
-            this.restartOffered = false;
-            if (response === 0) this.relaunch();
-        });
     }
 
     /** Forget a server from the picker's recent list. */
@@ -499,98 +425,58 @@ export class DesktopApp {
         return this.nextcloud;
     }
 
-    async refreshNextcloud(): Promise<NextcloudStatus> {
-        const status = await this.nextcloud.refresh();
-        this.log.info('Nextcloud', nextcloudSummary(status));
-        return status;
-    }
-
-    private onNextcloudStatus(status: NextcloudStatus): void {
-        this.nextcloudStatus = status;
-        this.tray.refresh();
-        this.broadcast(EVENT.ncStatusChanged, status);
-    }
-
-    private onWatchedFile(event: WatchedFileEvent): void {
-        this.log.debug('Nextcloud', `watched ${event.kind}: ${event.localPath}`);
-        this.broadcast(EVENT.watchedFile, event);
-    }
-
-    private async openNextcloudFolder(): Promise<void> {
-        const folder = this.nextcloudStatus.accounts[0]?.folders[0]?.localPath;
-        if (!folder) {
-            void dialog.showMessageBox(noNextcloudFolder(this.nextcloudStatus)); // informational: nothing waits for it to close
-            return;
-        }
-        await shell.openPath(folder);
+    refreshNextcloud(): Promise<NextcloudStatus> {
+        return this.nc.refresh();
     }
 
     /** Run Login Flow v2 and hand the credential to the Bee Flow server (see nextcloud/pairing.ts). */
-    async pairNextcloud(serverUrlHint?: string): Promise<PairingResult> {
-        return pairNextcloud(pairingTarget(serverUrlHint, this.nextcloudStatus.accounts), {
-            login: (target) => this.nextcloud.login(target, (url) => shell.openExternal(url)),
-            persistAppPassword: (appPassword) => this.secrets.set('nextcloud.appPassword', appPassword),
-            sendToServer: (credential) => this.sendAppPasswordToServer(credential),
-            log: this.log,
-        });
+    pairNextcloud(serverUrlHint?: string): Promise<PairingResult> {
+        return this.nc.pair(serverUrlHint);
     }
 
-    /** Hand the app password to the user's own Bee Flow server, over the main window's session. */
-    private async sendAppPasswordToServer(credential: LoginFlowCredential): Promise<boolean> {
-        const base = this.settings.get().server.url;
-        if (!base || !this.mainWindow || this.mainWindow.isDestroyed()) return false;
-        const { session: windowSession } = this.mainWindow.webContents;
-        return sendAppPasswordToServer(credential, base, (url, init) => windowSession.fetch(url, init), this.log);
+    private nextcloudHost(): NextcloudHost {
+        return {
+            log: this.log,
+            bridge: this.nextcloud,
+            storeAppPassword: (appPassword) => this.secrets.set('nextcloud.appPassword', appPassword),
+            serverUrl: () => this.settings.get().server.url,
+            mainSessionFetch: () => {
+                if (!this.mainWindow || this.mainWindow.isDestroyed()) return null;
+                const { session: windowSession } = this.mainWindow.webContents;
+                return (url, init) => windowSession.fetch(url, init);
+            },
+            openExternal: (url) => shell.openExternal(url),
+            openPath: (folder) => shell.openPath(folder),
+            showMessage: (message) => void dialog.showMessageBox(message),
+            statusChanged: () => this.tray.refresh(),
+            broadcast: (channel, payload) => this.broadcast(channel, payload),
+        };
     }
 
     // ── Deep links ───────────────────────────────────────────────────────────
 
     handleDeepLink(raw: string): void {
-        const action = parseDeepLink(raw);
-        this.log.info('DeepLink', `${raw} → ${action.kind}`);
-
-        if (action.kind === 'unknown') return;
-
-        if (action.needsConfirmation) {
-            const prompt = confirmationPrompt(action);
-            const choice = dialog.showMessageBoxSync({
-                type: 'question',
-                buttons: ['Cancel', 'Continue'],
-                defaultId: 0,
-                cancelId: 0,
-                title: prompt?.title ?? 'Continue?',
-                message: prompt?.title ?? 'Continue?',
-                detail: prompt?.detail ?? '',
-            });
-            if (choice !== 1) return;
-        }
-
-        switch (action.kind) {
-            case 'navigate': {
-                this.showMain();
-                const base = this.settings.get().server.url;
-                if (base) this.load(this.mainWindow, new URL(action.path, base).toString());
-                break;
-            }
-            case 'quick-ask':
-                this.quickAsk.toggle(action.text);
-                break;
-            case 'set-server':
-                void this.setServer(action.url);
-                break;
-            case 'pair-nextcloud':
-                void this.pairNextcloud(action.server);
-                break;
-            case 'open-path':
-                // Revealed in its folder, never opened: `openPath` would run an
-                // .exe, a script or a .desktop file with its default handler,
-                // and a link from any web page could name one.
-                this.revealPath(action.path);
-                break;
-            default:
-                break;
-        }
-        this.broadcast(EVENT.deepLink, raw);
+        routeDeepLink(raw, {
+            info: (tag, message) => this.log.info(tag, message),
+            confirm: (prompt) =>
+                dialog.showMessageBoxSync({
+                    type: 'question',
+                    buttons: ['Cancel', 'Continue'],
+                    defaultId: 0,
+                    cancelId: 0,
+                    title: prompt.title,
+                    message: prompt.title,
+                    detail: prompt.detail,
+                }) === 1,
+            showMain: () => this.showMain(),
+            serverUrl: () => this.settings.get().server.url,
+            loadMain: (url) => this.load(this.mainWindow, url),
+            quickAsk: (text) => this.quickAsk.toggle(text),
+            setServer: (url) => this.setServer(url),
+            pairNextcloud: (server) => this.pairNextcloud(server),
+            revealPath: (target) => void this.revealPath(target),
+            broadcast: (channel, payload) => this.broadcast(channel, payload),
+        });
     }
 
     // ── Shared plumbing ──────────────────────────────────────────────────────
@@ -601,7 +487,7 @@ export class DesktopApp {
         return {
             serverUrl: server.url,
             ...(server.apiOrigin ? { apiOrigin: server.apiOrigin } : {}),
-            nextcloudOrigins: this.nextcloudStatus.accounts.map((account) => account.url),
+            nextcloudOrigins: this.nc.status.accounts.map((account) => account.url),
             shellRoot: shellDirectory(),
         };
     }
@@ -708,7 +594,7 @@ export class DesktopApp {
             chooseServer: () => this.chooseServer(),
             reload: () => this.mainWindow?.webContents.reload(),
             checkForUpdates: () => void this.checkForUpdatesInteractive(),
-            openNextcloudFolder: () => void this.openNextcloudFolder(),
+            openNextcloudFolder: () => void this.nc.openFolder(),
             pairNextcloud: () => void this.pairNextcloud(),
             refreshNextcloud: () => void this.refreshNextcloud(),
             attachFromNextcloud: () => void this.attachFromNextcloud(),
@@ -730,7 +616,7 @@ export class DesktopApp {
         const accounts = this.nextcloud.accounts();
         const defaultPath = accounts[0]?.folders[0]?.localPath;
         if (!defaultPath) {
-            await dialog.showMessageBox(noNextcloudFolder(this.nextcloudStatus));
+            await dialog.showMessageBox(noNextcloudFolder(this.nc.status));
             return;
         }
 
@@ -766,7 +652,7 @@ export class DesktopApp {
                 `Electron ${process.versions.electron} · Chromium ${process.versions.chrome} · Node ${process.versions.node}`,
                 `Installed as: ${this.packaging}`,
                 `Server: ${this.settings.get().server.url || 'not set'}`,
-                `Nextcloud: ${nextcloudSummary(this.nextcloudStatus)}`,
+                `Nextcloud: ${nextcloudSummary(this.nc.status)}`,
             ].join('\n'),
         });
     }
@@ -835,7 +721,7 @@ export class DesktopApp {
             applyNavigationPolicy(contents, () => this.policy(), {
                 openExternal: (url) => void this.openExternally(url),
                 onBlocked: (url) => this.log.warn('Navigation', `blocked ${url} in ${contents.getURL() || 'a new window'}`),
-                onRedirectRefused: (url) => contents === this.mainWindow?.webContents && this.onServerRedirectRefused(url),
+                onRedirectRefused: (url) => contents === this.mainWindow?.webContents && this.unreachable.redirectRefused(url),
             });
         });
     }
@@ -847,21 +733,13 @@ export class DesktopApp {
      * AppImage on a system without xdg-utils. That used to fail silently —
      * the click did nothing. Now the address is shown so it can be copied.
      */
-    async openExternally(url: string): Promise<boolean> {
-        this.log.info('Navigation', `opening in the browser: ${url}`);
-        try {
-            await shell.openExternal(url);
-            return true;
-        } catch (error) {
-            this.log.warn('Navigation', `could not open ${url}: ${String(error)}`);
-            void dialog.showMessageBox({
-                type: 'info',
-                title: 'No web browser could be opened',
-                message: 'Bee Flow could not open your web browser.',
-                detail: `Open this address in a browser yourself:\n\n${url}`,
-            });
-            return false;
-        }
+    openExternally(url: string): Promise<boolean> {
+        return openExternally(url, {
+            info: (tag, message) => this.log.info(tag, message),
+            warn: (tag, message) => this.log.warn(tag, message),
+            openExternal: (target) => shell.openExternal(target),
+            showMessage: (message) => void dialog.showMessageBox(message),
+        });
     }
 
     /**
@@ -869,21 +747,13 @@ export class DesktopApp {
      * chose to share with this app (see security/reveal.ts).
      */
     revealPath(target: unknown, options: { ownFiles?: boolean } = {}): boolean {
-        const decision = revealDecision(
-            target,
-            {
-                ownFiles: [this.log.file, this.settings.file],
-                isInsideSyncFolder: (resolved) => this.nextcloud.isInsideAnySyncFolder(resolved),
-                downloads: app.getPath('downloads'),
-            },
-            options,
-        );
-        if (!decision.ok) {
-            this.log.warn('IPC', `refused to reveal ${decision.refused}`);
-            return false;
-        }
-        shell.showItemInFolder(decision.path);
-        return true;
+        return revealPath(target, options, {
+            warn: (tag, message) => this.log.warn(tag, message),
+            ownFiles: [this.log.file, this.settings.file],
+            isInsideSyncFolder: (resolved) => this.nextcloud.isInsideAnySyncFolder(resolved),
+            downloads: () => app.getPath('downloads'),
+            showItemInFolder: (target2) => shell.showItemInFolder(target2),
+        });
     }
 
     /** Which OS permissions a page gets (see security/permissions.ts). */
