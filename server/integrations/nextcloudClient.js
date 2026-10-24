@@ -248,8 +248,7 @@ async function resolveUid(session, baseUrl) {
 
 // Retry-After (integer seconds or HTTP-date) as ms, and whether a body can be
 // sent again: the same rules for every client (core/http/retryAfter.js).
-const { parseRetryAfter, isReplayableBody } = require('../core/http/retryAfter');
-const { fallback } = require('../utils/bestEffort');
+const { parseRetryAfter, isReplayableBody } = require('../core/http/retryAfter'); const { fallback } = require('../utils/bestEffort');
 
 const RETRY_STATUS = new Set([429, 503]);
 const MAX_RETRIES = 2;

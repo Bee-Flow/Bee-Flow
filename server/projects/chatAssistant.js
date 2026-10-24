@@ -85,8 +85,7 @@ const { writeAnswer: writeAnswerSteps } = require('./chatAnswerSteps');
 const {
     CONTEXT_MESSAGES, ASSISTANT_NAME, AUTO_MAX_TOKENS, SKIP_SENTINEL, AUTO_TRIGGERS, TOOL_TIMEOUT_FACTOR,
     displayNameOf, buildTranscript, buildSystemPrompt, withTimeout, isSkip, num,
-} = require('./chatPromptParts');
-const { fallback } = require('../utils/bestEffort');
+} = require('./chatPromptParts'); const { fallback } = require('../utils/bestEffort');
 
 const DEFAULT_TIMEOUT_MS = 90_000;
 // The lock must outlive the call it guards, or a slow answer loses its turn.

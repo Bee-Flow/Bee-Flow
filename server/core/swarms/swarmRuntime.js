@@ -34,8 +34,7 @@ const { buildTokenPreservationAddendum } = require('../dlp/tokenPreservationProm
 const BUILTINS = {
     'builtin:research_swarm': require('./builtins/researchSwarm'),
 };
-const log = require('../../telemetry/log');
-const { fallback, bestEffort } = require('../../utils/bestEffort');
+const log = require('../../telemetry/log'); const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 function loadSwarmById(id) {
     if (!id || typeof id !== 'string') return null;

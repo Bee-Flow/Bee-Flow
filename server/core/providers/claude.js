@@ -22,8 +22,7 @@ const {
     isForcedToolChoiceRejection,
     isContextManagementRejection,
 } = require("./claude/errors");
-const { buildThinking, buildSdkParams, requestOptionsFor } = require("./claude/params");
-const { fallback } = require('../../utils/bestEffort');
+const { buildThinking, buildSdkParams, requestOptionsFor } = require("./claude/params"); const { fallback } = require('../../utils/bestEffort');
 
 // Explicit SDK request timeout. Passing ANY constructor `timeout` disables the
 // SDK's pre-flight "Streaming is required for operations that may take longer

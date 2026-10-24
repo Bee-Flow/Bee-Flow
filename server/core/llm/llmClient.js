@@ -12,8 +12,7 @@ const { parseGemmaArgs, recoverLeakedToolCalls, hasLeakedToolCallSyntax } = requ
 const { looksGarbled } = require('./partialJsonScan');
 const log = require('../../telemetry/log');
 const { createUsageAccumulator } = require('../providers/usageNormalizer');
-const { limitedChat } = require('./providerLimiter');
-const { fallback } = require('../../utils/bestEffort');
+const { limitedChat } = require('./providerLimiter'); const { fallback } = require('../../utils/bestEffort');
 
 // How much of an unparsable argument string one warning may carry: enough
 // for a whole compose answer to become a parser fixture, never a batch dump.

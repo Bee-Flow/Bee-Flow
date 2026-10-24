@@ -52,8 +52,7 @@
  */
 
 const { hasKnowledgeSource } = require('./agentGrounding');
-const log = require('../../telemetry/log');
-const { bestEffort } = require('../../utils/bestEffort');
+const log = require('../../telemetry/log'); const { bestEffort } = require('../../utils/bestEffort');
 
 // ── Enums the rest of the stack pins against ────────────────────────
 const PERSONA_MODES = Object.freeze(['fields', 'free']);

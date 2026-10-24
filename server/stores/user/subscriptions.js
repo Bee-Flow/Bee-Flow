@@ -7,8 +7,7 @@ const { run, getOne, getAll, getClient } = require('../../db');
 const { initDB } = require('./schema');
 const { dynamicUpdate, parseJSON } = require('./shared');
 const { getPlan } = require('./plans');
-const log = require('../../telemetry/log');
-const { bestEffort } = require('../../utils/bestEffort');
+const log = require('../../telemetry/log'); const { bestEffort } = require('../../utils/bestEffort');
 
 // ── Organization Subscriptions ─────────────────────────────
 async function getAllOrgSubscriptions() {

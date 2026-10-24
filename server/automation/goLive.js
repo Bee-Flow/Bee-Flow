@@ -26,8 +26,7 @@
 'use strict';
 
 const log = require('../telemetry/log');
-const { HttpError } = require('../core/http/errors');
-const { fallback } = require('../utils/bestEffort');
+const { HttpError } = require('../core/http/errors'); const { fallback } = require('../utils/bestEffort');
 
 const DEFAULT_TZ = 'Europe/Amsterdam';
 

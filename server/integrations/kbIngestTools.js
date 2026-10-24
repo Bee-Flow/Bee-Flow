@@ -21,8 +21,7 @@
 
 const knowledgeBases = require('../stores/knowledgeBases');
 const { ingestDocument, findDocumentBySourceUri, deleteDocumentChunks } = require('../core/kb/kbIngestionHelpers');
-const log = require('../telemetry/log');
-const { bestEffort, fallback: fallbackSwallowed } = require('../utils/bestEffort');
+const log = require('../telemetry/log'); const { bestEffort, fallback: fallbackSwallowed } = require('../utils/bestEffort');
 
 const SOURCE_TYPE = 'support_ticket';
 

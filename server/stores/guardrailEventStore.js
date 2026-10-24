@@ -7,8 +7,7 @@
 const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
-const log = require('../telemetry/log');
-const { fallback } = require('../utils/bestEffort');
+const log = require('../telemetry/log'); const { fallback } = require('../utils/bestEffort');
 
 // Single-flight init with a warm-boot probe — see integrationActivityStore.js
 // for the rationale. The probe targets the NEWEST schema object this init

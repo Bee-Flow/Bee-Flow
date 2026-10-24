@@ -33,8 +33,7 @@
 const BaseProvider = require('./base');
 const { LOCAL_RUNTIMES, describeLocalModel, rememberLocalContextWindow } = require('./localModels');
 const { projectToolsForTemplate } = require('../llm/toolSchemaProjection');
-const log = require('../../telemetry/log');
-const { fallback, bestEffort } = require('../../utils/bestEffort');
+const log = require('../../telemetry/log'); const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // Discovery is a handful of HTTP calls against a box that might not be up.
 // Keep the ceilings low so an unreachable endpoint degrades to "0 models"

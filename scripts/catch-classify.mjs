@@ -332,6 +332,8 @@ function sanitizeLabel(s) {
     return s.replace(/[^\w/.:#$-]/g, '');
 }
 
+const HELPER_IMPORT_STATEMENT = "(?:const \\{[^}]*\\} = require\\('[./]+\\/utils\\/(?:bestEffort|isMissingTable)'\\);|import \\{[^}]*\\} from '[./]+\\/utils\\/(?:bestEffort|isMissingTable)\\.js';)";
+const HELPER_IMPORT_LINE = new RegExp(`^${HELPER_IMPORT_STATEMENT}(?: ${HELPER_IMPORT_STATEMENT})*$`);
 const helperSpec = (file, mod) => {
     const spec = path.relative(path.dirname(file), path.join(SERVER, mod)).split(path.sep).join('/');
     return spec.startsWith('.') ? spec : `./${spec}`;
@@ -650,6 +652,33 @@ async function main(argv) {
     const dir = flags.get('--dir');
     const files = flags.get('--files') ? new Set(String(flags.get('--files')).split(',')) : null;
     const filter = (r) => (!dir || r.startsWith(dir)) && (!files || files.has(r));
+
+    if (flags.has('--squeeze-imports')) {
+        // A file at its file-budget ceiling may not grow: join the helper import onto the require line above it.
+        const budget = JSON.parse(fs.readFileSync(path.join(SERVER, '.file-budget.json'), 'utf8')).files ?? {};
+        const squeezed = [];
+        for (const [r, ceiling] of Object.entries(budget)) {
+            const file = path.join(SERVER, r);
+            if (!fs.existsSync(file) || (files && !files.has(r))) continue;
+            const text = fs.readFileSync(file, 'utf8');
+            const lines = text.split('\n');
+            const count = text.endsWith('\n') ? lines.length - 1 : lines.length;
+            if (count <= ceiling) continue;
+            let over = count - ceiling;
+            for (let i = lines.length - 1; i > 0 && over > 0; i--) {
+                if (!HELPER_IMPORT_LINE.test(lines[i])) continue;
+                if (lines[i - 1].includes('//') || !/;\s*$/.test(lines[i - 1])) continue;
+                lines[i - 1] = `${lines[i - 1]} ${lines[i]}`;
+                lines.splice(i, 1);
+                over--;
+            }
+            if (over === count - ceiling) continue;
+            fs.writeFileSync(file, lines.join('\n'));
+            squeezed.push(r);
+        }
+        console.log(JSON.stringify({ squeezed }, null, 2));
+        return 0;
+    }
 
     if (flags.has('--dedupe-42p01')) {
         const changes = new Map();

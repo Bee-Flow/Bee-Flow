@@ -208,8 +208,7 @@ const { safeToolName, dedupeToolName, buildMcpToolsCache } = require('../../core
 // 1. Session auth (same shape as routes/integrations/connections.js).
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
-const { requireAuth } = require('../../auth/permissions');
-const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { requireAuth } = require('../../auth/permissions'); const { fallback, bestEffort } = require('../../utils/bestEffort');
 router.use(requireAuth);
 
 // 2. Org admin for :orgId — the shared adminRoutes factory (lazy-required so

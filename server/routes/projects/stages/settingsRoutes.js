@@ -24,8 +24,7 @@ const S = require('./stageSchemas');
 const { stableStringify } = require('../../../projects/stages/model');
 const {
     gate, authMw, logOn, notifyOwnerOfAdmin, deploymentView, isObject,
-} = require('./stageRoutes');
-const { bestEffort } = require('../../../utils/bestEffort');
+} = require('./stageRoutes'); const { bestEffort } = require('../../../utils/bestEffort');
 
 const STEERING_TYPES = Object.freeze(['url', 'email']);
 const VARIABLE_NAME_RE = /^[a-z][a-z0-9_]{0,62}$/;

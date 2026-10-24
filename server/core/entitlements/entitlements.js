@@ -47,8 +47,7 @@ const { tagGate } = require('../../auth/gateMeta');
 const { CapabilityKind: KIND } = registry;
 const { buildKey } = require('../../utils/buildInfo');
 const _metrics = require('../../telemetry/httpMetrics');
-const { recordFeatureGate } = require('../../telemetry/metrics');
-const { bestEffort, fallback } = require('../../utils/bestEffort');
+const { recordFeatureGate } = require('../../telemetry/metrics'); const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 const UPGRADE_URL = process.env.LICENSE_UPGRADE_URL || 'https://beeflow.nl/pricing';
 const RESOLUTION_CACHE_TTL_MS = parseInt(process.env.ENTITLEMENT_CACHE_TTL_MS || '30000', 10);

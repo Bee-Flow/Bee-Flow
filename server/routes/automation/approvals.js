@@ -372,8 +372,7 @@ router.post('/approvals/:id/withdraw', validate({ body: WithdrawBody }), async (
  * 404 approval_not_found, 403 approval_remind_forbidden,
  * 409 approval_not_pending, 429 remind_rate_limited (details.retryAfterSec).
  */
-const remindLimiter = require('../../utils/perUserRateLimit').perUserRateLimit({ windowMs: 60_000, max: 20 });
-const { fallback } = require('../../utils/bestEffort');
+const remindLimiter = require('../../utils/perUserRateLimit').perUserRateLimit({ windowMs: 60_000, max: 20 }); const { fallback } = require('../../utils/bestEffort');
 router.post('/approvals/:id/remind', remindLimiter, async (req, res) => {
     const { makeApprovalReminder } = require('../../automation/approvalRemind');
     const { makeAutomationAccess } = require('../../automation/access');

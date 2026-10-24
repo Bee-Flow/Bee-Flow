@@ -49,8 +49,7 @@ const {
     tableRefsOf,
     refIdsOf,
 } = require('../skills/skillStructure');
-const log = require('../../telemetry/log');
-const { fallback } = require('../../utils/bestEffort');
+const log = require('../../telemetry/log'); const { fallback } = require('../../utils/bestEffort');
 
 const SKILL_CAP = 5;
 const ACTIVATE_SKILL_TOOL_NAME = 'activate_skill';

@@ -46,8 +46,7 @@ const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { onEvidenceWriteFailed } = require('../../compliance/evidence/writeFailures');
 const { publicBaseUrl, publicDsrPath } = require('../../utils/appPaths');
-const log = require('../../telemetry/log');
-const { bestEffort } = require('../../utils/bestEffort');
+const log = require('../../telemetry/log'); const { bestEffort } = require('../../utils/bestEffort');
 
 const CHECK_ID = 'GDPR-Art35-chat-monitoring-safeguards';
 /** The shorter of the summary's two views (30 and 90 days). */

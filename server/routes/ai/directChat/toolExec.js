@@ -40,8 +40,7 @@ const configStore = require('../../../stores/configStore');
 const log = require('../../../telemetry/log');
 const {
     searchGuardText, searchGuardEvent, shieldGuardEvent, buildDispatchOptions, buildUsageRow, buildEgressArgs,
-} = require('./toolExecPayloads');
-const { fallback, bestEffort } = require('../../../utils/bestEffort');
+} = require('./toolExecPayloads'); const { fallback, bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * Strip bulky fields from tool results before they become LLM messages.

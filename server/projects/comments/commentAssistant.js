@@ -54,8 +54,7 @@
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const { usageLogFields } = require('../../core/providers/usageNormalizer');
-const { findPassage } = require('./passage');
-const { bestEffort } = require('../../utils/bestEffort');
+const { findPassage } = require('./passage'); const { bestEffort } = require('../../utils/bestEffort');
 
 const CONTEXT_COMMENTS = 50;
 const PER_COMMENT_CHARS = 4000;

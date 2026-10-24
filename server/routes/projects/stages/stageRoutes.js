@@ -18,8 +18,7 @@ const { validate } = require('../../../core/http/validate');
 const { HttpError } = require('../../../core/http/errors');
 const log = require('../../../telemetry/log');
 const S = require('./stageSchemas');
-const { stageAuth } = require('../../../projects/stages/stageAuth');
-const { fallback } = require('../../../utils/bestEffort');
+const { stageAuth } = require('../../../projects/stages/stageAuth'); const { fallback } = require('../../../utils/bestEffort');
 
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 const BUSY_STATUSES = Object.freeze(['awaiting_approval', 'queued', 'approved', 'preparing', 'committing', 'converging', 'compensating']);

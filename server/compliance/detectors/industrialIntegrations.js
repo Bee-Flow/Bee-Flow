@@ -45,9 +45,7 @@
 
 const db = require('../../db');
 const { errorLabel } = require('../lib/errorShape');
-const log = require('../../telemetry/log');
-const { bestEffort } = require('../../utils/bestEffort');
-const { isMissingTable } = require('../../utils/isMissingTable');
+const log = require('../../telemetry/log'); const { bestEffort } = require('../../utils/bestEffort'); const { isMissingTable } = require('../../utils/isMissingTable');
 
 const HEURISTICS_VERSION = '1.0.0';
 const ACTIVITY_WINDOW_DAYS = 90;

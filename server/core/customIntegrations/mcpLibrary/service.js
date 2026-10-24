@@ -35,8 +35,7 @@ const { getPolicy, checkUrl, allowsCustomUrls } = require('./policy');
 const { isLibraryRow, runningDefinition } = require('./gate');
 const def = require('./definition');
 
-const deps = require('./deps');
-const { bestEffort, fallback } = require('../../../utils/bestEffort');
+const deps = require('./deps'); const { bestEffort, fallback } = require('../../../utils/bestEffort');
 
 const store = () => deps.store();
 const connStore = () => deps.connStore();

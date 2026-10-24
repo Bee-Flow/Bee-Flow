@@ -157,8 +157,7 @@ When others are editing the notebook live, the answer carries a "revision": pass
 ];
 
 const { wordCount, readNotebookContent } = require('./notebookReadModes');
-const { insertIntoContent, replaceInContent } = require('./notebookTextEdits');
-const { fallback } = require('../utils/bestEffort');
+const { insertIntoContent, replaceInContent } = require('./notebookTextEdits'); const { fallback } = require('../utils/bestEffort');
 
 // ─── Tool execution ─────────────────────────────────────────────────────────
 

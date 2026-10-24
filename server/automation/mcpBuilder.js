@@ -50,8 +50,7 @@ const {
 // module still costs no database.
 const { buildDatatableCatalogForUser } = require('./builderDatatableCatalog');
 const runTools = require('./mcpRunTools');
-const log = require('../telemetry/log');
-const { fallback } = require('../utils/bestEffort');
+const log = require('../telemetry/log'); const { fallback } = require('../utils/bestEffort');
 
 // ── The gate ────────────────────────────────────────────────────────────────
 //

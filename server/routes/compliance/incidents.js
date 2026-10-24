@@ -62,8 +62,7 @@ const NIS2_CHECK_ID = 'NIS2-Art23-early-warning-path';
 const DORA_CHECK_ID = 'DORA-Art30-incident-reporting-path';
 const CRA_EVENT = 'cra_vulnerability_reported';
 
-const crypto = require('crypto');
-const { bestEffort, fallback } = require('../../utils/bestEffort');
+const crypto = require('crypto'); const { bestEffort, fallback } = require('../../utils/bestEffort');
 function _recordIncidentEvidence(orgId, incidentId, payload, checkId = BREACH_CHECK_ID) {
     // The attestation the admin just made stands whatever the ledger does, but
     // a swallowed append leaves the trail claiming the attestation never

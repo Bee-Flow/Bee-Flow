@@ -175,8 +175,7 @@ async function disconnectRedis() {
 // Lightweight query instrumentation: records duration into httpMetrics and
 // logs slow queries. We log ONLY a sanitized SQL prefix + the param COUNT —
 // never param values, which can contain PII or secrets.
-const metrics = require('./telemetry/httpMetrics');
-const { bestEffort } = require('./utils/bestEffort');
+const metrics = require('./telemetry/httpMetrics'); const { bestEffort } = require('./utils/bestEffort');
 const DB_SLOW_MS = metrics.DB_SLOW_MS;
 
 function _sanitizeSql(sql) {

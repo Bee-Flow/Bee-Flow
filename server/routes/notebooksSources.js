@@ -416,8 +416,7 @@ router.post('/:id/sources/:sid/cancel', requireAuth, asEditor, async (req, res) 
 // cascades — see core/notebookCascade.js. It resolves EVERY document derived
 // from a source, not just the first, so a re-ingested source doesn't leave
 // orphaned chunks behind after its row is gone.
-const { cleanupSourceArtifacts } = require('../core/kb/notebookCascade');
-const { bestEffort } = require('../utils/bestEffort');
+const { cleanupSourceArtifacts } = require('../core/kb/notebookCascade'); const { bestEffort } = require('../utils/bestEffort');
 
 // ── Source content (preview) ────────────────────────────────────
 router.get('/:id/sources/:sid/content', requireAuth, asViewer, async (req, res) => {

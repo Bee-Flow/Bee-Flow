@@ -737,8 +737,7 @@ async function getIntegrationOverview(filters = {}, interval = 'day', { normaliz
 }
 
 // "Find repeating work" reads, per user (integrationManualActivity.js).
-const manualActivity = require('./integrationManualActivity').defaultReader(initDB);
-const { fallback, bestEffort } = require('../utils/bestEffort');
+const manualActivity = require('./integrationManualActivity').defaultReader(initDB); const { fallback, bestEffort } = require('../utils/bestEffort');
 
 module.exports = {
     logIntegrationActivity,

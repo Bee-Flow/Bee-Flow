@@ -44,8 +44,7 @@ const {
 } = require('../core/cad/cadTypes');
 const { resolveMailboxIdentity } = require('./mailboxIdentity');
 const emailFetch = require('../services/email/fetch');
-const { viewerMayReadAttachment } = require('./attachmentAccess');
-const { bestEffort } = require('../utils/bestEffort');
+const { viewerMayReadAttachment } = require('./attachmentAccess'); const { bestEffort } = require('../utils/bestEffort');
 
 // The formats an LLM or a browser can
 // actually do something with. Everything else is refused rather than stored.

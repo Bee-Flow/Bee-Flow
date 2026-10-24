@@ -20,8 +20,7 @@
 const crypto = require('crypto');
 const configStore = require('../stores/configStore');
 const githubSyncStore = require('../stores/githubSyncStore');
-const log = require('../telemetry/log');
-const { bestEffort } = require('../utils/bestEffort');
+const log = require('../telemetry/log'); const { bestEffort } = require('../utils/bestEffort');
 
 const GITHUB_API = 'https://api.github.com';
 

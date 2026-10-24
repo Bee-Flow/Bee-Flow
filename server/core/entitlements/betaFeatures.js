@@ -23,8 +23,7 @@ const { HttpError } = require('../../shared/httpErrors');
 const {
     BETA_FEATURES, BetaLifecycle, getFeatureLifecycle, setRemoteBetaFeatures,
     listRemoteBetaFeatures, listBetaFeatures, listCompoundGatedFeatures,
-} = require('./betaCatalog');
-const { bestEffort, fallback } = require('../../utils/bestEffort');
+} = require('./betaCatalog'); const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 
 // ──────────────────────────────────────────────

@@ -30,8 +30,7 @@ const { listRecentlyEndedMeetMeetings } = require('./gmeetCalendar');
 const { getSpaceByMeetingCode, findConferenceRecord, findGeneratedRecording } = require('./gmeetArtifacts');
 const { ingestGmeetRecording } = require('./ingestGmeetRecording');
 const log = require('../../telemetry/log');
-const kit = require('./importJobKit');
-const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
+const kit = require('./importJobKit'); const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 const { codedError, backoffMsFor, meetingEndMs } = kit;
 

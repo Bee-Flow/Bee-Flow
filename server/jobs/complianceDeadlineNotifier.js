@@ -25,8 +25,7 @@
 const { recordJobRun } = require('../telemetry/metrics');
 const { complianceSectionPath, complianceIncidentPath } = require('../utils/appPaths');
 const log = require('../telemetry/log');
-const { REGIME_ARTICLE } = require('../compliance/deadlines');
-const { bestEffort } = require('../utils/bestEffort');
+const { REGIME_ARTICLE } = require('../compliance/deadlines'); const { bestEffort } = require('../utils/bestEffort');
 
 const INTERVAL_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;

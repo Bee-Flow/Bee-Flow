@@ -645,8 +645,7 @@ router.post('/mcp-servers/user-credentials', requireAuth, requireMcp, validate({
 // install shape server-side and cached briefly to spare the upstream.
 const mcpRegistry = require('../../../integrations/mcpRegistryClient');
 const { createTtlCache } = require('../../../utils/ttlCache');
-const log = require('../../../telemetry/log');
-const { fallback } = require('../../../utils/bestEffort');
+const log = require('../../../telemetry/log'); const { fallback } = require('../../../utils/bestEffort');
 const mcpRegistryCache = createTtlCache({ ttlMs: 5 * 60 * 1000, max: 200 });
 
 // GET /ai/mcp-registry/search?q=&cursor=&verifiedOnly=1

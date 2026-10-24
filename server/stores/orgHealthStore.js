@@ -28,8 +28,7 @@
 
 const { run, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
-const log = require('../telemetry/log');
-const { bestEffort } = require('../utils/bestEffort');
+const log = require('../telemetry/log'); const { bestEffort } = require('../utils/bestEffort');
 
 const INIT_SQL = `
 CREATE TABLE IF NOT EXISTS org_health_problems (

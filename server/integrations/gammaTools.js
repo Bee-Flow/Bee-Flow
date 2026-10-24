@@ -9,8 +9,7 @@
  */
 
 const configStore = require('../stores/configStore');
-const log = require('../telemetry/log');
-const { bestEffort } = require('../utils/bestEffort');
+const log = require('../telemetry/log'); const { bestEffort } = require('../utils/bestEffort');
 
 const GAMMA_API_BASE_URL = 'https://public-api.gamma.app/v1.0';
 const DEFAULT_REQUEST_TIMEOUT_MS = 45000;

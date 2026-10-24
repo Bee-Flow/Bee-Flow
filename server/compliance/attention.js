@@ -38,8 +38,7 @@
 
 const { complianceSectionPath, complianceIncidentPath } = require('../utils/appPaths');
 const log = require('../telemetry/log');
-const findingState = require('./findingState');
-const { fallback } = require('../utils/bestEffort');
+const findingState = require('./findingState'); const { fallback } = require('../utils/bestEffort');
 
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;

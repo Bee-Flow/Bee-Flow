@@ -30,8 +30,7 @@
 
 'use strict';
 
-const log = require('../../telemetry/log');
-const { bestEffort, fallback: fallbackSwallowed } = require('../../utils/bestEffort');
+const log = require('../../telemetry/log'); const { bestEffort, fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 // services/browserProvider.js BACKEND_UNAVAILABLE: the code of "no browser to render with".
 const BACKEND_UNAVAILABLE = 'browser_backend_unavailable';

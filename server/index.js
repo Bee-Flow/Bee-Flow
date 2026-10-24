@@ -354,12 +354,11 @@ app.get('/api/guard/health', async (req, res) => {
 const { requireAdmin: _requireAdminForMetrics } = require('./auth/permissions');
 app.get('/api/admin/metrics', _requireAdminForMetrics, (req, res) => {
     const { getPoolStats } = require('./db');
-    const { bestEffortCounts } = require('./utils/bestEffort');
     if (req.query.format === 'prometheus') {
         res.setHeader('Content-Type', 'text/plain; version=0.0.4');
         return res.send(httpMetrics.renderTextFormat());
     }
-    res.json({ ...httpMetrics.snapshot(), pool: getPoolStats(), bestEffort: bestEffortCounts() });
+    res.json({ ...httpMetrics.snapshot(), pool: getPoolStats(), bestEffort: require('./utils/bestEffort').bestEffortCounts() });
 });
 app.use('/api/admin/guard', require('./routes/guardInstall'));
 app.use('/api/subscriptions', require('./routes/subscriptions'));

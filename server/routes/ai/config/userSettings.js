@@ -53,8 +53,7 @@ const { orgScope } = require('../../../auth/orgScope');
 const { memoryEnabledKey, memorySensitiveOptInKey, isMemoryEnabledForUser, getOrgMemorySettings, ORG_DEFAULTS } = require('../../../core/memory/memoryPolicy');
 const { validate } = require('../../../core/http/validate');
 const { HttpError } = require('../../../core/http/errors');
-const memoryQueries = require('../../../stores/memoryQueries');
-const { bestEffort, fallback } = require('../../../utils/bestEffort');
+const memoryQueries = require('../../../stores/memoryQueries'); const { bestEffort, fallback } = require('../../../utils/bestEffort');
 
 // One DNS label — the team part of <team>.signrequest.com, nothing else.
 const SIGNREQUEST_SUBDOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i;

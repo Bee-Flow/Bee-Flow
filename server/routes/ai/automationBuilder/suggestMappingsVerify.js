@@ -28,8 +28,7 @@ const {
     parseExpr, evaluate, scanTemplate, parseJsonText, stepInto, stepMatch,
 } = require('../../../automation/expr');
 const { interpolateTemplate } = require('../../../automation/bind');
-const log = require('../../../telemetry/log');
-const { fallback } = require('../../../utils/bestEffort');
+const log = require('../../../telemetry/log'); const { fallback } = require('../../../utils/bestEffort');
 
 const MAX_TEMPLATE_CHARS = 1000;
 const MAX_EXPR_CHARS = 400;

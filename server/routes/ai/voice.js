@@ -77,8 +77,7 @@ const agentStore = require('../../stores/agentStore');
 // ─── Auth & gating ───────────────────────────────────────────────
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
-const { requireAuth } = require('../../auth/permissions');
-const { bestEffort } = require('../../utils/bestEffort');
+const { requireAuth } = require('../../auth/permissions'); const { bestEffort } = require('../../utils/bestEffort');
 
 async function requireMistralConfigured(req, res, next) {
     const key = await configStore.getSecret('mistral_api_key');

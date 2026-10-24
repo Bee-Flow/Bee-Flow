@@ -27,8 +27,7 @@ const path = require('path');
 const fs = require('fs');
 const log = require('../telemetry/log');
 
-const { encryptValue, decryptValue, _inferOrgIdFromKey } = require('./configEncryption');
-const { bestEffort } = require('../utils/bestEffort');
+const { encryptValue, decryptValue, _inferOrgIdFromKey } = require('./configEncryption'); const { bestEffort } = require('../utils/bestEffort');
 
 // ── In-memory cache (avoids DB round-trips for hot-path reads) ──────
 // Config values change very rarely (monthly). Caching them for 60s

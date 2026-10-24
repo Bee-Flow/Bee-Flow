@@ -21,8 +21,7 @@
  */
 
 const { sanitizeError } = require('../core/privacy/errorSanitizer');
-const log = require('../telemetry/log');
-const { bestEffort, fallback } = require('../utils/bestEffort');
+const log = require('../telemetry/log'); const { bestEffort, fallback } = require('../utils/bestEffort');
 
 // Lazy store indirection so tests can inject a stub without ever loading the
 // real store (which would open a pg pool). _setStore(null) restores the real one.

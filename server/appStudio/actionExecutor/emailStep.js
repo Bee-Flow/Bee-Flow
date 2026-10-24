@@ -16,8 +16,7 @@ const {
 } = require('./shared');
 const { writeRecord } = require('./records');
 const log = require('../../telemetry/log');
-const { screenOutboundEmail } = require('./outboundEmailDlp');
-const { fallback } = require('../../utils/bestEffort');
+const { screenOutboundEmail } = require('./outboundEmailDlp'); const { fallback } = require('../../utils/bestEffort');
 
 // ── send_email ──────────────────────────────────────────────────────
 

@@ -33,8 +33,7 @@ const { scoreCandidate } = require('./score');
 const { patternSignature, suppressCandidates } = require('./suppress');
 const { toDraft, normaliseApp } = require('./builderMapping');
 const { toEvidenceCard } = require('./evidenceCard');
-const { maskNames, tokenize } = require('./templating');
-const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
+const { maskNames, tokenize } = require('./templating'); const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 const DAY = 86_400_000;
 const WINDOW_DAYS = 90;

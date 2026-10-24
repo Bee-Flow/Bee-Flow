@@ -25,8 +25,7 @@
 
 const path = require('path');
 const routeProbe = require('./routeProbe');
-const log = require('../../telemetry/log');
-const { fallback } = require('../../utils/bestEffort');
+const log = require('../../telemetry/log'); const { fallback } = require('../../utils/bestEffort');
 
 const SERVER_ROOT = path.resolve(__dirname, '..', '..');
 

@@ -26,8 +26,7 @@ const {
     MAILBOX_THREAD_TABLE_TEMPLATE,
     MAILBOX_ATTACHMENT_TABLE_TEMPLATE,
     MAILBOX_TABLE_TEMPLATES,
-} = require('./mailboxTableTemplates');
-const { fallback } = require('../utils/bestEffort');
+} = require('./mailboxTableTemplates'); const { fallback } = require('../utils/bestEffort');
 
 const MAX_MAILBOX_ROWS = 200;
 // How many conversations one threaded run will expand in full. Each costs a

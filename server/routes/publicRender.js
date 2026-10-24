@@ -60,8 +60,7 @@ const { buildBlogHead, renderBlogBody, buildFeed } = require('../core/seo/blog')
 const { buildAtomFeed } = require('../core/seo/blogAtom');
 const { listGalleryItems, integrationSitemapEntries } = require('../core/seo/integrationsDirectory');
 const { blogSitemap } = require('./publicRenderBlogSitemap');
-const log = require('../telemetry/log');
-const { fallback } = require('../utils/bestEffort');
+const log = require('../telemetry/log'); const { fallback } = require('../utils/bestEffort');
 
 const router = express.Router();
 

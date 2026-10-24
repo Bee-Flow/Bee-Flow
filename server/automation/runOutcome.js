@@ -25,8 +25,7 @@
  * an outcome must never take a run down.
  */
 
-const log = require('../telemetry/log');
-const { fallback } = require('../utils/bestEffort');
+const log = require('../telemetry/log'); const { fallback } = require('../utils/bestEffort');
 
 const OUTCOME_CODES = Object.freeze([
     'success', 'stopped_at', 'waiting_approval', 'waiting_form', 'waiting_confirm', 'cancelled',

@@ -11,8 +11,7 @@ require('../stores/configStore');
 const { getServiceHeaders } = require('../core/serviceAuth');
 const { recordSidecarCall } = require('../telemetry/metrics');
 const { toCitation } = require('../core/kb/citation');
-const log = require('../telemetry/log');
-const { fallback } = require('../utils/bestEffort');
+const log = require('../telemetry/log'); const { fallback } = require('../utils/bestEffort');
 
 /** @type {Array<Record<string, any>>} */ const KB_SEARCH_TOOLS = [
     {

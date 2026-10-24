@@ -258,8 +258,7 @@ router.post('/tutor', requireAuth, coachLimiter, validate({ body: TutorBody }), 
 // /quiz/grade. Everything degrades: any failure returns practice_unavailable
 // and the client falls back to bundled quiz items.
 const { getPracticeTopic } = require('../../learning/practiceTopics');
-const { PRACTICE_TOOL, validatePracticeItems, publicPracticeItem, MAX_ITEMS } = require('../../learning/practiceValidation');
-const { fallback } = require('../../utils/bestEffort');
+const { PRACTICE_TOOL, validatePracticeItems, publicPracticeItem, MAX_ITEMS } = require('../../learning/practiceValidation'); const { fallback } = require('../../utils/bestEffort');
 
 const PRACTICE_KEY_CACHE_MAX = 300;
 // practiceId → { keys: { [itemId]: { correctChoiceIds, explanation } }, ts }

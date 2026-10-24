@@ -61,8 +61,7 @@ const captureRaw = express.json({
 
 // Shared with routes/nextcloudStudioApps.js — the scheme is documented (and
 // must stay byte-identical to the connector's signing side) in auth/connectorSig.
-const { verifyConnectorSig } = require('../auth/connectorSig');
-const { fallback } = require('../utils/bestEffort');
+const { verifyConnectorSig } = require('../auth/connectorSig'); const { fallback } = require('../utils/bestEffort');
 
 /**
  * Per-task-type prompt construction.

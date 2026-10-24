@@ -24,8 +24,7 @@
 
 const configStore = require('../stores/configStore');
 const { XMLParser } = require('fast-xml-parser');
-const log = require('../telemetry/log');
-const { fallback } = require('../utils/bestEffort');
+const log = require('../telemetry/log'); const { fallback } = require('../utils/bestEffort');
 
 const REQUEST_TIMEOUT_MS = 20000;
 const MAX_RESPONSE_CHARS = 30000;

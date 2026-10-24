@@ -43,8 +43,7 @@
 const tiers = require('../../license/tiers');
 const featureMap = require('../../license/featureMap');
 const { NC_INTEGRATIONS, NC_INTEGRATION_ID_SET } = require('../../utils/ncIntegrationCatalog');
-const log = require('../../telemetry/log');
-const { bestEffort } = require('../../utils/bestEffort');
+const log = require('../../telemetry/log'); const { bestEffort } = require('../../utils/bestEffort');
 
 const CapabilityKind = Object.freeze({
     CORE: 'core',

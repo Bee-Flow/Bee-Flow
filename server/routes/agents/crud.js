@@ -424,8 +424,7 @@ function rejectUnsafeConfigKeys(config) {
 // The stores are handed in from HERE, required at call time, so this router
 // and its tests resolve them exactly as they did when the code lived in this
 // file.
-const publishable = require('../../agents/publishableConfig');
-const { fallback } = require('../../utils/bestEffort');
+const publishable = require('../../agents/publishableConfig'); const { fallback } = require('../../utils/bestEffort');
 
 function validateAgentConfigReferences(agent, config) {
     return publishable.validateAgentConfigReferences(agent, config, {
