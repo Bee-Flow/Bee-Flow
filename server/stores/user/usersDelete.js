@@ -3,6 +3,9 @@ const { run, getOne, getAll } = require('../../db');
 const { initDB } = require('./schema');
 const log = require('../../telemetry/log');
 const { syncSeatQuantity } = require('./seatSyncPort');
+const { isMissingTable } = require('../../utils/isMissingTable');
+const { bestEffort } = require('../../utils/bestEffort');
+const { storeError } = require('../lib/storeError');
 
 /**
  * Who inherits a departing owner's SHARED datatables: the organisation's oldest
@@ -11,44 +14,42 @@ const { syncSeatQuantity } = require('./seatSyncPort');
  * Deterministic on purpose. "An admin" would hand a colleague's HR table to
  * whichever row Postgres happened to return first, and the ops line naming the
  * new owner would then be different on a replay — which is the opposite of an
- * audit trail. The account being deleted is excluded explicitly; the DELETE has
- * already run by the time this is called, but the org-teardown path calls
- * deleteUser in a loop and one of those rows is exactly the wrong answer.
+ * audit trail. The account being deleted is excluded explicitly: its row is
+ * only removed at the end of deleteUser, and the org-teardown path calls
+ * deleteUser in a loop, so one of those rows is exactly the wrong answer.
  *
  * Returns null when no admin is left. The caller must NOT then delete the table
  * — it is the organisation's record, not the leaver's.
  */
 async function oldestOrgAdmin(organizationId, excludeUserId) {
     if (!organizationId) return null;
-    try {
-        const row = await getOne(
-            `SELECT id FROM users
-              WHERE "organizationId" = $1 AND "orgRole" = 'org_admin' AND id <> $2
-              ORDER BY "createdAt" ASC NULLS LAST, id ASC
-              LIMIT 1`,
-            [organizationId, excludeUserId],
-        );
-        return row?.id || null;
-    } catch (e) {
-        log.warn('[UserStore] could not resolve an org_admin heir:', e.message);
-        return null;
-    }
+    // A failed lookup throws: "no heir" would leave the table naming the leaver for good.
+    const row = await getOne(
+        `SELECT id FROM users
+          WHERE "organizationId" = $1 AND "orgRole" = 'org_admin' AND id <> $2
+          ORDER BY "createdAt" ASC NULLS LAST, id ASC
+          LIMIT 1`,
+        [organizationId, excludeUserId],
+    );
+    return row?.id || null;
 }
 
 /**
  * Art. 17 for "Find repeating work": the user's rows in suggestion_scan_cache
  * and automation_suggestion_feedback, through each store's purgeForUser (which
- * also catches legacy org-scoped rows by user_id). Best-effort per store, like
- * the rest of deleteUser. `stores` is the test seam.
+ * also catches legacy org-scoped rows by user_id). One failing store does not
+ * stop the other; `onFail` (deleteUser) receives each failure that is not a
+ * missing table. `stores` is the test seam.
  * @param {string} userId
- * @param {{ stores?: Array<{ purgeForUser: (id: string) => Promise<number> }> }} [opts]
+ * @param {{ stores?: Array<{ purgeForUser: (id: string) => Promise<number> }>, onFail?: (e: unknown) => void }} [opts]
  */
-async function eraseSuggestionTraces(userId, { stores } = {}) {
+async function eraseSuggestionTraces(userId, { stores, onFail } = {}) {
     const list = stores || [require('../suggestionScanCache'), require('../suggestionFeedbackStore')];
     let erased = 0;
     for (const store of list) {
         try { erased += (await store.purgeForUser(userId)) || 0; } catch (e) {
-            log.warn('[UserStore] Suggestion erasure failed:', e.message);
+            if (onFail && !isMissingTable(e)) onFail(e);
+            else log.warn('[UserStore] Suggestion erasure failed:', e.message);
         }
     }
     return erased;
@@ -115,22 +116,54 @@ async function eraseCmsUploadTickets(userId, configStore = require('../configSto
     return removed;
 }
 
+/**
+ * Collects the erasure steps of one deleteUser call that failed. A missing
+ * table is not a failure (an install without that feature has nothing to
+ * erase); anything else is logged with the step name and the user id only
+ * (a driver message can quote row values) and makes the erasure incomplete.
+ * @param {string} userId
+ */
+function erasureSteps(userId) {
+    /** @type {string[]} */
+    const failed = [];
+    /** @param {string} name @param {unknown} e */
+    const fail = (name, e) => {
+        failed.push(name);
+        const code = /** @type {{ code?: unknown, name?: unknown }} */ (e)?.code ?? /** @type {any} */ (e)?.name ?? 'unknown';
+        log.error(`[UserStore] erasure step '${name}' failed for user '${userId}' (${code})`);
+    };
+    /** @param {string} name @param {() => Promise<unknown>} fn */
+    const step = async (name, fn) => {
+        try { await fn(); } catch (e) { if (!isMissingTable(e)) fail(name, e); }
+    };
+    return { failed, fail, step };
+}
+
+/**
+ * Erase an account and everything that names it.
+ *
+ * The users row goes LAST: when a step fails, the row stays and the call
+ * rejects with 500 erasure_incomplete (details.failed names the steps), so the
+ * same delete can simply be retried. Every step is idempotent. The plain
+ * DELETEs are not one transaction on purpose: an install without one of the
+ * optional tables would abort the whole transaction on the first missing one.
+ *
+ * @param {string} userId
+ * @returns {Promise<boolean>} false when there is no such account
+ */
 async function deleteUser(userId) {
     await initDB();
     // Before anything is dropped: an account that runs a Solution stage stays.
     await assertNotStageRunAs(userId);
     const { notebooks: notebookPort, teardown: projectTeardown } = require('./erasurePorts').resolveErasurePorts();
-    // Capture the org before DELETE so we can sync Stripe seat quantity
-    // afterwards. NULL orgId users (consumer accounts) skip the sync.
-    let orgIdForSeatSync = null;
-    try {
-        const owner = await getOne('SELECT "organizationId" FROM users WHERE id = $1', [userId]);
-        orgIdForSeatSync = owner?.organizationId || null;
-    } catch (err) { log.debug('best-effort', err); }
-    const { rowCount } = await run('DELETE FROM users WHERE id = $1', [userId]);
-    if (rowCount === 0) return false;
+    // Capture the org now so we can sync Stripe seat quantity afterwards.
+    // NULL orgId users (consumer accounts) skip the sync.
+    const owner = await getOne('SELECT id, "organizationId" FROM users WHERE id = $1', [userId]);
+    if (!owner) return false;
+    const orgIdForSeatSync = owner.organizationId || null;
+    const { failed, fail, step } = erasureSteps(userId);
 
-    log.info(`[UserStore] Cleaning up data for deleted user '${userId}'...`);
+    log.info(`[UserStore] Erasing the data of user '${userId}'...`);
     try {
         const configStore = require('../configStore');
 
@@ -145,7 +178,7 @@ async function deleteUser(userId) {
                     await configStore.deleteConfig(`learning_cert_lookup_${record.verifyTokenHash}`);
                 }
             }
-        } catch (e) { log.error('[UserStore] Failed to revoke cert lookups:', e.message); }
+        } catch (e) { fail('certificate lookups', e); }
 
         const configKeys = [
             `fireflies_api_key_user_${userId}`, `youtrack_url_user_${userId}`, `youtrack_token_user_${userId}`,
@@ -161,16 +194,11 @@ async function deleteUser(userId) {
             `mcp_server_token_user_${userId}`, `mcp_server_token_user_${userId}_revoked`,
         ];
         for (const key of configKeys) await configStore.deleteConfig(key);
-    } catch (e) { log.error('[UserStore] Failed to clean user config keys:', e.message); }
+    } catch (e) { fail('config keys', e); }
 
     // Named MCP tokens. No FK to users, so they go explicitly.
-    try {
-        await run('DELETE FROM mcp_tokens WHERE user_id = $1', [userId]);
-    } catch (e) { log.error('[UserStore] Failed to delete MCP tokens:', e.message); }
-
-    try {
-        await eraseCmsUploadTickets(userId);
-    } catch (e) { log.error('[UserStore] Failed to delete CMS upload tickets:', e.message); }
+    await step('mcp_tokens', () => run('DELETE FROM mcp_tokens WHERE user_id = $1', [userId]));
+    await step('cms upload tickets', () => eraseCmsUploadTickets(userId));
 
     // Notebooks. These were missed entirely: deleting a user left their
     // notebooks, sources, version snapshots, uploaded file blobs, derived
@@ -179,23 +207,24 @@ async function deleteUser(userId) {
     //
     // Runs through the cascade (not a bare DELETE) because the bytes live
     // outside Postgres — object storage and the vector index — and only the
-    // cascade knows where. Best-effort (a storage failure must not stop the
-    // teardown), but the port lookup (top of deleteUser) is outside the try: unregistered refuses.
-    try {
+    // cascade knows where. A storage failure does not stop the other steps, but
+    // it leaves the erasure incomplete; the port lookup (top of deleteUser) is
+    // outside the step: unregistered refuses.
+    await step('notebooks', async () => {
         const { notebooks } = await notebookPort.deleteAllForUser(userId);
         if (notebooks) log.info(`[UserStore] Erased ${notebooks} notebook(s) for '${userId}'`);
-    } catch (e) { log.error('[UserStore] Notebook erasure failed:', e.message); }
-    try { await run('DELETE FROM notebook_conversations WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
+    });
+    await step('notebook_conversations', () => run('DELETE FROM notebook_conversations WHERE user_id = $1', [userId]));
 
-    try { await run('DELETE FROM user_memories WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
+    await step('user_memories', () => run('DELETE FROM user_memories WHERE user_id = $1', [userId]));
     // The tokenization vault is a store of this user's raw PII by definition,
     // so it has to go with them. Counters go too — unlike an in-life "clear
     // vault", there is no surviving message left to hold a stale token.
-    try { await run('DELETE FROM pii_vault_entries WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
-    try { await run('DELETE FROM pii_vault_counters WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
-    try { await run('DELETE FROM agent_conversations WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
-    try { await run('DELETE FROM direct_conversations WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
-    try { await run('DELETE FROM execution_history WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
+    await step('pii_vault_entries', () => run('DELETE FROM pii_vault_entries WHERE user_id = $1', [userId]));
+    await step('pii_vault_counters', () => run('DELETE FROM pii_vault_counters WHERE user_id = $1', [userId]));
+    await step('agent_conversations', () => run('DELETE FROM agent_conversations WHERE user_id = $1', [userId]));
+    await step('direct_conversations', () => run('DELETE FROM direct_conversations WHERE user_id = $1', [userId]));
+    await step('execution_history', () => run('DELETE FROM execution_history WHERE user_id = $1', [userId]));
     // Two tables that record what a person did and were never in this cascade.
     //
     // `message_feedback` holds their rating, their free-text comment and — on
@@ -207,19 +236,19 @@ async function deleteUser(userId) {
     // advertises erasure both have to go with the account. Their absence is
     // exactly the kind of gap that only shows up when somebody exercises an
     // Art. 17 request and the answer turns out to be untrue.
-    try { await run('DELETE FROM message_feedback WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
-    try { await run('DELETE FROM ai_usage_log WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
+    await step('message_feedback', () => run('DELETE FROM message_feedback WHERE user_id = $1', [userId]));
+    await step('ai_usage_log', () => run('DELETE FROM ai_usage_log WHERE user_id = $1', [userId]));
     // Their "Don't count my chat turns" choice (chat signals, Art. 21).
-    try { await run('DELETE FROM chat_signal_objections WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
+    await step('chat_signal_objections', () => run('DELETE FROM chat_signal_objections WHERE user_id = $1', [userId]));
     // "Find repeating work": scans derived from this person's own mail, files
     // and ledger, and their feedback on them.
-    await eraseSuggestionTraces(userId);
+    await eraseSuggestionTraces(userId, { onFail: (e) => fail('suggestion traces', e) });
     // OAuth refresh tokens for long-running automations. If we leave these
     // behind, the encrypted secret is still in the DB after user delete,
     // and a future user with the same id (rare but possible) could inherit
     // it. App passwords live on the users row itself and are dropped by
     // the DELETE FROM users above.
-    try { await run('DELETE FROM automation_credentials WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
+    await step('automation_credentials', () => run('DELETE FROM automation_credentials WHERE user_id = $1', [userId]));
     // Cached integration answers. Fetched with THIS person's credentials and
     // about the things they could see, so they go with the account for the same
     // reason automation_credentials and the PII vault do — and an id reused later
@@ -229,7 +258,7 @@ async function deleteUser(userId) {
     // memoised per-org row/byte counters, which otherwise keep claiming the org
     // still stores what was just erased, and the one Art. 17 guarantee that
     // cache makes stops being an untested SQL string in a cascade.
-    try { await require('../integrationCacheStore').purgeForUser(userId); } catch (e) { log.debug('table may not exist', e); }
+    await step('integration cache', () => require('../integrationCacheStore').purgeForUser(userId));
     // Named integration connections + lends, for the same reason. Two extra
     // hazards beyond id-reuse: the encrypted API keys of a departed employee
     // would otherwise sit in the vault indefinitely, and any org-wide lend they
@@ -237,39 +266,39 @@ async function deleteUser(userId) {
     // running other people's automations after the account is gone. Grants they
     // received must go too, else a re-created id silently re-inherits them.
     // Grants ON the deleted user's own connections cascade via the FK.
-    try {
-        await run(
-            `DELETE FROM connection_grants
-             WHERE grantor_user_id = $1 OR (grantee_type = 'user' AND grantee_id = $1)`,
-            [userId]
-        );
-    } catch (e) { log.debug('table may not exist', e); }
-    try { await run('DELETE FROM integration_connections WHERE owner_user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
+    await step('connection_grants', () => run(
+        `DELETE FROM connection_grants
+         WHERE grantor_user_id = $1 OR (grantee_type = 'user' AND grantee_id = $1)`,
+        [userId]
+    ));
+    await step('integration_connections', () => run('DELETE FROM integration_connections WHERE owner_user_id = $1', [userId]));
     // Voiceprints are biometric data (GDPR Art. 9). They must go with the
     // account, unconditionally — there is no legitimate reason to keep a
     // speaker template for a user who no longer exists.
-    try { await run('DELETE FROM voiceprints WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
+    await step('voiceprints', () => run('DELETE FROM voiceprints WHERE user_id = $1', [userId]));
     // Projects: delete the user's owned projects the way the project delete
     // route does (colleagues' co-edits folded back, soft references detached,
     // files base removed; stores/user/projectErasure.js), and remove any
     // shares that target this user directly.
     const owned = await require('./projectErasure').eraseOwnedProjects(userId, { teardown: projectTeardown });
     if (owned.deleted || owned.kept || owned.failed) log.info(`[UserStore] Owned projects of '${userId}': ${JSON.stringify(owned)}`);
-    try { await run(`DELETE FROM project_shares WHERE shared_with_type = 'user' AND shared_with_id = $1`, [userId]); } catch (e) { log.debug('table may not exist', e); }
+    if (owned.failed) failed.push('owned projects');
+    await step('project_shares', () => run(`DELETE FROM project_shares WHERE shared_with_type = 'user' AND shared_with_id = $1`, [userId]));
     // What they wrote and marked in colleagues' projects: team chat messages and
     // comments blanked as if by their own hand, their id out of the co-editing
     // log, their seen marks and AI feedback gone (stores/user/projectErasure.js).
     // Their OWN projects went with them above.
-    await require('./projectErasure').eraseProjectTraces(userId);
+    const traces = await require('./projectErasure').eraseProjectTraces(userId);
+    for (const [name, outcome] of Object.entries(traces)) if (outcome?.failed === true) failed.push(`project ${name}`);
     // Agents owned by this user. Without this they become orphans with a
     // non-existent owner; a future user re-created with the same id would inherit
     // them as ghost agents in the library (BFSF-181). Mirror the org-delete
     // cascade: drop each agent's conversations first, then the agents.
-    try {
+    await step('agents', async () => {
         const ownedAgents = await getAll('SELECT id FROM agents WHERE owner_id = $1', [userId]);
-        for (const agent of ownedAgents) { try { await run('DELETE FROM agent_conversations WHERE agent_id = $1', [agent.id]); } catch (err) { log.warn('could not delete the conversations of an agent during user cleanup', err); } }
+        for (const agent of ownedAgents) await run('DELETE FROM agent_conversations WHERE agent_id = $1', [agent.id]);
         await run('DELETE FROM agents WHERE owner_id = $1', [userId]);
-    } catch (e) { log.debug('table may not exist', e); }
+    });
 
     // Datatables. Two different things wear the same shape here, so they get
     // different answers:
@@ -285,7 +314,7 @@ async function deleteUser(userId) {
     // rows are resolved BY ID, so left alone a user re-created with the same id
     // comes back as owner of a colleague's HR table — the same mechanism as the
     // agents cascade above (BFSF-181).
-    try {
+    await step('datatables', async () => {
         const datatableStore = require('../datatableStore');
         const removedGrants = await datatableStore.purgeGrantsForUser(userId);
         if (removedGrants) log.info(`[UserStore] Removed ${removedGrants} datatable grant(s) for '${userId}'`);
@@ -332,13 +361,18 @@ async function deleteUser(userId) {
             datatableDbStore.invalidate(personalKey);
             log.info(`[UserStore] Dropped the personal datatable schema for '${userId}'`);
         }
-    } catch (e) { log.error('[UserStore] datatable erasure failed:', e.message); }
+    });
 
-    try {
+    await step('notifications', async () => {
         const notificationStore = require('../notificationStore');
         if (notificationStore.deleteUserNotifications) await notificationStore.deleteUserNotifications(userId);
-    } catch (e) { log.debug('PG store may not be initialized', e); }
+    });
 
+    if (failed.length) {
+        throw storeError(500, 'erasure_incomplete',
+            'The account could not be fully erased. It is kept so the delete can be retried.', { failed });
+    }
+    await run('DELETE FROM users WHERE id = $1', [userId]);
     log.info(`[UserStore] Cleanup complete for user '${userId}'`);
     // Per-seat plans rebill on user count change. Fire-and-forget — Stripe
     // outages don't block the delete; the webhook reconciles afterwards.
@@ -346,7 +380,7 @@ async function deleteUser(userId) {
         Promise.resolve().then(async () => {
             try {
                 await syncSeatQuantity(orgIdForSeatSync);
-            } catch (err) { log.debug('best-effort', err); }
+            } catch (err) { bestEffort('users/delete:seatSync', err); }
         });
     }
     return true;

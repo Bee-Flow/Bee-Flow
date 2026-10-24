@@ -84,8 +84,13 @@ test('owned projects: no user id, or a listing that fails, deletes nothing', asy
     const teardown = { deleteProject: async () => { asked = true; return true; } };
     assert.deepStrictEqual(await eraseOwnedProjects('', { listOwned: async () => ['p1'], countSharedThreads: async () => 0, handOver: async () => null, teardown }),
         { deleted: 0, kept: 0, failed: 0, handedOver: 0 });
+    // No projects table: nothing owned, so nothing failed either.
     assert.deepStrictEqual(await eraseOwnedProjects('u1', {
         listOwned: async () => { throw new Error('relation "projects" does not exist'); }, countSharedThreads: async () => 0, handOver: async () => null, teardown,
+    }), { deleted: 0, kept: 0, failed: 0, handedOver: 0 });
+    // Any other listing failure is one: deleteUser then reports the erasure incomplete.
+    assert.deepStrictEqual(await eraseOwnedProjects('u1', {
+        listOwned: async () => { throw new Error('connection terminated'); }, countSharedThreads: async () => 0, handOver: async () => null, teardown,
     }), { deleted: 0, kept: 0, failed: 1, handedOver: 0 });
     assert.strictEqual(asked, false);
 });

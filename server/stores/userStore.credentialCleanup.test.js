@@ -56,7 +56,7 @@ const teamChatErasures = [];
 let ownedTables = [];
 
 const dbStub = {
-    pool: {},
+    pool: { query: async () => ({ rows: [], rowCount: 0 }) },
     run: async (sql, params) => { runCalls.push({ sql, params }); return { rowCount: 1 }; },
     getOne: async (sql, params) => getOneImpl(sql, params),
     getAll: async (sql, params) => getAllImpl(sql, params),
@@ -91,9 +91,11 @@ const restore = installResolveStub({
     },
     '../configStore': {
         getConfig: async () => null,
+        getConfigFresh: async () => null,
         getSecret: async () => null,
         setConfig: async () => {},
         deleteConfig: async () => {},
+        listKeysWithPrefix: async () => [],
     },
     // Datatables. `integration_response_cache` and the datatable tables are the
     // half of erasure this suite did not reach: the cache was an inline DELETE

@@ -182,7 +182,13 @@ async function main() {
             console.log(`    ⚠ ${why} — skipping delete (re-run with --force to discard)`);
             skipped++;
         } else if (APPLY) {
-            const ok = await userStore.deleteUser(orphan.id);
+            // An incomplete erasure rejects and keeps the row, so a re-run retries it.
+            let ok = false;
+            try {
+                ok = await userStore.deleteUser(orphan.id);
+            } catch (e) {
+                console.log(`    ! erasure incomplete for ${orphan.id}: ${(e.details?.failed || []).join(', ') || e.code || 'error'}`);
+            }
             if (ok) {
                 console.log(`    ✖ deleted orphan ${orphan.id}`);
                 deleted++;
