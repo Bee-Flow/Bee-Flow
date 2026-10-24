@@ -7,6 +7,7 @@
 
 const { writeOpts } = require('../context');
 const log = require('../../../../telemetry/log');
+const { bestEffort } = require('../../../../utils/bestEffort');
 
 /** `<key>_2` … `<key>_9`: the copies a key clash may try (F7). */
 const MAX_KEY_SUFFIX = 9;
@@ -123,7 +124,7 @@ async function installDatatables(entities, ctx, report) {
                 try {
                     created = await createWith(key, logicalKey);
                 } catch (err) {
-                    try { datatableDbStore.invalidate(scopeKey); } catch (err) { log.debug('best effort', err); }
+                    try { datatableDbStore.invalidate(scopeKey); } catch (err) { bestEffort('projects/packaging/install/parts/datatables:installDatatables', err); /* best effort */ }
                     if (n >= MAX_KEY_SUFFIX || !isKeyClash(err)) throw err;
                 }
             }
@@ -137,7 +138,7 @@ async function installDatatables(entities, ctx, report) {
         } catch (err) {
             // The engine memoises "this scope has a model row" inside the
             // transaction that just rolled back, so the memo goes with it.
-            try { datatableDbStore.invalidate(scopeKey); } catch (err) { log.debug('best effort', err); }
+            try { datatableDbStore.invalidate(scopeKey); } catch (err) { bestEffort('projects/packaging/install/parts/datatables:installDatatables#2', err); /* best effort */ }
             report.skipped.push({ ref: entity.ref, kind: 'datatable', why: err.message });
         }
     }

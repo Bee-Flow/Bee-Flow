@@ -63,6 +63,7 @@ const { visitPointers } = require('../core/packaging/pointers');
 const { collectDatatableUsage } = require('../automation/datatableUsage');
 const membership = require('./membership');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 /** The most related parts one request walks to; more than this is reported, not followed. */
 const MAX_RELATED = 200;
@@ -176,7 +177,7 @@ const READERS = {
         // The data model sits in its own store and is owner-scoped; best effort,
         // like the builder: without it only the table bindings are missed.
         let dataModel = null;
-        try { dataModel = (await require('../stores/studioAppDataStore').getDataModel(id, userId))?.model ?? null; } catch (err) { log.debug('optional', err); }
+        try { dataModel = (await require('../stores/studioAppDataStore').getDataModel(id, userId))?.model ?? null; } catch (err) { fallback('projects/relatedParts:app', err); /* optional */ }
         return { name: app.name || null, payload: { definition: app.definition, dataModel } };
     },
     webpage: async (id) => {

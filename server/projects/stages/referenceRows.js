@@ -52,6 +52,7 @@ const personal = require('../../core/privacy/personalColumns');
 const { toDollarParams } = require('../../stores/lib/pgAppEngine');
 const { HttpError } = require('../../core/http/errors');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** Caps from design section 2. Over any of them the release is blocked. */
 const LIMITS = Object.freeze({
@@ -542,7 +543,7 @@ async function applyReferenceRows(client, { scope, tableMeta, rows, runAsUserId,
     } finally {
         try {
             await client.query(`SELECT set_config('search_path', $1, true)`, [previousPath]);
-        } catch (err) { log.debug('an aborted transaction: the caller\'s error is the one that matters', err); }
+        } catch (err) { bestEffort('projects/stages/referenceRows:applyReferenceRows', err); /* an aborted transaction: the caller's error is the one that matters */ }
     }
     return { written, deleted, skippedFieldIds: [...skipped].sort() };
 }

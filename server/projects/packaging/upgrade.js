@@ -40,6 +40,7 @@ const {
 } = require('./install');
 const { HttpError } = require('../../core/http/errors');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 function hashOf(payload) {
     const { hashDefinition } = require('../../appStudio/templateUpgrade');
@@ -374,7 +375,7 @@ async function replaceWebpage(entityId, entity, ctx) {
     // version through a new snapshot, the way the publish route pins one
     // (flush, snapshot, pointer). An unpublished page has no pin and gets none.
     if (row && row.publishedVersionId) {
-        try { await ctx.webpageDb().flush(owner, entityId); } catch (err) { log.debug('best effort, as on publish', err); }
+        try { await ctx.webpageDb().flush(owner, entityId); } catch (err) { bestEffort('projects/packaging/upgrade:replaceWebpage', err); /* best effort, as on publish */ }
         const version = await store.createVersion(owner, entityId, 'Published', null, 'published');
         const ok = version && await store.setPublishedVersion(entityId, owner, version.id);
         if (!ok) throw new Error('the new version could not be published');

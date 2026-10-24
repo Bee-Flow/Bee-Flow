@@ -41,6 +41,7 @@
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const { usageLogFields } = require('../../core/providers/usageNormalizer');
+const { fallback: fallbackSwallowed, bestEffort } = require('../../utils/bestEffort');
 
 const GATE_TIMEOUT_MS = 8_000;
 const GATE_MESSAGES = 12;
@@ -240,7 +241,7 @@ function makeRelevanceGate(deps = {}) {
         try {
             const p = await require('../../core/aiAgent').getProviderForModel(modelId);
             providerConfig = { providerType: p?.providerType, url: p?.url, displayName: p?.providerName || p?.providerType || 'LLM' };
-        } catch (err) { log.debug('unknown provider: the DLP classifier treats it as external, the safe side', err); }
+        } catch (err) { fallbackSwallowed('projects/participation/relevanceGate:makeRelevanceGate', err); /* unknown provider: the DLP classifier treats it as external, the safe side */ }
         return { modelId, providerConfig };
     });
     const shields = new Map();
@@ -309,7 +310,7 @@ function makeRelevanceGate(deps = {}) {
             log.warn(`[AiParticipation] gate for ${surface} ${containerId} unavailable (${skipReason}): ${err?.code || err?.name || 'error'}`);
             return { available: false, skipReason, model: model.modelId };
         } finally {
-            try { shield.release(conversationId); } catch (err) { log.debug('nothing held', err); }
+            try { shield.release(conversationId); } catch (err) { bestEffort('projects/participation/relevanceGate:gate', err); /* nothing held */ }
         }
 
         try {

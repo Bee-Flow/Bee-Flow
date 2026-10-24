@@ -43,6 +43,7 @@ const { HttpError } = require('../../core/http/errors');
 const log = require('../../telemetry/log');
 const { KIND_OF_SECTION, canonicalOf, hashPayload } = require('./stagePayload');
 const { WRITE_ACTIONS, storesOf, makeJournal } = require('./journal');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
@@ -474,11 +475,11 @@ async function preflight(ctx) {
         });
     } catch (err) {
         if (err === ROLLBACK) { for (const t of changed) t.diff.preflight = 'ok'; return; }
-        try { s.datatableDbStore.invalidate(key); } catch (err) { log.debug('best effort', err); }
+        try { s.datatableDbStore.invalidate(key); } catch (err) { bestEffort('projects/stages/prepare:preflight', err); /* best effort */ }
         for (const t of changed) t.diff.preflight = 'failed';
         ctx.blocking.push(blocking('schema.preflight_failed', { code: err && err.code ? String(err.code) : null }));
     }
-    try { s.datatableDbStore.invalidate(key); } catch (err) { log.debug('best effort', err); }
+    try { s.datatableDbStore.invalidate(key); } catch (err) { bestEffort('projects/stages/prepare:preflight#2', err); /* best effort */ }
 }
 
 // ── 5. Verify ───────────────────────────────────────────────────────────────

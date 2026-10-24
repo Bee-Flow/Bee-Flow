@@ -8,6 +8,7 @@
 'use strict';
 
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const MODEL_TIER = 'fast';
 /** The tiers a chat message can pick: depths of the same kind of answer, as in a normal chat's slider. */
@@ -46,7 +47,7 @@ async function resolveChatModel({ userId, orgId, modelTier = null, message = '' 
     try {
         const p = await getProviderForModel(modelId);
         providerConfig = { providerType: p?.providerType, url: p?.url, displayName: p?.providerName || p?.providerType || 'LLM' };
-    } catch (err) { log.debug('Unknown provider: the DLP classifier treats it as external, the safe side.', err); }
+    } catch (err) { fallback('projects/chatModel:resolveChatModel', err); /* Unknown provider: the DLP classifier treats it as external, the safe side. */ }
     /** @type {{ maxTokens: number, temperature?: number }} */
     const options = { maxTokens: tier.maxTokens || 4096 };
     if (tier.temperature !== undefined) options.temperature = tier.temperature;

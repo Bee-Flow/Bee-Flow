@@ -49,6 +49,7 @@ const { toRefs, variablesInSteeringFields, splitIds, isRef } = require('../../co
 const { sweepRawIds, isTableToken } = require('./idSweep');
 const { buildProjectGraph } = require('../graph');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 function clone(v) {
     try { return structuredClone(v); } catch { return JSON.parse(JSON.stringify(v ?? null)); }
@@ -95,13 +96,13 @@ async function loadMembers(projectId) {
         templateStore.listSolutionTemplates(projectId),
     ]);
     const apps = (await Promise.all(
-        (appMetas || []).map(m => studioAppStore.getStudioApp(m.id).catch(() => null)),
+        (appMetas || []).map(m => studioAppStore.getStudioApp(m.id).catch((e) => fallback('projects/packaging/capture:loadMembers', e, null))),
     )).filter(Boolean);
     const agents = (await Promise.all(
-        (agentMetas || []).map(m => agentStore.getAgent(m.id).catch(() => null)),
+        (agentMetas || []).map(m => agentStore.getAgent(m.id).catch((e) => fallback('projects/packaging/capture:loadMembers#2', e, null))),
     )).filter(Boolean);
     const knowledgeBases = (await Promise.all(
-        (kbShells || []).map(k => kbStore.getKB(k.id).catch(() => null)),
+        (kbShells || []).map(k => kbStore.getKB(k.id).catch((e) => fallback('projects/packaging/capture:loadMembers#3', e, null))),
     )).filter(Boolean);
     // The skill listing is a narrow projection, and a skill is read through its
     // own scope (organisation and owner), the way the agent-config check does.
@@ -113,7 +114,7 @@ async function loadMembers(projectId) {
     }))).filter(Boolean);
     // A template card carries no slots; the body is read as its owner.
     const documents = (await Promise.all(
-        (templateCards || []).map(c => documentStore.getDocument(c.id, c.userId).catch(() => null)),
+        (templateCards || []).map(c => documentStore.getDocument(c.id, c.userId).catch((e) => fallback('projects/packaging/capture:loadMembers#4', e, null))),
     )).filter(Boolean);
 
     // An app's own data model (F13): the SHAPE from studio_app_data_meta,
@@ -140,7 +141,7 @@ async function loadMembers(projectId) {
     // scope the row itself carries — never a guessed one.
     const tableMetaById = new Map();
     for (const table of (datatables || [])) {
-        const meta = await datatableStore.getTableMeta(table.scope, table.id).catch(() => null);
+        const meta = await datatableStore.getTableMeta(table.scope, table.id).catch((e) => fallback('projects/packaging/capture:loadMembers#5', e, null));
         tableMetaById.set(table.id, meta);
     }
 
@@ -291,7 +292,7 @@ async function captureWebpage(webpage, refs, warnings, opts = {}) {
     }
 
     let extraCount = 0;
-    try { extraCount = (await webpageStore.listExtraFiles(webpage.id) || []).length; } catch (err) { log.debug('best effort', err); }
+    try { extraCount = (await webpageStore.listExtraFiles(webpage.id) || []).length; } catch (err) { fallback('projects/packaging/capture:captureWebpage', err); /* best effort */ }
     if (extraCount) warnings.push(`"${webpage.name}" has ${extraCount} additional file(s), which this version does not carry.`);
     // A stage would run the page without them, so a pipeline release refuses
     // rather than ship a page that differs from Dev (extra files are P8).

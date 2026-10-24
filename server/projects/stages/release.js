@@ -38,6 +38,7 @@
 
 const { HttpError } = require('../../core/http/errors');
 const { stableStringify, hashOf } = require('./model');
+const { fallback } = require('../../utils/bestEffort');
 
 const MAX_CUT_ATTEMPTS = 3;
 const MAX_NOTE_TEXT = 4000;
@@ -96,7 +97,7 @@ async function defaultReadCutState(devProject) {
     for (const m of await studioAppStore.listProjectApps(id)) {
         const app = await studioAppStore.getStudioApp(m.id);
         if (!app) continue;
-        const meta = await studioAppDataStore.getDataModel(app.id, app.userId).catch(() => undefined);
+        const meta = await studioAppDataStore.getDataModel(app.id, app.userId).catch((e) => fallback('projects/stages/release:defaultReadCutState', e));
         members.apps.push(app.id);
         tokens[`app:${app.id}`] = { definitionVersion: app.definitionVersion ?? null, dataModelVersion: meta === undefined ? null : (meta ? meta.modelVersion : 0) };
     }
@@ -110,7 +111,7 @@ async function defaultReadCutState(devProject) {
     members.datatables = [];
     for (const t of await datatableStore.listDatatablesForProject(id)) {
         members.datatables.push(t.id);
-        const meta = await datatableStore.getTableMeta(t.scope, t.id).catch(() => null);
+        const meta = await datatableStore.getTableMeta(t.scope, t.id).catch((e) => fallback('projects/stages/release:defaultReadCutState#2', e, null));
         tokens[`datatable:${t.id}`] = { fingerprint: datatableStore.tableFingerprint(meta), updatedAt: t.updatedAt ? String(t.updatedAt) : null };
     }
     members.agents = [];

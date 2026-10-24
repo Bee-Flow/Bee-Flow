@@ -86,6 +86,7 @@ const {
     CONTEXT_MESSAGES, ASSISTANT_NAME, AUTO_MAX_TOKENS, SKIP_SENTINEL, AUTO_TRIGGERS, TOOL_TIMEOUT_FACTOR,
     displayNameOf, buildTranscript, buildSystemPrompt, withTimeout, isSkip, num,
 } = require('./chatPromptParts');
+const { fallback } = require('../utils/bestEffort');
 
 const DEFAULT_TIMEOUT_MS = 90_000;
 // The lock must outlive the call it guards, or a slow answer loses its turn.
@@ -445,7 +446,7 @@ function makeChatAssistant(deps = {}) {
         if (!turn) return { status: 'idle', threadId: null };
         let threadId = null;
         if (turn.runId?.startsWith('pc:')) {
-            try { threadId = decodeURIComponent(turn.runId.split(':')[1]) || null; } catch (err) { log.debug('older lock', err); }
+            try { threadId = decodeURIComponent(turn.runId.split(':')[1]) || null; } catch (err) { fallback('projects/chatAssistant:getStatus', err); /* older lock */ }
         }
         return { status: 'running', threadId, startedAt: turn.acquiredAt };
     }

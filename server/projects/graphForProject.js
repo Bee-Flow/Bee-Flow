@@ -50,6 +50,7 @@
 'use strict';
 
 const defaultLog = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 /** The stores and helpers this loader reads, with the real ones as fallback. */
 function resolveDeps(deps = {}) {
@@ -113,7 +114,7 @@ async function buildGraphForProject(project, deps = {}) {
     ]);
 
     const appReads = await Promise.all(
-        (appMetas || []).map(m => studioAppStore.getStudioApp(m.id).catch(() => null)),
+        (appMetas || []).map(m => studioAppStore.getStudioApp(m.id).catch((e) => fallback('projects/graphForProject:buildGraphForProject', e, null))),
     );
     // An app whose definition would not load is NOT an app without wiring: it
     // is an app nobody could look at. Dropping it silently removed its broken
@@ -124,7 +125,7 @@ async function buildGraphForProject(project, deps = {}) {
     // The config is what carries the wiring, and it stays on this side of the
     // wire.
     const agentReads = await Promise.all(
-        (agentMetas || []).map(m => agentStore.getAgent(m.id).catch(() => null)),
+        (agentMetas || []).map(m => agentStore.getAgent(m.id).catch((e) => fallback('projects/graphForProject:buildGraphForProject#2', e, null))),
     );
     if (agentReads.some(a => !a)) miss('agents');
     const agents = agentReads.filter(Boolean).map(a => ({ id: a.id, name: a.name, ownerId: a.owner_id, config: a.config }));

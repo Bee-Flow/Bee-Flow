@@ -38,6 +38,7 @@ const log = require('../../telemetry/log');
 const { stageLockSql } = require('../../stores/solutionStage/stages');
 const { storesOf, makeJournal } = require('./journal');
 const { toConverging } = require('./commit');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 
@@ -180,7 +181,7 @@ async function commitRemove({ deployment, stage }, deps = {}) {
         try {
             action = await removePart(s, st, { stage, managedWrite, deleteData, deps });
         } catch (err) {
-            if (!isGone(err)) { await step.failed({ detail: { code: err && err.code ? String(err.code) : 'failed' } }).catch(() => {}); throw err; }
+            if (!isGone(err)) { await step.failed({ detail: { code: err && err.code ? String(err.code) : 'failed' } }).catch((e) => bestEffort('projects/stages/removeStage:commitRemove', e)); throw err; }
             action = 'delete';
         }
         await step.done({ detail: { action } });
@@ -217,7 +218,7 @@ async function finishRemove({ deployment, stage }, deps = {}) {
             kind: 'deployment.succeeded', actorId: deployment.requestedBy || null, targetType: 'deployment', targetId: deployment.id,
             payload: { deploymentId: deployment.id, kind: 'remove', stage: stage.stage, warnings: warnings.length },
         }, { label: 'Solution stages' });
-    } catch (err) { log.debug('the feed is best-effort', err); }
+    } catch (err) { bestEffort('projects/stages/removeStage:finishRemove', err); /* the feed is best-effort */ }
     const report = { warnings, attempts: 1 };
     const row = await s.stageStore.transitionDeployment(deployment.id, ['converging'], warnings.length ? 'succeeded_with_warnings' : 'succeeded', { report });
     return { deployment: row, report };

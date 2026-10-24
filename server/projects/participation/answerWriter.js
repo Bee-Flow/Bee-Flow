@@ -27,6 +27,7 @@ const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const { usageLogFields } = require('../../core/providers/usageNormalizer');
 const { REASON_TEXT } = require('./relevanceGate');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const CONTEXT_CHARS = 24_000;
 const EXTRA_CONTEXT_CHARS = 8_000;
@@ -225,7 +226,7 @@ function makeAnswerWriter(deps = {}) {
             } catch (err) {
                 log.warn(`[AiParticipation] turn release failed for ${surface} ${watch.containerId}; it expires on its own: ${err && err.message}`);
             }
-            try { shield.release(dlpConversationId); } catch (err) { log.debug('nothing held', err); }
+            try { shield.release(dlpConversationId); } catch (err) { bestEffort('projects/participation/answerWriter:write', err); /* nothing held */ }
         }
     }
 

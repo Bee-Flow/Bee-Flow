@@ -55,6 +55,7 @@ const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const { usageLogFields } = require('../../core/providers/usageNormalizer');
 const { findPassage } = require('./passage');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const CONTEXT_COMMENTS = 50;
 const PER_COMMENT_CHARS = 4000;
@@ -401,7 +402,7 @@ function makeCommentAssistant(deps = {}) {
             } catch (err) {
                 log.warn(`[ProjectComments] turn release failed for thread ${thread.id}; it expires on its own: ${err && err.message}`);
             }
-            try { shield().release(dlpConversationId); } catch (err) { log.debug('nothing held', err); }
+            try { shield().release(dlpConversationId); } catch (err) { bestEffort('projects/comments/commentAssistant:writeAnswer', err); /* nothing held */ }
             await announce(project.id, 'comment.ai.finished', userId, thread, status);
         }
         return { status };
