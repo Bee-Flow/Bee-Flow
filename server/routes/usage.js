@@ -7,6 +7,7 @@ const { computeCostSplit } = require('../core/llm/modelCosts');
 const { validate } = require('../core/http/validate');
 const { worded, queryOf, choice, wholeNumber } = require('../core/http/schemaParts');
 const log = require('../telemetry/log');
+const { isPlatformOperator } = require('../auth/platformOperator');
 
 // ── What the usage dashboards may ask ────────────────────────────────
 // Every route below reads its filters through buildRequestFilters (plus a
@@ -66,7 +67,7 @@ async function isAdminCaller(req) {
     // redacted, marked-up cost-only view. Delegating this via the standard
     // hasPermission helper is a leak because `all` resolves any permission
     // query truthy, and org admins routinely receive `all` via their role.
-    return req.session?.user?.id === 'admin';
+    return isPlatformOperator(req.session?.user);
 }
 
 // Strip token / message-count fields from a row and replace estimated_cost

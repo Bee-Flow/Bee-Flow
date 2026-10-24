@@ -9,6 +9,8 @@ const passwords = require('../passwordHash');
 const { upgradeStoredHash } = require('./passwordRehash');
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
+const { isPlatformOperator } = require('../platformOperator');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -81,7 +83,7 @@ function dummyPasswordHash() {
 async function burnPasswordCompare(password) {
     try {
         await passwords.verify(String(password ?? ''), await dummyPasswordHash());
-    } catch (err) { log.debug('the result is discarded — only the elapsed time matters', err); }
+    } catch (err) { bestEffort('auth/login:burnPasswordCompare', err); } // the result is discarded, only the elapsed time matters
 }
 
 // Admin/User login with username/password
@@ -243,7 +245,7 @@ router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async
     // DEK can be derived after the second factor) and ask the client for a
     // code. NOTE: OPAQUE logins don't pass through here yet — MFA enforcement
     // for the OPAQUE path is a follow-up.
-    const mfaRow = storedUser || (user.id === 'admin' ? await userStore.getUser('admin') : null);
+    const mfaRow = storedUser || (isPlatformOperator(user) ? await userStore.getUser('admin') : null);
     if (mfaRow && mfaRow.mfa_enabled) {
         req.session.mfaPending = { userId: user.id, isAdmin, user, password };
         // Which second factors the next step may offer: an authenticator app,

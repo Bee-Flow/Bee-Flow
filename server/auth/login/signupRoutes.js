@@ -9,6 +9,7 @@
 const express = require('express');
 const passwords = require('../passwordHash');
 const log = require('../../telemetry/log');
+const { isPlatformOperator } = require('../platformOperator');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -58,7 +59,7 @@ const SignupBody = z.object({
 router.post('/signup', signupIpLimiter, signupTargetLimiter, validate({ body: SignupBody }), async (req, res) => {
     const { username, password, displayName, firstName, lastName, email, inviteToken } = req.body;
 
-    if (username === 'admin') {
+    if (isPlatformOperator(username)) {
         return res.status(400).json({ error: 'This username is not available' });
     }
 

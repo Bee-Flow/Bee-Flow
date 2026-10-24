@@ -34,6 +34,7 @@ const { padFailureResponse } = require('../loginThrottle');
 // carried a verbatim copy of the old logic).
 const { isEncryptionEnabledForUser } = require('../../stores/encryptionAvailability');
 const log = require('../../telemetry/log');
+const { isPlatformOperator } = require('../platformOperator');
 
 /**
  * Establish the authenticated session after credentials (and MFA, when
@@ -135,7 +136,7 @@ async function finalizeLogin(req, res, { user, isAdmin, storedUser, password, st
     }
 
     // Ensure admin user exists in users table (for DEK storage)
-    if (user.id === 'admin') {
+    if (isPlatformOperator(user)) {
         const adminRow = await userStore.getUser('admin');
         if (!adminRow) {
             const config = await loadConfig();

@@ -11,6 +11,8 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
+const { isPlatformOperator } = require('../platformOperator');
 const { stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_UPDATE_ALLOWED_KEYS, USER_TEXT_FIELDS, needsAdminPasswordFloor } = require('./userSupportRoutes');
 const router = express.Router();
 
@@ -70,7 +72,7 @@ router.get('/users', requireAuth, async (req, res) => {
         isSystem: true
     };
 
-    let allUsers = [superAdmin, ...users.filter(u => u.id !== 'admin')];
+    let allUsers = [superAdmin, ...users.filter(u => !isPlatformOperator(u))];
 
     // Org-scoped filtering using canonical resolver.
     //
@@ -98,7 +100,7 @@ router.get('/users', requireAuth, async (req, res) => {
             if (selfId && u.id === selfId) return true;
             if (u.organizationId && myOrgIds.has(u.organizationId)) return true;
             let uGroups = [];
-            try { uGroups = Array.isArray(u.groups) ? u.groups : JSON.parse(u.groups || '[]'); } catch (_) { log.debug('user.groups is not valid JSON, treat as no group membership', _); }
+            try { uGroups = Array.isArray(u.groups) ? u.groups : JSON.parse(u.groups || '[]'); } catch (_) { uGroups = fallback('auth/admin/users:groupsJson', _, []); } // no group membership
             return uGroups.some(gid => orgGroupIds.has(gid));
         });
     }
@@ -110,7 +112,7 @@ router.get('/users', requireAuth, async (req, res) => {
 router.post('/users', requireOrgAdminForUser, validate({ body: CreateUserBody }), async (req, res) => {
     const { username, displayName, firstName, lastName, email, phone, avatar, avatarType, password, role, groups, orgRole, organizationId } = req.body;
 
-    if (username === 'admin') {
+    if (isPlatformOperator(username)) {
         return res.status(400).json({ error: 'Cannot create user "admin"' });
     }
 
@@ -252,7 +254,7 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
     // USER_UPDATE_FIELDS so it cannot fall out of step with the allow-list.
     const { role, password, oldPassword, confirmSelfDemotion } = body;
 
-    if (id === 'admin') {
+    if (isPlatformOperator(id)) {
         if (role && role !== 'admin') {
             return res.status(400).json({ error: 'Cannot downgrade system admin' });
         }
@@ -420,10 +422,7 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
         await invalidatePermissionCache(id);
         // Bust the requireAuth user-existence cache so a role demotion takes
         // effect on the very next request instead of waiting USER_CHECK_TTL.
-        try {
-            const { invalidateUserExistenceCache } = require('../permissions');
-            await invalidateUserExistenceCache(id);
-        } catch (err) { log.debug('optional helper', err); }
+        try { await require('../permissions').invalidateUserExistenceCache(id); } catch (err) { bestEffort('auth/admin/users:invalidateExistenceCache', err); }
 
         // Soft hint when the admin is assigning a *weaker* orgRole than the
         // user already had. Not an error — admins legitimately demote — but
@@ -479,7 +478,7 @@ router.post('/users/:id/mfa/reset', requireOrgAdminForUser, async (req, res) => 
 // Delete user
 router.delete('/users/:id', requireOrgAdminForUser, async (req, res) => {
     const { id } = req.params;
-    if (id === 'admin') {
+    if (isPlatformOperator(id)) {
         return res.status(400).json({ error: 'Cannot delete system admin' });
     }
 
@@ -527,7 +526,7 @@ router.delete('/users/:id', requireOrgAdminForUser, async (req, res) => {
             await invalidateUserExistenceCache(id);
             const { bustSessionsForUser } = require('../sessionCache');
             await bustSessionsForUser(id);
-        } catch (err) { log.debug('optional', err); }
+        } catch (err) { bestEffort('auth/admin/users:bustSessions', err); } // the existence check refuses the deleted account anyway
         res.json({ success: true });
     } else {
         res.status(404).json({ error: 'User not found' });

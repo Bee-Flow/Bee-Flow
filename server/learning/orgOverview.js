@@ -15,6 +15,7 @@ const { resolveCapabilitySet } = require('../core/entitlements/entitlements');
 const { COURSES, buildVisibleByCourse } = require('./courseCatalog');
 const { completedCourses, computeEarnedBadges, lessonDone } = require('./completion');
 const { fallback } = require('../utils/bestEffort');
+const { isPlatformOperator } = require('../auth/platformOperator');
 
 const CACHE_TTL_MS = 60_000;
 const cache = new Map(); // orgId → { value, ts }
@@ -30,7 +31,7 @@ async function orgMembers(orgId) {
         (allGroups || []).filter((g) => g.organizationId === orgId).map((g) => g.id),
     );
     return (users || []).filter((u) => {
-        if (!u || u.isSystem || u.id === 'admin') return false;
+        if (!u || u.isSystem || isPlatformOperator(u)) return false;
         if (u.status === 'pending') return false;
         if (u.organizationId === orgId) return true;
         let groups = [];

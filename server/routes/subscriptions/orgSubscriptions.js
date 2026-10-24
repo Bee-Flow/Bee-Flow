@@ -16,6 +16,7 @@ const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { HttpError } = require('../../core/http/errors');
 const { fallback } = require('../../utils/bestEffort');
+const { isPlatformOperator } = require('../../auth/platformOperator');
 
 const router = express.Router();
 
@@ -211,8 +212,7 @@ router.get('/orgs/:orgId', async (req, res) => {
     // tokens / messages are only returned to the hardcoded platform
     // operator account. Everyone else — including admin_subscriptions
     // RBAC holders and org admins — gets the marked-up cost only.
-    const isPlatformOperator = req.session?.user?.id === 'admin';
-    const currentUsage = isPlatformOperator
+    const currentUsage = isPlatformOperator(req.session?.user)
         ? { messages: usage.total_calls || 0, tokens: usage.total_tokens || 0, cost: billedCost }
         : { cost: billedCost };
 

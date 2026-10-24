@@ -529,6 +529,20 @@ test('empty-catch fails a new swallowed error over the budget and says what to d
     assert.match(r.stderr, /rethrow/);
 });
 
+test('admin-id-literal counts id and username comparisons to \'admin\', and leaves role checks, comments, the helper and tests alone', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'routes/a.js': "if (req.session?.user?.id === 'admin') x();\nif (userId !== 'admin') y();\nif ('admin' === user.id) z();\nif (username == \"admin\") w();\n",
+            'routes/b.js': "if (user.role === 'admin') x();\n// u.id === 'admin' is the operator\nconst a = via === 'admin';\n",
+            'auth/platformOperator.js': "return id === 'admin';\n",
+            'routes/a.test.js': "if (u.id === 'admin') x();\n",
+        },
+    });
+    assert.strictEqual(run(dir, 'admin-id-literal').code, 0);
+    assert.strictEqual(budgetOf(dir, 'admin-id-literal'), 4);
+});
+
 test('rollback-in-store counts hand-written ROLLBACKs in stores/, and leaves savepoints, comments, other folders and tests alone', () => {
     const dir = sandbox({
         src: false,

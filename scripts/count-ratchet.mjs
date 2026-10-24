@@ -136,6 +136,13 @@
  *                     bestEffort() / fallback() from utils/bestEffort.js (a counter
  *                     plus a rate-limited warn) or isMissingTable() from
  *                     utils/isMissingTable.js, so only the expected error is swallowed.
+ *   admin-id-literal  server code (non-test) comparing a user id or username
+ *                     to the literal 'admin': the built-in platform-operator
+ *                     account written out by hand, with no name for why it is
+ *                     special. The convention is isPlatformOperator() from
+ *                     auth/platformOperator.js, the one file allowed to hold it.
+ *                     `role === 'admin'` (any super admin) is another question
+ *                     and is not counted; neither are comment lines.
  *   rollback-in-store a ROLLBACK written into a query string in stores/
  *                     (non-test): a hand-rolled BEGIN/COMMIT/ROLLBACK. The
  *                     convention is db.withTransaction() from server/db.js,
@@ -286,6 +293,9 @@ const INLINE_PGLITE_ADAPTER = /^(?:async\s+)?function\s+(?:adapt\w*|rawQuery|q|q
 // empty-catch: a catch clause whose block holds nothing, or only comments.
 // `.catch(() => {})` on a promise is a call, not a clause, and is not counted.
 const EMPTY_CATCH = /(?<![\w$.])catch\s*(?:\([^)]*\))?\s*\{\s*(?:(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)\s*)*\}/g;
+
+// admin-id-literal: `<x>.id === 'admin'`, `userId !== 'admin'`, `username == "admin"`, either side.
+const ADMIN_ID_LITERAL = /(?:\.id|\bid|Id|\busername|Username)\s*[!=]==?\s*['"`]admin['"`]|['"`]admin['"`]\s*[!=]==?\s*[\w$.?]*(?:\.id|\bid|Id|\busername|Username)\b/g;
 
 // rollback-in-store: a ROLLBACK written into a query string by hand.
 // `ROLLBACK TO SAVEPOINT` is a step inside a transaction, not the end of one.
@@ -564,6 +574,16 @@ const METRICS = {
         measure: (text, pkg, rel) => (pkg === 'server' ? countSwallowed(text, path.join(ROOT, pkg, rel)) : 0),
         what: 'catches that swallow an error without a trace above debug level',
         advice: 'use bestEffort(label, e) or fallback(label, e, value) from utils/bestEffort.js, or `if (!isMissingTable(e)) throw e;` from utils/isMissingTable.js; node scripts/catch-classify.mjs --list shows the buckets',
+    },
+    'admin-id-literal': {
+        include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('testUtils/') && rel !== 'auth/platformOperator.js',
+        measure: (text) => {
+            let n = 0;
+            for (const line of text.split('\n')) if (!COMMENT_LINE.test(line)) n += (line.match(ADMIN_ID_LITERAL) || []).length;
+            return n;
+        },
+        what: "comparisons of a user id or username to the literal 'admin'",
+        advice: 'use isPlatformOperator(userOrId) from auth/platformOperator.js instead; it names why that account is special',
     },
     'rollback-in-store': {
         include: (rel) => !TEST_FILE.test(rel) && rel.startsWith('stores/'),

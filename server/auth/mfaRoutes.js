@@ -17,6 +17,8 @@ const { createSecondFactorProof } = require('./securityKeys/proof');
 const { credentialJson } = require('./securityKeys/schemas');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
+const { isPlatformOperator } = require('./platformOperator');
 const { HttpError } = require('../core/http/errors');
 
 const router = express.Router();
@@ -38,7 +40,7 @@ const SETUP_SECRET_TTL_MS = 10 * 60_000;
 // have one yet if encryption was never initialised). Returns the row or null.
 async function ensureUserRow(userId) {
     let row = await userStore.getUser(userId);
-    if (!row && userId === 'admin') {
+    if (!row && isPlatformOperator(userId)) {
         try {
             const cfg = await loadConfig();
             await userStore.createUser({
@@ -50,7 +52,7 @@ async function ensureUserRow(userId) {
                 credentialUnchanged: true,
             });
             row = await userStore.getUser('admin');
-        } catch (err) { log.debug('fall through', err); }
+        } catch (err) { bestEffort('auth/mfa:ensureOperatorRow', err); }
     }
     return row;
 }

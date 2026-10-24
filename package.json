@@ -36,6 +36,7 @@
     "lint:sse-head-ratchet": "node scripts/count-ratchet.mjs sse-head server",
     "lint:inline-pglite-ratchet": "node scripts/count-ratchet.mjs inline-pglite server",
     "lint:swallowed-error-ratchet": "node scripts/count-ratchet.mjs swallowed-error server",
+    "lint:admin-id-literal-ratchet": "node scripts/count-ratchet.mjs admin-id-literal server",
     "lint:empty-catch-ratchet": "node scripts/count-ratchet.mjs empty-catch server && node scripts/count-ratchet.mjs empty-catch agent-hub",
     "lint:rollback-in-store-ratchet": "node scripts/count-ratchet.mjs rollback-in-store server",
     "lint:db-in-routes-ratchet": "node scripts/count-ratchet.mjs db-in-routes server",
