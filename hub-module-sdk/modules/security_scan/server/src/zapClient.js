@@ -69,9 +69,9 @@ function toArray(v) {
  * @param {object} opts
  * @param {string} opts.baseUrl    — daemon base, e.g. "http://172.18.0.5:8080"
  * @param {string} opts.apiKey     — required on /action/ endpoints
- * @param {Function} [opts.fetchImpl] — fetch override for tests (defaults to global fetch)
+ * @param {Function} [opts.fetchImpl] - fetch override for tests (defaults to global fetch)
  */
-function makeZapClient({ baseUrl, apiKey, fetchImpl = fetch } = {}) {
+function makeZapClient({ baseUrl, apiKey, fetchImpl = fetch } = /** @type {any} */ ({})) {
     if (!baseUrl) throw new Error('makeZapClient: baseUrl required');
     const root = String(baseUrl).replace(/\/+$/, '');
 
@@ -83,7 +83,7 @@ function makeZapClient({ baseUrl, apiKey, fetchImpl = fetch } = {}) {
      * every error message it raises.
      *
      * @param {string} path   — e.g. "/JSON/spider/action/scan/"
-     * @param {object} params — query params (values URL-encoded by URLSearchParams)
+     * @param {any} params — query params (values URL-encoded by URLSearchParams)
      */
     async function _get(path, params = {}) {
         const qs = new URLSearchParams();
@@ -181,7 +181,7 @@ function makeZapClient({ baseUrl, apiKey, fetchImpl = fetch } = {}) {
      * shape the driver/report builder consume. `riskFilter` (a single risk
      * string or an array of them) optionally narrows to e.g. High+Medium.
      */
-    async function listAlerts({ baseurl, riskFilter } = {}) {
+    async function listAlerts({ baseurl, riskFilter } = /** @type {any} */ ({})) {
         const j = await _get('/JSON/core/view/alerts/', baseurl ? { baseurl } : {});
         let alerts = toArray(j && j.alerts);
 
@@ -235,7 +235,7 @@ function makeZapClient({ baseUrl, apiKey, fetchImpl = fetch } = {}) {
      * tick with the live crawled-url count + percent. Resolves when complete,
      * cancelled, or the maxMs budget is exhausted.
      */
-    async function awaitSpider(spiderId, { onProgress, isCancelled, pollMs = 2000, maxMs = 600000 } = {}) {
+    async function awaitSpider(spiderId, { onProgress, isCancelled, pollMs = 2000, maxMs = 600000 } = /** @type {any} */ ({})) {
         const delay = Math.max(250, pollMs | 0);
         const ticks = Math.max(1, Math.ceil(maxMs / delay));
         for (let i = 0; i < ticks; i++) {
@@ -259,7 +259,7 @@ function makeZapClient({ baseUrl, apiKey, fetchImpl = fetch } = {}) {
      * records }) fires each tick. Resolves when drained, cancelled, or timed
      * out.
      */
-    async function awaitPassive({ onProgress, isCancelled, pollMs = 2000, maxMs = 600000 } = {}) {
+    async function awaitPassive({ onProgress, isCancelled, pollMs = 2000, maxMs = 600000 } = /** @type {any} */ ({})) {
         const delay = Math.max(250, pollMs | 0);
         const ticks = Math.max(1, Math.ceil(maxMs / delay));
         for (let i = 0; i < ticks; i++) {
@@ -280,7 +280,7 @@ function makeZapClient({ baseUrl, apiKey, fetchImpl = fetch } = {}) {
      * Poll active-scan status to 100. onProgress({ status }) fires each tick.
      * Resolves when complete, cancelled, or timed out.
      */
-    async function awaitActive(ascanId, { onProgress, isCancelled, pollMs = 2000, maxMs = 600000 } = {}) {
+    async function awaitActive(ascanId, { onProgress, isCancelled, pollMs = 2000, maxMs = 600000 } = /** @type {any} */ ({})) {
         const delay = Math.max(250, pollMs | 0);
         const ticks = Math.max(1, Math.ceil(maxMs / delay));
         for (let i = 0; i < ticks; i++) {

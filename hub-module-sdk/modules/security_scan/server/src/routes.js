@@ -34,12 +34,12 @@ const MODEL_TIER_RE = /^[a-zA-Z0-9_:-]{1,64}$/;
 /**
  * @param {import('express').Router} router
  * @param {object} deps
- * @param {object} deps.store          — the security scan store instance
- * @param {object} deps.scanRunnerSvc  — the scanRunner.service (docker lifecycle + provisioning)
- * @param {object} deps.worker         — the worker instance (drainOne fast-path)
- * @param {object} deps.host           — the module host API
+ * @param {any} deps.store          — the security scan store instance
+ * @param {any} deps.scanRunnerSvc  — the scanRunner.service (docker lifecycle + provisioning)
+ * @param {any} deps.worker         — the worker instance (drainOne fast-path)
+ * @param {any} deps.host           — the module host API
  */
-function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = {}) {
+function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /** @type {any} */ ({})) {
     if (!router || !store || !scanRunnerSvc || !worker || !host) {
         throw new Error('mountSecurityRoutes: router, store, scanRunnerSvc, worker and host are required');
     }

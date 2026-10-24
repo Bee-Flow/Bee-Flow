@@ -288,11 +288,11 @@ A sensible flow: zap_spider → zap_passive_status → zap_list_alerts, then run
 
 /**
  * @param {object} deps
- * @param {object} deps.store         — the security scan store instance
- * @param {object} deps.reportBuilder — host-bound report builder (reportBuilder.create(host))
- * @param {object} deps.host          — the module host API (ai/usage seams)
+ * @param {any} deps.store         — the security scan store instance
+ * @param {any} deps.reportBuilder — host-bound report builder (reportBuilder.create(host))
+ * @param {any} deps.host          — the module host API (ai/usage seams)
  */
-function makeDriver({ store, reportBuilder, host } = {}) {
+function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
     if (!store || !reportBuilder || !host) throw new Error('makeDriver: store, reportBuilder and host are required');
     const securityScanStore = store;
     const securityReportBuilder = reportBuilder;
@@ -304,7 +304,7 @@ function makeDriver({ store, reportBuilder, host } = {}) {
     /**
      * Run the agentic security-scan tool-use loop.
      *
-     * @param {object} args  — see the built-in securityScanDriver.runAgentScan.
+     * @param {any} args  — see the built-in securityScanDriver.runAgentScan.
      * @returns {Promise<{status:'completed'|'cancelled'|'error', reportJson?:object, reportWebpageId?:string|null, severitySummary?:object, error?:string}>}
      */
     async function runAgentScan({

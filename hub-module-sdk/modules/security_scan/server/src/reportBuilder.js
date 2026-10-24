@@ -315,9 +315,10 @@ function fmtTimestamp(ts) {
  * @param {string} p.targetUrl
  * @param {Array}  p.engines           — engine descriptors [{engine, intensity?}]
  * @param {Array}  p.findings          — aggregated, sorted findings
- * @param {object} p.severitySummary   — { high, medium, low, informational }
+ * @param {any} p.severitySummary   — { high, medium, low, informational }
  * @param {string} p.startedAt
  * @param {string} p.finishedAt
+ * @param {string} [p.narrative]  agent-written assessment, markdown
  */
 function renderReportHtml({ targetUrl, engines, findings, severitySummary, startedAt, finishedAt, narrative }) {
     const host = hostOf(targetUrl);
@@ -609,7 +610,7 @@ h2 { margin: 0 0 1rem; font-size: 1.15rem; letter-spacing: -0.01em; }
  * webpageStore sequence (createWebpage → writeSlot × 2 → updateWebpageMetadata)
  * is encapsulated by the host — one `host.webpages.persist({...})` call.
  *
- * @param {object} host    — the module host API (needs host.webpages.persist)
+ * @param {any} host    — the module host API (needs host.webpages.persist)
  * @returns {Promise<string>} the new webpage id.
  */
 async function persistReportWebpage(host, { userId, targetUrl, html, css }) {

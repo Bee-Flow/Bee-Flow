@@ -397,6 +397,7 @@ jobs:
             nextcloud:
               - 'nextcloud-connector/**'
               - '.nvmrc'
+              - 'tsconfig.base.json'
               - 'server/routes/nextcloudTaskProcessing*'
               - 'server/integrations/nextcloud*'
               - 'server/automation/triggerSources/**'
@@ -409,7 +410,7 @@ jobs:
               - 'server/utils/ncIntegrationCatalog.js'
               - 'server/core/integrations/ncIntegrationCatalog.js'
               - 'server/core/integrations/integrationToolMap.js'
-              - 'scripts/{eslint-budget,coverage-ratchet,entry-point}.mjs'
+              - 'scripts/{eslint-budget,coverage-ratchet,entry-point,tsc-error-ratchet}.mjs'
               - 'scripts/eslint-service-config.cjs'
               - 'scripts/eslint/**'
               - '.github/workflows/ci.yml'
@@ -423,11 +424,12 @@ jobs:
             hub-module-sdk:
               - 'hub-module-sdk/**'
               - '.nvmrc'
+              - 'tsconfig.base.json'
               # test/signContract.test.mjs checks sign.mjs against the server's verifier.
               - 'server/modules/packageVerify.js'
               - 'server/license/{verify,tiers}.js'
               - 'server/telemetry/log.js'
-              - 'scripts/{eslint-budget,coverage-ratchet,entry-point}.mjs'
+              - 'scripts/{eslint-budget,coverage-ratchet,entry-point,tsc-error-ratchet}.mjs'
               - 'scripts/eslint-service-config.cjs'
               - 'scripts/eslint/**'
               - '.github/workflows/ci.yml'
@@ -1283,6 +1285,10 @@ jobs:
           directory: nextcloud-connector
       - name: Lint (errors fail, warnings budgeted)
         run: node ../scripts/eslint-budget.mjs nextcloud-connector
+      - name: Typecheck (checkJs, loose) and the strict error budget
+        run: |
+          npm run typecheck
+          node ../scripts/tsc-error-ratchet.mjs nextcloud-connector
       - name: Unit tests (with coverage)
         # Read at import time; throwaway values, every test that needs a real
         # secret sets its own.
@@ -1372,6 +1378,10 @@ jobs:
         run: for m in modules/*/; do (cd "$m" && npm ci); done
       - name: Lint (errors fail, warnings budgeted)
         run: node ../scripts/eslint-budget.mjs hub-module-sdk
+      - name: Typecheck (checkJs, loose) and the strict error budget
+        run: |
+          npm run typecheck
+          node ../scripts/tsc-error-ratchet.mjs hub-module-sdk
       - name: Unit tests (with coverage)
         run: npm run test:coverage
       - name: Coverage floor
