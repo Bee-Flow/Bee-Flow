@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
@@ -111,6 +112,7 @@ describe('PublicFormPage — while the automation works', () => {
     });
 
     it('gives up after five minutes and offers to check again by hand', async () => {
+        const user = userEvent.setup();
         // Time is moved rather than the timers: the poll loop awaits a fetch,
         // so a timer-only clock never reaches the ceiling check.
         const realNow = Date.now;
@@ -135,7 +137,7 @@ describe('PublicFormPage — while the automation works', () => {
         expect(screen.getByText('Your answers were received — we are still working on them.')).toBeTruthy();
         const polled = polls;
 
-        fireEvent.click(screen.getByRole('button', { name: 'Check again' }));
+        await user.click(screen.getByRole('button', { name: 'Check again' }));
         expect(await screen.findByText('All done', {}, { timeout: 4000 })).toBeTruthy();
         expect(polls).toBeGreaterThan(polled);
         // The same session, resumed — never a second submission of page one.

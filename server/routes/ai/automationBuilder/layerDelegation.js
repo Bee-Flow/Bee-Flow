@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation Builder — flowlet delegation from inside the chat loop: the
  * builder_generate_layer / builder_generate_layers tools that spawn the

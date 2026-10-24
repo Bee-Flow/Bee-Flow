@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The grade matrix. Every row here is a rule somebody could otherwise get
  * wrong in a way that leaks or loses data, so each one is pinned.

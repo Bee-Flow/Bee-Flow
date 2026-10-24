@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — the Flow-tier per-stage model swap.
  *

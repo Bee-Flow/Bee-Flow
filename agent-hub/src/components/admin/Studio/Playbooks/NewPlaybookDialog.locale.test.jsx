@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import NewPlaybookDialog from './NewPlaybookDialog';
@@ -70,10 +71,11 @@ afterEach(() => cleanup());
 
 describe('NewPlaybookDialog — the demo speaks the language on screen', () => {
     it('an English screen on a Dutch browser builds in English', async () => {
+        const user = userEvent.setup();
         render(<NewPlaybookDialog user={{ id: 'u1', locale: 'nl' }} onClose={vi.fn()} onCreated={vi.fn()} />);
         await waitFor(() => expect(playbooksApi.recipes).toHaveBeenCalledWith('en'));
-        fireEvent.click(await screen.findByText('Invoice tracker'));
-        fireEvent.click(screen.getByTestId('playbook-start'));
+        await user.click(await screen.findByText('Invoice tracker'));
+        await user.click(screen.getByTestId('playbook-start'));
         await waitFor(() => expect(playbooksApi.create).toHaveBeenCalledWith(expect.objectContaining({
             options: expect.objectContaining({ locale: 'en' }),
         })));
@@ -90,17 +92,19 @@ describe('NewPlaybookDialog — the demo speaks the language on screen', () => {
     });
 
     it('the name follows the recipe the server sent in that language, unless the person typed one', async () => {
+        const user = userEvent.setup();
         playbooksApi.recipes.mockResolvedValue({ recipes: [{ ...BUILTIN, title: 'Facturen bijhouden' }], approvalsAllowed: false });
         const { unmount } = render(<NewPlaybookDialog user={{ id: 'u1' }} onClose={vi.fn()} onCreated={vi.fn()} />);
-        fireEvent.click(await screen.findByText('Facturen bijhouden'));
+        await user.click(await screen.findByText('Facturen bijhouden'));
         await waitFor(() => expect(screen.getByLabelText('Name').value).toBe('Facturen bijhouden'));
         fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Q3 invoices' } });
-        fireEvent.click(screen.getByTestId('playbook-start'));
+        await user.click(screen.getByTestId('playbook-start'));
         await waitFor(() => expect(playbooksApi.create).toHaveBeenCalledWith(expect.objectContaining({ title: 'Q3 invoices' })));
         unmount();
     });
 
     it('a Dutch preference whose catalogue misses THIS dialog still builds in English', async () => {
+        const user = userEvent.setup();
         // The catalogue is loaded and far from empty — it just does not cover
         // the playbook screens, so they render English. What you see is what
         // gets built. (Measured 2026-09-16: this case shipped Dutch columns
@@ -108,19 +112,20 @@ describe('NewPlaybookDialog — the demo speaks the language on screen', () => {
         language.strings = { 'chat.send': 'Versturen', 'studio.tab.apps': 'Apps' };
         render(<NewPlaybookDialog user={{ id: 'u1', locale: 'nl' }} onClose={vi.fn()} onCreated={vi.fn()} />);
         await waitFor(() => expect(playbooksApi.recipes).toHaveBeenCalledWith('en'));
-        fireEvent.click(screen.getByText('Describe it'));
+        await user.click(screen.getByText('Describe it'));
         fireEvent.change(screen.getByLabelText('What should this playbook build?'), { target: { value: 'Lees de facturen in' } });
-        fireEvent.click(screen.getByTestId('playbook-compose'));
+        await user.click(screen.getByTestId('playbook-compose'));
         await waitFor(() => expect(playbooksApi.composeRecipe).toHaveBeenCalledWith('Lees de facturen in', 'en'));
     });
 
     it('a Dutch screen builds in Dutch — recipes, the AI composer and the playbook', async () => {
+        const user = userEvent.setup();
         language.strings = NL_DIALOG;
         render(<NewPlaybookDialog user={{ id: 'u1', locale: 'nl' }} onClose={vi.fn()} onCreated={vi.fn()} />);
         await waitFor(() => expect(playbooksApi.recipes).toHaveBeenCalledWith('nl'));
-        fireEvent.click(screen.getByText('Describe it'));
+        await user.click(screen.getByText('Describe it'));
         fireEvent.change(screen.getByLabelText('What should this playbook build?'), { target: { value: 'Lees de facturen in' } });
-        fireEvent.click(screen.getByTestId('playbook-compose'));
+        await user.click(screen.getByTestId('playbook-compose'));
         await waitFor(() => expect(playbooksApi.composeRecipe).toHaveBeenCalledWith('Lees de facturen in', 'nl'));
     });
 });

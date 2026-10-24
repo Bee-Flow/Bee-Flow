@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage Preview Routes — cross-origin endpoints callable from the
  * sandboxed preview iframe (no `allow-same-origin`, opaque origin, no cookies).

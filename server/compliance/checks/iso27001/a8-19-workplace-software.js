@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ISO 27001 A.8.19 — workplace server software recorded in the evidence
  * chain. An evidence-value check: pass as soon as the Nextcloud connector

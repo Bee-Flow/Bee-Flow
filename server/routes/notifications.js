@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Notification Routes — REST API for in-app notifications.
  *

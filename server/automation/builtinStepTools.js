@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Built-in step TYPES that get mistaken for catalog tools.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio catalog — content & display primitives: headings, text, buttons,
  * images, the file/browser viewers, dividers, callouts and the stat tile.

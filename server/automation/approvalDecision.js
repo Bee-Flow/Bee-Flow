@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Recording a decision: the typed outcome routes answer with, the decider's
  * display name, a deployment's outcome, and finalizeDecision, the one write

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The TESTCHAT in a real streaming turn (A4 part A).
  *

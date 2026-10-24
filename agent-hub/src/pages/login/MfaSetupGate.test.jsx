@@ -153,11 +153,12 @@ describe('landing on the gate', () => {
     // retry — only "Sign Out". The user is locked out of the product by a
     // server-side hiccup. Hoort in stage L16 te veranderen.
     it('offers no retry at all when enrollment could not be started', async () => {
+        const user = userEvent.setup();
         route('/auth/mfa/setup', () => fail(500, { error: 'TOTP secret store unavailable' }));
         const { onLogout } = renderGate();
         await screen.findByText('TOTP secret store unavailable');
         expect(screen.queryByPlaceholderText('000000')).toBeNull();
-        fireEvent.click(screen.getByText('Sign Out'));
+        await user.click(screen.getByText('Sign Out'));
         expect(onLogout).toHaveBeenCalled();
     });
 });
@@ -185,31 +186,34 @@ describe('confirming the first code', () => {
     });
 
     it('posts the trimmed code to /auth/mfa/enable', async () => {
+        const user = userEvent.setup();
         route('/auth/mfa/enable', () => ok({ recoveryCodes: ['aaaa-1111', 'bbbb-2222'] }));
         await arrive();
         fireEvent.change(screen.getByPlaceholderText('000000'), { target: { value: '123456' } });
-        fireEvent.click(screen.getByText('Enable'));
+        await user.click(screen.getByText('Enable'));
         await waitFor(() => expect(callsTo('/auth/mfa/enable')).toHaveLength(1));
         expect(bodyOf(callsTo('/auth/mfa/enable')[0])).toEqual({ code: '123456' });
     });
 
     it('shows the one-time recovery codes and only then lets you through', async () => {
+        const user = userEvent.setup();
         route('/auth/mfa/enable', () => ok({ recoveryCodes: ['aaaa-1111', 'bbbb-2222'] }));
         const { onDone } = await arrive();
         fireEvent.change(screen.getByPlaceholderText('000000'), { target: { value: '123456' } });
-        fireEvent.click(screen.getByText('Enable'));
+        await user.click(screen.getByText('Enable'));
         expect(await screen.findByText('aaaa-1111')).toBeInTheDocument();
         expect(screen.getByText('bbbb-2222')).toBeInTheDocument();
         expect(onDone).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByText('I’ve saved them'));
+        await user.click(screen.getByText('I’ve saved them'));
         expect(onDone).toHaveBeenCalled();
     });
 
     it('keeps you on the QR with the reason when the code is refused', async () => {
+        const user = userEvent.setup();
         route('/auth/mfa/enable', () => fail(400, { error: 'Invalid code' }));
         await arrive();
         fireEvent.change(screen.getByPlaceholderText('000000'), { target: { value: '000000' } });
-        fireEvent.click(screen.getByText('Enable'));
+        await user.click(screen.getByText('Enable'));
         expect(await screen.findByText('Invalid code')).toBeInTheDocument();
         expect(screen.getByAltText('MFA QR code')).toBeInTheDocument();
     });
@@ -218,21 +222,23 @@ describe('confirming the first code', () => {
     // to the codes panel — with an empty list and a button that says the user
     // saved codes they were never shown. Hoort in stage L16 te veranderen.
     it('shows an empty "saved your codes" panel when the server returned none', async () => {
+        const user = userEvent.setup();
         route('/auth/mfa/enable', () => ok({}));
         const { onDone } = await arrive();
         fireEvent.change(screen.getByPlaceholderText('000000'), { target: { value: '123456' } });
-        fireEvent.click(screen.getByText('Enable'));
+        await user.click(screen.getByText('Enable'));
         expect(await screen.findByText(/Save these one-time recovery codes/)).toBeInTheDocument();
-        fireEvent.click(screen.getByText('I’ve saved them'));
+        await user.click(screen.getByText('I’ve saved them'));
         expect(onDone).toHaveBeenCalled();
     });
 });
 
 describe('the ways out of the gate', () => {
     it('offers signing out and nothing else — there is deliberately no skip', async () => {
+        const user = userEvent.setup();
         const { onLogout } = renderGate();
         await screen.findByAltText('MFA QR code');
-        fireEvent.click(screen.getByText('Sign Out'));
+        await user.click(screen.getByText('Sign Out'));
         expect(onLogout).toHaveBeenCalled();
         expect(screen.queryByText(/skip/i)).toBeNull();
         expect(screen.queryByText(/later/i)).toBeNull();

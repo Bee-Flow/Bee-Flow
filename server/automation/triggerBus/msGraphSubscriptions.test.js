@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for the MS Graph subscription provisioning, revocation and
  * renewal helpers in msGraphSubscriptions.js (moved here from

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import ForgotPasswordStep from './ForgotPasswordStep';
 
@@ -73,9 +74,10 @@ describe('asking where to send the link', () => {
         expect(p.onSubmit).not.toHaveBeenCalled();
     });
 
-    it('offers a way back to sign in', () => {
+    it('offers a way back to sign in', async () => {
+        const user = userEvent.setup();
         const { p } = renderStep();
-        fireEvent.click(screen.getAllByText('Back to sign in')[0]);
+        await user.click(screen.getAllByText('Back to sign in')[0]);
         expect(p.onBack).toHaveBeenCalled();
     });
 });

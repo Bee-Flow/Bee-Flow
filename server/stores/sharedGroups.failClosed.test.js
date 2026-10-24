@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A published agent or app whose shared_groups cannot be parsed is hidden
  * (fail closed), never shown as if it had no group restriction. The owner of

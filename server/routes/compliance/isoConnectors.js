@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance — the ISO 27001 evidence connectors: catalog, the vault
  * connections a connector may link, its per-org config and a manual sweep.

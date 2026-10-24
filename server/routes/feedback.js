@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Feedback API Routes — Submit and query user feedback on AI responses
  *

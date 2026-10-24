@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — per-turn setup that runs BEFORE the SSE handshake:
  * EU-aware tier/model resolution (incl. auto-classification and the vision
@@ -19,6 +20,7 @@ const agentStore = require('../../../stores/agentStore');
 const { checkSubscriptionLimits, resolveOrgId } = require('../../../core/entitlements/limits');
 const orgHealth = require('../../../services/orgHealth');
 const log = require('../../../telemetry/log');
+const { HttpError } = require('../../../core/http/errors');
 const { openSse } = require('../../../core/http/sseHelpers');
 const { resolveTurnTier } = require('../../../core/llm/resolveTurnModel');
 
@@ -124,7 +126,7 @@ async function resolveTurnSetup({ req, res, userId, message, modelTier, conversa
             orgId: userOrgForTiers || null, source: 'directChat', req,
             meta: { modelId, tier: resolvedTier, error: providerErr },
         });
-        return res.status(400).json({ error: providerErr.message });
+        throw new HttpError(400, 'provider_unavailable', 'No AI provider is available for this model. Ask an administrator to check the model configuration.');
     }
     let apiKey = config.apiKey;
     let apiUrl = (config.url || '').replace(/\/+$/, '');

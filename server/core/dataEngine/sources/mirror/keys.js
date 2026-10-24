@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Naming a mirrored column, the same way for every kind.
  *

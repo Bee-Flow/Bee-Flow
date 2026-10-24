@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests — Scaleway Generative APIs adapter + serverless model catalog.
  *

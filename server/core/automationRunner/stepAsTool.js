@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A published Reusable Step invoked as a chat tool (extracted verbatim from
  * automationRunner.js). Loads the block's published version, runs it through

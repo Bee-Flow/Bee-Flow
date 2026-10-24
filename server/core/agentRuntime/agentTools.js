@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Agent tool loading — builds tool definitions for agents
  */
@@ -287,6 +288,7 @@ async function getAvailableComponents({ userId = null } = {}) {
 
     // Filter to only agent-enabled components — fail closed, same rule and
     // same reason as the filter above — that this caller's org may see.
+    /** @type {any[]} */
     const componentList = components
         .filter(c => c.definition?.agentEnabled === true && componentVisibleTo(c.definition, scope))
         .map(c => ({
@@ -313,6 +315,7 @@ async function getAvailableComponents({ userId = null } = {}) {
                 `Subworkflow: ${wf.name || wf.id}. Runs this workflow with provided inputs.`;
 
             // Parse inputSchema if defined
+            /** @type {Record<string, any>} */
             let inputsSchema = {
                 inputData: {
                     type: 'object',

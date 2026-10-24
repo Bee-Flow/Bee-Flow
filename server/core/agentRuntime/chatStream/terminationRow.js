@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The row every termination log of a streaming turn writes.
  *

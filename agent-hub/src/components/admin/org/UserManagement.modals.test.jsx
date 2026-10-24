@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import UserManagement from './UserManagement';
 import { authFetch } from '../../../utils/helpers';
@@ -61,15 +62,17 @@ describe('UserManagement — modals and confirmations', () => {
     });
 
     it('opens the user modal as a real dialog', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.click(screen.getByText('Add user'));
+        await user.click(screen.getByText('Add user'));
         const dialog = await screen.findByRole('dialog');
         expect(within(dialog).getByText('Add new user')).toBeInTheDocument();
     });
 
     it('closes the user modal on ESC — impossible with the old inline div', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.click(screen.getByText('Add user'));
+        await user.click(screen.getByText('Add user'));
         expect(await screen.findByRole('dialog')).toBeInTheDocument();
 
         fireEvent.keyDown(document, { key: 'Escape' });
@@ -77,60 +80,67 @@ describe('UserManagement — modals and confirmations', () => {
     });
 
     it('closes the user modal on Cancel', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.click(screen.getByText('Add user'));
+        await user.click(screen.getByText('Add user'));
         const dialog = await screen.findByRole('dialog');
-        fireEvent.click(within(dialog).getByText('Cancel'));
+        await user.click(within(dialog).getByText('Cancel'));
         await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     });
 
     it('moves focus into the dialog when it opens', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.click(screen.getByText('Add user'));
+        await user.click(screen.getByText('Add user'));
         const dialog = await screen.findByRole('dialog');
         await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
     });
 
     it('opens the edit modal seeded with the user', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.click(screen.getByLabelText('Edit Jan de Vries'));
+        await user.click(screen.getByLabelText('Edit Jan de Vries'));
         const dialog = await screen.findByRole('dialog');
         expect(within(dialog).getByText('Edit user')).toBeInTheDocument();
         expect(within(dialog).getByDisplayValue('Jan de Vries')).toBeInTheDocument();
     });
 
     it('asks before deleting a user, and does nothing until confirmed', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.click(screen.getByLabelText('Delete Jan de Vries'));
+        await user.click(screen.getByLabelText('Delete Jan de Vries'));
 
         expect(await screen.findByText('Delete this user?')).toBeInTheDocument();
         expect(authFetch.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false);
     });
 
     it('cancelling the confirm leaves the user alone', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.click(screen.getByLabelText('Delete Jan de Vries'));
+        await user.click(screen.getByLabelText('Delete Jan de Vries'));
         const dialog = await screen.findByRole('dialog');
 
-        fireEvent.click(within(dialog).getByText('Cancel'));
+        await user.click(within(dialog).getByText('Cancel'));
         await waitFor(() => expect(screen.queryByText('Delete this user?')).not.toBeInTheDocument());
         expect(authFetch.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false);
     });
 
     it('confirming the delete issues the DELETE', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.click(screen.getByLabelText('Delete Jan de Vries'));
+        await user.click(screen.getByLabelText('Delete Jan de Vries'));
         const dialog = await screen.findByRole('dialog');
 
-        fireEvent.click(within(dialog).getByText('Delete'));
+        await user.click(within(dialog).getByText('Delete'));
         await waitFor(() =>
             expect(authFetch).toHaveBeenCalledWith('/auth/users/u_jan', expect.objectContaining({ method: 'DELETE' })),
         );
     });
 
     it('asks before resetting 2FA, naming the person', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.click(screen.getByLabelText('Reset 2FA for Jan de Vries'));
+        await user.click(screen.getByLabelText('Reset 2FA for Jan de Vries'));
 
         expect(await screen.findByText('Reset two-factor authentication?')).toBeInTheDocument();
         expect(screen.getByText(/Reset two-factor authentication for Jan de Vries\?/)).toBeInTheDocument();
@@ -138,22 +148,24 @@ describe('UserManagement — modals and confirmations', () => {
     });
 
     it('confirming the 2FA reset posts to the reset endpoint', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.click(screen.getByLabelText('Reset 2FA for Jan de Vries'));
+        await user.click(screen.getByLabelText('Reset 2FA for Jan de Vries'));
         const dialog = await screen.findByRole('dialog');
 
-        fireEvent.click(within(dialog).getByText('Reset 2FA'));
+        await user.click(within(dialog).getByText('Reset 2FA'));
         await waitFor(() =>
             expect(authFetch).toHaveBeenCalledWith('/auth/users/u_jan/mfa/reset', expect.objectContaining({ method: 'POST' })),
         );
     });
 
     it('never falls back to window.confirm', async () => {
+        const user = userEvent.setup();
         // The whole point of the pass: a blocking native dialog cannot be themed,
         // cannot be translated by t(), and silently no-ops in some embedded views.
         const confirmSpy = vi.spyOn(window, 'confirm');
         await renderPanel();
-        fireEvent.click(screen.getByLabelText('Delete Jan de Vries'));
+        await user.click(screen.getByLabelText('Delete Jan de Vries'));
         await screen.findByRole('dialog');
         expect(confirmSpy).not.toHaveBeenCalled();
         confirmSpy.mockRestore();

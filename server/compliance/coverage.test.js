@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * coverage — the pure coverage rows. Pinned here: a listing that failed or

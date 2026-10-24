@@ -1,4 +1,4 @@
-import { act, fireEvent, render, waitFor } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -167,8 +167,9 @@ describe('blueprint.published on the live feed', () => {
     });
 
     it('refreshes the release history too', async () => {
+        const user = userEvent.setup();
         const { findByText } = render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
-        fireEvent.click(await findByText('Versions'));
+        await user.click(await findByText('Versions'));
         await findByText('Desk');
         const before = globalThis.__authFetch.mock.calls.filter(([u]) => String(u).includes('/package/releases')).length;
         await act(async () => {
@@ -201,23 +202,26 @@ describe('filing on the live feed', () => {
 
 describe('the two new tabs', () => {
     it('Versions shows the boolean diff even when no summary line was written', async () => {
+        const user = userEvent.setup();
         const { findByText, findByTestId } = render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
-        fireEvent.click(await findByText('Versions'));
+        await user.click(await findByText('Versions'));
         expect(await findByTestId('version-group-changed')).toBeTruthy();
         expect(await findByTestId('version-note-nosummary')).toBeTruthy();
     });
 
     it('a release history that could not be read does not read as "never published"', async () => {
+        const user = userEvent.setup();
         mockFetch({ releases: null });
         const { findByText, findByTestId, queryByTestId } = render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
-        fireEvent.click(await findByText('Versions'));
+        await user.click(await findByText('Versions'));
         expect(await findByTestId('versions-unreadable')).toBeTruthy();
         expect(queryByTestId('versions-none')).toBeNull();
     });
 
     it('Installs shows the two counts and says the number is a lower bound', async () => {
+        const user = userEvent.setup();
         const { findByText, findByTestId } = render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
-        fireEvent.click(await findByText('Installs'));
+        await user.click(await findByText('Installs'));
         expect((await findByTestId('installs-here')).textContent).toMatch(/2 Solutions/);
         expect((await findByTestId('installs-incomplete')).textContent).toMatch(/at least this many/);
     });
@@ -230,8 +234,9 @@ describe('the two new tabs', () => {
 
 describe('the upgrade dialog', () => {
     it('opens from the banner and asks the plan route for the Blueprint by id', async () => {
+        const user = userEvent.setup();
         const { findByTestId } = render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
-        fireEvent.click(await findByTestId('solution-update-open'));
+        await user.click(await findByTestId('solution-update-open'));
         await waitFor(() => {
             const call = globalThis.__authFetch.mock.calls.find(([u]) => String(u).includes('/package/upgrade/plan'));
             expect(call).toBeTruthy();

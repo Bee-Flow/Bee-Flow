@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What a `{{path}}` looks like inside human text (notification, e-mail and chat
  * bodies, documents), and what it must NOT touch.

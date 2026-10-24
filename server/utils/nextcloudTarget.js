@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud target validation — the SSRF gate for user-supplied Nextcloud URLs.
  *

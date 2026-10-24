@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The drain-exempt half of the stage API (design 8, D13): `/api/solution-stages`.

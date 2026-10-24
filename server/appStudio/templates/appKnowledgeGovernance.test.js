@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Knowledge base governance — the checks templates.test.js cannot make.
  *

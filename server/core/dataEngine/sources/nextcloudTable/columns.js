@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud columns → datatable fields, deterministically.
  *

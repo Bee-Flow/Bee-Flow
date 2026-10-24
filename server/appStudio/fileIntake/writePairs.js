@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * file_intake phase 4 — upsert one row per pair, as the viewer under RLS.
  */
@@ -74,6 +75,7 @@ async function writePairs(app, model, step, pairs, {
             Object.assign(values, constants);
 
             // Existing row for this (base name + scalar constants)?
+            /** @type {Array<{field: string, op: string, value: any, required?: boolean}>} */
             const matchFilter = [{ field: baseCol, op: 'eq', value: pair.baseName, required: true }];
             for (const [col, v] of Object.entries(constants)) {
                 // Date/datetime constants are stamps, not identity: a

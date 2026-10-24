@@ -16,6 +16,7 @@ const cmsExportBundle = require('../core/cms/cmsExportBundle');
 const configStore = require('../stores/configStore');
 const { getLiveSiteId, KEY_CMS_LIVE_SITE_ID } = require('./cmsShared');
 const cmsAnalytics = require('./cmsAnalytics');
+const { HttpError } = require('../core/http/errors');
 
 // Per-route body parser for /sites/import — caps the JSON payload at
 // 2 MB. The global parser is 20 MB which is fine for chat/agent runs
@@ -157,7 +158,7 @@ async function importSiteHandler(req, res) {
         });
     } catch (err) {
         log.error('[CMS] import error:', err.message);
-        res.status(400).json({ error: err.message });
+        throw new HttpError(400, 'bad_request', err.message);
     }
 }
 
@@ -174,7 +175,7 @@ async function createSiteHandler(req, res) {
         const { name } = req.body || {};
         const created = await cmsStore.createProject({ name });
         res.status(201).json(created);
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
 async function renameSiteHandler(req, res) {
@@ -185,7 +186,7 @@ async function renameSiteHandler(req, res) {
         }
         const updated = await cmsStore.renameProject(req.siteId, name.trim());
         res.json({ success: true, site: updated });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
 // Duplicate a site into a new version of the same version group. Deep-
@@ -195,7 +196,7 @@ async function duplicateSiteHandler(req, res) {
     try {
         const created = await cmsStore.duplicateProject(req.siteId);
         res.status(201).json(created);
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
 async function deleteSiteHandler(req, res) {
@@ -211,7 +212,7 @@ async function deleteSiteHandler(req, res) {
         // can't surface a deleted site's stale Umami data via its fallback path.
         await cmsAnalytics.forgetSite(req.siteId);
         res.json({ success: true });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 module.exports = {
     importJsonParser,

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * template-to-file — the bridge from a template MODULE to an importable file.
  *

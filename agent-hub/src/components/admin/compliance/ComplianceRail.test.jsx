@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import ComplianceRail, { visibleSections, hasOpenItem } from './ComplianceRail';
@@ -51,7 +51,8 @@ describe('ComplianceRail', () => {
         expect(enabled).not.toContain('cra');
     });
 
-    it('the active row is a raised card with aria-current and NO accent bar; a click emits the id', () => {
+    it('the active row is a raised card with aria-current and NO accent bar; a click emits the id', async () => {
+        const user = userEvent.setup();
         const onSelect = vi.fn();
         render(<ComplianceRail active="soa" onSelect={onSelect} counts={COUNTS} />);
         const row = screen.getByTestId('rail-row-soa');
@@ -59,7 +60,7 @@ describe('ComplianceRail', () => {
         expect(row.className).toMatch(/bg-\[var\(--bg-card\)\]/);
         expect(row.className).not.toMatch(/border-l/);
         expect(row.getAttribute('style') || '').not.toMatch(/inset 3px/);
-        fireEvent.click(screen.getByTestId('rail-row-dsr'));
+        await user.click(screen.getByTestId('rail-row-dsr'));
         expect(onSelect).toHaveBeenCalledWith('dsr');
     });
 
@@ -74,13 +75,14 @@ describe('ComplianceRail', () => {
         expect(screen.queryByTestId('compliance-rail-chain')).toBeNull();
     });
 
-    it('"Needs attention" filters to rows with something open; the badge carries the count', () => {
+    it('"Needs attention" filters to rows with something open; the badge carries the count', async () => {
+        const user = userEvent.setup();
         render(<ComplianceRail active="overview" onSelect={vi.fn()} counts={COUNTS} checks={null} />);
         // Checks not loaded yet: the score decides.
         expect(hasOpenItem({ id: 'gdpr' }, COUNTS)).toBe(true);
         expect(hasOpenItem({ id: 'iso' }, COUNTS)).toBe(false);
         expect(hasOpenItem({ id: 'soa' }, COUNTS)).toBe(true);
-        fireEvent.click(screen.getByRole('radio', { name: /Needs attention/ }));
+        await user.click(screen.getByRole('radio', { name: /Needs attention/ }));
         expect(screen.queryByTestId('rail-row-iso')).toBeNull();
         expect(screen.getByTestId('rail-row-gdpr')).toBeInTheDocument();
         expect(screen.getByTestId('rail-row-overview')).toBeInTheDocument();

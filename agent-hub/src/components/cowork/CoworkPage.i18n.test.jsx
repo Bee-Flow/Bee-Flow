@@ -20,6 +20,7 @@
  * bite: paste a literal back into the JSX and the English reappears.
  */
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -122,10 +123,11 @@ describe('CoworkPage — the starters', () => {
     });
 
     it('fills the box with the translated sentence, not the English behind it', async () => {
+        const user = userEvent.setup();
         seed([]);
         render(<CoworkPage />);
         const starters = await screen.findAllByTestId('cowork-starter');
-        fireEvent.click(starters[0]);
+        await user.click(starters[0]);
         await waitFor(() => expect(screen.getByTestId('cowork-brief-input').value)
             .toBe('«cowork.welcome.starter_ai_news»'));
     });
@@ -133,11 +135,12 @@ describe('CoworkPage — the starters', () => {
 
 describe('CoworkPage — the way back on a phone', () => {
     it('labels the close button through t()', async () => {
+        const user = userEvent.setup();
         // isMobile is a prop, not a media query: the phone layout is what the
         // shell hands down.
         seed([ITEM]);
         render(<CoworkPage isMobile />);
-        fireEvent.click(await screen.findByTestId('cowork-row'));
+        await user.click(await screen.findByTestId('cowork-row'));
         expect(await screen.findByLabelText('«cowork.list.back»')).toBeInTheDocument();
         expect(screen.queryByLabelText('Back to the list')).not.toBeInTheDocument();
     });

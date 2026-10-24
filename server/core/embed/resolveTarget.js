@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Embedding-target resolver — picks the right provider/model for an
  * embedding call based on global AI config (`ai.embeddingProviderId` +

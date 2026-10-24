@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * core/datasets — rsID → position index, 64 shards.
  *

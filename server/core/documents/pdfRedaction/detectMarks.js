@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -77,9 +78,9 @@ function textReason(text, terms) {
 
 /**
  * Find the marks on one page.
- * @param {object} page       analyzePage() output
- * @param {object} opts
- * @param {string[]} opts.terms       normalised customer terms (user-given + derived)
+ * @param {Record<string, any>} page       analyzePage() output
+ * @param {object} [opts]
+ * @param {string[]} [opts.terms]       normalised customer terms (user-given + derived)
  * @param {Map<number,string>} [opts.aiMarks]  object id → category the AI assigned
  * @returns {{ marks: Array<{id, category, text?}>, blocked: Array<{id, category, text?}> }}
  */

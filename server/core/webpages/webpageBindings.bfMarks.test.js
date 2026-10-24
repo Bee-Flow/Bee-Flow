@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * core/webpages/webpageBindings — the ELEMENT SCAN: where does a `bf-*` stand?
  *

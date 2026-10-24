@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Org subscription teardown and read-outs — removing the subscription, the
  * current-period usage against the effective limits, and the resolved

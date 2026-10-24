@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * builder_request_dry_run's `_hint`, and what the builder learns from it.
  *

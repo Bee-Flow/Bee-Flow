@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio data model — canonicalization: repair a model into the canonical
  * shape (ids, keys, defaults, access + roleMapping blocks, mailbox connector

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import WebpageEditorHeader, { WEBPAGE_TABS } from './WebpageEditorHeader';
 
@@ -45,12 +46,13 @@ describe('WebpageEditorHeader — the row', () => {
         expect(screen.getByTestId('studio-section-title')).toHaveTextContent('Offerte-status');
     });
 
-    it('names where back goes — the list, not just "Back"', () => {
+    it('names where back goes — the list, not just "Back"', async () => {
+        const user = userEvent.setup();
         const onBack = vi.fn();
         renderHeader({ onBack });
         const back = screen.getByTestId('studio-section-back');
         expect(back).toHaveAttribute('title', 'Back to list');
-        fireEvent.click(back);
+        await user.click(back);
         expect(onBack).toHaveBeenCalled();
     });
 
@@ -73,10 +75,11 @@ describe('WebpageEditorHeader — the row', () => {
         expect(usedBy.textContent.replace(/\s/g, '')).toBe('Usedby');
     });
 
-    it('reports the picked tab', () => {
+    it('reports the picked tab', async () => {
+        const user = userEvent.setup();
         const onTab = vi.fn();
         renderHeader({ onTab });
-        fireEvent.click(within(screen.getByRole('radiogroup')).getAllByRole('radio')[2]);
+        await user.click(within(screen.getByRole('radiogroup')).getAllByRole('radio')[2]);
         expect(onTab).toHaveBeenCalledWith('code');
     });
 });
@@ -103,12 +106,13 @@ describe('WebpageEditorHeader — the status split', () => {
         expect(screen.getByTestId('status-pill').dataset.status).toBe('draft');
     });
 
-    it('a publish in flight cannot be fired twice', () => {
+    it('a publish in flight cannot be fired twice', async () => {
+        const user = userEvent.setup();
         const onPublish = vi.fn();
         renderHeader({ onPublish, publishBusy: true });
         const btn = within(screen.getByTestId('status-pill')).getByRole('button');
         expect(btn).toBeDisabled();
-        fireEvent.click(btn);
+        await user.click(btn);
         expect(onPublish).not.toHaveBeenCalled();
     });
 });
@@ -174,26 +178,28 @@ describe('WebpageEditorHeader — the viewer', () => {
 });
 
 describe('WebpageEditorHeader — the hoisted IDE buttons', () => {
-    it('carries Add image and ZIP for the owner', () => {
+    it('carries Add image and ZIP for the owner', async () => {
+        const user = userEvent.setup();
         const onAddImage = vi.fn();
         const onDownloadZip = vi.fn();
         renderHeader({ onAddImage, onDownloadZip });
-        fireEvent.click(screen.getByRole('button', { name: 'Add image' }));
-        fireEvent.click(screen.getByRole('button', { name: 'Download ZIP' }));
+        await user.click(screen.getByRole('button', { name: 'Add image' }));
+        await user.click(screen.getByRole('button', { name: 'Download ZIP' }));
         expect(onAddImage).toHaveBeenCalled();
         expect(onDownloadZip).toHaveBeenCalled();
     });
 
-    it('renames through the title, refusing an empty name', () => {
+    it('renames through the title, refusing an empty name', async () => {
+        const user = userEvent.setup();
         const onRename = vi.fn();
         renderHeader({ onRename });
-        fireEvent.click(screen.getByTestId('studio-section-title'));
+        await user.click(screen.getByTestId('studio-section-title'));
         const input = screen.getByTestId('studio-section-title-input');
         fireEvent.change(input, { target: { value: '   ' } });
         fireEvent.blur(input);
         expect(onRename).not.toHaveBeenCalled();
 
-        fireEvent.click(screen.getByTestId('studio-section-title'));
+        await user.click(screen.getByTestId('studio-section-title'));
         const again = screen.getByTestId('studio-section-title-input');
         fireEvent.change(again, { target: { value: 'Nieuwe naam' } });
         fireEvent.blur(again);
@@ -216,12 +222,13 @@ describe('WebpageEditorHeader — a page a Solution stage manages', () => {
         expect(screen.getByTestId('managed-part-banner')).toBeInTheDocument();
     });
 
-    it('takes the ways to write the page away: rename, Code, History, Add image', () => {
+    it('takes the ways to write the page away: rename, Code, History, Add image', async () => {
+        const user = userEvent.setup();
         renderHeader({ managed: MANAGED, onAddImage: () => {}, onRename: () => {}, counts: { history: 3 } });
         expect(names().join(' ')).not.toMatch(/Code|History/);
         expect(names().join(' ')).toMatch(/Preview/);
         expect(screen.queryByLabelText('Add image')).toBeNull();
-        fireEvent.click(screen.getByTestId('studio-section-title'));
+        await user.click(screen.getByTestId('studio-section-title'));
         expect(screen.queryByRole('textbox')).toBeNull();
     });
 

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Dutch public holidays, and the "skip holidays" rule for schedules.
  *
@@ -98,9 +99,10 @@ function dutchHolidays(year, { includeGoodFriday = false } = {}) {
 
     const easter = easterSunday(year);
     const kings = Date.UTC(year, 3, 27);
+    /** @type {Array<[string, number]>} */
     const days = [
         ['new_years_day', Date.UTC(year, 0, 1)],
-        ...(includeGoodFriday ? [['good_friday', easter - 2 * DAY_MS]] : []),
+        ...(includeGoodFriday ? [/** @type {[string, number]} */ (['good_friday', easter - 2 * DAY_MS])] : []),
         ['easter_sunday', easter],
         ['easter_monday', easter + DAY_MS],
         // A Sunday 27 April moves to Saturday the 26th.

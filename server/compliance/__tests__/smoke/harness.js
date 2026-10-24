@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Shared harness for the compliance smoke scenarios.
  *
@@ -32,7 +33,7 @@ const _state = {
 };
 
 configStore.getConfig = async (key) => _state.config[key] ?? null;
-configStore.setConfig = async (key, val) => { _state.config[key] = val; };
+configStore.setConfig = /** @type {any} */ (async (key, val) => { _state.config[key] = val; });
 configStore.getSecret = async () => null;
 
 complianceStore.getSettings = async () => ({ ..._state.settings });

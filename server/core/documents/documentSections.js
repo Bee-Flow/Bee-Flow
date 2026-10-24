@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 const cheerio = require('cheerio');
@@ -11,7 +12,7 @@ function ruleKeys(rule, keys = new Set()) {
     return keys;
 }
 function parse(html) {
-    return cheerio.load(html || '', { xmlMode: true, decodeEntities: false }, false);
+    return cheerio.load(html || '', /** @type {any} */ ({ xmlMode: true, decodeEntities: false }), false);
 }
 function fail(message) {
     throw Object.assign(new Error(message), { status: 422, errorClass: 'document_section_invalid' });

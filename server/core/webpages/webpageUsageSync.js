@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The usage index, written from a WEBPAGE (`consumer_kind='webpage'`).
  *
@@ -99,7 +100,6 @@
  * the column-drop warning for this page, which is exactly the same silent gate as rule 1.
  * Both sources readable, or write nothing.
  */
-
 'use strict';
 const { featureModule } = require('../featureModules');
 const logger = require('../../telemetry/log');
@@ -167,12 +167,12 @@ async function scopesForPage(page, deps = {}) {
 }
 
 /**
- * What does this page bind to tables RIGHT NOW?
+ * Wat bindt deze pagina NU aan tabellen?
  *
  * @returns {Promise<{ok:boolean, reason:string, scopes?:Array, entries?:Array,
- *                    ownerId?:string|null, unresolved?:number}>}
- *   `ok:false` ALWAYS means "leave the index as it is" — never "write an empty list".
- *   The distinction is in `reason`.
+ *                    ownerId?:string|null, unresolved?:number, error?:string}>}
+ *   `ok:false` betekent ALTIJD "laat de index staan" — nooit "schrijf een lege
+ *   lijst". Het onderscheid staat in `reason`.
  */
 async function collectWebpageUsage(webpageId, deps = {}) {
     if (!webpageId) return { ok: false, reason: 'no-id' };

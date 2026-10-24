@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Learning Center weekly review nudge (daily tick).
  *

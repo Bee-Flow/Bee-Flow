@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio validator — the definition-level design/nav and public-access
  * checks of validateAppDefinition. A leaf module (specs, theme and shared

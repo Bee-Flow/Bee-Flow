@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Periodic NC user/group sync backstop.
  *

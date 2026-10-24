@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import KanbanInspector from './KanbanInspector';
 import { FieldKeyField, IconField } from './kit';
@@ -33,14 +34,15 @@ beforeEach(() => {
 const ROWS = { kind: 'static', value: [{ title: 'Ship it', status: 'open' }] };
 
 describe('IconField', () => {
-    it('browses the shared icon picker and stores the picked name', () => {
+    it('browses the shared icon picker and stores the picked name', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         const { getByLabelText, getByText, getByTitle } = render(
             <IconField label="Icon" value={null} onChange={onChange} />,
         );
-        fireEvent.click(getByLabelText('Icon — browse icons'));
+        await user.click(getByLabelText('Icon — browse icons'));
         expect(getByText('Choose an icon')).toBeTruthy();
-        fireEvent.click(getByTitle('Activity'));
+        await user.click(getByTitle('Activity'));
         expect(onChange).toHaveBeenCalledWith('Activity');
     });
 

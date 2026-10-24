@@ -103,7 +103,7 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
         transcriptionId = transcription.id;
         res.status(202).json({ id: transcriptionId, status: 'processing' });
 
-        log.info(`[Transcriptions] Reprocessing "${fileName}" via ${provider}`);
+        log.info(`[Transcriptions] Reprocessing "${log.nameForLog(fileName)}" via ${provider}`);
 
         const transcribed = await transcribeStoredAudio({ provider, audioPath, fileName, language, numSpeakers, transcription, userId });
         const { response, voiceprintInfo } = transcribed;

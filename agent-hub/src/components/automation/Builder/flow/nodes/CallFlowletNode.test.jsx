@@ -1,4 +1,5 @@
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ReactFlowProvider } from '@xyflow/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import CallFlowletNode from './CallFlowletNode';
@@ -33,10 +34,11 @@ function renderNode({ data = {}, rt = {} } = {}) {
 describe('CallFlowletNode — collapsed', () => {
     beforeEach(cleanup);
 
-    it('offers Expand, and calls the toggle with the node id and its flowlet', () => {
+    it('offers Expand, and calls the toggle with the node id and its flowlet', async () => {
+        const user = userEvent.setup();
         const onToggleInline = vi.fn();
         renderNode({ rt: { onToggleInline } });
-        fireEvent.click(screen.getByRole('button', { name: /expand/i }));
+        await user.click(screen.getByRole('button', { name: /expand/i }));
         expect(onToggleInline).toHaveBeenCalledWith('cl1', 'enrich');
     });
 
@@ -69,10 +71,11 @@ describe('CallFlowletNode — expanded container', () => {
         expect(screen.queryByText(/1 input: email/)).toBeNull();
     });
 
-    it('collapses again from the header', () => {
+    it('collapses again from the header', async () => {
+        const user = userEvent.setup();
         const onToggleInline = vi.fn();
         renderNode({ data: expanded, rt: { onToggleInline } });
-        fireEvent.click(screen.getByTitle('Collapse this flowlet'));
+        await user.click(screen.getByTitle('Collapse this flowlet'));
         expect(onToggleInline).toHaveBeenCalledWith('cl1', 'enrich');
     });
 
@@ -87,10 +90,11 @@ describe('CallFlowletNode — expanded container', () => {
         expect(screen.queryByTitle(/used in/i)).toBeNull();
     });
 
-    it('keeps the drill-in available from the container', () => {
+    it('keeps the drill-in available from the container', async () => {
+        const user = userEvent.setup();
         const onOpenLayer = vi.fn();
         renderNode({ data: expanded, rt: { onOpenLayer } });
-        fireEvent.click(screen.getByTitle('Open this flowlet on its own canvas'));
+        await user.click(screen.getByTitle('Open this flowlet on its own canvas'));
         expect(onOpenLayer).toHaveBeenCalledWith('enrich');
     });
 

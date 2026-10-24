@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Agent CRUD: the agent save (PUT /:id), in phases. The tier gate, the
  * sticky organisation, the persona and the config validation, the category
@@ -91,17 +92,12 @@ async function resolvePersonaAndConfig(req, res, { agent, assignOrgId, userId, d
     }
     if (configToSave !== undefined && configToSave !== null) {
         let validation;
-        try {
-            // Use the *new* config to validate, plus the agent's existing
-            // organization_id so skill lookups scope correctly.
-            validation = await deps.validateAgentConfigReferences(
-                { ...agent, organization_id: assignOrgId },
-                configToSave
-            );
-        } catch (e) {
-            res.status(e.status || 500).json({ error: e.message });
-            return null;
-        }
+        // Use the *new* config to validate, plus the agent's existing
+        // organization_id so skill lookups scope correctly.
+        validation = await deps.validateAgentConfigReferences(
+            { ...agent, organization_id: assignOrgId },
+            configToSave
+        );
         saveWarnings = saveWarnings.concat(validation?.warnings || []);
         configToSave = deps.applyConfigValidation(configToSave, validation);
     }

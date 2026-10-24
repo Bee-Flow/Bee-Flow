@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR-Art32-dlp-efficacy — Art. 32(1)(d) effectiveness.
  *

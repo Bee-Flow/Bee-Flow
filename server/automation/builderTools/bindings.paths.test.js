@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * bindings — the AI builder never corrupts a valid path, and never touches
  * the inputs a patch did not name.

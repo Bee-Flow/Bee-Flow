@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CONSENT, not capability: must a person say yes before this call runs, and
  * WHOSE connection does it run on?

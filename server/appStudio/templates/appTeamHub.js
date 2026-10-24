@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio template — Team hub — pure content + contact form; zero automation deps, so it
  * works instantly on install and shows off theming/multi-screen nav.

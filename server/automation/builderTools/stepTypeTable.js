@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Which step types can the AI builder AUTHOR, and how? ONE table.
  *

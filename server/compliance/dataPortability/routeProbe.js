@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Route probe — "would a request for METHOD path reach a handler?"
  *

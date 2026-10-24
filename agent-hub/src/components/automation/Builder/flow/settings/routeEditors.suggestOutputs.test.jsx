@@ -95,11 +95,12 @@ describe('Condition editor — Suggest outputs', () => {
         try { localStorage.clear(); } catch { /* ignore */ }
     });
 
-    it('lives INSIDE the Outputs section — a section of its own would have to be declared on three node types', () => {
+    it('lives INSIDE the Outputs section — a section of its own would have to be declared on three node types', async () => {
+        const user = userEvent.setup();
         renderFiles();
         expect(screen.getByText('Suggest outputs')).toBeTruthy();
         // Collapsing the section that owns it takes it with it.
-        fireEvent.click(screen.getByText('Output'));
+        await user.click(screen.getByText('Output'));
         expect(screen.queryByText('Suggest outputs')).toBeNull();
     });
 
@@ -131,12 +132,13 @@ describe('Condition editor — Suggest outputs', () => {
     });
 
     it('saves nothing until the suggestion is accepted', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderFiles();
         describeIt('split by pdf, word, powerpoint');
         // The node is untouched while the preview is on screen.
         expect(screen.getByText('This node has 1 output.')).toBeTruthy();
 
-        fireEvent.click(screen.getByText('Use these 3 outputs'));
+        await user.click(screen.getByText('Use these 3 outputs'));
         expect(screen.getByText('This node has 3 outputs.')).toBeTruthy();
 
         save();

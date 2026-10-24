@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What an organisation's automations are made of, for the builder's "Frequently
  * used" (Studio → Automations handoff 5):

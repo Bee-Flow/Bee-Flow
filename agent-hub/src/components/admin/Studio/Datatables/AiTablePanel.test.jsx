@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AiTablePanel from './AiTablePanel';
@@ -45,12 +46,13 @@ beforeEach(() => {
 
 describe('<AiTablePanel> alone', () => {
     it('create: a brief in, the draft applied; the box keeps its text on a refusal', async () => {
+        const user = userEvent.setup();
         datatablesApi.draft.mockResolvedValue({ draft: { name: 'Invoices', key: 'invoices', description: 'One row per invoice.', fields: [{ key: 'supplier', name: 'Supplier', type: 'text' }], notes: null, changes: { added: ['supplier'], renamed: [], retyped: [], removed: [] } }, mode: 'create' });
         const onApply = vi.fn();
         render(<AiTablePanel mode="create" current={{ name: '', description: '', fields: [] }} onApply={onApply} />);
         expect(screen.getByTestId('table-ai-run')).toBeDisabled();
         fireEvent.change(screen.getByTestId('table-ai-text'), { target: { value: 'Supplier invoices' } });
-        fireEvent.click(screen.getByTestId('table-ai-run'));
+        await user.click(screen.getByTestId('table-ai-run'));
         await waitFor(() => expect(onApply).toHaveBeenCalled());
         expect(datatablesApi.draft).toHaveBeenCalledWith({ mode: 'create', brief: 'Supplier invoices', current: { name: '', description: '', fields: [] } });
         expect(onApply.mock.calls[0][0].name).toBe('Invoices');
@@ -58,7 +60,7 @@ describe('<AiTablePanel> alone', () => {
 
         datatablesApi.draft.mockRejectedValueOnce(Object.assign(new Error('x'), { code: 'no_model', status: 503 }));
         fireEvent.change(screen.getByTestId('table-ai-text'), { target: { value: 'again' } });
-        fireEvent.click(screen.getByTestId('table-ai-run'));
+        await user.click(screen.getByTestId('table-ai-run'));
         expect((await screen.findByRole('alert')).textContent).toMatch(/No AI model is set up/);
         expect(screen.getByTestId('table-ai-text').value).toBe('again');
     });
@@ -66,6 +68,7 @@ describe('<AiTablePanel> alone', () => {
 
 describe('the New datatable dialog', () => {
     it('fills name, purpose and columns from the draft, lets the key follow, and creates nothing until Create', async () => {
+        const user = userEvent.setup();
         datatablesApi.draft.mockResolvedValue({ draft: {
             name: 'Supplier invoices', key: 'supplier_invoices', description: 'One row per supplier invoice, kept for the audit.',
             fields: [{ key: 'supplier', name: 'Supplier', type: 'text', required: true }, { key: 'status', name: 'Status', type: 'select', options: ['New', 'Approved'] }],
@@ -75,14 +78,14 @@ describe('the New datatable dialog', () => {
         const onCreated = vi.fn();
         render(<NewDatatableDialog scope={{ kind: 'org' }} onClose={() => {}} onCreated={onCreated} />);
         fireEvent.change(screen.getByTestId('new-table-ai-text'), { target: { value: 'Track supplier invoices with a status' } });
-        fireEvent.click(screen.getByTestId('new-table-ai-run'));
+        await user.click(screen.getByTestId('new-table-ai-run'));
         await waitFor(() => expect(screen.getByPlaceholderText('Customers').value).toBe('Supplier invoices'));
         expect(screen.getByPlaceholderText('Customers we have already sent the onboarding e-mail to.').value).toContain('One row per supplier invoice');
         expect(screen.getAllByLabelText('Column name').map(i => i.value)).toEqual(['Supplier', 'Status']);
         expect(datatablesApi.create).not.toHaveBeenCalled();
         // the key followed the drafted name
         expect(screen.getByText('supplier_invoices')).toBeTruthy();
-        fireEvent.click(screen.getByRole('button', { name: /^Create/ }));
+        await user.click(screen.getByRole('button', { name: /^Create/ }));
         await waitFor(() => expect(datatablesApi.create).toHaveBeenCalled());
         const body = datatablesApi.create.mock.calls[0][0];
         expect(body.key).toBe('supplier_invoices');
@@ -93,6 +96,7 @@ describe('the New datatable dialog', () => {
 
 describe('the column designer', () => {
     it('sends the current columns with the guard OFF, lands the draft in the unsaved list with ids carried, and the guard resets', async () => {
+        const user = userEvent.setup();
         datatablesApi.draft.mockResolvedValue({ draft: {
             name: 'Customers', key: 'customers', description: 'Customers we onboarded.',
             fields: [{ key: 'email', name: 'E-mail address', type: 'text' }, { key: 'notes', name: 'Notes', type: 'richtext' }, { key: 'phone', name: 'Phone', type: 'text' }],
@@ -102,7 +106,7 @@ describe('the column designer', () => {
         await screen.findByDisplayValue('E-mail');
         expect(screen.getByTestId('columns-ai-allow').checked).toBe(false);
         fireEvent.change(screen.getByTestId('columns-ai-text'), { target: { value: 'add a phone number, call e-mail "E-mail address"' } });
-        fireEvent.click(screen.getByTestId('columns-ai-run'));
+        await user.click(screen.getByTestId('columns-ai-run'));
         await waitFor(() => expect(datatablesApi.draft).toHaveBeenCalled());
         const body = datatablesApi.draft.mock.calls[0][0];
         expect(body.mode).toBe('revise');
@@ -117,13 +121,14 @@ describe('the column designer', () => {
         expect((await screen.findByTestId('columns-ai-done')).textContent).toBe('1 added · 1 renamed');
         // saving carries the kept ids so the server matches, not drops
         datatablesApi.putSchema.mockResolvedValue({ fields: [], modelVersion: 4 });
-        fireEvent.click(screen.getByRole('button', { name: /Save columns/ }));
+        await user.click(screen.getByRole('button', { name: /Save columns/ }));
         await waitFor(() => expect(datatablesApi.putSchema).toHaveBeenCalled());
         const [, saved] = datatablesApi.putSchema.mock.calls[0];
         expect(saved.map(f => [f.key, f.id])).toEqual([['email', 'fld_a1'], ['notes', 'fld_a2'], ['phone', undefined]]);
     });
 
     it('with the guard switched on the flag travels once, and Undo puts the previous columns back', async () => {
+        const user = userEvent.setup();
         datatablesApi.draft.mockResolvedValue({ draft: {
             name: 'Customers', key: 'customers', description: '',
             fields: [{ key: 'email', name: 'E-mail', type: 'text' }],
@@ -131,16 +136,16 @@ describe('the column designer', () => {
         }, mode: 'revise' });
         render(<ColumnDesigner table={TABLE} canEdit usage={[]} onChanged={vi.fn()} />);
         await screen.findByDisplayValue('E-mail');
-        fireEvent.click(screen.getByTestId('columns-ai-allow'));
+        await user.click(screen.getByTestId('columns-ai-allow'));
         fireEvent.change(screen.getByTestId('columns-ai-text'), { target: { value: 'drop the notes' } });
-        fireEvent.click(screen.getByTestId('columns-ai-run'));
+        await user.click(screen.getByTestId('columns-ai-run'));
         await waitFor(() => expect(datatablesApi.draft).toHaveBeenCalled());
         expect(datatablesApi.draft.mock.calls[0][0].allowDestructive).toBe(true);
         await waitFor(() => expect(screen.queryByDisplayValue('Notes')).toBeNull());
         expect((await screen.findByTestId('columns-ai-done')).textContent).toBe('1 removed');
         // per request: guarded again
         expect(screen.getByTestId('columns-ai-allow').checked).toBe(false);
-        fireEvent.click(screen.getByTestId('columns-ai-undo'));
+        await user.click(screen.getByTestId('columns-ai-undo'));
         expect(await screen.findByDisplayValue('Notes')).toBeTruthy();
         expect(screen.queryByRole('button', { name: /Save columns/ })).toBeNull();
     });

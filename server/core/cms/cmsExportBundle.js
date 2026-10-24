@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CMS export bundle — the .zip form of a site export.
  *

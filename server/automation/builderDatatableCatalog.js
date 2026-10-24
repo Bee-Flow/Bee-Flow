@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The datatables ONE user may use, in the shape the automation builder reads.
  *
@@ -30,7 +31,7 @@
 /**
  * @param {string} userId
  * @param {object} [opts]
- * @param {object} [opts.principal]  an already-resolved datatable principal
+ * @param {any} [opts.principal]  an already-resolved datatable principal
  *        (the route has one from `resolveDatatablePrincipal(req)`); absent,
  *        it is resolved from the user row — the sessionless resolver the
  *        webpage bridge uses, since neither the chat route's turn nor an

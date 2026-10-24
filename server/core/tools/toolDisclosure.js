@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Progressive Tool Disclosure
  * ───────────────────────────

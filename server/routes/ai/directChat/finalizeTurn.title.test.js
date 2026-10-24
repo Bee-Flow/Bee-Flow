@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The title promise comes back unawaited (routes/ai/directChat/finalizeTurn.js).
  *

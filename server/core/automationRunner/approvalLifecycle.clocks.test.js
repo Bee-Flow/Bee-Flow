@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Reminder + escalation clocks — the pure half.
  *

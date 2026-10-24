@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -195,7 +196,7 @@ function realDeps() {
               WHERE user_id = $1 AND status = 'active' AND origin = 'inferred' AND type NOT IN ('instruction', 'schedule_coverage')
                 AND COALESCE(importance, 0.5) < $3 AND COALESCE(last_used_at, created_at) < $2`,
             [userId, cutoff, STALE_IMPORTANCE])).map((r) => r.id),
-        findSimilarMemories: (...a) => store().findSimilarMemories(...a),
+        findSimilarMemories: (...a) => /** @type {Function} */ (store().findSimilarMemories)(...a),
         supersede: (o, n) => lifecycle().supersede(o, n),
         archive: (ids, userId) => lifecycle().archive(ids, userId),
         // Legacy rows were never classified: tag them so retrieval keeps them out

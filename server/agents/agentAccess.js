@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Who may EDIT an agent: the one write gate in front of every mutating agent
  * endpoint (PUT/DELETE, tool params, publish, knowledge routes), and now also

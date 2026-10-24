@@ -1,4 +1,5 @@
 import { render, fireEvent, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import { clampKnob } from './styleKnobMeta';
 import StyleSection, { updateSectionStyle, findSectionById } from './StyleSection';
@@ -45,30 +46,33 @@ describe('StyleSection — span slider', () => {
 });
 
 describe('StyleSection — TokenColorField', () => {
-    it('commits a role name when a role swatch is picked', () => {
+    it('commits a role name when a role swatch is picked', async () => {
+        const user = userEvent.setup();
         const { onCommit, getByRole } = renderNode('cmp_headg1');
         // Fixture color is null → "Theme" mode; switching tab alone commits nothing.
-        fireEvent.click(getByRole('radio', { name: 'Role' }));
+        await user.click(getByRole('radio', { name: 'Role' }));
         expect(onCommit).not.toHaveBeenCalled();
-        fireEvent.click(getByRole('radio', { name: 'success' }));
+        await user.click(getByRole('radio', { name: 'success' }));
         expect(onCommit).toHaveBeenCalledTimes(1);
         expect(findNode(onCommit.mock.calls[0][0], 'cmp_headg1').node.style.color).toBe('success');
     });
 
-    it('commits null when switching a role-colored node back to Theme', () => {
+    it('commits null when switching a role-colored node back to Theme', async () => {
+        const user = userEvent.setup();
         // cmp_stat01 has style.color 'primary' → starts in Role mode.
         const { onCommit, getByRole } = renderNode('cmp_stat01');
         expect(getByRole('radio', { name: 'primary' })).toHaveAttribute('aria-checked', 'true');
-        fireEvent.click(getByRole('radio', { name: 'Theme' }));
+        await user.click(getByRole('radio', { name: 'Theme' }));
         expect(onCommit).toHaveBeenCalledTimes(1);
         expect(findNode(onCommit.mock.calls[0][0], 'cmp_stat01').node.style.color).toBeNull();
     });
 
-    it('commits a hex when a custom preset is picked', () => {
+    it('commits a hex when a custom preset is picked', async () => {
+        const user = userEvent.setup();
         const { onCommit, getByRole } = renderNode('cmp_headg1');
-        fireEvent.click(getByRole('radio', { name: 'Custom' }));
+        await user.click(getByRole('radio', { name: 'Custom' }));
         expect(onCommit).not.toHaveBeenCalled();
-        fireEvent.click(getByRole('radio', { name: '#B45309' }));
+        await user.click(getByRole('radio', { name: '#B45309' }));
         expect(findNode(onCommit.mock.calls[0][0], 'cmp_headg1').node.style.color).toBe('#B45309');
     });
 });
@@ -102,13 +106,14 @@ describe('StyleSection — per-type knob gating', () => {
         expect(findNode(onCommit.mock.calls[0][0], 'cmp_card01').node.style.background).toBe('panel');
     });
 
-    it('radius "Inherit" commits null', () => {
+    it('radius "Inherit" commits null', async () => {
+        const user = userEvent.setup();
         const onCommit = vi.fn();
         const { getByRole } = render(
             <StyleSection definition={KITCHEN_SINK} node={nodeOf('cmp_card01')} onCommit={onCommit} />,
         );
         // Fixture card radius is 'md' → switching to Inherit commits null.
-        fireEvent.click(getByRole('radio', { name: 'Inherit' }));
+        await user.click(getByRole('radio', { name: 'Inherit' }));
         expect(onCommit).toHaveBeenCalledTimes(1);
         expect(findNode(onCommit.mock.calls[0][0], 'cmp_card01').node.style.radius).toBeNull();
     });
@@ -141,12 +146,13 @@ describe('StyleSection — section variant', () => {
 });
 
 describe('StyleSection — responsive visibility disclosure', () => {
-    it('appears for span-bearing types, commits a band, and hides for sections', () => {
+    it('appears for span-bearing types, commits a band, and hides for sections', async () => {
+        const user = userEvent.setup();
         const utils = renderNode('cmp_headg1');
         const scope = within(utils.container);
-        fireEvent.click(scope.getByRole('button', { name: /Responsive/i }));
+        await user.click(scope.getByRole('button', { name: /Responsive/i }));
         const below = within(scope.getByRole('radiogroup', { name: 'Hide below' }));
-        fireEvent.click(below.getByRole('radio', { name: 'M' }));
+        await user.click(below.getByRole('radio', { name: 'M' }));
         expect(utils.onCommit).toHaveBeenCalledTimes(1);
         expect(findNode(utils.onCommit.mock.calls[0][0], 'cmp_headg1').node.style.hideBelow).toBe('md');
 
@@ -207,11 +213,12 @@ describe('StyleSection — advanced sizing disclosure', () => {
         expect(heading.scope.queryByRole('radiogroup', { name: 'Height unit' })).toBeNull();
     });
 
-    it('picking a unit commits the mode AND seeds a usable number in one patch', () => {
+    it('picking a unit commits the mode AND seeds a usable number in one patch', async () => {
+        const user = userEvent.setup();
         // Half a pair renders as if the knob were never touched (and the server
         // errors on it), so the two are always committed together.
         const utils = openAdvanced(renderNode('cmp_card01'));
-        fireEvent.click(utils.width().getByRole('radio', { name: 'px' }));
+        await user.click(utils.width().getByRole('radio', { name: 'px' }));
         expect(utils.onCommit).toHaveBeenCalledTimes(1);
         const style = findNode(utils.onCommit.mock.calls[0][0], 'cmp_card01').node.style;
         expect(style.widthMode).toBe('px');
@@ -236,19 +243,21 @@ describe('StyleSection — advanced sizing disclosure', () => {
         expect(clampKnob('widthValue', null, { widthMode: 'px' })).toBeNull();
     });
 
-    it('switching back to Columns clears the number, so nothing dead is stored', () => {
+    it('switching back to Columns clears the number, so nothing dead is stored', async () => {
+        const user = userEvent.setup();
         const definition = updateNodeStyle(KITCHEN_SINK, 'cmp_card01', { widthMode: 'px', widthValue: 640 });
         const onCommit = vi.fn();
         const utils = openAdvanced(render(
             <StyleSection definition={definition} node={findNode(definition, 'cmp_card01').node} onCommit={onCommit} />,
         ));
-        fireEvent.click(utils.width().getByRole('radio', { name: 'Columns' }));
+        await user.click(utils.width().getByRole('radio', { name: 'Columns' }));
         const style = findNode(onCommit.mock.calls[0][0], 'cmp_card01').node.style;
         expect(style.widthMode).toBe('span');
         expect(style.widthValue).toBeNull(); // canonicalize drops it entirely
     });
 
-    it('a section is never offered %, because a section has no parent height', () => {
+    it('a section is never offered %, because a section has no parent height', async () => {
+        const user = userEvent.setup();
         const onCommit = vi.fn();
         const utils = openAdvanced(render(
             <StyleSection definition={KITCHEN_SINK} sectionId="sec_dash01" onCommit={onCommit} />,
@@ -260,7 +269,7 @@ describe('StyleSection — advanced sizing disclosure', () => {
         expect(utils.height().queryByRole('radio', { name: '%' })).toBeNull();
         expect(utils.scope.queryByRole('radiogroup', { name: 'Width unit' })).toBeNull();
 
-        fireEvent.click(utils.height().getByRole('radio', { name: 'vh' }));
+        await user.click(utils.height().getByRole('radio', { name: 'vh' }));
         const style = findSectionById(onCommit.mock.calls[0][0], 'sec_dash01').section.style;
         expect(style.heightMode).toBe('vh');
         expect(style.heightValue).toBe(50);

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * `return_to_app` on the runner side: the effects object that the app receives.
  *

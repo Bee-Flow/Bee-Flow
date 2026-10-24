@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * BFSF-389 - the approver's name comes from the real users columns

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A playbook's PHASE LIST, as this router reads it.
  *

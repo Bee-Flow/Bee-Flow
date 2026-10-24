@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio canonicalizer — the binding grammar: formulas, the record /
  * records / aggregate query descriptors, dataset and connector params, and the

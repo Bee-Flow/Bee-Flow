@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Smoke scenarios — ISO 27001 controls proven by the platform itself:
  * A.5.15 access control, A.8.5 secure authentication, A.8.24 cryptography,
@@ -17,7 +18,7 @@ module.exports = async function isoPlatformControls() {
     await t('fail when the registry declares no routes', async () => {
         resetState();
         const saved = accessRegistrySingleton.routes;
-        accessRegistrySingleton.routes = {};
+        accessRegistrySingleton.routes = /** @type {any} */ ({});
         try {
             assertStatus(await checks.isoAccessControl.evaluate(), 'fail', 'empty registry');
         } finally { accessRegistrySingleton.routes = saved; }

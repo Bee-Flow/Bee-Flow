@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — the ARRAY form shared by app_update_component,
  * app_set_action and app_bind_action: reading the batch argument beside its

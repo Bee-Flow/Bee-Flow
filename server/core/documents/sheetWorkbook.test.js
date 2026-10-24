@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * sheetWorkbook — only the tabs a formula names are read, keyed by tab name,
  * so the editor and the chat compute `Klanten!A1` instead of #REF!.

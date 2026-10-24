@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * routes/automation/usage.js — GET /_usage/steps and GET /_usage/values over a
  * real Express app, with the definitions loader and the scope injected

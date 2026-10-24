@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Build it with AI" for a datatable — the schema the model fills in, the
  * prompts, and the clamps that turn its answer into a column list the model

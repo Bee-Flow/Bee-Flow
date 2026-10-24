@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Hub Entitlement Refresh Scheduler.
  *

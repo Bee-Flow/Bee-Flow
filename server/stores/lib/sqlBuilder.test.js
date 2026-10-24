@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DB-free unit test for stores/lib/sqlBuilder.js (M6).
  * Run: cd server && node --test --test-force-exit --test-timeout=30000 stores/lib/sqlBuilder.test.js

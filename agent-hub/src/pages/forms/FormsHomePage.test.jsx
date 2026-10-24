@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
@@ -132,11 +133,12 @@ describe('FormsHomePage — the organisation\'s forms', () => {
     });
 
     it('remembers the open so the sidebar can offer this form again — modifier click included', async () => {
+        const user = userEvent.setup();
         serve([form()]);
         render(<FormsHomePage onNavigate={vi.fn()} />);
         await screen.findByText('Offerte-controle');
 
-        fireEvent.click(screen.getByRole('link'), { ctrlKey: true });
+        await user.click(screen.getByRole('link'), { ctrlKey: true });
         expect(recents.rememberFormOpened).toHaveBeenCalledWith('a'.repeat(48));
     });
 
@@ -168,6 +170,7 @@ describe('FormsHomePage — the organisation\'s forms', () => {
     });
 
     it('says what went wrong and asks again when Retry is pressed', async () => {
+        const user = userEvent.setup();
         api.listOrgForms.mockRejectedValueOnce(new Error('Forms are not available'));
         render(<FormsHomePage />);
 
@@ -176,7 +179,7 @@ describe('FormsHomePage — the organisation\'s forms', () => {
         expect(screen.queryByText('No forms yet')).toBeNull();
 
         serve([form()]);
-        fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+        await user.click(screen.getByRole('button', { name: 'Retry' }));
 
         expect(await screen.findByText('Offerte-controle')).toBeTruthy();
         expect(screen.queryByRole('alert')).toBeNull();

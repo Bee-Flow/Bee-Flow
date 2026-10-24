@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * builder_remove_step — remove a step and bridge its edges, and
  * findDanglingRefs: which surviving steps still read the removed id. Moved

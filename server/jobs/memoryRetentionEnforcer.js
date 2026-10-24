@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Memory Retention Enforcer — GDPR Art. 5(1)(e) "storage limitation" for the
  * user_memories table.

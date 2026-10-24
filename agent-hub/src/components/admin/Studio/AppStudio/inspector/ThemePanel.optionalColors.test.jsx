@@ -1,4 +1,5 @@
-import { render, fireEvent } from '@testing-library/react';
+import { render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import ThemePanel from './ThemePanel';
 
@@ -35,14 +36,16 @@ describe('ThemePanel — optional colours', () => {
         expect(queryByLabelText('Theme page background')).toBeNull();
     });
 
-    it('switching the button colour on starts from the PRIMARY, so nothing visibly changes until a colour is picked', () => {
+    it('switching the button colour on starts from the PRIMARY, so nothing visibly changes until a colour is picked', async () => {
+        const user = userEvent.setup();
         const { getByLabelText, onCommit } = renderPanel();
-        fireEvent.click(getByLabelText('Theme button colour: use a separate colour'));
+        await user.click(getByLabelText('Theme button colour: use a separate colour'));
         expect(onCommit).toHaveBeenCalledTimes(1);
         expect(onCommit.mock.calls[0][0].theme.accent).toBe('#0064B0');
     });
 
-    it('a set colour shows its picker; switching off commits null (the "drop the key" signal), not a default', () => {
+    it('a set colour shows its picker; switching off commits null (the "drop the key" signal), not a default', async () => {
+        const user = userEvent.setup();
         const def = { ...DEF, theme: { primary: '#0064B0', accent: '#008236', canvas: '#FFDA00' } };
         const { getByLabelText, onCommit } = renderPanel(def);
         expect(getByLabelText('Theme button colour: use a separate colour').checked).toBe(true);
@@ -50,7 +53,7 @@ describe('ThemePanel — optional colours', () => {
         expect(getByLabelText('Theme button colour')).toBeTruthy();
         expect(getByLabelText('Theme page background')).toBeTruthy();
 
-        fireEvent.click(getByLabelText('Theme page background: use a separate colour'));
+        await user.click(getByLabelText('Theme page background: use a separate colour'));
         expect(onCommit).toHaveBeenCalledTimes(1);
         const next = onCommit.mock.calls[0][0];
         expect(next.theme.canvas).toBeNull();

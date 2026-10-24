@@ -213,7 +213,7 @@ async function checkItems(orgId, d, opts, nowMs) {
 
 // ── Source (b): register findings ────────────────────────────────────────
 
-function registerItem({ id, code, severity, status, title, detail, section, target, regulation, ref, at }) {
+function registerItem(/** @type {{id: string, code: any, severity: any, status: any, title: any, detail?: any, section: string, target?: string, regulation?: any, ref?: any, at: any}} */ { id, code, severity, status, title, detail, section, target, regulation, ref, at }) {
     return {
         id: `register:${id}`,
         source: 'register',
@@ -384,13 +384,13 @@ async function attestationFindings(orgId, d, nowMs) {
         }));
 }
 
-const REGISTER_SOURCES = Object.freeze([
+const REGISTER_SOURCES = Object.freeze(/** @type {Array<[string, (...a: any[]) => Promise<any[]>]>} */ ([
     ['dsr', dsrFindings],
     ['incidents', incidentFindings],
     ['soa', soaFindings],
     ['obligations', obligationFindings],
     ['ai_act', attestationFindings],
-]);
+]));
 
 // ── Assembly ─────────────────────────────────────────────────────────────
 

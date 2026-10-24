@@ -18,6 +18,7 @@
 
 const { AsyncLocalStorage } = require('node:async_hooks');
 const util = require('node:util');
+const { nameForLog, textForLog } = require('./logSafe');
 
 const LEVELS = ['debug', 'info', 'warn', 'error'];
 const CONSOLE_METHOD = { debug: 'debug', info: 'log', warn: 'warn', error: 'error' };
@@ -107,4 +108,7 @@ module.exports = {
     isJsonMode,
     runWithRequestId,
     currentRequestId,
+    // Log-safe stand-ins for user content (a file name, a prompt): log.nameForLog(x).
+    nameForLog,
+    textForLog,
 };

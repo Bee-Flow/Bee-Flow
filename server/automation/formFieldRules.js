@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Per-field answer rules and conditional visibility for forms.
  *

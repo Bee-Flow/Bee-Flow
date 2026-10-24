@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import FlowletsPanel from './FlowletsPanel';
 
@@ -46,17 +47,18 @@ describe('FlowletsPanel — AI layer builder', () => {
     beforeEach(() => cleanup());
 
     it('builds a new layer from the composer and passes the typed instruction', async () => {
+        const user = userEvent.setup();
         const props = baseProps();
         render(<FlowletsPanel {...props} />);
 
         // The affordance renders when onBuildLayer is provided.
-        fireEvent.click(screen.getByText('Build a flowlet with AI'));
+        await user.click(screen.getByText('Build a flowlet with AI'));
 
         // Clicking reveals a textarea.
         const textarea = screen.getByRole('textbox');
         fireEvent.change(textarea, { target: { value: 'Look up a contact by email' } });
 
-        fireEvent.click(screen.getByText('Build'));
+        await user.click(screen.getByText('Build'));
         expect(props.onBuildLayer).toHaveBeenCalledWith('Look up a contact by email');
     });
 
@@ -81,19 +83,20 @@ describe('FlowletsPanel — AI layer builder', () => {
     });
 
     it('refines an existing layer and passes (layerKey, instruction)', async () => {
+        const user = userEvent.setup();
         const props = baseProps();
         render(<FlowletsPanel {...props} />);
 
         // Each layer row exposes a "Refine with AI" control.
         const refineBtn = screen.getByLabelText('Refine with AI');
-        fireEvent.click(refineBtn);
+        await user.click(refineBtn);
 
         // Reveals a textarea — scope to the layer row to avoid the build composer.
         const row = refineBtn.closest('div.rounded-lg');
         const textarea = within(row).getByRole('textbox');
         fireEvent.change(textarea, { target: { value: 'also return the company size' } });
 
-        fireEvent.click(within(row).getByText('Refine'));
+        await user.click(within(row).getByText('Refine'));
         expect(props.onRefineLayer).toHaveBeenCalledWith('enrich', 'also return the company size');
         // The refine interaction must not drill into the layer.
         expect(props.onOpenLayer).not.toHaveBeenCalled();

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Streaming agent chat — SSE-based tool-calling loop with real-time events
  * This is the primary chat function used by the frontend

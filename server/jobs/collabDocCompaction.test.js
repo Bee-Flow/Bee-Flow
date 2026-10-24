@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The co-editing upkeep job (jobs/collabDocCompaction.js), with every
  * dependency injected through _setDeps: no store, no pool, no timers.

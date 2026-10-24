@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * automation/readiness: the "Ready to activate?" checklist.
  *

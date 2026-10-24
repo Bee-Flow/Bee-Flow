@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Running the same work more than once, or beside itself: the `loop` and its
  * body, the `parallel` and its branches, the per-step `forEach` fan-out any

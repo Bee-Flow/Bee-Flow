@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * BFSF-318 — the denormalised trigger columns must follow the definition.
  *

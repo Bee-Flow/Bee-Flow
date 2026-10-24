@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * NIS2 Art. 3(4) / Cyberbeveiligingswet registratieplicht — essential and
  * important entities register with the national authority.

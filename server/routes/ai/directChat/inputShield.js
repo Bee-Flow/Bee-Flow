@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat input gates, part one: the Unicode-smuggling defense and the
  * Privacy Shield this turn runs under (org shield, the personal shield of a

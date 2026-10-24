@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Does this agent row run on its PUBLISHED config?
  *

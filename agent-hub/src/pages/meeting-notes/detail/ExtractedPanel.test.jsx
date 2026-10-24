@@ -19,7 +19,8 @@
  *
  * Running: cd agent-hub && npx vitest run src/pages/meeting-notes/detail/ExtractedPanel.test.jsx
  */
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -104,9 +105,10 @@ describe('filed knowledge lines', () => {
         expect(screen.getByTestId('extracted-knowledge-row')).toHaveTextContent('1 knowledge line');
     });
 
-    it('navigates in-app to a base of your own', () => {
+    it('navigates in-app to a base of your own', async () => {
+        const user = userEvent.setup();
         const { onNavigate } = draw({ usage: [kbRow()] });
-        fireEvent.click(screen.getByRole('button', { name: /Sales knowledge/ }));
+        await user.click(screen.getByRole('button', { name: /Sales knowledge/ }));
         expect(onNavigate).toHaveBeenCalledWith('studio/knowledge/kb-1');
     });
 
@@ -167,11 +169,12 @@ describe('speakers and the per-person gate', () => {
 describe('the "was X there?" question', () => {
     const withGap = { ...meeting, attendees: ['Tom', 'Sandra', 'Marijke'] };
 
-    it('names the attendee nobody was matched to, and opens the speaker editor', () => {
+    it('names the attendee nobody was matched to, and opens the speaker editor', async () => {
+        const user = userEvent.setup();
         const onEditSpeakers = vi.fn();
         render(<ExtractedPanel meeting={withGap} usage={[]} onEditSpeakers={onEditSpeakers} />);
         expect(screen.getByTestId('extracted-speaker-gap')).toHaveTextContent('was Marijke in this meeting?');
-        fireEvent.click(screen.getByRole('button', { name: /Check the speakers/ }));
+        await user.click(screen.getByRole('button', { name: /Check the speakers/ }));
         expect(onEditSpeakers).toHaveBeenCalledTimes(1);
     });
 

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Which spreadsheet in an order package is the bill of materials — decided by
  * looking inside it, not by which file is biggest.

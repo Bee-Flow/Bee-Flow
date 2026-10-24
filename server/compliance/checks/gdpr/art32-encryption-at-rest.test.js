@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR-Art32-encryption-at-rest — passes only when message bodies really are
  * written encrypted.

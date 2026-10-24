@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for the app-trigger contract (declaration + runtime value checks).
  *

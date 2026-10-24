@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Integration smoke — community-tier feature gating.
  *

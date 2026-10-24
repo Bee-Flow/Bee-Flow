@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — the per-type apply* step builders: every builder_add_<type>
  * implementation, its input sanitizers, and the ADD_FOR_TYPE map that

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "As whom does this mirror talk to Google or Microsoft?"
  *

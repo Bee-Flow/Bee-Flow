@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * moduleLogBuffer tests — bounded ring semantics (per-module cap, LRU module
  * eviction, message truncation, level filter).

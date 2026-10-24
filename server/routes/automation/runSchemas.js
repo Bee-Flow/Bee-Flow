@@ -1,3 +1,4 @@
+// @typecheck
 // The bodies and queries of the run endpoints (routes/automation/runs.js),
 // split out of it. Every schema is `.strict()`.
 const { z, worded, orEmpty, typeError } = require('../../core/http/schemaParts');

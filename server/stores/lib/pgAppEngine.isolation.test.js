@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Per-app table isolation — two apps that both define a table called the SAME
  * thing must never see each other's rows.

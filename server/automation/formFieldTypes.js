@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Form field vocabulary: the types, the predicates over them, the length
  * limits and the two operator-tunable caps.

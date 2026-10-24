@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The appId ↔ tool-name INDEX, built from `ALL_TOOL_APPS`, and every reader of
  * it: which app owns a name, which actions an app owns, which apps get a say

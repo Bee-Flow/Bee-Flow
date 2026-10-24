@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests — AI practice item validation/clamps (v2).
  *

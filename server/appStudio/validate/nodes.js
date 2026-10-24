@@ -406,7 +406,7 @@ function validateAdvancedSizing(style, path, ctx, {
 // down. `heightRoute` carries HOW the parent could do that ('always' | 'fill' |
 // null — componentSpecs containerHeightRoute), which is what lets the refusal
 // name the right repair instead of a generic "give it a height".
-const ROOT_PARENT = Object.freeze({ label: 'section', heightDefinite: false, heightRoute: 'always' });
+const ROOT_PARENT = /** @type {{label: string, heightDefinite: boolean, heightRoute: string|null}} */ (Object.freeze({ label: 'section', heightDefinite: false, heightRoute: 'always' }));
 
 function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
     const { pushE, pushW, actionIds } = ctx;

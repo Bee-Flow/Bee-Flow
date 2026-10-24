@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Regression guard — site-chrome keys must survive the store's whitelists.
  *

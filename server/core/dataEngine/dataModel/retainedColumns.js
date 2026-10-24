@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Retained columns (Solution stages, design 3.2 steps 2-4), for
  * ./migrationPlan.js: a field leaving a stage's release keeps its column,

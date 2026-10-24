@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The linking router, read as text — the same technique routes/datatables.
  * test.js uses, for the same reason: these gates are the kind of thing that

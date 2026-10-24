@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * RECIPES — the catalogue a playbook is started from, and the one call that
  * writes a new recipe DOCUMENT from a sentence. Neither touches a stored

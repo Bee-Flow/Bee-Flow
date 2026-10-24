@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The gate to the outside, tested purely.
  *

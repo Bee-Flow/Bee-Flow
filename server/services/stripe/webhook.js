@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webhook signature verification.
  */
@@ -10,7 +11,7 @@ const { getClient } = require('./client');
  *
  * @param {Buffer} rawBody - Raw request body
  * @param {string} signature - Stripe-Signature header
- * @returns {object} Verified Stripe event
+ * @returns {Promise<object>} Verified Stripe event
  */
 async function constructWebhookEvent(rawBody, signature) {
     const stripe = await getClient();

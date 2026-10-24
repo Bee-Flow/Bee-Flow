@@ -1,6 +1,7 @@
 import { DndContext } from '@dnd-kit/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useEffect } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 // The palette reads the component catalog for its per-card descriptions.
@@ -183,13 +184,14 @@ describe('ComponentRibbon — collapse', () => {
 });
 
 describe('ComponentRibbon — findability', () => {
-    it('has an "All" view, because per-category tabs hide most of the catalog', () => {
+    it('has an "All" view, because per-category tabs hide most of the catalog', async () => {
+        const user = userEvent.setup();
         // 'Basics' and 'AI' hold one component each while 'Data' holds sixteen,
         // so whichever tab you land on, most of the catalog sits behind a tab
         // you have no reason to click.
         renderRibbon();
         const all = screen.getByRole('tab', { name: 'All' });
-        fireEvent.click(all);
+        await user.click(all);
 
         // Every populated category's cluster is on screen at once. (getAllByText:
         // each name appears twice — once as its tab, once as its cluster caption.)
@@ -242,6 +244,7 @@ describe('CompactComponentBar — the eight chips of row 2', () => {
 
     it('adds a component on click, without the full ribbon ever opening', () => {
         const { onCommit } = renderCompact();
+        // fireEvent: the chip is a dnd-kit draggable, and user.click's pointerdown starts a drag that swallows the click.
         fireEvent.click(screen.getByRole('button', { name: 'Heading' }));
         expect(onCommit).toHaveBeenCalledTimes(1);
         const def = onCommit.mock.calls[0][0];

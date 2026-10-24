@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * MS Graph subscriptions: provision on activate, revoke on deactivate, renew
  * before expiry. Extracted verbatim from ../triggerBus.js.
@@ -99,7 +100,7 @@ async function provisionSubscription(sub, session) {
             log.warn(`[TriggerBus] MS Graph subscribe failed for ${sub.id}: ${r.status} ${text.slice(0, 200)}`);
             return null;
         }
-        const data = await r.json().catch(() => ({}));
+        const data = /** @type {any} */ (await r.json().catch(() => ({})));
         if (!data?.id) {
             log.warn(`[TriggerBus] MS Graph subscribe returned no id for ${sub.id}`);
             return null;

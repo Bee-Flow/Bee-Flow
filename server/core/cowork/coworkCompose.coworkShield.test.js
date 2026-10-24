@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CW-10: the privacy shield on the Work composer (composeCowork).
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The two steps whose effect OUTLIVES the run: `knowledge_write`, whose output
  * an agent will later state as fact, and `datatable`, which reads and writes

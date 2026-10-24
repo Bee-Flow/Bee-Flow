@@ -1,4 +1,5 @@
 import { screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // NDV fetches the tool catalog on mount — stub the API.
@@ -75,13 +76,14 @@ describe('NodeDetailView — the output sheet opens on fields, not on JSON text'
         expect(kinds).toEqual(['text', 'number', 'yes/no']);
     });
 
-    it('opens a step that returns ONE value on one box, not on a quoted string', () => {
+    it('opens a step that returns ONE value on one box, not on a quoted string', async () => {
+        const user = userEvent.setup();
         // The commonest seed in the drawer: an AI step with no declared output
         // fields describes itself as the single string "<AI response>". On the
         // raw editor that is a pair of quotes the author has to type inside and
         // must not delete.
         render(<NodeDetailView {...baseProps()} />);
-        fireEvent.click(screen.getByTestId('ndv-edit-output'));
+        await user.click(screen.getByTestId('ndv-edit-output'));
 
         expect(screen.getByTestId('ndv-output-fields')).toBeTruthy();
         expect(screen.getByLabelText('Value').value).toBe('<AI response>');
@@ -92,9 +94,10 @@ describe('NodeDetailView — the output sheet opens on fields, not on JSON text'
     });
 
     it('saves that one value as the scalar it is', async () => {
+        const user = userEvent.setup();
         const onSaveStep = vi.fn().mockResolvedValue(undefined);
         render(<NodeDetailView {...baseProps({ onSaveStep })} />);
-        fireEvent.click(screen.getByTestId('ndv-edit-output'));
+        await user.click(screen.getByTestId('ndv-edit-output'));
         fireEvent.change(screen.getByLabelText('Value'), { target: { value: 'Dear Ada,' } });
         save();
 
@@ -102,14 +105,15 @@ describe('NodeDetailView — the output sheet opens on fields, not on JSON text'
         expect(savedOutput(onSaveStep)).toBe('Dear Ada,');
     });
 
-    it('seeds a never-run step from the shape the pickers already promise', () => {
+    it('seeds a never-run step from the shape the pickers already promise', async () => {
+        const user = userEvent.setup();
         // The seed is describeNode's, so the field names in this sheet are the
         // ones every picker downstream already offers for this step. Nothing
         // has run; there is still something to edit.
         const declared = { ...step, outputSchema: { summary: 'text', total: 'number' } };
         const def = { ...definition, steps: [declared] };
         render(<NodeDetailView {...baseProps({ step: declared, definition: def, rootDefinition: def })} />);
-        fireEvent.click(screen.getByTestId('ndv-edit-output'));
+        await user.click(screen.getByTestId('ndv-edit-output'));
 
         expect(screen.getAllByLabelText('Name').map(el => el.value)).toEqual(['summary', 'total']);
         expect(screen.getByTestId('ndv-add-field')).toBeTruthy();
@@ -132,9 +136,10 @@ describe('NodeDetailView — editing fields writes the JSON the author never typ
     });
 
     it('adds a field, and writes nothing for it until it has a name', async () => {
+        const user = userEvent.setup();
         const onSaveStep = openOn({ subject: 'Hi' });
 
-        fireEvent.click(screen.getByTestId('ndv-add-field'));
+        await user.click(screen.getByTestId('ndv-add-field'));
         expect(rows()).toHaveLength(2);
         // Unnamed: it is on screen, and it is not in the JSON.
         expect(JSON.parse(textarea().value)).toEqual({ subject: 'Hi' });
@@ -150,8 +155,9 @@ describe('NodeDetailView — editing fields writes the JSON the author never typ
     });
 
     it('removes a field', async () => {
+        const user = userEvent.setup();
         const onSaveStep = openOn({ subject: 'Hi', id: 7 });
-        fireEvent.click(within(rows()[1]).getByLabelText('Remove'));
+        await user.click(within(rows()[1]).getByLabelText('Remove'));
         save();
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
         expect(savedOutput(onSaveStep)).toEqual({ subject: 'Hi' });
@@ -207,8 +213,9 @@ describe('NodeDetailView — a list of records edits as records', () => {
     });
 
     it('adds a record with the fields the first one already has', async () => {
+        const user = userEvent.setup();
         const onSaveStep = openOn([{ name: 'Ada', seats: 2 }]);
-        fireEvent.click(screen.getByTestId('ndv-add-record'));
+        await user.click(screen.getByTestId('ndv-add-record'));
         expect(screen.getAllByTestId('ndv-record-no')).toHaveLength(2);
         save();
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
@@ -218,9 +225,10 @@ describe('NodeDetailView — a list of records edits as records', () => {
 
 describe('NodeDetailView — the raw editor survives as the escape hatch', () => {
     it('opens on ask, and what is typed there still saves', async () => {
+        const user = userEvent.setup();
         const onSaveStep = openOn({ subject: 'Hi' });
 
-        fireEvent.click(screen.getByTestId('ndv-output-raw-toggle'));
+        await user.click(screen.getByTestId('ndv-output-raw-toggle'));
         expect(screen.getByTestId('ndv-output-raw-toggle').getAttribute('aria-expanded')).toBe('true');
         fireEvent.change(textarea(), { target: { value: '{"subject":"Hi","cc":["a@b.c"]}' } });
         save();
@@ -229,9 +237,10 @@ describe('NodeDetailView — the raw editor survives as the escape hatch', () =>
         expect(savedOutput(onSaveStep)).toEqual({ subject: 'Hi', cc: ['a@b.c'] });
     });
 
-    it('feeds the field list back from the raw text', () => {
+    it('feeds the field list back from the raw text', async () => {
+        const user = userEvent.setup();
         openOn({ subject: 'Hi' });
-        fireEvent.click(screen.getByTestId('ndv-output-raw-toggle'));
+        await user.click(screen.getByTestId('ndv-output-raw-toggle'));
         fireEvent.change(textarea(), { target: { value: '{"subject":"Hi","id":7}' } });
         expect(rows()).toHaveLength(2);
         expect(screen.getByLabelText('id value').value).toBe('7');

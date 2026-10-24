@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ncSyncBackstop — the 24-hour backoff after a failed sync.
  *

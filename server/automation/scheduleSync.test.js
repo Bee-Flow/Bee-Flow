@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * syncSchedules — additional schedule triggers ↔ automation_schedules rows.
  *

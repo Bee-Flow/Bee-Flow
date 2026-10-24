@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * THE LIST GUARD (server half) — every terminal step kind is known everywhere.
  *

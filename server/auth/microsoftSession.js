@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 const { isMicrosoftLoginSession, isLegacyMicrosoftSession } = require('./microsoftIdentity');
 const { HttpError } = require('../shared/httpErrors');

@@ -25,6 +25,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import scopedStorage from '../../../../../utils/scopedStorage';
 import { VariablePickerProvider } from '../../mapping/VariablePickerContext';
@@ -98,12 +99,13 @@ beforeEach(() => {
 
 describe('Condition editor — the semantic handoff', () => {
     it('is not offered at all when the shell handed down no insert', async () => {
+        const user = userEvent.setup();
         // A control that cannot save must not be on screen. The rest of the
         // box still works — this is the only part that needs the definition.
         renderForm(IF_STEP, { groups: [DOC_GROUP], previewSample: DOC_ROOT, onInsertUpstreamStep: null });
         api.suggestRouteRules.mockResolvedValue({ rules: [], problem: 'No field says what this is about.' });
         describeIt('is this e-mail about a complaint');
-        fireEvent.click(screen.getByRole('button', { name: /Ask the AI/i }));
+        await user.click(screen.getByRole('button', { name: /Ask the AI/i }));
         expect(await screen.findByText(/No field says what this is about/)).toBeTruthy();
         expect(screen.queryByLabelText('Name the possible answers')).toBeNull();
     });
@@ -121,10 +123,11 @@ describe('Condition editor — the semantic handoff', () => {
     });
 
     it('hands the STEP to the shell and writes the RULES through the normal route model', async () => {
+        const user = userEvent.setup();
         const { onPatch, onInsertUpstreamStep } = renderForm(IF_STEP, { groups: [DOC_GROUP], previewSample: DOC_ROOT });
         await askAndFail();
         nameAnswers('complaint, question, something else');
-        fireEvent.click(await screen.findByRole('button', { name: /Add the step/i }));
+        await user.click(await screen.findByRole('button', { name: /Add the step/i }));
 
         const inserted = onInsertUpstreamStep.mock.calls[0][0];
         expect(inserted.type).toBe('ai_step');
@@ -146,10 +149,11 @@ describe('Condition editor — the semantic handoff', () => {
     });
 
     it('RE-POINTS A LIST NODE AT THE NEW STEP\'S RESULTS, not just its rules', async () => {
+        const user = userEvent.setup();
         const { onPatch, onInsertUpstreamStep } = renderForm(LIST_STEP, { groups: [MAIL_GROUP], previewSample: MAIL_ROOT });
         await askAndFail();
         nameAnswers('complaint, something else');
-        fireEvent.click(await screen.findByRole('button', { name: /Add the step/i }));
+        await user.click(await screen.findByRole('button', { name: /Add the step/i }));
 
         const inserted = onInsertUpstreamStep.mock.calls[0][0];
         // The step runs once per message of the list this node already read...
@@ -170,10 +174,11 @@ describe('Condition editor — the semantic handoff', () => {
     });
 
     it('leaves the rules editable, like any other accepted suggestion', async () => {
+        const user = userEvent.setup();
         renderForm(IF_STEP, { groups: [DOC_GROUP], previewSample: DOC_ROOT });
         await askAndFail();
         nameAnswers('complaint, something else');
-        fireEvent.click(await screen.findByRole('button', { name: /Add the step/i }));
+        await user.click(await screen.findByRole('button', { name: /Add the step/i }));
         // Named ports in ordinary rows — not a frozen blob the author now has
         // to live with.
         expect(screen.getByDisplayValue('complaint')).toBeTruthy();
@@ -181,12 +186,13 @@ describe('Condition editor — the semantic handoff', () => {
     });
 
     it('writes nothing when the shell refuses the insert', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(IF_STEP, {
             groups: [DOC_GROUP], previewSample: DOC_ROOT, onInsertUpstreamStep: vi.fn(() => false),
         });
         await askAndFail();
         nameAnswers('complaint, something else');
-        fireEvent.click(await screen.findByRole('button', { name: /Add the step/i }));
+        await user.click(await screen.findByRole('button', { name: /Add the step/i }));
         // Rules naming a step that was never added would be the empty branch
         // this feature exists to remove, arriving through its own front door.
         // A whole-run Condition: its one output, and the else port as “Otherwise”.

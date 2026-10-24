@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests — HMAC-derived certificate identifiers.
  *

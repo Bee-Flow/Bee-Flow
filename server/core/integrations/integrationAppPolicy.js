@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -45,6 +46,7 @@ function createWebpageToolsAllowed({ userHasBetaFeature, lazy }) {
      * run was refused as "not in user's catalog".
      *
      * Never throws: a failed lookup answers false (fail closed).
+     * @param {{ userId?: string, session?: any, groupIds?: any[], orgId?: string|null, simpleMode?: boolean }} [opts]
      */
     async function webpageToolsAllowed({ userId, session = null, groupIds = [], orgId = null, simpleMode = false } = {}) {
         if (!userId || simpleMode) return false;

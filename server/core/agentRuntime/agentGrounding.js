@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -109,7 +110,7 @@ function tablesAxis(config) {
  *   A config that is not itself an object yields `null` twice — that is "unreadable", and the
  *   caller should report that as a gap, not as an agent without sources.
  */
-function groundedOn(config) {
+function groundedOn(/** @type {any} */ config) {
     if (!isPlainObject(config)) return { kb: null, tables: null };
     return {
         // Snake_case only: that is the key that knowledgeSearch.js reads.

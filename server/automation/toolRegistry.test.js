@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The tool catalogue as ONE list.
  *

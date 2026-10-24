@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The table step's configuration: vocabulary, defaults and normalisation.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ONE round over the RAW OpenAI-compatible SSE path — everything the provider
  * adapters do not cover (Scaleway, unknown OpenAI-shaped endpoints).
@@ -78,13 +79,13 @@ async function streamRawSseRound({
         }
         onEvent('content', { text });
     };
-    const sseThinkSplitter = createThinkTagSplitter({
+    const sseThinkSplitter = createThinkTagSplitter(/** @type {any} */ ({
         onText: _emitVisibleText,
         onThinking: (text) => {
             onEvent('thinking', { text });
             rs.thinking += text;
         },
-    });
+    }));
 
     while (true) {
         const { done, value } = await reader.read();

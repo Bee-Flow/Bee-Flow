@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 const { test } = require('node:test');
@@ -24,19 +25,21 @@ test('a multer size limit keeps its 400 and fixed sentence', () => {
     assert.deepStrictEqual(res.body, { error: 'File too large. Maximum size is 500 MB.' });
 });
 
-test('any other multer error is a 400 with multer\'s own message', () => {
+test('any other multer error is a 400 HttpError with multer\'s own message', () => {
     const err = new multer.MulterError('LIMIT_UNEXPECTED_FILE');
-    const { res } = run(err);
-    assert.strictEqual(res.statusCode, 400);
-    assert.deepStrictEqual(res.body, { error: err.message });
+    const { res, forwarded } = run(err);
+    assert.strictEqual(res.body, undefined);
+    assert.ok(forwarded instanceof HttpError);
+    assert.deepStrictEqual([forwarded.status, forwarded.code, forwarded.message], [400, 'upload_failed', err.message]);
 });
 
-test('the audio-format filter\'s refusal is a 400 naming the formats', () => {
+test('the audio-format filter\'s refusal is a 400 HttpError naming the formats', () => {
     const err = new Error('Unsupported audio format. Supported: MP3');
     err.code = UNSUPPORTED_AUDIO_FORMAT;
-    const { res } = run(err);
-    assert.strictEqual(res.statusCode, 400);
-    assert.deepStrictEqual(res.body, { error: 'Unsupported audio format. Supported: MP3' });
+    const { res, forwarded } = run(err);
+    assert.strictEqual(res.body, undefined);
+    assert.ok(forwarded instanceof HttpError);
+    assert.deepStrictEqual([forwarded.status, forwarded.code, forwarded.message], [400, 'unsupported_audio_format', 'Unsupported audio format. Supported: MP3']);
 });
 
 test('everything else goes on to the terminal handler, never echoed here', () => {

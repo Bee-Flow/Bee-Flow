@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Boot probes, warmups and the licence/module runtime.
  *

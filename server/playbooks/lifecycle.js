@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The phase state machine of a Playbook — pure.
  *
@@ -47,6 +48,7 @@ function applyTransition(phases, key, to, patch = {}, now = new Date().toISOStri
     const cur = phaseByKey(phases, key);
     if (!cur) { const e = new Error(`unknown phase ${key}`); e.code = 'unknown_phase'; throw e; }
     if (!canTransition(cur.status, to)) {
+        /** @type {Error & { code?: string, from?: string, to?: string }} */
         const e = new Error(`phase ${key} cannot go from ${cur.status} to ${to}`);
         e.code = 'illegal_transition'; e.from = cur.status; e.to = to;
         throw e;

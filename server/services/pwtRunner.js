@@ -17,7 +17,7 @@
  *   • Memory / CPU / PID caps + a reaper bound the blast radius and guarantee
  *     cleanup even if the worker crashes mid-run.
  */
-
+// @typecheck
 const fs = require('fs');
 const path = require('path');
 const Docker = require('dockerode');
@@ -161,7 +161,7 @@ async function buildRunnerImage(docker, image, onLine) {
     }
     onLine?.(`[runner-image] building ${image} from ${contextDir} (first run only, can take a few minutes)`);
     const { spawn } = require('child_process');
-    await new Promise((resolve, reject) => {
+    await /** @type {Promise<void>} */ (new Promise((resolve, reject) => {
         const proc = spawn('docker', ['build', '-t', image, contextDir], {
             env: { ...process.env, DOCKER_BUILDKIT: '1' },
         });
@@ -172,7 +172,7 @@ async function buildRunnerImage(docker, image, onLine) {
         proc.stderr.on('data', (c) => { stderrTail = (stderrTail + c.toString()).slice(-4000); });
         proc.on('error', reject);
         proc.on('close', (code) => code === 0 ? resolve() : reject(new Error(`docker build exited ${code}\n${stderrTail}`)));
-    });
+    }));
 }
 
 /**
@@ -319,6 +319,7 @@ async function isBrowserAlive(s) {
  * PWT_WS_ENDPOINT line. The container reuses the same `serve` entrypoint and the
  * isolated PWT_NETWORK as the throwaway runners.
  */
+/** @param {{ onLine?: (line: string) => void }} [opts] */
 async function ensureBrowserSingleton({ onLine } = {}) {
     if (process.env.BROWSER_WS_ENDPOINT) {
         return { wsEndpoint: process.env.BROWSER_WS_ENDPOINT, external: true };
@@ -413,7 +414,6 @@ function __setDepsForTests(over = null) {
     _unavailableAt = 0;
     _lastReason = null;
 }
-
 module.exports = {
     __setDepsForTests,
     dockerAvailable,

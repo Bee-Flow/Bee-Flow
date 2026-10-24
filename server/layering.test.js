@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Guard: the dependency rule from ARCHITECTURE.md, enforced.
  *

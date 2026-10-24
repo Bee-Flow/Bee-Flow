@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import CommandPalette from './CommandPalette';
 
@@ -17,12 +18,13 @@ describe('CommandPalette', () => {
         expect(screen.queryByTestId('command-palette')).toBeNull();
     });
 
-    it('runs the clicked action and closes', () => {
+    it('runs the clicked action and closes', async () => {
+        const user = userEvent.setup();
         const actions = makeActions();
         const onClose = vi.fn();
         render(<CommandPalette open onClose={onClose} actions={actions} />);
 
-        fireEvent.click(screen.getByText('Open Tables'));
+        await user.click(screen.getByText('Open Tables'));
         expect(actions[3].run).toHaveBeenCalledTimes(1);
         expect(onClose).toHaveBeenCalledTimes(1);
     });

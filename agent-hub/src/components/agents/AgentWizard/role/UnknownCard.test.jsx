@@ -8,6 +8,7 @@
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/role/UnknownCard.test.jsx
  */
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 import { READ } from './personaFacts';
@@ -58,10 +59,11 @@ describe('UnknownCard — de drie keuzes', () => {
         expect(screen.getByText(/asks for the web-search app/i)).toBeTruthy();
     });
 
-    it('geeft een moduswissel door', () => {
+    it('geeft een moduswissel door', async () => {
+        const user = userEvent.setup();
         const onChangeMode = vi.fn();
         render(<UnknownCard t={t} persona={persona('honest')} onChangeMode={onChangeMode} {...mine} />);
-        fireEvent.click(screen.getAllByRole('radio')[2]);
+        await user.click(screen.getAllByRole('radio')[2]);
         expect(onChangeMode).toHaveBeenCalledWith('handoff');
     });
 

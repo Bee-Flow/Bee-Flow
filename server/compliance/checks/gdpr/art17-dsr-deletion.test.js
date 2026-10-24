@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR Art. 17: the warning reads the open requests' own deadlines.
  *

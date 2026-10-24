@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The composer's Web search toggle reaches the builder model as a tool.
  *

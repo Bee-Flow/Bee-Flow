@@ -1,3 +1,4 @@
+// @typecheck
 // The bodies and queries of the run operations (routes/automation/webhooksAndRunOps.js),
 // split out of it. Every schema is `.strict()`.
 const { z, typeError } = require('../../utils/zod');

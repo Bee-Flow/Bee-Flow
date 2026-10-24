@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Data Act Art. 30(5) — exports come in a structured, commonly used,
  * machine-readable format.
@@ -58,7 +59,7 @@ module.exports = {
             };
         }
 
-        const matrix = await exportRegistry.coverageMatrix(orgId);
+        const matrix = /** @type {any[]} */ (await exportRegistry.coverageMatrix(orgId));
         const held = matrix.filter(k => typeof k.held === 'number' && k.held > 0);
         const covered = held.filter(k => k.route && k.mounted);
         const renderOnly = held.filter(k => !k.route && k.render_only).map(k => ({

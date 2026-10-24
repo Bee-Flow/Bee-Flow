@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tests for the automation summarisers.
  *

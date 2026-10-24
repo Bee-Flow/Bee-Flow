@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio Builder — everything a turn needs BEFORE the stream opens.
  *

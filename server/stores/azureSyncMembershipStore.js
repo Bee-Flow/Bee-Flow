@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 const { parseGroupIds, isMemberOfOrg } = require('../auth/orgMembership');
 

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The environment an MCP child process is allowed to see.
  *

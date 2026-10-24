@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Mailbox residue in the company inbox: report whether an email box is still
  * feeding it, and let a super-admin cut that mailbox loose and purge the

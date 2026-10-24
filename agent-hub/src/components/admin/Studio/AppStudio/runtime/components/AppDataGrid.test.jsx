@@ -1,7 +1,10 @@
 import { fireEvent, render, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import AppDataGrid from './AppDataGrid';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
+
+const user = userEvent.setup(); // one pointer for the file; this file is at its line ceiling
 
 function withRuntime(ui, overrides = {}) {
     const value = {
@@ -80,12 +83,12 @@ describe('AppDataGrid', () => {
         expect(getByText('Nothing to show yet.')).toBeTruthy();
     });
 
-    it('sorts ascending then descending on header click', () => {
+    it('sorts ascending then descending on header click', async () => {
         const { container, getByRole } = withRuntime(<AppDataGrid node={gridNode()} />);
         const nameHeader = getByRole('button', { name: /Name/ });
-        fireEvent.click(nameHeader);
+        await user.click(nameHeader);
         expect(bodyRowTexts(container)[0]).toBe('Amy');
-        fireEvent.click(nameHeader);
+        await user.click(nameHeader);
         expect(bodyRowTexts(container)[0]).toBe('Zoe');
     });
 
@@ -98,23 +101,23 @@ describe('AppDataGrid', () => {
         expect(texts).toEqual(['Amy']);
     });
 
-    it('paginates with a small page size', () => {
+    it('paginates with a small page size', async () => {
         const { container, getByLabelText } = withRuntime(
             <AppDataGrid node={gridNode({}, { pageSize: 2 })} />,
         );
         expect(bodyRowTexts(container).length).toBe(2);
         const firstPage = bodyRowTexts(container).join(',');
-        fireEvent.click(getByLabelText('Next page'));
+        await user.click(getByLabelText('Next page'));
         expect(bodyRowTexts(container).join(',')).not.toBe(firstPage);
     });
 
-    it('fires a row action via runAction', () => {
+    it('fires a row action via runAction', async () => {
         const runAction = vi.fn();
         const { getAllByText } = withRuntime(
             <AppDataGrid node={gridNode({}, { rowActions: [{ label: 'Open', actionId: 'act_open' }] })} />,
             { runAction },
         );
-        fireEvent.click(getAllByText('Open')[0]);
+        await user.click(getAllByText('Open')[0]);
         expect(runAction).toHaveBeenCalledWith('act_open', expect.objectContaining({ formValues: expect.any(Object) }));
     });
 
@@ -125,13 +128,13 @@ describe('AppDataGrid', () => {
      * obvious spelling, and the one that works from every OTHER row control —
      * resolved to nothing: the button ran, reported success, and wrote nothing.
      */
-    it('hands the row action BOTH formValues and item, like every other row surface', () => {
+    it('hands the row action BOTH formValues and item, like every other row surface', async () => {
         const runAction = vi.fn();
         const { getAllByText } = withRuntime(
             <AppDataGrid node={gridNode({}, { rowActions: [{ label: 'Open', actionId: 'act_open' }] })} />,
             { runAction },
         );
-        fireEvent.click(getAllByText('Open')[0]);
+        await user.click(getAllByText('Open')[0]);
         const [, payload] = runAction.mock.calls[0];
         expect(payload.item).toBeTruthy();
         expect(payload.item).toEqual(payload.formValues);
@@ -153,13 +156,13 @@ describe('AppDataGrid', () => {
         }));
     });
 
-    it('selects rows and notifies onRowSelect', () => {
+    it('selects rows and notifies onRowSelect', async () => {
         const runAction = vi.fn();
         const { getAllByLabelText } = withRuntime(
             <AppDataGrid node={gridNode({ onRowSelect: 'act_sel' }, { selectable: 'multi' })} />,
             { runAction },
         );
-        fireEvent.click(getAllByLabelText('Select row')[0]);
+        await user.click(getAllByLabelText('Select row')[0]);
         expect(runAction).toHaveBeenCalledWith('act_sel', expect.objectContaining({
             formValues: expect.objectContaining({ selected: expect.any(Array) }),
         }));
@@ -338,19 +341,19 @@ describe('AppDataGrid — look variants', () => {
         expect(classesOf(container).td).not.toContain('border-b');
     });
 
-    it("look:'cards' keeps sorting working", () => {
+    it("look:'cards' keeps sorting working", async () => {
         const { container, getByRole } = withRuntime(<AppDataGrid node={gridNode({}, { look: 'cards' })} />);
-        fireEvent.click(getByRole('button', { name: /Name/ }));
+        await user.click(getByRole('button', { name: /Name/ }));
         expect(bodyRowTexts(container)[0]).toBe('Amy');
     });
 
-    it("look:'cards' keeps selection working, via data-selected instead of an inline tint", () => {
+    it("look:'cards' keeps selection working, via data-selected instead of an inline tint", async () => {
         const runAction = vi.fn();
         const { container, getAllByLabelText } = withRuntime(
             <AppDataGrid node={gridNode({ onRowSelect: 'act_sel' }, { look: 'cards', selectable: 'multi' })} />,
             { runAction },
         );
-        fireEvent.click(getAllByLabelText('Select row')[0]);
+        await user.click(getAllByLabelText('Select row')[0]);
         expect(runAction).toHaveBeenCalledWith('act_sel', expect.objectContaining({
             formValues: expect.objectContaining({ selected: expect.any(Array) }),
         }));
@@ -362,7 +365,7 @@ describe('AppDataGrid — look variants', () => {
         expect(selectedTr.style.background).toBe('');
     });
 
-    it("look:'cards' keeps inline edit, the filter row and pagination working", () => {
+    it("look:'cards' keeps inline edit, the filter row and pagination working", async () => {
         const runAction = vi.fn();
         const node = gridNode(
             { onRowSelect: 'act_update' },
@@ -389,7 +392,7 @@ describe('AppDataGrid — look variants', () => {
         // pagination still pages — an editable cell now shows its value as
         // text, so the page's contents can simply be read.
         const firstPage = cellTriggers(utils).map((el) => el.textContent).join(',');
-        fireEvent.click(getByLabelText('Next page'));
+        await user.click(getByLabelText('Next page'));
         expect(cellTriggers(utils).map((el) => el.textContent).join(',')).not.toBe(firstPage);
     });
 
@@ -407,7 +410,7 @@ describe('AppDataGrid — click to edit', () => {
         { columns: [{ key: 'name', label: 'Name', format: 'text', editable: true, ...col }] },
     );
 
-    it('shows values, not input boxes, until a cell is asked to open', () => {
+    it('shows values, not input boxes, until a cell is asked to open', async () => {
         // The whole point: an editable column used to render one live <input>
         // per row from the first paint, so the data could not be read at a
         // glance and the screen looked like a form.
@@ -415,7 +418,7 @@ describe('AppDataGrid — click to edit', () => {
         expect(utils.queryAllByLabelText('Edit cell')).toHaveLength(0);
         expect(cellText(utils, 0)).toBe('Zoe');
 
-        fireEvent.click(cellTriggers(utils)[0]);
+        await user.click(cellTriggers(utils)[0]);
         expect(utils.queryAllByLabelText('Edit cell')).toHaveLength(1);
     });
 
@@ -469,14 +472,14 @@ describe('AppDataGrid — click to edit', () => {
         expect(Array.from(editor.options).map((o) => o.value)).toEqual(['', 'todo', 'done']);
     });
 
-    it('a check column toggles on click without opening an editor', () => {
+    it('a check column toggles on click without opening an editor', async () => {
         const runAction = vi.fn();
         const node = gridNode(
             { onRowSelect: 'act_update' },
             { columns: [{ key: 'flag', label: 'Flag', format: 'check', editable: true }] },
         );
         const utils = withRuntime(<AppDataGrid node={node} />, { runAction });
-        fireEvent.click(cellTriggers(utils)[0]);
+        await user.click(cellTriggers(utils)[0]);
         expect(utils.queryAllByLabelText('Edit cell')).toHaveLength(0);
         expect(runAction).toHaveBeenCalledWith('act_update', expect.objectContaining({
             formValues: expect.objectContaining({ flag: true, __edited: 'flag' }),
@@ -527,12 +530,12 @@ describe('AppDataGrid — filters that can be seen and undone', () => {
         expect(utils.container.querySelector('[data-app-grid-filters]').getAttribute('data-app-grid-filters')).toBe('2');
     });
 
-    it('clearing puts every row back', () => {
+    it('clearing puts every row back', async () => {
         const utils = withRuntime(<AppDataGrid node={filterableNode()} />);
         fireEvent.change(utils.getByLabelText('Search rows'), { target: { value: 'zzz' } });
         expect(utils.getByText('No rows match')).toBeTruthy();
 
-        fireEvent.click(utils.getByText('Clear filters'));
+        await user.click(utils.getByText('Clear filters'));
         expect(utils.queryByText('No rows match')).toBeNull();
         expect(utils.getByText('Zoe')).toBeTruthy();
         expect(utils.container.querySelector('[data-app-grid-filters]')).toBeNull();
@@ -561,7 +564,7 @@ describe('AppDataGrid — filters that can be seen and undone', () => {
         expect(bodyText().join(' ')).toContain('Amy');
     });
 
-    it('a number column filters by range, not by substring', () => {
+    it('a number column filters by range, not by substring', async () => {
         // "20" as a substring matched 20, 120 and 2000. As a range it means
         // what it says.
         const utils = withRuntime(<AppDataGrid node={filterableNode([
@@ -575,7 +578,7 @@ describe('AppDataGrid — filters that can be seen and undone', () => {
         // One chip, in words, that undoes just this filter.
         const chip = utils.container.querySelector('[data-app-grid-chip="score"]');
         expect(chip.textContent).toContain('20 – 40');
-        fireEvent.click(within(chip).getByText('Remove filter on Score'));
+        await user.click(within(chip).getByText('Remove filter on Score'));
         expect(bodyRowTexts(utils.container)).toHaveLength(5);
         expect(utils.container.querySelector('[data-app-grid-chip]')).toBeNull();
     });
@@ -666,10 +669,10 @@ describe('AppDataGrid — reader-side view settings', () => {
         expect(container.querySelector('[data-app-grid-viewmenu]')).toBeFalsy();
     });
 
-    it('a viewer choice overrides the author default and is remembered', () => {
+    it('a viewer choice overrides the author default and is remembered', async () => {
         const { container, unmount } = withRuntime(<AppDataGrid node={gridNode({}, { look: 'default' })} />);
-        fireEvent.click(within(container.querySelector('[data-app-grid-viewmenu]')).getByText('View'));
-        fireEvent.click(within(container.querySelector('[role="dialog"]')).getByText('Stripes'));
+        await user.click(within(container.querySelector('[data-app-grid-viewmenu]')).getByText('View'));
+        await user.click(within(container.querySelector('[role="dialog"]')).getByText('Stripes'));
         expect(container.querySelector('table').className).toContain('app-grid-zebra');
         unmount();
 
@@ -678,13 +681,13 @@ describe('AppDataGrid — reader-side view settings', () => {
         expect(again.container.querySelector('table').className).toContain('app-grid-zebra');
     });
 
-    it('Reset gives the author default back', () => {
+    it('Reset gives the author default back', async () => {
         const { container } = withRuntime(<AppDataGrid node={gridNode({}, { look: 'striped' })} />);
-        fireEvent.click(within(container.querySelector('[data-app-grid-viewmenu]')).getByText('View'));
-        fireEvent.click(within(container.querySelector('[role="dialog"]')).getByText('Space'));
+        await user.click(within(container.querySelector('[data-app-grid-viewmenu]')).getByText('View'));
+        await user.click(within(container.querySelector('[role="dialog"]')).getByText('Space'));
         expect(container.querySelector('table').className).not.toContain('app-grid-zebra');
 
-        fireEvent.click(within(container.querySelector('[role="dialog"]')).getByText('Reset'));
+        await user.click(within(container.querySelector('[role="dialog"]')).getByText('Reset'));
         expect(container.querySelector('table').className).toContain('app-grid-zebra');
     });
 
@@ -758,12 +761,12 @@ describe('AppDataGrid — reader-side view settings', () => {
         expect(container.querySelector('[data-app-cell-peek]')).toBeFalsy();
     });
 
-    it('a cell with nothing hidden opens no panel', () => {
+    it('a cell with nothing hidden opens no panel', async () => {
         // jsdom reports scrollHeight === clientHeight === 0, which is exactly
         // the "nothing is clipped" case the guard is there for.
         const node = gridNode({}, { clamp: '2' });
         const { container } = withRuntime(<AppDataGrid node={node} />);
-        fireEvent.mouseEnter(container.querySelector('tbody td'));
+        await user.hover(container.querySelector('tbody td'));
         expect(container.querySelector('[data-app-cell-peek]')).toBeFalsy();
     });
 });
@@ -847,13 +850,12 @@ describe('AppDataGrid — bulk actions on the selection', () => {
         expect(container.querySelector('[data-app-grid-selection]')).toBeFalsy();
     });
 
-    it('hands the action the picked records, their ids and the count', () => {
+    it('hands the action the picked records, their ids and the count', async () => {
         const runAction = vi.fn();
         const { container } = withRuntime(<AppDataGrid node={bulkNode()} />, { runAction });
         tickFirstTwo(container);
 
-        const bar = container.querySelector('[data-app-grid-selection]');
-        fireEvent.click(within(bar).getByText('Verwijderen'));
+        await user.click(within(container.querySelector('[data-app-grid-selection]')).getByText('Verwijderen'));
 
         expect(runAction).toHaveBeenCalledTimes(1);
         const [actionId, payload] = runAction.mock.calls[0];
@@ -863,10 +865,10 @@ describe('AppDataGrid — bulk actions on the selection', () => {
         expect(payload.formValues.selectedRows.map((r) => r.name)).toEqual(['Zoe', 'Amy']);
     });
 
-    it('drops the selection after firing — a tick on a deleted row is a lie', () => {
+    it('drops the selection after firing — a tick on a deleted row is a lie', async () => {
         const { container } = withRuntime(<AppDataGrid node={bulkNode()} />, { runAction: vi.fn() });
         tickFirstTwo(container);
-        fireEvent.click(within(container.querySelector('[data-app-grid-selection]')).getByText('Verwijderen'));
+        await user.click(within(container.querySelector('[data-app-grid-selection]')).getByText('Verwijderen'));
         expect(container.querySelector('[data-app-grid-selection]')).toBeFalsy();
     });
 
@@ -893,11 +895,10 @@ describe('AppDataGrid — columns[].actionId', () => {
         ],
     });
 
-    it('fires the column action with the row, and only that action', () => {
+    it('fires the column action with the row, and only that action', async () => {
         const runAction = vi.fn();
         const { container } = withRuntime(<AppDataGrid node={clickableNode()} />, { runAction });
-        const cells = container.querySelectorAll('tbody tr:first-child td');
-        fireEvent.click(within(cells[1]).getByRole('button'));
+        await user.click(within(container.querySelectorAll('tbody tr:first-child td')[1]).getByRole('button'));
 
         expect(runAction).toHaveBeenCalledTimes(1);
         const [actionId, payload] = runAction.mock.calls[0];
@@ -912,12 +913,11 @@ describe('AppDataGrid — columns[].actionId', () => {
         expect(within(cells[0]).queryByRole('button')).toBeNull();
     });
 
-    it('does not double-fire the row click', () => {
+    it('does not double-fire the row click', async () => {
         const runAction = vi.fn();
         const node = { ...clickableNode(), onRowClick: 'act_open' };
         const { container } = withRuntime(<AppDataGrid node={node} />, { runAction });
-        const cells = container.querySelectorAll('tbody tr:first-child td');
-        fireEvent.click(within(cells[1]).getByRole('button'));
+        await user.click(within(container.querySelectorAll('tbody tr:first-child td')[1]).getByRole('button'));
         expect(runAction.mock.calls.map((c) => c[0])).toEqual(['act_mark']);
     });
 });
@@ -938,10 +938,10 @@ describe('AppDataGrid — add-row footer', () => {
         expect(rows[rows.length - 1].getAttribute('data-app-grid-addrow')).toBe('true');
     });
 
-    it('fires the action', () => {
+    it('fires the action', async () => {
         const runAction = vi.fn();
         const { container } = withRuntime(<AppDataGrid node={addNode()} />, { runAction });
-        fireEvent.click(within(container.querySelector('[data-app-grid-addrow]')).getByRole('button'));
+        await user.click(within(container.querySelector('[data-app-grid-addrow]')).getByRole('button'));
         expect(runAction).toHaveBeenCalledWith('act_add', {});
     });
 
@@ -981,10 +981,10 @@ describe('AppDataGrid — toolbarActions', () => {
         ],
     });
 
-    it('renders in the chrome row and fires its action', () => {
+    it('renders in the chrome row and fires its action', async () => {
         const runAction = vi.fn();
         const { container } = withRuntime(<AppDataGrid node={barNode()} />, { runAction });
-        fireEvent.click(within(container).getByText('Portaal-CSV maken'));
+        await user.click(within(container).getByText('Portaal-CSV maken'));
         expect(runAction).toHaveBeenCalledWith('act_csv', {});
     });
 
@@ -1090,39 +1090,39 @@ describe('AppDataGrid — grouping (groupBy / groupOrder)', () => {
         expect(container.querySelector('[data-app-grid-group="done"] td').getAttribute('style')).toContain('--bg-secondary');
     });
 
-    it('sorting still works WITHIN groups — rows reorder, groups stay put', () => {
+    it('sorting still works WITHIN groups — rows reorder, groups stay put', async () => {
         const { container, getByRole } = withRuntime(<AppDataGrid node={groupedNode()} />);
         // Numeric columns sort DESCENDING on the first click (tanstack's
         // sortDescFirst for numbers). Scores: Cy 50, Bea 40, Zoe 30, Max 20,
         // Amy 10 — bucketed after the sort, so 'open' now reads Cy before Zoe.
-        fireEvent.click(getByRole('button', { name: /Score/ }));
+        await user.click(getByRole('button', { name: /Score/ }));
         expect(rowTexts(container)).toEqual([
             expect.stringContaining('In orde'), expect.stringContaining('Bea'), expect.stringContaining('Amy'),
             expect.stringContaining('open'), expect.stringContaining('Cy'), expect.stringContaining('Zoe'), expect.stringContaining('Max'),
         ]);
     });
 
-    it('clicking a header collapses the group and clicking again reopens it', () => {
+    it('clicking a header collapses the group and clicking again reopens it', async () => {
         const { container, getByRole } = withRuntime(<AppDataGrid node={groupedNode()} />);
         const header = () => getByRole('button', { name: /In orde/ });
         expect(rowTexts(container).join(',')).toContain('Amy');
-        fireEvent.click(header());
+        await user.click(header());
         expect(rowTexts(container).join(',')).not.toContain('Amy');
         // The header itself stays, and says it is closed.
         expect(header().getAttribute('aria-expanded')).toBe('false');
         // The other group is untouched.
         expect(rowTexts(container).join(',')).toContain('Zoe');
-        fireEvent.click(header());
+        await user.click(header());
         expect(rowTexts(container).join(',')).toContain('Amy');
     });
 
-    it('collapsed:true starts a group closed until its header is clicked', () => {
+    it('collapsed:true starts a group closed until its header is clicked', async () => {
         const node = groupedNode({
             groupOrder: [{ value: 'done', label: 'In orde', tone: 'success', collapsed: true }],
         });
         const { container, getByRole } = withRuntime(<AppDataGrid node={node} />);
         expect(rowTexts(container).join(',')).not.toContain('Amy');
-        fireEvent.click(getByRole('button', { name: /In orde/ }));
+        await user.click(getByRole('button', { name: /In orde/ }));
         expect(rowTexts(container).join(',')).toContain('Amy');
     });
 
@@ -1202,7 +1202,7 @@ describe('AppDataGrid — table engine parity', () => {
         return calls[calls.length - 1][1].formValues.selected.map((r) => r.name);
     };
 
-    it('select-all is indeterminate only for a partial selection and selects every page', () => {
+    it('select-all is indeterminate only for a partial selection and selects every page', async () => {
         const runAction = vi.fn();
         const { getAllByLabelText, getByLabelText } = withRuntime(
             <AppDataGrid node={gridNode({ onRowSelect: 'act_sel' }, { selectable: 'multi', pageSize: 2 })} />,
@@ -1211,27 +1211,27 @@ describe('AppDataGrid — table engine parity', () => {
         const all = () => getByLabelText('Select all rows');
         expect(all().indeterminate).toBe(false);
         expect(all().checked).toBe(false);
-        fireEvent.click(getAllByLabelText('Select row')[0]);
+        await user.click(getAllByLabelText('Select row')[0]);
         expect(all().indeterminate).toBe(true);
         expect(all().checked).toBe(false);
-        fireEvent.click(all());
+        await user.click(all());
         expect(all().indeterminate).toBe(false);
         expect(all().checked).toBe(true);
         expect(lastSelected(runAction)).toHaveLength(5);
-        fireEvent.click(all());
+        await user.click(all());
         expect(all().indeterminate).toBe(false);
         expect(all().checked).toBe(false);
         expect(lastSelected(runAction)).toHaveLength(0);
     });
 
-    it("selectable:'single' keeps at most one row selected", () => {
+    it("selectable:'single' keeps at most one row selected", async () => {
         const runAction = vi.fn();
         const { getAllByLabelText } = withRuntime(
             <AppDataGrid node={gridNode({ onRowSelect: 'act_sel' }, { selectable: 'single' })} />,
             { runAction },
         );
-        fireEvent.click(getAllByLabelText('Select row')[0]);
-        fireEvent.click(getAllByLabelText('Select row')[1]);
+        await user.click(getAllByLabelText('Select row')[0]);
+        await user.click(getAllByLabelText('Select row')[1]);
         expect(lastSelected(runAction)).toEqual(['Amy']);
     });
 
@@ -1239,7 +1239,7 @@ describe('AppDataGrid — table engine parity', () => {
         const { container, getByLabelText, findByText } = withRuntime(
             <AppDataGrid node={gridNode({}, { searchable: true, pageSize: 2 })} />,
         );
-        fireEvent.click(getByLabelText('Next page'));
+        await user.click(getByLabelText('Next page'));
         expect(bodyRowTexts(container)).toEqual(['Max', 'Bea']);
         fireEvent.change(getByLabelText('Search rows'), { target: { value: 'e' } });
         await findByText('Amy');
@@ -1248,7 +1248,7 @@ describe('AppDataGrid — table engine parity', () => {
         expect(bodyRowTexts(container)).toEqual(['Zoe', 'Amy']);
     });
 
-    it("sorts text naturally ('auto' picks alphanumeric) and dates chronologically", () => {
+    it("sorts text naturally ('auto' picks alphanumeric) and dates chronologically", async () => {
         const rows = [
             { id: 1, name: 'item10', when: new Date('2024-03-01T00:00:00Z') },
             { id: 2, name: 'item2', when: new Date('2023-01-01T00:00:00Z') },
@@ -1261,12 +1261,12 @@ describe('AppDataGrid — table engine parity', () => {
         const { container, getByRole } = withRuntime(
             <AppDataGrid node={gridNode({}, { source: { kind: 'static', value: rows }, columns })} />,
         );
-        fireEvent.click(getByRole('button', { name: /Name/ }));
+        await user.click(getByRole('button', { name: /Name/ }));
         expect(bodyRowTexts(container)).toEqual(['item1', 'item2', 'item10']);
         // A non-string column starts descending (v8 and v9 alike), then flips.
-        fireEvent.click(getByRole('button', { name: /When/ }));
+        await user.click(getByRole('button', { name: /When/ }));
         expect(bodyRowTexts(container)).toEqual(['item1', 'item10', 'item2']);
-        fireEvent.click(getByRole('button', { name: /When/ }));
+        await user.click(getByRole('button', { name: /When/ }));
         expect(bodyRowTexts(container)).toEqual(['item2', 'item10', 'item1']);
     });
 });

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Three ways a datatable step was written that the builder could not read —
  * all three from live builds on 2026-09-16, all three ending in the repeat

@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import PlanCard from './PlanCard';
 
@@ -40,7 +41,7 @@ describe('PlanCard', () => {
         expect(screen.getByText(/technicians see all tasks/i)).toBeInTheDocument();
     });
 
-    it('edits a field then Build it approves the EDITED artifact', () => {
+    it('edits a field then Build it approves the EDITED artifact', async () => {
         const onBuild = vi.fn();
         render(<PlanCard pendingPlan={PLAN} onBuild={onBuild} onDiscuss={vi.fn()} />);
 
@@ -48,7 +49,7 @@ describe('PlanCard', () => {
         const field = screen.getByDisplayValue('status');
         fireEvent.change(field, { target: { value: 'state' } });
 
-        fireEvent.click(screen.getByText('Build it'));
+        await userEvent.click(screen.getByText('Build it'));
 
         expect(onBuild).toHaveBeenCalledTimes(1);
         const edited = onBuild.mock.calls[0][0];
@@ -58,7 +59,7 @@ describe('PlanCard', () => {
         expect(edited.phases).toEqual(PLAN.plan.phases);
     });
 
-    it('adds and removes rows before approving', () => {
+    it('adds and removes rows before approving', async () => {
         const onBuild = vi.fn();
         render(<PlanCard pendingPlan={PLAN} onBuild={onBuild} onDiscuss={vi.fn()} />);
 
@@ -68,9 +69,9 @@ describe('PlanCard', () => {
         fireEvent.keyDown(addRole, { key: 'Enter' });
 
         // Remove the "By status" dataset.
-        fireEvent.click(screen.getByLabelText('Remove By status'));
+        await userEvent.click(screen.getByLabelText('Remove By status'));
 
-        fireEvent.click(screen.getByText('Build it'));
+        await userEvent.click(screen.getByText('Build it'));
         const edited = onBuild.mock.calls[0][0];
         // The added role survives bounding — it used to be dropped for having
         // no key, and the app was built with only the roles the model wrote.
@@ -78,16 +79,16 @@ describe('PlanCard', () => {
         expect(edited.datasets).toEqual([]);
     });
 
-    it('Discuss focuses the composer, not a build', () => {
+    it('Discuss focuses the composer, not a build', async () => {
         const onBuild = vi.fn();
         const onDiscuss = vi.fn();
         render(<PlanCard pendingPlan={PLAN} onBuild={onBuild} onDiscuss={onDiscuss} />);
-        fireEvent.click(screen.getByText('Discuss'));
+        await userEvent.click(screen.getByText('Discuss'));
         expect(onDiscuss).toHaveBeenCalledTimes(1);
         expect(onBuild).not.toHaveBeenCalled();
     });
 
-    it('keeps a half-typed "Add field" with its own table when another table is deleted', () => {
+    it('keeps a half-typed "Add field" with its own table when another table is deleted', async () => {
         const onBuild = vi.fn();
         const twoTables = {
             planId: 'pl-3',
@@ -104,7 +105,7 @@ describe('PlanCard', () => {
         // Start adding a field to the SECOND table, then delete the first one.
         const addField = screen.getAllByPlaceholderText('Add field');
         fireEvent.change(addField[1], { target: { value: 'phone' } });
-        fireEvent.click(screen.getByLabelText('Remove Tasks'));
+        await userEvent.click(screen.getByLabelText('Remove Tasks'));
 
         // The surviving table keeps its own (empty) add box — the typed text
         // must not slide up from the deleted row.
@@ -115,7 +116,7 @@ describe('PlanCard', () => {
 
         // …and committing it lands on the table the user was typing under.
         fireEvent.keyDown(remaining[0], { key: 'Enter' });
-        fireEvent.click(screen.getByText('Build it'));
+        await userEvent.click(screen.getByText('Build it'));
         const edited = onBuild.mock.calls[0][0];
         expect(approved(edited).tables.map((t) => t.name)).toEqual(['People']);
         expect(approved(edited).tables[0].fields.map((f) => f.key)).toEqual(['email', 'phone']);

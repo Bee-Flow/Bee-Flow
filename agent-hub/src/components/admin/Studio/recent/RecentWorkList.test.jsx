@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -87,6 +88,7 @@ describe('RecentWorkList', () => {
     });
 
     it('tekent de rijen, met soort, statuswoord en tijd, en opent er een', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         runMock.mockResolvedValue(answer({ items: [entry()] }));
         renderList({ onNavigate });
@@ -98,7 +100,7 @@ describe('RecentWorkList', () => {
         expect(screen.getByTestId('studio-recent-status-aiTasks:r1').textContent).toBe('On');
         expect(screen.getByTestId('studio-recent-when-aiTasks:r1').textContent).toBe('1h ago');
 
-        fireEvent.click(row);
+        await user.click(row);
         expect(onNavigate).toHaveBeenCalledWith('studio/automations/r1');
     });
 

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // The component palette reads the session-cached component catalog for its
@@ -53,7 +54,8 @@ describe('AppEditorShell', () => {
         studioAppsApi.saveDefinition.mockResolvedValue({ ok: true, version: 4, warnings: [], repairs: [] });
     });
 
-    it('renders the header controls, tabs, canvas and mocked inspector', () => {
+    it('renders the header controls, tabs, canvas and mocked inspector', async () => {
+        const user = userEvent.setup();
         render(<AppEditorShell app={app} onClose={vi.fn()} />);
 
         expect(screen.getByText('Kitchen sink')).toBeInTheDocument();
@@ -80,7 +82,7 @@ describe('AppEditorShell', () => {
 
         // Version history has no button of its own any more — it is one of the
         // three items in the ⋯ menu.
-        fireEvent.click(screen.getByRole('button', { name: 'More' }));
+        await user.click(screen.getByRole('button', { name: 'More' }));
         expect(screen.getByRole('menuitem', { name: 'Version history' })).toBeInTheDocument();
     });
 
@@ -91,10 +93,11 @@ describe('AppEditorShell', () => {
     });
 
     it('click-to-add from the palette commits into history (undo becomes possible)', async () => {
+        const user = userEvent.setup();
         render(<AppEditorShell app={app} onClose={vi.fn()} />);
 
         // Row 2 carries the five most-used components as chips — click Heading.
-        fireEvent.click(screen.getByRole('button', { name: 'Heading' }));
+        await user.click(screen.getByRole('button', { name: 'Heading' }));
 
         await waitFor(() => {
             expect(screen.getByRole('button', { name: 'Undo' })).not.toBeDisabled();
@@ -105,6 +108,7 @@ describe('AppEditorShell', () => {
     });
 
     it('hangs the AI\'s plan on the canvas, from the cue the pane publishes — never in the conversation', async () => {
+        const user = userEvent.setup();
         // Owner, 2026-09-16: the checklist used to ride at the top of the chat
         // thread and scrolled away under the messages it was describing.
         function PlanPublisher() {
@@ -119,14 +123,14 @@ describe('AppEditorShell', () => {
         render(<AppEditorShell app={app} onClose={vi.fn()} chatSlot={<PlanPublisher />} />);
         expect(screen.queryByTestId('app-plan-panel')).toBeNull();
 
-        fireEvent.click(screen.getByRole('button', { name: 'publish' }));
+        await user.click(screen.getByRole('button', { name: 'publish' }));
         const panel = await screen.findByTestId('app-plan-panel');
         expect(panel.textContent).toContain('Link the table');
         expect(panel.textContent).toContain('Add the tiles');
         // On the canvas column, not inside the chat pane.
         expect(screen.getByTestId('chat-slot').contains(panel)).toBe(false);
 
-        fireEvent.click(screen.getByRole('button', { name: 'clear' }));
+        await user.click(screen.getByRole('button', { name: 'clear' }));
         await waitFor(() => expect(screen.queryByTestId('app-plan-panel')).toBeNull());
     });
 
@@ -140,21 +144,23 @@ describe('AppEditorShell', () => {
         expect(screen.queryByLabelText('AI assistant (coming soon)')).not.toBeInTheDocument();
     });
 
-    it('collapses the AI pane to a rail WITHOUT unmounting the slot, and reopens it', () => {
+    it('collapses the AI pane to a rail WITHOUT unmounting the slot, and reopens it', async () => {
+        const user = userEvent.setup();
         render(<AppEditorShell app={app} onClose={vi.fn()} chatSlot={<div data-testid="chat-slot" />} />);
 
-        fireEvent.click(screen.getByRole('button', { name: 'Hide the AI builder' }));
+        await user.click(screen.getByRole('button', { name: 'Hide the AI builder' }));
         // Hidden, never unmounted: the transcript and a possibly-streaming AI
         // turn live in the slot, and collapsing the column must lose neither.
         expect(screen.getByTestId('chat-slot')).toBeInTheDocument();
         expect(screen.getByLabelText('AI builder')).toHaveClass('hidden');
 
-        fireEvent.click(screen.getByRole('button', { name: 'Show the AI builder' }));
+        await user.click(screen.getByRole('button', { name: 'Show the AI builder' }));
         expect(screen.getByLabelText('AI builder')).not.toHaveClass('hidden');
         expect(screen.queryByRole('button', { name: 'Show the AI builder' })).not.toBeInTheDocument();
     });
 
     it('⌘K "Ask the AI builder" reopens a collapsed chat pane and focuses the composer', async () => {
+        const user = userEvent.setup();
         render(
             <AppEditorShell
                 app={app}
@@ -162,13 +168,13 @@ describe('AppEditorShell', () => {
                 chatSlot={<textarea data-app-ai-composer aria-label="AI composer" />}
             />,
         );
-        fireEvent.click(screen.getByRole('button', { name: 'Hide the AI builder' }));
+        await user.click(screen.getByRole('button', { name: 'Hide the AI builder' }));
         expect(screen.getByLabelText('AI builder')).toHaveClass('hidden');
 
         // Open the command palette and run the AI action: the pane must come
         // back — focusing a composer inside a display:none pane is a no-op.
         fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
-        fireEvent.click(await screen.findByText('Ask the AI builder'));
+        await user.click(await screen.findByText('Ask the AI builder'));
 
         await waitFor(() => {
             expect(screen.getByLabelText('AI builder')).not.toHaveClass('hidden');
@@ -179,6 +185,7 @@ describe('AppEditorShell', () => {
     });
 
     it('opens Data / Logic / Roles from the segments, and keeps ⋯ a pure menu', async () => {
+        const user = userEvent.setup();
         render(<AppEditorShell app={app} onClose={vi.fn()} />);
 
         // Data, Logic and Roles are three of the five segments now — not tools
@@ -187,7 +194,7 @@ describe('AppEditorShell', () => {
         expect(screen.getByRole('radio', { name: /Logic/ })).toBeInTheDocument();
         expect(screen.getByRole('radio', { name: 'Roles' })).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: 'More' }));
+        await user.click(screen.getByRole('button', { name: 'More' }));
         expect(screen.getByRole('menuitem', { name: /Command palette/ })).toBeInTheDocument();
         expect(screen.getByRole('menuitem', { name: 'Version history' })).toBeInTheDocument();
         // A pure menu: view-as is a menuitem routing to the command palette's
@@ -201,31 +208,33 @@ describe('AppEditorShell', () => {
         });
 
         // Variables is a SUBTAB of the Data view, not a dialog of its own.
-        fireEvent.click(screen.getByRole('radio', { name: 'Data' }));
-        fireEvent.click(await screen.findByRole('tab', { name: /Variables/ }));
+        await user.click(screen.getByRole('radio', { name: 'Data' }));
+        await user.click(await screen.findByRole('tab', { name: /Variables/ }));
         expect(screen.getByRole('tab', { name: /Variables/ })).toHaveAttribute('aria-selected', 'true');
         // A panel view replaces the canvas and the inspector beside it.
         expect(screen.queryByTestId('inspector-panel')).toBeNull();
     });
 
     it('flushes pending saves and calls onClose when closing', async () => {
+        const user = userEvent.setup();
         const onClose = vi.fn();
         render(<AppEditorShell app={app} onClose={onClose} />);
-        fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+        await user.click(screen.getByRole('button', { name: 'Close' }));
         await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     });
 
     it('keeps the editor open when the closing flush could not save (Bug 2)', async () => {
+        const user = userEvent.setup();
         studioAppsApi.saveDefinition.mockResolvedValue({
             ok: false, invalid: true, errors: [{ message: 'Screen name is required' }],
         });
         const onClose = vi.fn();
         render(<AppEditorShell app={app} onClose={onClose} />);
 
-        fireEvent.click(screen.getByRole('button', { name: 'Heading' }));
+        await user.click(screen.getByRole('button', { name: 'Heading' }));
         await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' })).not.toBeDisabled());
 
-        fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+        await user.click(screen.getByRole('button', { name: 'Close' }));
         await waitFor(() => expect(studioAppsApi.saveDefinition).toHaveBeenCalled(), { timeout: 2500 });
         // The work is still on screen and the reason is shown — closing here
         // would have thrown the unsaved edit away without a word.
@@ -234,6 +243,7 @@ describe('AppEditorShell', () => {
     });
 
     it('restore adopts the server definitionVersion as the next save base (Bug 3)', async () => {
+        const user = userEvent.setup();
         const restored = JSON.parse(JSON.stringify(KITCHEN_SINK));
         restored.screens[0].name = 'Restored dashboard';
         studioAppsApi.listVersions.mockResolvedValue({
@@ -246,39 +256,42 @@ describe('AppEditorShell', () => {
         studioAppsApi.saveDefinition.mockResolvedValue({ ok: true, version: 13, warnings: [], repairs: [] });
         render(<AppEditorShell app={app} onClose={vi.fn()} />);
 
-        fireEvent.click(screen.getByRole('button', { name: 'More' }));
-        fireEvent.click(screen.getByRole('menuitem', { name: 'Version history' }));
-        fireEvent.click(await screen.findByRole('button', { name: /Restore/ }));
+        await user.click(screen.getByRole('button', { name: 'More' }));
+        await user.click(screen.getByRole('menuitem', { name: 'Version history' }));
+        await user.click(await screen.findByRole('button', { name: /Restore/ }));
         await waitFor(() => expect(screen.getByText('Restored dashboard')).toBeInTheDocument());
 
         // The next edit must save against 12 — with a stale base every save
         // comes back as a conflict.
-        fireEvent.click(screen.getByRole('button', { name: 'Heading' }));
+        await user.click(screen.getByRole('button', { name: 'Heading' }));
         await waitFor(() => expect(studioAppsApi.saveDefinition).toHaveBeenCalled(), { timeout: 2500 });
         expect(studioAppsApi.saveDefinition.mock.calls[0][2]).toBe(12);
     });
 
-    it('labels the command palette with the key THIS keyboard has (Bug 9)', () => {
+    it('labels the command palette with the key THIS keyboard has (Bug 9)', async () => {
+        const user = userEvent.setup();
         render(<AppEditorShell app={app} onClose={vi.fn()} />);
         // jsdom reports a non-Mac platform, so the hint must read Ctrl+K.
-        fireEvent.click(screen.getByRole('button', { name: 'More' }));
+        await user.click(screen.getByRole('button', { name: 'More' }));
         expect(screen.getByRole('menuitem', { name: /Command palette/ })).toHaveTextContent('Ctrl+K');
     });
 
     it('a blank page explains the real UI and offers starter chips (Bug 10)', async () => {
+        const user = userEvent.setup();
         render(<AppEditorShell app={{ ...app, definition: BLANK_APP }} onClose={vi.fn()} />);
 
         expect(await screen.findByText(/Drag a component from the strip above/)).toBeInTheDocument();
         // Nothing in this UI is called "Add" — the old copy pointed at a ghost.
         expect(screen.queryByText(/pick one from Add/)).toBeNull();
 
-        fireEvent.click(screen.getByRole('button', { name: 'Add heading' }));
+        await user.click(screen.getByRole('button', { name: 'Add heading' }));
         await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' })).not.toBeDisabled());
         // The chip inserted through the normal path, so the placeholder is gone.
         expect(screen.queryByText(/Drag a component from the strip above/)).toBeNull();
     });
 
     it('conflict "Load latest" adopts the server definition but KEEPS undo history (Bug 2)', async () => {
+        const user = userEvent.setup();
         const serverDef = JSON.parse(JSON.stringify(KITCHEN_SINK));
         serverDef.screens[0].name = 'Server dashboard';
         studioAppsApi.saveDefinition.mockResolvedValue({
@@ -287,12 +300,12 @@ describe('AppEditorShell', () => {
         render(<AppEditorShell app={app} onClose={vi.fn()} />);
 
         // Make an edit so there is real undo history to preserve.
-        fireEvent.click(screen.getByRole('button', { name: 'Heading' }));
+        await user.click(screen.getByRole('button', { name: 'Heading' }));
         await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' })).not.toBeDisabled());
 
         // The autosave debounce fires → conflict → the conflict dialog appears.
         const loadLatest = await screen.findByRole('button', { name: 'Load latest' }, { timeout: 2500 });
-        fireEvent.click(loadLatest);
+        await user.click(loadLatest);
 
         // Server definition adopted…
         await waitFor(() => expect(screen.getByText('Server dashboard')).toBeInTheDocument());
@@ -301,6 +314,7 @@ describe('AppEditorShell', () => {
     });
 
     it('conflict "Overwrite with mine" ignores a double-click and saves the edited def once (Bug 4)', async () => {
+        const user = userEvent.setup();
         const serverDef = JSON.parse(JSON.stringify(KITCHEN_SINK));
         let releaseOverwrite;
         studioAppsApi.saveDefinition
@@ -311,7 +325,7 @@ describe('AppEditorShell', () => {
         render(<AppEditorShell app={app} onClose={vi.fn()} />);
 
         // Edit so autosave has a dirty definition to save.
-        fireEvent.click(screen.getByRole('button', { name: 'Heading' }));
+        await user.click(screen.getByRole('button', { name: 'Heading' }));
         await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' })).not.toBeDisabled());
 
         // Debounce fires → conflict dialog (exactly one save so far: the conflict).
@@ -320,8 +334,8 @@ describe('AppEditorShell', () => {
 
         // Two rapid clicks before the dialog unmounts — the in-flight guard must
         // let only ONE overwrite through.
-        fireEvent.click(overwriteBtn);
-        fireEvent.click(overwriteBtn);
+        await user.click(overwriteBtn);
+        await user.click(overwriteBtn);
         await waitFor(() => expect(studioAppsApi.saveDefinition).toHaveBeenCalledTimes(2));
 
         releaseOverwrite();
@@ -349,6 +363,7 @@ describe('AppEditorShell', () => {
         };
 
         it('shows the server warnings on the save pill and jumps to the node behind one', async () => {
+            const user = userEvent.setup();
             studioAppsApi.saveDefinition.mockResolvedValue({
                 ok: true,
                 version: 4,
@@ -364,11 +379,11 @@ describe('AppEditorShell', () => {
             await addAHeading();
 
             const pill = await screen.findByRole('button', { name: /1 to check/ }, { timeout: 2500 });
-            fireEvent.click(pill);
+            await user.click(pill);
             expect(screen.getByText('This list has no table picked yet.')).toBeInTheDocument();
             expect(screen.getByText('Pick a table before people use the app.')).toBeInTheDocument();
 
-            fireEvent.click(screen.getByRole('button', { name: 'Show me' }));
+            await user.click(screen.getByRole('button', { name: 'Show me' }));
             const target = KITCHEN_SINK.screens[0].sections[0].children[0].id;
             await waitFor(() => {
                 expect(document.querySelector(`[data-node-id="${target}"]`)).toHaveAttribute('data-selected');
@@ -399,6 +414,7 @@ describe('AppEditorShell', () => {
         });
 
         it('never shows an entry that would leak an internal role token', async () => {
+            const user = userEvent.setup();
             studioAppsApi.saveDefinition.mockResolvedValue({
                 ok: true,
                 version: 4,
@@ -412,12 +428,13 @@ describe('AppEditorShell', () => {
             await addAHeading();
 
             const pill = await screen.findByRole('button', { name: /1 to check/ }, { timeout: 2500 });
-            fireEvent.click(pill);
+            await user.click(pill);
             expect(screen.getByText('This screen is hidden from everyone.')).toBeInTheDocument();
             expect(screen.queryByText(/__nobody__/)).toBeNull();
         });
 
         it('keeps every validation error from a rejected save, not just the first', async () => {
+            const user = userEvent.setup();
             studioAppsApi.saveDefinition.mockResolvedValue({
                 ok: false,
                 invalid: true,
@@ -431,7 +448,7 @@ describe('AppEditorShell', () => {
             await addAHeading();
 
             expect(await screen.findByText('Screen name is required', undefined, { timeout: 2500 })).toBeInTheDocument();
-            fireEvent.click(screen.getByRole('button', { name: 'All 2' }));
+            await user.click(screen.getByRole('button', { name: 'All 2' }));
             expect(screen.getByText('This button has no action.')).toBeInTheDocument();
             expect(screen.getByText('Pick what it should do.')).toBeInTheDocument();
         });
@@ -459,12 +476,13 @@ describe('AppEditorShell', () => {
         });
     });
 
-    it('admits that a role preview does not filter the data (Bug 3)', () => {
+    it('admits that a role preview does not filter the data (Bug 3)', async () => {
+        const user = userEvent.setup();
         const withRoles = { ...KITCHEN_SINK, roles: [{ id: 'staff', name: 'Staff' }] };
         render(<AppEditorShell app={{ ...app, definition: withRoles }} onClose={vi.fn()} />);
 
-        fireEvent.click(screen.getByTestId('view-as-capsule'));
-        fireEvent.click(screen.getByRole('menuitemradio', { name: 'Staff' }));
+        await user.click(screen.getByTestId('view-as-capsule'));
+        await user.click(screen.getByRole('menuitemradio', { name: 'Staff' }));
 
         const banner = document.querySelector('[data-preview-role-banner="staff"]');
         expect(banner.textContent).toContain('Lists and tables still show everything you can see');
@@ -472,6 +490,7 @@ describe('AppEditorShell', () => {
     });
 
     it('records a whole AI turn (lock → transient drafts → commitTurn) as ONE undo step', async () => {
+        const user = userEvent.setup();
         // Simulates BuilderChatPane's integration through the chrome handle:
         // lock, apply transient drafts (plain set_definition), then commitTurn.
         const DRAFT = JSON.parse(JSON.stringify(KITCHEN_SINK));
@@ -515,20 +534,20 @@ describe('AppEditorShell', () => {
         render(<AppEditorShell app={app} onClose={vi.fn()} chatSlot={<FakeAIPane />} />);
         expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
 
-        fireEvent.click(screen.getByRole('button', { name: 'ai-lock' }));
-        fireEvent.click(screen.getByRole('button', { name: 'ai-draft' }));
+        await user.click(screen.getByRole('button', { name: 'ai-lock' }));
+        await user.click(screen.getByRole('button', { name: 'ai-draft' }));
         // Transient draft is on the canvas but NOT in history.
         expect(screen.getByText('AI added heading')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
 
-        fireEvent.click(screen.getByRole('button', { name: 'ai-done' }));
+        await user.click(screen.getByRole('button', { name: 'ai-done' }));
         await waitFor(() => {
             expect(screen.getByRole('button', { name: 'Undo' })).not.toBeDisabled();
         });
         expect(screen.getByText('AI added heading')).toBeInTheDocument();
 
         // One Cmd+Z undoes the whole AI turn back to the pre-turn definition.
-        fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+        await user.click(screen.getByRole('button', { name: 'Undo' }));
         await waitFor(() => {
             expect(screen.queryByText('AI added heading')).not.toBeInTheDocument();
         });
@@ -547,18 +566,19 @@ describe('AppEditorShell — inspector column', () => {
         window.localStorage?.clear?.();
     });
 
-    it('the inspector can be collapsed, giving its width back to the canvas', () => {
+    it('the inspector can be collapsed, giving its width back to the canvas', async () => {
+        const user = userEvent.setup();
         // A fixed 320px column is not a layout decision, it is the absence of
         // one: too narrow for a binding editor, too wide when you are only
         // nudging spans.
         render(<AppEditorShell app={app} onClose={vi.fn()} />);
         expect(screen.getByRole('complementary', { name: 'Inspector' })).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: 'Collapse the inspector' }));
+        await user.click(screen.getByRole('button', { name: 'Collapse the inspector' }));
         expect(screen.queryByRole('complementary', { name: 'Inspector' })).toBeNull();
 
         // …and back, from a rail that is still on screen.
-        fireEvent.click(screen.getByRole('button', { name: 'Show the inspector' }));
+        await user.click(screen.getByRole('button', { name: 'Show the inspector' }));
         expect(screen.getByRole('complementary', { name: 'Inspector' })).toBeInTheDocument();
     });
 

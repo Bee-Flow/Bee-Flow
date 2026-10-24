@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../studioAppsApi', () => {
@@ -133,8 +134,9 @@ describe('PublishModal — translated', () => {
     });
 
     it('translates the pre-flight check, all-clear included', async () => {
+        const user = userEvent.setup();
         render(<PublishModal open app={orgApp} definition={DEFINITION} onClose={vi.fn()} onPublished={vi.fn()} />);
-        fireEvent.click(screen.getByRole('button', { name: 'Controleer deze app' }));
+        await user.click(screen.getByRole('button', { name: 'Controleer deze app' }));
         expect(await screen.findByText('Alles is geladen en elke stap klopt.')).toBeInTheDocument();
     });
 
@@ -156,13 +158,14 @@ describe('PublishModal — translated', () => {
     });
 
     it('has its own two headings for a check, which is not a refused publish', async () => {
+        const user = userEvent.setup();
         studioAppsApi.checkApp.mockResolvedValue({
             ok: false,
             static: { errors: [{ code: 'x', message: 'Kapot.', path: 'screens' }], warnings: [] },
             bindings: [], roleFindings: [], actions: [], emptyTables: [],
         });
         render(<PublishModal open app={orgApp} definition={DEFINITION} onClose={vi.fn()} onPublished={vi.fn()} />);
-        fireEvent.click(screen.getByRole('button', { name: 'Controleer deze app' }));
+        await user.click(screen.getByRole('button', { name: 'Controleer deze app' }));
         expect(await screen.findByText('1 ding is stuk')).toBeInTheDocument();
         // …and not the publish-context wording, which says something else
         // entirely about what happened to the readers.

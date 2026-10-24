@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Web-Search Inference Routing
  *

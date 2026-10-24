@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * core/datasets — gene catalog sanity against the generated data files.
  *

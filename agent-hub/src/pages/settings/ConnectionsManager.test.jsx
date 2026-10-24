@@ -67,6 +67,7 @@ describe('ConnectionsManager — http provider', () => {
     });
 
     it('oauth2_cc submit splits values into secret vs secretMeta', async () => {
+        const user = userEvent.setup();
         render(<ConnectionsManager />);
         await openAddForm();
         fireEvent.change(screen.getByLabelText('Auth type'), { target: { value: 'oauth2_cc' } });
@@ -75,7 +76,7 @@ describe('ConnectionsManager — http provider', () => {
         fireEvent.change(byPlaceholder('Client ID'), { target: { value: 'client-abc' } });
         fireEvent.change(byPlaceholder('Client secret'), { target: { value: 's3cr3t-value' } });
         fireEvent.change(byPlaceholder('Scopes (space-separated, optional)'), { target: { value: 'read write' } });
-        fireEvent.click(screen.getByText('Create connection'));
+        await user.click(screen.getByText('Create connection'));
 
         await waitFor(() => expect(posts.length).toBe(1));
         expect(posts[0].provider).toBe('http');
@@ -85,10 +86,11 @@ describe('ConnectionsManager — http provider', () => {
     });
 
     it('bearer submit sends the token as secret and omits secretMeta entirely', async () => {
+        const user = userEvent.setup();
         render(<ConnectionsManager />);
         await openAddForm();
         fireEvent.change(byPlaceholder('Token'), { target: { value: 'tok-123' } });
-        fireEvent.click(screen.getByText('Create connection'));
+        await user.click(screen.getByText('Create connection'));
 
         await waitFor(() => expect(posts.length).toBe(1));
         expect(posts[0].kind).toBe('bearer');
@@ -97,11 +99,12 @@ describe('ConnectionsManager — http provider', () => {
     });
 
     it('requires all non-optional fields before posting', async () => {
+        const user = userEvent.setup();
         render(<ConnectionsManager />);
         await openAddForm();
         fireEvent.change(screen.getByLabelText('Auth type'), { target: { value: 'basic' } });
         fireEvent.change(byPlaceholder('Username'), { target: { value: 'svc-user' } });
-        fireEvent.click(screen.getByText('Create connection')); // password missing
+        await user.click(screen.getByText('Create connection')); // password missing
         expect(await screen.findByText('Fill in all required fields')).toBeTruthy();
         expect(posts.length).toBe(0);
     });
@@ -122,12 +125,13 @@ describe('ConnectionsManager — http provider', () => {
     });
 
     it('the share panel warns that lending an http credential discloses its full power', async () => {
+        const user = userEvent.setup();
         connections = [
             { id: 'c1', provider: 'http', label: 'Prod key', kind: 'api_key', isDefault: false, secretMeta: { headerName: 'X-API-Key' } },
         ];
         render(<ConnectionsManager />);
         await screen.findByText('Prod key');
-        fireEvent.click(screen.getByTitle('Share'));
+        await user.click(screen.getByTitle('Share'));
         expect(screen.getByText('Sharing lends the full credential — recipients can call any URL with it.')).toBeTruthy();
     });
 });
@@ -148,35 +152,38 @@ describe('ConnectionsManager — mutation failures are visible', () => {
     });
 
     it('shows the server error when set-default is rejected', async () => {
+        const user = userEvent.setup();
         authFetch.mockImplementation(async (url, opts = {}) => {
             if (opts.method === 'PATCH') return { ok: false, status: 403, json: async () => ({ error: 'Forbidden' }) };
             if (String(url).includes('/grants')) return { ok: true, json: async () => ({ grants: [] }) };
             return { ok: true, json: async () => ({ connections }) };
         });
         render(<ConnectionsManager />);
-        fireEvent.click(await screen.findByText('Set default'));
+        await user.click(await screen.findByText('Set default'));
         expect(await screen.findByRole('alert')).toHaveTextContent('Forbidden');
     });
 
     it('falls back to a readable message when the error body is empty', async () => {
+        const user = userEvent.setup();
         authFetch.mockImplementation(async (url, opts = {}) => {
             if (opts.method === 'PATCH') return { ok: false, status: 500, json: async () => { throw new Error('no body'); } };
             if (String(url).includes('/grants')) return { ok: true, json: async () => ({ grants: [] }) };
             return { ok: true, json: async () => ({ connections }) };
         });
         render(<ConnectionsManager />);
-        fireEvent.click(await screen.findByText('Set default'));
+        await user.click(await screen.findByText('Set default'));
         expect(await screen.findByRole('alert')).toHaveTextContent('Could not set this as the default');
     });
 
     it('delete asks in the app\'s own dialog and does nothing when declined', async () => {
+        const user = userEvent.setup();
         const confirmSpy = vi.spyOn(window, 'confirm');
         render(<ConnectionsManager />);
         await screen.findByText('Work key');
-        fireEvent.click(screen.getByTitle('Delete'));
+        await user.click(screen.getByTitle('Delete'));
         await screen.findByRole('dialog', { name: 'Delete this connection? Any automation using it will stop working.' });
         expect(confirmSpy).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByTestId('confirm-dialog-cancel'));
+        await user.click(screen.getByTestId('confirm-dialog-cancel'));
         await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
         // The list and grant reads keep landing while the dialog is up; only a DELETE would be wrong.
         expect(authFetch.mock.calls.filter(([, o]) => o?.method === 'DELETE')).toHaveLength(0);
@@ -184,6 +191,7 @@ describe('ConnectionsManager — mutation failures are visible', () => {
     });
 
     it('a 409 on delete asks a second time and does not force when declined', async () => {
+        const user = userEvent.setup();
         // First question (destructive) yes, second (revoke shares) no.
         const deleteUrls = [];
         authFetch.mockImplementation(async (url, opts = {}) => {
@@ -196,11 +204,11 @@ describe('ConnectionsManager — mutation failures are visible', () => {
         });
         render(<ConnectionsManager />);
         await screen.findByText('Work key');
-        fireEvent.click(screen.getByTitle('Delete'));
-        fireEvent.click(await screen.findByTestId('confirm-dialog-confirm'));
+        await user.click(screen.getByTitle('Delete'));
+        await user.click(await screen.findByTestId('confirm-dialog-confirm'));
         await waitFor(() => expect(deleteUrls.length).toBe(1));
         await screen.findByRole('dialog', { name: 'This connection is shared. Delete anyway and revoke all shares?' });
-        fireEvent.click(screen.getByTestId('confirm-dialog-cancel'));
+        await user.click(screen.getByTestId('confirm-dialog-cancel'));
         await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
         expect(deleteUrls.some(u => u.includes('force=1'))).toBe(false);
     });
@@ -216,6 +224,7 @@ describe('ConnectionsManager — mutation failures are visible', () => {
     });
 
     it('shows the grantee email rather than a raw user id', async () => {
+        const user = userEvent.setup();
         authFetch.mockImplementation(async (url) => {
             if (String(url).includes('/grants')) {
                 return {
@@ -233,7 +242,7 @@ describe('ConnectionsManager — mutation failures are visible', () => {
         });
         render(<ConnectionsManager />);
         await screen.findByText('Work key');
-        fireEvent.click(screen.getByTitle('Share'));
+        await user.click(screen.getByTitle('Share'));
         expect(screen.getByText(/sam@acme\.test/)).toBeTruthy();
         expect(screen.queryByText(/8f2c1e64/)).toBeNull();
     });

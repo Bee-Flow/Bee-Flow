@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import ResetPasswordStep from './ResetPasswordStep';
 
@@ -96,11 +97,12 @@ describe('choosing a new password', () => {
 });
 
 describe('after a successful reset', () => {
-    it('confirms and offers the way back to sign in', () => {
+    it('confirms and offers the way back to sign in', async () => {
+        const user = userEvent.setup();
         const { p } = renderStep({ done: true });
         expect(screen.getByText('Your password has been reset. You can now sign in with your new password.')).toBeInTheDocument();
         expect(screen.queryByTestId('reset-new-password')).toBeNull();
-        fireEvent.click(screen.getByText('Go to sign in'));
+        await user.click(screen.getByText('Go to sign in'));
         expect(p.onDone).toHaveBeenCalled();
     });
 });

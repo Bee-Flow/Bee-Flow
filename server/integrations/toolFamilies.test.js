@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * integrations/toolFamilies × core/tools/toolDispatcher: the walk the
  * dispatcher's former if-chain made, now as registered families.

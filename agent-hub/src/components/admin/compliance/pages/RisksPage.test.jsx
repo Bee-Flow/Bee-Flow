@@ -86,11 +86,12 @@ describe('RisksPage — table', () => {
         expect(screen.getByTestId('risk-filter-all').textContent).toMatch(/5/);
     });
 
-    it('filter pills narrow the rows; search matches the title', () => {
+    it('filter pills narrow the rows; search matches the title', async () => {
+        const user = userEvent.setup();
         render(<RisksPage {...pageProps()} />);
-        fireEvent.click(screen.getByTestId('risk-filter-treating'));
+        await user.click(screen.getByTestId('risk-filter-treating'));
         expect(screen.getAllByTestId(/^risk-table-row-/)).toHaveLength(1);
-        fireEvent.click(screen.getByTestId('risk-filter-all'));
+        await user.click(screen.getByTestId('risk-filter-all'));
         fireEvent.change(screen.getByTestId('risk-search'), { target: { value: 'shadow' } });
         expect(screen.getAllByTestId(/^risk-table-row-/).map(r => r.getAttribute('data-testid'))).toEqual(['risk-table-row-3']);
     });
@@ -129,23 +130,25 @@ describe('RisksPage — drawer and create', () => {
         expect(fetchJson).not.toHaveBeenCalled();
     });
 
-    it('an accepted risk shows the who/when stamp instead of the accept button', () => {
+    it('an accepted risk shows the who/when stamp instead of the accept button', async () => {
+        const user = userEvent.setup();
         render(<RisksPage {...pageProps()} />);
-        fireEvent.click(screen.getByTestId('risk-table-row-3'));
+        await user.click(screen.getByTestId('risk-table-row-3'));
         expect(screen.getByTestId('risk-drawer-accepted').textContent).toMatch(/Accepted by T\. Smit on/);
         expect(screen.queryByTestId('risk-drawer-accept')).toBeNull();
     });
 
     it('"Add risk" opens the modal and creates through create(fields); the seed button calls seed()', async () => {
+        const user = userEvent.setup();
         const props = pageProps();
         render(<RisksPage {...props} />);
-        fireEvent.click(screen.getByTestId('risk-add'));
+        await user.click(screen.getByTestId('risk-add'));
         fireEvent.change(screen.getByTestId('risk-create-title'), { target: { value: 'Model drift' } });
         fireEvent.change(screen.getByTestId('risk-create-likelihood'), { target: { value: '2' } });
         fireEvent.change(screen.getByTestId('risk-create-owner'), { target: { value: 'u2' } });
-        fireEvent.click(screen.getByTestId('risk-create-submit'));
+        await user.click(screen.getByTestId('risk-create-submit'));
         await waitFor(() => expect(props.data.risks.create).toHaveBeenCalledWith({ title: 'Model drift', description: undefined, category: 'confidentiality', likelihood: 2, impact: 3, owner_user_id: 'u2' }));
-        fireEvent.click(screen.getByTestId('risk-seed'));
+        await user.click(screen.getByTestId('risk-seed'));
         expect(props.data.risks.seed).toHaveBeenCalled();
     });
 
@@ -165,6 +168,7 @@ describe('RisksPage — drawer and create', () => {
     });
 
     it('with a header owner the page hides its own buttons and opens the modal on headerAction="create"; without hook mutations the legacy routes are used', async () => {
+        const user = userEvent.setup();
         const onHeaderActionHandled = vi.fn();
         const { unmount } = render(<RisksPage {...pageProps({ headerAction: 'create', onHeaderActionHandled })} />);
         expect(screen.queryByTestId('risk-add')).toBeNull();
@@ -176,7 +180,7 @@ describe('RisksPage — drawer and create', () => {
         const bare = pageProps(); const refresh = vi.fn(); bare.data.risks = { risks: RISKS, treatments: [], refresh };
         fetchJson.mockResolvedValue({});
         render(<RisksPage {...bare} />);
-        fireEvent.click(screen.getByTestId('risk-seed'));
+        await user.click(screen.getByTestId('risk-seed'));
         await waitFor(() => expect(fetchJson).toHaveBeenCalled());
         expect(fetchJson.mock.calls[0][0]).toMatch(/\/api\/compliance\/iso\/risks\/seed$/);
         expect(fetchJson.mock.calls[0][1].method).toBe('POST');
@@ -185,18 +189,20 @@ describe('RisksPage — drawer and create', () => {
 });
 
 describe('RisksPage — phone (artboard 1h)', () => {
-    it('the drawer is a right-side modal, not a card pinned over the table', () => {
+    it('the drawer is a right-side modal, not a card pinned over the table', async () => {
+        const user = userEvent.setup();
         render(<RisksPage {...pageProps({ isMobile: true })} />);
-        fireEvent.click(screen.getByTestId('risk-table-card-1'));
+        await user.click(screen.getByTestId('risk-table-card-1'));
         const dialog = document.body.querySelector('[role="dialog"]');
         expect(dialog).not.toBeNull();
         expect(dialog.parentElement.className).toMatch(/\bjustify-end\b/);
         expect(screen.getByTestId('risk-drawer').dataset.mode).toBe('modal');
     });
 
-    it('desktop keeps the inline card', () => {
+    it('desktop keeps the inline card', async () => {
+        const user = userEvent.setup();
         render(<RisksPage {...pageProps()} />);
-        fireEvent.click(screen.getByTestId('risk-table-row-1'));
+        await user.click(screen.getByTestId('risk-table-row-1'));
         expect(document.body.querySelector('[role="dialog"]')).toBeNull();
         expect(screen.getByTestId('risk-drawer').dataset.mode).toBe('inline');
     });

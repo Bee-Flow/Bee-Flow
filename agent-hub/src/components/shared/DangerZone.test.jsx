@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import DangerZone, { inUsePayload } from './DangerZone';
@@ -23,6 +24,7 @@ function arm(props = {}) {
 
 describe('DangerZone — with dependents', () => {
     it('lists them, disables the button until the name is typed, then deletes with confirmedBreaking=true', async () => {
+        const user = userEvent.setup();
         const { onDelete } = arm({ usage: [DEP], currentUserId: 'u1' });
         expect(screen.getByTestId('danger-dependents')).toHaveTextContent(/one thing uses this/i);
         expect(screen.getByText('Nightly sync')).toBeInTheDocument();
@@ -34,14 +36,15 @@ describe('DangerZone — with dependents', () => {
         fireEvent.change(screen.getByLabelText(/type the name/i), { target: { value: 'Customers' } });
         expect(confirm).toBeEnabled();
 
-        fireEvent.click(confirm);
+        await user.click(confirm);
         await waitFor(() => expect(onDelete).toHaveBeenCalledWith(true));
     });
 
-    it('the dependents list follows the shared navigation rule (your own item is a button)', () => {
+    it('the dependents list follows the shared navigation rule (your own item is a button)', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         arm({ usage: [DEP], currentUserId: 'u1', onNavigate });
-        fireEvent.click(screen.getByRole('button', { name: 'Nightly sync' }));
+        await user.click(screen.getByRole('button', { name: 'Nightly sync' }));
         expect(onNavigate).toHaveBeenCalledWith('studio/automations/a1');
     });
 
@@ -63,16 +66,18 @@ describe('DangerZone — with dependents', () => {
 
 describe('DangerZone — without dependents', () => {
     it('says nothing depends on it, needs no name, and deletes with confirmedBreaking=false', async () => {
+        const user = userEvent.setup();
         const { onDelete } = arm({ usage: [] });
         expect(screen.getByTestId('danger-unused')).toBeInTheDocument();
         expect(screen.queryByLabelText(/type the name/i)).toBeNull();
         const confirm = screen.getByRole('button', { name: 'Delete for good' });
         expect(confirm).toBeEnabled();
-        fireEvent.click(confirm);
+        await user.click(confirm);
         await waitFor(() => expect(onDelete).toHaveBeenCalledWith(false));
     });
 
     it('while the list is still unknown (null) it asks for the name and does NOT pre-confirm breaking', async () => {
+        const user = userEvent.setup();
         // The server keeps its guard: a person never confirms breaking
         // something they were not shown.
         const { onDelete } = arm({ usage: null });
@@ -80,27 +85,29 @@ describe('DangerZone — without dependents', () => {
         const confirm = screen.getByRole('button', { name: 'Delete for good' });
         expect(confirm).toBeDisabled();
         fireEvent.change(screen.getByLabelText(/type the name/i), { target: { value: 'Customers' } });
-        fireEvent.click(confirm);
+        await user.click(confirm);
         await waitFor(() => expect(onDelete).toHaveBeenCalledWith(false));
     });
 
     it('requireName keeps the name gate even with no dependents (a table’s rows are data)', async () => {
+        const user = userEvent.setup();
         const { onDelete } = arm({ usage: [], requireName: true });
         expect(screen.getByTestId('danger-unused')).toBeInTheDocument();
         const confirm = screen.getByRole('button', { name: 'Delete for good' });
         expect(confirm).toBeDisabled();
         fireEvent.change(screen.getByLabelText(/type the name/i), { target: { value: 'Customers' } });
         expect(confirm).toBeEnabled();
-        fireEvent.click(confirm);
+        await user.click(confirm);
         await waitFor(() => expect(onDelete).toHaveBeenCalledWith(false));
     });
 
-    it('cancel collapses back to the link and forgets what was typed', () => {
+    it('cancel collapses back to the link and forgets what was typed', async () => {
+        const user = userEvent.setup();
         arm({ usage: [DEP] });
         fireEvent.change(screen.getByLabelText(/type the name/i), { target: { value: 'Customers' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        await user.click(screen.getByRole('button', { name: 'Cancel' }));
         expect(screen.getByRole('button', { name: /delete this table/i })).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: /delete this table/i }));
+        await user.click(screen.getByRole('button', { name: /delete this table/i }));
         expect(screen.getByLabelText(/type the name/i)).toHaveValue('');
     });
 });
@@ -109,13 +116,14 @@ describe('DangerZone — the 409 in_use round trip', () => {
     const SERVER_USAGE = [{ automationId: 'a7', automationTitle: 'Late arrival', automationOwner: 'u1', mode: 'write', columns: ['email'] }];
 
     it('a thrown 409 re-shows the server’s list and asks for the name again', async () => {
+        const user = userEvent.setup();
         const err = Object.assign(new Error('Automations still use this datatable'), { status: 409, code: 'in_use', body: { code: 'in_use', usage: SERVER_USAGE } });
         const onDelete = vi.fn()
             .mockRejectedValueOnce(err)
             .mockResolvedValueOnce({ ok: true });
         arm({ usage: [], onDelete, adapt: adaptDatatableUsageRow, currentUserId: 'u1' });
 
-        fireEvent.click(screen.getByRole('button', { name: 'Delete for good' }));
+        await user.click(screen.getByRole('button', { name: 'Delete for good' }));
         await waitFor(() => expect(onDelete).toHaveBeenCalledWith(false));
 
         // The list the server sent is now on screen, adapted, and the button
@@ -127,23 +135,25 @@ describe('DangerZone — the 409 in_use round trip', () => {
         expect(confirm).toBeDisabled();
 
         fireEvent.change(screen.getByLabelText(/type the name/i), { target: { value: 'Customers' } });
-        fireEvent.click(confirm);
+        await user.click(confirm);
         await waitFor(() => expect(onDelete).toHaveBeenLastCalledWith(true));
         expect(onDelete).toHaveBeenCalledTimes(2);
     });
 
     it('a resolved {code:"in_use", usage} payload is handled the same way', async () => {
+        const user = userEvent.setup();
         const onDelete = vi.fn(async () => ({ code: 'in_use', usage: [DEP] }));
         arm({ usage: [], onDelete });
-        fireEvent.click(screen.getByRole('button', { name: 'Delete for good' }));
+        await user.click(screen.getByRole('button', { name: 'Delete for good' }));
         expect(await screen.findByText('Nightly sync')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Delete for good' })).toBeDisabled();
     });
 
     it('any other failure is shown as text and the button comes back', async () => {
+        const user = userEvent.setup();
         const onDelete = vi.fn(async () => { throw new Error('Could not delete the table'); });
         arm({ usage: [], onDelete });
-        fireEvent.click(screen.getByRole('button', { name: 'Delete for good' }));
+        await user.click(screen.getByRole('button', { name: 'Delete for good' }));
         expect(await screen.findByText('Could not delete the table')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Delete for good' })).toBeEnabled();
     });
@@ -208,10 +218,11 @@ describe('DangerZone — as a dialog body', () => {
         expect(screen.queryByRole('button', { name: /delete this table/i })).toBeNull();
     });
 
-    it('Cancel calls onCancel so the host can close itself', () => {
+    it('Cancel calls onCancel so the host can close itself', async () => {
+        const user = userEvent.setup();
         const onCancel = vi.fn();
         render(<DangerZone entityName="Customers" kindLabel="table" usage={[]} defaultArmed onCancel={onCancel} onDelete={vi.fn()} />);
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        await user.click(screen.getByRole('button', { name: 'Cancel' }));
         expect(onCancel).toHaveBeenCalled();
     });
 });

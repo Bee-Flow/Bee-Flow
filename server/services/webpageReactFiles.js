@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Shared helper: build the esbuild virtual-FS file map + binary asset map for a
  * react-mui webpage from its extra files.

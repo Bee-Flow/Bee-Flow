@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Startup task: keep the Learning Center video pack in LEARN_MEDIA_DIR on the

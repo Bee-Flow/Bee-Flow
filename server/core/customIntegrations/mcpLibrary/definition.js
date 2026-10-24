@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Turning "install this MCP server" into an mcp_remote custom-integration
  * definition, and checking an endpoint before anything is stored.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * License Issuance — Outbound callout to license.beeflow.nl
  *
@@ -78,6 +79,7 @@ async function issueLicenseFromCheckout(args) {
 
     if (!resp.ok || !body.token || !body.license_id) {
         log.error('[License Issuance] license server returned error', resp.status, body);
+        /** @type {Error & { code?: string, httpStatus?: number, responseBody?: any }} */
         const err = new Error(`license_server_error: status=${resp.status}`);
         err.code = 'license_server_error';
         err.httpStatus = resp.status;
@@ -96,6 +98,7 @@ async function issueLicenseFromCheckout(args) {
         log.info(`[License Issuance] ✓ Activated license ${body.license_id} for ${args.scope}=${args.organizationId || args.userId}`);
     } catch (e) {
         log.error('[License Issuance] verifyToken/activateLicense failed:', e.message);
+        /** @type {Error & { code?: string, licenseId?: string }} */
         const err = new Error(`activation_failed: ${e.message}`);
         err.code = 'activation_failed';
         err.licenseId = body.license_id;

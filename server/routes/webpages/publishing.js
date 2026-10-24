@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Publishing and what the public gets to see: the thumbnail and the
  * org/group visibility, with the version that is pinned to it.
@@ -170,11 +171,7 @@ function register(router) {
         // sticks; new org applies on first publish). Undefined → leave as-is.
         const effectiveOrg = wp.organizationId || organizationId || null;
         let cleanedGroups;
-        try {
-            cleanedGroups = await validateSharedGroupsForOrg(effectiveOrg, sharedGroups);
-        } catch (e) {
-            return res.status(e.status || 500).json({ error: e.message });
-        }
+        cleanedGroups = await validateSharedGroupsForOrg(effectiveOrg, sharedGroups);
 
         // ── Pin what the audience reads ─────────────────────────────────
         // Publishing FREEZES the current content; changing the audience does

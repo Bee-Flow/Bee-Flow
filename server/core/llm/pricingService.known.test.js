@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DB-free tests — pricingService.listKnownPricing, the donor list for the estimate of an
  * unknown model. Without a fetched community file only the repo snapshots are there.

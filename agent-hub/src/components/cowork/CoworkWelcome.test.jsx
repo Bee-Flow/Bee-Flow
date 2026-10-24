@@ -8,6 +8,7 @@
  * from the same click.
  */
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import CoworkWelcome, {
@@ -26,13 +27,14 @@ describe('CoworkWelcome', () => {
         expect(screen.getByTestId('composer')).toBeInTheDocument();
     });
 
-    it('a starter fills the box instead of scheduling anything', () => {
+    it('a starter fills the box instead of scheduling anything', async () => {
+        const user = userEvent.setup();
         const onStarterClick = vi.fn();
         render(<CoworkWelcome onStarterClick={onStarterClick} />);
 
         const starters = screen.getAllByTestId('cowork-starter');
         expect(starters).toHaveLength(COWORK_STARTERS.length);
-        fireEvent.click(starters[0]);
+        await user.click(starters[0]);
         expect(onStarterClick).toHaveBeenCalledWith(COWORK_STARTERS[0]);
     });
 

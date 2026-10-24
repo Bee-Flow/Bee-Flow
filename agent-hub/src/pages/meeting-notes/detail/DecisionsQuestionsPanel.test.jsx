@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -29,10 +30,11 @@ describe('DecisionsQuestionsPanel', () => {
         expect(screen.getByText('answered')).toBeTruthy();
     });
 
-    it('seeks on a timestamp chip but renders no chip for junk stamps', () => {
+    it('seeks on a timestamp chip but renders no chip for junk stamps', async () => {
+        const user = userEvent.setup();
         const onSeek = vi.fn();
         render(<DecisionsQuestionsPanel decisions={DECISIONS} questions={[]} onSeek={onSeek} />);
-        fireEvent.click(screen.getByRole('button', { name: /12:30/ }));
+        await user.click(screen.getByRole('button', { name: /12:30/ }));
         expect(onSeek).toHaveBeenCalledWith(750);
         // The empty-timestamp decision has no seek chip at all.
         expect(screen.getAllByRole('button')).toHaveLength(1);

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Meeting notes — what happens to one (M2), and how to undo one thing that did.
  *

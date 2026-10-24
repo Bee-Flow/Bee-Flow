@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * composeTurnMessages — the prefix contract between two turns of one session.
  *

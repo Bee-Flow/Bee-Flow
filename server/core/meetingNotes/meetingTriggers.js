@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The meeting-notes triggers on an automation definition, the payload a
  * `meeting.processed` dispatch would carry for a meeting, and whether a

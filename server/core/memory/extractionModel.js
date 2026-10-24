@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Which model reads a finished exchange for memories, and how hard it works.
  *

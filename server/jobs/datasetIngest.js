@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Dataset ingest — the background half of large-dataset uploads.
  *
@@ -126,7 +127,7 @@ async function rawIsGzip(rawKey) {
 
 /**
  * Ingest one claimed manifest end to end. Exported for tests.
- * @returns {{ok:boolean, error?:string}}
+ * @returns {Promise<{ok:boolean, error?:string}>}
  */
 async function ingestOne(ds) {
     const claimant = ds.claimedBy;
@@ -282,6 +283,7 @@ async function processTick({ mayIngest = null } = {}) {
  * module gate, so removing App Studio in the admin Modules panel stops dataset
  * ingest on a running pod (BFSF-438); the failed-raw sweep keeps running (see
  * processTick). `gate` is a test seam; a bare processTick() stays ungated.
+ * @param {{ gate?: Function }} [opts]
  */
 function start({ gate } = {}) {
     if (_timer) return;

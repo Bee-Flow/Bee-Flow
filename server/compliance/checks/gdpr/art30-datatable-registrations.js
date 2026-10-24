@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR Art. 30(4) — a registered processing has to STAY true.
  *
@@ -37,8 +38,8 @@ const DEFAULT_REVIEW_DAYS = 180;
 
 function defaultDeps() {
     return {
-        getAll: (...a) => require('../../../db').getAll(...a),
-        getTableMeta: (...a) => require('../../../stores/datatableStore').getTableMeta(...a),
+        getAll: (sql, params) => require('../../../db').getAll(sql, params),
+        getTableMeta: (a, b) => require('../../../stores/datatableStore').getTableMeta(a, b),
         countOutside: async (row, meta) => {
             // The SAME query the retention job runs before it deletes
             // (jobs/datatableRetention.js) — `compileSelectOlderThan` with the

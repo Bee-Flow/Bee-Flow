@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Parity: an org's old "Always hide these" terms, migrated to types and run

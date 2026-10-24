@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import AppFileGallery, { formatBytes, iconForMime } from './AppFileGallery';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
@@ -55,10 +56,11 @@ describe('AppFileGallery', () => {
         fetchSpy.mockRestore();
     });
 
-    it('publishes the whole row on click so a preview can redeem it', () => {
+    it('publishes the whole row on click so a preview can redeem it', async () => {
+        const user = userEvent.setup();
         const runAction = vi.fn();
         renderGallery({ ...node(), onRowClick: 'act_pick01' }, { runAction });
-        fireEvent.click(screen.getByText('drawing.pdf').closest('button'));
+        await user.click(screen.getByText('drawing.pdf').closest('button'));
         expect(runAction).toHaveBeenCalledWith('act_pick01', { formValues: ROWS[0], item: ROWS[0] });
     });
 

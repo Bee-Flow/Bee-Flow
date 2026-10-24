@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import SourcesTab from './SourcesTab';
@@ -76,10 +77,11 @@ describe('SourcesTab', () => {
         expect(screen.getByRole('button', { name: 'Actions for Uploaded files' })).toBeTruthy();
     });
 
-    it('opens a source from its row', () => {
+    it('opens a source from its row', async () => {
+        const user = userEvent.setup();
         const onOpen = vi.fn();
         render(<SourcesTab sources={[src()]} onOpen={onOpen} />);
-        fireEvent.click(screen.getByText('Uploaded files'));
+        await user.click(screen.getByText('Uploaded files'));
         expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }));
     });
 

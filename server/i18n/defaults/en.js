@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * English GUI String Defaults — moved to ./en/, one file per namespace
  * (./en/<namespace>.js, merged by ./en/index.js). This file stays so every

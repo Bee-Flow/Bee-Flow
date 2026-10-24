@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -173,6 +174,7 @@ async function recordUsage(ctx, { result, userId, orgId, persona, model, auto, s
  * Store the answer and announce it. Returns the outcome: 'skipped' (the model
  * had nothing to add), 'stale' (a member spoke after the gate read), or
  * 'answered'.
+ * @returns {Promise<{ status: 'answered'|'failed'|'blocked'|'skipped'|'stale', messageId?: string, reason?: string }>}
  */
 async function storeAnswer(ctx, {
     result, made, auto, model, outbound, triggerText, box, chat, project, persona, trigger, threadId,
@@ -191,7 +193,7 @@ async function storeAnswer(ctx, {
 
     const messageId = ctx.newId();
     const { aiMeta, aiTrace } = answerRecord({ model, outbound, triggerText, rawAnswer, box, chatId: chat.id, messageId });
-    if (usedSources.length) aiMeta.usedSources = usedSources;
+    if (usedSources.length) /** @type {Record<string, any>} */ (aiMeta).usedSources = usedSources;
     const saved = await ctx.store().appendMessage({
         id: messageId,
         projectId: project.id,

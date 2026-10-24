@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Pure helpers of the n8n workflow tools (n8nWorkflowTools.js): JSON parameter
  * parsing, node operations, integrity checks and the summaries sent back to the

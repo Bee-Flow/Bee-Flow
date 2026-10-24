@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Bee Flow company-support staff gate: the `admin_support` permission check +
  * acting-org resolution used by routes/support.js (and the auto-assigner's

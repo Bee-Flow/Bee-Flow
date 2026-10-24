@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Feature modules: the few feature-owned modules core code calls, looked up by
  * name instead of required.

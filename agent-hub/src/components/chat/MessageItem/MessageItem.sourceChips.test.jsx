@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 
@@ -108,32 +109,35 @@ describe('C6 — de bron staat onder het antwoord', () => {
 });
 
 describe('C13 — de chip opent de passage', () => {
-    it('opent de overlay met de tekst waar het antwoord op steunt', () => {
+    it('opent de overlay met de tekst waar het antwoord op steunt', async () => {
+        const user = userEvent.setup();
         render(<MessageItem idx={0} msg={msg({ kbSources: [OPEN_SOURCE] })} />);
         expect(overlay()).toBeNull();
 
-        fireEvent.click(screen.getByTestId('citation-chip'));
+        await user.click(screen.getByTestId('citation-chip'));
 
         expect(overlay()).toBeTruthy();
         expect(overlay().textContent).toContain('Bij een huwelijk krijg je twee dagen vrij.');
     });
 
-    it('en gaat weer dicht', () => {
+    it('en gaat weer dicht', async () => {
+        const user = userEvent.setup();
         render(<MessageItem idx={0} msg={msg({ kbSources: [OPEN_SOURCE] })} />);
-        fireEvent.click(screen.getByTestId('citation-chip'));
+        await user.click(screen.getByTestId('citation-chip'));
         // Name stands apart: the overlay borrows `notebooks.close`, and that key says "Close Notebook" in the
         // dictionary (see the note at this stage).
-        fireEvent.click(screen.getAllByRole('button', { name: /close/i })[0]);
+        await user.click(screen.getAllByRole('button', { name: /close/i })[0]);
         expect(overlay()).toBeNull();
     });
 
-    it('BIJT — een aanroeper met een eigen bestemming houdt die', () => {
+    it('BIJT — een aanroeper met een eigen bestemming houdt die', async () => {
+        const user = userEvent.setup();
         // De notebooks vangen de klik zelf op en zetten de passage in hun
         // eigen paneel. Twee overlays over elkaar is geen bestemming.
         const onCitationClick = vi.fn();
         render(<MessageItem idx={0} msg={msg({ kbSources: [OPEN_SOURCE] })} onCitationClick={onCitationClick} />);
 
-        fireEvent.click(screen.getByTestId('citation-chip'));
+        await user.click(screen.getByTestId('citation-chip'));
 
         expect(onCitationClick).toHaveBeenCalledTimes(1);
         expect(onCitationClick.mock.calls[0][0].content).toBe(OPEN_SOURCE.content);
@@ -152,9 +156,10 @@ describe('C13 — onbekende leesbaarheid versmalt naar niet-klikbaar', () => {
         expect(screen.queryByTestId('citation-chip')).toBeNull();
     });
 
-    it('BIJT — klikken doet dan ook niets, in plaats van een leeg paneel', () => {
+    it('BIJT — klikken doet dan ook niets, in plaats van een leeg paneel', async () => {
+        const user = userEvent.setup();
         render(<MessageItem idx={0} msg={msg({ kbSources: [CLOSED_SOURCE] })} />);
-        fireEvent.click(screen.getByTestId('citation-chip-closed'));
+        await user.click(screen.getByTestId('citation-chip-closed'));
         expect(overlay()).toBeNull();
     });
 

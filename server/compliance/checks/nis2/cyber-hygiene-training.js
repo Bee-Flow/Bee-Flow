@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * NIS2 Art. 21(2)(g) + Art. 20(2) — basic cyber-hygiene practices and
  * cybersecurity training.

@@ -1,4 +1,5 @@
 import { render, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, it, expect } from 'vitest';
 import AppInputTextarea from './components/AppInputTextarea';
@@ -37,56 +38,61 @@ function Harness({ initialVars = {} }) {
 }
 
 describe('valueFrom', () => {
-    it('pushes a resolved value into the field', () => {
+    it('pushes a resolved value into the field', async () => {
+        const user = userEvent.setup();
         const { getByText, container } = render(<Harness />);
         const area = container.querySelector('textarea');
         expect(area.value).toBe('');
 
-        fireEvent.click(getByText('draft one'));
+        await user.click(getByText('draft one'));
         expect(container.querySelector('textarea').value).toBe('AI-concept 1');
     });
 
-    it('lets the user edit afterwards without being overwritten', () => {
+    it('lets the user edit afterwards without being overwritten', async () => {
+        const user = userEvent.setup();
         // The field re-renders constantly; if every render re-pushed, the draft
         // would be un-editable — which is worse than having no draft button.
         const { getByText, container } = render(<Harness />);
-        fireEvent.click(getByText('draft one'));
+        await user.click(getByText('draft one'));
         const area = container.querySelector('textarea');
 
         fireEvent.change(area, { target: { value: 'mijn eigen tekst' } });
         expect(container.querySelector('textarea').value).toBe('mijn eigen tekst');
 
         // A re-render with the SAME variable value must leave the edit alone.
-        fireEvent.click(getByText('draft one'));
+        await user.click(getByText('draft one'));
         expect(container.querySelector('textarea').value).toBe('mijn eigen tekst');
     });
 
-    it('a NEW value pushes again', () => {
+    it('a NEW value pushes again', async () => {
+        const user = userEvent.setup();
         const { getByText, container } = render(<Harness />);
-        fireEvent.click(getByText('draft one'));
+        await user.click(getByText('draft one'));
         fireEvent.change(container.querySelector('textarea'), { target: { value: 'handmatig' } });
-        fireEvent.click(getByText('draft two'));
+        await user.click(getByText('draft two'));
         expect(container.querySelector('textarea').value).toBe('AI-concept 2');
     });
 
-    it('an unresolved binding never clears what is typed', () => {
+    it('an unresolved binding never clears what is typed', async () => {
+        const user = userEvent.setup();
         // vars.draft resolving to undefined means "no draft yet", not "empty
         // the composer".
         const { getByText, container } = render(<Harness initialVars={{ draft: 'start' }} />);
         expect(container.querySelector('textarea').value).toBe('start');
         fireEvent.change(container.querySelector('textarea'), { target: { value: 'getypt' } });
-        fireEvent.click(getByText('clear var'));
+        await user.click(getByText('clear var'));
         expect(container.querySelector('textarea').value).toBe('getypt');
     });
 
-    it('a resolved NULL never clears what is typed either', () => {
+    it('a resolved NULL never clears what is typed either', async () => {
+        const user = userEvent.setup();
         // Only `undefined` used to count as "nothing yet". A record column that
         // is NULL — or a variable explicitly set to null — resolves to null, and
         // it landed a frame after the first paint: the composer was wiped
         // mid-sentence while the query the field was waiting on came back empty.
         const { getByText, container } = render(<Harness initialVars={{ draft: 'start' }} />);
         fireEvent.change(container.querySelector('textarea'), { target: { value: 'getypt' } });
-        fireEvent.click(getByText('null var'));
+        await user.click(getByText('null var'));
         expect(container.querySelector('textarea').value).toBe('getypt');
     });
 });

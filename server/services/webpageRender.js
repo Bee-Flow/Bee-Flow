@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * On-demand webpage render + screenshot — powers the `webpage_screenshot` tool
  * so the builder AI can SEE the page it's building (react-mui or vanilla) and
@@ -49,6 +50,7 @@ function injectStubBridges(doc) {
 
 /**
  * Render + screenshot a webpage.
+ * @param {{ webpageId: string, userId: string, viewport?: string|{ width: number, height: number }, fullPage?: boolean }} opts
  * @returns {Promise<{ pngBuffer:Buffer|null, width:number, height:number, framework:string,
  *   consoleErrors:string[], pageErrors:string[], guardPanel:string|null, renderedEmpty:boolean,
  *   buildError:string|null, empty:boolean }>}
@@ -119,6 +121,7 @@ async function captureWebpage({ webpageId, userId, viewport = 'desktop', fullPag
                 // Swallowed so timing never throws.
                 await page.waitForFunction(
                     () => {
+                        const { document } = /** @type {any} */ (globalThis); // runs in the browser page
                         const r = document.getElementById('root');
                         if (!r) return false;
                         if (r.querySelector('[data-beeflow-guard]')) return true; // crash panel shown
@@ -133,6 +136,7 @@ async function captureWebpage({ webpageId, userId, viewport = 'desktop', fullPag
             let guardPanel = null;
             if (framework === 'react-mui') {
                 const info = await page.evaluate(() => {
+                    const { document } = /** @type {any} */ (globalThis); // runs in the browser page
                     const r = document.getElementById('root');
                     if (!r) return { childCount: 0, guardText: null };
                     const g = r.querySelector('[data-beeflow-guard]');

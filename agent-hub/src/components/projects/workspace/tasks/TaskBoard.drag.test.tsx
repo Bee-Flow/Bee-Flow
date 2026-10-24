@@ -1,5 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ProjectTask } from '../../../../api/queries/projectTasks';
 import TaskBoard from './TaskBoard';
@@ -38,9 +39,10 @@ describe('board mouse gestures with the real drag sensors', () => {
         await waitFor(() => expect(onMove).toHaveBeenCalledWith(task, 'done', null));
         expect(onOpen).not.toHaveBeenCalled();
     });
-    it('opens on an ordinary click and does not start dragging from the action menu', () => {
+    it('opens on an ordinary click and does not start dragging from the action menu', async () => {
+        const user = userEvent.setup();
         const { onOpen, onMove } = renderBoard();
-        fireEvent.click(screen.getByRole('button', { name: 'Drag this card' }));
+        await user.click(screen.getByRole('button', { name: 'Drag this card' }));
         expect(onOpen).toHaveBeenCalledOnce();
         fireEvent.mouseDown(screen.getByLabelText('Task actions'), { button: 0, clientX: 80, clientY: 90 });
         fireEvent.mouseMove(document, { clientX: 700, clientY: 200 });

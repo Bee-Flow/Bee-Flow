@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance — the two ISO 27001 statement renders: the Statement of
  * Applicability PDF and the clause 4–10 conformity pack.

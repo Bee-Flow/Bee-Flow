@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The "Find repeating work" routes mounted on a real HTTP server, for the
  * tests next to routes/ai/automationBuilder/suggestions.js. The router comes
@@ -27,7 +28,7 @@ const ORG = 'org-1';
 const pass = (_req, _res, next) => next();
 
 /**
- * @param {import('node:test')} test
+ * @param {typeof import('node:test')} test
  * @param {Function} router
  * @param {{ prefix?: string, errorHandler: Function }} opts
  */

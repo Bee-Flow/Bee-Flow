@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR Art. 35 — Data Protection Impact Assessment for high-risk processing.
  *

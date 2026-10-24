@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — VIEWER ROLE RESOLUTION, over the shared access-filter compiler.
  *

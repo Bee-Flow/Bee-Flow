@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
+import { render, screen, cleanup, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -166,26 +166,28 @@ describe('NodeDetailView i18n — the Incoming / Continues-on column toggles', (
     // Both columns start open, so the first render shows the "Hide" half and
     // one click on each shows the "Show" half.
     it('names both halves in English, on title and aria-label alike', async () => {
+        const user = userEvent.setup();
         await mount(gmailStep());
         const incoming = screen.getByRole('button', { name: 'Hide input' });
         const continues = screen.getByRole('button', { name: 'Hide output' });
         expect(incoming.getAttribute('title')).toBe('Hide input');
         expect(continues.getAttribute('title')).toBe('Hide output');
-        fireEvent.click(incoming);
-        fireEvent.click(continues);
+        await user.click(incoming);
+        await user.click(continues);
         expect(screen.getByRole('button', { name: 'Show input' }).getAttribute('title')).toBe('Show input');
         expect(screen.getByRole('button', { name: 'Show output' }).getAttribute('title')).toBe('Show output');
     });
 
     it('translates all four halves', async () => {
+        const user = userEvent.setup();
         transOverride.current = NL;
         await mount(gmailStep());
         const incoming = screen.getByRole('button', { name: 'Invoer verbergen' });
         const continues = screen.getByRole('button', { name: 'Uitvoer verbergen' });
         expect(incoming.getAttribute('title')).toBe('Invoer verbergen');
         expect(continues.getAttribute('title')).toBe('Uitvoer verbergen');
-        fireEvent.click(incoming);
-        fireEvent.click(continues);
+        await user.click(incoming);
+        await user.click(continues);
         expect(screen.getByRole('button', { name: 'Invoer tonen' }).getAttribute('title')).toBe('Invoer tonen');
         expect(screen.getByRole('button', { name: 'Uitvoer tonen' }).getAttribute('title')).toBe('Uitvoer tonen');
         expect(screen.queryByRole('button', { name: 'Hide input' })).toBeNull();

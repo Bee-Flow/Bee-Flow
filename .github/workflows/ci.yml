@@ -165,6 +165,8 @@ jobs:
               - 'server/utils/stableJson.js'
               # the logger every server file mobile reads may require (catch blocks log at debug)
               - 'server/telemetry/log.js'
+              # required by server/telemetry/log.js (log-safe stand-ins for user content)
+              - 'server/telemetry/logSafe.js'
               - 'server/shared/appDefinition/{sectionStyle,ids,variables}.mjs'
               - 'server/stores/agent/{agentTools,directConversations,initSchema,initSchema.base,initSchema.agents}.js'
               - 'server/stores/automationStore/rowMappers.js'

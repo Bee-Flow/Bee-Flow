@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * privacy_scan_knowledge_bases in the agent tool loop (toolRoundExecutor).
  *

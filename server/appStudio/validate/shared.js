@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio validator — helpers shared by the validate/ modules.
  */

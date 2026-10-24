@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DatatableDetail from './DatatableDetail';
@@ -76,6 +77,7 @@ describe('the vocabulary', () => {
 
 describe('<DatatableDetail> for a form-answers table', () => {
     it('opens on the Dashboard tab, keeps Retention, and links to the form', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         renderDetail(TABLE, { onNavigate });
         const dash = await screen.findByTestId('dash-stub');
@@ -83,7 +85,7 @@ describe('<DatatableDetail> for a form-answers table', () => {
         const tabs = screen.getAllByRole('radio', { name: /Dashboard|Columns|Rows|Retention|Data|Sharing|Used by|Nextcloud|Spreadsheet/ }).map(el => el.textContent);
         expect(tabs[0]).toContain('Dashboard');
         expect(tabs.some(x => /Retention|Data/.test(x))).toBe(true);
-        fireEvent.click(screen.getByTestId('open-form'));
+        await user.click(screen.getByTestId('open-form'));
         expect(onNavigate).toHaveBeenCalledWith('studio/forms/au1');
     });
 
@@ -93,9 +95,10 @@ describe('<DatatableDetail> for a form-answers table', () => {
     });
 
     it('Columns: locked with per-question hints; only the retired column can be removed, after a confirm', async () => {
+        const user = userEvent.setup();
         renderDetail();
         await screen.findByTestId('dash-stub');
-        fireEvent.click(screen.getByRole('radio', { name: /Columns/ }));
+        await user.click(screen.getByRole('radio', { name: /Columns/ }));
         expect(await screen.findByText(/These columns are the questions on the form/)).toBeTruthy();
         expect(screen.getByText(/from the form · Your e-mail/)).toBeTruthy();
         expect(screen.getByText(/no longer on the form · Subscribe to updates\?/)).toBeTruthy();
@@ -104,26 +107,28 @@ describe('<DatatableDetail> for a form-answers table', () => {
         expect(screen.queryByRole('button', { name: /Save columns/ })).toBeNull();
         const removes = screen.getAllByTestId('remove-retired');
         expect(removes.length).toBe(1);
-        fireEvent.click(removes[0]);
+        await user.click(removes[0]);
         expect(await screen.findByText('Remove the column “Subscribe to updates?”?')).toBeTruthy();
-        fireEvent.click(screen.getByRole('button', { name: 'Remove the column' }));
+        await user.click(screen.getByRole('button', { name: 'Remove the column' }));
         await waitFor(() => expect(datatablesApi.removeAnswersColumn).toHaveBeenCalledWith('tbl_a', 'fld_fa3bol', { confirmBreaking: true }));
         expect(datatablesApi.putSchema).not.toHaveBeenCalled();
     });
 
     it('a viewer sees the hints but no remove button', async () => {
+        const user = userEvent.setup();
         renderDetail({ ...TABLE, grade: 'viewer' });
         await screen.findByTestId('dash-stub');
-        fireEvent.click(screen.getByRole('radio', { name: /Columns/ }));
+        await user.click(screen.getByRole('radio', { name: /Columns/ }));
         expect(await screen.findByText(/no longer on the form · Subscribe to updates\?/)).toBeTruthy();
         expect(screen.queryByTestId('remove-retired')).toBeNull();
     });
 
     it('the danger zone says the form stays and stops collecting', async () => {
+        const user = userEvent.setup();
         renderDetail();
         await screen.findByTestId('dash-stub');
-        fireEvent.click(screen.getByRole('button', { name: /More about this table/ }));
-        fireEvent.click(await screen.findByRole('menuitem', { name: /Delete this table/ }));
+        await user.click(screen.getByRole('button', { name: /More about this table/ }));
+        await user.click(await screen.findByRole('menuitem', { name: /Delete this table/ }));
         expect(await screen.findByText(/the form stays and stops collecting/)).toBeTruthy();
     });
 });

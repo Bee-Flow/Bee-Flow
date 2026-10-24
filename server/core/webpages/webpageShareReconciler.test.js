@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The reconciler, reversed: a table changes, a public page must follow.
  *

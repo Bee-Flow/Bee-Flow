@@ -1,4 +1,5 @@
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ReactFlowProvider } from '@xyflow/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import CallStepNode from './CallStepNode';
@@ -89,10 +90,11 @@ describe('CallStepNode — what the Step is for', () => {
 describe('CallStepNode — the drill-in', () => {
     beforeEach(cleanup);
 
-    it('still opens the Step in its own builder', () => {
+    it('still opens the Step in its own builder', async () => {
+        const user = userEvent.setup();
         const onOpenBlock = vi.fn();
         renderNode({ rt: { onOpenBlock } });
-        fireEvent.click(screen.getByRole('button', { name: /open step/i }));
+        await user.click(screen.getByRole('button', { name: /open step/i }));
         expect(onOpenBlock).toHaveBeenCalledWith('b1');
     });
 });

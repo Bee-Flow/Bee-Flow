@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Art-44 assessment by location state: outside fails unattested, via_network
  * warns at most, unknown is not a transfer but warns above 5 % of the calls.

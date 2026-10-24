@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The legacy-fallback switch: the new name wins, the old one still counts.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Pure helper utilities for automation definition validation (§WS5).
  *

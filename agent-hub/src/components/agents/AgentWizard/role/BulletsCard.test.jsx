@@ -7,6 +7,7 @@
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/role/BulletsCard.test.jsx
  */
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 import BulletsCard from './BulletsCard';
@@ -70,10 +71,11 @@ describe('BulletsCard — de lijst', () => {
 });
 
 describe('BulletsCard — toevoegen, bewerken, verwijderen', () => {
-    it('geeft een nieuwe regel door aan de ouder', () => {
+    it('geeft een nieuwe regel door aan de ouder', async () => {
+        const user = userEvent.setup();
         const onAdd = vi.fn(() => null);
         render(<BulletsCard t={t} variant="does" items={[]} onAdd={onAdd} />);
-        fireEvent.click(screen.getByTestId('agent-role-bullet-add'));
+        await user.click(screen.getByTestId('agent-role-bullet-add'));
         const input = screen.getByTestId('agent-role-bullet-add-input');
         fireEvent.change(input, { target: { value: 'Look up quotes' } });
         fireEvent.keyDown(input, { key: 'Enter' });
@@ -81,9 +83,10 @@ describe('BulletsCard — toevoegen, bewerken, verwijderen', () => {
         expect(screen.getByTestId('agent-role-bullet-add')).toBeTruthy();
     });
 
-    it('vertelt waarom een dubbele regel niet verschijnt, in plaats van hem te laten verdampen', () => {
+    it('vertelt waarom een dubbele regel niet verschijnt, in plaats van hem te laten verdampen', async () => {
+        const user = userEvent.setup();
         render(<BulletsCard t={t} variant="does" items={['One']} onAdd={() => 'duplicate'} />);
-        fireEvent.click(screen.getByTestId('agent-role-bullet-add'));
+        await user.click(screen.getByTestId('agent-role-bullet-add'));
         const input = screen.getByTestId('agent-role-bullet-add-input');
         fireEvent.change(input, { target: { value: 'one' } });
         fireEvent.keyDown(input, { key: 'Enter' });
@@ -92,19 +95,21 @@ describe('BulletsCard — toevoegen, bewerken, verwijderen', () => {
         expect(screen.getByTestId('agent-role-bullet-add-input').value).toBe('one');
     });
 
-    it('vertelt dat twintig het maximum is', () => {
+    it('vertelt dat twintig het maximum is', async () => {
+        const user = userEvent.setup();
         render(<BulletsCard t={t} variant="does" items={[]} onAdd={() => 'full'} />);
-        fireEvent.click(screen.getByTestId('agent-role-bullet-add'));
+        await user.click(screen.getByTestId('agent-role-bullet-add'));
         const input = screen.getByTestId('agent-role-bullet-add-input');
         fireEvent.change(input, { target: { value: 'x' } });
         fireEvent.keyDown(input, { key: 'Enter' });
         expect(screen.getByTestId('agent-role-bullet-rejected').textContent).toMatch(/Twenty lines is the maximum/i);
     });
 
-    it('laat Escape de invoer afbreken zonder de ouder te storen', () => {
+    it('laat Escape de invoer afbreken zonder de ouder te storen', async () => {
+        const user = userEvent.setup();
         const onAdd = vi.fn(() => null);
         render(<BulletsCard t={t} variant="does" items={[]} onAdd={onAdd} />);
-        fireEvent.click(screen.getByTestId('agent-role-bullet-add'));
+        await user.click(screen.getByTestId('agent-role-bullet-add'));
         const input = screen.getByTestId('agent-role-bullet-add-input');
         fireEvent.change(input, { target: { value: 'oops' } });
         fireEvent.keyDown(input, { key: 'Escape' });
@@ -112,29 +117,32 @@ describe('BulletsCard — toevoegen, bewerken, verwijderen', () => {
         expect(screen.getByTestId('agent-role-bullet-add')).toBeTruthy();
     });
 
-    it('bewerkt een bestaande regel op index', () => {
+    it('bewerkt een bestaande regel op index', async () => {
+        const user = userEvent.setup();
         const onEdit = vi.fn();
         render(<BulletsCard t={t} variant="does" items={['One', 'Two']} onEdit={onEdit} />);
-        fireEvent.click(screen.getAllByTestId('agent-role-bullet-text')[1]);
+        await user.click(screen.getAllByTestId('agent-role-bullet-text')[1]);
         const input = screen.getByTestId('agent-role-bullet-input');
         fireEvent.change(input, { target: { value: 'Two and a half' } });
         fireEvent.keyDown(input, { key: 'Enter' });
         expect(onEdit).toHaveBeenCalledWith(1, 'Two and a half');
     });
 
-    it('verwijdert op index', () => {
+    it('verwijdert op index', async () => {
+        const user = userEvent.setup();
         const onRemove = vi.fn();
         render(<BulletsCard t={t} variant="does" items={['One', 'Two']} onRemove={onRemove} />);
-        fireEvent.click(screen.getAllByTestId('agent-role-bullet-remove')[0]);
+        await user.click(screen.getAllByTestId('agent-role-bullet-remove')[0]);
         expect(onRemove).toHaveBeenCalledWith(0);
     });
 
-    it('zegt het als een BEWERKING geweigerd wordt, en houdt het veld open', () => {
+    it('zegt het als een BEWERKING geweigerd wordt, en houdt het veld open', async () => {
+        const user = userEvent.setup();
         // Editing a rule to something that is already in the list let two in and one out. `editBullet` returns `'duplicate'` for that.
         // Here that reason appears on the screen, instead of an empty space.
         const onEdit = vi.fn(() => 'duplicate');
         render(<BulletsCard t={t} variant="does" items={['One', 'Two']} onEdit={onEdit} />);
-        fireEvent.click(screen.getAllByTestId('agent-role-bullet-text')[1]);
+        await user.click(screen.getAllByTestId('agent-role-bullet-text')[1]);
         const input = screen.getByTestId('agent-role-bullet-input');
         fireEvent.change(input, { target: { value: 'one' } });
         fireEvent.keyDown(input, { key: 'Enter' });
@@ -143,13 +151,14 @@ describe('BulletsCard — toevoegen, bewerken, verwijderen', () => {
         expect(screen.getByTestId('agent-role-bullet-input')).toBeTruthy();
     });
 
-    it('beide invoervelden staan op de grens van de server', () => {
+    it('beide invoervelden staan op de grens van de server', async () => {
+        const user = userEvent.setup();
         // Without `maxLength`, `_list` in personaPrompt.js silently cuts a rule of 400 characters off at 300. That is the
         // truncation that this card must prevent.
         render(<BulletsCard t={t} variant="does" items={['One']} onAdd={() => null} onEdit={() => null} />);
-        fireEvent.click(screen.getByTestId('agent-role-bullet-add'));
+        await user.click(screen.getByTestId('agent-role-bullet-add'));
         expect(screen.getByTestId('agent-role-bullet-add-input').maxLength).toBe(PERSONA_LIMITS.bullet);
-        fireEvent.click(screen.getAllByTestId('agent-role-bullet-text')[0]);
+        await user.click(screen.getAllByTestId('agent-role-bullet-text')[0]);
         expect(screen.getByTestId('agent-role-bullet-input').maxLength).toBe(PERSONA_LIMITS.bullet);
     });
 });

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * routes/automation/actions.js — duplicate, save as template, the description
  * suggestion and the header counts, over a real Express app with every

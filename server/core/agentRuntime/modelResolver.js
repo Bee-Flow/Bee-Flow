@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Model resolution — resolves tier-based model configs to actual model IDs
  */

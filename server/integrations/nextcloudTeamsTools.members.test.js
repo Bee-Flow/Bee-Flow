@@ -1,3 +1,4 @@
+// @typecheck
 /** Teams: add_members reports per user what really happened. */
 const test = require('node:test');
 const assert = require('node:assert/strict');

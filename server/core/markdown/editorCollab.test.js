@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Smoke test of the generated co-editing bundle (editorCollab.cjs, built from
  * agent-hub/src/editor/collab/serverEntry.ts by `npm run build:editor-collab`).

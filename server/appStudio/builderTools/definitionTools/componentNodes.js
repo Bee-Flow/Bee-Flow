@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — building ONE component node (recursively, for a
  * container) out of a batch entry: the vocabulary of keys an entry may carry,

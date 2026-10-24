@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Human-readable diff between two automation definitions.
  *

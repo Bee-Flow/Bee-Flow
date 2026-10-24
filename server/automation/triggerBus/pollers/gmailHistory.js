@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Paginated Gmail history walk shared by the gmail pollers (mail.new,
  * label.added) in ./gmail.js.

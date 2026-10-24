@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Build it with AI" — draft or revise a datatable's columns from a brief.
  * (Studio → Datatables, Sep 2026; the form twin is routes/automation/formsAi.js.)

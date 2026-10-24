@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Rate limiters for the App Studio action-run bridge (server/routes/studioAppsRun.js).
  *

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -85,20 +86,22 @@ describe('toestand 1 — leeg', () => {
         expect(screen.getByTestId('studio-ai-submit').disabled).toBe(false);
     });
 
-    it('een lege beschrijving vraagt niets aan de router', () => {
+    it('een lege beschrijving vraagt niets aan de router', async () => {
+        const user = userEvent.setup();
         renderPanel();
-        fireEvent.click(screen.getByTestId('studio-ai-submit'));
+        await user.click(screen.getByTestId('studio-ai-submit'));
         expect(routeMock).not.toHaveBeenCalled();
     });
 });
 
 describe('toestand 2 — bezig', () => {
     it('laat zien dat het bezig is, houdt de tekst leesbaar en de knop uit', async () => {
+        const user = userEvent.setup();
         let resolve;
         routeMock.mockImplementation(() => new Promise((r) => { resolve = r; }));
         renderPanel();
         type('stuur elke maandag een rapport');
-        fireEvent.click(screen.getByTestId('studio-ai-submit'));
+        await user.click(screen.getByTestId('studio-ai-submit'));
         await waitFor(() => expect(screen.getByTestId('studio-ai-busy')).toBeTruthy());
         expect(screen.getByTestId('studio-ai-input').value).toBe('stuur elke maandag een rapport');
         expect(screen.getByTestId('studio-ai-submit').disabled).toBe(true);
@@ -111,10 +114,11 @@ describe('toestand 2 — bezig', () => {
     // say so — for example because the fetch layer itself aborts. Both must not
     // put an error message on the screen.
     it('een AbortError van de router is geen fout op het scherm', async () => {
+        const user = userEvent.setup();
         routeMock.mockRejectedValue(Object.assign(new Error('aborted'), { name: 'AbortError' }));
         renderPanel();
         type('een agent voor offertes');
-        fireEvent.click(screen.getByTestId('studio-ai-submit'));
+        await user.click(screen.getByTestId('studio-ai-submit'));
         await waitFor(() => expect(screen.queryByTestId('studio-ai-busy')).toBe(null));
         expect(screen.queryByTestId('studio-ai-error')).toBe(null);
         expect(screen.queryByTestId('studio-ai-plan')).toBe(null);
@@ -122,6 +126,7 @@ describe('toestand 2 — bezig', () => {
     });
 
     it('annuleren breekt het verzoek af, verzint geen fout en houdt de brief', async () => {
+        const user = userEvent.setup();
         let signal = null;
         routeMock.mockImplementation((text, opts) => new Promise((_res, rej) => {
             signal = opts.signal;
@@ -129,9 +134,9 @@ describe('toestand 2 — bezig', () => {
         }));
         renderPanel();
         type('een agent voor offertes');
-        fireEvent.click(screen.getByTestId('studio-ai-submit'));
+        await user.click(screen.getByTestId('studio-ai-submit'));
         await waitFor(() => expect(screen.getByTestId('studio-ai-cancel')).toBeTruthy());
-        fireEvent.click(screen.getByTestId('studio-ai-cancel'));
+        await user.click(screen.getByTestId('studio-ai-cancel'));
         await waitFor(() => expect(screen.queryByTestId('studio-ai-busy')).toBe(null));
         expect(signal.aborted).toBe(true);
         expect(screen.queryByTestId('studio-ai-error')).toBe(null);
@@ -167,9 +172,10 @@ describe('toestand 3 — de schema-kaart', () => {
     });
 
     it('"Maak dit" maakt ALLEEN de hoofdsoort aan — de metgezel niet (H4b)', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         await showPlan({ kind: 'agent', companions: [{ kind: 'kb', name: 'Offertes' }] }, { onNavigate });
-        fireEvent.click(screen.getByTestId('studio-ai-create'));
+        await user.click(screen.getByTestId('studio-ai-create'));
         await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('studio/agents'));
         expect(onNavigate).toHaveBeenCalledTimes(1);
         expect(onNavigate).not.toHaveBeenCalledWith('studio/knowledge/new');
@@ -177,18 +183,20 @@ describe('toestand 3 — de schema-kaart', () => {
     });
 
     it('draagt de naam mee naar de bouwer die er iets mee doet, en parkeert de brief', async () => {
+        const user = userEvent.setup();
         fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ automation: { id: 'a7' } }), text: async () => '' });
         const onNavigate = vi.fn();
         await showPlan({}, { onNavigate });
-        fireEvent.click(screen.getByTestId('studio-ai-create'));
+        await user.click(screen.getByTestId('studio-ai-create'));
         await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('studio/automations/a7'));
         expect(JSON.parse(fetchMock.mock.calls[0][1].body).title).toBe('Weekrapport');
         expect(takeSeed('automation')).toBe('stuur elke maandag een rapport');
     });
 
     it('"Iets anders" brengt je terug naar het veld met de brief er nog in', async () => {
+        const user = userEvent.setup();
         await showPlan();
-        fireEvent.click(screen.getByTestId('studio-ai-other'));
+        await user.click(screen.getByTestId('studio-ai-other'));
         expect(screen.queryByTestId('studio-ai-plan')).toBe(null);
         expect(screen.getByTestId('studio-ai-input').value).toBe('stuur elke maandag een rapport');
     });
@@ -209,12 +217,13 @@ describe('zaaien-eerlijkheid', () => {
     };
 
     it('een soort die de brief niet meeneemt toont hem met een kopieerknop', async () => {
+        const user = userEvent.setup();
         await showPlan({ kind: 'kb', name: 'Offertes', seed: 'alles over onze offertes' });
         expect(screen.getByTestId('studio-ai-seed-text').textContent).toBe('alles over onze offertes');
         expect(screen.getByText(/paste it into the assistant/i)).toBeTruthy();
         const writeText = vi.fn().mockResolvedValue(undefined);
         Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
-        fireEvent.click(screen.getByTestId('studio-ai-copy'));
+        await user.click(screen.getByTestId('studio-ai-copy'));
         await waitFor(() => expect(writeText).toHaveBeenCalledWith('alles over onze offertes'));
     });
 
@@ -294,10 +303,11 @@ describe('onleesbare poorten staan op de kaart', () => {
     });
 
     it('ook een gelockte kaart vertelt wat er niet te lezen viel', async () => {
+        const user = userEvent.setup();
         routeMock.mockResolvedValue(plan({ kind: 'app', name: 'Offertehulp', available: ['app'], undecided: ['skill'] }));
         render(<DescribeItPanel sections={allOpen().map((s) => (s.id === 'apps' ? { ...s, locked: 'ceiling' } : s))} onNavigate={vi.fn()} />);
         type('een app voor offertes');
-        fireEvent.click(screen.getByTestId('studio-ai-submit'));
+        await user.click(screen.getByTestId('studio-ai-submit'));
         await waitFor(() => expect(screen.getByTestId('studio-ai-plan')).toBeTruthy());
         expect(screen.getByTestId('studio-ai-undecided').textContent).toMatch(/Skill/);
         expect(screen.getByTestId('studio-ai-create').disabled).toBe(true);
@@ -355,10 +365,11 @@ describe('fouten — nooit stilletjes een soort kiezen', () => {
     });
 
     it('een omgevallen router laat het scherm niet omvallen', async () => {
+        const user = userEvent.setup();
         routeMock.mockRejectedValue(new Error('boom'));
         renderPanel();
         type('doe iets');
-        fireEvent.click(screen.getByTestId('studio-ai-submit'));
+        await user.click(screen.getByTestId('studio-ai-submit'));
         await waitFor(() => expect(screen.getByTestId('studio-ai-error').textContent).toMatch(/could not read that/i));
     });
 });
@@ -367,25 +378,27 @@ describe('de tweede rem — een soort die deze lezer niet mag', () => {
     const lockedSections = () => allOpen().map((s) => (s.id === 'apps' ? { ...s, locked: 'ceiling' } : s));
 
     it('toont de kaart met de lock-hint en zonder actieve knop', async () => {
+        const user = userEvent.setup();
         routeMock.mockResolvedValue(plan({ kind: 'app', name: 'Offertehulp' }));
         const onNavigate = vi.fn();
         render(<DescribeItPanel sections={lockedSections()} onNavigate={onNavigate} />);
         type('een app voor offertes');
-        fireEvent.click(screen.getByTestId('studio-ai-submit'));
+        await user.click(screen.getByTestId('studio-ai-submit'));
         await waitFor(() => expect(screen.getByTestId('studio-ai-plan')).toBeTruthy());
         expect(screen.getByTestId('studio-ai-lock').textContent).toMatch(/available on a higher plan/i);
         expect(screen.getByTestId('studio-ai-create').disabled).toBe(true);
-        fireEvent.click(screen.getByTestId('studio-ai-create'));
+        await user.click(screen.getByTestId('studio-ai-create'));
         expect(onNavigate).not.toHaveBeenCalled();
         expect(screen.queryByTestId('studio-ai-seed')).toBe(null);
     });
 
     it('staat de soort niet in de eigen available-lijst van de server, dan telt dat ook', async () => {
+        const user = userEvent.setup();
         routeMock.mockResolvedValue(plan({ kind: 'agent', available: ['kb', 'automation'] }));
         const onNavigate = vi.fn();
         renderPanel({ onNavigate });
         type('een agent');
-        fireEvent.click(screen.getByTestId('studio-ai-submit'));
+        await user.click(screen.getByTestId('studio-ai-submit'));
         await waitFor(() => expect(screen.getByTestId('studio-ai-plan')).toBeTruthy());
         expect(screen.getByTestId('studio-ai-create').disabled).toBe(true);
         expect(screen.getByTestId('studio-ai-lock')).toBeTruthy();
@@ -407,13 +420,14 @@ describe('twee omhulsels, één scherm', () => {
     });
 
     it('sluit het omhulsel zodra er echt iets is aangemaakt', async () => {
+        const user = userEvent.setup();
         const onClose = vi.fn();
         routeMock.mockResolvedValue(plan({ kind: 'kb' }));
         render(<DescribeItPanel sections={allOpen()} onNavigate={vi.fn()} variant="modal" open onClose={onClose} />);
         type('een kennisbank');
-        fireEvent.click(screen.getByTestId('studio-ai-submit'));
+        await user.click(screen.getByTestId('studio-ai-submit'));
         await waitFor(() => expect(screen.getByTestId('studio-ai-plan')).toBeTruthy());
-        fireEvent.click(screen.getByTestId('studio-ai-create'));
+        await user.click(screen.getByTestId('studio-ai-create'));
         await waitFor(() => expect(onClose).toHaveBeenCalled());
     });
 });

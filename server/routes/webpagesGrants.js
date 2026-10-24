@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage bridge-grant routes — owner-only REST surface for the SAME grants
  * the studio AI manages through webpageBridgeTools (both delegate to

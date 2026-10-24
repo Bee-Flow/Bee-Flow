@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Transcriptions: intake steps of POST / (upload).
  *
@@ -138,7 +139,7 @@ async function persistUploadAudio(file, userId, fileName) {
         // while this pod still holds it. But it must be loud — on a deploy
         // with no persistent volume this is the window in which a recording
         // can be lost for good.
-        log.error(`[Transcriptions] No durable audio copy for upload "${fileName}" (${persisted.reason}) — queued for repair`);
+        log.error(`[Transcriptions] No durable audio copy for upload "${log.nameForLog(fileName)}" (${persisted.reason}) — queued for repair`);
     }
     return { savedAudioPath, audioStorageKey };
 }

@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
@@ -132,10 +133,11 @@ describe('WebpageAudiencePanel', () => {
     });
 
     it('asks which columns may go out, with nothing ticked to begin with', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(response(model()));
         render(<WebpageAudiencePanel webpageId="wp1" />);
 
-        fireEvent.click(await screen.findByTestId('public-toggle'));
+        await user.click(await screen.findByTestId('public-toggle'));
 
         expect(await screen.findByText('What may leave this page?')).toBeInTheDocument();
         expect(screen.getByText('Prijzen')).toBeInTheDocument();
@@ -148,13 +150,14 @@ describe('WebpageAudiencePanel', () => {
     });
 
     it('sends ONLY the ticked columns, and the unticked ones not at all', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValueOnce(response(model()));
         authFetch.mockResolvedValueOnce(response(model({ public: { ...MODEL.public, on: true } })));
         render(<WebpageAudiencePanel webpageId="wp1" />);
 
-        fireEvent.click(await screen.findByTestId('public-toggle'));
-        fireEvent.click(await screen.findByLabelText('naam'));
-        fireEvent.click(screen.getByTestId('gate-confirm'));
+        await user.click(await screen.findByTestId('public-toggle'));
+        await user.click(await screen.findByLabelText('naam'));
+        await user.click(screen.getByTestId('gate-confirm'));
 
         await waitFor(() => expect(authFetch).toHaveBeenCalledTimes(2));
         const [url, init] = authFetch.mock.calls[1];
@@ -166,12 +169,13 @@ describe('WebpageAudiencePanel', () => {
     });
 
     it('publishes straight away when there is no table to ask about', async () => {
+        const user = userEvent.setup();
         const noTables = model({ columnGate: { tables: [], anyBound: false, sharingCount: 0 } });
         authFetch.mockResolvedValueOnce(response(noTables));
         authFetch.mockResolvedValueOnce(response({ ...noTables, public: { ...MODEL.public, on: true } }));
         render(<WebpageAudiencePanel webpageId="wp1" />);
 
-        fireEvent.click(await screen.findByTestId('public-toggle'));
+        await user.click(await screen.findByTestId('public-toggle'));
 
         await waitFor(() => expect(authFetch).toHaveBeenCalledTimes(2));
         expect(JSON.parse(authFetch.mock.calls[1][1].body).publicColumns).toEqual({});
@@ -179,6 +183,7 @@ describe('WebpageAudiencePanel', () => {
     });
 
     it('an already-public page can still reach the gate, opened on its CURRENT choice', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(response(model({
             public: { ...MODEL.public, on: true },
             columnGate: {
@@ -188,13 +193,14 @@ describe('WebpageAudiencePanel', () => {
         })));
         render(<WebpageAudiencePanel webpageId="wp1" />);
 
-        fireEvent.click(await screen.findByTestId('public-columns'));
+        await user.click(await screen.findByTestId('public-columns'));
         expect(await screen.findByText('What may leave this page?')).toBeInTheDocument();
         expect(screen.getByLabelText('naam').checked).toBe(true);
         expect(screen.getByLabelText('inkoop').checked).toBe(false);
     });
 
     it('"Apply" under All options keeps the column choice instead of wiping it', async () => {
+        const user = userEvent.setup();
         // The pitfall: `publicColumns` ALWAYS goes along in the request, and the server
         // reads a missing table as zero columns. Whoever only adjusts the expiry date
         // must not, unnoticed, empty the public table with it.
@@ -208,8 +214,8 @@ describe('WebpageAudiencePanel', () => {
         authFetch.mockResolvedValueOnce(response(model({ public: { ...MODEL.public, on: true } })));
         render(<WebpageAudiencePanel webpageId="wp1" />);
 
-        fireEvent.click(await screen.findByTestId('address-options-toggle'));
-        fireEvent.click(screen.getByTestId('address-options-save'));
+        await user.click(await screen.findByTestId('address-options-toggle'));
+        await user.click(screen.getByTestId('address-options-save'));
 
         await waitFor(() => expect(authFetch).toHaveBeenCalledTimes(2));
         expect(JSON.parse(authFetch.mock.calls[1][1].body).publicColumns)
@@ -239,12 +245,13 @@ describe('WebpageAudiencePanel', () => {
     });
 
     it('keeps password and email under "All options", and warns that changing them replaces the link', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(response(model()));
         render(<WebpageAudiencePanel webpageId="wp1" />);
 
         expect(screen.queryByText(/Only these email addresses/)).not.toBeInTheDocument();
-        fireEvent.click(await screen.findByTestId('address-options-toggle'));
-        fireEvent.click(screen.getByLabelText('Only these email addresses'));
+        await user.click(await screen.findByTestId('address-options-toggle'));
+        await user.click(screen.getByLabelText('Only these email addresses'));
 
         expect(screen.getByText(/Email addresses, one per line/)).toBeInTheDocument();
         expect(screen.getByText(/replaces the underlying link/)).toBeInTheDocument();
@@ -252,11 +259,12 @@ describe('WebpageAudiencePanel', () => {
     });
 
     it('turning Public off sends on:false and nothing else', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValueOnce(response(model({ public: { ...MODEL.public, on: true } })));
         authFetch.mockResolvedValueOnce(response(model()));
         render(<WebpageAudiencePanel webpageId="wp1" />);
 
-        fireEvent.click(await screen.findByText('Turn off'));
+        await user.click(await screen.findByText('Turn off'));
         await waitFor(() => expect(authFetch).toHaveBeenCalledTimes(2));
         expect(JSON.parse(authFetch.mock.calls[1][1].body)).toEqual({ on: false });
     });
@@ -293,13 +301,14 @@ describe('WebpageAudiencePanel', () => {
     });
 
     it('the ticked-column counter is singular for one and plural for more', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(response(model()));
         render(<WebpageAudiencePanel webpageId="wp1" />);
 
-        fireEvent.click(await screen.findByTestId('public-toggle'));
-        fireEvent.click(await screen.findByLabelText('naam'));
+        await user.click(await screen.findByTestId('public-toggle'));
+        await user.click(await screen.findByLabelText('naam'));
         expect(screen.getByText('One column goes out.')).toBeInTheDocument();
-        fireEvent.click(screen.getByLabelText('prijs'));
+        await user.click(screen.getByLabelText('prijs'));
         expect(screen.getByText('2 columns go out.')).toBeInTheDocument();
     });
 
@@ -316,11 +325,12 @@ describe('WebpageAudiencePanel', () => {
     });
 
     it('shows the server\'s refusal instead of pretending the page went public', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValueOnce(response(model({ columnGate: { tables: [], anyBound: false, sharingCount: 0 } })));
         authFetch.mockResolvedValueOnce(response({ error: 'Password must be at least 6 characters' }, false, 400));
         render(<WebpageAudiencePanel webpageId="wp1" />);
 
-        fireEvent.click(await screen.findByTestId('public-toggle'));
+        await user.click(await screen.findByTestId('public-toggle'));
         expect((await screen.findByTestId('audience-save-error')).textContent)
             .toBe('Password must be at least 6 characters');
         expect(screen.getByText('Make public')).toBeInTheDocument();
@@ -345,6 +355,7 @@ describe('WebpageAudiencePanel', () => {
     });
 
     it('says out loud that a leftover share link keeps serving after Public goes off', async () => {
+        const user = userEvent.setup();
         // Page with two live shares: the canonical one and a loose one. On on:false the
         // server withdraws only the canonical one, so shareCount drops from 2 to 1 —
         // precisely the threshold at which the old sentence disappeared.
@@ -358,7 +369,7 @@ describe('WebpageAudiencePanel', () => {
         })));
         render(<WebpageAudiencePanel webpageId="wp1" />);
 
-        fireEvent.click(await screen.findByText('Turn off'));
+        await user.click(await screen.findByText('Turn off'));
         await waitFor(() => expect(authFetch).toHaveBeenCalledTimes(2));
 
         expect(await screen.findByTestId('other-links-while-off')).toHaveTextContent(

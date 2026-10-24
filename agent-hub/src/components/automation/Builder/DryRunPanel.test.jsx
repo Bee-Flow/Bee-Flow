@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import DryRunPanel from './DryRunPanel';
 
@@ -46,20 +47,21 @@ describe('DryRunPanel', () => {
         expect(screen.queryByText(/"subject":/)).toBeNull();
     });
 
-    it('can switch a step output to the raw JSON tree (no loss of detail)', () => {
+    it('can switch a step output to the raw JSON tree (no loss of detail)', async () => {
+        const user = userEvent.setup();
         const steps = [{
             stepId: 's1',
             stepType: 'integration_action',
             output: { subject: 'Receipt', attachments: [{ filename: 'Invoice-Q850.pdf' }] },
         }];
         render(<DryRunPanel {...baseProps({ steps })} />);
-        fireEvent.click(screen.getByText('JSON'));
+        await user.click(screen.getByText('JSON'));
         // Exact keys become available in the tree. The first two levels start
         // open now (BFSF-434) and a list counts itself in words, so the array is
         // already expanded and reads '1 record' — only the object still needs a click.
         expect(screen.getByText('subject:')).toBeTruthy();
         expect(screen.getByText('1 record')).toBeTruthy();
-        fireEvent.click(screen.getByText('{ 1 key }'));
+        await user.click(screen.getByText('{ 1 key }'));
         expect(screen.getByText('filename:')).toBeTruthy();
         expect(screen.getByText('"Invoice-Q850.pdf"')).toBeTruthy();
     });
@@ -166,12 +168,13 @@ describe('DryRunPanel', () => {
         expect(screen.getByText('a_47723b')).toBeTruthy();
     });
 
-    it('fires collapse + close callbacks', () => {
+    it('fires collapse + close callbacks', async () => {
+        const user = userEvent.setup();
         const props = baseProps();
         render(<DryRunPanel {...props} />);
-        fireEvent.click(screen.getByTitle('Collapse dry-run preview'));
+        await user.click(screen.getByTitle('Collapse dry-run preview'));
         expect(props.onToggleCollapse).toHaveBeenCalled();
-        fireEvent.click(screen.getByTitle('Dismiss dry-run preview'));
+        await user.click(screen.getByTitle('Dismiss dry-run preview'));
         expect(props.onClose).toHaveBeenCalled();
     });
 });

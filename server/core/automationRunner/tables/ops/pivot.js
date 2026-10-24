@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * pivot: rows by columns, each cell a count, a sum or an average, optionally
@@ -138,6 +139,7 @@ async function apply(op, input, ctx) {
 
     const out = [];
     for (const r of prepared) {
+        /** @type {Record<string, any>} */
         const row = { [rowCol.key]: r.label };
         const rowSmall = r.cells.some((c) => small(c.n)) || small(r.otherCell.n);
         r.cells.forEach((cell, i) => {
@@ -148,6 +150,7 @@ async function apply(op, input, ctx) {
         out.push(row);
     }
     if (op.totals) {
+        /** @type {Record<string, any>} */
         const row = { [rowCol.key]: 'Total' };
         const colSmall = (i) => prepared.some((r) => small(r.cells[i].n));
         colTotals.forEach((cell, i) => {

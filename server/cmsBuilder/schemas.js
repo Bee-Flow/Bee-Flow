@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CMS builder — function-calling tool schemas (OpenAI format).
  *

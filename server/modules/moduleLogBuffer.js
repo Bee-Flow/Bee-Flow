@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Per-module in-memory log ring — the backing store for the admin "module
  * logs" dialog. hostApi.makeLogger writes through here (debug lines are

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio run-bridge gates — the ONE copy of "may this viewer see this app"
  * and "may this role reach this action".

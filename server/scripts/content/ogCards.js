@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Social-card definitions for the marketing site's og:images.
  *

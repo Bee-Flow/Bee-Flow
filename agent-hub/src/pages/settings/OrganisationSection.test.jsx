@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -227,11 +228,12 @@ describe('OrganisationSection — the org save bar', () => {
         expect(saveButton()).toHaveTextContent('Save changes');
     });
 
-    it('calls the handleSave the panel supplied', () => {
+    it('calls the handleSave the panel supplied', async () => {
+        const user = userEvent.setup();
         const handleSave = vi.fn();
         mountInfo();
         emit({ hasChanges: true, saving: false, message: null, handleSave });
-        fireEvent.click(saveButton());
+        await user.click(saveButton());
         expect(handleSave).toHaveBeenCalledTimes(1);
     });
 
@@ -348,8 +350,9 @@ describe('OrganisationSection — the Integrations section', () => {
     });
 
     it('swaps the matrix for the provider configuration on the settings tab', async () => {
+        const user = userEvent.setup();
         mountInt();
-        fireEvent.click(screen.getByRole('tab', { name: 'Integration settings' }));
+        await user.click(screen.getByRole('tab', { name: 'Integration settings' }));
         await waitFor(() => expect(screen.queryByTestId('group-access-matrix')).toBeNull());
         expect(screen.getByText('Configure the integrations themselves — credentials, instance URLs and workflows.')).toBeInTheDocument();
         expect(screen.getByTestId('n8n-section')).toBeInTheDocument();
@@ -470,9 +473,10 @@ describe('OrganisationSection — the Google Maps integration row', () => {
     });
 
     it('reads a failed /ai/config probe as "no key" (wart: an unreachable config looks unconfigured)', async () => {
+        const user = userEvent.setup();
         authFetch.mockRejectedValue(new Error('offline'));
         mount({ user: ORG_ADMIN, activeSection: 'integrations' });
-        fireEvent.click(screen.getByRole('tab', { name: 'Integration settings' }));
+        await user.click(screen.getByRole('tab', { name: 'Integration settings' }));
         await screen.findByText('Google Maps');
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
         expect(screen.queryByText('Connected')).toBeNull();
@@ -480,27 +484,30 @@ describe('OrganisationSection — the Google Maps integration row', () => {
     });
 
     it('keeps the key editor collapsed until the row is clicked', async () => {
+        const user = userEvent.setup();
         const { container } = await openMaps();
         expect(keyInput(container)).toBeNull();
-        fireEvent.click(mapsToggle());
+        await user.click(mapsToggle());
         expect(keyInput(container)).not.toBeNull();
-        fireEvent.click(mapsToggle());
+        await user.click(mapsToggle());
         expect(keyInput(container)).toBeNull();
     });
 
     it('masks the placeholder once a key exists, and otherwise reuses the description', async () => {
+        const user = userEvent.setup();
         const { container } = await openMaps({ hasGoogleMapsKey: true });
-        fireEvent.click(mapsToggle());
+        await user.click(mapsToggle());
         expect(keyInput(container)).toHaveAttribute('placeholder', '••••••••••••••••');
         cleanup();
         const view = await openMaps({ hasGoogleMapsKey: false });
-        fireEvent.click(mapsToggle());
+        await user.click(mapsToggle());
         expect(keyInput(view.container)).toHaveAttribute('placeholder', 'Directions, route maps & places search in chat');
     });
 
     it('refuses to save an empty or whitespace-only key — the Enter path is guarded too', async () => {
+        const user = userEvent.setup();
         const { container } = await openMaps();
-        fireEvent.click(mapsToggle());
+        await user.click(mapsToggle());
         const save = screen.getByRole('button', { name: 'Save changes' });
         expect(save).toBeDisabled();
         fireEvent.change(keyInput(container), { target: { value: '   ' } });
@@ -512,10 +519,11 @@ describe('OrganisationSection — the Google Maps integration row', () => {
     });
 
     it('POSTs the raw key to /ai/config, then collapses the row and flips to Connected', async () => {
+        const user = userEvent.setup();
         const { container } = await openMaps();
-        fireEvent.click(mapsToggle());
+        await user.click(mapsToggle());
         fireEvent.change(keyInput(container), { target: { value: 'AIza-secret' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+        await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
         await waitFor(() => expect(posts()).toHaveLength(1));
         const [url, opts] = posts()[0];
@@ -528,23 +536,25 @@ describe('OrganisationSection — the Google Maps integration row', () => {
     });
 
     it('saves on Enter as well as on the button', async () => {
+        const user = userEvent.setup();
         const { container } = await openMaps();
-        fireEvent.click(mapsToggle());
+        await user.click(mapsToggle());
         fireEvent.change(keyInput(container), { target: { value: 'k' } });
         fireEvent.keyDown(keyInput(container), { key: 'Enter' });
         await waitFor(() => expect(posts()).toHaveLength(1));
     });
 
     it('leaves the typed key on screen and shows NO error when the save is rejected (wart)', async () => {
+        const user = userEvent.setup();
         authFetch.mockImplementation(async (_url, opts = {}) => (
             opts.method === 'POST' ? jsonRes({ error: 'bad key' }, 400) : jsonRes({ hasGoogleMapsKey: false })
         ));
         const { container } = mount({ user: ORG_ADMIN, activeSection: 'integrations' });
-        fireEvent.click(screen.getByRole('tab', { name: 'Integration settings' }));
+        await user.click(screen.getByRole('tab', { name: 'Integration settings' }));
         await screen.findByText('Google Maps');
-        fireEvent.click(mapsToggle());
+        await user.click(mapsToggle());
         fireEvent.change(keyInput(container), { target: { value: 'wrong' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+        await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
         await waitFor(() => expect(posts()).toHaveLength(1));
         await waitFor(() => expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled());
@@ -554,24 +564,26 @@ describe('OrganisationSection — the Google Maps integration row', () => {
     });
 
     it('swallows a thrown save the same silent way', async () => {
+        const user = userEvent.setup();
         authFetch.mockImplementation(async (_url, opts = {}) => {
             if (opts.method === 'POST') throw new Error('offline');
             return jsonRes({ hasGoogleMapsKey: false });
         });
         const { container } = mount({ user: ORG_ADMIN, activeSection: 'integrations' });
-        fireEvent.click(screen.getByRole('tab', { name: 'Integration settings' }));
+        await user.click(screen.getByRole('tab', { name: 'Integration settings' }));
         await screen.findByText('Google Maps');
-        fireEvent.click(mapsToggle());
+        await user.click(mapsToggle());
         fireEvent.change(keyInput(container), { target: { value: 'boom' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+        await user.click(screen.getByRole('button', { name: 'Save changes' }));
         await waitFor(() => expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled());
         expect(keyInput(container)).toHaveValue('boom');
         expect(screen.queryByText('Connected')).toBeNull();
     });
 
     it('links out to the Google Cloud API library with the three APIs to enable', async () => {
+        const user = userEvent.setup();
         await openMaps();
-        fireEvent.click(mapsToggle());
+        await user.click(mapsToggle());
         const link = screen.getByRole('link', { name: 'Google Cloud Console' });
         expect(link).toHaveAttribute('href', 'https://console.cloud.google.com/apis/library');
         expect(link).toHaveAttribute('rel', 'noopener noreferrer');

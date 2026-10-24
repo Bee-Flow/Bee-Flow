@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation runs, in the project feed.
  *

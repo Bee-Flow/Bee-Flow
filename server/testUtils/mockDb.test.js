@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit — testUtils/mockDb recording double (H2). DB-free.
  * Run: node --test testUtils/mockDb.test.js

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * generate_document — what the run log says about the EU AI Act Art. 50(2)
  * marking.

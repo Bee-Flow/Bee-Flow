@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import Info from './Info';
@@ -135,11 +136,12 @@ describe('Info — field help popover (BFSF-362)', () => {
 describe('Info — affordances and hygiene', () => {
     beforeEach(cleanup);
 
-    it('exposes the hint as a tooltip, labelled by the field it belongs to', () => {
+    it('exposes the hint as a tooltip, labelled by the field it belongs to', async () => {
+        const user = userEvent.setup();
         render(<Panel><Info title="maxResults">How many to fetch.</Info></Panel>);
         const icon = screen.getByRole('button', { name: 'maxResults' });
         expect(icon.getAttribute('aria-expanded')).toBe('false');
-        fireEvent.click(icon);
+        await user.click(icon);
         expect(icon.getAttribute('aria-expanded')).toBe('true');
         expect(screen.getByRole('tooltip')).toBe(panel());
     });

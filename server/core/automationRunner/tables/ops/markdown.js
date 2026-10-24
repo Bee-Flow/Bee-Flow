@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /** A small table as markdown: header labels, then one line per row. */
 

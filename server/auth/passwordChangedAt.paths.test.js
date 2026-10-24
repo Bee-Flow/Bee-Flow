@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Every path that installs a login credential must date it — enforced.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 const { isMemberOfOrg } = require('../auth/orgMembership');
@@ -61,11 +62,11 @@ async function syncAzureGroupsToOrg(orgId) {
                 try {
                     if (!GUID.test(assignment.principalId || '')) throw new Error('Invalid Graph principal ID');
                     if (assignment.principalType === 'Group') {
-                        const info = await graphGet(`groups/${assignment.principalId}?$select=id,displayName,description`, token);
+                        const info = /** @type {{ id?: string }} */ (await graphGet(`groups/${assignment.principalId}?$select=id,displayName,description`, token));
                         if (info.id?.toLowerCase() !== assignment.principalId.toLowerCase()) throw new Error('Graph group identity mismatch');
                         directory.push({ assignment, info, members: await getGroupMembers(token, assignment.principalId) });
                     } else if (assignment.principalType === 'User') {
-                        const member = await graphGet(`users/${assignment.principalId}?$select=id,displayName,givenName,surname,mail,userPrincipalName`, token);
+                        const member = /** @type {{ id?: string }} */ (await graphGet(`users/${assignment.principalId}?$select=id,displayName,givenName,surname,mail,userPrincipalName`, token));
                         if (member.id?.toLowerCase() !== assignment.principalId.toLowerCase()) throw new Error('Graph user identity mismatch');
                         directory.push({ assignment, members: [member] });
                     }

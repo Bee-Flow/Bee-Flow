@@ -1,4 +1,5 @@
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import ExecutionsTable from './ExecutionsTable';
@@ -140,27 +141,30 @@ describe('ExecutionsTable — the ⋯ menu on a waiting run', () => {
     const openMenu = () => fireEvent.click(screen.getByTitle('Actions'));
 
     it('approves a RUN-level first-run confirm with the decision word', async () => {
+        const user = userEvent.setup();
         renderTable([run({ status: 'awaiting_confirm' })]);
         openMenu();
-        fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+        await user.click(screen.getByRole('button', { name: 'Approve' }));
         await waitFor(() => expect(apiMock.approveRun).toHaveBeenCalledWith('r1', 'approve'));
         expect(apiMock.approveStep).not.toHaveBeenCalled();
     });
 
     it('rejects a RUN-level first-run confirm right here — the same one click the run view offers', async () => {
+        const user = userEvent.setup();
         // The list and the run view must agree about what Reject does. When
         // they disagreed, the run view's Reject approved.
         renderTable([run({ status: 'awaiting_confirm' })]);
         openMenu();
-        fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
+        await user.click(screen.getByRole('button', { name: 'Reject' }));
         await waitFor(() => expect(apiMock.approveRun).toHaveBeenCalledWith('r1', 'reject'));
         expect(apiMock.approveStep).not.toHaveBeenCalled();
     });
 
     it('addresses the LIVE leg of the journey, not the row that handed off', async () => {
+        const user = userEvent.setup();
         renderTable([run({ status: 'awaiting_confirm', journeyRunId: 'r9' })]);
         openMenu();
-        fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
+        await user.click(screen.getByRole('button', { name: 'Reject' }));
         await waitFor(() => expect(apiMock.approveRun).toHaveBeenCalledWith('r9', 'reject'));
     });
 
@@ -180,17 +184,19 @@ describe('ExecutionsTable — the organisation scope (Track H2)', () => {
         streamCalls.current = [];
     });
 
-    it('opens every row in the personal scope', () => {
+    it('opens every row in the personal scope', async () => {
+        const user = userEvent.setup();
         const onOpenRun = vi.fn();
         renderTable([run({ id: 'r1' })], { onOpenRun });
         const row = screen.getByTestId('execution-row');
         expect(row.getAttribute('data-can-open')).toBe('true');
-        fireEvent.click(row);
+        await user.click(row);
         expect(onOpenRun).toHaveBeenCalledTimes(1);
         expect(screen.getByTestId('execution-row-actions')).toBeTruthy();
     });
 
-    it('in the org scope a colleague\'s row is shown, not opened — and has no ⋯ menu', () => {
+    it('in the org scope a colleague\'s row is shown, not opened — and has no ⋯ menu', async () => {
+        const user = userEvent.setup();
         // Every per-run route (open, retry, stop, approve) is scoped to the
         // run's OWNER and 403s for anybody else, org admin included. A row
         // that invites a click it cannot honour is a dead end with an error
@@ -202,7 +208,7 @@ describe('ExecutionsTable — the organisation scope (Track H2)', () => {
         expect(row.getAttribute('data-can-open')).toBe('false');
         expect(row.getAttribute('role')).toBeNull();
         expect(row.getAttribute('tabindex')).toBeNull();
-        fireEvent.click(row);
+        await user.click(row);
         fireEvent.keyDown(row, { key: 'Enter' });
         expect(onOpenRun).not.toHaveBeenCalled();
         expect(screen.queryByTestId('execution-row-actions')).toBeNull();

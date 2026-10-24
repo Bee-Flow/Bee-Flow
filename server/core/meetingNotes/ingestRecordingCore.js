@@ -107,7 +107,7 @@ async function writeSummary(named, { userId, orgId, language, fileName, titleHin
     });
     const usable = artifactsUsable(artifacts);
     if (!usable) {
-        log.warn(`[IngestCore] ${fileName}: artifact extraction failed — the note says so instead of claiming an empty meeting.`);
+        log.warn(`[IngestCore] ${log.nameForLog(fileName)}: artifact extraction failed — the note says so instead of claiming an empty meeting.`);
     }
     // An auto-import has no UI to report to, so the note's summary is the
     // only place to explain why voice recognition didn't name everyone —

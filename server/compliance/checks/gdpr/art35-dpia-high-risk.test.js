@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR-Art35-dpia-high-risk — the finding sentence reads as a sentence.
  *

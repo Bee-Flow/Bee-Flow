@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * BFSF-354 — the Automation Builder's webpage tools honour the Privacy
  * Shield's tool block lists.

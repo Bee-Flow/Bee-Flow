@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Scheduled runs must not lecture the user about scheduling.
  *

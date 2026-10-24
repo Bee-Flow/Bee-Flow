@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import AppRenderer from '../AppRenderer';
 import { closeAppModal, openAppModal } from './AppModal';
@@ -42,13 +43,14 @@ describe('AppTabs', () => {
     // are unreachable exactly as they were when they did not render at all.
     const panelOf = (text) => screen.getByText(text).closest('[data-app-tabpanel]');
 
-    it('shows the first tab by default and switches on click (run)', () => {
+    it('shows the first tab by default and switches on click (run)', async () => {
+        const user = userEvent.setup();
         const { getByRole } = render1(tabsDef, { mode: 'run' });
         expect(panelOf('Alpha panel').dataset.appTabpanel).toBe('active');
         expect(panelOf('Beta panel').dataset.appTabpanel).toBe('inactive');
         expect(screen.queryByRole('heading', { name: 'Beta panel' })).toBeNull();
 
-        fireEvent.click(getByRole('tab', { name: 'Second' }));
+        await user.click(getByRole('tab', { name: 'Second' }));
         expect(panelOf('Beta panel').dataset.appTabpanel).toBe('active');
         expect(panelOf('Alpha panel').dataset.appTabpanel).toBe('inactive');
         expect(screen.queryByRole('heading', { name: 'Alpha panel' })).toBeNull();
@@ -113,10 +115,11 @@ describe('AppModal', () => {
         children: [{ id: 'cmp_mh', type: 'heading', visible: true, props: { text: 'Dialog body', level: 3 }, style: { span: 12 } }],
     }]);
 
-    it('opens the portaled dialog from the trigger button (run)', () => {
+    it('opens the portaled dialog from the trigger button (run)', async () => {
+        const user = userEvent.setup();
         const { getByText, queryByText } = render1(modalDef, { mode: 'run' });
         expect(queryByText('Dialog body')).toBeNull();
-        fireEvent.click(getByText('Open dialog'));
+        await user.click(getByText('Open dialog'));
         expect(screen.getByText('Dialog body')).toBeTruthy();
     });
 
@@ -151,11 +154,12 @@ describe('AppModal', () => {
 
     // The dialog shipped with no visible way out at all: shared/Modal only draws
     // a close control when it is handed one, and none was passed.
-    it('has a close control, and it closes the dialog', () => {
+    it('has a close control, and it closes the dialog', async () => {
+        const user = userEvent.setup();
         render1(modalDef, { mode: 'run' });
         act(() => openAppModal('cmp_modal'));
         expect(screen.getByText('Dialog body')).toBeTruthy();
-        fireEvent.click(screen.getByLabelText('Close dialog'));
+        await user.click(screen.getByLabelText('Close dialog'));
         expect(screen.queryByText('Dialog body')).toBeNull();
     });
 
@@ -243,10 +247,11 @@ describe('AppRepeater', () => {
         expect(getByText('None.')).toBeTruthy();
     });
 
-    it('fires an itemAction with the row as formValues', () => {
+    it('fires an itemAction with the row as formValues', async () => {
+        const user = userEvent.setup();
         const runAction = vi.fn();
         const { getAllByText } = render1(repeaterDef({ act_pick: { kind: 'toast', message: 'x', tone: 'info' } }), { mode: 'run', runAction });
-        fireEvent.click(getAllByText('Pick')[0]);
+        await user.click(getAllByText('Pick')[0]);
         expect(runAction).toHaveBeenCalledWith('act_pick', { formValues: { name: 'Ann' }, item: { name: 'Ann' } });
     });
 });

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Datatable row retention — the sweep that makes "deleted after N days" true.
  *
@@ -190,7 +191,7 @@ async function reconcileRowCount(table, meta, scopeKey) {
 /**
  * One pass over every table in the deployment that has a retention window.
  *
- * @returns {Promise<{deleted:number, tables:number, skipped:number, disabled?:boolean}>}
+ * @returns {Promise<{deleted:number, tables:number, skipped:number, disabled?:boolean, ts?:string}>}
  */
 async function datatableRetentionPass() {
     if (killSwitchOn()) {

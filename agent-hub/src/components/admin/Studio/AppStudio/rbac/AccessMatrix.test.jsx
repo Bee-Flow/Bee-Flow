@@ -1,4 +1,5 @@
-import { render, fireEvent } from '@testing-library/react';
+import { render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -35,23 +36,25 @@ describe('AccessMatrix', () => {
         expect(getByLabelText(/Home visible to Admin/i).getAttribute('aria-checked')).toBe('true');
     });
 
-    it('unchecking a role writes an allow-list of the others into visibleToRoles', () => {
+    it('unchecking a role writes an allow-list of the others into visibleToRoles', async () => {
+        const user = userEvent.setup();
         const onCommit = vi.fn();
         const { getByLabelText } = render(<AccessMatrix appId="a1" definition={definition} onCommit={onCommit} />);
-        fireEvent.click(getByLabelText(/Title visible to Member/i));
+        await user.click(getByLabelText(/Title visible to Member/i));
         expect(onCommit).toHaveBeenCalledTimes(1);
         const nextDef = onCommit.mock.calls[0][0];
         expect(getVisibleToRoles(nextDef, 'cmp_h')).toEqual(['admin']);
     });
 
-    it('clearing the last role hides the item from everyone instead of re-showing it', () => {
+    it('clearing the last role hides the item from everyone instead of re-showing it', async () => {
+        const user = userEvent.setup();
         const onCommit = vi.fn();
         const { getByLabelText, rerender } = render(<AccessMatrix appId="a1" definition={definition} onCommit={onCommit} />);
-        fireEvent.click(getByLabelText(/Title visible to Member/i));
+        await user.click(getByLabelText(/Title visible to Member/i));
         const oneRole = onCommit.mock.calls[0][0];
 
         rerender(<AccessMatrix appId="a1" definition={oneRole} onCommit={onCommit} />);
-        fireEvent.click(getByLabelText(/Title visible to Admin/i));
+        await user.click(getByLabelText(/Title visible to Admin/i));
         const noRole = onCommit.mock.calls[1][0];
         expect(getVisibleToRoles(noRole, 'cmp_h')).toEqual(['__nobody__']);
 
@@ -61,12 +64,13 @@ describe('AccessMatrix', () => {
         expect(getByLabelText(/Title visible to Member/i).getAttribute('aria-checked')).toBe('false');
     });
 
-    it('re-checking a role from the "nobody" state drops the sentinel', () => {
+    it('re-checking a role from the "nobody" state drops the sentinel', async () => {
+        const user = userEvent.setup();
         const onCommit = vi.fn();
         const hidden = structuredClone(definition);
         hidden.screens[0].sections[0].children[0].visibleToRoles = ['__nobody__'];
         const { getByLabelText } = render(<AccessMatrix appId="a1" definition={hidden} onCommit={onCommit} />);
-        fireEvent.click(getByLabelText(/Title visible to Admin/i));
+        await user.click(getByLabelText(/Title visible to Admin/i));
         expect(getVisibleToRoles(onCommit.mock.calls[0][0], 'cmp_h')).toEqual(['admin']);
     });
 

@@ -295,6 +295,64 @@ test('line-ref counts comments that point at a line number, and not names that l
     assert.strictEqual(budgetOf(dir, 'line-ref'), 5);
 });
 
+test('error-echo counts handed-back error messages in source, and leaves other error fields and tests alone', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'a.js': "res.status(400).json({ error: e.message });\nres.status(422).json({ error: err.message });\n",
+            'b.js': "res.status(400).json({ error: 'Bad input' });\nres.json({ error: e.message, code: 'x' });\n",
+            'a.test.js': "res.status(400).json({ error: e.message });\n",
+        },
+    });
+    assert.strictEqual(run(dir, 'error-echo').code, 0);
+    assert.strictEqual(budgetOf(dir, 'error-echo'), 2);
+});
+
+test('explicit-any counts any annotations, casts and type arguments in TypeScript source, not words containing any or tests', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'a.ts': 'const x: any = 1;\nconst y = z as any;\nconst m = new Map<any>();\nconst company = 1;\n',
+            'b.tsx': 'function f(a: anyThing) { return a; }\n',
+            'c.js': 'const x = y; // : any in a comment of js\n',
+            'a.test.ts': 'const x: any = 1;\n',
+        },
+    });
+    assert.strictEqual(run(dir, 'explicit-any').code, 0);
+    assert.strictEqual(budgetOf(dir, 'explicit-any'), 3);
+});
+
+test('as-unknown-as counts double casts in source and leaves single casts and tests alone', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'a.ts': 'const x = y as unknown as Foo;\nconst z = y as unknown;\n',
+            'a.test.ts': 'const x = y as unknown as Foo;\n',
+        },
+    });
+    assert.strictEqual(run(dir, 'as-unknown-as').code, 0);
+    assert.strictEqual(budgetOf(dir, 'as-unknown-as'), 1);
+});
+
+test('log-user-content counts log calls carrying a prompt, file name, e-mail or message text, and leaves lengths and tests alone', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'b.js': 'log.info(`parsing ${log.nameForLog(file.originalname)}`);\n',
+            'a.js': 'log.info(`gen for ${userId}: "${prompt.substring(0, 80)}"`);\nlog.warn(\'skipped\', file.originalname);\nlog.info(`prompt ${prompt.length} chars`);\nlog.debug(\'x\', { id });\n',
+            'a.test.js': 'log.info(`${prompt}`);\n',
+        },
+    });
+    assert.strictEqual(run(dir, 'log-user-content').code, 0);
+    assert.strictEqual(budgetOf(dir, 'log-user-content'), 2);
+});
+
+test('--list on a package without a budget lists and writes no budget file', () => {
+    const dir = sandbox({ src: false, files: { 'a.js': "res.status(500).json({ error: 'x' });\n" } });
+    assert.strictEqual(run(dir, 'status-5xx', ['--list']).code, 0);
+    assert.strictEqual(fs.existsSync(path.join(dir, 'pkg', '.status-5xx-ratchet.json')), false);
+});
+
 test('status-5xx counts literal 5xx statuses in source, and leaves 4xx, computed statuses and tests alone', () => {
     const dir = sandbox({
         src: false,
@@ -329,6 +387,7 @@ test('import-zones counts files importing against the layer direction, once each
             'components/f.test.tsx': "import P from '@/pages/P';\n",
         },
     });
+    run(dir, 'import-zones', [], 'agent-hub'); // records the first budget; --list alone only reads
     const r = run(dir, 'import-zones', ['--list'], 'agent-hub');
     assert.strictEqual(r.code, 0, r.stderr);
     assert.strictEqual(budgetOf(dir, 'import-zones', 'agent-hub'), 5);
@@ -383,6 +442,7 @@ test('unchecked-mutation counts non-GET authFetch calls nobody checks, and leave
             'components/Bad.test.jsx': unchecked,
         },
     });
+    run(dir, 'unchecked-mutation', [], 'agent-hub'); // records the first budget; --list alone only reads
     const r = run(dir, 'unchecked-mutation', ['--list'], 'agent-hub');
     assert.strictEqual(r.code, 0);
     assert.strictEqual(budgetOf(dir, 'unchecked-mutation', 'agent-hub'), 3);

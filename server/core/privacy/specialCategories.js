@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Special categories of personal data (GDPR Art. 9) in the monitoring views.
  *

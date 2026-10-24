@@ -123,12 +123,13 @@ describe('the gallery', () => {
     });
 
     it('creating a Solution lands you inside it', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         const { container, findByText, getByPlaceholderText } = render(<SolutionsStudio onNavigate={onNavigate} />);
         await findByText('Onboarding');
 
         fireEvent.change(getByPlaceholderText('Name the Solution…'), { target: { value: 'Fresh' } });
-        fireEvent.click(container.querySelector('[data-testid="solutions-create"]'));
+        await user.click(container.querySelector('[data-testid="solutions-create"]'));
 
         await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('studio/solutions/p_new'));
         const posted = globalThis.__authFetch.mock.calls.find(([, i]) => i?.method === 'POST' && !String(i.body).includes('manifest'));
@@ -141,8 +142,9 @@ describe('the gallery', () => {
 
 describe('the detail view', () => {
     it('opens a card into the builder tabs, defaulting to Content', async () => {
+        const user = userEvent.setup();
         const { findAllByTestId, findByTestId, getByText } = render(<SolutionsStudio />);
-        fireEvent.click((await findAllByTestId('solutions-card'))[0]);
+        await user.click((await findAllByTestId('solutions-card'))[0]);
         // The grouped Content table, not the flat listing: three bands over the
         // same eight membership sections.
         expect(await findByTestId('solution-band-people')).toBeTruthy();
@@ -151,8 +153,9 @@ describe('the detail view', () => {
     });
 
     it('names the Solution in a Studio header, with the shared kind tile', async () => {
+        const user = userEvent.setup();
         const { findAllByTestId, findByTestId } = render(<SolutionsStudio />);
-        fireEvent.click((await findAllByTestId('solutions-card'))[0]);
+        await user.click((await findAllByTestId('solutions-card'))[0]);
         const header = await findByTestId('studio-section-header');
         expect(header).toBeTruthy();
         expect((await findByTestId('studio-section-kind')).getAttribute('data-kind')).toBe('solution');
@@ -160,22 +163,25 @@ describe('the detail view', () => {
     });
 
     it('packaging happens in a dialog, under the caller\'s real role', async () => {
+        const user = userEvent.setup();
         const { findAllByTestId, findByTestId, findByText } = render(<SolutionsStudio />);
-        fireEvent.click((await findAllByTestId('solutions-card'))[0]);
-        fireEvent.click(await findByTestId('solution-export'));
+        await user.click((await findAllByTestId('solutions-card'))[0]);
+        await user.click(await findByTestId('solution-export'));
         expect(await findByText('Package this Solution')).toBeTruthy();
     });
 
     it('publishing is available only when the checks ran and found nothing', async () => {
+        const user = userEvent.setup();
         const { findAllByTestId, findByTestId } = render(<SolutionsStudio />);
-        fireEvent.click((await findAllByTestId('solutions-card'))[0]);
+        await user.click((await findAllByTestId('solutions-card'))[0]);
         await waitFor(async () => expect((await findByTestId('solution-publish')).disabled).toBe(false));
     });
 
     it('a failed check request leaves publishing OFF — an empty list is not a clean bill', async () => {
+        const user = userEvent.setup();
         mockFetch({ completeness: null });
         const { findAllByTestId, findByTestId } = render(<SolutionsStudio />);
-        fireEvent.click((await findAllByTestId('solutions-card'))[0]);
+        await user.click((await findAllByTestId('solutions-card'))[0]);
         // The button starts disabled and must still be disabled once the 500
         // has landed — this is the fail-open the whole aggregator exists for.
         await waitFor(() => expect(globalThis.__authFetch.mock.calls.some(([u]) => String(u).includes('/completeness'))).toBe(true));
@@ -183,13 +189,15 @@ describe('the detail view', () => {
     });
 
     it('a Solution that could not be fully read blocks publishing too', async () => {
+        const user = userEvent.setup();
         mockFetch({ completeness: { ...CLEAN, blocked: true, complete: false, unavailable: ['agents'] } });
         const { findAllByTestId, findByTestId } = render(<SolutionsStudio />);
-        fireEvent.click((await findAllByTestId('solutions-card'))[0]);
+        await user.click((await findAllByTestId('solutions-card'))[0]);
         await waitFor(async () => expect((await findByTestId('solution-publish')).disabled).toBe(true));
     });
 
     it('a REFETCH that fails drops the earlier clean verdict and re-locks publishing', async () => {
+        const user = userEvent.setup();
         // Everywhere else on this screen a stale view is the kinder choice.
         // Here it is the dangerous one: "nothing blocking" from before the
         // Solution changed would leave the button live while the server can no
@@ -216,7 +224,7 @@ describe('the detail view', () => {
         });
 
         const { findAllByTestId, findByTestId, findByLabelText } = render(<SolutionsStudio />);
-        fireEvent.click((await findAllByTestId('solutions-card'))[0]);
+        await user.click((await findAllByTestId('solutions-card'))[0]);
         await waitFor(async () => expect((await findByTestId('solution-publish')).disabled).toBe(false));
 
         // The panel opens on the first kind that has something to add: the app.
@@ -231,6 +239,7 @@ describe('the detail view', () => {
     });
 
     it('the Check tab shows the findings the aggregator raised', async () => {
+        const user = userEvent.setup();
         mockFetch({
             completeness: {
                 ...CLEAN, blocked: true,
@@ -243,23 +252,25 @@ describe('the detail view', () => {
             },
         });
         const { findAllByTestId, findByText } = render(<SolutionsStudio />);
-        fireEvent.click((await findAllByTestId('solutions-card'))[0]);
-        fireEvent.click(await findByText('Check'));
+        await user.click((await findAllByTestId('solutions-card'))[0]);
+        await user.click(await findByText('Check'));
         expect(await findByText('Desk runs an automation owned by someone else.')).toBeTruthy();
         expect(await findByText('Has to be fixed first')).toBeTruthy();
     });
 
     it('no Blueprint yet means no version chip — never an invented v1.0', async () => {
+        const user = userEvent.setup();
         const { findAllByTestId, queryByTestId } = render(<SolutionsStudio />);
-        fireEvent.click((await findAllByTestId('solutions-card'))[0]);
+        await user.click((await findAllByTestId('solutions-card'))[0]);
         await waitFor(() => expect(globalThis.__authFetch.mock.calls.some(([u]) => String(u).includes('/package/blueprints'))).toBe(true));
         expect(queryByTestId('studio-section-status')).toBeNull();
     });
 
     it('one owner\'s Blueprint series gives a version chip; two owners give none', async () => {
+        const user = userEvent.setup();
         mockFetch({ blueprints: [{ id: 'b1', solutionKey: 'sol_p1', version: 3, createdBy: 'alice' }] });
         const { findAllByTestId, findByTestId } = render(<SolutionsStudio />);
-        fireEvent.click((await findAllByTestId('solutions-card'))[0]);
+        await user.click((await findAllByTestId('solutions-card'))[0]);
         expect((await findByTestId('studio-section-status')).textContent).toContain('v3');
     });
 
@@ -295,10 +306,11 @@ describe('arriving straight at one Solution', () => {
     });
 
     it('back returns to the gallery and refreshes it', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         const { findAllByTestId, findByTestId, container } = render(<SolutionsStudio onNavigate={onNavigate} />);
-        fireEvent.click((await findAllByTestId('solutions-card'))[0]);
-        fireEvent.click(await findByTestId('studio-section-back'));
+        await user.click((await findAllByTestId('solutions-card'))[0]);
+        await user.click(await findByTestId('studio-section-back'));
         await waitFor(() => expect(container.querySelectorAll('[data-testid="solutions-card"]').length).toBe(2));
         expect(onNavigate).toHaveBeenCalledWith('studio/solutions');
     });

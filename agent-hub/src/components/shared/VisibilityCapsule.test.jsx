@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -157,20 +158,22 @@ describe('VisibilityCapsule panel', () => {
         expect(option('org')).toBeInTheDocument();
     });
 
-    it('without confirmWidening every choice fires synchronously', () => {
+    it('without confirmWidening every choice fires synchronously', async () => {
+        const user = userEvent.setup();
         const { onSetPersonal, onSetEntireOrg, onToggleGroup } = renderCapsule({ open: true });
-        fireEvent.click(option('org'));
+        await user.click(option('org'));
         expect(onSetEntireOrg).toHaveBeenCalledTimes(1);
-        fireEvent.click(groupBox('Sales'));
+        await user.click(groupBox('Sales'));
         expect(onToggleGroup).toHaveBeenCalledWith('g1');
-        fireEvent.click(option('personal'));
+        await user.click(option('personal'));
         expect(onSetPersonal).toHaveBeenCalledTimes(1);
         expect(confirmSpy).not.toHaveBeenCalled();
     });
 
     it('widening personal → organisation asks, naming the thing, then applies on yes', async () => {
+        const user = userEvent.setup();
         const { onSetEntireOrg } = renderCapsule({ open: true, confirmWidening: true });
-        fireEvent.click(option('org'));
+        await user.click(option('org'));
         expect(confirmSpy).toHaveBeenCalledTimes(1);
         expect(confirmSpy.mock.calls[0][0].description).toContain('Everyone in your organisation');
         expect(confirmSpy.mock.calls[0][0].description).toContain('Quote helper');
@@ -178,10 +181,11 @@ describe('VisibilityCapsule panel', () => {
     });
 
     it('a declined widening changes nothing', async () => {
+        const user = userEvent.setup();
         confirmSpy.mockResolvedValue(false);
         const { onSetEntireOrg, onToggleGroup } = renderCapsule({ open: true, confirmWidening: true });
-        fireEvent.click(option('org'));
-        fireEvent.click(groupBox('Sales'));
+        await user.click(option('org'));
+        await user.click(groupBox('Sales'));
         expect(confirmSpy).toHaveBeenCalledTimes(2);
         await Promise.resolve();
         expect(onSetEntireOrg).not.toHaveBeenCalled();
@@ -189,52 +193,58 @@ describe('VisibilityCapsule panel', () => {
     });
 
     it('widening personal → a group asks with the group name', async () => {
+        const user = userEvent.setup();
         const { onToggleGroup } = renderCapsule({ open: true, confirmWidening: true });
-        fireEvent.click(groupBox('Support'));
+        await user.click(groupBox('Support'));
         expect(confirmSpy).toHaveBeenCalledTimes(1);
         expect(confirmSpy.mock.calls[0][0].description).toContain('Members of Support');
         await waitFor(() => expect(onToggleGroup).toHaveBeenCalledWith('g2'));
     });
 
-    it('narrowing organisation → a group does not ask', () => {
+    it('narrowing organisation → a group does not ask', async () => {
+        const user = userEvent.setup();
         const { onToggleGroup } = renderCapsule({ open: true, confirmWidening: true, isPublished: true, sharedGroups: [] });
-        fireEvent.click(groupBox('Sales'));
+        await user.click(groupBox('Sales'));
         expect(confirmSpy).not.toHaveBeenCalled();
         expect(onToggleGroup).toHaveBeenCalledWith('g1');
     });
 
-    it('narrowing to personal never asks', () => {
+    it('narrowing to personal never asks', async () => {
+        const user = userEvent.setup();
         const { onSetPersonal } = renderCapsule({ open: true, confirmWidening: true, isPublished: true, sharedGroups: ['g1'] });
-        fireEvent.click(option('personal'));
+        await user.click(option('personal'));
         expect(confirmSpy).not.toHaveBeenCalled();
         expect(onSetPersonal).toHaveBeenCalledTimes(1);
     });
 
     it('widening groups → organisation asks', async () => {
+        const user = userEvent.setup();
         const { onSetEntireOrg } = renderCapsule({ open: true, confirmWidening: true, isPublished: true, sharedGroups: ['g1'] });
-        fireEvent.click(option('org'));
+        await user.click(option('org'));
         expect(confirmSpy).toHaveBeenCalledTimes(1);
         await waitFor(() => expect(onSetEntireOrg).toHaveBeenCalledTimes(1));
     });
 
-    it('refuses to untick the last group: stays ticked, hints at Personal, sends neither [] (= everyone) nor onSetPersonal (closes the menu)', () => {
+    it('refuses to untick the last group: stays ticked, hints at Personal, sends neither [] (= everyone) nor onSetPersonal (closes the menu)', async () => {
+        const user = userEvent.setup();
         const { onSetPersonal, onToggleGroup, onClose } = renderCapsule({ open: true, isPublished: true, sharedGroups: ['g1'] });
         expect(groupBox('Sales')).toBeChecked();
         expect(screen.queryByTestId('visibility-last-group-hint')).toBeNull();
-        fireEvent.click(groupBox('Sales'));
+        await user.click(groupBox('Sales'));
         expect(onToggleGroup).not.toHaveBeenCalled();
         expect(onSetPersonal).not.toHaveBeenCalled();
         expect(onClose).not.toHaveBeenCalled();
         expect(groupBox('Sales')).toBeChecked();
         expect(screen.getByTestId('visibility-last-group-hint')).toHaveTextContent('Choose Personal to stop sharing');
         // Personal is still one click away, and it is the honest exit.
-        fireEvent.click(option('personal'));
+        await user.click(option('personal'));
         expect(onSetPersonal).toHaveBeenCalledTimes(1);
     });
 
-    it('unticking one of SEVERAL groups still goes through onToggleGroup', () => {
+    it('unticking one of SEVERAL groups still goes through onToggleGroup', async () => {
+        const user = userEvent.setup();
         const { onSetPersonal, onToggleGroup } = renderCapsule({ open: true, isPublished: true, sharedGroups: ['g1', 'g2'] });
-        fireEvent.click(groupBox('Sales'));
+        await user.click(groupBox('Sales'));
         expect(onToggleGroup).toHaveBeenCalledWith('g1');
         expect(onSetPersonal).not.toHaveBeenCalled();
         expect(screen.queryByTestId('visibility-last-group-hint')).toBeNull();
@@ -296,36 +306,36 @@ describe('AudienceRows', () => {
         expect(screen.getByText(/get answers from it/)).toBeInTheDocument();
     });
 
-    it('shows the selected groups as named chips and removes one on click', () => {
+    it('shows the selected groups as named chips and removes one on click', async () => {
         const { onToggleGroup } = renderRows({ isPublished: true, sharedGroups: ['g1', 'g3'] });
         const chips = screen.getByTestId('audience-group-chips');
         expect(chips).toHaveTextContent('Sales');
         expect(chips).toHaveTextContent('Finance');
-        fireEvent.click(within(chips).getByLabelText('Remove Finance'));
+        await userEvent.click(within(chips).getByLabelText('Remove Finance'));
         expect(onToggleGroup).toHaveBeenCalledWith('g3');
     });
 
-    it('removing the last chip goes back to Personal', () => {
+    it('removing the last chip goes back to Personal', async () => {
         const { onToggleGroup, onSetPersonal } = renderRows({ isPublished: true, sharedGroups: ['g1'] });
-        fireEvent.click(screen.getByLabelText('Remove Sales'));
+        await userEvent.click(screen.getByLabelText('Remove Sales'));
         expect(onToggleGroup).not.toHaveBeenCalled();
         expect(onSetPersonal).toHaveBeenCalledTimes(1);
     });
 
-    it('the Groups row opens the picker instead of publishing with no groups', () => {
+    it('the Groups row opens the picker instead of publishing with no groups', async () => {
         const { onSetEntireOrg, onToggleGroup } = renderRows();
-        fireEvent.click(row('groups'));
+        await userEvent.click(row('groups'));
         expect(onSetEntireOrg).not.toHaveBeenCalled();
         expect(onToggleGroup).not.toHaveBeenCalled();
         const picker = screen.getByTestId('audience-group-picker');
         expect(picker).toHaveAttribute('data-anchored-menu');
-        fireEvent.click(within(picker).getByLabelText('Support'));
+        await userEvent.click(within(picker).getByLabelText('Support'));
         expect(onToggleGroup).toHaveBeenCalledWith('g2');
     });
 
     it('widening asks, narrowing does not', async () => {
         const { onSetEntireOrg, onSetPersonal, rerender } = renderRows({ confirmWidening: true });
-        fireEvent.click(row('org'));
+        await userEvent.click(row('org'));
         expect(confirmSpy).toHaveBeenCalledTimes(1);
         expect(confirmSpy.mock.calls[0][0].description).toContain('Handbook');
         await waitFor(() => expect(onSetEntireOrg).toHaveBeenCalledTimes(1));
@@ -342,15 +352,15 @@ describe('AudienceRows', () => {
                 onToggleGroup={() => {}}
             />,
         );
-        fireEvent.click(row('personal'));
+        await userEvent.click(row('personal'));
         expect(confirmSpy).toHaveBeenCalledTimes(1);
         expect(onSetPersonal).toHaveBeenCalledTimes(1);
     });
 
-    it('disabled rows do nothing', () => {
+    it('disabled rows do nothing', async () => {
         const { onSetEntireOrg } = renderRows({ disabled: true });
-        fireEvent.click(row('org'));
-        fireEvent.click(row('groups'));
+        await userEvent.click(row('org'));
+        await userEvent.click(row('groups'));
         expect(onSetEntireOrg).not.toHaveBeenCalled();
         expect(screen.queryByTestId('audience-group-picker')).toBeNull();
     });

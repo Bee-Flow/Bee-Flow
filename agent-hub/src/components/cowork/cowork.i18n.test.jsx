@@ -17,7 +17,8 @@
  * the property is "this string is reachable from the Languages panel", and a
  * list of forty exact keys would only pin today's spelling.
  */
-import { act, render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -96,13 +97,14 @@ describe('CW-01 — CoworkWelcome', () => {
         }
     });
 
-    it('a starter fills the box with the TRANSLATED sentence, not the English behind it', () => {
+    it('a starter fills the box with the TRANSLATED sentence, not the English behind it', async () => {
+        const user = userEvent.setup();
         // The starter is a draft the user then edits. Handing over the English
         // while the button shows Dutch would put a language they are not
         // writing in into their own composer.
         const onStarterClick = vi.fn();
         render(<CoworkWelcome onStarterClick={onStarterClick} />);
-        fireEvent.click(screen.getAllByTestId('cowork-starter')[0]);
+        await user.click(screen.getAllByTestId('cowork-starter')[0]);
         expect(onStarterClick).toHaveBeenCalledWith(`«${COWORK_STARTER_ITEMS[0].key}»`);
     });
 });
@@ -166,9 +168,10 @@ describe('CW-01 — CoworkOptionsBar', () => {
         expect(screen.getByTestId('cowork-agent-chip').textContent).toContain('«cowork.agent.none»');
     });
 
-    it('translates the When sheet and every preset in it', () => {
+    it('translates the When sheet and every preset in it', async () => {
+        const user = userEvent.setup();
         const { container } = setup();
-        fireEvent.click(screen.getByTestId('cowork-when-chip'));
+        await user.click(screen.getByTestId('cowork-when-chip'));
         expect(screen.getByText('«cowork.when.sheet_title»')).toBeInTheDocument();
         expect(screen.getByText('«cowork.when.sheet_subtitle»')).toBeInTheDocument();
         for (const p of WHEN_PRESETS) {
@@ -177,9 +180,10 @@ describe('CW-01 — CoworkOptionsBar', () => {
         }
     });
 
-    it('translates the Repeat sheet and every interval in it', () => {
+    it('translates the Repeat sheet and every interval in it', async () => {
+        const user = userEvent.setup();
         const { container } = setup();
-        fireEvent.click(screen.getByTestId('cowork-repeat-chip'));
+        await user.click(screen.getByTestId('cowork-repeat-chip'));
         expect(screen.getByText('«cowork.repeat.sheet_title»')).toBeInTheDocument();
         for (const o of COWORK_REPEAT_OPTIONS) {
             // "Once" also sits on the chip behind the sheet, hence getAllByText.
@@ -188,11 +192,12 @@ describe('CW-01 — CoworkOptionsBar', () => {
         }
     });
 
-    it('translates the agent sheet but leaves the agent NAMES alone', () => {
+    it('translates the agent sheet but leaves the agent NAMES alone', async () => {
+        const user = userEvent.setup();
         // An agent's name is the user's own data. Running it through t() would
         // turn "Sales bot" into a key lookup that can never hit.
         setup({ agents: [{ id: 'a1', name: 'Sales bot', description: 'Handles quotes' }] });
-        fireEvent.click(screen.getByTestId('cowork-agent-chip'));
+        await user.click(screen.getByTestId('cowork-agent-chip'));
         expect(screen.getByText('«cowork.agent.sheet_title»')).toBeInTheDocument();
         expect(screen.getByText('«cowork.agent.sheet_hint»')).toBeInTheDocument();
         expect(screen.getByText('«cowork.agent.none_hint»')).toBeInTheDocument();
@@ -200,9 +205,10 @@ describe('CW-01 — CoworkOptionsBar', () => {
         expect(screen.getByText('Handles quotes')).toBeInTheDocument();
     });
 
-    it('an unnamed agent falls back to a TRANSLATED placeholder name', () => {
+    it('an unnamed agent falls back to a TRANSLATED placeholder name', async () => {
+        const user = userEvent.setup();
         setup({ agents: [{ id: 'a1', name: '' }] });
-        fireEvent.click(screen.getByTestId('cowork-agent-chip'));
+        await user.click(screen.getByTestId('cowork-agent-chip'));
         expect(screen.getByText('«cowork.agent.untitled»')).toBeInTheDocument();
     });
 });

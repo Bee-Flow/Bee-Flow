@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GET /api/compliance/attention?limit=5 — the "Needs attention" list.
  *

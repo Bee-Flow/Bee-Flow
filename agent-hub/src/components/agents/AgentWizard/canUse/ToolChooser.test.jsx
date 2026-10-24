@@ -1,4 +1,5 @@
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { READ } from './canUseFacts';
@@ -57,9 +58,10 @@ function renderChooser(props = {}) {
 afterEach(cleanup);
 
 describe('ToolChooser — wat er te kiezen valt', () => {
-    it('opent een UITGEZETTE app met nul vinkjes, ook al mag hij volgens de grants alles', () => {
+    it('opent een UITGEZETTE app met nul vinkjes, ook al mag hij volgens de grants alles', async () => {
+        const user = userEvent.setup();
         renderChooser({ focusAppId: null });
-        fireEvent.click(screen.getByRole('button', { name: /^Drive$/ }));
+        await user.click(screen.getByRole('button', { name: /^Drive$/ }));
         // Eén actie, dus de ENKELVOUDSsleutel — geen "1 actions".
         expect(screen.getByText('0 of 1 action on')).toBeTruthy();
         expect(screen.getByRole('button', { name: /^drive search/ }).getAttribute('aria-pressed')).toBe('false');
@@ -113,15 +115,16 @@ describe('ToolChooser — een app die deze installatie niet heeft', () => {
         expect(screen.getByText('0 of 1 action on')).toBeTruthy();
     });
 
-    it('en aanvinken schrijft een ECHTE grant weg', () => {
+    it('en aanvinken schrijft een ECHTE grant weg', async () => {
+        const user = userEvent.setup();
         const { onCommit } = renderChooser({
             apps: [...APPS, BROWSER],
             focusAppId: 'browser-fetch',
             toolsConfig: { gmail: { actions: ['gmail_search'] } },
             enabledIntegrations: ['gmail', 'browser-fetch'],
         });
-        fireEvent.click(screen.getByRole('button', { name: /^browse web/ }));
-        fireEvent.click(screen.getByTestId('agent-tool-chooser-apply'));
+        await user.click(screen.getByRole('button', { name: /^browse web/ }));
+        await user.click(screen.getByTestId('agent-tool-chooser-apply'));
 
         const out = onCommit.mock.calls[0][0];
         expect(out.tools['browser-fetch'].actions).toBe('*');
@@ -130,72 +133,80 @@ describe('ToolChooser — een app die deze installatie niet heeft', () => {
 });
 
 describe('ToolChooser — toepassen', () => {
-    it('schrijft pas bij "toepassen", en dan in ÉÉN keer', () => {
+    it('schrijft pas bij "toepassen", en dan in ÉÉN keer', async () => {
+        const user = userEvent.setup();
         const { onCommit } = renderChooser();
-        fireEvent.click(screen.getByRole('button', { name: /^gmail compose/ }));   // uitvinken
+        await user.click(screen.getByRole('button', { name: /^gmail compose/ }));   // uitvinken
         expect(onCommit).not.toHaveBeenCalled();
 
-        fireEvent.click(screen.getByTestId('agent-tool-chooser-apply'));
+        await user.click(screen.getByTestId('agent-tool-chooser-apply'));
         expect(onCommit).toHaveBeenCalledTimes(1);
         const out = onCommit.mock.calls[0][0];
         expect(out.tools.gmail.actions).toEqual(['gmail_search']);
         expect(out.enabledIntegrations).toEqual(['gmail']);
     });
 
-    it('zet een app AAN zodra er iets van aangevinkt wordt', () => {
+    it('zet een app AAN zodra er iets van aangevinkt wordt', async () => {
+        const user = userEvent.setup();
         const { onCommit } = renderChooser();
-        fireEvent.click(screen.getByRole('button', { name: /^Drive$/ }));
-        fireEvent.click(screen.getByRole('button', { name: /^drive search/ }));
-        fireEvent.click(screen.getByTestId('agent-tool-chooser-apply'));
+        await user.click(screen.getByRole('button', { name: /^Drive$/ }));
+        await user.click(screen.getByRole('button', { name: /^drive search/ }));
+        await user.click(screen.getByTestId('agent-tool-chooser-apply'));
 
         const out = onCommit.mock.calls[0][0];
         expect(out.enabledIntegrations).toEqual(['gmail', 'google-drive']);
         expect(out.tools['google-drive'].actions).toBe('*');
     });
 
-    it('alles uitvinken zet de app uit én schrijft de weigering weg', () => {
+    it('alles uitvinken zet de app uit én schrijft de weigering weg', async () => {
+        const user = userEvent.setup();
         const { onCommit } = renderChooser();
-        fireEvent.click(screen.getByRole('button', { name: /^Switch all off$/i }));
-        fireEvent.click(screen.getByTestId('agent-tool-chooser-apply'));
+        await user.click(screen.getByRole('button', { name: /^Switch all off$/i }));
+        await user.click(screen.getByTestId('agent-tool-chooser-apply'));
 
         const out = onCommit.mock.calls[0][0];
         expect(out.tools.gmail.actions).toEqual([]);
         expect(out.enabledIntegrations).toEqual([]);
     });
 
-    it('doet niets als er niets veranderde — openen en sluiten is geen keuze', () => {
+    it('doet niets als er niets veranderde — openen en sluiten is geen keuze', async () => {
+        const user = userEvent.setup();
         const { onCommit } = renderChooser();
         const apply = screen.getByTestId('agent-tool-chooser-apply');
         expect(apply.textContent).toMatch(/Nothing to change/i);
         expect(apply.hasAttribute('disabled')).toBe(true);
-        fireEvent.click(apply);
+        await user.click(apply);
         expect(onCommit).not.toHaveBeenCalled();
     });
 
-    it('telt erbij en eraf apart op de knop', () => {
+    it('telt erbij en eraf apart op de knop', async () => {
+        const user = userEvent.setup();
         renderChooser();
-        fireEvent.click(screen.getByRole('button', { name: /^gmail compose/ }));
+        await user.click(screen.getByRole('button', { name: /^gmail compose/ }));
         expect(screen.getByTestId('agent-tool-chooser-apply').textContent).toMatch(/Remove 1 tool$/);
     });
 });
 
 describe('ToolChooser — de eerste curatie', () => {
-    it('waarschuwt dat deze agent vanaf nu alleen krijgt wat hier aanstaat', () => {
+    it('waarschuwt dat deze agent vanaf nu alleen krijgt wat hier aanstaat', async () => {
+        const user = userEvent.setup();
         renderChooser();
         expect(screen.queryByTestId('agent-tool-chooser-first-curation')).toBeNull();
-        fireEvent.click(screen.getByRole('button', { name: /^gmail compose/ }));
+        await user.click(screen.getByRole('button', { name: /^gmail compose/ }));
         expect(screen.getByTestId('agent-tool-chooser-first-curation')).toBeTruthy();
     });
 
-    it('waarschuwt NIET voor een agent die al gecureerd is — dan verandert er geen regime', () => {
+    it('waarschuwt NIET voor een agent die al gecureerd is — dan verandert er geen regime', async () => {
+        const user = userEvent.setup();
         renderChooser({ toolsConfig: { gmail: { actions: ['gmail_search', 'gmail_compose'] } } });
-        fireEvent.click(screen.getByRole('button', { name: /^gmail compose/ }));
+        await user.click(screen.getByRole('button', { name: /^gmail compose/ }));
         expect(screen.queryByTestId('agent-tool-chooser-first-curation')).toBeNull();
     });
 });
 
 describe('ToolChooser — de gefaseerde selectie overleeft de ouder', () => {
-    it('houdt de vinkjes vast als de EDITOR opnieuw tekent', () => {
+    it('houdt de vinkjes vast als de EDITOR opnieuw tekent', async () => {
+        const user = userEvent.setup();
         // The editor redraws for everything that has nothing to do with the picker (a save status, an incoming
         // read, a relative time). It passes along fresh `apps` and `labels` objects. If the picker goes back to
         // the config based on those, it wipes out what someone is in the middle of, and that is exactly the kind
@@ -206,7 +217,7 @@ describe('ToolChooser — de gefaseerde selectie overleeft de ouder', () => {
             onCommit: vi.fn(), onClose: vi.fn(),
         };
         const { rerender } = render(<ToolChooser {...props} apps={APPS} labels={{ gmail: 'Gmail' }} />);
-        fireEvent.click(screen.getByRole('button', { name: /^gmail compose/ }));
+        await user.click(screen.getByRole('button', { name: /^gmail compose/ }));
         expect(screen.getByTestId('agent-tool-chooser-apply').textContent).toMatch(/Remove 1 tool/);
 
         // Zelfde apps, nieuwe objecten — zoals een ouder die hertekent.
@@ -217,7 +228,8 @@ describe('ToolChooser — de gefaseerde selectie overleeft de ouder', () => {
 });
 
 describe('ToolChooser — alleen-lezen', () => {
-    it('toont wat er aanstaat, maar biedt geen knop die de server toch weigert', () => {
+    it('toont wat er aanstaat, maar biedt geen knop die de server toch weigert', async () => {
+        const user = userEvent.setup();
         const { onCommit } = renderChooser({ ro: true });
         // De stand is te zien...
         expect(screen.getByText('2 of 2 actions on')).toBeTruthy();
@@ -228,7 +240,7 @@ describe('ToolChooser — alleen-lezen', () => {
 
         const row = screen.getByRole('button', { name: /^gmail compose/ });
         expect(row.hasAttribute('disabled')).toBe(true);
-        fireEvent.click(row);
+        await user.click(row);
         expect(row.getAttribute('aria-pressed')).toBe('true');
         expect(onCommit).not.toHaveBeenCalled();
     });

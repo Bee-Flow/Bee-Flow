@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * /w/<slug> — the address of the PAGE, served by the same viewer.
  *

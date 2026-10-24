@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * subscription_plans write paths — the column plumbing must stay complete.
  *

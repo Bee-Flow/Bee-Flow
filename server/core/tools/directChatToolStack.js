@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat Tool Stack — shared builder.
  *
@@ -21,6 +22,9 @@ const configStore = require('../../stores/configStore');
 const { getIntegrationTools } = require('../integrations/integrationTools');
 const log = require('../../telemetry/log');
 
+/**
+ * @param {{ userId?: string, session?: any, isAdmin?: boolean, resolvedTier?: any, strict?: boolean, extraEnabledApps?: any }} [opts]
+ */
 async function buildDirectChatToolStack({ userId, session, isAdmin = false, resolvedTier = null, strict = false, extraEnabledApps = null } = {}) {
     // ── Components enabled for direct chat (or tier-specific list) ──
     const allComponents = componentManager.getComponents();

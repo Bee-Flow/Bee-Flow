@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The prompt a self-hosted llama.cpp server sees is byte-stable across turns.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * What the gallery shows about a template without opening it: the integrations

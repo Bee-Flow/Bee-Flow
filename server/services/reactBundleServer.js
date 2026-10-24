@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Server-side React + Material UI bundle + document assembly.
  *
@@ -86,6 +87,7 @@ function buildStubBridgeScript(surface = 'headlessRender') {
  * @param {object} opts
  * @param {Object<string,{isText:boolean,content?:string,dataUrl?:string}>} opts.files
  * @param {Object<string,string>} opts.assetMap  path → data: URL for binary assets
+ * @param {string} [opts.surface] one of bfElements.BRIDGE_SURFACES (default 'headlessRender')
  * @param {string} [opts.headScripts] replaces the stub bridges — the draft
  *   document (webpageDraftDocument.js) passes the LIVE, token-carrying bridges
  * @param {Function} [opts.build] the bundler, buildReactBundle by default; the

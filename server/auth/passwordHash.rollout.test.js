@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * ROLLOUT default of auth/passwordHash.js: without PASSWORD_HASH_ALGORITHM the

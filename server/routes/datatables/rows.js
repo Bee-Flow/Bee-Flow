@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The rows themselves — ungated by licence (the drain exemption).
  *

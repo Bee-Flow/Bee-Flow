@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Characterisation of the permission gate execIntegrationAction runs before
  * any dispatch (integrationActionGates.assertStepToolPermitted): the catalog

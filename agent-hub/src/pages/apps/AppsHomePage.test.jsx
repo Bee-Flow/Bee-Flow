@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Identity translator: t('key', 'Fallback') renders the fallback, so the pill
@@ -146,6 +147,7 @@ describe('AppsHomePage when the directory could not be loaded', () => {
     });
 
     it('gives the whole directory back once a retry succeeds', async () => {
+        const user = userEvent.setup();
         // The other half of the rule: withholding the chrome while the answer
         // is unknown may not leave the page stranded once it IS known.
         failBoth();
@@ -156,7 +158,7 @@ describe('AppsHomePage when the directory could not be loaded', () => {
             apps: [{ id: 'a1', name: 'CRM Pipeline', isPublished: true }],
         });
         studioAppsApi.listMine.mockResolvedValue({ apps: [] });
-        fireEvent.click(screen.getByText('Retry'));
+        await user.click(screen.getByText('Retry'));
 
         expect(await screen.findByText('CRM Pipeline')).toBeInTheDocument();
         expect(screen.getByText(/Only what you are allowed to use appears here/i)).toBeInTheDocument();
@@ -191,23 +193,25 @@ describe('AppsHomePage category filter', () => {
     });
 
     it('filters the grid to the chosen category and back via All', async () => {
+        const user = userEvent.setup();
         withCategories();
         render(<AppsHomePage />);
 
         await screen.findByText('CRM Pipeline');
-        fireEvent.click(screen.getByRole('button', { name: 'Service' }));
+        await user.click(screen.getByRole('button', { name: 'Service' }));
 
         expect(screen.getByText('Ticket Tracker')).toBeInTheDocument();
         expect(screen.queryByText('CRM Pipeline')).not.toBeInTheDocument();
         expect(screen.queryByText('Scratch Tool')).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Service' })).toHaveAttribute('aria-pressed', 'true');
 
-        fireEvent.click(screen.getByRole('button', { name: 'All' }));
+        await user.click(screen.getByRole('button', { name: 'All' }));
         expect(screen.getByText('CRM Pipeline')).toBeInTheDocument();
         expect(screen.getByText('Scratch Tool')).toBeInTheDocument();
     });
 
     it('never mints a chip for a value outside the closed list, and keeps that app under All', async () => {
+        const user = userEvent.setup();
         studioAppsApi.listAccessible.mockResolvedValue({
             apps: [
                 { id: 'a1', name: 'Typo App', isPublished: true, category: 'Financien' },
@@ -224,7 +228,7 @@ describe('AppsHomePage category filter', () => {
         expect(screen.getByText('Typo App')).toBeInTheDocument();
         expect(screen.getByText('Free Text App')).toBeInTheDocument();
         // … and drop out of a real category's view.
-        fireEvent.click(within(group).getByRole('button', { name: 'Sales' }));
+        await user.click(within(group).getByRole('button', { name: 'Sales' }));
         expect(screen.getByText('Real Sales App')).toBeInTheDocument();
         expect(screen.queryByText('Typo App')).not.toBeInTheDocument();
     });
@@ -365,6 +369,7 @@ describe('AppsHomePage recently used', () => {
     });
 
     it('follows the category chip instead of contradicting it', async () => {
+        const user = userEvent.setup();
         signIn();
         rememberAppOpened('a1', 2_000); // sales
         rememberAppOpened('a2', 1_000); // service
@@ -374,7 +379,7 @@ describe('AppsHomePage recently used', () => {
         // Wait on the one app that is in neither the recents block nor a
         // category, so the query stays unambiguous while two grids are up.
         await screen.findByText('Expense Claims');
-        fireEvent.click(screen.getByRole('button', { name: 'Service' }));
+        await user.click(screen.getByRole('button', { name: 'Service' }));
 
         const recent = within(screen.getByTestId('apps-recent'));
         expect(recent.getByText('Ticket Tracker')).toBeInTheDocument();

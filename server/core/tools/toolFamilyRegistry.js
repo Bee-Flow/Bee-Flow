@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tool family registry: which executor runs a tool call, by name.
  *

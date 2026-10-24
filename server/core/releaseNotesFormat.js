@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * releaseNotesFormat — the shared contract for release-note drafting.
  *

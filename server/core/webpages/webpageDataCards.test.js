@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * core/webpages/webpageDataCards — the card model of the Data tab.
  *

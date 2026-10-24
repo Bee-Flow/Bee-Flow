@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * users.replacePasswordHash: the write behind the bcrypt → argon2id upgrade at
  * sign-in (auth/login/passwordRehash.js), against a real Postgres (pglite).

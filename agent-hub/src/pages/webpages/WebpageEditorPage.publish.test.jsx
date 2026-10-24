@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
@@ -99,15 +100,17 @@ beforeEach(() => {
 
 describe('the publish action', () => {
     it('on a DRAFT opens the audience capsule and PATCHes nothing', async () => {
+        const user = userEvent.setup();
         renderEditor();
-        fireEvent.click(within(screen.getByTestId('status-pill')).getByRole('button'));
+        await user.click(within(screen.getByTestId('status-pill')).getByRole('button'));
         await waitFor(() => expect(screen.getByTestId('visibility-capsule')).toHaveAttribute('aria-expanded', 'true'));
         expect(publishCalls()).toHaveLength(0);
     });
 
     it('on a LIVE page re-freezes the content for the audience it already has', async () => {
+        const user = userEvent.setup();
         renderEditor({ isPublished: true, sharedGroups: ['g1'], publishedVersionId: 'v0' });
-        fireEvent.click(within(screen.getByTestId('status-pill')).getByRole('button'));
+        await user.click(within(screen.getByTestId('status-pill')).getByRole('button'));
         await waitFor(() => expect(publishCalls()).toHaveLength(1));
         const body = bodyOf(publishCalls()[0]);
         expect(body.republish).toBe(true);
@@ -118,9 +121,10 @@ describe('the publish action', () => {
     });
 
     it('ticking a group is NOT a republish — the pinned snapshot must stand', async () => {
+        const user = userEvent.setup();
         renderEditor({ isPublished: true, sharedGroups: [], publishedVersionId: 'v0' });
-        fireEvent.click(screen.getByTestId('visibility-capsule'));
-        fireEvent.click(await screen.findByText('Sales'));
+        await user.click(screen.getByTestId('visibility-capsule'));
+        await user.click(await screen.findByText('Sales'));
         await waitFor(() => expect(publishCalls().length).toBeGreaterThan(0));
         const body = bodyOf(publishCalls()[0]);
         expect(body.republish).toBeUndefined();
@@ -128,9 +132,10 @@ describe('the publish action', () => {
     });
 
     it('takes the pinned version from the SERVER answer, never from a guess', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue({ ok: true, json: async () => ({ success: true, publishedVersionId: 'v-server' }) });
         renderEditor({ isPublished: true, sharedGroups: [], publishedVersionId: 'v0' });
-        fireEvent.click(within(screen.getByTestId('status-pill')).getByRole('button'));
+        await user.click(within(screen.getByTestId('status-pill')).getByRole('button'));
         await waitFor(() => expect(publishCalls()).toHaveLength(1));
         // Nothing to assert in the DOM about the id itself — what matters is
         // that the failure path below leaves the page unchanged instead.
@@ -138,29 +143,33 @@ describe('the publish action', () => {
     });
 
     it('a refused publish is shown, and the page keeps its old state', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue({ ok: false, status: 500, json: async () => ({ error: 'Published, but the snapshot could not be pinned' }) });
         renderEditor({ isPublished: true, sharedGroups: [], publishedVersionId: 'v0' });
-        fireEvent.click(within(screen.getByTestId('status-pill')).getByRole('button'));
+        await user.click(within(screen.getByTestId('status-pill')).getByRole('button'));
         expect(await screen.findByRole('alert')).toHaveTextContent('could not be pinned');
     });
 });
 
 describe('the sections', () => {
     it('opens on the preview and switches to the code section', async () => {
+        const user = userEvent.setup();
         renderEditor();
         expect(screen.queryByTestId('ide')).not.toBeInTheDocument();
-        fireEvent.click(within(screen.getByRole('radiogroup')).getAllByRole('radio')[2]);
+        await user.click(within(screen.getByRole('radiogroup')).getAllByRole('radio')[2]);
         expect(await screen.findByTestId('ide')).toHaveTextContent('dev');
     });
 
     it('the used-by section says it cannot answer rather than claiming zero', async () => {
+        const user = userEvent.setup();
         renderEditor();
-        fireEvent.click(within(screen.getByRole('radiogroup')).getAllByRole('radio')[4]);
+        await user.click(within(screen.getByRole('radiogroup')).getAllByRole('radio')[4]);
         const panel = await screen.findByTestId('webpage-usedby');
         expect(panel).toHaveTextContent('cannot list everything');
     });
 
     it('the history section is a SURFACE now — no overlay on top of another tab', async () => {
+        const user = userEvent.setup();
         // W4 retired the modal: History used to open a dialog over whichever
         // tab you were on, so the strip pointed at "History" while the body
         // showed something else, and closing it teleported you back to a
@@ -168,16 +177,16 @@ describe('the sections', () => {
         authFetch.mockResolvedValue({ ok: true, json: async () => ({ versions: [], hasMore: false, published: null }) });
         renderEditor();
         const radios = () => within(screen.getByRole('radiogroup')).getAllByRole('radio');
-        fireEvent.click(radios()[2]);                       // to Code
+        await user.click(radios()[2]);                       // to Code
         expect(await screen.findByTestId('ide')).toBeInTheDocument();
-        fireEvent.click(radios()[3]);                       // to History
+        await user.click(radios()[3]);                       // to History
         expect(await screen.findByTestId('webpage-history')).toBeInTheDocument();
         expect(radios()[3]).toHaveAttribute('aria-checked', 'true');
         // The body really swapped — the IDE is gone, not merely covered.
         expect(screen.queryByTestId('ide')).not.toBeInTheDocument();
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
         // And going back is going back, not "closing" something.
-        fireEvent.click(radios()[2]);
+        await user.click(radios()[2]);
         await waitFor(() => expect(screen.queryByTestId('webpage-history')).not.toBeInTheDocument());
         expect(radios()[2]).toHaveAttribute('aria-checked', 'true');
     });

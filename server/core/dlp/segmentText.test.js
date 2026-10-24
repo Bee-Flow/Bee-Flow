@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Segmentation is the foundation the scan ledger sits on: if a segment can be

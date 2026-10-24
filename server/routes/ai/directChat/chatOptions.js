@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — the adapter options every call of this turn is made with.
  *

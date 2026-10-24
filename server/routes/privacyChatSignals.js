@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The caller's own "Don't count my chat turns" preference (GDPR Art. 21).
  *

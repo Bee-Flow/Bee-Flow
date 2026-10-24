@@ -16,6 +16,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
 router.use(require('../../stores/lib/documentCrypto').withDocumentEncryptionSession);
 const {
@@ -153,7 +154,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
         adapter = getAdapter(config.providerType, (config.url || '').replace(/\/+$/, ''));
     } catch (providerErr) {
         log.error(`[NotebookChat] Provider resolution failed for model "${modelId}":`, providerErr.message);
-        return res.status(400).json({ error: providerErr.message });
+        throw new HttpError(400, 'bad_request', providerErr.message);
     }
     const apiKey = config.apiKey;
     const apiUrl = (config.url || '').replace(/\/+$/, '');

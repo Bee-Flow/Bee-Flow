@@ -149,6 +149,7 @@ describe('CustomFrameworksPage — list', () => {
     });
 
     it('creating a framework POSTs and opens the new framework', async () => {
+        const user = userEvent.setup();
         fetchJson
             .mockResolvedValueOnce({ id: '44444444-4444-4444-8444-444444444444', code: 'NEW', name: 'New one' })  // POST
             .mockResolvedValueOnce({ id: '44444444-4444-4444-8444-444444444444', code: 'NEW', checks: [] });      // detail
@@ -157,7 +158,7 @@ describe('CustomFrameworksPage — list', () => {
         newFromHeader(p);
         fireEvent.change(screen.getByTestId('custom-editor-name'), { target: { value: 'New one' } });
         fireEvent.change(screen.getByTestId('custom-editor-code'), { target: { value: 'new_one' } });
-        fireEvent.click(screen.getByTestId('custom-editor-save'));
+        await user.click(screen.getByTestId('custom-editor-save'));
         await waitFor(() => expect(fetchJson).toHaveBeenCalled());
         const [url, init] = fetchJson.mock.calls[0];
         expect(url).toMatch(/\/custom\/frameworks$/);
@@ -167,13 +168,14 @@ describe('CustomFrameworksPage — list', () => {
     });
 
     it('a refused code is shown in the editor and the drawer stays open', async () => {
+        const user = userEvent.setup();
         fetchJson.mockRejectedValueOnce(new Error('409 custom_framework_code_taken'));
         const p = pageProps();
         render(<CustomFrameworksPage {...p} />);
         newFromHeader(p);
         fireEvent.change(screen.getByTestId('custom-editor-name'), { target: { value: 'Duplicate' } });
         fireEvent.change(screen.getByTestId('custom-editor-code'), { target: { value: 'NIS2_KLANT' } });
-        fireEvent.click(screen.getByTestId('custom-editor-save'));
+        await user.click(screen.getByTestId('custom-editor-save'));
         await waitFor(() => expect(screen.getByTestId('custom-editor-error').textContent).toBe('That code is already in use.'));
         expect(screen.getByTestId('custom-editor-title')).toBeTruthy();
     });
@@ -266,15 +268,16 @@ describe('CustomFrameworksPage — detail', () => {
     });
 
     it('pasting a questionnaire previews the parsed rows and bulk-posts them', async () => {
+        const user = userEvent.setup();
         await openFirst();
-        fireEvent.click(screen.getByTestId('custom-import-open'));
+        await user.click(screen.getByTestId('custom-import-open'));
         fireEvent.change(screen.getByTestId('custom-import-text'), {
             target: { value: 'ref;title;description;severity;evidence\nA.1;Policy;;high;1\nA.2;Roles;;bogus;0\n;no ref' },
         });
         expect(screen.getByTestId('custom-import-preview').textContent).toContain('2 items recognised');
         expect(screen.getByTestId('custom-import-preview').textContent).toContain('1 lines skipped');
         fetchJson.mockResolvedValue({ checks: [], count: 2 });
-        fireEvent.click(screen.getByTestId('custom-import-submit'));
+        await user.click(screen.getByTestId('custom-import-submit'));
         await waitFor(() => expect(fetchJson.mock.calls.length).toBeGreaterThan(2));
         const body = JSON.parse(fetchJson.mock.calls[2][1].body);
         expect(body.checks).toEqual([
@@ -284,42 +287,45 @@ describe('CustomFrameworksPage — detail', () => {
     });
 
     it('attesting an item loads its history and refuses to record without evidence when the item demands it', async () => {
+        const user = userEvent.setup();
         await openFirst();
         fetchJson.mockResolvedValueOnce([{ id: 'h1', outcome: 'partial', attested_at: '2026-03-01T00:00:00Z' }]);
-        fireEvent.click(screen.getAllByTestId('custom-checks-attest')[0]);
+        await user.click(screen.getAllByTestId('custom-checks-attest')[0]);
         await waitFor(() => expect(screen.getByTestId('custom-attest-drawer-history-row')).toBeTruthy());
         expect(fetchJson.mock.calls[2][0]).toMatch(/\/custom\/checks\/c1\/attestations$/);
         expect(screen.getByTestId('custom-attest-drawer-history-row').textContent).toContain('Partly compliant');
         expect(screen.getByTestId('custom-attest-drawer-ref').textContent).toBe('NIS2_KLANT · 1');
 
         // item 1 has evidence_required: picking an outcome is not enough
-        fireEvent.click(screen.getAllByTestId('custom-attest-drawer-option')[0]);
+        await user.click(screen.getAllByTestId('custom-attest-drawer-option')[0]);
         expect(screen.getByTestId('custom-attest-drawer-evidence-warning')).toBeTruthy();
         expect(screen.getByTestId('custom-attest-drawer-submit').disabled).toBe(true);
     });
 
     it('an item without an evidence demand records straight away', async () => {
+        const user = userEvent.setup();
         await openFirst();
         fetchJson.mockResolvedValueOnce([]);                       // history
-        fireEvent.click(screen.getAllByTestId('custom-checks-attest')[1]);
+        await user.click(screen.getAllByTestId('custom-checks-attest')[1]);
         await waitFor(() => expect(screen.getByTestId('custom-attest-drawer-history-empty')).toBeTruthy());
         expect(screen.queryByTestId('custom-attest-drawer-evidence-warning')).toBeNull();
-        fireEvent.click(screen.getAllByTestId('custom-attest-drawer-option')[2]);
+        await user.click(screen.getAllByTestId('custom-attest-drawer-option')[2]);
         fetchJson.mockResolvedValue({ id: 'a1', outcome: 'non_compliant' });
-        fireEvent.click(screen.getByTestId('custom-attest-drawer-submit'));
+        await user.click(screen.getByTestId('custom-attest-drawer-submit'));
         await waitFor(() => expect(fetchJson.mock.calls.some(c => /\/custom\/checks\/c2\/attest$/.test(c[0]))).toBe(true));
         const call = fetchJson.mock.calls.find(c => /\/custom\/checks\/c2\/attest$/.test(c[0]));
         expect(JSON.parse(call[1].body)).toEqual({ outcome: 'non_compliant', statement: null, evidence_refs: [] });
     });
 
     it('a failed item read is its own state and the code stays read-only when editing', async () => {
+        const user = userEvent.setup();
         fetchJson
             .mockRejectedValueOnce(new Error('500 boom'))
             .mockResolvedValueOnce(registryBody());
         render(<CustomFrameworksPage {...pageProps()} />);
-        fireEvent.click(screen.getAllByTestId('custom-card')[0]);
+        await user.click(screen.getAllByTestId('custom-card')[0]);
         await waitFor(() => expect(screen.getByTestId('custom-detail-failed')).toBeTruthy());
-        fireEvent.click(screen.getByTestId('custom-edit'));
+        await user.click(screen.getByTestId('custom-edit'));
         expect(screen.getByTestId('custom-editor-title').textContent).toBe('Edit framework');
         expect(screen.getByTestId('custom-editor-code').readOnly).toBe(true);
         expect(screen.getByTestId('custom-editor-code').value).toBe('NIS2_KLANT');
@@ -420,11 +426,12 @@ describe('pure helpers', () => {
 
 describe('CustomFrameworksPage — phone (artboard 1h)', () => {
     it('the items table takes the card path, with the picker and the attest button as 44px targets', async () => {
+        const user = userEvent.setup();
         fetchJson
             .mockResolvedValueOnce(detailBody())
             .mockResolvedValueOnce(registryBody());
         render(<CustomFrameworksPage {...pageProps({ props: { isMobile: true } })} />);
-        fireEvent.click(screen.getAllByTestId('custom-card')[0]);
+        await user.click(screen.getAllByTestId('custom-card')[0]);
         await waitFor(() => expect(screen.getAllByTestId('custom-checks-card').length).toBe(3));
         expect(screen.getByTestId('custom-checks').dataset.view).toBe('cards');
         expect(screen.queryAllByTestId('custom-checks-row').length).toBe(0);

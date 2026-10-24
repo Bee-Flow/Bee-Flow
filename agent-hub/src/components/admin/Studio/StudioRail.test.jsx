@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Bot, Sparkles, Table2 } from 'lucide-react';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -73,21 +74,21 @@ describe('StudioRail', () => {
         expect(document.querySelector('[data-tour="nav-studio"]')).toBeTruthy();
     });
 
-    it('sends "← Chat" back to the workspace, and Start to its own segment', () => {
+    it('sends "← Chat" back to the workspace, and Start to its own segment', async () => {
         const onNavigate = vi.fn();
         renderRail({ onNavigate });
-        fireEvent.click(screen.getByTestId('studio-rail-back-to-chat'));
+        await userEvent.click(screen.getByTestId('studio-rail-back-to-chat'));
         expect(onNavigate).toHaveBeenCalledWith('agents');
-        fireEvent.click(screen.getByTestId('rail-start'));
+        await userEvent.click(screen.getByTestId('rail-start'));
         expect(onNavigate).toHaveBeenCalledWith('studio/start');
     });
 
-    it('groups the sections under their registry headings and navigates by urlSegment', () => {
+    it('groups the sections under their registry headings and navigates by urlSegment', async () => {
         const onNavigate = vi.fn();
         renderRail({ onNavigate });
         const headings = [...document.querySelectorAll('[data-testid="studio-rail-nav"] .uppercase')].map(n => n.textContent);
         expect(headings).toEqual(['Build', 'AI']);
-        fireEvent.click(screen.getByTestId('rail-skills'));
+        await userEvent.click(screen.getByTestId('rail-skills'));
         expect(onNavigate).toHaveBeenCalledWith('studio/skills');
     });
 
@@ -116,7 +117,7 @@ describe('StudioRail', () => {
         expect(screen.queryByTestId('rail-agents-count')).toBeNull();
     });
 
-    it('a locked row is a signpost, not a door', () => {
+    it('a locked row is a signpost, not a door', async () => {
         const onNavigate = vi.fn();
         renderRail({ onNavigate });
         const locked = screen.getByTestId('rail-datatables');
@@ -127,7 +128,7 @@ describe('StudioRail', () => {
         expect(locked.hasAttribute('disabled')).toBe(false);
         expect(screen.getByTestId('rail-datatables-lock-hint').textContent).toBeTruthy();
         expect(locked.getAttribute('title')).toBeTruthy();
-        fireEvent.click(locked);
+        await userEvent.click(locked);
         expect(onNavigate).not.toHaveBeenCalled();
     });
 
@@ -166,10 +167,11 @@ describe('StudioRail — the search pill', () => {
     beforeEach(() => { cleanup(); fetchMock.mockReset(); fetchMock.mockResolvedValue({ ok: false }); });
     afterEach(() => cleanup());
 
-    it('opens the Studio search overlay', () => {
+    it('opens the Studio search overlay', async () => {
+        const user = userEvent.setup();
         renderRail();
         expect(screen.queryByTestId('studio-search-overlay')).toBeNull();
-        fireEvent.click(screen.getByTestId('studio-rail-search'));
+        await user.click(screen.getByTestId('studio-rail-search'));
         expect(screen.getByTestId('studio-search-overlay')).toBeTruthy();
     });
 
@@ -278,10 +280,11 @@ describe('StudioRail — Approvals', () => {
      * stopped listing it. Without a row here, walking into Studio took away
      * both the way in and the pending badge.
      */
-    it('is reachable from inside Studio, not only from outside it', () => {
+    it('is reachable from inside Studio, not only from outside it', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         renderRail({ canBrowseApprovals: true, onNavigate });
-        fireEvent.click(screen.getByTestId('rail-approvals'));
+        await user.click(screen.getByTestId('rail-approvals'));
         expect(onNavigate).toHaveBeenCalledWith('studio/approvals');
     });
 

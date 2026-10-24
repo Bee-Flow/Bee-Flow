@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * webpagePublicShareStore — the schema init contract.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The zod vocabulary from which the request schemas of this router are built.
  *

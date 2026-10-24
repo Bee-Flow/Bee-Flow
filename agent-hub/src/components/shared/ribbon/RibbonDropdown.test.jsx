@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import RibbonDropdown from './RibbonDropdown';
@@ -15,12 +16,13 @@ describe('RibbonDropdown', () => {
         expect(btn.getAttribute('data-x')).toBe('1');
     });
 
-    it('works without buttonProps, and still toggles', () => {
+    it('works without buttonProps, and still toggles', async () => {
+        const user = userEvent.setup();
         const onToggle = vi.fn();
         render(<RibbonDropdown label="Apps" open={false} onToggle={onToggle}><div>menu</div></RibbonDropdown>);
         const btn = screen.getByRole('button', { name: /Apps/ });
         expect(btn.hasAttribute('data-ribbon-origin')).toBe(false);
-        fireEvent.click(btn);
+        await user.click(btn);
         expect(onToggle).toHaveBeenCalledTimes(1);
     });
 });

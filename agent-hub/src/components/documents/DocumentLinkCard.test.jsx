@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import DocumentLinkCard, { extractDocumentId } from './DocumentLinkCard';
@@ -32,7 +33,8 @@ describe('<DocumentLinkCard>', () => {
         expect(screen.getByTestId('document-link-card').textContent).toContain('Factuur 2026-014');
     });
 
-    it('asks the chat shell to host the document in the side panel', () => {
+    it('asks the chat shell to host the document in the side panel', async () => {
+        const user = userEvent.setup();
         // The whole point: the AI drafts an invoice and you fix a number, so
         // the document has to arrive BESIDE the conversation, not instead of it.
         const push = vi.spyOn(window.history, 'pushState').mockImplementation(() => {});
@@ -41,7 +43,7 @@ describe('<DocumentLinkCard>', () => {
         window.addEventListener('beeflow:open-document-side', listener);
 
         render(<DocumentLinkCard href="/app/studio/documents/d1" label="X" />);
-        fireEvent.click(screen.getByTestId('document-link-card'));
+        await user.click(screen.getByTestId('document-link-card'));
 
         expect(seen).toEqual([{ id: 'd1', href: '/app/studio/documents/d1' }]);
         // Claimed → no navigation, so the conversation stays on screen.
@@ -51,14 +53,15 @@ describe('<DocumentLinkCard>', () => {
         push.mockRestore();
     });
 
-    it('falls back to navigation when nothing claims the event', () => {
+    it('falls back to navigation when nothing claims the event', async () => {
+        const user = userEvent.setup();
         // A message rendered outside the chat shell — a cowork run, a shared
         // transcript — has no side panel to open. The link must still go
         // somewhere rather than doing nothing.
         const push = vi.spyOn(window.history, 'pushState').mockImplementation(() => {});
         const dispatch = vi.spyOn(window, 'dispatchEvent');
         render(<DocumentLinkCard href="/app/studio/documents/d1" label="X" />);
-        fireEvent.click(screen.getByTestId('document-link-card'));
+        await user.click(screen.getByTestId('document-link-card'));
 
         expect(push).toHaveBeenCalledWith({ page: 'studio' }, '', '/app/studio/documents/d1');
         // A popstate is what the SPA router listens for; without it the URL
@@ -68,23 +71,25 @@ describe('<DocumentLinkCard>', () => {
         dispatch.mockRestore();
     });
 
-    it('a listener that does NOT claim the event still gets navigation', () => {
+    it('a listener that does NOT claim the event still gets navigation', async () => {
+        const user = userEvent.setup();
         // Guards the cancellable contract: only preventDefault() counts as
         // "handled". A listener that merely observes must not swallow the click.
         const push = vi.spyOn(window.history, 'pushState').mockImplementation(() => {});
         const listener = () => { /* observes, does not claim */ };
         window.addEventListener('beeflow:open-document-side', listener);
         render(<DocumentLinkCard href="/app/studio/documents/d1" label="X" />);
-        fireEvent.click(screen.getByTestId('document-link-card'));
+        await user.click(screen.getByTestId('document-link-card'));
         expect(push).toHaveBeenCalled();
         window.removeEventListener('beeflow:open-document-side', listener);
         push.mockRestore();
     });
 
-    it('falls back to the section when the href carries no id', () => {
+    it('falls back to the section when the href carries no id', async () => {
+        const user = userEvent.setup();
         const push = vi.spyOn(window.history, 'pushState').mockImplementation(() => {});
         render(<DocumentLinkCard href="/app/studio/documents" label="X" />);
-        fireEvent.click(screen.getByTestId('document-link-card'));
+        await user.click(screen.getByTestId('document-link-card'));
         expect(push).toHaveBeenCalledWith({ page: 'studio' }, '', '/app/studio/documents');
         push.mockRestore();
     });

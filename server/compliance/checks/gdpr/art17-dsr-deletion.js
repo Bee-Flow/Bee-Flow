@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR Art. 17 — Right to erasure ("right to be forgotten").
  *

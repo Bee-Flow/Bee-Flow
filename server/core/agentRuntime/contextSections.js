@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The sections ./contextBuilder assembles into the agent's two system-prompt
  * halves. Each returns the text it adds ('' when it adds nothing); which half

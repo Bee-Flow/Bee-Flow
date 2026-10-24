@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Prompt blocks for the Studio document the person has open next to the chat.
  *

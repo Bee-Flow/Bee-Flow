@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Test Generator Service — produces Playwright test code from mixed sources.
  *
@@ -183,6 +184,11 @@ function _extractManifest(text) {
     }
 }
 
+/**
+ * @param {string} systemPrompt
+ * @param {string} userMessage
+ * @param {{ signal?: AbortSignal }} [opts]
+ */
 async function _callLLM(systemPrompt, userMessage, { signal } = {}) {
     const { getAIConfig } = require('../core/aiAgent');
     const cfg = await getAIConfig();

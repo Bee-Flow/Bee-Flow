@@ -1,3 +1,4 @@
+// @typecheck
 // §WS5 #4 — builder catalog endpoints, extracted verbatim from routes/automation.js.
 const express = require('express');
 const log = require('../../telemetry/log');

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio validator — per-kind rules of the file_intake and dataset_query steps and their output vocabularies.
  * Split out of actions.js; the refusals are pinned by actions.validateStep.test.js.

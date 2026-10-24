@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Per-automation notification policy: the shape, the defaults and the reader.
  *

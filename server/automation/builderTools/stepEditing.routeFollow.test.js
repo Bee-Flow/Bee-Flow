@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * builder_update_step on a list switch's cases: the edges and the steps that
  * read the outputs follow the same rule as on the canvas and the phone

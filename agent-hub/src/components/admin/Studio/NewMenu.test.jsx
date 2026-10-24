@@ -1,4 +1,5 @@
 import { render as rtlRender, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { fetchMock, toastMock } = vi.hoisted(() => ({
@@ -141,14 +142,15 @@ describe('buildNewMenuModel — the AI row goes where a person may go', () => {
 });
 
 describe('<NewMenu> — a locked AI row is a signpost, not a door', () => {
-    it('does not navigate, and is disabled', () => {
+    it('does not navigate, and is disabled', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         const sections = allOpen().map((a) => (a.id === 'aiTasks' ? { ...a, locked: 'ceiling' } : a));
         render(<NewMenu open onClose={() => {}} anchorRef={{ current: document.body }} sections={sections} onNavigate={onNavigate} />);
         const ai = screen.getByTestId('new-menu-ai');
         expect(ai.hasAttribute('disabled')).toBe(true);
         expect(ai.getAttribute('data-locked')).toBe('true');
-        fireEvent.click(ai);
+        await user.click(ai);
         expect(onNavigate).not.toHaveBeenCalled();
     });
 });
@@ -172,9 +174,10 @@ describe('<NewMenuButton> — the split trigger', () => {
         expect(screen.queryByTestId('new-menu')).toBeNull();
     });
 
-    it('opens the menu from either segment and lists the AI row first', () => {
+    it('opens the menu from either segment and lists the AI row first', async () => {
+        const user = userEvent.setup();
         render(<NewMenuButton sections={allOpen()} onNavigate={vi.fn()} />);
-        fireEvent.click(screen.getByTestId('new-menu-chevron'));
+        await user.click(screen.getByTestId('new-menu-chevron'));
         const menu = screen.getByTestId('new-menu');
         expect(menu.getAttribute('role')).toBe('menu');
         const items = menu.querySelectorAll('[role="menuitem"]');
@@ -183,17 +186,18 @@ describe('<NewMenuButton> — the split trigger', () => {
         // Escape closes; the primary segment reopens.
         fireEvent.keyDown(document, { key: 'Escape' });
         expect(screen.queryByTestId('new-menu')).toBeNull();
-        fireEvent.click(screen.getByTestId('new-menu-primary'));
+        await user.click(screen.getByTestId('new-menu-primary'));
         expect(screen.getByTestId('new-menu')).toBeTruthy();
     });
 
-    it('onPrimary takes the left segment; the chevron still opens the menu', () => {
+    it('onPrimary takes the left segment; the chevron still opens the menu', async () => {
+        const user = userEvent.setup();
         const onPrimary = vi.fn();
         render(<NewMenuButton sections={allOpen()} onNavigate={vi.fn()} onPrimary={onPrimary} />);
-        fireEvent.click(screen.getByTestId('new-menu-primary'));
+        await user.click(screen.getByTestId('new-menu-primary'));
         expect(onPrimary).toHaveBeenCalledTimes(1);
         expect(screen.queryByTestId('new-menu')).toBeNull();
-        fireEvent.click(screen.getByTestId('new-menu-chevron'));
+        await user.click(screen.getByTestId('new-menu-chevron'));
         expect(screen.getByTestId('new-menu')).toBeTruthy();
     });
 });
@@ -223,16 +227,18 @@ describe('<NewMenu> — items', () => {
         expect(screen.getByTestId('new-menu').querySelectorAll('[role="separator"]').length).toBe(3);
     });
 
-    it('a navigation-only item navigates and closes', () => {
+    it('a navigation-only item navigates and closes', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         const onClose = vi.fn();
         renderOpen({ onNavigate, onClose });
-        fireEvent.click(screen.getByTestId('new-menu-knowledge'));
+        await user.click(screen.getByTestId('new-menu-knowledge'));
         expect(onNavigate).toHaveBeenCalledWith('studio/knowledge/new');
         return waitFor(() => expect(onClose).toHaveBeenCalled());
     });
 
-    it('with an onAi the row hands over to the caller and navigates nowhere', () => {
+    it('with an onAi the row hands over to the caller and navigates nowhere', async () => {
+        const user = userEvent.setup();
         // Track H4's building-block picker lives with the caller that mounts
         // it (StudioHomeHeader.jsx). Once it does, this menu must not ALSO
         // send the reader to the Automations assistant — one click, one screen.
@@ -240,13 +246,14 @@ describe('<NewMenu> — items', () => {
         const onNavigate = vi.fn();
         const onClose = vi.fn();
         renderOpen({ onNavigate, onClose, onAi });
-        fireEvent.click(screen.getByTestId('new-menu-ai'));
+        await user.click(screen.getByTestId('new-menu-ai'));
         expect(onAi).toHaveBeenCalledTimes(1);
         expect(onNavigate).not.toHaveBeenCalled();
         expect(onClose).toHaveBeenCalled();
     });
 
-    it('without one it still falls back to the automation builder assistant — and locks with it', () => {
+    it('without one it still falls back to the automation builder assistant — and locks with it', async () => {
+        const user = userEvent.setup();
         // The fallback is unchanged on purpose: a caller that does not own a
         // destination still ends up in Automations, so the row must be locked
         // exactly when Automations are. Both halves are asserted here, because
@@ -254,7 +261,7 @@ describe('<NewMenu> — items', () => {
         const onNavigate = vi.fn();
         const onClose = vi.fn();
         renderOpen({ onNavigate, onClose });
-        fireEvent.click(screen.getByTestId('new-menu-ai'));
+        await user.click(screen.getByTestId('new-menu-ai'));
         expect(onNavigate).toHaveBeenCalledWith('studio/automations');
         expect(onClose).toHaveBeenCalled();
 
@@ -264,16 +271,17 @@ describe('<NewMenu> — items', () => {
         renderOpen({ onNavigate: nav2, sections: noAutomations });
         const ai = screen.getByTestId('new-menu-ai');
         expect(ai.hasAttribute('disabled')).toBe(true);
-        fireEvent.click(ai);
+        await user.click(ai);
         expect(nav2).not.toHaveBeenCalled();
     });
 
     it('Form opens the Forms section\'s own "New form" dialog — nothing is posted from the menu', async () => {
+        const user = userEvent.setup();
         // The choice "collect the answers in a table or start an automation" is
         // made before the automation exists, on the dialog; the menu only goes there.
         const onNavigate = vi.fn();
         renderOpen({ onNavigate });
-        fireEvent.click(screen.getByTestId('new-menu-forms'));
+        await user.click(screen.getByTestId('new-menu-forms'));
         await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('studio/forms/new'));
         // The open menu READS (the training gates); what must not happen is a write.
         const writes = fetchMock.mock.calls.filter(([, init]) => init?.method && init.method !== 'GET');
@@ -288,16 +296,18 @@ describe('<NewMenu> — items', () => {
     });
 
     it('a refused create toasts and keeps the menu open', async () => {
+        const user = userEvent.setup();
         fetchMock.mockResolvedValue({ ok: false, status: 403, text: async () => 'feature_locked' });
         const onClose = vi.fn();
         renderOpen({ onClose });
-        fireEvent.click(screen.getByTestId('new-menu-skills'));
+        await user.click(screen.getByTestId('new-menu-skills'));
         await waitFor(() => expect(toastMock.error).toHaveBeenCalled());
         expect(toastMock.error.mock.calls[0][0]).toContain('Could not create it.');
         expect(onClose).not.toHaveBeenCalled();
     });
 
-    it('locked kinds are disabled with the lock hint and do nothing when clicked', () => {
+    it('locked kinds are disabled with the lock hint and do nothing when clicked', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         const anchorRef = { current: document.body };
         render(<NewMenu open onClose={vi.fn()} anchorRef={anchorRef} sections={community()} onNavigate={onNavigate} />);
@@ -306,7 +316,7 @@ describe('<NewMenu> — items', () => {
         expect(apps.getAttribute('aria-disabled')).toBe('true');
         expect(apps.getAttribute('title')).toBe('Available on a higher plan');
         expect(screen.getByTestId('new-menu-skills').getAttribute('title')).toBe('Not switched on for your organisation — ask an admin');
-        fireEvent.click(apps);
+        await user.click(apps);
         expect(onNavigate).not.toHaveBeenCalled();
         // The open ones still work.
         expect(screen.getByTestId('new-menu-aiTasks').disabled).toBe(false);

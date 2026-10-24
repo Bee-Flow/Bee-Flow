@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import BindingField from './BindingField';
 import { VariablePickerProvider } from './VariablePickerContext';
@@ -108,29 +109,32 @@ describe('BindingField — mode toggle stability', () => {
         expect(screen.queryByLabelText('Advanced options')).toBeNull();
     });
 
-    it('keeps the inline controls identical across a fixed → expression → fixed round trip', () => {
+    it('keeps the inline controls identical across a fixed → expression → fixed round trip', async () => {
+        const user = userEvent.setup();
         renderLiteral();
         const before = inlineControls().map(b => b.getAttribute('title'));
         expect(before).toHaveLength(3);
 
-        fireEvent.click(screen.getByTitle(/^Expression/));
+        await user.click(screen.getByTitle(/^Expression/));
         expect(inlineControls().map(b => b.getAttribute('title'))).toEqual(before);
 
-        fireEvent.click(screen.getByTitle(/^Plain text/));
+        await user.click(screen.getByTitle(/^Plain text/));
         expect(inlineControls().map(b => b.getAttribute('title'))).toEqual(before);
     });
 
-    it('marks exactly one mode as pressed at a time', () => {
+    it('marks exactly one mode as pressed at a time', async () => {
+        const user = userEvent.setup();
         renderLiteral();
         const pressed = () => inlineControls().filter(b => b.getAttribute('aria-pressed') === 'true');
         expect(pressed()).toHaveLength(1);
-        fireEvent.click(screen.getByTitle(/^Expression/));
+        await user.click(screen.getByTitle(/^Expression/));
         expect(pressed()).toHaveLength(1);
     });
 
-    it('emits an expr binding when switched to expression mode', () => {
+    it('emits an expr binding when switched to expression mode', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderLiteral({ value: { kind: 'literal', value: 'a > 1' } });
-        fireEvent.click(screen.getByTitle(/^Expression/));
+        await user.click(screen.getByTitle(/^Expression/));
         expect(onChange).toHaveBeenCalledWith({ kind: 'expr', value: 'a > 1' });
     });
 
@@ -139,26 +143,29 @@ describe('BindingField — mode toggle stability', () => {
     // expression `{{steps.s1.output.total}}` ("Unexpected character: {"), and
     // going the other way turned a live reference into the literal STRING
     // "steps.s1.output.total" — a value that saves green and runs wrong.
-    it('translates a single reference between the two modes', () => {
+    it('translates a single reference between the two modes', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderLiteral({ value: { kind: 'template', value: '{{steps.s1.output.total}}' } });
-        fireEvent.click(screen.getByTitle(/^Expression/));
+        await user.click(screen.getByTitle(/^Expression/));
         expect(onChange).toHaveBeenLastCalledWith({ kind: 'ref', path: 'steps.s1.output.total' });
-        fireEvent.click(screen.getByTitle(/^Plain text/));
+        await user.click(screen.getByTitle(/^Plain text/));
         expect(onChange).toHaveBeenLastCalledWith({ kind: 'template', value: '{{steps.s1.output.total}}' });
     });
 
-    it('leaves anything but a lone reference exactly as typed', () => {
+    it('leaves anything but a lone reference exactly as typed', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderLiteral({ value: { kind: 'literal', value: 'Total: {{steps.s1.output.total}} eur' } });
-        fireEvent.click(screen.getByTitle(/^Expression/));
+        await user.click(screen.getByTitle(/^Expression/));
         expect(onChange).toHaveBeenLastCalledWith({ kind: 'expr', value: 'Total: {{steps.s1.output.total}} eur' });
 
         cleanup();
         const plain = renderLiteral({ value: { kind: 'expr', value: 'hello' } });
-        fireEvent.click(screen.getByTitle(/^Plain text/));
+        await user.click(screen.getByTitle(/^Plain text/));
         expect(plain.onChange).toHaveBeenLastCalledWith({ kind: 'literal', value: 'hello' });
     });
 
-    it('stays in expression mode when the parent echoes an empty value back', () => {
+    it('stays in expression mode when the parent echoes an empty value back', async () => {
+        const user = userEvent.setup();
         // An EMPTY expression serialises to {kind:'literal', value:''} — there
         // is no wire shape for "expression mode, nothing typed". The field used
         // to read that echo back as fixed mode and silently flip the user out
@@ -169,7 +176,7 @@ describe('BindingField — mode toggle stability', () => {
                 <BindingField label="Q" value={{ kind: 'literal', value: '' }} onChange={onChange} />
             </VariablePickerProvider>,
         );
-        fireEvent.click(screen.getByTitle(/^Expression/));
+        await user.click(screen.getByTitle(/^Expression/));
         const emitted = onChange.mock.calls.at(-1)[0];
 
         act(() => {
@@ -184,16 +191,18 @@ describe('BindingField — mode toggle stability', () => {
         expect(exprBtn.getAttribute('aria-pressed')).toBe('true');
     });
 
-    it('offers syntax help in expression mode, and not in plain-text mode', () => {
+    it('offers syntax help in expression mode, and not in plain-text mode', async () => {
+        const user = userEvent.setup();
         renderLiteral();
         expect(screen.queryByText(/What can I write here\?/)).toBeNull();
-        fireEvent.click(screen.getByTitle(/^Expression/));
+        await user.click(screen.getByTitle(/^Expression/));
         expect(screen.getByText(/What can I write here\?/)).toBeTruthy();
     });
 
-    it('suppresses syntax help when the host opts out', () => {
+    it('suppresses syntax help when the host opts out', async () => {
+        const user = userEvent.setup();
         renderLiteral({ showExpressionHelp: false });
-        fireEvent.click(screen.getByTitle(/^Expression/));
+        await user.click(screen.getByTitle(/^Expression/));
         expect(screen.queryByText(/What can I write here\?/)).toBeNull();
     });
 });
@@ -273,29 +282,32 @@ describe('BindingField — the mismatch box is asked the pick\'s REAL kind', () 
         return { onChange, insert: (path) => act(() => { handle.insert(path); }) };
     }
 
-    it('a TABLE pick gets the table question, not the list menu', () => {
+    it('a TABLE pick gets the table question, not the list menu', async () => {
+        const user = userEvent.setup();
         const { insert } = renderScalarSlot();
         insert('steps.s1.output.rows');
         const box = screen.getByTestId('mismatch-resolver');
         expect(box.textContent).toContain('table');
         // The choices sit behind the kind-named disclosure (BFSF-482).
-        fireEvent.click(screen.getByRole('button', { name: 'Table options' }));
+        await user.click(screen.getByRole('button', { name: 'Table options' }));
         expect(screen.getByText('As a table')).toBeTruthy();
         // The list menu's own answers belong to a different question.
         expect(screen.queryByText('All of them, one per line')).toBeNull();
     });
 
-    it('a LIST pick still gets the list menu', () => {
+    it('a LIST pick still gets the list menu', async () => {
+        const user = userEvent.setup();
         const { insert } = renderScalarSlot();
         insert('steps.s1.output.mails');
         // Collapsed, the box already says what the field holds: the default.
         expect(screen.getByTestId('mismatch-selected').textContent).toBe('All of them, one per line');
-        fireEvent.click(screen.getByRole('button', { name: 'List options' }));
+        await user.click(screen.getByRole('button', { name: 'List options' }));
         expect(screen.getByText('Only the first')).toBeTruthy();
         expect(screen.queryByText('As a table')).toBeNull();
     });
 
-    it('the "choose how to use the list" way in may say list — it is standing on a resolved list', () => {
+    it('the "choose how to use the list" way in may say list — it is standing on a resolved list', async () => {
+        const user = userEvent.setup();
         // The other way into the box: an already-bound ref whose preview
         // resolved to a non-empty list. "list" is not a guess there, it is what
         // the branch is gated on — so a missing sample kind falls back to it
@@ -313,7 +325,7 @@ describe('BindingField — the mismatch box is asked the pick\'s REAL kind', () 
                 />
             </VariablePickerProvider>,
         );
-        fireEvent.click(screen.getByText('Choose how to use the list'));
+        await user.click(screen.getByText('Choose how to use the list'));
         const box = screen.getByTestId('mismatch-resolver');
         expect(box.textContent).toMatch(/is a list/);
         expect(box.textContent).not.toContain('not seen yet');

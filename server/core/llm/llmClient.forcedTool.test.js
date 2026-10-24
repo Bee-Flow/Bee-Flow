@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Forced-tool contract for the LLM client.
  *

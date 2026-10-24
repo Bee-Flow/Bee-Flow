@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Google Meet → Meeting Notes settings API.
  *

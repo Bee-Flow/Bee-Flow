@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Stub collaborators not under test.
@@ -57,19 +58,21 @@ describe('GoogleMeetImportPanel', () => {
     });
 
     it('imports a recording with the capture settings and calls onComplete', async () => {
+        const user = userEvent.setup();
         const onComplete = vi.fn();
         render(<GoogleMeetImportPanel onComplete={onComplete} />);
-        fireEvent.click(await screen.findByRole('button', { name: 'Transcribe' }));
+        await user.click(await screen.findByRole('button', { name: 'Transcribe' }));
         await waitFor(() => expect(onComplete).toHaveBeenCalled());
         expect(recorderMock.current.importFromGoogleMeet).toHaveBeenCalledWith(ITEMS[0], { language: 'nl', contextTerms: 'AFAS' });
         expect(recorderMock.current.clearError).toHaveBeenCalled();
     });
 
     it('does not close the modal when the import fails', async () => {
+        const user = userEvent.setup();
         recorderMock.current = makeRecorder({ importFromGoogleMeet: vi.fn().mockResolvedValue({ ok: false, error: new Error('nope') }) });
         const onComplete = vi.fn();
         render(<GoogleMeetImportPanel onComplete={onComplete} />);
-        fireEvent.click(await screen.findByRole('button', { name: 'Transcribe' }));
+        await user.click(await screen.findByRole('button', { name: 'Transcribe' }));
         await waitFor(() => expect(recorderMock.current.importFromGoogleMeet).toHaveBeenCalled());
         expect(onComplete).not.toHaveBeenCalled();
     });
@@ -97,22 +100,24 @@ describe('GoogleMeetImportPanel', () => {
     });
 
     it('shows the re-consent CTA instead of the list and reloads after a successful re-auth', async () => {
+        const user = userEvent.setup();
         useGoogleMeetConnected.mockReturnValue({ connected: false, needsReconsent: true, loading: false });
         openGoogleOAuthPopup.mockResolvedValue({ success: true });
         render(<GoogleMeetImportPanel />);
         expect(screen.getByText('Google Meet needs additional access')).toBeTruthy();
         expect(screen.queryByText('Weekly sync')).toBeNull();
 
-        fireEvent.click(screen.getByRole('button', { name: 'Re-authorize Google' }));
+        await user.click(screen.getByRole('button', { name: 'Re-authorize Google' }));
         expect(await screen.findByText('Weekly sync')).toBeTruthy();
         expect(openGoogleOAuthPopup).toHaveBeenCalled();
     });
 
     it('stays on the re-consent view when the popup is closed without consent', async () => {
+        const user = userEvent.setup();
         useGoogleMeetConnected.mockReturnValue({ connected: false, needsReconsent: true, loading: false });
         openGoogleOAuthPopup.mockResolvedValue({ success: false, closed: true });
         render(<GoogleMeetImportPanel />);
-        fireEvent.click(screen.getByRole('button', { name: 'Re-authorize Google' }));
+        await user.click(screen.getByRole('button', { name: 'Re-authorize Google' }));
         await waitFor(() => expect(openGoogleOAuthPopup).toHaveBeenCalled());
         expect(screen.getByText('Google Meet needs additional access')).toBeTruthy();
     });

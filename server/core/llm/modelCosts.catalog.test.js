@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DB-free tests — modelCosts rates a call with the price card in force AT THE
  * CALL'S TIMESTAMP, and says how it got the number.

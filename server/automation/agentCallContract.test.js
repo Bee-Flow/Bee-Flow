@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The agent_call declaration contract: the tool name, the schema the builder
  * writes and the canvas editor reads, and the rules the validator applies.

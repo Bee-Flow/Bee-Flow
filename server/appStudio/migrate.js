@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — schema migrations.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * `resolveLayerAgentModel` — the only other caller that leaned on the removed default fallback of
  * `resolveModelForTierName`.

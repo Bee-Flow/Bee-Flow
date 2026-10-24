@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * AI Config — web-search inference routing: which backends the
  * search-service uses for its embed/rerank/cleanup tasks.

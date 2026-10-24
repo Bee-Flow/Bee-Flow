@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The builder tells the user what the provider actually said.
  *

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import CoworkRunHistory from './CoworkRunHistory';
@@ -291,6 +292,7 @@ describe('CoworkRunHistory — the status on a row', () => {
 
 describe('CoworkRunHistory — opening a row', () => {
     it('starts closed, opens on click and closes again', async () => {
+        const user = userEvent.setup();
         // A body line the summary does NOT show, so "is it open?" is a real
         // question: the summary now carries the result's first line.
         await renderHistory([run({ result: 'All good.\n\nEvery quote checked out.' })]);
@@ -300,11 +302,11 @@ describe('CoworkRunHistory — opening a row', () => {
         expect(toggle).toHaveAttribute('aria-expanded', 'false');
         expect(row).not.toHaveTextContent('Every quote checked out.');
 
-        fireEvent.click(toggle);
+        await user.click(toggle);
         expect(toggle).toHaveAttribute('aria-expanded', 'true');
         expect(row).toHaveTextContent('Every quote checked out.');
 
-        fireEvent.click(toggle);
+        await user.click(toggle);
         expect(toggle).toHaveAttribute('aria-expanded', 'false');
         expect(row).not.toHaveTextContent('Every quote checked out.');
     });

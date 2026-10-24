@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The compliance findings a DEFINITION can justify on its own, said on the
  * step that causes them — on the canvas, while the author is still building.

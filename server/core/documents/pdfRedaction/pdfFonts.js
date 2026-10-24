@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -123,7 +124,7 @@ function parseCidWidths(context, wArr) {
 function loadFont(context, fontDictOrRef) {
     const dict = context.lookup(fontDictOrRef);
     if (!(dict instanceof PDFDict)) return fallbackFont();
-    const subtype = dict.get(PDFName.of('Subtype'))?.asString?.() || '';
+    const subtype = /** @type {import('pdf-lib').PDFName|undefined} */ (dict.get(PDFName.of('Subtype')))?.asString?.() || '';
 
     let toUnicode = null;
     const tu = context.lookup(dict.get(PDFName.of('ToUnicode')));
@@ -201,7 +202,7 @@ function buildSimpleEncoding(context, dict) {
     const differences = new Map();
     let base = 'WinAnsiEncoding';
     if (enc instanceof PDFDict) {
-        const b = enc.get(PDFName.of('BaseEncoding'));
+        const b = /** @type {import('pdf-lib').PDFName|undefined} */ (enc.get(PDFName.of('BaseEncoding')));
         if (b) base = b.decodeText();
         const diff = context.lookup(enc.get(PDFName.of('Differences')));
         if (diff instanceof PDFArray) {

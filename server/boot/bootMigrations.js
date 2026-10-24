@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The boot migration ladder — ONE list, two callers.
  *

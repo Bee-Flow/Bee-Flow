@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tool Registry — maps each app to its TOOLS array module so the catalog
  * endpoint can introspect existing integration tool definitions.

@@ -288,7 +288,7 @@ async function ingestFileSource(notebookId, sourceId, userId, buffer, fileName, 
         const text = await extractFileContent(buffer, mimeType, fileName);
         await ingestTextIntoKB(notebookId, sourceId, userId, text, fileName);
     } catch (e) {
-        log.error(`[SourceIngestion] File parse failed for "${fileName}":`, e.message);
+        log.error(`[SourceIngestion] File parse failed for "${log.nameForLog(fileName)}":`, e.message);
         await writeWhileProcessing(sourceId, { status: 'error', stage: 'error', error: friendlyError(e) });
     }
 }

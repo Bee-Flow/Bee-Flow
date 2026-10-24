@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio catalog — the card shell, the form, and the core inputs the v1
  * catalog shipped with (text, textarea, number, select, checkbox, date).

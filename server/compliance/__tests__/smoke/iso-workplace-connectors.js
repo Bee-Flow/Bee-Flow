@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Smoke scenarios — ISO 27001 checks that only report (never fail by design):
  * A.8.19 workplace server software (Nextcloud), A.6.5 HR offboarding feed

@@ -152,12 +152,13 @@ describe('PoliciesPage', () => {
     });
 
     it('opens the drawer on a row and loads the full document', async () => {
+        const user = userEvent.setup();
         const loadDoc = vi.fn().mockResolvedValue({
             slug: 'access-control', title: 'Access control policy', draft_body: 'Template body',
             owner_user_id: 'u2', review_due_at: '2027-02-02', edited: false, status: 'draft', current_version: 0,
         });
         render(<PoliciesPage {...pageProps({ policies: { loadDoc } })} />);
-        fireEvent.click(screen.getByTestId('policies-row-access-control'));
+        await user.click(screen.getByTestId('policies-row-access-control'));
         await waitFor(() => expect(screen.getByTestId('policy-drawer-body')).toBeTruthy());
         expect(loadDoc).toHaveBeenCalledWith('access-control');
         expect(screen.getByTestId('policy-drawer-title').value).toBe('Access control policy');
@@ -166,13 +167,14 @@ describe('PoliciesPage', () => {
     });
 
     it('saves the edited draft through the hook', async () => {
+        const user = userEvent.setup();
         const save = vi.fn().mockResolvedValue({});
         render(<PoliciesPage {...pageProps({ policies: { save } })} />);
-        fireEvent.click(screen.getByTestId('policies-row-access-control'));
+        await user.click(screen.getByTestId('policies-row-access-control'));
         await waitFor(() => expect(screen.getByTestId('policy-drawer-body')).toBeTruthy());
         fireEvent.change(screen.getByTestId('policy-drawer-body'), { target: { value: 'Our own words' } });
         fireEvent.change(screen.getByTestId('policy-drawer-review'), { target: { value: '2027-03-03' } });
-        fireEvent.click(screen.getByTestId('policy-drawer-save'));
+        await user.click(screen.getByTestId('policy-drawer-save'));
         expect(save).toHaveBeenCalledWith('access-control', expect.objectContaining({ body: 'Our own words', review_due_at: '2027-03-03' }));
     });
 
@@ -193,17 +195,19 @@ describe('PoliciesPage', () => {
     });
 
     it('a document that cannot be loaded says so instead of showing an empty editor', async () => {
+        const user = userEvent.setup();
         render(<PoliciesPage {...pageProps({ policies: { loadDoc: vi.fn().mockResolvedValue(null) } })} />);
-        fireEvent.click(screen.getByTestId('policies-row-access-control'));
+        await user.click(screen.getByTestId('policies-row-access-control'));
         await waitFor(() => expect(screen.getByTestId('policy-drawer-failed')).toBeTruthy());
         expect(screen.queryByTestId('policy-drawer-body')).toBeNull();
     });
 
     it('closes the drawer on a second click of the same row', async () => {
+        const user = userEvent.setup();
         render(<PoliciesPage {...pageProps()} />);
-        fireEvent.click(screen.getByTestId('policies-row-access-control'));
+        await user.click(screen.getByTestId('policies-row-access-control'));
         await waitFor(() => expect(screen.getByTestId('policy-drawer')).toBeTruthy());
-        fireEvent.click(screen.getByTestId('policies-row-access-control'));
+        await user.click(screen.getByTestId('policies-row-access-control'));
         expect(screen.queryByTestId('policy-drawer')).toBeNull();
     });
 
@@ -233,14 +237,15 @@ describe('PoliciesPage — phone (artboard 1h)', () => {
         expect(within(draft).getByTestId('policies-untouched-access-control')).toBeTruthy();
     });
 
-    it('the drawer is a right-side modal; desktop keeps the inline card', () => {
+    it('the drawer is a right-side modal; desktop keeps the inline card', async () => {
+        const user = userEvent.setup();
         const { unmount } = render(<PoliciesPage {...pageProps({ isMobile: true })} />);
-        fireEvent.click(screen.getByTestId('policies-card-information-security-policy'));
+        await user.click(screen.getByTestId('policies-card-information-security-policy'));
         expect(document.body.querySelector('[role="dialog"]')).not.toBeNull();
         expect(screen.getByTestId('policy-drawer').dataset.mode).toBe('modal');
         unmount();
         render(<PoliciesPage {...pageProps()} />);
-        fireEvent.click(screen.getByTestId('policies-row-information-security-policy'));
+        await user.click(screen.getByTestId('policies-row-information-security-policy'));
         expect(document.body.querySelector('[role="dialog"]')).toBeNull();
         expect(screen.getByTestId('policy-drawer').dataset.mode).toBe('inline');
     });

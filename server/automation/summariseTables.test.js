@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /** The plain-language lines of read_table and table, in the summary and in the builder's step list. */
 

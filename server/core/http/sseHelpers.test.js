@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for startSseHeartbeat — the keep-alive that stops a long, idle
  * SSE stream (e.g. a thinking-model automation build) from being idle-timed-out

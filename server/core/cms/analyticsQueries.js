@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Website analytics (Umami): the parts both the operator dashboard
  * (routes/cmsAnalytics.js) and the CMS MCP analytics tools (cms/mcp/analytics.js)

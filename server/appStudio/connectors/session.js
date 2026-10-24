@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The sessions a connector runs under (the owner's, or a viewer's, built
  * headless) and the default dependency graph runConnector overrides in tests.
@@ -118,7 +119,7 @@ function defaultDeps() {
         isPrivateTarget: (...a) => require('../../utils/isPrivateTarget').isPrivateTarget(...a),
         buildOwnerSession: defaultBuildOwnerSession,
         buildUserSession: defaultBuildUserSession,
-        getIntegrationTools: (...a) => require('../../core/integrations/integrationTools').getIntegrationTools(...a),
+        getIntegrationTools: (a) => require('../../core/integrations/integrationTools').getIntegrationTools(a),
         resolveConnectionForRun: (...a) => require('../../stores/integrationConnectionStore').resolveConnectionForRun(...a),
     };
 }

@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -103,13 +104,14 @@ describe('AppsHomePage header', () => {
     });
 
     it('keeps counting the whole directory while a chip narrows the grid', async () => {
+        const user = userEvent.setup();
         studioAppsApi.listAccessible.mockResolvedValue({
             apps: [app('a1', { category: 'sales' }), app('a2'), app('a3')],
         });
         render(<AppsHomePage />);
         await screen.findByText('App a1');
 
-        fireEvent.click(screen.getByRole('button', { name: 'Sales' }));
+        await user.click(screen.getByRole('button', { name: 'Sales' }));
 
         // The pill answers "how many apps may I open", which a filter does
         // not change. The grid below already shows what the chip did.

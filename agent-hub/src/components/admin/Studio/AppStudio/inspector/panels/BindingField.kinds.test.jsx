@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import BindingField from './BindingField';
 import { EditorChromeContext } from '../../editor/EditorChromeContext';
@@ -51,12 +52,13 @@ describe('BindingField — six binding kinds', () => {
         ['A saved view', { kind: 'dataset', datasetId: null }],
         ['Another system', { kind: 'connector', connectorId: null, params: {} }],
         ['The result of an automation', { kind: 'actionResult', actionId: 'act_run1', path: '' }],
-    ])('choosing "%s" emits the exact skeleton', (card, expected) => {
+    ])('choosing "%s" emits the exact skeleton', async (card, expected) => {
+        const user = userEvent.setup();
         const utils = renderField({ kind: 'static', value: 'x' });
-        fireEvent.click(utils.getByRole('button', { name: 'Change' }));
+        await user.click(utils.getByRole('button', { name: 'Change' }));
         // formula/connector live behind "Something else…".
         if (utils.queryByText(card) == null) fireEvent.click(utils.getByText('Something else…'));
-        fireEvent.click(utils.getByText(card));
+        await user.click(utils.getByText(card));
         expect(utils.last()).toEqual(expected);
     });
 
@@ -98,6 +100,7 @@ describe('BindingField — six binding kinds', () => {
     });
 
     it('records mode: picking a table + a formula filter emits the canonical shape', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ tables: TABLES }) });
         const { onChange, last, findByRole } = renderField({ kind: 'records', tableId: '' });
 
@@ -110,7 +113,7 @@ describe('BindingField — six binding kinds', () => {
         onChange.mockClear();
         const { last: last2, getByRole: g2, findByRole: f2 } = renderField({ kind: 'records', tableId: 'tbl_a' });
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
-        fireEvent.click(await f2('button', { name: /add filter/i }));
+        await user.click(await f2('button', { name: /add filter/i }));
         // Default op 'eq' with a literal value.
         const emitted = last2();
         expect(emitted.kind).toBe('records');
@@ -121,10 +124,11 @@ describe('BindingField — six binding kinds', () => {
     });
 
     it('records mode: "Single row" toggles kind between records and record', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ tables: TABLES }) });
         const { last, findByRole } = renderField({ kind: 'records', tableId: 'tbl_a' });
         const single = await findByRole('checkbox', { name: /single row/i });
-        fireEvent.click(single);
+        await user.click(single);
         expect(last()).toMatchObject({ kind: 'record', tableId: 'tbl_a' });
     });
 

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What a READER of a published page gets, and how that snapshot comes about (W2).
  *

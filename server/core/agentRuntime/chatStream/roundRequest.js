@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What ONE round of the agentic loop sends, and down which branch.
  *

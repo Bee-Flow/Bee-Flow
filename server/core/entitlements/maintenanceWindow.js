@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Deployment / maintenance window announcements.
  *
@@ -71,7 +72,7 @@ function _isActive(win, now = Date.now()) {
 /**
  * Announce a deployment window.
  *
- * @param {{ etaSeconds: number, reason?: string, ref?: string }} opts
+ * @param {{ etaSeconds?: number, reason?: string, ref?: string }} [opts]
  * @returns {Promise<object>} the stored window
  * @throws {Error} when etaSeconds is not a finite number
  */

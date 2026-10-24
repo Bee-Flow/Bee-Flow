@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR Art. 37 — Data Protection Officer appointed.
  * Reads compliance_settings.dpo_name and dpo_email; records only THAT they are

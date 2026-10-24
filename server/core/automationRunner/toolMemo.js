@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Ask this app only once per run" — a run-scoped memo for identical read calls.
  *

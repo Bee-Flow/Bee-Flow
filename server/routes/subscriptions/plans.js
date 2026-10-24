@@ -10,6 +10,7 @@ const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { HttpError } = require('../../core/http/errors');
 
 const router = express.Router();
 
@@ -157,7 +158,7 @@ router.post('/plans', validate({ body: CreatePlanBody }), async (req, res) => {
         res.status(201).json(plan);
     } catch (e) {
         log.error('[Subscriptions] createPlan error:', e);
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 
@@ -224,7 +225,7 @@ router.put('/plans/:id', validate({ body: UpdatePlanBody }), async (req, res) =>
         res.json(updated);
     } catch (e) {
         log.error('[Subscriptions] updatePlan error:', e);
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 

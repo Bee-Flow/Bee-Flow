@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Rows to a cell matrix, shared by the spreadsheet writers (officegen.js re-exports
  * both helpers). Pure, no I/O.

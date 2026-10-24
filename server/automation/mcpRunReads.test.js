@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Read-only run inspection over MCP: shapes by default, protected values by
  * default, raw values only with the organisation's setting (and then audited),

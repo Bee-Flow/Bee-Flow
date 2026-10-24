@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio action executor — fill_document: render a Document the OWNER
  * designed in Studio, filled with this run's values, into a PDF in the app's

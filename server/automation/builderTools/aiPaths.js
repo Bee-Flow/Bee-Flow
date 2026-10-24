@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — reading a value path the AI wrote.
  *

@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
@@ -65,12 +66,13 @@ describe('WebpageActionsPanel', () => {
     });
 
     it('scaffolds an http_request automation with that URL and deep-links to it', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(response(clone()));
         createAutomation.mockResolvedValue({ automation: { id: 'auto_9' } });
         const onNavigate = vi.fn();
         render(<WebpageActionsPanel webpageId="wp1" onNavigate={onNavigate} />);
 
-        fireEvent.click(await screen.findByText('Turn it into an automation'));
+        await user.click(await screen.findByText('Turn it into an automation'));
 
         await waitFor(() => expect(createAutomation).toHaveBeenCalledTimes(1));
         const body = createAutomation.mock.calls[0][0];
@@ -80,11 +82,12 @@ describe('WebpageActionsPanel', () => {
     });
 
     it('a refused automation (no licence) says so instead of showing a stack trace', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(response(clone()));
         createAutomation.mockRejectedValue(new Error('403 Forbidden'));
         render(<WebpageActionsPanel webpageId="wp1" />);
 
-        fireEvent.click(await screen.findByText('Turn it into an automation'));
+        await user.click(await screen.findByText('Turn it into an automation'));
         expect(await screen.findByRole('alert')).toHaveTextContent('not part of this plan');
     });
 

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Fencing retrieved passages so a model reads them as DATA.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Build-stamped `_ent:` session memo — U3.
  *

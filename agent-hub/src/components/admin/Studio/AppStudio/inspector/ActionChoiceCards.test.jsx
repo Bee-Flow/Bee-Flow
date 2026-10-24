@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import ActionChoiceCards from './ActionChoiceCards';
@@ -39,9 +40,10 @@ describe('ActionChoiceCards — the four', () => {
         expect(screen.getByText(/new row into one of this app/i)).toBeInTheDocument();
     });
 
-    it('picking a card reports the kind', () => {
+    it('picking a card reports the kind', async () => {
+        const user = userEvent.setup();
         const { onPickKind } = renderCards('toast');
-        fireEvent.click(screen.getByRole('radio', { name: /Add a row/ }));
+        await user.click(screen.getByRole('radio', { name: /Add a row/ }));
         expect(onPickKind).toHaveBeenCalledWith('create_record');
     });
 
@@ -79,7 +81,8 @@ describe('ActionChoiceCards — when the action is none of the four', () => {
 });
 
 describe('ActionChoiceCards — All options', () => {
-    it('carries the extra affordances handed to it', () => {
+    it('carries the extra affordances handed to it', async () => {
+        const user = userEvent.setup();
         render(
             <ActionChoiceCards kind="toast" onPickKind={vi.fn()}>
                 <button type="button">Edit the flow</button>
@@ -87,7 +90,7 @@ describe('ActionChoiceCards — All options', () => {
         );
         // Hidden until opened, then reachable — never unreachable.
         expect(screen.queryByRole('button', { name: 'Edit the flow' })).toBeNull();
-        fireEvent.click(allOptionsToggle());
+        await user.click(allOptionsToggle());
         expect(screen.getByRole('button', { name: 'Edit the flow' })).toBeInTheDocument();
     });
 

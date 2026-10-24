@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The ONE error shape a mirror answers with, whoever asked — the Nextcloud
  * flavour of ../mirror/errors.SourceError, which explains the three callers

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DB-free unit test for applyRegexGuardrails (M1 Step B).
  *

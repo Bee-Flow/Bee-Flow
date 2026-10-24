@@ -12,7 +12,8 @@
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/builderSplit/RefineDoneCard.test.jsx
  */
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 import RefineDoneCard from './RefineDoneCard';
@@ -74,17 +75,19 @@ describe('RefineDoneCard — de wijzigingen', () => {
 });
 
 describe('RefineDoneCard — ongedaan maken verdwijnt nooit stil', () => {
-    it('herstelt op de nieuwste beurt met het herstelpunt eronder', () => {
+    it('herstelt op de nieuwste beurt met het herstelpunt eronder', async () => {
+        const user = userEvent.setup();
         const onUndo = vi.fn();
         render(<RefineDoneCard t={t} changes={[{ field: 'name' }]} undoVersionId="v9" onUndo={onUndo} />);
         const btn = screen.getByTestId('refine-done-undo');
         expect(btn.getAttribute('data-undo-state')).toBe('idle');
         expect(btn.disabled).toBe(false);
-        fireEvent.click(btn);
+        await user.click(btn);
         expect(onUndo).toHaveBeenCalledWith('v9');
     });
 
-    it('zonder herstelpunt staat de knop er NOG STEEDS, uit, met de reden', () => {
+    it('zonder herstelpunt staat de knop er NOG STEEDS, uit, met de reden', async () => {
+        const user = userEvent.setup();
         const onUndo = vi.fn();
         render(<RefineDoneCard t={t} changes={[{ field: 'name' }]} undoVersionId={null} onUndo={onUndo} />);
         const btn = screen.getByTestId('refine-done-undo');
@@ -92,28 +95,30 @@ describe('RefineDoneCard — ongedaan maken verdwijnt nooit stil', () => {
         expect(btn.disabled).toBe(true);
         expect(btn.getAttribute('data-undo-state')).toBe('unavailable');
         expect(btn.textContent).toContain('no restore point was saved');
-        fireEvent.click(btn);
+        await user.click(btn);
         expect(onUndo).not.toHaveBeenCalled();
     });
 
-    it('een ingehaalde beurt zegt dat er iets nieuwers overheen ging — undo is één niveau diep', () => {
+    it('een ingehaalde beurt zegt dat er iets nieuwers overheen ging — undo is één niveau diep', async () => {
+        const user = userEvent.setup();
         const onUndo = vi.fn();
         render(<RefineDoneCard t={t} changes={[{ field: 'name' }]} undoVersionId="v9" superseded onUndo={onUndo} />);
         const btn = screen.getByTestId('refine-done-undo');
         expect(btn.disabled).toBe(true);
         expect(btn.getAttribute('data-undo-state')).toBe('superseded');
         expect(btn.textContent).toContain('a newer change came after this one');
-        fireEvent.click(btn);
+        await user.click(btn);
         expect(onUndo).not.toHaveBeenCalled();
     });
 
-    it('een reeds herstelde beurt kan niet nog een keer', () => {
+    it('een reeds herstelde beurt kan niet nog een keer', async () => {
+        const user = userEvent.setup();
         const onUndo = vi.fn();
         render(<RefineDoneCard t={t} changes={[{ field: 'name' }]} undoVersionId="v9" undoState="undone" onUndo={onUndo} />);
         const btn = screen.getByTestId('refine-done-undo');
         expect(btn.disabled).toBe(true);
         expect(btn.textContent).toContain('Undone');
-        fireEvent.click(btn);
+        await user.click(btn);
         expect(onUndo).not.toHaveBeenCalled();
     });
 
@@ -125,10 +130,11 @@ describe('RefineDoneCard — ongedaan maken verdwijnt nooit stil', () => {
 });
 
 describe('RefineDoneCard — testen met een vraag', () => {
-    it('biedt de test-actie altijd aan, ook als er niets te herstellen valt', () => {
+    it('biedt de test-actie altijd aan, ook als er niets te herstellen valt', async () => {
+        const user = userEvent.setup();
         const onTest = vi.fn();
         render(<RefineDoneCard t={t} changes={[]} undoVersionId={null} onTest={onTest} />);
-        fireEvent.click(screen.getByTestId('refine-done-test'));
+        await user.click(screen.getByTestId('refine-done-test'));
         expect(onTest).toHaveBeenCalledTimes(1);
     });
 });

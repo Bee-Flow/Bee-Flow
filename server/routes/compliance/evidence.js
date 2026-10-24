@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance — evidence: uploading and streaming back file attachments, and
  * the per-check evidence-chain history.

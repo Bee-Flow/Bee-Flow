@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The definition walkers the packaging sweeps (scrub, pointers) share with the
  * features whose documents they read: `walkObjects` for an App Studio

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A reject needs a reason — except on the endpoint whose live clients cannot
  * send one.

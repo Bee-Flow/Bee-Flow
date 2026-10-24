@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The org- and feature-gated tool groups of getIntegrationTools
  * (./integrationTools.js): n8n, the first-party tools (regex generator,
@@ -211,6 +212,7 @@ async function addNextcloudTools({ userId, session, userOrgId, isAppOn, addTools
         // authoritative enforcement (incl. the org ceiling and per-resource
         // selections) lives in toolDispatcher via ncScopeGuard, so a miss here
         // can only cost a denied call, never grant one.
+        /** @type {(id: string) => boolean} */
         let scopeOn = () => true;
         try {
             const { resolveNcScope } = D.ncScope();

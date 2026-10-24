@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for the /map-json-fields pure helpers:
  * validateMapJsonRequest (request guardrails) and verifyMappedFields

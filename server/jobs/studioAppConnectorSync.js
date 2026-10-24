@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio connector sync — the scheduled half of "keep this table filled".
  *
@@ -104,6 +105,7 @@ const processDueSyncs = createLockedTick({
  * Mount the interval and the boot tick, both behind the runtime module gate,
  * so removing App Studio in the admin Modules panel stops connector syncs on a
  * running pod (BFSF-438). `gate` is a test seam; processDueSyncs stays ungated.
+ * @param {{ gate?: Function }} [opts]
  */
 function start({ gate } = {}) {
     if (_timer) return;

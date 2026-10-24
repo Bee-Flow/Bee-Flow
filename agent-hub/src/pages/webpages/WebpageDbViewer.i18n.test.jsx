@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
@@ -113,8 +114,9 @@ describe('WebpageDbViewer — i18n', () => {
     });
 
     it('BIJT — het rijaantal kiest de meervoudssleutel in plaats van een aangeplakte s', async () => {
+        const user = userEvent.setup();
         render(<WebpageDbViewer webpageId="wp1" />);
-        fireEvent.click(await screen.findByText('⟦webpages.db.tab_browse⟧'));
+        await user.click(await screen.findByText('⟦webpages.db.tab_browse⟧'));
 
         // Precisely one row in the fixture → the SINGULAR KEY, and therefore never
         // "1 rows". With the old `row${n === 1 ? '' : 's'}` this choice existed only
@@ -124,8 +126,9 @@ describe('WebpageDbViewer — i18n', () => {
     });
 
     it('BIJT — de SQL-tab benoemt de leesstand, de knop en de gevarenzone met sleutels', async () => {
+        const user = userEvent.setup();
         render(<WebpageDbViewer webpageId="wp1" />);
-        fireEvent.click(await screen.findByText('⟦webpages.db.tab_sql⟧'));
+        await user.click(await screen.findByText('⟦webpages.db.tab_sql⟧'));
 
         expect(screen.getByText('⟦webpages.db.read_query⟧')).toBeInTheDocument();
         expect(screen.getByText('⟦webpages.db.run⟧')).toBeInTheDocument();

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -63,8 +64,9 @@ describe('RowsTab', () => {
     });
 
     it('edits a cell in place and sends only the column that changed', async () => {
+        const user = userEvent.setup();
         renderRows();
-        fireEvent.click(await screen.findByRole('button', { name: /^Client — click to change$/ }));
+        await user.click(await screen.findByRole('button', { name: /^Client — click to change$/ }));
 
         const input = screen.getByLabelText('Client');
         fireEvent.change(input, { target: { value: 'Anna de Vries' } });
@@ -75,14 +77,15 @@ describe('RowsTab', () => {
     });
 
     it('edits a choice as a dropdown and a yes/no as a checkbox, not as text boxes', async () => {
+        const user = userEvent.setup();
         renderRows();
         // The yes/no is always a checkbox — no click-to-edit step.
         const check = await screen.findByLabelText('Sent');
         expect(check.type).toBe('checkbox');
-        fireEvent.click(check);
+        await user.click(check);
         await waitFor(() => expect(updateRecord).toHaveBeenCalledWith('app1', 'tbl_a', 'rec_1', { sent: true }, { expectedUpdatedAt: ROW.updated_at }));
 
-        fireEvent.click(screen.getByRole('button', { name: /^Status — click to change$/ }));
+        await user.click(screen.getByRole('button', { name: /^Status — click to change$/ }));
         const choice = screen.getByLabelText('Status');
         expect(choice.tagName).toBe('SELECT');
         expect([...choice.options].map((o) => o.textContent)).toEqual(['—', 'Open', 'Paid']);
@@ -91,26 +94,28 @@ describe('RowsTab', () => {
     });
 
     it('adds a typed row, and keeps it on screen with the server’s own reason when it is refused', async () => {
+        const user = userEvent.setup();
         const err = new Error('Client is required');
         err.status = 422;
         createRecord.mockRejectedValueOnce(err);
         renderRows();
 
-        fireEvent.click((await screen.findAllByRole('button', { name: /add a row/i }))[0]);
+        await user.click((await screen.findAllByRole('button', { name: /add a row/i }))[0]);
         fireEvent.change(screen.getAllByLabelText('Amount').at(-1), { target: { value: '75' } });
-        fireEvent.click(screen.getByRole('button', { name: /^Add$/ }));
+        await user.click(screen.getByRole('button', { name: /^Add$/ }));
 
         expect(await screen.findByText('Client is required')).toBeTruthy();
         // The half-typed row survives the refusal.
         expect(screen.getAllByLabelText('Amount').at(-1).value).toBe('75');
 
         fireEvent.change(screen.getAllByLabelText('Client').at(-1), { target: { value: 'Bram' } });
-        fireEvent.click(screen.getByRole('button', { name: /^Add$/ }));
+        await user.click(screen.getByRole('button', { name: /^Add$/ }));
         await waitFor(() => expect(createRecord).toHaveBeenCalledWith('app1', 'tbl_a', { amount: 75, client: 'Bram' }));
         expect(await screen.findAllByRole('button', { name: /^Client — click to change$/ })).toHaveLength(2);
     });
 
     it('shows the winning version when someone else changed the row first', async () => {
+        const user = userEvent.setup();
         // Without the CAS token these two edits silently overwrote each other.
         const err = new Error('This record was changed by someone else — reload and try again.');
         err.status = 409;
@@ -119,7 +124,7 @@ describe('RowsTab', () => {
         updateRecord.mockRejectedValueOnce(err);
         renderRows();
 
-        fireEvent.click(await screen.findByRole('button', { name: /^Client — click to change$/ }));
+        await user.click(await screen.findByRole('button', { name: /^Client — click to change$/ }));
         fireEvent.change(screen.getByLabelText('Client'), { target: { value: 'My edit' } });
         fireEvent.blur(screen.getByLabelText('Client'));
 
@@ -130,9 +135,10 @@ describe('RowsTab', () => {
     });
 
     it('deletes a row once it is confirmed', async () => {
+        const user = userEvent.setup();
         renderRows();
-        fireEvent.click(await screen.findByRole('button', { name: 'Delete row 1' }));
-        fireEvent.click(await screen.findByRole('button', { name: 'Delete row' }));
+        await user.click(await screen.findByRole('button', { name: 'Delete row 1' }));
+        await user.click(await screen.findByRole('button', { name: 'Delete row' }));
 
         await waitFor(() => expect(deleteRecord).toHaveBeenCalledWith('app1', 'tbl_a', 'rec_1'));
         await waitFor(() => expect(screen.queryByRole('button', { name: 'Delete row 1' })).toBeNull());

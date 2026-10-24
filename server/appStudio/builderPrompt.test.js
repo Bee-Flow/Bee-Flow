@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for the App Studio builder prompt (builderPrompt.js).
  *

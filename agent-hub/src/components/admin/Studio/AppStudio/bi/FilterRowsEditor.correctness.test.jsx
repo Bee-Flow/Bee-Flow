@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import FilterRowsEditor from './FilterRowsEditor';
@@ -40,32 +41,34 @@ const escapeButtons = () => screen.queryAllByRole('button', { name: /type any va
 const restoreButtons = () => screen.queryAllByRole('button', { name: /back to the simple picker/i });
 
 describe('FilterRowsEditor — the free-text escape follows the ROW, not its index', () => {
-    it('deleting an earlier row leaves the escaped row escaped', () => {
+    it('deleting an earlier row leaves the escaped row escaped', async () => {
+        const user = userEvent.setup();
         renderRows([
             { field: 'done', op: 'eq', value: true },
             { field: 'status', op: 'eq', value: 'open' },
         ]);
 
         // Escape row 1 (the select), leaving row 0 on its typed control.
-        fireEvent.click(escapeButtons()[1]);
+        await user.click(escapeButtons()[1]);
         expect(restoreButtons()).toHaveLength(1);
 
         // Remove row 0. Under index-keyed state the marker followed the
         // POSITION, so the surviving row snapped back to its picker.
-        fireEvent.click(screen.getAllByRole('button', { name: /remove/i })[0]);
+        await user.click(screen.getAllByRole('button', { name: /remove/i })[0]);
 
         expect(restoreButtons()).toHaveLength(1);
         expect(screen.queryByRole('combobox', { name: 'Filter value' })).toBeNull();
     });
 
-    it('reordering keeps the escape on the row that was escaped', () => {
+    it('reordering keeps the escape on the row that was escaped', async () => {
+        const user = userEvent.setup();
         renderRows([
             { field: 'done', op: 'eq', value: true },
             { field: 'status', op: 'eq', value: 'open' },
         ]);
-        fireEvent.click(escapeButtons()[1]);
+        await user.click(escapeButtons()[1]);
 
-        fireEvent.click(screen.getByRole('button', { name: 'Move item 2 up' }));
+        await user.click(screen.getByRole('button', { name: 'Move item 2 up' }));
 
         // Still exactly one escaped row, and it is the select that moved — not
         // whichever row now happens to sit at index 1.
@@ -76,9 +79,10 @@ describe('FilterRowsEditor — the free-text escape follows the ROW, not its ind
         expect(controls[1].getAttribute('role')).toBe('radiogroup'); // the bool, untouched
     });
 
-    it('editing an escaped row keeps it escaped', () => {
+    it('editing an escaped row keeps it escaped', async () => {
+        const user = userEvent.setup();
         renderRows([{ field: 'title', op: 'eq', value: '' }, { field: 'done', op: 'eq', value: true }]);
-        fireEvent.click(escapeButtons()[0]);
+        await user.click(escapeButtons()[0]);
         const box = screen.getAllByLabelText('Filter value')[1];
         fireEvent.change(box, { target: { value: 'maybe' } });
         expect(restoreButtons()).toHaveLength(1);
@@ -116,10 +120,11 @@ describe('FilterRowsEditor — a saved value the picker cannot show stays visibl
         expect(screen.getByRole('radio', { name: 'Yes' })).toBeTruthy();
     });
 
-    it('going back to the picker keeps a value the picker can show', () => {
+    it('going back to the picker keeps a value the picker can show', async () => {
+        const user = userEvent.setup();
         const { last } = renderRows([{ field: 'status', op: 'eq', value: 'open' }]);
-        fireEvent.click(escapeButtons()[0]);
-        fireEvent.click(restoreButtons()[0]);
+        await user.click(escapeButtons()[0]);
+        await user.click(restoreButtons()[0]);
         // 'open' is a real choice, so it must not have been wiped.
         expect(last()?.[0]?.value ?? 'open').toBe('open');
         expect(screen.getByRole('combobox', { name: 'Filter value' }).value).toBe('open');
@@ -174,15 +179,17 @@ describe('FilterRowsEditor — required', () => {
     // The server has honoured `required` all along and no editor wrote it, so
     // the only reachable behaviour was fail-open: an unresolved scoping filter
     // is dropped and the component lists the whole table.
-    it('is offered where a value can fail to resolve, and writes the flag', () => {
+    it('is offered where a value can fail to resolve, and writes the flag', async () => {
+        const user = userEvent.setup();
         const { last } = renderRows([{ field: 'title', op: 'eq', value: '' }], { allowFormula: true });
-        fireEvent.click(screen.getByLabelText('Filter 1 required'));
+        await user.click(screen.getByLabelText('Filter 1 required'));
         expect(last()[0].required).toBe(true);
     });
 
-    it('omits the key entirely when switched back off', () => {
+    it('omits the key entirely when switched back off', async () => {
+        const user = userEvent.setup();
         const { last } = renderRows([{ field: 'title', op: 'eq', value: '', required: true }], { allowFormula: true });
-        fireEvent.click(screen.getByLabelText('Filter 1 required'));
+        await user.click(screen.getByLabelText('Filter 1 required'));
         expect(last()[0]).not.toHaveProperty('required');
     });
 
@@ -219,40 +226,44 @@ describe('FilterRowsEditor — Literal ↔ Formula carries the value across', ()
     const useFormula = () => screen.getByRole('button', { name: /use a formula/i });
     const useFixed = () => screen.getByRole('button', { name: /use a fixed value/i });
 
-    it('writes a literal as the expression that yields it', () => {
+    it('writes a literal as the expression that yields it', async () => {
+        const user = userEvent.setup();
         const { last } = renderRows([{ field: 'title', op: 'eq', value: 'open' }], { allowFormula: true });
-        fireEvent.click(useFormula());
+        await user.click(useFormula());
         expect(last()[0].value).toEqual({ kind: 'formula', expr: '"open"' });
     });
 
-    it('reads a simple expression back as the literal', () => {
+    it('reads a simple expression back as the literal', async () => {
+        const user = userEvent.setup();
         const { last } = renderRows(
             [{ field: 'amount', op: 'eq', value: { kind: 'formula', expr: '42' } }],
             { allowFormula: true },
         );
-        fireEvent.click(useFixed());
+        await user.click(useFixed());
         expect(last()[0].value).toBe('42');
     });
 
-    it('hands back the expression it was given when you switch and switch again', () => {
+    it('hands back the expression it was given when you switch and switch again', async () => {
+        const user = userEvent.setup();
         const { last } = renderRows(
             [{ field: 'title', op: 'eq', value: { kind: 'formula', expr: 'currentUser.id' } }],
             { allowFormula: true },
         );
-        fireEvent.click(useFixed());
+        await user.click(useFixed());
         expect(last()[0].value).toBe('');          // not expressible as a literal
-        fireEvent.click(useFormula());
+        await user.click(useFormula());
         expect(last()[0].value).toEqual({ kind: 'formula', expr: 'currentUser.id' });
     });
 
-    it('remembers a list value that no expression could carry', () => {
+    it('remembers a list value that no expression could carry', async () => {
+        const user = userEvent.setup();
         const { last } = renderRows(
             [{ field: 'status', op: 'in', value: ['open', 'closed'] }],
             { allowFormula: true },
         );
-        fireEvent.click(useFormula());
+        await user.click(useFormula());
         expect(last()[0].value).toEqual({ kind: 'formula', expr: '' });
-        fireEvent.click(useFixed());
+        await user.click(useFixed());
         expect(last()[0].value).toEqual(['open', 'closed']);
     });
 });

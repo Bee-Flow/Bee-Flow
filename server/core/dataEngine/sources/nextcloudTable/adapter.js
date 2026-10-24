@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Nextcloud Tables ADAPTER — what the shared mirror engine (../mirror)
  * asks a source kind, answered in Nextcloud's terms.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * MACHINERY-Art18-safety-component-assessment — per-source attestation.
  * Run: cd server && node --test --test-force-exit compliance/checks/machinery/art18-safety-component-assessment.test.js

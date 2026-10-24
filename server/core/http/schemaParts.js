@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The small zod pieces every route schema needs, so that each refusal reads

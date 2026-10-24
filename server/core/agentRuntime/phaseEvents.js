@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Pre-LLM phase events.
  *
@@ -70,7 +71,7 @@ function startPrivacyScanPhase(send, text) {
     emitPhase(send, stage, total > 1 ? `1/${total}` : undefined);
     return {
         stage,
-        onProgress: ({ done, total: n } = {}) => {
+        onProgress: (/** @type {{done?: number, total?: number}} */ { done, total: n } = {}) => {
             if (n > 1 && done < n) emitPhase(send, stage, `${done + 1}/${n}`);
         },
         end: () => emitPhaseEnd(send, stage, Date.now() - startedAt),

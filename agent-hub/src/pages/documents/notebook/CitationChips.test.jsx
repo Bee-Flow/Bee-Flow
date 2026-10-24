@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import CitationChips, { chipLabel } from './CitationChips';
@@ -46,10 +47,11 @@ describe('CitationChips', () => {
         expect(screen.getByTestId('citation-chip').textContent).toBe('Source 1');
     });
 
-    it('opens the passage, with its position, when clicked', () => {
+    it('opens the passage, with its position, when clicked', async () => {
+        const user = userEvent.setup();
         const onCitationClick = vi.fn();
         render(<CitationChips sources={[src()]} t={t} onCitationClick={onCitationClick} />);
-        fireEvent.click(screen.getByTestId('citation-chip'));
+        await user.click(screen.getByTestId('citation-chip'));
         expect(onCitationClick).toHaveBeenCalledWith(expect.objectContaining({ chunkId: 3, index: 1 }));
     });
 

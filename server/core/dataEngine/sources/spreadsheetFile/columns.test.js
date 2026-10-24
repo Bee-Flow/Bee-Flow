@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Header cells → mirror fields: ids derived from the header text, keys kept,
  * a rename is drop + add, a move keeps the id, a retype is a drop-and-add

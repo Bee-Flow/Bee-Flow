@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Documents ONE user may fill, in the shape both AI builders read.
  *

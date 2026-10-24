@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * publicationAudit.js — the record of an app's AUDIENCE changing.
  *
@@ -44,7 +45,7 @@ function audienceOf(isPublished, sharedGroups) {
     return groups.length > 0 ? 'groups' : 'organisation';
 }
 
-async function record(action, { app, actorId, organizationId, details }) {
+async function record(action, /** @type {{app: any, actorId: any, organizationId?: any, details: any}} */ { app, actorId, organizationId, details }) {
     try {
         const userStore = require('../stores/userStore');
         await userStore.logAccessAudit(

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
@@ -51,10 +52,11 @@ describe('the tick is offered on an http_request', () => {
         expect(toggle().disabled).toBe(false);
     });
 
-    it('ticking it asks for the plain per-run reuse', () => {
+    it('ticking it asks for the plain per-run reuse', async () => {
+        const user = userEvent.setup();
         const { set } = renderFields();
         openAdvanced();
-        fireEvent.click(toggle());
+        await user.click(toggle());
         expect(set).toHaveBeenCalledWith('askOnce', true);
     });
 

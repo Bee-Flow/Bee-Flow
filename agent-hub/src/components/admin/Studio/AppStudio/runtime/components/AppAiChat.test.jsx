@@ -1,4 +1,5 @@
 import { fireEvent, render, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import AppAiChat from './AppAiChat';
 import { authFetch } from '../../../../../../utils/helpers';
@@ -53,6 +54,7 @@ describe('AppAiChat', () => {
     });
 
     it('streams an answer over SSE and renders it as markdown', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValueOnce(sseResponse([
             { type: 'text', text: '**Hello**' },
             { type: 'text', text: ' world' },
@@ -60,7 +62,7 @@ describe('AppAiChat', () => {
         ]));
         const { getByLabelText, container } = renderChat();
         fireEvent.change(getByLabelText('Message'), { target: { value: 'hi' } });
-        fireEvent.click(getByLabelText('Send'));
+        await user.click(getByLabelText('Send'));
 
         await waitFor(() => expect(container.textContent).toContain('Hello world'));
         // markdown ran: ** ** became a <strong>, not literal asterisks
@@ -74,27 +76,29 @@ describe('AppAiChat', () => {
     });
 
     it('asks the server for the DRAFT definition when previewing in the editor', async () => {
+        const user = userEvent.setup();
         // Without ?draft=1 the server resolves the node against the PUBLISHED
         // definition and a not-yet-published chat 404s ("Chat component not found").
         authFetch.mockResolvedValueOnce(sseResponse([{ type: 'text', text: 'ok' }, { type: 'done' }]));
         const { getByLabelText } = renderChat({ draft: true });
         fireEvent.change(getByLabelText('Message'), { target: { value: 'hi' } });
-        fireEvent.click(getByLabelText('Send'));
+        await user.click(getByLabelText('Send'));
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
         expect(authFetch.mock.calls.at(-1)[0]).toContain('/ai/chat?draft=1');
     });
 
     it('carries history in chat mode but sends a single turn in assistant mode', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(sseResponse([{ type: 'text', text: 'a1' }, { type: 'done' }]));
         const assistantNode = { ...node, props: { ...node.props, mode: 'assistant' } };
         const { getByLabelText } = renderChat({ nodeOverride: assistantNode });
 
         fireEvent.change(getByLabelText('Message'), { target: { value: 'q1' } });
-        fireEvent.click(getByLabelText('Send'));
+        await user.click(getByLabelText('Send'));
         await waitFor(() => expect(authFetch).toHaveBeenCalledTimes(1));
 
         fireEvent.change(getByLabelText('Message'), { target: { value: 'q2' } });
-        fireEvent.click(getByLabelText('Send'));
+        await user.click(getByLabelText('Send'));
         await waitFor(() => expect(authFetch).toHaveBeenCalledTimes(2));
 
         // assistant mode: the second call starts fresh (no q1/a1 history)
@@ -102,10 +106,11 @@ describe('AppAiChat', () => {
     });
 
     it('surfaces a streamed error and drops the pending answer bubble', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValueOnce(sseResponse([{ type: 'error', error: 'The assistant failed to respond.' }]));
         const { getByLabelText, findByRole, container } = renderChat();
         fireEvent.change(getByLabelText('Message'), { target: { value: 'hi' } });
-        fireEvent.click(getByLabelText('Send'));
+        await user.click(getByLabelText('Send'));
 
         const alert = await findByRole('alert');
         expect(alert.textContent).toMatch(/failed to respond/i);
@@ -113,10 +118,11 @@ describe('AppAiChat', () => {
         expect(container.textContent).toContain('hi');
     });
 
-    it('is inert in edit mode (no network, input disabled)', () => {
+    it('is inert in edit mode (no network, input disabled)', async () => {
+        const user = userEvent.setup();
         const { getByLabelText } = renderChat({ mode: 'edit' });
         expect(getByLabelText('Message').disabled).toBe(true);
-        fireEvent.click(getByLabelText('Send'));
+        await user.click(getByLabelText('Send'));
         expect(authFetch).not.toHaveBeenCalled();
     });
 });

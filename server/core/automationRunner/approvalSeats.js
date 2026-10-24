@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Who sits on an approval: the org gate every assignee, panel seat and stage
  * seat passes through, and the recipient lists their notifications reach.

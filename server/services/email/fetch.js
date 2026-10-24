@@ -16,7 +16,7 @@
  * The normalised shape is deliberately snake_case: it maps 1:1 onto the columns
  * of the table these rows get synced into.
  */
-
+// @typecheck
 const {
     getGmailHeader,
     extractGmailBodies,
@@ -241,6 +241,7 @@ function normalizeGraph(msg, { mailbox, includeBody }) {
 /**
  * List messages received since a watermark.
  *
+ * @param {Record<string, any> & { mailbox?: { mode?: string, address?: string, [k: string]: any } }} opts
  * @returns {Promise<{messages: object[], nextPageToken: string|null}>}
  */
 async function listMessages({
@@ -386,7 +387,7 @@ async function listThreadMessages({ provider, tokens, onRefresh, mailbox = {}, t
  */
 async function getAttachmentBytes({ provider, tokens, onRefresh, mailbox = {}, messageId, attachmentId, maxBytes = 10 * 1024 * 1024 }) {
     const tooBig = (n) => {
-        const e = new Error(`Attachment is larger than the ${Math.round(maxBytes / 1024 / 1024)}MB limit`);
+        /** @type {Error & { status?: number, actualBytes?: number }} */ const e = new Error(`Attachment is larger than the ${Math.round(maxBytes / 1024 / 1024)}MB limit`);
         e.status = 413;
         e.actualBytes = n;
         return e;
@@ -498,7 +499,6 @@ async function listSendAsAliases({ tokens, onRefresh }) {
         isPrimary: Boolean(a.isPrimary),
     }));
 }
-
 module.exports = {
     listMessages,
     getMessage,

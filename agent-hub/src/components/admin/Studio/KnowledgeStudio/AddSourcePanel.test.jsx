@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import AddSourcePanel from './AddSourcePanel';
@@ -36,9 +37,10 @@ describe('MeetingTagForm', () => {
     }
 
     it('creates a source from a tag, with summary and decisions by default', async () => {
+        const user = userEvent.setup();
         const { onCreate } = await openForm();
         fireEvent.change(screen.getByTestId('kb-meeting-tag'), { target: { value: 'sales' } });
-        fireEvent.click(screen.getByTestId('kb-meeting-submit'));
+        await user.click(screen.getByTestId('kb-meeting-submit'));
         await waitFor(() => expect(onCreate).toHaveBeenCalledWith({
             kind: 'meeting_tag',
             config: { tag: 'sales', fields: ['summary', 'decisions'] },
@@ -60,22 +62,24 @@ describe('MeetingTagForm', () => {
     });
 
     it('cannot untick the summary', async () => {
+        const user = userEvent.setup();
         // A document of decisions with no context is a list of sentences
         // beginning "we agreed to" about nothing.
         await openForm();
         const summary = screen.getByTestId('kb-meeting-field-summary');
         expect(summary.disabled).toBe(true);
         expect(summary.dataset.active).toBe('true');
-        fireEvent.click(summary);
+        await user.click(summary);
         expect(summary.dataset.active).toBe('true');
     });
 
     it('adds and removes the optional parts', async () => {
+        const user = userEvent.setup();
         const { onCreate } = await openForm();
         fireEvent.change(screen.getByTestId('kb-meeting-tag'), { target: { value: 'sales' } });
-        fireEvent.click(screen.getByTestId('kb-meeting-field-decisions'));   // off
-        fireEvent.click(screen.getByTestId('kb-meeting-field-questions'));   // on
-        fireEvent.click(screen.getByTestId('kb-meeting-submit'));
+        await user.click(screen.getByTestId('kb-meeting-field-decisions'));   // off
+        await user.click(screen.getByTestId('kb-meeting-field-questions'));   // on
+        await user.click(screen.getByTestId('kb-meeting-submit'));
         await waitFor(() => expect(onCreate).toHaveBeenCalledWith({
             kind: 'meeting_tag',
             config: { tag: 'sales', fields: ['summary', 'questions'] },
@@ -91,13 +95,14 @@ describe('MeetingTagForm', () => {
     });
 
     it('surfaces the server`s refusal rather than closing as if it worked', async () => {
+        const user = userEvent.setup();
         const onCreate = vi.fn().mockRejectedValue(
             Object.assign(new Error('No meetings you can open carry that tag.'), { status: 400, code: 'tag_not_visible' }),
         );
         render(<AddSourcePanel canManage onCreate={onCreate} />);
-        fireEvent.click(screen.getByTestId('kb-add-kind-meeting_tag'));
+        await user.click(screen.getByTestId('kb-add-kind-meeting_tag'));
         fireEvent.change(await screen.findByTestId('kb-meeting-tag'), { target: { value: 'directie' } });
-        fireEvent.click(screen.getByTestId('kb-meeting-submit'));
+        await user.click(screen.getByTestId('kb-meeting-submit'));
         expect(await screen.findByText(/No meetings you can open carry that tag/)).toBeTruthy();
         expect(screen.getByTestId('kb-form-meeting_tag')).toBeTruthy();
     });
@@ -145,9 +150,10 @@ async function pickDatatableColumn(id = 'dt1') {
  */
 describe('DatatableForm', () => {
     it('creates a source from a table and its columns', async () => {
+        const user = userEvent.setup();
         const { onCreate } = await openDatatableForm();
         await pickDatatableColumn();
-        fireEvent.click(screen.getByTestId('kb-datatable-submit'));
+        await user.click(screen.getByTestId('kb-datatable-submit'));
         await waitFor(() => expect(onCreate).toHaveBeenCalledWith({
             kind: 'datatable',
             config: { datatableId: 'dt1', columns: ['name', 'price'], titleColumn: 'name' },
@@ -172,11 +178,12 @@ describe('DatatableForm', () => {
     });
 
     it('lets a column be left out, and says why that matters', async () => {
+        const user = userEvent.setup();
         const { onCreate } = await openDatatableForm();
         await pickDatatableColumn();
-        fireEvent.click(screen.getByTestId('kb-datatable-column-price'));
+        await user.click(screen.getByTestId('kb-datatable-column-price'));
         expect(screen.getByText(/dilutes the ones that answer questions/i)).toBeTruthy();
-        fireEvent.click(screen.getByTestId('kb-datatable-submit'));
+        await user.click(screen.getByTestId('kb-datatable-submit'));
         await waitFor(() => expect(onCreate).toHaveBeenCalledWith(expect.objectContaining({
             config: expect.objectContaining({ columns: ['name'] }),
         })));
@@ -188,20 +195,22 @@ describe('DatatableForm', () => {
     });
 
     it('will not submit without a table, or with no columns left', async () => {
+        const user = userEvent.setup();
         await openDatatableForm();
         expect(screen.getByTestId('kb-datatable-submit').disabled).toBe(true);
         await pickDatatableColumn();
         expect(screen.getByTestId('kb-datatable-submit').disabled).toBe(false);
-        fireEvent.click(screen.getByTestId('kb-datatable-column-name'));
-        fireEvent.click(screen.getByTestId('kb-datatable-column-price'));
+        await user.click(screen.getByTestId('kb-datatable-column-name'));
+        await user.click(screen.getByTestId('kb-datatable-column-price'));
         expect(screen.getByTestId('kb-datatable-submit').disabled).toBe(true);
     });
 
     it('a table list that will not load says so, rather than showing an empty picker', async () => {
+        const user = userEvent.setup();
         const { datatablesApi } = await import('../Datatables/datatablesApi');
         datatablesApi.list.mockRejectedValue(new Error('down'));
         render(<AddSourcePanel canManage onCreate={vi.fn()} />);
-        fireEvent.click(screen.getByTestId('kb-add-kind-datatable'));
+        await user.click(screen.getByTestId('kb-add-kind-datatable'));
         expect(await screen.findByText(/Could not load your tables/i)).toBeTruthy();
     });
 });

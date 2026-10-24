@@ -7,33 +7,37 @@ const { usageLogFields } = require('../providers/usageNormalizer');
  *
  * ── WHAT THIS IS, AND WHY IT IS NOT WHAT THE OTHER CHIPS ARE ─────────────
  *
- * A chip under an answer is a CLAIM about where that answer came from. The other chips in
- * that row are recorded: the `kb_sources` event was written while the answer was being made,
- * the passage sits behind it and can be read again; a skill chip comes from
- * `session_skill_completed`. Those are MINUTES.
+ * A chip under an answer is a CLAIM about where that answer came from. The other
+ * chips in that row are recorded: the `kb_sources` event was written while the
+ * answer was being made, the passage sits behind it and can be read again; a skill
+ * chip comes from `session_skill_completed`.
+ * Those are MINUTES.
  *
- * This one is not. Here a second model reads, afterwards, the `doesNot` bullets of the role
- * next to the answer and says what it thinks of it. That is an OPINION, and it must never
- * come onto the screen as minutes — therefore it carries a different form in the UI
- * (`AnswerChips.jsx`: dotted, not clickable, always at the end) and therefore as little as
- * possible is stated in the card.
+ * Not these. Here a second model reads, afterwards, the `doesNot` bullets of the
+ * role next to the answer and says what it thinks of it. That is an OPINION, and
+ * it must never come onto the screen as minutes — therefore it carries a different
+ * form in the UI (`AnswerChips.jsx`: dotted, not clickable, always at the end),
+ * and therefore as little as possible is stated in the card.
  *
- * ── RUNS ONLY IN TEST MODE — A DELIBERATE DEVIATION ─────────────────────
+ * ── RUNS ONLY IN TEST MODE — A DELIBERATE DEVIATION ─────────────────────────
  *
- * The pass is one extra fast-tier call per turn. In the production chat that would cost
- * every user every turn money for a judgment nobody asked for — so it is off there, and only
- * the test chat in the builder turns it on. That is a deviation from "the test runs what
- * production runs", and it is well defensible here: the pass does not touch the answer. It
- * reads it after it is finished and adds nothing to the prompt, so the agent being tested is
- * line for line the same agent as in production. Only the tester looks along.
+ * The pass is one extra fast-tier call per turn. In the production chat that would
+ * cost every user, every turn, money for a judgment nobody asked for — so it is off
+ * there, and only the test chat in the builder switches it on.
+ * That is a deviation from "the test runs what production runs", and it is well
+ * defensible here: the pass does not touch the answer. It reads it after it is
+ * finished and adds nothing to the prompt, so the agent that is tested is line for
+ * line the same agent as in production. Only the
+ * tester looks along.
  *
- * That flag is CHECKED here, not only set at the call site: `attributeTurn` refuses without a
- * literal `testChat: true`. A branch in a route that by mistake also comes through in an
- * ordinary turn then still costs nothing — the most expensive mistake in this file is the
- * mistake that spends money without anyone asking for it, and that must not depend on where
- * the `if` stands.
+ * That flag is CHECKED here, not only set by the call site:
+ * `attributeTurn` refuses without a literal `testChat: true`. A branch in a route
+ * that by accident also comes through in an ordinary turn still costs nothing — the
+ * most expensive mistake in this file is the one that spends money without anyone
+ * asking for it, and that must not depend on where the
+ * `if` stands.
  *
- * The call belongs in the testchat branch of `POST /agents/:id/chat/stream`
+ * The call belongs in the test chat branch of `POST /agents/:id/chat/stream`
  * (A4 part A, `core/agentRuntime/testChat.js`), after the turn and before `done`:
  *
  *     const attribution = await ruleAttribution.attributeTurn({
@@ -46,53 +50,59 @@ const { usageLogFields } = require('../providers/usageNormalizer');
  *
  * No event on `null` — see "if the pass falls over" below.
  *
- * ── THREE VERDICTS, AND ONLY ONE BECOMES A CHIP ────────────────────────────
+ * ── THREE VERDICTS, AND ONLY ONE BECOMES A CHIP ─────────────────────────────
  *
- * A `doesNot` bullet is a PROHIBITION ("never name a price"). On most questions that
- * prohibition is trivially "followed" — no price came up. A chip that gives credit for that
- * is noise, and noise in a row that is meant as evidence makes the rest of the row worth less.
- * Hence:
+ * A `doesNot` bullet is a PROHIBITION ("never name a price"). On a question about
+ * opening hours that prohibition is trivially "followed" — no price came up.
+ * A chip that gives credit for that is noise, and noise in a row that is meant as
+ * evidence makes the rest of the row worth less too. Hence:
  *
- *   followed         the question tempted the forbidden behaviour and the answer stayed
- *                    clear of it — the only one that gets a chip
+ *   followed         the question tempted the forbidden behaviour and the answer
+ *                    stayed clear of it — the only one that gets a chip
  *   not_applicable   it did not come up — no chip
  *   not_followed     the answer did it anyway — NO chip, see below
  *
- * `not_followed` is returned here but does not become a chip. A chip next to the answer is
- * provenance; "this answer breaks your rule" is a JUDGMENT, and a judgment from one fast-tier
- * call, without evidence that anyone can click open, lets a builder rewrite a working role on
- * the authority of a guess. Judgments belong in the test set, where the builder writes the
- * expectation themselves and `testSandbox.verdictFor` records it under `decidedBy: 'rules'`.
+ * `not_followed` is returned here but does not become a chip. A chip next to the
+ * answer is provenance; "this answer breaks your rule" is a JUDGMENT, and a judgment
+ * from one fast-tier call, without evidence that someone can click open, lets a
+ * builder rewrite a working role on the authority of a guess. Judgments belong in
+ * the test set, where the builder writes the expectation himself and
+ * `testSandbox.verdictFor` records them under `decidedBy: 'rules'`.
  * The value travels along so that that side can use it later.
  *
- * ── IF THE PASS FALLS OVER, THERE IS NO CHIP ───────────────────────────────
+ * ── IF THE PASS FALLS OVER, THERE IS NO CHIP ────────────────────────────────
  *
- * Every branch that does not end with certainty yields `null`: no model, a throwing call, a
- * timeout, an unreadable tool shape, an index that does not exist. Never a chip that claims
- * "no rule followed" — that would be a claim from a source that had just proved it could
- * claim nothing. "The pass fell over" and "the pass found nothing" are both silence, and that is
- * right: a chip row is a place for claims, and neither of those has one.
+ * Every branch that does not end with certainty yields `null`: no model, a
+ * throwing call, a timeout, an unreadable tool shape, an index that does not
+ * exist. Never a chip that claims "no rule followed" — that would be a claim
+ * from a source that had just proved it could claim nothing. "The pass
+ * fell over" and "the pass found nothing" are both silence, and that is right:
+ * a chip row is a place for claims, and neither of them has one.
  *
  * ── THE TEXT OF THE CHIP IS THE BUILDER'S BULLET, NOT THE MODEL'S ─────────
  *
- * The model answers with a NUMBER, not with text. The chip then shows the bullet as the builder
- * typed it, looked up by that number. Two reasons: a paraphrase of a rule is not the rule, and
- * the model reads an answer that can quote anything the knowledge base of this agent contains —
- * a free text field would carry a customer's name into the event stream. The same split that
- * `testSandbox` makes between `decidedBy` (stored) and `graderNote` (streamed only).
+ * The model answers with a NUMBER, not with text. The chip then shows the
+ * bullet as the builder typed it, looked up by that number. Two reasons:
+ * a paraphrase of a rule is not the rule, and the model reads an
+ * answer that can quote anything the knowledge base of this agent contains — a
+ * free text field would carry a customer's name into the event stream. The same
+ * split that `testSandbox` makes between `decidedBy` (stored) and
+ * `graderNote` (streamed only).
  *
- * ── THE ROLE YOU READ MUST BE THE ROLE THAT RAN ───────────────────────────
+ * ── THE ROLE YOU READ MUST BE THE ROLE THAT RAN ───────────────────────
  *
- * `persona` hangs only on the DRAFT view (`agentCrud._stripPersona`), and the runtime runs the
- * PUBLISHED prompt for a published agent. Laying draft bullets next to a published answer is
- * exactly the claim that R2 already refused. So we attribute only when the two are demonstrably
- * the same — `personaRanWith`. In a testchat that is usually self-evident (that one runs the
- * DRAFT, `runtimeSource: 'draft'`), but the function ALSO reads the word list of
- * `routes/agents/tests.js versionInfo` so that a testset run can use the same gate. Unknown
+ * `persona` hangs only on the DRAFT view (`agentCrud._stripPersona`), and
+ * the runtime runs the PUBLISHED prompt for a published agent. The draft
+ * bullets next to a published answer are exactly the claim that R2
+ * already refused. So we attribute only when the two are demonstrably
+ * the same — `personaRanWith`. In a test chat that is usually
+ * self-evident (that one runs the DRAFT, `runtimeSource: 'draft'`),
+ * but the function ALSO reads the word list of `routes/agents/tests.js
+ * versionInfo` so that a test-set run can use the same gate. Unknown
  * narrows: `source: 'unknown'` — the projection that said nothing — is no pass.
  *
- * Pure where it can be: everything except `attributeTurn` touches no store, no route and no LLM
- * client, and nothing here throws.
+ * Pure where it can be: everything except `attributeTurn` touches no store, no
+ * route and no LLM client, and nothing here throws.
  *
  * Run: cd server && node --test core/agentRuntime/ruleAttribution.test.js
  */
@@ -126,27 +136,32 @@ function _str(v, max) {
 /**
  * The rules this pass is about: the `doesNot` bullets of the role.
  *
- * Cut, de-duplicated and capped. An empty list is the normal case — most agents have no
- * prohibition rules — and yields no pass and therefore no call.
+ * Cut, de-duplicated and capped. An empty list is the normal case — most agents
+ * have no prohibition rules, so it yields no pass and no
+ * call.
  *
- * ── ONLY IF THE BULLETS ALSO REACH THE PROMPT ────────────────────────────
+ * ── ONLY IF THE BULLETS ALSO REACH THE PROMPT ─────────────────────────
  *
- * `persona.mode` decides what of a role ends up in the system prompt: `renderSystemPrompt`
- * does `if (p.mode === 'free') return p.freeText;`, and in free mode `does`/`doesNot` are
- * only still there as a DESCRIPTION of the text — the model never received them. A chip
- * "Rule followed: never name a price" would give credit there for following an instruction
- * that did not exist. Precisely the class of claim that the header of this file forbids.
+ * `persona.mode` decides what of a role ends up in the system prompt:
+ * `renderSystemPrompt` does `if (p.mode === 'free') return p.freeText;`, and in
+ * free mode `does`/`doesNot` are only still there as a DESCRIPTION of the
+ * text — the model never received them. A chip "Rule followed: never name a
+ * price" would give credit there for following an instruction that did not
+ * exist. Precisely the class of claim that the header of this file
+ * forbids.
  *
- * That is no theoretical case: the button "Open as free instruction" switches the mode with the
- * fields intact, and `routes/agents/crud.js` itself pushes a persona to `mode:'free'` as soon as
- * a client edits the prompt and returns the persona untouched. Every agent that was first written
- * out in fields and then went to free text therefore carries bullets that go nowhere.
+ * That is no theoretical case: the button "Open as free instruction" switches the
+ * mode with the fields intact, and `routes/agents/crud.js` itself pushes a persona
+ * to `mode:'free'` as soon as a client edits the prompt and returns the persona
+ * untouched. Every agent that was first written out in fields and then went to
+ * free text therefore carries bullets that go nowhere.
  *
- * The check runs via `normalisePersona` — the same normaliser the renderer uses — so that "which
- * mode is this" is answered in one place. `applyPersonaToConfig` already does the mode check that
- * way; this is the same precedent, not a new idea. Unknown narrows: anything that is not `fields`
- * (also an unreadable mode, which the normaliser incidentally lands on `fields` with a warning)
- * yields no rules and therefore no pass.
+ * The check runs via `normalisePersona` — the same normaliser the renderer uses —
+ * so that "which mode is this" is answered in one place. `applyPersonaToConfig`
+ * already does the mode check that way; this is the same precedent, not a new
+ * idea. Unknown narrows: anything that is not `fields` (also an unreadable mode,
+ * which the normaliser incidentally lands on `fields` with a warning) yields no
+ * rules and therefore no pass.
  */
 function rulesFrom(persona) {
     const { normalisePersona } = require('./personaPrompt');
@@ -169,18 +184,19 @@ function rulesFrom(persona) {
 /**
  * Does the draft role describe the same agent that gave the answer?
  *
- * Reads the two word lists that this product keeps for "which agent was just running":
+ * Reads the two word lists that this product keeps for "which agent was
+ * running just now":
  *
- *   'draft'      testChat.testChatConfigInfo — the draft ran, and the persona belongs to
- *                the draft. Yes.
+ *   'draft'      testChat.testChatConfigInfo — the draft ran, and the persona
+ *                belongs to the draft. Yes.
  *   runsDraft    the same answer, as the same helper summarises it.
  *   'live'       never published, so draft and runtime are one string. Yes.
- *   'published'  only if the draft is zero steps ahead; then the draft is literally what
- *                was published.
+ *   'published'  only if the draft is zero steps ahead; then the draft is
+ *                literally what was published.
  *   'unknown'    the projection said nothing. That is not a yes.
  *
- * Everything else (no object, unknown source, a count that is not a number) counts as NO.
- * Unknown narrows.
+ * Everything else (no object, unknown source, a count that is not a number)
+ * counts as NO. Unknown narrows.
  */
 function personaRanWith(info) {
     if (!info || typeof info !== 'object') return false;
@@ -188,9 +204,10 @@ function personaRanWith(info) {
     if (info.source === 'draft' || info.source === 'live') return true;
     if (info.source !== 'published') return false;
     // Only a REAL number zero. `Number(null)`, `Number('')`, `Number(false)`
-    // and `Number([])` are also 0, and they passed the gate that exists precisely to refuse draft
-    // bullets next to a published answer. This is a new call site one require further on — the
-    // narrow reading belongs in the gate, not in the promise that every caller passes a number.
+    // and `Number([])` are also 0, and they passed the gate that exists precisely
+    // to refuse concept bullets next to a published answer. This is a new call
+    // site one require further on — the narrow reading belongs in the gate,
+    // not in the promise that every caller passes a number.
     return typeof info.unpublishedChanges === 'number'
         && Number.isFinite(info.unpublishedChanges)
         && info.unpublishedChanges === 0;
@@ -272,10 +289,11 @@ function buildAttributionMessages({ rules, question, answer }) {
 /**
  * Read the tool call.
  *
- * Every row that does not point to a rule from OUR list with a verdict from the closed list is
- * dropped; an unreadable shape as a whole yields `[]`. The text comes from `rules`, never from
- * the model. The first verdict per rule wins — a model that says something twice about rule 2
- * has not judged two rules.
+ * Every row that does not point to a rule on OUR list with a verdict from the
+ * closed list is dropped; an unreadable shape as a whole yields `[]`. The text
+ * comes from `rules`, never from the model. The first verdict per rule wins —
+ * a model that says something twice about rule 2 has not judged two
+ * rules.
  */
 function parseAttribution(structured, rules) {
     const list = Array.isArray(rules) ? rules : [];
@@ -317,21 +335,21 @@ function withTimeout(promise, ms, label) {
 }
 
 /**
- * The whole pass for one turn: gated, called, read.
+ * De hele pass voor één beurt: gepoort, gebeld, gelezen.
  *
  * @param {object} p
- * @param {boolean} p.testChat     `testChat.isTestChat(messageMetadata)`. Everything that is
- *                                 not literally `true` is not a pass — see the header for
- *                                 why this flag hangs here.
- * @param {object} p.persona       the DRAFT persona (`getAgent(id).persona`)
- * @param {object} p.configInfo    `testChat.testChatConfigInfo(agent)`, or the
- *                                 `versionInfo(views)` of routes/agents/tests.js
- * @param {string} p.answer        the answer of the agent
- * @param {string} [p.question]    the question that preceded it
+ * @param {boolean} p.testChat     `testChat.isTestChat(messageMetadata)`. Alles
+ *                                 wat niet letterlijk `true` is, is geen pass —
+ *                                 zie de kop over waarom die vlag hier hangt.
+ * @param {object} p.persona       de CONCEPT-persona (`getAgent(id).persona`)
+ * @param {object} p.configInfo    `testChat.testChatConfigInfo(agent)`, of de
+ *                                 `versionInfo(views)` van routes/agents/tests.js
+ * @param {string} p.answer        het antwoord van de agent
+ * @param {string} [p.question]    de vraag die eraan voorafging
  * @param {string|null} [p.orgId]
  * @param {string|null} [p.userId]
- * @param {object} [deps]          injection points for the test
- * @returns {Promise<{rules: Array<{rule: string}>}|null>} null = no chip
+ * @param {any} [deps]          injectiepunten voor de test
+ * @returns {Promise<{rules: Array<{rule: string}>}|null>} null = geen chip
  */
 async function attributeTurn({ testChat, persona, configInfo, answer, question, orgId = null, userId = null }, deps = {}) {
     // The money tap, before everything. See the header: no `if` in a route guards this,
@@ -374,8 +392,9 @@ async function attributeTurn({ testChat, persona, configInfo, answer, question, 
             'rule attribution',
         );
         const followed = followedFrom(parseAttribution(out && out.structured, rules));
-        // Apart from the outcome: the call was made and costs money, so it is booked —
-        // under its own `source`, so that a testchat does not pollute the chat costs of this workspace.
+        // Regardless of the outcome: the call was made and costs money, so it is
+        // booked — under its own `source`, so that a test chat does not pollute the
+        // chat costs of this workspace.
         await logUsage({ userId, orgId, modelId, usage: out && out.usage, startMs });
         if (followed.length === 0) return null;
         return { rules: followed };

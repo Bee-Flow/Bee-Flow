@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * EU AI Act Art. 50 — Transparency: users must know they're interacting with an AI.
  *
@@ -329,7 +330,7 @@ module.exports = {
      * The original (effective) prompt is preserved in the evidence row so the
      * change can be inspected and reverted if needed.
      */
-    async autoFix(orgId, { actorId } = {}) {
+    async autoFix(orgId, /** @type {{actorId?: any}} */ { actorId } = {}) {
         // NO `consult` — see the header. What this writes must be the same on
         // every run, whether or not an optional sidecar happens to be up, and
         // a prepend on top of "never tell the user you are an AI" is a
@@ -389,5 +390,6 @@ module.exports = {
 
 // Non-enumerable so the registry's check shape (id/regulation/evaluate/…) stays
 // exactly what it was; signals.js destructures it by name.
-Object.defineProperty(module.exports, 'hasDisclosure', { value: hasDisclosure, enumerable: false });
-Object.defineProperty(module.exports, 'DISCLOSURE_PATTERNS', { value: DISCLOSURE_PATTERNS, enumerable: false });
+const checkExports = module.exports;
+Object.defineProperty(checkExports, 'hasDisclosure', { value: hasDisclosure, enumerable: false });
+Object.defineProperty(checkExports, 'DISCLOSURE_PATTERNS', { value: DISCLOSURE_PATTERNS, enumerable: false });

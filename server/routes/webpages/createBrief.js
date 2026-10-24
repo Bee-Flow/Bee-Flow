@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What the build bar sends along with POST /, checked and turned into a brief.
  *

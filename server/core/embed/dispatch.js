@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Shared embedding dispatcher.
  *

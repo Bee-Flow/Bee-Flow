@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Outlook send / reply / save-draft recipient handling.
  *

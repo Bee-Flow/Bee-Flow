@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * codeOutput — the code step's envelope, and the run's tolerant read of a
  * path that skipped its `.result` (bind.js walkPath).

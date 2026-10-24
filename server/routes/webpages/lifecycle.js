@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The end and the branch of a page: cloning and deleting.
  *

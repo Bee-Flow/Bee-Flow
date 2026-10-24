@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A push event patches the mirror(s) of its table: added/updated re-read the
  * row from Nextcloud and upsert it, deleted removes it, a VIEW mirror is

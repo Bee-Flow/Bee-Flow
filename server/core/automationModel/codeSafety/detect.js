@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The detector: walks a parsed code step once and raises the findings of
  * rules.js, plus the facts the capability summary is built from.
@@ -110,8 +111,8 @@ const mentionsClock = (node) => {
 /**
  * @param {object} ast        acorn Program
  * @param {string} src        the source (for line lengths and escapes)
- * @param {{ inputsName: string, ctxName: string, allowedTools: string[], allowedHosts: string[] }} opts
- * @returns {{ findings: object[], facts: object }}
+ * @param {{ inputsName?: string, ctxName?: string, allowedTools?: string[], allowedHosts?: string[] }} [opts]
+ * @returns {{ findings: object[], facts: any }}
  */
 function detect(ast, src, { inputsName = 'inputs', ctxName = 'ctx', allowedTools = [], allowedHosts = [] } = {}) {
     const declared = declaredNames(ast);

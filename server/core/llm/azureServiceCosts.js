@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Azure Service Cost Estimation — pricing for non-LLM Azure services
  *

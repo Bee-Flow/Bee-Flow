@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Pinned sample data — the rules for a payload an author saved onto a node so
  * the node serves it instead of running. One function for steps and triggers
@@ -54,7 +55,7 @@ const { BRANCHER_TYPES } = require('../constants');
  * reading authored edges. The shape rule still applies there; only the
  * does-it-match-an-edge half is skipped.
  */
-function checkPinnedOutput(node, at, { pushE, outgoingLabels = null, isTrigger = false } = {}) {
+function checkPinnedOutput(node, at, /** @type {{pushE?: any, outgoingLabels?: any, isTrigger?: boolean}} */ { pushE, outgoingLabels = null, isTrigger = false } = {}) {
     const pin = node?.pinnedOutput;
     if (pin === undefined || pin === null) return;
     const who = `${isTrigger ? 'Trigger' : 'Step'} ${node.id || '(no id)'}`;

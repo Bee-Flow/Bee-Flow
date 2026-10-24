@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 
@@ -54,16 +55,18 @@ describe('ToolConfirmCard', () => {
         expect(screen.getByText(/Nothing was done/i)).toBeInTheDocument();
     });
 
-    it('met een beslispad zijn er twee knoppen, en ze geven de ACTIESLEUTEL door', () => {
+    it('met een beslispad zijn er twee knoppen, en ze geven de ACTIESLEUTEL door', async () => {
+        const user = userEvent.setup();
         const onDecide = vi.fn();
         render(<ToolConfirmCard calls={[call()]} onDecide={onDecide} t={t} />);
-        fireEvent.click(screen.getByText(/Approve and run/i));
+        await user.click(screen.getByText(/Approve and run/i));
         expect(onDecide).toHaveBeenCalledWith('a'.repeat(32), 'approve', expect.objectContaining({ toolName: 'gmail_compose' }));
-        fireEvent.click(screen.getByText(/Do not run it/i));
+        await user.click(screen.getByText(/Do not run it/i));
         expect(onDecide).toHaveBeenLastCalledWith('a'.repeat(32), 'decline', expect.anything());
     });
 
-    it('BIJT — een beslissing gaat over één actie, niet over de tool', () => {
+    it('BIJT — een beslissing gaat over één actie, niet over de tool', async () => {
+        const user = userEvent.setup();
         // Twee mails met dezelfde tool: twee kaarten, twee sleutels. Zou de
         // kaart op toolnaam werken, dan zou één ja beide versturen.
         const onDecide = vi.fn();
@@ -75,7 +78,7 @@ describe('ToolConfirmCard', () => {
         );
         const cards = screen.getAllByTestId('tool-confirm-card');
         expect(cards).toHaveLength(2);
-        fireEvent.click(screen.getAllByText(/Approve and run/i)[1]);
+        await user.click(screen.getAllByText(/Approve and run/i)[1]);
         expect(onDecide).toHaveBeenCalledWith('b'.repeat(32), 'approve', expect.anything());
     });
 

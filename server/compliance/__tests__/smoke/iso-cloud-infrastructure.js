@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Smoke scenarios — ISO 27001 checks fed by the infrastructure connectors
  * (Scaleway, OpenObserve): A.8.13 server backups, A.8.20 network exposure

@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { BuilderConfirmProvider } from '../../BuilderConfirmContext';
@@ -73,12 +74,13 @@ describe('form trigger — the author\'s side of publishing', () => {
         expect(api.listFormPages).not.toHaveBeenCalled();
     });
 
-    it('offers to create the form when a trigger has just been switched to this kind', () => {
+    it('offers to create the form when a trigger has just been switched to this kind', async () => {
+        const user = userEvent.setup();
         const set = vi.fn();
         render(<FormTriggerFields draft={{}} set={set} automation={automation()} stepId="trg" />);
 
         expect(screen.getByText(/publishes a page for the colleagues it is shared with/)).toBeTruthy();
-        fireEvent.click(screen.getByRole('button', { name: /Create the form/ }));
+        await user.click(screen.getByRole('button', { name: /Create the form/ }));
 
         const [key, declaration] = set.mock.calls[0];
         expect(key).toBe('form');
@@ -131,7 +133,7 @@ describe('FormTriggerUrlPanel — the link, when it is shown at all', () => {
         renderPanel();
         await screen.findByLabelText('Public form URL');
 
-        fireEvent.click(screen.getByRole('button', { name: 'Copy the link' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Copy the link' }));
         await waitFor(() => expect(writeText).toHaveBeenCalledWith('https://app.test/f/tok1'));
     });
 
@@ -142,7 +144,7 @@ describe('FormTriggerUrlPanel — the link, when it is shown at all', () => {
         });
         renderPanel();
         await screen.findByLabelText('Public form URL');
-        fireEvent.click(screen.getByRole('button', { name: 'Copy the link' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Copy the link' }));
         expect(await screen.findByText(/Select the text to copy it manually/)).toBeTruthy();
     });
 
@@ -151,7 +153,7 @@ describe('FormTriggerUrlPanel — the link, when it is shown at all', () => {
         renderPanel({ confirm });
         await screen.findByLabelText('Public form URL');
 
-        fireEvent.click(screen.getByRole('button', { name: 'Create a new link' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Create a new link' }));
         await waitFor(() => expect(api.rotateFormPage).toHaveBeenCalledWith('aut_1', 'tok1'));
 
         const asked = confirm.mock.calls[0][0];
@@ -164,7 +166,7 @@ describe('FormTriggerUrlPanel — the link, when it is shown at all', () => {
         renderPanel({ confirm: vi.fn(async () => false) });
         await screen.findByLabelText('Public form URL');
 
-        fireEvent.click(screen.getByRole('button', { name: 'Create a new link' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Create a new link' }));
         await waitFor(() => expect(api.rotateFormPage).not.toHaveBeenCalled());
         expect(screen.getByLabelText('Public form URL').value).toBe('https://app.test/f/tok1');
     });

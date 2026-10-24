@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The licensed stage API (design 8): everything under /api/projects/:id that

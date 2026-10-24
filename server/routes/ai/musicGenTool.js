@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Music Generation Tool — Lyria RealTime via Google GenAI
  * 
@@ -55,7 +56,7 @@ async function executeMusicGenTool(args, send, req, nanoBananaSettings) {
     const bpm = Math.min(200, Math.max(60, args.bpm || lyria.bpm || 90));
     const durationSeconds = Math.min(30, Math.max(5, args.duration_seconds || lyria.durationSeconds || 10));
 
-    log.info(`[MusicGen Tool] Generating: "${prompt.substring(0, 80)}" (${bpm} BPM, ${durationSeconds}s)`);
+    log.info(`[MusicGen Tool] Generating: "${log.textForLog(prompt)}" (${bpm} BPM, ${durationSeconds}s)`);
 
     const result = await googleAdapter.generateMusic(googleApiKey, prompt, {
         bpm,

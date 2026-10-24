@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Self-service tokens for the Bee Flow MCP server (routes/mcpServer.js).
  *

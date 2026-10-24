@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The "Reliable AI steps" section of the FULL builder system prompt (and so of

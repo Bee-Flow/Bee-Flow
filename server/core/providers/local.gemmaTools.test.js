@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Gemma 4 gets tool schemas its chat template can render; nobody else is touched.
  *

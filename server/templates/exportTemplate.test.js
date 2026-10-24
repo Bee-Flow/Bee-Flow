@@ -1,3 +1,4 @@
+// @typecheck
 const test = require('node:test');
 const assert = require('node:assert');
 const { buildExportHTML } = require('./exportTemplate');

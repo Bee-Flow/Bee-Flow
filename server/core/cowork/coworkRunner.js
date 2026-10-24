@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Cowork Runner — the scheduler tick for cowork schedules.
  *

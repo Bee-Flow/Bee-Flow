@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * List every datatable schema in this database that no `datatable_models` row
  * describes — storage with no owner, no access filter, no retention sweep and

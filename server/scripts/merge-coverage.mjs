@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Merge the per-shard coverage of the sharded server run into one report.
  *

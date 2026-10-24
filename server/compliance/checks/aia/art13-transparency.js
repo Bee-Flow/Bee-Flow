@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * EU AI Act Art. 13 — Transparency / information to users.
  * Ensures each published agent has a meaningful description so users can

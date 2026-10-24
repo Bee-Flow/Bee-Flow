@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The kind runners behind runConnector (../connectors.js): integration_tool
  * (with its chain), automation, and rest (https-only, allow-listed template,

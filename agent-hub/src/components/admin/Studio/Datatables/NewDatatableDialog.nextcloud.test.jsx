@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { datatablesApi } from './datatablesApi';
@@ -62,30 +63,32 @@ describe('the Nextcloud card', () => {
     });
 
     it('when chosen, hides the per-table fields, keeps the audience, and hands over to the wizard', async () => {
+        const user = userEvent.setup();
         open();
         const radio = await screen.findByRole('radio', { name: /table from Nextcloud/ });
         await waitFor(() => expect(radio).not.toBeDisabled());
-        fireEvent.click(radio);
+        await user.click(radio);
         expect(screen.queryByPlaceholderText('Customers')).toBeNull();
         expect(screen.queryByText(/Add a column/)).toBeNull();
         expect(screen.getByRole('radio', { name: /Your organisation/ })).toBeInTheDocument();
         expect(screen.getByText(/chosen per table in the next step/)).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: /Choose tables/ }));
+        await user.click(screen.getByRole('button', { name: /Choose tables/ }));
         expect(await screen.findByText(/Link tables from Nextcloud/)).toBeInTheDocument();
         expect(screen.getByRole('checkbox', { name: 'Facturen' })).toBeInTheDocument();
         expect(datatablesApi.linkable).toHaveBeenCalledTimes(1);
         // Back restores the dialog with the card still chosen.
-        fireEvent.click(screen.getByRole('button', { name: /Back/ }));
+        await user.click(screen.getByRole('button', { name: /Back/ }));
         expect(await screen.findByRole('radio', { name: /table from Nextcloud/ })).toBeChecked();
     });
 
     it('the ordinary card still creates an ordinary table', async () => {
+        const user = userEvent.setup();
         datatablesApi.create.mockResolvedValue({ datatable: { id: 'tbl_x' } });
         const onCreated = vi.fn();
         open({ onCreated });
         fireEvent.change(screen.getByPlaceholderText('Customers'), { target: { value: 'Klanten' } });
         fireEvent.change(screen.getByPlaceholderText(/onboarding e-mail/), { target: { value: 'the list' } });
-        fireEvent.click(screen.getByRole('button', { name: /^Create$/ }));
+        await user.click(screen.getByRole('button', { name: /^Create$/ }));
         await waitFor(() => expect(datatablesApi.create).toHaveBeenCalled());
         expect(datatablesApi.create.mock.calls[0][0]).toMatchObject({ name: 'Klanten', key: 'klanten', scope: 'organisation' });
         expect(datatablesApi.linkNc).not.toHaveBeenCalled();
@@ -94,18 +97,19 @@ describe('the Nextcloud card', () => {
 
 describe('linking through the wizard', () => {
     it('sends the exact body and shows the server\'s warnings verbatim', async () => {
+        const user = userEvent.setup();
         const warning = '"Facturen": one column links to a table that is not linked here.';
         datatablesApi.linkNc.mockResolvedValue({ datatables: [{ id: 'tbl_new', name: 'Facturen', managedKind: 'nextcloud_table' }], warnings: [warning] });
         const onCreated = vi.fn();
         open({ onCreated });
-        fireEvent.click(await screen.findByRole('radio', { name: /table from Nextcloud/ }));
-        fireEvent.click(await screen.findByRole('button', { name: /Choose tables/ }));
-        fireEvent.click(await screen.findByRole('checkbox', { name: 'Facturen' }));
-        fireEvent.click(screen.getByRole('button', { name: /^Next$/ }));       // names
+        await user.click(await screen.findByRole('radio', { name: /table from Nextcloud/ }));
+        await user.click(await screen.findByRole('button', { name: /Choose tables/ }));
+        await user.click(await screen.findByRole('checkbox', { name: 'Facturen' }));
+        await user.click(screen.getByRole('button', { name: /^Next$/ }));       // names
         expect(await screen.findByDisplayValue('facturen')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: /^Next$/ }));       // relations
-        fireEvent.click(screen.getByRole('button', { name: /^Next$/ }));       // review
-        fireEvent.click(screen.getByRole('button', { name: /Link the table/ }));
+        await user.click(screen.getByRole('button', { name: /^Next$/ }));       // relations
+        await user.click(screen.getByRole('button', { name: /^Next$/ }));       // review
+        await user.click(screen.getByRole('button', { name: /Link the table/ }));
         await waitFor(() => expect(datatablesApi.linkNc).toHaveBeenCalled());
         expect(datatablesApi.linkNc).toHaveBeenCalledWith({
             scope: 'organisation',
@@ -114,21 +118,22 @@ describe('linking through the wizard', () => {
         });
         expect(await screen.findByText(/The tables are ready/)).toBeInTheDocument();
         expect(screen.getByText(warning)).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: /Open the table/ }));
+        await user.click(screen.getByRole('button', { name: /Open the table/ }));
         expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ id: 'tbl_new' }));
     });
 
     it('a refusal keeps the wizard open and points at the table it is about', async () => {
+        const user = userEvent.setup();
         const err = Object.assign(new Error('taken'), { status: 409, code: 'already_linked', body: { ncTableId: 4, datatableId: 'tbl_old' } });
         datatablesApi.linkNc.mockRejectedValue(err);
         open();
-        fireEvent.click(await screen.findByRole('radio', { name: /table from Nextcloud/ }));
-        fireEvent.click(await screen.findByRole('button', { name: /Choose tables/ }));
-        fireEvent.click(await screen.findByRole('checkbox', { name: 'Facturen' }));
-        fireEvent.click(screen.getByRole('button', { name: /^Next$/ }));
-        fireEvent.click(await screen.findByRole('button', { name: /^Next$/ }));
-        fireEvent.click(await screen.findByRole('button', { name: /^Next$/ }));
-        fireEvent.click(await screen.findByRole('button', { name: /Link the table/ }));
+        await user.click(await screen.findByRole('radio', { name: /table from Nextcloud/ }));
+        await user.click(await screen.findByRole('button', { name: /Choose tables/ }));
+        await user.click(await screen.findByRole('checkbox', { name: 'Facturen' }));
+        await user.click(screen.getByRole('button', { name: /^Next$/ }));
+        await user.click(await screen.findByRole('button', { name: /^Next$/ }));
+        await user.click(await screen.findByRole('button', { name: /^Next$/ }));
+        await user.click(await screen.findByRole('button', { name: /Link the table/ }));
         expect((await screen.findAllByText(/already linked here/)).length).toBeGreaterThan(0);
         // back on the tables step, the row is marked
         expect(screen.getByRole('checkbox', { name: 'Facturen' })).toBeInTheDocument();

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Reconcile a pyannoteAI `/identify` result onto a `/diarize` result.
  *

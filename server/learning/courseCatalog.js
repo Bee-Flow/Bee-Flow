@@ -1,3 +1,4 @@
+// @typecheck
 // THE structural authority for the Learning Center course catalog.
 //
 // The server is the source of truth for STRUCTURE (course ids, lessonIds,

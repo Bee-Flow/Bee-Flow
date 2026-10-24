@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Data subject requests — the checks templates.test.js cannot make.
  *

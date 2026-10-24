@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The rule catalog: one entry per finding the analyser can raise.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * BFSF-354 — an agent without kb_search gets its passages injected by
  * performKnowledgeSearch, each under a "### Source N: <label>" line. The label

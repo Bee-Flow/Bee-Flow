@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat end-of-turn: the steps that settle the assistant TEXT before it
  * is saved. Flush + display-segment join, the raw-payload transparency event,

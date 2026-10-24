@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance — the check surface: the per-check table the UI renders, one
  * check's history, manual runs (all / one) and the auto-fix trigger.
@@ -13,6 +14,7 @@
  */
 
 const express = require('express');
+const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
 
 const complianceStore = require('../../stores/complianceStore');
@@ -263,7 +265,7 @@ router.post('/checks/:id/auto-fix', requireAuth, requirePermission('admin_compli
         res.json({ ok: true, result });
     } catch (e) {
         if (e && e.status && e.body) return res.status(e.status).json(e.body);
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 

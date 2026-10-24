@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The support SSE bus.
  *

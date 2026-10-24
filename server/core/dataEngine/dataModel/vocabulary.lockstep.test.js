@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The source grammar of a model table is found in THREE places, and this file keeps them
  * tied together.

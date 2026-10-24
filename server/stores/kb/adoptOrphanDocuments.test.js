@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * adoptOrphanDocuments: documents that predate the source model
  * (source_id IS NULL) get a source, scoped to ONE knowledge base. DB-free: the

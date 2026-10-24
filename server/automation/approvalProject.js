@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Solution stamp on an approval.
  *

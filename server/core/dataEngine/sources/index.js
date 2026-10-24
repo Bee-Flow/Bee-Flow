@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * THE SOURCE REGISTRY — the one module routes, jobs and runners require to
  * ask "does this table mirror something, and how do I refresh or write it?"

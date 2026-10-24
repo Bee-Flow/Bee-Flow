@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The model call of an ai_step (split out of execAi.execAiStep): a single
  * chat call when the step has no tools, otherwise a short tool-calling loop

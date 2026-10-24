@@ -1,3 +1,4 @@
+// @typecheck
 const express = require('express');
 const agentStore = require('../../stores/agentStore');
 const { getProviderForModel } = require('../../core/aiAgent');

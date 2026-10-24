@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The PII category vocabulary the guard/tokenize rules check a step's
  * `categories` against, read lazily from core/privacy/piiDetection and cached

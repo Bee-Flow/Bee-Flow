@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The failure that matters here is one-directional.
  *

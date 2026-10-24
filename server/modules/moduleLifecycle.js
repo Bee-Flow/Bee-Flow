@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Platform-module lifecycle: import (activate) and remove (deactivate).
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * _suggestedPatch — the machine-readable fix a rejection can carry.
  *

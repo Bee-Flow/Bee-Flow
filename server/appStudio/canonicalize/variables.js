@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio canonicalizer — definition.variables, the declared shared values.
  */

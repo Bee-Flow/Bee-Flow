@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Runtime tool-shape cache.
  *

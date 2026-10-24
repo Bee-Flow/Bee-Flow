@@ -1,3 +1,4 @@
+// @typecheck
 const test = require('node:test');
 const assert = require('node:assert');
 const { executeReadUrlTool, READ_URL_TOOLS, MAX_TEXT_CHARS, findPassages } = require('./readUrlTools');

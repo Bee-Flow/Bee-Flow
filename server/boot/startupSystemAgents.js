@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * System-agent seeding at boot.
  *
@@ -32,7 +33,7 @@ function seedSystemAgentsAtBoot() {
             // warning so operators see it without having to inspect the DB.
             try {
                 const agentStore = require('../stores/agentStore');
-                const configStore = require('../stores/configStore');
+                const cfgStore = require('../stores/configStore');
                 const { pool } = require('../db');
                 const agent = await agentStore.getAgent(SYSTEM_AGENT_IDS.BEE_FLOW_SUPPORT);
                 if (!agent) {
@@ -44,7 +45,7 @@ function seedSystemAgentsAtBoot() {
                     // that IS configured. Picks the first tier with a non-empty
                     // modelId in the order: fast → standard → thinking → writer → pro.
                     const tierName = agent.model.slice(5);
-                    const tiers = (await configStore.getConfig('chat_model_tiers')) || {};
+                    const tiers = (await cfgStore.getConfig('chat_model_tiers')) || {};
                     const configured = (t) => tiers[t]?.modelId && String(tiers[t].modelId).trim().length > 0;
                     if (tierName !== 'auto' && !configured(tierName)) {
                         const fallback = ['fast', 'standard', 'thinking', 'writer', 'pro'].find(configured);

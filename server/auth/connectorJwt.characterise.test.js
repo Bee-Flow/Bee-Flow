@@ -362,7 +362,9 @@ test('unknown user, geo-blocked: status/error/code come from the guard; logged +
     assert.equal(gotReq, req);
     assert.deepEqual(problemCodes(), ['auth.blocked_geo']);
     assert.deepEqual(rec.problems[0].opts.meta, { country: 'XX', reason: 'geo_policy' });
-    assert.ok(rec.infos.some((m) => m.includes('Geo-blocked auto-provision for ann@acme.example (org=org1, country=XX)')));
+    // The address itself is not logged (privacy): a length and a hash stand in for it.
+    assert.ok(rec.infos.some((m) => /Geo-blocked auto-provision for <\d+ chars, #[0-9a-f]{6}> \(org=org1, country=XX\)/.test(m)));
+    assert.ok(!rec.infos.some((m) => m.includes('ann@acme.example')));
 });
 
 test('geo guard without country: meta.country null, log says unknown', async () => {

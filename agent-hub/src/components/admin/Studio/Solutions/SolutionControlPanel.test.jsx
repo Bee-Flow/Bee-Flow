@@ -1,4 +1,5 @@
-import { render, fireEvent } from '@testing-library/react';
+import { render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 
 import SolutionControlPanel, { isBlocking } from './SolutionControlPanel';
@@ -107,12 +108,13 @@ describe('blocking versus advice', () => {
 });
 
 describe('show me', () => {
-    it('opens where the server said to go', () => {
+    it('opens where the server said to go', async () => {
+        const user = userEvent.setup();
         const onOpen = vi.fn();
         const { getByTestId } = render(
             <SolutionControlPanel completeness={{ ...CLEAN, findings: [BLOCKER] }} loading={false} onOpen={onOpen} />,
         );
-        fireEvent.click(getByTestId('solution-finding-open'));
+        await user.click(getByTestId('solution-finding-open'));
         expect(onOpen).toHaveBeenCalledWith('/app/studio/apps/app1');
     });
 

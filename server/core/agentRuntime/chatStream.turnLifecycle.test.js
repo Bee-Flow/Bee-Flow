@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * chatStream — how a streaming turn ENDS.
  *

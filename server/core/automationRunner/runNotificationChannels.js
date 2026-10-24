@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The delivery half of ./runNotifications.js: the throttle, the bell
  * (Nextcloud when it can, Bee Flow otherwise), e-mail, the per-recipient

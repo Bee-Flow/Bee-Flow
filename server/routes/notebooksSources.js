@@ -137,7 +137,7 @@ router.post('/:id/sources/file', requireAuth, asEditor, upload.single('file'), a
 
     // Background: parse + ingest into KB
     ingestFileSource(notebookId, source.id, userId, buffer, fileName, mimeType).catch(err => {
-        log.error(`[Notebooks] Background ingestion failed for ${fileName}:`, err.message);
+        log.error(`[Notebooks] Background ingestion failed for ${log.nameForLog(fileName)}:`, err.message);
     });
 
 });

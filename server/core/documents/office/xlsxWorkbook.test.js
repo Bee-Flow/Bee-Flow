@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Cell values in the .xlsx writer: text is text, a formula is only what the
  * caller marks as one ({ formula }).

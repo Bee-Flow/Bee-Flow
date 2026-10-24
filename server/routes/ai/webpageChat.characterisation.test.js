@@ -196,7 +196,12 @@ const restore = installResolveStub(withStepAliases({
 
 injectEmailDetector(require('../../core/privacy/toolPiiGate'));
 
-const baseUrl = serveRouter(test, require('./webpageChat'), { prefix: '/ai', session: SIGNED_IN, restore });
+// The terminal handler is what answers a thrown HttpError in the real app.
+const routerWithTerminal = require('express').Router();
+routerWithTerminal.use((req, _res, next) => { req.id = 'corr-1'; next(); }); // a fixed correlationId
+routerWithTerminal.use(require('./webpageChat'));
+routerWithTerminal.use(require('../../core/http/terminalErrorHandler').terminalErrorHandler);
+const baseUrl = serveRouter(test, routerWithTerminal, { prefix: '/ai', session: SIGNED_IN, restore });
 
 function parseSse(body) {
     const events = [];

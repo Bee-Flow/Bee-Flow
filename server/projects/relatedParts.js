@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The parts a Solution part needs in order to work, and whether they can come
  * along when it is added.
@@ -127,7 +128,7 @@ function relationOf(holder, ptr, tableMode) {
  * Every part `payload` (a holder of `kind`) points at.
  *
  * @param {string} kind     a membership kind
- * @param {object} payload  the holder shape pointers.js documents for it
+ * @param {Record<string, any>} payload  the holder shape pointers.js documents for it
  * @returns {Array<{kind: string, id: string, relation: string}>} deduped on kind + id
  */
 function edgesOf(kind, payload) {

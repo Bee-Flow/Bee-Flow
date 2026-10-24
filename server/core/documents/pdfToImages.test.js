@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The scale maths for the PDF → PNG fallback. Real rendering needs pdfjs +
  * @napi-rs/canvas and is exercised in the running stack; here we pin the pure

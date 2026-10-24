@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The steps of ONE FULL PASS over a mirror, for ./syncPipeline.js (which
  * documents the order — it is the correctness — and the adapter contract).

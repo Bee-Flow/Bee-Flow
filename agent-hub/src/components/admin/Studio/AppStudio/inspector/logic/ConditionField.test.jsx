@@ -63,11 +63,12 @@ describe('ConditionField — round-trip', () => {
         expect(onChange).not.toHaveBeenCalled();
     });
 
-    it('offers the fields that actually exist in the app’s scope', () => {
+    it('offers the fields that actually exist in the app’s scope', async () => {
+        const user = userEvent.setup();
         const { getByRole, baseElement } = render(
             <ConditionField value="form.quantity > 0" onChange={() => {}} definition={DEF_WITH_FORM} node={NODE} />,
         );
-        fireEvent.click(getByRole('button', { name: /quantity/i }));
+        await user.click(getByRole('button', { name: /quantity/i }));
 
         // The enclosing form's other input, and the current user, are both
         // pickable — that is the whole point of feeding it the Studio scope.
@@ -76,12 +77,13 @@ describe('ConditionField — round-trip', () => {
         expect(list.getByText('Email')).toBeTruthy();
     });
 
-    it('picking a field rewrites the expression against that path', () => {
+    it('picking a field rewrites the expression against that path', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         const { getByRole, baseElement } = render(
             <ConditionField value="form.quantity > 0" onChange={onChange} definition={DEF_WITH_FORM} node={NODE} />,
         );
-        fireEvent.click(getByRole('button', { name: /quantity/i }));
+        await user.click(getByRole('button', { name: /quantity/i }));
         // The option commits on mouseDown, so the search box cannot blur the
         // list shut before the pick lands.
         fireEvent.mouseDown(within(baseElement).getByText('Note'));
@@ -90,12 +92,13 @@ describe('ConditionField — round-trip', () => {
         expect(emitted).toContain('form.note');
     });
 
-    it('an option can also be chosen from the keyboard', () => {
+    it('an option can also be chosen from the keyboard', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         const { getByRole, baseElement } = render(
             <ConditionField value="form.quantity > 0" onChange={onChange} definition={DEF_WITH_FORM} node={NODE} />,
         );
-        fireEvent.click(getByRole('button', { name: /quantity/i }));
+        await user.click(getByRole('button', { name: /quantity/i }));
         fireEvent.keyDown(within(baseElement).getByText('Note'), { key: 'Enter' });
 
         expect(onChange.mock.calls.at(-1)[0]).toContain('form.note');

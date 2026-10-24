@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio v2 DATA MODEL contract tests.
  *

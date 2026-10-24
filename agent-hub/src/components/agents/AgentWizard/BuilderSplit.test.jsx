@@ -146,22 +146,24 @@ describe('BuilderSplit — kop, hero en tabs', () => {
     });
 
     it('wisselt van tab: de Rol-inhoud verdwijnt op "Used by"', async () => {
+        const user = userEvent.setup();
         render(<BuilderSplit {...baseProps} />);
         expect(screen.getByText('Do the thing.')).toBeTruthy();
-        fireEvent.click(screen.getAllByRole('radio', { name: /Used by/ })[0]);
+        await user.click(screen.getAllByRole('radio', { name: /Used by/ })[0]);
         await waitFor(() => expect(screen.queryByText('Do the thing.')).toBeNull());
         // De agent-instructies zijn weg; de tab die we openden is er wel.
         expect(screen.queryByText('agent_wizard.builder.browse_apps')).toBeNull();
     });
 
     it('een gebruikslijst die niet gelezen kon worden toont geen teller en geen "niemand"', async () => {
+        const user = userEvent.setup();
         // De authFetch-mock antwoordt overal met ok:false, dus GET
         // /agents/:id/usage mislukt.
         render(<BuilderSplit {...baseProps} />);
         const usedBy = screen.getAllByRole('radio', { name: /Used by/ })[0];
         await waitFor(() => expect(usedBy.textContent.trim()).toBe('Used by'));
         expect(usedBy.textContent).not.toContain('0');
-        fireEvent.click(usedBy);
+        await user.click(usedBy);
         expect(await screen.findByTestId('agent-usage-error')).toBeTruthy();
         expect(screen.queryByText('Nothing uses this agent yet.')).toBeNull();
     });
@@ -358,6 +360,7 @@ describe('BuilderSplit — de Tools-kaart', () => {
     });
 
     it('laat een keuze in de kaart in de config landen', async () => {
+        const user = userEvent.setup();
         answerWith([['/agents/tool-catalog', CATALOG]]);
         render(<BuilderSplit {...baseProps} agent={{
             ...agent, config: { enabledIntegrations: ['google-drive'] },
@@ -367,7 +370,7 @@ describe('BuilderSplit — de Tools-kaart', () => {
         const row = await screen.findByTestId('agent-tool-row');
         const ask = within(row).getByRole('radio', { name: 'Confirm first' });
         await waitFor(() => expect(ask.hasAttribute('disabled')).toBe(false));
-        fireEvent.click(ask);
+        await user.click(ask);
         await waitFor(() => expect(
             within(screen.getByTestId('agent-tool-row')).getByRole('radio', { name: 'Confirm first' })
                 .getAttribute('aria-checked'),
@@ -414,6 +417,7 @@ describe('BuilderSplit — de tool-kiezer', () => {
     };
 
     it('opent de kiezer op de app van de rij, op dezelfde tab', async () => {
+        const user = userEvent.setup();
         answerWith([['/agents/tool-catalog', CATALOG]]);
         // Drive is NOT at the top of the picker (Gmail sorts before it), so this test fails as soon as the
         // ↗ loses its app id along the way.
@@ -421,7 +425,7 @@ describe('BuilderSplit — de tool-kiezer', () => {
         openCanUse();
 
         await waitFor(() => expect(screen.getByTestId('agent-tool-row')).toBeTruthy());
-        fireEvent.click(screen.getByTestId('agent-tool-open'));
+        await user.click(screen.getByTestId('agent-tool-open'));
 
         const dialog = await screen.findByRole('dialog', { name: /Choose apps & actions/i });
         expect(within(dialog).getByRole('heading', { name: 'Google Drive' })).toBeTruthy();
@@ -430,16 +434,17 @@ describe('BuilderSplit — de tool-kiezer', () => {
     });
 
     it('laat een keuze uit de kiezer in de kaart landen', async () => {
+        const user = userEvent.setup();
         answerWith([['/agents/tool-catalog', CATALOG]]);
         render(<BuilderSplit {...baseProps} agent={{ ...agent, config: { enabledIntegrations: ['gmail'] } }} />);
         openCanUse();
 
         await waitFor(() => expect(screen.getByTestId('agent-tool-row').textContent).toContain('2 of 2 actions'));
-        fireEvent.click(screen.getByTestId('agent-tool-open'));
+        await user.click(screen.getByTestId('agent-tool-open'));
 
         const dialog = await screen.findByRole('dialog', { name: /Choose apps & actions/i });
-        fireEvent.click(within(dialog).getByRole('button', { name: /^gmail compose/ }));
-        fireEvent.click(within(dialog).getByTestId('agent-tool-chooser-apply'));
+        await user.click(within(dialog).getByRole('button', { name: /^gmail compose/ }));
+        await user.click(within(dialog).getByTestId('agent-tool-chooser-apply'));
 
         await waitFor(() => expect(screen.getByTestId('agent-tool-row').textContent).toContain('1 of 2 actions'));
         // De kiezer is dicht: één sessie, één keuze, één opslag.
@@ -447,18 +452,19 @@ describe('BuilderSplit — de tool-kiezer', () => {
     });
 
     it('zet een app aan vanuit de kiezer — de rij verschijnt op de kaart', async () => {
+        const user = userEvent.setup();
         answerWith([['/agents/tool-catalog', CATALOG]]);
         render(<BuilderSplit {...baseProps} agent={{ ...agent, config: { enabledIntegrations: [] } }} />);
         openCanUse();
 
         expect(await screen.findByTestId('agent-tools-empty')).toBeTruthy();
-        fireEvent.click(screen.getByTestId('agent-tools-link'));
+        await user.click(screen.getByTestId('agent-tools-link'));
 
         const dialog = await screen.findByRole('dialog', { name: /Choose apps & actions/i });
         // De "+ Koppelen" opent zonder focus, dus eerst de app aanwijzen.
-        fireEvent.click(within(dialog).getByRole('button', { name: /^Google Drive$/ }));
-        fireEvent.click(within(dialog).getByRole('button', { name: /^drive search/ }));
-        fireEvent.click(within(dialog).getByTestId('agent-tool-chooser-apply'));
+        await user.click(within(dialog).getByRole('button', { name: /^Google Drive$/ }));
+        await user.click(within(dialog).getByRole('button', { name: /^drive search/ }));
+        await user.click(within(dialog).getByTestId('agent-tool-chooser-apply'));
 
         await waitFor(() => expect(screen.getByTestId('agent-tool-row').textContent).toContain('Google Drive'));
         expect(screen.queryByTestId('agent-tools-empty')).toBeNull();
@@ -487,13 +493,14 @@ describe('BuilderSplit — de Gedaan-beurt in de verfijn-rail', () => {
     });
 
     it('herstelt de pre_refine-versie van precies deze beurt', async () => {
+        const user = userEvent.setup();
         answerWith([
             ['/versions/agent-1/v9/restore', { success: true, restoredTo: 4 }],
             ['/agents/agent-1', { ...agent, name: 'Test Agent', system_prompt: 'Do the thing.', rev: 5 }],
         ]);
         render(<BuilderSplit {...baseProps} history={[doneTurn()]} />);
 
-        fireEvent.click(screen.getByTestId('refine-done-undo'));
+        await user.click(screen.getByTestId('refine-done-undo'));
 
         await waitFor(() => expect(
             authFetch.mock.calls.some(([url, opts]) => opts?.method === 'POST' && String(url).includes('/versions/agent-1/v9/restore')),
@@ -501,13 +508,14 @@ describe('BuilderSplit — de Gedaan-beurt in de verfijn-rail', () => {
         await waitFor(() => expect(screen.getByTestId('refine-done-undo').getAttribute('data-undo-state')).toBe('undone'));
     });
 
-    it('een beurt zonder herstelpunt roept NIETS aan — geen restore van iets anders', () => {
+    it('een beurt zonder herstelpunt roept NIETS aan — geen restore van iets anders', async () => {
+        const user = userEvent.setup();
         render(<BuilderSplit {...baseProps} history={[doneTurn({ undoVersionId: null })]} />);
         const btn = screen.getByTestId('refine-done-undo');
         expect(btn.getAttribute('data-undo-state')).toBe('unavailable');
         // De mock telt door over tests heen; alleen wat NA de klik gebeurt telt.
         authFetch.mockClear();
-        fireEvent.click(btn);
+        await user.click(btn);
         expect(authFetch.mock.calls.some(([url]) => String(url).includes('/restore'))).toBe(false);
     });
 
@@ -518,13 +526,15 @@ describe('BuilderSplit — de Gedaan-beurt in de verfijn-rail', () => {
     });
 
     it('een mislukte restore zegt dat de agent onveranderd bleef', async () => {
+        const user = userEvent.setup();
         // De standaardmock antwoordt overal ok:false — dus ook op de restore.
         render(<BuilderSplit {...baseProps} history={[doneTurn()]} />);
-        fireEvent.click(screen.getByTestId('refine-done-undo'));
+        await user.click(screen.getByTestId('refine-done-undo'));
         expect(await screen.findByTestId('refine-done-undo-failed')).toBeTruthy();
     });
 
     it('herstelt ook de LIJSTEN die de kaarten tekenen, niet alleen stateRef', async () => {
+        const user = userEvent.setup();
         // The refinement switched gmail on; the undo removes it. If the React state stayed, "Can use" would
         // show an app that according to the saved state is no longer on.
         answerWith([
@@ -538,17 +548,18 @@ describe('BuilderSplit — de Gedaan-beurt in de verfijn-rail', () => {
                 history={[doneTurn()]}
             />,
         );
-        fireEvent.click(screen.getAllByRole('radio', { name: /Can use/ })[0]);
+        await user.click(screen.getAllByRole('radio', { name: /Can use/ })[0]);
         expect(await screen.findByTestId('agent-tool-row')).toBeTruthy();
 
-        fireEvent.click(screen.getByTestId('refine-done-undo'));
+        await user.click(screen.getByTestId('refine-done-undo'));
         await waitFor(() => expect(screen.queryByTestId('agent-tool-row')).toBeNull());
         expect(screen.getByTestId('agent-tools-empty')).toBeTruthy();
     });
 
     it('"Test met een vraag" brengt je naar de Testen-tab', async () => {
+        const user = userEvent.setup();
         render(<BuilderSplit {...baseProps} history={[doneTurn()]} />);
-        fireEvent.click(screen.getByTestId('refine-done-test'));
+        await user.click(screen.getByTestId('refine-done-test'));
         expect(screen.getByTestId('agent-tests-card')).toBeTruthy();
         // The default mock answers with ok:false, so this is a FAILED reading — and that may never appear on
         // the card as "not yet run" (A4 part D). That this tab already makes that come true is the reason
@@ -587,6 +598,7 @@ describe('BuilderSplit — de verfijnde persona bereikt de opslag, precies één
     };
 
     it('stuurt de persona mee bij de opslag van de verfijning, en niet meer daarna', async () => {
+        const user = userEvent.setup();
         answerWith([
             ['/agents/wizard/refine', REFINED],
             ['/versions/agent-1/pre-refine', { id: 'v-pre' }],
@@ -598,7 +610,7 @@ describe('BuilderSplit — de verfijnde persona bereikt de opslag, precies één
             target: { value: 'make it brief' },
         });
         authFetch.mockClear();
-        fireEvent.click(screen.getByLabelText('Send'));
+        await user.click(screen.getByLabelText('Send'));
 
         await waitFor(() => expect(putsTo('agent-1').length).toBe(1), { timeout: 3000 });
         const refineSave = putsTo('agent-1')[0];
@@ -617,6 +629,7 @@ describe('BuilderSplit — de verfijnde persona bereikt de opslag, precies één
     });
 
     it('stuurt GEEN persona mee als de kolom niet gelezen kon worden', async () => {
+        const user = userEvent.setup();
         // The list row carries no persona (`_stripPersona`) and `?draft=1` does not give one here either.
         // Writing a fresh persona back would throw away `unknown` and `language` — settings that this path
         // never read.
@@ -631,7 +644,7 @@ describe('BuilderSplit — de verfijnde persona bereikt de opslag, precies één
             target: { value: 'make it brief' },
         });
         authFetch.mockClear();
-        fireEvent.click(screen.getByLabelText('Send'));
+        await user.click(screen.getByLabelText('Send'));
 
         await waitFor(() => expect(putsTo('agent-1').length).toBe(1), { timeout: 3000 });
         const refineSave = putsTo('agent-1')[0];
@@ -640,6 +653,7 @@ describe('BuilderSplit — de verfijnde persona bereikt de opslag, precies één
     });
 
     it('stuurt de HUIDIGE rol mee naar /wizard/refine — bijstellen, niet opnieuw verzinnen', async () => {
+        const user = userEvent.setup();
         answerWith([
             ['/agents/wizard/refine', REFINED],
             ['/versions/agent-1/pre-refine', { id: 'v-pre' }],
@@ -651,7 +665,7 @@ describe('BuilderSplit — de verfijnde persona bereikt de opslag, precies één
             target: { value: 'make it brief' },
         });
         authFetch.mockClear();
-        fireEvent.click(screen.getByLabelText('Send'));
+        await user.click(screen.getByLabelText('Send'));
 
         await waitFor(() => {
             const call = authFetch.mock.calls.find(([url]) => String(url).includes('/agents/wizard/refine'));
@@ -667,6 +681,7 @@ describe('BuilderSplit — de verfijnde persona bereikt de opslag, precies één
     });
 
     it('neemt het prompt over dat de SERVER uit de persona rendeerde', async () => {
+        const user = userEvent.setup();
         // The persona is the source of the prompt: the server renders it and ignores the text we sent along.
         // Without that takeover the editor keeps holding on to its own text, and the next save (which
         // carries no persona) writes it over again.
@@ -681,7 +696,7 @@ describe('BuilderSplit — de verfijnde persona bereikt de opslag, precies één
         fireEvent.change(screen.getByPlaceholderText('agent_wizard.builder.chat_placeholder'), {
             target: { value: 'make it brief' },
         });
-        fireEvent.click(screen.getByLabelText('Send'));
+        await user.click(screen.getByLabelText('Send'));
 
         await waitFor(() => expect(putsTo('agent-1').length).toBe(1), { timeout: 3000 });
         await waitFor(() => {

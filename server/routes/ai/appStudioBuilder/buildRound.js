@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio Builder build loop: one round with the model, up to its tool
  * calls. The streamed request (with the card-being-typed and prefill

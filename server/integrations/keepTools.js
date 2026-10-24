@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Google Keep Tools — AI tools for managing Google Keep notes
  * 

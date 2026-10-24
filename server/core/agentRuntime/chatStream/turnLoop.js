@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The turn's SPINE: the agentic loop and the round-to-round guards.
  *

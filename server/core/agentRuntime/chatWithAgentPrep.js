@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What the non-streaming agent loop (./chatWithAgent) settles before its first
  * round: the generation settings, the fixed tool params, and the input-side

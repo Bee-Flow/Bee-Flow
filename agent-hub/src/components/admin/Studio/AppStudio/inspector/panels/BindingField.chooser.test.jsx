@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import BindingField, { datasetColumns } from './BindingField';
 import { EditorChromeContext } from '../../editor/EditorChromeContext';
@@ -45,19 +46,21 @@ describe('BindingField — nothing chosen yet', () => {
         expect(queryByRole('textbox')).toBeNull();
     });
 
-    it('"Type the values myself" is the escape hatch back to the raw value', () => {
+    it('"Type the values myself" is the escape hatch back to the raw value', async () => {
+        const user = userEvent.setup();
         const utils = renderField({ kind: 'static', value: [] }, { placeholder: '[{"title":"…"}]' });
-        fireEvent.click(utils.getByText('Type the values myself'));
+        await user.click(utils.getByText('Type the values myself'));
         expect(utils.last()).toEqual({ kind: 'static', value: null });
         // The empty literal it commits still READS as unset — the box must not
         // bounce the user straight back to the chooser.
         expect(utils.getByPlaceholderText('[{"title":"…"}]')).toBeTruthy();
     });
 
-    it('formula and connector are one click deeper, never gone', () => {
+    it('formula and connector are one click deeper, never gone', async () => {
+        const user = userEvent.setup();
         const { getByText, queryByText } = renderField({ kind: 'static', value: [] });
         expect(queryByText('Worked out on the page')).toBeNull();
-        fireEvent.click(getByText('Something else…'));
+        await user.click(getByText('Something else…'));
         expect(getByText('Worked out on the page')).toBeTruthy();
         expect(getByText('Another system')).toBeTruthy();
     });
@@ -67,25 +70,28 @@ describe('BindingField — nothing chosen yet', () => {
         expect(queryByText('Keep what’s there')).toBeNull();
     });
 
-    it('the next empty component of the same type gets its own chooser', () => {
+    it('the next empty component of the same type gets its own chooser', async () => {
+        const user = userEvent.setup();
         const utils = renderField({ kind: 'static', value: [] });
-        fireEvent.click(utils.getByText('Type the values myself'));
+        await user.click(utils.getByText('Type the values myself'));
         expect(utils.queryByText('No data yet — choose where this comes from.')).toBeNull();
         utils.selectOtherNode({ kind: 'static', value: [] });
         expect(utils.getByText('No data yet — choose where this comes from.')).toBeTruthy();
     });
 
-    it('a half-opened Change does not follow the user to the next component', () => {
+    it('a half-opened Change does not follow the user to the next component', async () => {
+        const user = userEvent.setup();
         const utils = renderField({ kind: 'formula', expr: 'x' });
-        fireEvent.click(utils.getByRole('button', { name: 'Change' }));
+        await user.click(utils.getByRole('button', { name: 'Change' }));
         utils.selectOtherNode({ kind: 'formula', expr: 'y' });
         expect(utils.queryByText('Where should this come from?')).toBeNull();
         expect(utils.getByText(/Showing: a value worked out on the page/)).toBeTruthy();
     });
 
-    it('editing the value keeps the chooser shut, even back to empty', () => {
+    it('editing the value keeps the chooser shut, even back to empty', async () => {
+        const user = userEvent.setup();
         const utils = renderField({ kind: 'static', value: [] });
-        fireEvent.click(utils.getByText('Type the values myself'));
+        await user.click(utils.getByText('Type the values myself'));
         const box = utils.getByLabelText('Typed-in value');
         fireEvent.change(box, { target: { value: 'a' } });
         utils.selectOtherNode(utils.last());
@@ -117,11 +123,12 @@ describe('BindingField — a source that is set', () => {
         expect(await findByText('“Open tickets”')).toBeTruthy();
     });
 
-    it('Change reopens the chooser and can be backed out of', () => {
+    it('Change reopens the chooser and can be backed out of', async () => {
+        const user = userEvent.setup();
         const { getByRole, getByText, queryByText, onChange } = renderField({ kind: 'formula', expr: 'x' });
-        fireEvent.click(getByRole('button', { name: 'Change' }));
+        await user.click(getByRole('button', { name: 'Change' }));
         expect(getByText('Where should this come from?')).toBeTruthy();
-        fireEvent.click(getByText('Keep what’s there'));
+        await user.click(getByText('Keep what’s there'));
         expect(queryByText('Where should this come from?')).toBeNull();
         expect(onChange).not.toHaveBeenCalled();
     });

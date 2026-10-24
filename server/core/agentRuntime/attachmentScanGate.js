@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Privacy Shield gate over extracted attachment text, for
  * ./attachmentProcessor: scan, ask the person when the policy says so, block,

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * "Tune automatically": measure candidate settings on the admin's marked test

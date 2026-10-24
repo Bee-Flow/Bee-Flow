@@ -10,6 +10,7 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import PublicFormRenderer from './PublicFormRenderer';
@@ -69,11 +70,12 @@ describe('app_pick — picking a record', () => {
     });
 
     it('submits a reference, never content', async () => {
+        const user = userEvent.setup();
         const { onSubmit } = renderForm([CALL]);
         await openPicker();
-        fireEvent.click(screen.getByText('Kickoff met Acme'));
+        await user.click(screen.getByText('Kickoff met Acme'));
         await waitFor(() => expect(screen.queryByLabelText('Search Fireflies')).not.toBeInTheDocument());
-        fireEvent.click(screen.getByRole('button', { name: 'Verstuur' }));
+        await user.click(screen.getByRole('button', { name: 'Verstuur' }));
 
         await waitFor(() => expect(onSubmit).toHaveBeenCalled());
         expect(onSubmit.mock.calls[0][0].call).toEqual({
@@ -82,28 +84,31 @@ describe('app_pick — picking a record', () => {
     });
 
     it('a chosen record can be taken back off', async () => {
+        const user = userEvent.setup();
         const { onSubmit } = renderForm([CALL]);
         await openPicker();
-        fireEvent.click(screen.getByText('Kickoff met Acme'));
+        await user.click(screen.getByText('Kickoff met Acme'));
         await waitFor(() => expect(screen.getByLabelText('Remove Kickoff met Acme')).toBeInTheDocument());
-        fireEvent.click(screen.getByLabelText('Remove Kickoff met Acme'));
-        fireEvent.click(screen.getByRole('button', { name: 'Verstuur' }));
+        await user.click(screen.getByLabelText('Remove Kickoff met Acme'));
+        await user.click(screen.getByRole('button', { name: 'Verstuur' }));
         await waitFor(() => expect(onSubmit).toHaveBeenCalled());
         expect(onSubmit.mock.calls[0][0].call).toBeNull();
     });
 
     it('an unanswered required pick is caught before anything is sent', async () => {
+        const user = userEvent.setup();
         const { onSubmit } = renderForm([{ ...CALL, required: true }]);
-        fireEvent.click(screen.getByRole('button', { name: 'Verstuur' }));
+        await user.click(screen.getByRole('button', { name: 'Verstuur' }));
         await waitFor(() => expect(screen.getByText(/Welk gesprek\? is required/)).toBeInTheDocument());
         expect(onSubmit).not.toHaveBeenCalled();
     });
 
     it('a refusal from the server is printed beside the box, not thrown at the person', async () => {
+        const user = userEvent.setup();
         // "Fireflies is not connected for your account" is not their mistake
         // and not a broken form — it is something to read and act on.
         renderForm([CALL], { onSearchApp: vi.fn(async () => ({ results: [], error: 'Fireflies is not connected for your account.' })) });
-        fireEvent.click(screen.getByRole('button', { name: /Fireflies/ }));
+        await user.click(screen.getByRole('button', { name: /Fireflies/ }));
         await waitFor(() => expect(screen.getByText(/not connected for your account/)).toBeInTheDocument());
     });
 });
@@ -112,25 +117,27 @@ describe('app_pick — a question that takes several records', () => {
     const MAILS = { ...CALL, name: 'mails', label: 'Welke mails?', source: 'gmail_message', app: 'Gmail', multiple: true, maxItems: 2 };
 
     it('an unanswered multiple pick submits an empty LIST, so a loop over it is valid', async () => {
+        const user = userEvent.setup();
         const { onSubmit } = renderForm([MAILS]);
-        fireEvent.click(screen.getByRole('button', { name: 'Verstuur' }));
+        await user.click(screen.getByRole('button', { name: 'Verstuur' }));
         await waitFor(() => expect(onSubmit).toHaveBeenCalled());
         expect(onSubmit.mock.calls[0][0].mails).toEqual([]);
     });
 
     it('collects up to its maximum and then stops offering more', async () => {
+        const user = userEvent.setup();
         const { onSubmit } = renderForm([MAILS]);
-        fireEvent.click(screen.getByRole('button', { name: /Gmail/ }));
+        await user.click(screen.getByRole('button', { name: /Gmail/ }));
         await waitFor(() => expect(screen.getByText('Kickoff met Acme')).toBeInTheDocument());
-        fireEvent.click(screen.getByText('Kickoff met Acme'));
+        await user.click(screen.getByText('Kickoff met Acme'));
         // The picker stays open for a multiple question.
         await waitFor(() => expect(screen.getByText('Retro')).toBeInTheDocument());
-        fireEvent.click(screen.getByText('Retro'));
+        await user.click(screen.getByText('Retro'));
 
         await waitFor(() => expect(screen.queryByLabelText('Search Gmail')).not.toBeInTheDocument());
         expect(screen.queryByRole('button', { name: /Add another/ })).not.toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: 'Verstuur' }));
+        await user.click(screen.getByRole('button', { name: 'Verstuur' }));
         await waitFor(() => expect(onSubmit).toHaveBeenCalled());
         expect(onSubmit.mock.calls[0][0].mails.map(p => p.recordId)).toEqual(['tr_1', 'tr_2']);
     });

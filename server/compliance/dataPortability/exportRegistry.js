@@ -339,7 +339,7 @@ function _paramsFor(sql, orgId) {
  * counted comes back `null` — unknown, never 0.
  * @returns {Promise<{counts:Record<string,number|null>, errors:Record<string,string>}>}
  */
-async function heldCounts(orgId, { db } = {}) {
+async function heldCounts(orgId, /** @type {{db?: any}} */ { db } = {}) {
     const { getOne } = db || require('../../db');
     const counts = {};
     const errors = {};

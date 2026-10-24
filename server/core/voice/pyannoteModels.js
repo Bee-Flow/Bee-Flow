@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Which pyannoteAI models to use, and why.
  *

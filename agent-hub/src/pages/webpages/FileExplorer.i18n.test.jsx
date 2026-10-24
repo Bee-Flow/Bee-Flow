@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 
 /**
@@ -67,9 +68,10 @@ describe('FileExplorer — i18n', () => {
         expect(screen.getByTitle('⟦webpages.explorer.copy_path⟧')).toBeInTheDocument();
     });
 
-    it('BIJT — de padcontrole meldt in de taal van de gebruiker, met het segment als parameter', () => {
+    it('BIJT — de padcontrole meldt in de taal van de gebruiker, met het segment als parameter', async () => {
+        const user = userEvent.setup();
         renderExplorer();
-        fireEvent.click(screen.getByTitle('⟦webpages.explorer.new_file⟧'));
+        await user.click(screen.getByTitle('⟦webpages.explorer.new_file⟧'));
 
         const input = screen.getByPlaceholderText('⟦webpages.explorer.ph_file⟧');
         fireEvent.change(input, { target: { value: 'a/b*c.js' } });
@@ -79,9 +81,10 @@ describe('FileExplorer — i18n', () => {
         expect(screen.getByTitle('⟦webpages.explorer.err_unsupported_chars⟧(segment=b*c.js)')).toBeInTheDocument();
     });
 
-    it('BIJT — een naam die al bestaat meldt dat via een sleutel', () => {
+    it('BIJT — een naam die al bestaat meldt dat via een sleutel', async () => {
+        const user = userEvent.setup();
         renderExplorer();
-        fireEvent.click(screen.getByTitle('⟦webpages.explorer.new_file⟧'));
+        await user.click(screen.getByTitle('⟦webpages.explorer.new_file⟧'));
 
         const input = screen.getByPlaceholderText('⟦webpages.explorer.ph_file⟧');
         fireEvent.change(input, { target: { value: 'src/App.jsx' } });

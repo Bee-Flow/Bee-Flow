@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * SLA policies per priority — the first-response and resolution clocks the
  * enforcer measures threads against. Staff read; the acting org decides
@@ -19,6 +20,7 @@ const { requireStaffSupport, _actingOrgId } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 
 const PRIORITIES = ['low', 'normal', 'high', 'urgent'];
 const MINUTES_TEXT = (name) => `${name} is a whole number of minutes, at least 1.`;
@@ -56,7 +58,7 @@ function register(router) {
             res.json({ ok: true, policy });
         } catch (err) {
             log.error('[Support] PUT /sla-policies error:', err.message);
-            res.status(400).json({ error: err.message });
+            throw new HttpError(400, 'bad_request', err.message);
         }
     });
 }

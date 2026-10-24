@@ -1,3 +1,4 @@
+// @typecheck
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { canonicalSignedPath, canonicalQuery, connectorWireUrl, signedConnectorHeaders } = require('./ncSigning');

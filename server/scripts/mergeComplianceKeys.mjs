@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * mergeComplianceKeys — fold the Compliance Center redesign's per-stream key
  * files (.claude/handoff/compliance/keys/*.json, `{ en: {...}, nl: {...} }`)

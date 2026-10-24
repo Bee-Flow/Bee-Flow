@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Every authentication outcome leaves a row.
  *

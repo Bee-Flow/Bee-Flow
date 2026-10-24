@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — a spreadsheet the user attaches becomes a Bee Flow
  * spreadsheet document that opens in the side panel (core/documents/

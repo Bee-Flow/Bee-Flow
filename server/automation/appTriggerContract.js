@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App-trigger contract helpers.
  *

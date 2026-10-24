@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Prompt-facing descriptions of the declared trigger sources.
  *

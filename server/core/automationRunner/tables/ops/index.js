@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The table operation engine: runs a list of normalised operations over a

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CW-10 — the privacy-shield passage for the NON-agent run path.
  *

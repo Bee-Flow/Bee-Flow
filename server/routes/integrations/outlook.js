@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Outlook Routes — REST API for Outlook Mail integration UI
  *

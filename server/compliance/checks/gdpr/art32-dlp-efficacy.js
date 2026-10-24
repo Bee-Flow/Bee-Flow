@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR Art. 32(1)(d) — "regularly testing, assessing and evaluating the
  * effectiveness" of security measures.

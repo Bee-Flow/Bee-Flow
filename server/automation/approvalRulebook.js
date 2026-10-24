@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The approval rulebook: pure decisions about who may see, vote on or decide
  * an approval, and how a panel or a stage chain counts its votes. No store

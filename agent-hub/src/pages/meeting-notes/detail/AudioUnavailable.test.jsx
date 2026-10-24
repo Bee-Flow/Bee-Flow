@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import AudioUnavailable, { AudioNotBackedUp } from './AudioUnavailable';
@@ -26,7 +27,8 @@ describe('AudioUnavailable', () => {
         expect(screen.getByText(/upload the original file again/i)).toBeTruthy();
     });
 
-    it('a passing storage outage reads as temporary and offers a retry', () => {
+    it('a passing storage outage reads as temporary and offers a retry', async () => {
+        const user = userEvent.setup();
         const onRetry = vi.fn();
         render(<AudioUnavailable audio={{ available: false, recoverable: true, capture: 'upload' }} onRetry={onRetry} />);
 
@@ -35,7 +37,7 @@ describe('AudioUnavailable', () => {
         // It must not read as permanent loss.
         expect(document.body.textContent).not.toMatch(/no longer available/i);
 
-        fireEvent.click(screen.getByRole('button', { name: /try again/i }));
+        await user.click(screen.getByRole('button', { name: /try again/i }));
         expect(onRetry).toHaveBeenCalledTimes(1);
     });
 });

@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -66,10 +67,11 @@ describe('the "Delivers" card', () => {
     });
 
     it('turns an emptied row list back into null, not into an object with no keys', async () => {
+        const user = userEvent.setup();
         const Card = await loadCard({ withEditor: true });
         const onChange = vi.fn();
         render(<Card outputSchema={SCHEMA} onChange={onChange} />);
-        fireEvent.click(screen.getByTestId('rows'));
+        await user.click(screen.getByTestId('rows'));
         expect(onChange).toHaveBeenCalledWith(null);
     });
 

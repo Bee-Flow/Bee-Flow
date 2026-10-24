@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * auth/router.js is the /auth HTTP surface; auth/index.js is only the facade
  * that re-exports the auth gates and helpers.

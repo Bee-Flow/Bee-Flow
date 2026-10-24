@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * FORM ANSWERS — a form that collects its answers in a datatable.
  * See derive.js (pure), provision.js (the table follows the form),

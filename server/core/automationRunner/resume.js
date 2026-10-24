@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Resuming a paused run (extracted verbatim from automationRunner.js).
  *

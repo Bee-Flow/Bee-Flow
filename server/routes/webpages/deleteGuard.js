@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The 409 gate for DELETE /:id — see the explanation below.
  *

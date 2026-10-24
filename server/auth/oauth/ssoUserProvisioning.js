@@ -155,7 +155,7 @@ async function createSsoUser({ provider, user, localId, placement }) {
                 createOk = true;
             } else {
                 if (existing) {
-                    log.error(`[OAuth/${provider}] sso_id_collision — id=${localId} email=${user.email} collides with existing email=${existing.email || 'unknown'}; aborting login`);
+                    log.error(`[OAuth/${provider}] sso_id_collision — id=${localId} email=${log.textForLog(user.email)} collides with existing email=${existing.email || 'unknown'}; aborting login`);
                 } else {
                     log.error('[OAuth] auto-provision failed:', r.reason, r.error || '');
                 }

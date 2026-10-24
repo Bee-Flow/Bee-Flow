@@ -1,4 +1,5 @@
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import ChartConfigModal from './ChartConfigModal.jsx';
@@ -87,10 +88,11 @@ describe('ChartConfigModal — the key→id rename still selects a type', () => 
     return () => fireEvent.click(screen.getByText('Create'));
   };
 
-  it('clicking Pie sets the type to pie and creates a single-series chart', () => {
+  it('clicking Pie sets the type to pie and creates a single-series chart', async () => {
+    const user = userEvent.setup();
     const onCreate = vi.fn();
     const submit = create(onCreate);
-    fireEvent.click(screen.getByText('Pie'));
+    await user.click(screen.getByText('Pie'));
     submit();
     expect(onCreate).toHaveBeenCalledTimes(1);
     const arg = onCreate.mock.calls[0][0];
@@ -98,41 +100,44 @@ describe('ChartConfigModal — the key→id rename still selects a type', () => 
     expect(arg.series.map(s => s.name)).toEqual(['Revenue']);
   });
 
-  it('the pie click squeezes the selection itself — switching back keeps one series', () => {
+  it('the pie click squeezes the selection itself — switching back keeps one series', async () => {
+    const user = userEvent.setup();
     // create() slices to one for a pie anyway, so a pie-only assertion cannot
     // tell whether the CLICK squeezed anything. Going pie → bar can: the
     // selection stays at one column only if the click handler really ran.
     const onCreate = vi.fn();
     const submit = create(onCreate);
-    fireEvent.click(screen.getByText('Pie'));
-    fireEvent.click(screen.getByText('Bar'));
+    await user.click(screen.getByText('Pie'));
+    await user.click(screen.getByText('Bar'));
     submit();
     const arg = onCreate.mock.calls[0][0];
     expect(arg.type).toBe('bar');
     expect(arg.series.map(s => s.name)).toEqual(['Revenue']);
   });
 
-  it('leaves both series selected while nobody picks pie', () => {
+  it('leaves both series selected while nobody picks pie', async () => {
+    const user = userEvent.setup();
     // The other side of the same coin: without the pie click the default two
     // columns survive, so the assertion above is about the click and not about
     // the modal simply never having two series.
     const onCreate = vi.fn();
     const submit = create(onCreate);
-    fireEvent.click(screen.getByText('Line'));
+    await user.click(screen.getByText('Line'));
     submit();
     const arg = onCreate.mock.calls[0][0];
     expect(arg.type).toBe('line');
     expect(arg.series.map(s => s.name)).toEqual(['Revenue', 'Cost']);
   });
 
-  it('marks the picked type as the active button, translated or not', () => {
+  it('marks the picked type as the active button, translated or not', async () => {
+    const user = userEvent.setup();
     // `type === id` is the third reader of the renamed field. It only shows up
     // in the accent colour, so it is asserted on the style rather than on text.
     const t = makeT({ 'notebooks.chart_type_area': 'Vlak' });
     render(<ChartConfigModal {...props()} t={t} />);
     const area = screen.getByText('Vlak').closest('button');
     expect(area.style.borderColor).not.toContain('accent-primary');
-    fireEvent.click(area);
+    await user.click(area);
     expect(area.style.borderColor).toContain('accent-primary');
   });
 });

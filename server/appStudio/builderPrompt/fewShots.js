@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder — few-shot worked dialogue.
  *

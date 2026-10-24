@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — editing a component that already exists:
  * app_update_component (props/style/visible plus the v2 logic fields, single

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Auto-derived trigger sources.
  *

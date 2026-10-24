@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Cleanup duplicate Azure AD SSO users.
  *

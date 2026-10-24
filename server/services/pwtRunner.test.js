@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * pwtRunner's Docker probe and runner-image tag order (services/pwtRunner.js).
  *

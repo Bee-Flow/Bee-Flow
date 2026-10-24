@@ -135,6 +135,8 @@ const router = require('./studioAppData');
 const { DATA_LIMITS } = require('../appStudio/dataModel');
 
 // ── Dispatch harness (from studioAppsRun.test.js) ───────────────────
+const { terminalErrorHandler } = require('../core/http/terminalErrorHandler');
+
 function dispatch({ method = 'GET', url, user = 'viewer-1', orgIds = [], groups = [], body, query = {}, orgId } = {}) {
     return new Promise((resolve, reject) => {
         const req = {
@@ -166,7 +168,10 @@ function dispatch({ method = 'GET', url, user = 'viewer-1', orgIds = [], groups 
             },
             destroy(err) { this.destroyed = err || new Error('destroyed'); resolve(this); return this; },
         };
-        router(req, res, (err) => reject(err || new Error(`fell through: ${method} ${url}`)));
+        // What the app does with a thrown error: the terminal handler answers it.
+        router(req, res, (err) => (err
+            ? terminalErrorHandler(err, req, res, reject)
+            : reject(new Error(`fell through: ${method} ${url}`))));
     });
 }
 

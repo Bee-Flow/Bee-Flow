@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The retention DELETE on cowork_runs, against a stubbed db: this pins the
  * SQL contract that carries the safety — only closed rows

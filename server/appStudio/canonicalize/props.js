@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio canonicalizer — a component's props, cleaned against its spec.
  */

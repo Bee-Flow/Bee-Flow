@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * BFSF-186 — "Cannot retrieve or copy the URL of a webpage created by another
  * user". A reader who could open a colleague's published page saw that share

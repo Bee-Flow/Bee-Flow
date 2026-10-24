@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GET /api/compliance/deadlines — every running statutory clock of the org.
  *

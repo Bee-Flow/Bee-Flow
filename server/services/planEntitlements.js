@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Plan Entitlements Service — propagates a subscription plan's
  * `allowed_integrations` and `allowed_beta_features` allow-lists onto the

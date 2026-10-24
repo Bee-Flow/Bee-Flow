@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The steps that decide which way a run goes — `condition` and `switch`, and
  * `guard`, which routes on what the Privacy Shield's detector found — plus the

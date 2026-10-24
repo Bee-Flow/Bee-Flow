@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Transcription quality metrics — pure functions, no I/O, no deps.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Rule misses: a path in a Condition, Filter or Switch rule that found
  * nothing on any of the items the rule was asked about.

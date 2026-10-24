@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GitHub evidence connector — repository security posture for the org's
  * source repositories. Config-state depth only: counts, booleans and ages —

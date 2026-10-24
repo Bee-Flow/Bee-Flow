@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Regex Generator Tools — Built-in tools for AI to create regex rules & collections
  * 

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The metadata store's contract, checked against the SQL it emits rather than a
  * live database (there is none in CI). The properties that matter are all

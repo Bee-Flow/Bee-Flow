@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 const router = require('express').Router();
 const { requireSuperAdmin, invalidatePermissionCache } = require('../permissions');

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * POST /api/projects/:id/archive and /restore, the includeArchived list filter, and the read-only gate
  * (through the REAL projectAccess gate, with the store mocked).

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The code assistant's edit tools (POST /api/automation/builder/code/assist).
  *

@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import SecurityHub from './SecurityHub';
 
@@ -85,10 +86,11 @@ describe('SecurityHub', () => {
         expect(screen.queryByTestId('guardrails-panel')).not.toBeInTheDocument();
     });
 
-    it('navigates to the section path when a rail button is clicked', () => {
+    it('navigates to the section path when a rail button is clicked', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         render(<SecurityHub user={fullAdmin} onNavigate={onNavigate} />);
-        fireEvent.click(screen.getByText('admin.sec_sso'));
+        await user.click(screen.getByText('admin.sec_sso'));
         expect(onNavigate).toHaveBeenCalledWith('admin/security/sso');
     });
 

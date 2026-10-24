@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A stage's bindings, written into the holes a release leaves (design 4.1).
  *
@@ -31,7 +32,6 @@
  * connection the run-as user may not use, and seats that fail the approval
  * validators are refused with 400 `binding_invalid {slot, why}`.
  */
-
 'use strict';
 
 const { HttpError } = require('../../core/http/errors');
@@ -287,7 +287,7 @@ function applyBindingsTo(kind, entity, bindings, { slots = null } = {}) {
     };
     const bind = BINDERS[k];
     if (bind && isObject(entity)) bind(entity, get, { slots, all });
-    if (k === 'webpage' && isObject(entity)) for (const slot of all.keys()) if (slot.startsWith(`grant:${entity.ref}:`)) applied.add(slot);
+    if (k === 'webpage' && isObject(entity)) for (const slot of all.keys()) if (slot.startsWith(`grant:${/** @type {Record<string, any>} */ (entity).ref}:`)) applied.add(slot);
     return { entity, applied: [...applied] };
 }
 

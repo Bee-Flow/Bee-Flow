@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The numbers every source mirror runs on — ONE set for every kind, because
  * they describe the engine underneath (what one pass can read back, how many

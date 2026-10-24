@@ -1,3 +1,4 @@
+// @typecheck
 const { test, after } = require('node:test');
 const assert = require('node:assert');
 const { installResolveStub } = require('../testUtils/stubRequire');

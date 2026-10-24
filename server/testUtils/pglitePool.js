@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A real Postgres behind the REAL db.js, for a test of a store that requires
  * `../db` directly: @electric-sql/pglite, in-process, answering the shared
@@ -71,8 +72,9 @@ function usePglitePool(pg = new PGlite()) {
 
     const query = pgliteQuery(pg);
 
-    db.pool.query = query;
-    db.pool.connect = async () => ({ query, release() {} });
+    // A PGlite-backed stand-in, not a full pg client.
+    db.pool.query = /** @type {any} */ (query);
+    db.pool.connect = /** @type {any} */ (async () => ({ query, release() {} }));
 
     let restored = false;
     function restore() {

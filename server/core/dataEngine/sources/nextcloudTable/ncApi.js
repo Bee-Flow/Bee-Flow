@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Nextcloud Tables REST calls a mirror makes, bound to one authenticated
  * `fetch`.
@@ -47,6 +48,7 @@ function forLinker(auth) {
     const { TABLES_API, HEADERS, toWireData, readJsonSafe, describeColumn } = tablesWire();
     const api = `${auth.baseUrl}${TABLES_API}`;
 
+    /** @param {string} method @param {string} path @param {{ body?:any, what?:string, ncTableId?:any }} [opts] */
     async function call(method, path, { body, what, ncTableId } = {}) {
         let res;
         try {

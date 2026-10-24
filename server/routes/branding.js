@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Branding Routes — theming + wallpaper management.
  *

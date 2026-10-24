@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * services/webpageBfTable — the PUBLIC side of a table binding.
  *

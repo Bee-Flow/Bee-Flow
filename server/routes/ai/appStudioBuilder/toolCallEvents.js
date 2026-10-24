@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio Builder — the `tool_call` SSE payload.
  *

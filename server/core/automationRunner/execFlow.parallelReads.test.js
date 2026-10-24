@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Read-only Gmail fetches in a "run once per item" step run a few at a time
  * (reads five, attachments three), in item order; anything else stays one at a time.

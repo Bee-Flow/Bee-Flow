@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import { editor, typeInEditor } from '../../../../test/refEditor';
@@ -58,8 +59,9 @@ describe('SettingsForm — notification channels', () => {
     });
 
     it('adds email to the step when the pill is pressed', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(notifyStep());
-        fireEvent.click(pill('Email'));
+        await user.click(pill('Email'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls.at(-1)[0];
         expect(patch.channels).toContain('email');
@@ -67,9 +69,10 @@ describe('SettingsForm — notification channels', () => {
     });
 
     it('takes email away again, and never the bell', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(notifyStep({ channels: ['inapp', 'email'] }));
         expect(pill('Email').getAttribute('aria-pressed')).toBe('true');
-        fireEvent.click(pill('Email'));
+        await user.click(pill('Email'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls.at(-1)[0].channels).toEqual(['inapp']);
 

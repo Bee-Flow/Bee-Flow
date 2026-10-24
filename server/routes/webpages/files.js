@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De extra bestanden van een multi-file project, en de binaire assets ernaast.
  *

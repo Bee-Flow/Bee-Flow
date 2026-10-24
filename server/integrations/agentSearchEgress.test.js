@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * A chat-dispatched web search writes one egress row, on success and on a

@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import WebpageTurnCard from './WebpageTurnCard';
 
@@ -62,12 +63,13 @@ describe('WebpageTurnCard — the chips', () => {
         expect(screen.queryByTestId('webpage-chip-keep')).not.toBeInTheDocument();
     });
 
-    it('reports Keep and Undo, and names the file for Change in code', () => {
+    it('reports Keep and Undo, and names the file for Change in code', async () => {
+        const user = userEvent.setup();
         const onKeep = vi.fn(); const onUndo = vi.fn(); const onShowInCode = vi.fn();
         renderCard({ ...base, canUndo: true, onKeep, onUndo, onShowInCode });
-        fireEvent.click(screen.getByTestId('webpage-chip-keep'));
-        fireEvent.click(screen.getByTestId('webpage-chip-undo'));
-        fireEvent.click(screen.getByTestId('webpage-chip-code'));
+        await user.click(screen.getByTestId('webpage-chip-keep'));
+        await user.click(screen.getByTestId('webpage-chip-undo'));
+        await user.click(screen.getByTestId('webpage-chip-code'));
         expect(onKeep).toHaveBeenCalled();
         expect(onUndo).toHaveBeenCalled();
         expect(onShowInCode).toHaveBeenCalledWith('html');

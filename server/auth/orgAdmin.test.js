@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit — _evalOrgAdmin pure org-admin predicate (H4). DB-free: stubs the
  * userStore/db module deps so permissions.js loads without the DB chain, then

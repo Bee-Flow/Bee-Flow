@@ -141,6 +141,7 @@ describe('UpcomingMeetings', () => {
     });
 
     it('shows the reconnect banner when connected without Meet scopes and reloads after the popup', async () => {
+        const user = userEvent.setup();
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([], {
             connection: { googleConnected: true, meetScopesGranted: false, hasSettingsScope: false, needsReauth: false },
         }));
@@ -149,19 +150,20 @@ describe('UpcomingMeetings', () => {
         await screen.findByText(/doesn't include Meet permissions yet — reconnect to enable auto-import/);
         expect(screen.queryByText(/Connect Google Workspace to see your Meet meetings/)).not.toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: 'Reconnect' }));
+        await user.click(screen.getByRole('button', { name: 'Reconnect' }));
         await waitFor(() => expect(listGoogleMeetMeetings).toHaveBeenCalledTimes(2));
         expect(openGoogleOAuthPopup).toHaveBeenCalledWith(expect.objectContaining({ apiBase: '' }));
     });
 
     it('toggles a Meet row optimistically and keeps it on success', async () => {
+        const user = userEvent.setup();
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting({ excluded: true, status: 'excluded' })]));
         const { container } = render(<UpcomingMeetings />);
         await screen.findByText('Meet planning');
 
         const toggle = toggles(container)[0];
         expect(toggle).toHaveAttribute('aria-pressed', 'false');
-        fireEvent.click(toggle);
+        await user.click(toggle);
         expect(toggle).toHaveAttribute('aria-pressed', 'true'); // optimistic
 
         await waitFor(() => expect(setGoogleMeetMeetingRecord).toHaveBeenCalledWith('ev1', true, { meetingCode: 'abc-defg-hij' }));
@@ -175,6 +177,7 @@ describe('UpcomingMeetings', () => {
         const { container } = render(<UpcomingMeetings />);
         await screen.findByText('Meet planning');
 
+        // Sync on purpose: awaiting user.click would let the rejection and the reload land before the optimistic state is read.
         fireEvent.click(toggles(container)[0]);
         expect(toggles(container)[0]).toHaveAttribute('aria-pressed', 'true'); // optimistic
 
@@ -205,11 +208,12 @@ describe('UpcomingMeetings', () => {
     });
 
     it('opens the imported note from the Meet status chip', async () => {
+        const user = userEvent.setup();
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting({ importedNoteId: 42, status: 'imported' })]));
         const onOpenNote = vi.fn();
         render(<UpcomingMeetings onOpenNote={onOpenNote} />);
 
-        fireEvent.click(await screen.findByRole('button', { name: /Note created/ }));
+        await user.click(await screen.findByRole('button', { name: /Note created/ }));
         expect(onOpenNote).toHaveBeenCalledWith(42);
     });
 
@@ -221,6 +225,7 @@ describe('UpcomingMeetings', () => {
 
         const toggle = toggles(container)[0];
         expect(toggle).toHaveAttribute('aria-pressed', 'true');
+        // Sync on purpose: awaiting user.click would let the rejection and the reload land before the optimistic state is read.
         fireEvent.click(toggle);
         expect(toggle).toHaveAttribute('aria-pressed', 'false'); // optimistic OFF
 

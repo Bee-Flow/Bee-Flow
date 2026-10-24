@@ -8,6 +8,7 @@
  *   3. a rule that the reader may not open gets no link, because `GET /api/automation/:id` returns 403 there.
  */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -195,20 +196,22 @@ describe('RulesPanel', () => {
     });
 
     it('opens your own rule in the automations builder', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         api.listAutomations.mockResolvedValue({ automations: [rule()] });
         render(<RulesPanel currentUserId="me" onNavigate={onNavigate} />);
 
-        fireEvent.click(await screen.findByTestId('rule-open'));
+        await user.click(await screen.findByTestId('rule-open'));
         expect(onNavigate).toHaveBeenCalledWith('studio/automations/a-1');
     });
 
     it('"+ Rule" creates a draft with the trigger already set and opens it', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         render(<RulesPanel currentUserId="me" onNavigate={onNavigate} />);
         await screen.findByTestId('rules-empty');
 
-        fireEvent.click(screen.getByTestId('rules-new'));
+        await user.click(screen.getByTestId('rules-new'));
         await waitFor(() => expect(api.createAutomation).toHaveBeenCalled());
         const body = api.createAutomation.mock.calls[0][0];
         expect(body.definition.trigger.appEvent).toEqual({
@@ -218,25 +221,27 @@ describe('RulesPanel', () => {
     });
 
     it('a plan without automations explains itself instead of showing a raw error', async () => {
+        const user = userEvent.setup();
         api.createAutomation.mockRejectedValue(new Error('403 Forbidden: licence'));
         render(<RulesPanel currentUserId="me" />);
         await screen.findByTestId('rules-empty');
 
-        fireEvent.click(screen.getByTestId('rules-new'));
+        await user.click(screen.getByTestId('rules-new'));
         const banner = await screen.findByTestId('rules-create-error');
         expect(banner.textContent).toMatch(/not part of this plan/i);
     });
 
     it('the composer scans with the meeting seed in front of what the user typed', async () => {
+        const user = userEvent.setup();
         api.suggestAutomationsStream.mockImplementation(async (body, onEvent) => {
             onEvent('done', { suggestions: [{ id: 's1', title: 'File decisions', description: 'Put them in the wiki', buildPrompt: 'Build it' }] });
         });
         render(<RulesPanel currentUserId="me" />);
         await screen.findByTestId('rules-empty');
 
-        fireEvent.click(screen.getByTestId('rules-composer-toggle'));
+        await user.click(screen.getByTestId('rules-composer-toggle'));
         fireEvent.change(screen.getByLabelText(/Say what should happen/i), { target: { value: 'tell the team' } });
-        fireEvent.click(screen.getByTestId('rules-composer-run'));
+        await user.click(screen.getByTestId('rules-composer-run'));
 
         await waitFor(() => expect(api.suggestAutomationsStream).toHaveBeenCalled());
         const [body] = api.suggestAutomationsStream.mock.calls[0];
@@ -249,15 +254,16 @@ describe('RulesPanel', () => {
     });
 
     it('hands a chosen idea to the caller as a build prompt when there is one', async () => {
+        const user = userEvent.setup();
         const onComposeRule = vi.fn();
         const suggestion = { id: 's1', title: 'File decisions', description: 'Put them in the wiki', buildPrompt: 'Build the rule', requiredIntegrations: ['nextcloud'] };
         api.suggestAutomationsStream.mockImplementation(async (body, onEvent) => { onEvent('done', { suggestions: [suggestion] }); });
         render(<RulesPanel currentUserId="me" onComposeRule={onComposeRule} />);
         await screen.findByTestId('rules-empty');
 
-        fireEvent.click(screen.getByTestId('rules-composer-toggle'));
-        fireEvent.click(screen.getByTestId('rules-composer-run'));
-        fireEvent.click(await screen.findByText('Start this rule'));
+        await user.click(screen.getByTestId('rules-composer-toggle'));
+        await user.click(screen.getByTestId('rules-composer-run'));
+        await user.click(await screen.findByText('Start this rule'));
 
         expect(api.createAutomation).not.toHaveBeenCalled();
         expect(onComposeRule).toHaveBeenCalledTimes(1);
@@ -266,6 +272,7 @@ describe('RulesPanel', () => {
     });
 
     it('with nowhere to send the prompt, the idea still becomes a preset draft', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         api.suggestAutomationsStream.mockImplementation(async (body, onEvent) => {
             onEvent('done', { suggestions: [{ id: 's1', title: 'File decisions', description: 'Put them in the wiki', buildPrompt: 'Build it' }] });
@@ -273,9 +280,9 @@ describe('RulesPanel', () => {
         render(<RulesPanel currentUserId="me" onNavigate={onNavigate} />);
         await screen.findByTestId('rules-empty');
 
-        fireEvent.click(screen.getByTestId('rules-composer-toggle'));
-        fireEvent.click(screen.getByTestId('rules-composer-run'));
-        fireEvent.click(await screen.findByText('Start this rule'));
+        await user.click(screen.getByTestId('rules-composer-toggle'));
+        await user.click(screen.getByTestId('rules-composer-run'));
+        await user.click(await screen.findByText('Start this rule'));
 
         await waitFor(() => expect(api.createAutomation).toHaveBeenCalled());
         const body = api.createAutomation.mock.calls[0][0];
@@ -284,14 +291,15 @@ describe('RulesPanel', () => {
     });
 
     it('says there is nothing to scan rather than showing an empty idea list', async () => {
+        const user = userEvent.setup();
         api.suggestAutomationsStream.mockImplementation(async (body, onEvent) => {
             onEvent('done', { suggestions: [], reason: 'no_integrations' });
         });
         render(<RulesPanel currentUserId="me" />);
         await screen.findByTestId('rules-empty');
 
-        fireEvent.click(screen.getByTestId('rules-composer-toggle'));
-        fireEvent.click(screen.getByTestId('rules-composer-run'));
+        await user.click(screen.getByTestId('rules-composer-toggle'));
+        await user.click(screen.getByTestId('rules-composer-run'));
         expect((await screen.findByTestId('rules-ai-reason')).textContent).toMatch(/No connected apps/i);
     });
 
@@ -400,6 +408,7 @@ describe('RulesPanel — wat een kaart NIET mag beweren', () => {
     });
 
     it('vertaalt het licentietoken dat de server echt stuurt', async () => {
+        const user = userEvent.setup();
         // The gate answers `{error:'feature_locked'}`; `safeText` returns that as
         // `err.message`, and `send` does not attach a `.status` to it. A test on
         // /403|forbidden|licen/ was therefore always false, and the customer saw the
@@ -407,7 +416,7 @@ describe('RulesPanel — wat een kaart NIET mag beweren', () => {
         api.createAutomation.mockRejectedValue(new Error('feature_locked'));
         render(<RulesPanel currentUserId="me" />);
         await screen.findByTestId('rules-empty');
-        fireEvent.click(screen.getByTestId('rules-new'));
+        await user.click(screen.getByTestId('rules-new'));
         const banner = await screen.findByTestId('rules-create-error');
         expect(banner.textContent).toMatch(/not part of this plan/i);
         expect(banner.textContent).not.toContain('feature_locked');
@@ -421,35 +430,38 @@ describe('RulesPanel — wat een kaart NIET mag beweren', () => {
     });
 
     it('meldt óók de andere lege uitkomsten van de scan', async () => {
+        const user = userEvent.setup();
         api.suggestAutomationsStream.mockImplementation(async (body, onEvent) => {
             onEvent('done', { suggestions: [], reason: 'no_patterns' });
         });
         render(<RulesPanel currentUserId="me" />);
         await screen.findByTestId('rules-empty');
-        fireEvent.click(screen.getByTestId('rules-composer-toggle'));
-        fireEvent.click(screen.getByTestId('rules-composer-run'));
+        await user.click(screen.getByTestId('rules-composer-toggle'));
+        await user.click(screen.getByTestId('rules-composer-run'));
         expect((await screen.findByTestId('rules-ai-reason')).textContent).toMatch(/found nothing worth turning into a rule/i);
     });
 
     it('een stream die zonder `done` eindigt is geen lege uitslag', async () => {
+        const user = userEvent.setup();
         // Truncated connection, or a crash after the headers: 0 cards, no banner, and
         // a button that is back on "Get ideas" — "unknown" and "nothing found"
         // became the same screen.
         api.suggestAutomationsStream.mockImplementation(async () => { /* geen enkel event */ });
         render(<RulesPanel currentUserId="me" />);
         await screen.findByTestId('rules-empty');
-        fireEvent.click(screen.getByTestId('rules-composer-toggle'));
-        fireEvent.click(screen.getByTestId('rules-composer-run'));
+        await user.click(screen.getByTestId('rules-composer-toggle'));
+        await user.click(screen.getByTestId('rules-composer-run'));
         expect((await screen.findByTestId('rules-ai-error')).textContent).toMatch(/stopped before it finished/i);
     });
 
     it('de 429-tak zegt dat het aan de drukte ligt', async () => {
+        const user = userEvent.setup();
         const err = Object.assign(new Error('too many'), { status: 429 });
         api.suggestAutomationsStream.mockRejectedValue(err);
         render(<RulesPanel currentUserId="me" />);
         await screen.findByTestId('rules-empty');
-        fireEvent.click(screen.getByTestId('rules-composer-toggle'));
-        fireEvent.click(screen.getByTestId('rules-composer-run'));
+        await user.click(screen.getByTestId('rules-composer-toggle'));
+        await user.click(screen.getByTestId('rules-composer-run'));
         expect((await screen.findByTestId('rules-ai-error')).textContent).toMatch(/Too many scans/i);
     });
 

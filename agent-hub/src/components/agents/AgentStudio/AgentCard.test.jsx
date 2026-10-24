@@ -11,7 +11,8 @@
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentStudio/AgentCard.test.jsx
  */
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 vi.mock('../../../hooks/useTranslation', () => import('../../../test/useTranslationMock'));
@@ -134,10 +135,11 @@ describe('leeg is niet onleesbaar', () => {
 });
 
 describe('bewerkrecht — onbekend versmalt (BFSF-271)', () => {
-    it('can_edit true: prullenbak, geen badge', () => {
+    it('can_edit true: prullenbak, geen badge', async () => {
+        const user = userEvent.setup();
         const onDelete = vi.fn();
         draw({ id: 'a1', name: 'Helpdesk', can_edit: true, config: {} }, { onDelete });
-        fireEvent.click(screen.getByLabelText('Delete: Helpdesk'));
+        await user.click(screen.getByLabelText('Delete: Helpdesk'));
         expect(onDelete).toHaveBeenCalledTimes(1);
         expect(screen.queryByTestId('agent-card-view-only')).toBeNull();
         expect(screen.queryByTestId('agent-card-edit-unknown')).toBeNull();

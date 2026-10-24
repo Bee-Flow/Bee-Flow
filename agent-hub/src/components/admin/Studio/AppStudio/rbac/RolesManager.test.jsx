@@ -1,4 +1,5 @@
 import { render, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -49,10 +50,11 @@ const emptyDef = { schemaVersion: 2, screens: [], actions: {} };
 
 describe('RolesManager', () => {
     it('creates a role and persists it on save', async () => {
+        const user = userEvent.setup();
         const onCommit = vi.fn();
         const { getByText } = render(<RolesManager appId="a1" definition={emptyDef} onCommit={onCommit} />);
-        fireEvent.click(getByText('Add role'));
-        fireEvent.click(getByText('Save roles'));
+        await user.click(getByText('Add role'));
+        await user.click(getByText('Save roles'));
         await waitFor(() => expect(saveRoles).toHaveBeenCalled());
         const [rolesArg] = saveRoles.mock.calls[0];
         expect(rolesArg).toHaveLength(2); // member + the new role
@@ -62,26 +64,29 @@ describe('RolesManager', () => {
     });
 
     it('maps an organisation group to a role', async () => {
+        const user = userEvent.setup();
         const { getByLabelText, getByText } = render(<RolesManager appId="a1" definition={emptyDef} onCommit={() => {}} />);
         fireEvent.change(getByLabelText('Role for group Sales'), { target: { value: 'member' } });
-        fireEvent.click(getByText('Save roles'));
+        await user.click(getByText('Save roles'));
         await waitFor(() => expect(saveRoles).toHaveBeenCalled());
         const [, mapping] = saveRoles.mock.calls[0];
         expect(mapping.byGroup).toEqual({ g1: 'member' });
     });
 
     it('assigns a specific person to a role', async () => {
+        const user = userEvent.setup();
         const { getByLabelText, getByText } = render(<RolesManager appId="a1" definition={emptyDef} onCommit={() => {}} />);
         fireEvent.change(getByLabelText('Person to assign'), { target: { value: 'u1' } });
-        fireEvent.click(getByText('Assign'));
+        await user.click(getByText('Assign'));
         await waitFor(() => expect(assignMember).toHaveBeenCalledWith('u1', 'member'));
     });
 
     it('persists "No access" as a blank default instead of collapsing to full access', async () => {
+        const user = userEvent.setup();
         const { getByLabelText, getByText } = render(<RolesManager appId="a1" definition={emptyDef} onCommit={() => {}} />);
         const select = getByLabelText('Default role');
         fireEvent.change(select, { target: { value: '__none__' } });
-        fireEvent.click(getByText('Save roles'));
+        await user.click(getByText('Save roles'));
         await waitFor(() => expect(saveRoles).toHaveBeenCalled());
         const [, mapping] = saveRoles.mock.calls[0];
         expect(mapping.default).toBe('');
@@ -103,45 +108,49 @@ describe('RolesManager', () => {
     });
 
     it('deleting the default role revokes access instead of promoting to full access', async () => {
+        const user = userEvent.setup();
         const { getByLabelText, getByText } = render(<RolesManager appId="a1" definition={emptyDef} onCommit={() => {}} />);
         fireEvent.change(getByLabelText('Default role'), { target: { value: 'member' } });
-        fireEvent.click(getByLabelText('Delete role Member'));
+        await user.click(getByLabelText('Delete role Member'));
         // The role is in use, so the consequence is confirmed first.
-        fireEvent.click(getByText('Delete role'));
-        fireEvent.click(getByText('Save roles'));
+        await user.click(getByText('Delete role'));
+        await user.click(getByText('Save roles'));
         await waitFor(() => expect(saveRoles).toHaveBeenCalled());
         const [rolesArg, mapping] = saveRoles.mock.calls[0];
         expect(rolesArg).toHaveLength(0);
         expect(mapping.default).toBe('');
     });
 
-    it('does not recycle a deleted role key for a newly created role', () => {
+    it('does not recycle a deleted role key for a newly created role', async () => {
+        const user = userEvent.setup();
         const { getByText, getByLabelText, queryByLabelText } = render(
             <RolesManager appId="a1" definition={emptyDef} onCommit={() => {}} />,
         );
-        fireEvent.click(getByText('Add role'));
+        await user.click(getByText('Add role'));
         expect(getByLabelText('Role name (role)')).toBeTruthy();
-        fireEvent.click(getByLabelText('Delete role New role'));
-        fireEvent.click(getByText('Add role'));
+        await user.click(getByLabelText('Delete role New role'));
+        await user.click(getByText('Add role'));
         expect(queryByLabelText('Role name (role)')).toBeNull();
         expect(getByLabelText('Role name (role_2)')).toBeTruthy();
     });
 
-    it('does not reuse a key that still has members or row rules on the server', () => {
+    it('does not reuse a key that still has members or row rules on the server', async () => {
+        const user = userEvent.setup();
         useAppRoles.mockReturnValue(hookState({
             members: [{ userId: 'u1', roleKey: 'role' }],
             tables: [{ ...TABLES[0], access: { default: 'app', roles: {}, rowFilters: { role_2: 'record.owner_id == viewer.id' } } }],
         }));
         const { getByText, getByLabelText } = render(<RolesManager appId="a1" definition={emptyDef} onCommit={() => {}} />);
-        fireEvent.click(getByText('Add role'));
+        await user.click(getByText('Add role'));
         expect(getByLabelText('Role name (role_3)')).toBeTruthy();
     });
 
-    it('blocks assigning a person to a role that has not been saved yet', () => {
+    it('blocks assigning a person to a role that has not been saved yet', async () => {
+        const user = userEvent.setup();
         const { getByText, getByLabelText, getByTestId } = render(
             <RolesManager appId="a1" definition={emptyDef} onCommit={() => {}} />,
         );
-        fireEvent.click(getByText('Add role'));
+        await user.click(getByText('Add role'));
         fireEvent.change(getByLabelText('Person to assign'), { target: { value: 'u1' } });
         fireEvent.change(getByLabelText('Role to assign'), { target: { value: 'role' } });
         expect(getByTestId('member-role-unsaved').textContent).toMatch(/Save your roles first/i);

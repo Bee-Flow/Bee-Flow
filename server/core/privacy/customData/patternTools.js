@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Pattern helpers for the "Your own data" test bench: is a pattern safe to

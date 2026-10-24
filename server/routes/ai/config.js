@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * AI Config Routes
  *

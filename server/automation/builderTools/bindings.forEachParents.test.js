@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The AI builder and a step over a list inside a list: the outer items it
  * keeps (`forEach.parents`) are bound for its fields, and a forEach sent with

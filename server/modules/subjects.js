@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Grant-subject resolution — the ONE place that knows which subject ids a
  * module grant may be bound to on this install.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What runDlpPreflight says about its own scan (chat signals, build spec 5.2b).
  *

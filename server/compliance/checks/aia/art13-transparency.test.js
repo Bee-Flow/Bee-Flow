@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * AIA-Art13-transparency — a failed register read is not "no agents table",
  * and a platform agent (organization_id NULL) belongs to the 'default' bucket,

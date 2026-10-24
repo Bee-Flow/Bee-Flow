@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Integration tests for the atomic claim + reaper paths.
  *

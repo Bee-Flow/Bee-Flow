@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The fields of a sheet chart and their checks, shared by the chat's
  * document_write `charts` (sheetChartSpec.js), the spreadsheet assistant's

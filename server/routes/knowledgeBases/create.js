@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Knowledge Bases — creation.
  *
@@ -52,11 +53,7 @@ router.post('/', requireAuth, requirePermission('manage_knowledge'), validate({ 
     // their primary org). Trusting organizationId from the body would let
     // any member create KBs in other orgs.
     let assignOrgId;
-    try {
-        assignOrgId = await assertUserCanUseOrg(req, organizationId);
-    } catch (err) {
-        return res.status(err.status || 500).json({ error: err.message });
-    }
+    assignOrgId = await assertUserCanUseOrg(req, organizationId);
 
     const cleanedContexts = sanitizeUsageContexts(usageContexts);
 

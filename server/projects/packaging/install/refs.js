@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Turning a Blueprint's `{ $ref }`s back into real ids, and putting back what
  * the scrub emptied on the way out (the installer's resolutions).
@@ -101,7 +102,7 @@ function applyResolutionsTo(definition, ref, ctx, report) {
     for (const row of applied) {
         report.resolved.push(row);
     }
-    for (const row of ignored) {
+    for (const row of /** @type {Array<{ stepId: string, why: string }>} */ (ignored)) {
         report.warnings.push(
             `What you chose for step "${row.stepId}" of "${ref}" was not used (${row.why.replace(/_/g, ' ')}) — open the automation and set it there.`,
         );

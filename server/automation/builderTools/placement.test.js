@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Where did an append LAND, and what does a rejected batch say about itself.
  *

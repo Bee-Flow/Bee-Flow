@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import './index'; // side effect: registers every bespoke panel
 import SpecPanel from './SpecPanel';
@@ -118,9 +119,10 @@ describe('SpecPanel — emits usePatch updates with spec-correct shapes', () => 
         expect(committedProps().title).toBe('Projects');
     });
 
-    it('boolean prop (page_header.showDivider) toggles', () => {
+    it('boolean prop (page_header.showDivider) toggles', async () => {
+        const user = userEvent.setup();
         const { getByText, committedProps } = renderSpecPanel(nodeFor('page_header'));
-        fireEvent.click(getByText('Show divider'));
+        await user.click(getByText('Show divider'));
         expect(committedProps().showDivider).toBe(false);
     });
 
@@ -166,9 +168,10 @@ describe('SpecPanel — emits usePatch updates with spec-correct shapes', () => 
         expect(committedProps().look).toBe(spec.values[1]);
     });
 
-    it('list prop (badge_list.colorMap) adds an itemShape-complete row', () => {
+    it('list prop (badge_list.colorMap) adds an itemShape-complete row', async () => {
+        const user = userEvent.setup();
         const { getByText, committedProps } = renderSpecPanel(nodeFor('badge_list'));
-        fireEvent.click(getByText(/Add color map/));
+        await user.click(getByText(/Add color map/));
         // `label` joined the itemShape so a pill grouped by a status column can
         // read "Waiting on customer" instead of the stored "awaiting_user".
         expect(committedProps().colorMap).toEqual([{ value: '', label: '', color: 'neutral' }]);
@@ -179,10 +182,11 @@ describe('SpecPanel — emits usePatch updates with spec-correct shapes', () => 
         expect(getByText('Type the values myself')).toBeTruthy(); // BindingField chooser (nothing set yet)
     });
 
-    it('falls back to inferred specs when the catalog is unavailable', () => {
+    it('falls back to inferred specs when the catalog is unavailable', async () => {
+        const user = userEvent.setup();
         const { getByText, committedProps } = renderSpecPanel(nodeFor('page_header'), { seedCatalog: false });
         // boolean inferred from the registry defaultProps → Toggle still works
-        fireEvent.click(getByText('Show divider'));
+        await user.click(getByText('Show divider'));
         expect(committedProps().showDivider).toBe(false);
     });
 });

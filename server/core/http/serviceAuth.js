@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Service Authentication Helper
  * 

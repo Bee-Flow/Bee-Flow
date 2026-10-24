@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The approval step: the one step whose entire payload is a sentence a human
  * reads before deciding. Everything it can carry is checked here — the

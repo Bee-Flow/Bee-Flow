@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Web pages — who uses one (W5 part B).
  *

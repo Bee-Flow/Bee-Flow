@@ -77,16 +77,18 @@ describe('PublicFormPage', () => {
     });
 
     it('a required field blocks submission client-side', async () => {
+        const user = userEvent.setup();
         const f = mockFetch(okLoad);
         vi.stubGlobal('fetch', f);
         render(<PublicFormPage token={TOKEN} />);
         await screen.findByText('Contact us');
-        fireEvent.click(screen.getByRole('button', { name: 'Send it' }));
+        await user.click(screen.getByRole('button', { name: 'Send it' }));
         expect(await screen.findByText('Your email is required.')).toBeTruthy();
         expect(f).toHaveBeenCalledTimes(1); // only the initial GET
     });
 
     it('a successful submission replaces the form with the thank-you message', async () => {
+        const user = userEvent.setup();
         let posted = null;
         vi.stubGlobal('fetch', mockFetch({
             ...okLoad,
@@ -95,7 +97,7 @@ describe('PublicFormPage', () => {
         render(<PublicFormPage token={TOKEN} />);
         await screen.findByText('Contact us');
         fireEvent.change(screen.getByLabelText(/Your email/), { target: { value: 'a@b.nl' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Send it' }));
+        await user.click(screen.getByRole('button', { name: 'Send it' }));
 
         expect(await screen.findByText('Thanks — we got your answer.')).toBeTruthy();
         expect(screen.queryByRole('button', { name: 'Send it' })).toBeNull();
@@ -108,6 +110,7 @@ describe('PublicFormPage', () => {
     });
 
     it('per-field server errors land on the right fields', async () => {
+        const user = userEvent.setup();
         vi.stubGlobal('fetch', mockFetch({
             ...okLoad,
             [`POST /${TOKEN}`]: async () => ({ ok: false, status: 400, body: { error: 'Some answers need attention', fields: [{ field: 'email', message: 'Your email is not a valid email address.' }] } }),
@@ -115,7 +118,7 @@ describe('PublicFormPage', () => {
         render(<PublicFormPage token={TOKEN} />);
         await screen.findByText('Contact us');
         fireEvent.change(screen.getByLabelText(/Your email/), { target: { value: 'nope' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Send it' }));
+        await user.click(screen.getByRole('button', { name: 'Send it' }));
         expect(await screen.findByText('Your email is not a valid email address.')).toBeTruthy();
     });
 
@@ -229,6 +232,7 @@ describe('PublicFormPage — multi-page', () => {
     });
 
     it('page two posts to the session endpoint with that page\'s csrf', async () => {
+        const user = userEvent.setup();
         let posted = null;
         vi.stubGlobal('fetch', mockFetch({
             ...multiLoad,
@@ -244,7 +248,7 @@ describe('PublicFormPage — multi-page', () => {
         await screen.findByText('Nearly there', {}, { timeout: 4000 });
 
         fireEvent.change(screen.getByLabelText(/Your address/), { target: { value: 'Main Street 1' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
+        await user.click(screen.getByRole('button', { name: 'Finish' }));
 
         await waitFor(() => expect(posted).not.toBeNull());
         expect(posted.address).toBe('Main Street 1');

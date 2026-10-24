@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Whisper large-v3-turbo on the AMD XDNA2 NPU, via FastFlowLM.
  *
@@ -245,7 +246,7 @@ async function transcribeChunk(base, model, wavBuffer, language, index) {
         const body = await res.text().catch(() => '');
         throw new Error(`NPU transcribe ${res.status}: ${body.slice(0, 200)}`);
     }
-    const data = await res.json();
+    const data = /** @type {{ text?: string } | null} */ (await res.json());
     return String(data?.text || '').trim();
 }
 

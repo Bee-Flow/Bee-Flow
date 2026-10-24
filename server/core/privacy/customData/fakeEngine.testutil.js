@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * A stand-in for core/privacy/customTypes with the pinned interface
@@ -21,6 +22,9 @@ function matcherFor(type) {
     return null;
 }
 
+/**
+ * @param {{ probe?: (texts: any, labelSet: any) => any[], rejectPattern?: (src: string) => boolean, reservedTokenKeys?: string[] }} [opts]
+ */
 function createFakeEngine({ probe = () => [], rejectPattern = (src) => src.includes('(?='), reservedTokenKeys = ['data'] } = {}) {
     const calls = { validate: [], compile: [], match: 0, probe: [] };
     return {

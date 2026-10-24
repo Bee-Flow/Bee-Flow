@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A storage push marks the spreadsheet mirror(s) it is about stale and kicks
  * a pass, never patches a row: a Nextcloud file event finds its mirrors by

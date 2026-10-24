@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Platform retention — the retention passes that belong to no module.
  *

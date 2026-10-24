@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -46,6 +47,7 @@ beforeEach(() => {
 
 describe('CmsAssistantPane', () => {
     it('runs a turn through the bridge: beginTurn before fetch, drafts folded in, endTurn + What changed', async () => {
+        const user = userEvent.setup();
         const bridge = makeBridge();
         let fetchOrder = [];
         authFetch.mockImplementation(async (url) => {
@@ -70,7 +72,7 @@ describe('CmsAssistantPane', () => {
         );
 
         fireEvent.change(screen.getByPlaceholderText(/Describe what to build/), { target: { value: 'Add a pricing page' } });
-        fireEvent.click(screen.getByText('Send'));
+        await user.click(screen.getByText('Send'));
 
         await waitFor(() => expect(bridge.endTurn).toHaveBeenCalled());
         // beginTurn (drain + snapshot + lock) strictly before the stream POST
@@ -87,14 +89,15 @@ describe('CmsAssistantPane', () => {
         // What changed chip + Undo turn affordance
         await screen.findByText('What changed');
         expect(screen.getByText('+ Pricing')).toBeInTheDocument();
-        fireEvent.click(screen.getByText('Undo turn'));
+        await user.click(screen.getByText('Undo turn'));
         expect(bridge.undoTurn).toHaveBeenCalled();
         // chip click focuses the page
-        fireEvent.click(screen.getByText('+ Pricing'));
+        await user.click(screen.getByText('+ Pricing'));
         expect(bridge.selectPage).toHaveBeenCalledWith('pg_9');
     });
 
     it('arms What changed + Undo for a header-only turn (no page ids in done)', async () => {
+        const user = userEvent.setup();
         const bridge = makeBridge();
         authFetch.mockImplementation(async (url) => {
             if (String(url).includes('/session/')) return noSession;
@@ -108,7 +111,7 @@ describe('CmsAssistantPane', () => {
 
         render(<CmsAssistantPane siteId={SITE_ID} bridge={bridge} pages={[]} canUndoTurn />);
         fireEvent.change(screen.getByPlaceholderText(/Describe what to build/), { target: { value: 'Add pricing to the menu' } });
-        fireEvent.click(screen.getByText('Send'));
+        await user.click(screen.getByText('Send'));
 
         await waitFor(() => expect(bridge.endTurn).toHaveBeenCalled());
         expect(bridge.applyExternalDraft).toHaveBeenCalledWith(
@@ -118,11 +121,12 @@ describe('CmsAssistantPane', () => {
         await screen.findByText('What changed');
         expect(screen.getByText('Undo turn')).toBeInTheDocument();
         // The site chip focuses the header entry
-        fireEvent.click(screen.getByText(/Header menu/));
+        await user.click(screen.getByText(/Header menu/));
         expect(bridge.selectPage).toHaveBeenCalledWith('__header__');
     });
 
     it('arms What changed + Undo for a design-only turn with a chip pointing at the Design entry', async () => {
+        const user = userEvent.setup();
         const bridge = makeBridge();
         authFetch.mockImplementation(async (url) => {
             if (String(url).includes('/session/')) return noSession;
@@ -136,7 +140,7 @@ describe('CmsAssistantPane', () => {
 
         render(<CmsAssistantPane siteId={SITE_ID} bridge={bridge} pages={[]} canUndoTurn />);
         fireEvent.change(screen.getByPlaceholderText(/Describe what to build/), { target: { value: 'Make it look like a dark dev tool' } });
-        fireEvent.click(screen.getByText('Send'));
+        await user.click(screen.getByText('Send'));
 
         await waitFor(() => expect(bridge.endTurn).toHaveBeenCalled());
         expect(bridge.applyExternalDraft).toHaveBeenCalledWith(expect.objectContaining({ kind: 'site' }));
@@ -145,11 +149,12 @@ describe('CmsAssistantPane', () => {
         expect(screen.getByText('Undo turn')).toBeInTheDocument();
         expect(screen.queryByText(/Header menu/)).toBeNull();
         // …and the chip focuses the DESIGN entry, not the header one.
-        fireEvent.click(screen.getByText(/Design/));
+        await user.click(screen.getByText(/Design/));
         expect(bridge.selectPage).toHaveBeenCalledWith('__design__');
     });
 
     it('emits one chip per touched surface when a turn rethemes AND rewrites the menu', async () => {
+        const user = userEvent.setup();
         const bridge = makeBridge();
         authFetch.mockImplementation(async (url) => {
             if (String(url).includes('/session/')) return noSession;
@@ -163,17 +168,18 @@ describe('CmsAssistantPane', () => {
 
         render(<CmsAssistantPane siteId={SITE_ID} bridge={bridge} pages={[]} canUndoTurn />);
         fireEvent.change(screen.getByPlaceholderText(/Describe what to build/), { target: { value: 'Retheme and fix the menu' } });
-        fireEvent.click(screen.getByText('Send'));
+        await user.click(screen.getByText('Send'));
 
         await waitFor(() => expect(bridge.endTurn).toHaveBeenCalled());
         await screen.findByText('What changed');
-        fireEvent.click(screen.getByText(/Design/));
+        await user.click(screen.getByText(/Design/));
         expect(bridge.selectPage).toHaveBeenCalledWith('__design__');
-        fireEvent.click(screen.getByText(/Header menu/));
+        await user.click(screen.getByText(/Header menu/));
         expect(bridge.selectPage).toHaveBeenCalledWith('__header__');
     });
 
     it('maps taxonomy error codes to product copy and unlocks via endTurn', async () => {
+        const user = userEvent.setup();
         const bridge = makeBridge();
         authFetch.mockImplementation(async (url) => {
             if (String(url).includes('/session/')) return noSession;
@@ -181,12 +187,12 @@ describe('CmsAssistantPane', () => {
         });
         render(<CmsAssistantPane siteId={SITE_ID} bridge={bridge} pages={[]} />);
         fireEvent.change(screen.getByPlaceholderText(/Describe what to build/), { target: { value: 'go' } });
-        fireEvent.click(screen.getByText('Send'));
+        await user.click(screen.getByText('Send'));
         await screen.findByText(/hit its per-turn limit/);
         expect(bridge.endTurn).toHaveBeenCalledWith({ failed: true });
         // Retry re-sends the same turn
         authFetch.mockClear();
-        fireEvent.click(screen.getByText('Try again'));
+        await user.click(screen.getByText('Try again'));
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
     });
 
@@ -207,10 +213,11 @@ describe('CmsAssistantPane', () => {
     });
 
     it('quick actions prefill the composer without sending', async () => {
+        const user = userEvent.setup();
         const bridge = makeBridge();
         authFetch.mockResolvedValue(noSession);
         render(<CmsAssistantPane siteId={SITE_ID} bridge={bridge} pages={[]} />);
-        fireEvent.click(await screen.findByText(/pricing page with a hero/));
+        await user.click(await screen.findByText(/pricing page with a hero/));
         expect(screen.getByPlaceholderText(/Describe what to build/).value).toMatch(/pricing page/);
         expect(bridge.beginTurn).not.toHaveBeenCalled();
     });

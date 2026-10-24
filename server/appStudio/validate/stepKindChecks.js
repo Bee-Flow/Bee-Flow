@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio validator — per-kind rules of a sequence step (approvals, email, generated files, loops, browsing).
  * Split out of actions.js; the refusals are pinned by actions.validateStep.test.js.

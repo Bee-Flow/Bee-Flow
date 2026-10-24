@@ -10,7 +10,8 @@
  * in between has to send the WHOLE list, because the PATCH replaces the
  * column.
  */
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -149,6 +150,7 @@ describe('MeetingDetail — "Opnieuw" keeps what the person wrote', () => {
      * destination, and the AI's item is the NEW one.
      */
     it('keeps the user’s action AND its destination, and takes the fresh AI ones', async () => {
+        const user = userEvent.setup();
         H.regenerateSummary.mockResolvedValue({
             summary: 'Fresh',
             actionItems: [
@@ -159,7 +161,7 @@ describe('MeetingDetail — "Opnieuw" keeps what the person wrote', () => {
         render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         expect(texts()).toEqual(['Filter inbouwen', 'Morgen contact opnemen → Backlog']);
 
-        fireEvent.click(screen.getByText('harness-regenerate'));
+        await user.click(screen.getByText('harness-regenerate'));
         await waitFor(() => expect(texts()).toContain('Opnieuw geëxtraheerd'));
         // Survived, with the chip that says where it went.
         expect(texts()).toContain('Morgen contact opnemen → Backlog');
@@ -177,6 +179,7 @@ describe('MeetingDetail — "Opnieuw" keeps what the person wrote', () => {
      * presses again.
      */
     it('says so when the server reports the artifact pass did not run', async () => {
+        const user = userEvent.setup();
         const { toast } = await import('../../../components/shared/Toast');
         toast.info.mockClear();
         H.regenerateSummary.mockResolvedValue({
@@ -185,7 +188,7 @@ describe('MeetingDetail — "Opnieuw" keeps what the person wrote', () => {
             artifactsRegenerated: false,
         });
         render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
-        fireEvent.click(screen.getByText('harness-regenerate'));
+        await user.click(screen.getByText('harness-regenerate'));
         await waitFor(() => expect(screen.getByTestId('summary').textContent).toBe('Fresh'));
 
         expect(toast.info).toHaveBeenCalled();
@@ -196,21 +199,23 @@ describe('MeetingDetail — "Opnieuw" keeps what the person wrote', () => {
     });
 
     it('stays quiet when the artifact pass DID run', async () => {
+        const user = userEvent.setup();
         const { toast } = await import('../../../components/shared/Toast');
         toast.info.mockClear();
         H.regenerateSummary.mockResolvedValue({
             summary: 'Fresh', actionItems: [AI_ITEM], artifactsRegenerated: true,
         });
         render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
-        fireEvent.click(screen.getByText('harness-regenerate'));
+        await user.click(screen.getByText('harness-regenerate'));
         await waitFor(() => expect(screen.getByTestId('summary').textContent).toBe('Fresh'));
         expect(toast.info).not.toHaveBeenCalled();
     });
 
     it('leaves the list alone when the answer is not a list, rather than emptying the card', async () => {
+        const user = userEvent.setup();
         H.regenerateSummary.mockResolvedValue({ summary: 'Fresh' });
         render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
-        fireEvent.click(screen.getByText('harness-regenerate'));
+        await user.click(screen.getByText('harness-regenerate'));
         // The summary DID land, so this is the state after the answer was
         // applied — not a list that has simply not been touched yet.
         await waitFor(() => expect(screen.getByTestId('summary').textContent).toBe('Fresh'));
@@ -226,8 +231,9 @@ describe('MeetingDetail — writing a destination', () => {
      * nothing on screen to say it happened.
      */
     it('sends the WHOLE list, not just the item that changed', async () => {
+        const user = userEvent.setup();
         render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
-        fireEvent.click(screen.getByText('harness-set-destination'));
+        await user.click(screen.getByText('harness-set-destination'));
         await waitFor(() => expect(H.patchTranscription).toHaveBeenCalled());
 
         const [id, patch] = H.patchTranscription.mock.calls[0];
@@ -246,6 +252,7 @@ describe('MeetingDetail — writing a destination', () => {
      * whoever is mid-edit.
      */
     it('adopts the server’s cleaned list over its own optimistic copy', async () => {
+        const user = userEvent.setup();
         H.patchTranscription.mockResolvedValue({
             success: true,
             actionItems: [
@@ -254,23 +261,25 @@ describe('MeetingDetail — writing a destination', () => {
             ],
         });
         render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
-        fireEvent.click(screen.getByText('harness-set-destination'));
+        await user.click(screen.getByText('harness-set-destination'));
         await waitFor(() => expect(texts()).toContain('Morgen contact opnemen → Weging (server)'));
     });
 
     it('keeps the rail’s open-action count in step with a checkbox', async () => {
+        const user = userEvent.setup();
         const onChanged = vi.fn();
         render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" onChanged={onChanged} />);
-        fireEvent.click(screen.getByText('harness-toggle'));
+        await user.click(screen.getByText('harness-toggle'));
         await waitFor(() => expect(H.patchTranscription).toHaveBeenCalled());
         expect(onChanged).toHaveBeenCalledWith('m-1', { actionsTotal: 2, actionsOpen: 1 });
     });
 
     it('says so when the note could not be saved after the automation already ran', async () => {
+        const user = userEvent.setup();
         const { toast } = await import('../../../components/shared/Toast');
         H.patchTranscription.mockRejectedValue(new Error('offline'));
         render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
-        fireEvent.click(screen.getByText('harness-set-destination'));
+        await user.click(screen.getByText('harness-set-destination'));
         await waitFor(() => expect(toast.error).toHaveBeenCalled());
         expect(String(toast.error.mock.calls.at(-1)[0])).toMatch(/could not be updated/i);
         expect(H.refresh).toHaveBeenCalled();
@@ -286,24 +295,26 @@ describe('MeetingDetail — writing a destination', () => {
 
 describe('MeetingDetail — de sjabloonstempel volgt de nieuwe tekst', () => {
     it('neemt de stempel van het antwoord over', async () => {
+        const user = userEvent.setup();
         H.state.meeting = { ...note([AI_ITEM]), summaryTemplateId: 'builtin:general', summaryTemplateVersion: null };
         H.regenerateSummary.mockResolvedValue({
             summary: 'Fresh', actionItems: [AI_ITEM],
             summaryTemplateId: 'tpl-9', summaryTemplateVersion: 4,
         });
         render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
-        fireEvent.click(screen.getByText('harness-regenerate'));
+        await user.click(screen.getByText('harness-regenerate'));
         await waitFor(() => expect(screen.getByTestId('stamp').textContent).toBe('tpl-9|4'));
     });
 
     it('WIST de stempel als het antwoord er geen draagt (eenmalige prompt)', async () => {
+        const user = userEvent.setup();
         // Leaving the previous template in place would stick a template name on text that
         // template never wrote.
         H.state.meeting = { ...note([AI_ITEM]), summaryTemplateId: 'tpl-9', summaryTemplateVersion: 4 };
         H.regenerateSummary.mockResolvedValue({ summary: 'Fresh', actionItems: [AI_ITEM], summaryTemplateId: null, summaryTemplateVersion: null });
         render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         expect(screen.getByTestId('stamp').textContent).toBe('tpl-9|4');
-        fireEvent.click(screen.getByText('harness-regenerate'));
+        await user.click(screen.getByText('harness-regenerate'));
         await waitFor(() => expect(screen.getByTestId('summary').textContent).toBe('Fresh'));
         expect(screen.getByTestId('stamp').textContent).toBe('null|null');
     });
@@ -320,6 +331,7 @@ describe('MeetingDetail — de sjabloonstempel volgt de nieuwe tekst', () => {
 
 describe('MeetingDetail — bewaarde actiepunten worden benoemd', () => {
     it('zegt hoeveel punten bewaard zijn die de nieuwe pass niet meer opleverde', async () => {
+        const user = userEvent.setup();
         const { toast } = await import('../../../components/shared/Toast');
         toast.info.mockClear();
         H.regenerateSummary.mockResolvedValue({
@@ -331,7 +343,7 @@ describe('MeetingDetail — bewaarde actiepunten worden benoemd', () => {
             artifactsRegenerated: true,
         });
         render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
-        fireEvent.click(screen.getByText('harness-regenerate'));
+        await user.click(screen.getByText('harness-regenerate'));
         await waitFor(() => expect(screen.getByTestId('summary').textContent).toBe('Fresh'));
 
         expect(toast.info).toHaveBeenCalled();
@@ -347,6 +359,7 @@ describe('MeetingDetail — bewaarde actiepunten worden benoemd', () => {
     });
 
     it('...en telt ze wél zodra het er meer dan een zijn', async () => {
+        const user = userEvent.setup();
         const { toast } = await import('../../../components/shared/Toast');
         toast.info.mockClear();
         H.regenerateSummary.mockResolvedValue({
@@ -359,7 +372,7 @@ describe('MeetingDetail — bewaarde actiepunten worden benoemd', () => {
             artifactsRegenerated: true,
         });
         render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
-        fireEvent.click(screen.getByText('harness-regenerate'));
+        await user.click(screen.getByText('harness-regenerate'));
         await waitFor(() => expect(screen.getByTestId('summary').textContent).toBe('Fresh'));
 
         const said = String(toast.info.mock.calls.at(-1)[0]);
@@ -370,13 +383,14 @@ describe('MeetingDetail — bewaarde actiepunten worden benoemd', () => {
     });
 
     it('zwijgt wanneer elk punt gewoon herkend werd', async () => {
+        const user = userEvent.setup();
         const { toast } = await import('../../../components/shared/Toast');
         toast.info.mockClear();
         H.regenerateSummary.mockResolvedValue({
             summary: 'Fresh', actionItems: [AI_ITEM], artifactsRegenerated: true,
         });
         render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
-        fireEvent.click(screen.getByText('harness-regenerate'));
+        await user.click(screen.getByText('harness-regenerate'));
         await waitFor(() => expect(screen.getByTestId('summary').textContent).toBe('Fresh'));
         expect(toast.info).not.toHaveBeenCalled();
     });

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * onedrive_list_recent: files modified since a date, from the delta feed with
  * a timestamp token, falling back to the drive's recent view. The Graph GET

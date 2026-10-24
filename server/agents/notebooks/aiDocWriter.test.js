@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The notebook chat's AI document writes (agents/notebooks/aiDocWriter.js).
  *

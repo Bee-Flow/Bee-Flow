@@ -392,44 +392,49 @@ describe('the second factor', () => {
     });
 
     it('posts only the code to /auth/mfa/verify-login — the session carries the rest', async () => {
+        const user = userEvent.setup();
         route('/auth/mfa/verify-login', () => ok({ success: true, user: { id: 'u1' } }));
         await arriveAtMfa();
         fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '123456' } });
-        fireEvent.click(screen.getByTestId('mfa-verify-button'));
+        await user.click(screen.getByTestId('mfa-verify-button'));
         await waitFor(() => expect(callTo('/auth/mfa/verify-login')).toBeTruthy());
         expect(bodyOf(callTo('/auth/mfa/verify-login'))).toEqual({ code: '123456' });
     });
 
     it('signs the user in with the payload the verify step returned', async () => {
+        const user = userEvent.setup();
         route('/auth/mfa/verify-login', () => ok({ success: true, user: { id: 'u1' }, recoveryKey: 'RK-9' }));
         const { onLogin } = await arriveAtMfa();
         fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '123456' } });
-        fireEvent.click(screen.getByTestId('mfa-verify-button'));
+        await user.click(screen.getByTestId('mfa-verify-button'));
         await waitFor(() => expect(onLogin).toHaveBeenCalledWith({ id: 'u1' }, 'RK-9'));
     });
 
     it('keeps you on the code prompt and shows why a wrong code was refused', async () => {
+        const user = userEvent.setup();
         route('/auth/mfa/verify-login', () => fail(401, { error: 'Invalid or expired code' }));
         await arriveAtMfa();
         fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '000000' } });
-        fireEvent.click(screen.getByTestId('mfa-verify-button'));
+        await user.click(screen.getByTestId('mfa-verify-button'));
         expect(await screen.findByText('Invalid or expired code')).toBeInTheDocument();
         expect(screen.getByTestId('mfa-code-input')).toBeInTheDocument();
     });
 
     it('falls back to its own wording when the refusal carries no text', async () => {
+        const user = userEvent.setup();
         route('/auth/mfa/verify-login', () => fail(401, {}));
         await arriveAtMfa();
         fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '000000' } });
-        fireEvent.click(screen.getByTestId('mfa-verify-button'));
+        await user.click(screen.getByTestId('mfa-verify-button'));
         expect(await screen.findByText('Invalid code. Please try again.')).toBeInTheDocument();
     });
 
     it('reports a connection error when the verify request never lands', async () => {
+        const user = userEvent.setup();
         route('/auth/mfa/verify-login', () => Promise.reject(new Error('offline')));
         await arriveAtMfa();
         fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '123456' } });
-        fireEvent.click(screen.getByTestId('mfa-verify-button'));
+        await user.click(screen.getByTestId('mfa-verify-button'));
         expect(await screen.findByText('login.connection_error')).toBeInTheDocument();
     });
 
@@ -438,8 +443,9 @@ describe('the second factor', () => {
     // the DEK can be derived after the code). Nothing tells the server the user
     // walked away. Hoort in stage L16 te veranderen.
     it('walks back to the credentials form, keeping the e-mail and dropping the password', async () => {
+        const user = userEvent.setup();
         await arriveAtMfa();
-        fireEvent.click(screen.getByText('Back'));
+        await user.click(screen.getByText('Back'));
         await screen.findByTestId('username');
         expect(screen.getByTestId('username')).toHaveValue('ada@example.com');
         expect(screen.getByTestId('password')).toHaveValue('');

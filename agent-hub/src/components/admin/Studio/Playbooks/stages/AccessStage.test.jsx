@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AccessStage from './AccessStage';
@@ -94,9 +95,10 @@ describe('AccessStage — proposed, then approved', () => {
     });
 
     it('setting it by hand needs the same Approve', async () => {
+        const user = userEvent.setup();
         renderStage();
         expect(screen.getByTestId('playbook-access-approve').disabled).toBe(true);
-        fireEvent.click(screen.getByTestId('playbook-access-audience-private'));
+        await user.click(screen.getByTestId('playbook-access-audience-private'));
         expect(screen.getByTestId('playbook-access-approve').disabled).toBe(false);
         expect(studioAppsApi.publish).not.toHaveBeenCalled();
         await act(async () => { fireEvent.click(screen.getByTestId('playbook-access-approve')); });
@@ -104,12 +106,13 @@ describe('AccessStage — proposed, then approved', () => {
     });
 
     it('Discard drops the proposal without touching anything', async () => {
+        const user = userEvent.setup();
         playbooksApi.accessPlan.mockResolvedValue({ plan: { audience: { kind: 'organisation' }, roles: [], byGroup: {}, members: [], unresolved: [], note: '', empty: false } });
         renderStage();
         fireEvent.change(screen.getByTestId('playbook-access-ask'), { target: { value: 'everyone' } });
         await act(async () => { fireEvent.click(screen.getByTestId('playbook-access-ask-send')); });
         await waitFor(() => expect(screen.getByTestId('playbook-access-approve').disabled).toBe(false));
-        fireEvent.click(screen.getByTestId('playbook-access-discard'));
+        await user.click(screen.getByTestId('playbook-access-discard'));
         expect(screen.getByTestId('playbook-access-approve').disabled).toBe(true);
         expect(studioAppsApi.publish).not.toHaveBeenCalled();
     });
@@ -161,14 +164,15 @@ describe('AccessStage — proposed, then approved', () => {
     });
 
     it('the Nextcloud menu is off until it is ticked, and only offered once the app is shared', async () => {
+        const user = userEvent.setup();
         renderStage();
         await waitFor(() => expect(studioAppsApi.getApp).toHaveBeenCalled());
         // Nothing chosen, and "Only me": no checkbox to tick.
         expect(screen.queryByTestId('playbook-access-nc-menu')).toBeNull();
-        fireEvent.click(screen.getByTestId('playbook-access-audience-private'));
+        await user.click(screen.getByTestId('playbook-access-audience-private'));
         expect(screen.queryByTestId('playbook-access-nc-menu')).toBeNull();
 
-        fireEvent.click(screen.getByTestId('playbook-access-audience-organisation'));
+        await user.click(screen.getByTestId('playbook-access-audience-organisation'));
         const box = screen.getByTestId('playbook-access-nc-menu');
         expect(box.checked).toBe(false);          // off by default (owner, 2026-09-16)
 
@@ -179,11 +183,12 @@ describe('AccessStage — proposed, then approved', () => {
     });
 
     it('ticking it publishes first and then asks Nextcloud, and says what Nextcloud answered', async () => {
+        const user = userEvent.setup();
         const dispatch = vi.fn();
         render(<AccessStage playbook={PB} phase={PHASE} dispatch={dispatch} t={t} />);
         await waitFor(() => expect(studioAppsApi.getApp).toHaveBeenCalled());
-        fireEvent.click(screen.getByTestId('playbook-access-audience-organisation'));
-        fireEvent.click(screen.getByTestId('playbook-access-nc-menu'));
+        await user.click(screen.getByTestId('playbook-access-audience-organisation'));
+        await user.click(screen.getByTestId('playbook-access-nc-menu'));
         await act(async () => { fireEvent.click(screen.getByTestId('playbook-access-approve')); });
         expect(studioAppsApi.publish).toHaveBeenCalledWith('app_1', { isPublished: true, sharedGroups: [] });
         expect(studioAppsApi.setNextcloudMenu).toHaveBeenCalledWith('app_1', true);
@@ -194,13 +199,14 @@ describe('AccessStage — proposed, then approved', () => {
     });
 
     it('a publish the validator refuses says WHY, not just "audience"', async () => {
+        const user = userEvent.setup();
         const err = new Error('invalid');
         err.status = 422;
         err.body = { error: 'invalid', errors: ['Screen "Dashboard" has no data source', { message: 'Action "save" points at a deleted step' }] };
         studioAppsApi.publish.mockRejectedValueOnce(err);
         renderStage();
         await waitFor(() => expect(studioAppsApi.getApp).toHaveBeenCalled());
-        fireEvent.click(screen.getByTestId('playbook-access-audience-organisation'));
+        await user.click(screen.getByTestId('playbook-access-audience-organisation'));
         await act(async () => { fireEvent.click(screen.getByTestId('playbook-access-approve')); });
         const list = await screen.findByTestId('playbook-access-blockers');
         expect(list.textContent).toContain('Screen "Dashboard" has no data source');
@@ -224,20 +230,22 @@ describe('AccessStage — a screen you can read', () => {
         expect(screen.getByTestId('playbook-access-publish-state').textContent).toMatch(/private draft/);
     });
 
-    it('the sentence box shows what it can take, so it is not a blank page', () => {
+    it('the sentence box shows what it can take, so it is not a blank page', async () => {
+        const user = userEvent.setup();
         renderStage();
         const examples = screen.getAllByText(/Finance may look at it|A role per supplier|Keep it to me/);
         expect(examples.length).toBeGreaterThan(0);
-        fireEvent.click(screen.getByText('A role per supplier — each one sees only their own rows.'));
+        await user.click(screen.getByText('A role per supplier — each one sees only their own rows.'));
         expect(screen.getByTestId('playbook-access-ask').value).toBe('A role per supplier — each one sees only their own rows.');
     });
 
-    it('a greyed-out Approve says why', () => {
+    it('a greyed-out Approve says why', async () => {
+        const user = userEvent.setup();
         renderStage();
         expect(screen.getByTestId('playbook-access-approve').disabled).toBe(true);
         expect(screen.getByTestId('playbook-access-why-disabled').textContent).toMatch(/Choose who can open the app/);
         // Groups chosen but none ticked is its own dead end, and says so.
-        fireEvent.click(screen.getByTestId('playbook-access-audience-groups'));
+        await user.click(screen.getByTestId('playbook-access-audience-groups'));
         expect(screen.getByTestId('playbook-access-why-disabled').textContent).toMatch(/Pick at least one group/);
         expect(screen.getByTestId('playbook-access-approve').disabled).toBe(true);
     });
@@ -255,6 +263,7 @@ describe('AccessStage — a screen you can read', () => {
     });
 
     it('group roles follow the audience — not every group in the organisation', async () => {
+        const user = userEvent.setup();
         playbooksApi.accessPlan.mockResolvedValue({
             plan: { audience: { kind: 'private' }, roles: [{ key: 'approver', label: 'Approver' }], byGroup: {}, members: [], unresolved: [], note: '', empty: false },
         });
@@ -263,7 +272,7 @@ describe('AccessStage — a screen you can read', () => {
         await act(async () => { fireEvent.click(screen.getByTestId('playbook-access-ask-send')); });
         // Private: no group can open it, so there is no group role to set.
         expect(screen.queryByTestId('playbook-access-group-roles')).toBeNull();
-        fireEvent.click(screen.getByTestId('playbook-access-audience-organisation'));
+        await user.click(screen.getByTestId('playbook-access-audience-organisation'));
         expect(screen.getByTestId('playbook-access-group-roles').textContent).toContain('Finance');
     });
 });

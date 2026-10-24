@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * httpAuth host binding (D18): a step whose `auth.allowedHosts` is a non-empty
  * array only receives the credential for a request to a listed hostname. The

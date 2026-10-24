@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Same-batch dedup for side-effecting tool calls.
  *

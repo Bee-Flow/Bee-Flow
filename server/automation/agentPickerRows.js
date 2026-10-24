@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The agent PICKER of the AI step: which agents are in the list, and what is shown beside one that cannot
  * be chosen? (R2, part C)

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The raw-id sweep, and the one repair it allows.
  *

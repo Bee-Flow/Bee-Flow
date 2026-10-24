@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Minimal cron parser & "next run" computer for automation schedules.
  *

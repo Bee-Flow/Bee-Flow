@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Configuration surface for the AI auto-responder: the configStore keys
  * (agent id, KB ids, v2 flag, auto-resolve threshold), the Bee Flow Support

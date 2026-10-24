@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The stage engine's pure rules (design 6.2, 6.3, 6.6, D19): the deployment
  * status machine, who may receive which release, when a deployment needs the
@@ -88,7 +89,7 @@ const OK = Object.freeze({ ok: true, code: null });
  *   Both checks run only when the caller passes the ids.
  * - `settings` and `remove` carry no release.
  *
- * @param {{ stage: string, kind?: string, release?: {id?: string, channel?: string, gate?: object}|null,
+ * @param {{ stage: string, kind?: string, release?: {id?: string, channel?: string, gate?: {blocked?: boolean}}|null,
  *   testedInUat?: boolean, succeededInPrd?: boolean, currentReleaseId?: string|null,
  *   actorId?: string|null, solutionOwnerId?: string|null, runAsUserId?: string|null }} input
  * @returns {{ ok: boolean, code: string|null }}

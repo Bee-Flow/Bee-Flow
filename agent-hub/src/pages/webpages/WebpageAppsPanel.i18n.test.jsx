@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
@@ -91,8 +92,9 @@ describe('WebpageAppsPanel — i18n', () => {
     });
 
     it('BIJT — een niet-verbonden app in de keuzelijst is één zin met {name}, geen naam + Engels staartje', async () => {
+        const user = userEvent.setup();
         render(<WebpageAppsPanel webpageId="wp1" />);
-        fireEvent.click(await screen.findByRole('button', { name: /webpages\.apps\.add_app/ }));
+        await user.click(await screen.findByRole('button', { name: /webpages\.apps\.add_app/ }));
 
         const select = await screen.findByLabelText('⟦webpages.apps.field_app⟧');
         const option = [...select.options].find(o => o.value === 'youtrack');
@@ -104,6 +106,7 @@ describe('WebpageAppsPanel — i18n', () => {
     });
 
     it('BIJT — ONBEKEND is niet "niet verbonden": een app zonder status blijft kiesbaar', async () => {
+        const user = userEvent.setup();
         // available === null is the state for which this panel itself has a banner
         // ("Couldn't verify your connected apps") and where the pill says "Status
         // unknown". Switching it off and writing "not connected" beside it tells the
@@ -113,7 +116,7 @@ describe('WebpageAppsPanel — i18n', () => {
             apps: [{ id: 'drive', label: 'Drive', available: null, actions: [{ name: 'drive_list', label: 'drive list' }] }],
         });
         render(<WebpageAppsPanel webpageId="wp1" />);
-        fireEvent.click(await screen.findByRole('button', { name: /webpages\.apps\.add_app/ }));
+        await user.click(await screen.findByRole('button', { name: /webpages\.apps\.add_app/ }));
 
         const select = await screen.findByLabelText('⟦webpages.apps.field_app⟧');
         const option = [...select.options].find(o => o.value === 'drive');

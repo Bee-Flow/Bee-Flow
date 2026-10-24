@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A version listing as the history list may read it: with a maker, with
  * the published row designated, and with the honest statement of WHAT a snapshot of this

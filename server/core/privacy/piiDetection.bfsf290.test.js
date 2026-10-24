@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * BFSF-290 regression: the Dutch message from the ticket (its shape, with
  * fictional values) must leave the box with every PII value replaced by a

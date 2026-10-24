@@ -271,14 +271,8 @@ async function putAccess(req, res) {
     if (!(isOrgAdmin || orgIds === null || isOwner)) {
         return res.status(403).json({ error: 'Only an organisation admin can change inbox access.' });
     }
-    let groups;
-    try {
-        groups = await validateSharedGroupsForOrg(inbox.organization_id, req.body.sharedGroups);
-    } catch (err) {
-        // Its refusals carry a status; a database failure does not and is a 500.
-        if (err?.status) return res.status(err.status).json({ error: err.message });
-        throw err;
-    }
+    // Its refusals carry a status; a database failure does not and is a 500.
+    const groups = await validateSharedGroupsForOrg(inbox.organization_id, req.body.sharedGroups);
     const updated = await supportInboxStore.setSharedGroups(req.params.id, groups || [], inbox.organization_id);
     audit.emit(req, { organizationId: inbox.organization_id, inboxId: inbox.id, action: 'inbox_access_changed', payload: { sharedGroups: groups || [] } });
     const resolvedMembers = await _resolveAccessMembers(updated, updated.shared_groups || []);

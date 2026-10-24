@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Who sees the page" — the four rows, and what belongs to the fourth.
  *

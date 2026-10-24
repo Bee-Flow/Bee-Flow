@@ -1,4 +1,5 @@
-import { render as rtlRender, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -100,7 +101,8 @@ describe('StudioMap', () => {
             expect(screen.getByTestId('studio-map-count-app').textContent).toBe('0');
         });
 
-        it('toont voor een sleutel die het antwoord niet had GEEN nul', () => {
+        it('toont voor een sleutel die het antwoord niet had GEEN nul', async () => {
+            const user = userEvent.setup();
             render(<StudioMap counts={{ automations: 9 }} />);
             // 'agents' was not in the answer: not allowed to see and failed are
             // indistinguishable, and both are not zero.
@@ -112,24 +114,26 @@ describe('StudioMap', () => {
             // spoken by every screen reader, and the dash is the only difference from
             // “no answer yet”.
             expect(dash.textContent).toMatch(/not the same as none/i);
-            fireEvent.click(screen.getByTestId('studio-map-tile-agent'));
+            await user.click(screen.getByTestId('studio-map-tile-agent'));
             expect(screen.getByTestId('studio-map-detail-unknown').textContent).toMatch(/not the same as none/i);
         });
 
-        it('beweert niets zolang er nog geen antwoord is', () => {
+        it('beweert niets zolang er nog geen antwoord is', async () => {
+            const user = userEvent.setup();
             authFetchMock.mockReturnValue(new Promise(() => {}));
             render(<StudioMap />);
             expect(screen.queryByTestId('studio-map-count-automation')).toBeNull();
             expect(screen.queryByTestId('studio-map-count-automation-unknown')).toBeNull();
-            fireEvent.click(screen.getByTestId('studio-map-tile-automation'));
+            await user.click(screen.getByTestId('studio-map-tile-automation'));
             expect(screen.getByTestId('studio-map-detail-pending')).toBeTruthy();
         });
 
-        it('telt de goedkeuring niet, en zegt waarom', () => {
+        it('telt de goedkeuring niet, en zegt waarom', async () => {
+            const user = userEvent.setup();
             render(<StudioMap counts={{ automations: 9 }} />);
             expect(screen.queryByTestId('studio-map-count-approval')).toBeNull();
             expect(screen.queryByTestId('studio-map-count-approval-unknown')).toBeNull();
-            fireEvent.click(screen.getByTestId('studio-map-tile-approval'));
+            await user.click(screen.getByTestId('studio-map-tile-approval'));
             expect(screen.getByTestId('studio-map-detail-not-counted')).toBeTruthy();
         });
 
@@ -142,6 +146,7 @@ describe('StudioMap', () => {
         });
 
         it('laat een mislukte telling geen getallen verzinnen, en belooft er ook geen', async () => {
+            const user = userEvent.setup();
             authFetchMock.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
             render(<StudioMap />);
             // A 500 is not “wait a little longer”: this card does not poll, so that number
@@ -149,16 +154,17 @@ describe('StudioMap', () => {
             // “The number is not in yet” would be a promise that is never kept.
             await waitFor(() => expect(screen.getByTestId('studio-map-count-kb-unknown')).toBeTruthy());
             expect(screen.queryByTestId('studio-map-count-kb')).toBeNull();
-            fireEvent.click(screen.getByTestId('studio-map-tile-kb'));
+            await user.click(screen.getByTestId('studio-map-tile-kb'));
             expect(screen.queryByTestId('studio-map-detail-pending')).toBeNull();
             expect(screen.getByTestId('studio-map-detail-unknown').textContent).toMatch(/could not be read/i);
         });
 
-        it('een ouder die zelf niet kon lezen geeft dat door', () => {
+        it('een ouder die zelf niet kon lezen geeft dat door', async () => {
+            const user = userEvent.setup();
             render(<StudioMap counts={null} countsFailed />);
             expect(authFetchMock).not.toHaveBeenCalled();
             expect(screen.getByTestId('studio-map-count-kb-unknown')).toBeTruthy();
-            fireEvent.click(screen.getByTestId('studio-map-tile-kb'));
+            await user.click(screen.getByTestId('studio-map-tile-kb'));
             expect(screen.queryByTestId('studio-map-detail-pending')).toBeNull();
         });
 
@@ -188,21 +194,23 @@ describe('StudioMap', () => {
     });
 
     describe('de scope zegt alleen waar het getal over gaat', () => {
-        it('noemt de gekozen scope onder het getal', () => {
+        it('noemt de gekozen scope onder het getal', async () => {
+            const user = userEvent.setup();
             render(<StudioMap counts={{ agents: 9 }} scope="org" />);
-            fireEvent.click(screen.getByTestId('studio-map-tile-agent'));
+            await user.click(screen.getByTestId('studio-map-tile-agent'));
             const line = screen.getByTestId('studio-map-detail-count').textContent;
             expect(line).toContain('9');
             expect(line).toMatch(/everything in the organisation/i);
         });
 
-        it('zegt NIET "de hele organisatie" over een teller die de server per gebruiker telt', () => {
+        it('zegt NIET "de hele organisatie" over een teller die de server per gebruiker telt', async () => {
+            const user = userEvent.setup();
             // GET /api/studio/counts has no scope parameter, and counts `automations` with
             // `WHERE user_id = $1`. A strip that passes 'org' thus does not change that
             // number — only the sentence under it, and that would then turn nine of one's
             // own automations into an organisation fact.
             render(<StudioMap counts={{ automations: 9 }} scope="org" />);
-            fireEvent.click(screen.getByTestId('studio-map-tile-automation'));
+            await user.click(screen.getByTestId('studio-map-tile-automation'));
             const line = screen.getByTestId('studio-map-detail-count').textContent;
             expect(line).toContain('9');
             expect(line).toMatch(/what you can see/i);
@@ -226,9 +234,10 @@ describe('StudioMap', () => {
     });
 
     describe('klikken op een tegel', () => {
-        it('licht precies de eigen randen op en dooft de rest', () => {
+        it('licht precies de eigen randen op en dooft de rest', async () => {
+            const user = userEvent.setup();
             render(<StudioMap counts={null} />);
-            fireEvent.click(screen.getByTestId('studio-map-tile-app'));
+            await user.click(screen.getByTestId('studio-map-tile-app'));
             expect(screen.getByTestId('studio-map-tile-app').getAttribute('aria-pressed')).toBe('true');
             const own = new Set(edgesOf('app').map((e) => e.id));
             expect(own.size).toBe(3);
@@ -239,9 +248,10 @@ describe('StudioMap', () => {
             }
         });
 
-        it('laat de dozen aan de andere kant van die randen wél staan', () => {
+        it('laat de dozen aan de andere kant van die randen wél staan', async () => {
+            const user = userEvent.setup();
             render(<StudioMap counts={null} />);
-            fireEvent.click(screen.getByTestId('studio-map-tile-app'));
+            await user.click(screen.getByTestId('studio-map-tile-app'));
             expect(screen.getByTestId('studio-map-tile-automation').getAttribute('data-dimmed')).toBeNull();
             expect(screen.getByTestId('studio-map-tile-datatable').getAttribute('data-dimmed')).toBeNull();
             expect(screen.getByTestId('studio-map-tile-approval').getAttribute('data-dimmed')).toBeNull();
@@ -249,25 +259,28 @@ describe('StudioMap', () => {
             expect(screen.getByTestId('studio-map-tile-skill').getAttribute('data-dimmed')).toBe('true');
         });
 
-        it('zegt van een oplossing eerlijk dat er niets aan hangt', () => {
+        it('zegt van een oplossing eerlijk dat er niets aan hangt', async () => {
+            const user = userEvent.setup();
             render(<StudioMap counts={{ solutions: 2 }} />);
-            fireEvent.click(screen.getByTestId('studio-map-tile-solution'));
+            await user.click(screen.getByTestId('studio-map-tile-solution'));
             expect(screen.getByTestId('studio-map-detail').textContent).toMatch(/the box the others travel in/i);
         });
 
-        it('telt de verbindingen van de gekozen doos', () => {
+        it('telt de verbindingen van de gekozen doos', async () => {
+            const user = userEvent.setup();
             render(<StudioMap counts={null} />);
-            fireEvent.click(screen.getByTestId('studio-map-tile-automation'));
+            await user.click(screen.getByTestId('studio-map-tile-automation'));
             expect(screen.getByTestId('studio-map-detail').textContent)
                 .toContain(`${edgesOf('automation').length} connections`);
         });
 
-        it('klapt de selectie weer dicht bij een tweede klik', () => {
+        it('klapt de selectie weer dicht bij een tweede klik', async () => {
+            const user = userEvent.setup();
             render(<StudioMap counts={null} />);
             const tile = screen.getByTestId('studio-map-tile-kb');
-            fireEvent.click(tile);
+            await user.click(tile);
             expect(tile.getAttribute('aria-pressed')).toBe('true');
-            fireEvent.click(tile);
+            await user.click(tile);
             expect(tile.getAttribute('aria-pressed')).toBe('false');
             expect(screen.getByTestId('studio-map-detail').textContent).toMatch(/Pick a building block/i);
         });

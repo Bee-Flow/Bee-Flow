@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A table that MIRRORS an external source: its settings, its relations, its
  * linker, its refresh — and the write-through every row write goes through

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Reprocess route: POST /api/transcriptions/:id/reprocess (async-202).
  *
@@ -47,6 +48,7 @@ let localResult;
 let pyannoteResult;
 
 stub('../../telemetry/log', {
+    ...require('../../telemetry/logSafe'),
     info() {}, debug() {}, error() {}, warn: (...a) => { calls.warn.push(a.join(' ')); },
 });
 stub('../../stores/transcriptionStore', {

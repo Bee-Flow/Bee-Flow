@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Charts on a spreadsheet, as the chat's document_write adds them.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App-event subscription sync — one automation_event_subscriptions row per
  * app_event trigger (the primary `definition.trigger` AND every app_event

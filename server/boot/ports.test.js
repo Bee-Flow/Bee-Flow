@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * boot/ports — the hooks a lower layer declares are filled in at boot.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio catalog — the record lists: the simple table, the list and the
  * approval inbox.

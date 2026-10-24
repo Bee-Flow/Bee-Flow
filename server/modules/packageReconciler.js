@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Package loader: boot, reconcile, retention GC and the health snapshot.
  *
@@ -41,9 +42,9 @@ async function _selfHealFromHub(pkg) {
     if (!pkg.packageSha256) throw new Error('selfheal_unpinned');
     if ((pkg.source || 'hub') === 'sideload') throw new Error('selfheal_sideloaded');
     if (!(await hubClient().isConnected())) throw new Error('selfheal_not_connected');
-    const staged = await verifyAndStage(pkg.moduleId, pkg.version, {
+    const staged = await verifyAndStage(pkg.moduleId, pkg.version, /** @type {any} */ ({
         download: true, expectedSha256: pkg.packageSha256, redownloadSha: pkg.packageSha256,
-    });
+    }));
     await activate(pkg.moduleId, pkg.version, {
         actorId: pkg.installedBy, manifest: staged.manifest, kid: staged.kid,
         sha256: staged.sha256, persist: false,

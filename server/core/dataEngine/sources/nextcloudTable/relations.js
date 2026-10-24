@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The relation indexes a refresh builds (../mirror/relations explains the
  * 'match' and 'nc' kinds, the owner-grade read and first-wins ambiguity).

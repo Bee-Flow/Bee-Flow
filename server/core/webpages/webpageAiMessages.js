@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage AI message builder — shared by the authenticated preview bridge
  * (server/routes/webpagesPreview.js) and the anonymous public-share bridge

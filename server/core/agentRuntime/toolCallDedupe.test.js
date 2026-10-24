@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for same-batch side-effect tool-call dedup.
  *

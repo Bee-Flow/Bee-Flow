@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Build core/http/geo/iataAirports.json from OurAirports (public domain).
  *

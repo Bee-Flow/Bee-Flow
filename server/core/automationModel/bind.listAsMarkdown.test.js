@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A form page's text is the one interpolation output a PERSON reads.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What ./execDatatable.js and ./datatableWrites.js share: the limits of one
  * datatable step, the source-mirror lookups (core/dataEngine/sources), and the
@@ -41,7 +42,7 @@ function mirrorCtx({ table, scope, scopeKey, tableMeta, grade, ctx }) {
 
 function fail(message, errorClass) {
     const e = new Error(message);
-    e.errorClass = errorClass;
+    Object.assign(e, { errorClass });
     return e;
 }
 

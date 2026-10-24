@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Response headers applied to every request before any router sees it: the
  * helmet baseline, the Permissions-Policy the clipboard paste depends on, the
@@ -8,7 +9,7 @@
 
 function applySecurityHeaders(app) {
     // ── Security headers (helmet) ─────────────────────────────────────────────────
-    const helmet = require('helmet');
+    const helmet = /** @type {any} */ (require('helmet'));
     app.use(helmet({
         hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
         contentSecurityPolicy: false,        // Handled by Nginx

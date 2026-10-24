@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The middle column of "Data & connections": what hangs on this page?
  *
@@ -43,19 +44,19 @@ const webpageBindings = require('./webpageBindings');
 const WRITING_MODES = new Set(['write', 'readwrite']);
 
 /**
- * Does the page's own code mention this table?
+ * Noemt de eigen code van de pagina deze tabel?
  *
- * A rough text search on the table id in ALL own text files of the
- * page — the three slots and the extras, because a react-mui page has its
- * whole app under `src/` and would otherwise have every bound table stamped as "not
- * used". That is precisely what can be known without the
- * parser that W4 builds, and it is
- * honest about its limit: a `<bf-table source="tbl_x">` and a
- * `beeflowTables.query("tbl_x")` are both found, an id that comes from a
- * variable is not. That is why "not found" in the UI is a soft, dotted notice
- * and not an error.
+ * Een grove tekstzoektocht op het tabel-id in ALLE eigen tekstbestanden van de
+ * pagina — de drie slots én de extra's, want een react-mui-pagina heeft haar
+ * hele app onder `src/` staan en zou anders elke gebonden tabel als "niet
+ * gebruikt" gestempeld krijgen. Dat is precies wat er te weten valt zonder de
+ * parser die W4 bouwt, en het is
+ * eerlijk over zijn grens: een `<bf-table source="tbl_x">` en een
+ * `beeflowTables.query("tbl_x")` worden allebei gevonden, een id dat uit een
+ * variabele komt niet. Vandaar dat "niet gevonden" in de UI een zachte,
+ * gestippelde mededeling is en geen fout.
  *
- * @returns {Map<string, boolean>|null} null if the files were not readable
+ * @returns {Promise<Map<string, boolean>|null>} null als de bestanden niet leesbaar waren
  */
 async function scanCodeForTables(userId, webpageId, datatableIds) {
     if (!datatableIds.length) return new Map();

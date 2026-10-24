@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Data Act Art. 30 export coverage: relevance gate, nothing held → n/a, counts
  * unavailable → warn "not provisioned yet", a held kind without a (mounted)

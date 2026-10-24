@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * aiStepNumbers: the numbers in free text and the "is it in the source" test
  * behind the `numbersFrom` check. Synthetic values only.

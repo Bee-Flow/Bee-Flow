@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Cell helpers shared by the table operations: numbers and text the way a
@@ -92,7 +93,7 @@ async function* iterate(rows) {
 }
 
 /** Cooperative scheduling: await this every row; it yields to the event loop every `every` calls. */
-function createTicker({ every = 2000, isCancelled } = {}) {
+function createTicker(/** @type {{every?: number, isCancelled?: Function}} */ { every = 2000, isCancelled } = {}) {
     let count = 0;
     return async function tick() {
         if (++count % every !== 0) return;

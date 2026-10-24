@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * nextcloud deck.card.moved — the from/to stack filter reads the keys the
  * connector actually publishes.

@@ -267,11 +267,7 @@ router.post('/', requirePermission('manage_skills'), validate({ body: CreateSkil
         const { name, description, instructions, workflow, rules, examples, icon, isShared, dynamicActivation, sharedGroups, automationId, enabledIntegrations } = req.body;
 
         let cleanedGroups;
-        try {
-            cleanedGroups = await validateSharedGroupsForOrg(orgId, sharedGroups);
-        } catch (e) {
-            return res.status(e.status || 500).json({ error: e.message });
-        }
+        cleanedGroups = await validateSharedGroupsForOrg(orgId, sharedGroups);
         const skill = await skillStore.createSkill({
             orgId,
             userId: req.session.user.id,
@@ -413,11 +409,7 @@ router.put('/:id', requirePermission('manage_skills'), validate({ body: UpdateSk
         // "leave as-is" — the store preserves the existing value.
         let cleanedGroups;
         if (sharedGroups !== undefined) {
-            try {
-                cleanedGroups = await validateSharedGroupsForOrg(orgId, sharedGroups);
-            } catch (e) {
-                return res.status(e.status || 500).json({ error: e.message });
-            }
+            cleanedGroups = await validateSharedGroupsForOrg(orgId, sharedGroups);
         }
         const updated = await skillStore.updateSkill(req.params.id, req.session.user.id, {
             name, description, instructions, workflow, rules, examples, icon, isShared, dynamicActivation,

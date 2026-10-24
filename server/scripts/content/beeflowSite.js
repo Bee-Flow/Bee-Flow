@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Bee Flow marketing website, as a v2 CMS export bundle.
  *

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import PathField from './PathField';
 import { VariablePickerProvider } from './VariablePickerContext';
@@ -95,13 +96,14 @@ describe('PathField — sample preview and warnings', () => {
 describe('PathField — quick picks', () => {
     beforeEach(() => cleanup());
 
-    it('renders quickPicks and clicking one replaces the value', () => {
+    it('renders quickPicks and clicking one replaces the value', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderField({
             value: '',
             quickPicks: [{ key: 'results', path: 'steps.s1.output.results', sample: [{ a: 1 }] }],
         });
         expect(screen.getByText(/Lists found in previous steps/)).toBeTruthy();
-        fireEvent.click(screen.getByTitle('steps.s1.output.results'));
+        await user.click(screen.getByTitle('steps.s1.output.results'));
         expect(onChange).toHaveBeenCalledWith('steps.s1.output.results');
     });
 });

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The knowledge-base link check for automations.
  *

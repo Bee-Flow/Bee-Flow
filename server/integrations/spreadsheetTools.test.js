@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * create_spreadsheet — the chat's .xlsx tool. Pinned here: a real workbook
  * comes out (parsed back: sheets, numbers as numbers, formulas), it lands

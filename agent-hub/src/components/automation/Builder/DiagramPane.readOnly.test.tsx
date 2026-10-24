@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import React from 'react';
 import DiagramPaneJs from './DiagramPane';
@@ -48,9 +49,10 @@ describe('DiagramPane — read-only (a managed automation)', () => {
         expect(container.querySelector('.react-flow__node[data-id="b"]')).toBeTruthy();
     });
 
-    it('does not delete the selected step on Delete', () => {
+    it('does not delete the selected step on Delete', async () => {
+        const user = userEvent.setup();
         const { container, onDefinitionChange } = renderReadOnly();
-        fireEvent.click(container.querySelector('.react-flow__node[data-id="a"]')!);
+        await user.click(container.querySelector('.react-flow__node[data-id="a"]')!);
         fireEvent.keyDown(document, { key: 'Delete' });
         expect(onDefinitionChange).not.toHaveBeenCalled();
     });

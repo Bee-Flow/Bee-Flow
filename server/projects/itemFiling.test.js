@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * projects/itemFiling.js — filing an item into a project or taking it out
  * (PUT /api/projects/:id/resources): one feed entry per project the item

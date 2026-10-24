@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A datatable filter the model writes as a column-keyed object is kept, not dropped.
  *

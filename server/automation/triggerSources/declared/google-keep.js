@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Google Keep. poll_diff over keep_list.
  *

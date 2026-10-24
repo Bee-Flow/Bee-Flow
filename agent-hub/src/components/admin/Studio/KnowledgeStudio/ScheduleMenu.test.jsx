@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import ScheduleMenu, { CRON_PRESETS, presetFor } from './ScheduleMenu';
@@ -76,8 +77,9 @@ describe('ScheduleMenu', () => {
     });
 
     it('sends a cron AND a timezone, because "06:00" alone means nothing', async () => {
+        const user = userEvent.setup();
         const onChange = open({ kind: 'webpage', refreshMode: 'manual', supportsModes: ['manual', 'schedule'] });
-        fireEvent.click(screen.getByRole('menuitemradio', { name: /Every day at 06:00/ }));
+        await user.click(screen.getByRole('menuitemradio', { name: /Every day at 06:00/ }));
         await waitFor(() => expect(onChange).toHaveBeenCalled());
         const arg = onChange.mock.calls[0][0];
         expect(arg.mode).toBe('schedule');
@@ -92,16 +94,18 @@ describe('ScheduleMenu', () => {
     });
 
     it('sends a bare mode when the mode needs no schedule', async () => {
+        const user = userEvent.setup();
         const onChange = open({ kind: 'webpage', refreshMode: 'schedule', refreshCron: '0 6 * * 1', supportsModes: ['manual', 'schedule'] });
-        fireEvent.click(screen.getByRole('menuitemradio', { name: /Only when I ask/ }));
+        await user.click(screen.getByRole('menuitemradio', { name: /Only when I ask/ }));
         await waitFor(() => expect(onChange).toHaveBeenCalledWith({ mode: 'manual' }));
     });
 
     it('picking "On a schedule" comes with a real cron, never a mode alone', async () => {
+        const user = userEvent.setup();
         // mode:'schedule' with no cron is a source that claims a schedule and
         // has none — the server would arm it on a default nobody chose.
         const onChange = open({ kind: 'webpage', refreshMode: 'manual', supportsModes: ['manual', 'schedule'] });
-        fireEvent.click(screen.getByRole('menuitemradio', { name: /On a schedule/ }));
+        await user.click(screen.getByRole('menuitemradio', { name: /On a schedule/ }));
         await waitFor(() => expect(onChange).toHaveBeenCalled());
         expect(onChange.mock.calls[0][0].cron).toBeTruthy();
     });

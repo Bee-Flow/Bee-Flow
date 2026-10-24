@@ -1,4 +1,5 @@
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
@@ -30,10 +31,11 @@ describe('CanvasZoomStack — Fit re-arms following', () => {
         expect(screen.getByTestId('canvas-zoom-pct').textContent).toBe('50%');
     });
 
-    it('Fit with onFit is one act: onFit once, and no fitView of the stack\'s own on top of it', () => {
+    it('Fit with onFit is one act: onFit once, and no fitView of the stack\'s own on top of it', async () => {
+        const user = userEvent.setup();
         const onFit = vi.fn();
         render(<CanvasZoomStack onFit={onFit} />);
-        fireEvent.click(screen.getByRole('button', { name: /fit the whole flow/i }));
+        await user.click(screen.getByRole('button', { name: /fit the whole flow/i }));
         expect(onFit).toHaveBeenCalledTimes(1);
         expect(rf.fitView).not.toHaveBeenCalled();
     });
@@ -59,14 +61,15 @@ describe('CanvasZoomStack — the presenter toggle', () => {
         expect(screen.queryByTestId('canvas-presenter-toggle')).toBeNull();
     });
 
-    it('reads as an unpressed switch, says what it does, and calls the handler once per press', () => {
+    it('reads as an unpressed switch, says what it does, and calls the handler once per press', async () => {
+        const user = userEvent.setup();
         const onTogglePresenter = vi.fn();
         render(<CanvasZoomStack presenter={false} onTogglePresenter={onTogglePresenter} />);
         const btn = screen.getByTestId('canvas-presenter-toggle');
         expect(btn.getAttribute('aria-pressed')).toBe('false');
         expect(btn.getAttribute('aria-label')).toBe('Presenter mode');
         expect(btn.getAttribute('title')).toMatch(/projector/i);
-        fireEvent.click(btn);
+        await user.click(btn);
         expect(onTogglePresenter).toHaveBeenCalledTimes(1);
         // The press itself moves no camera: the mode changes how things read.
         expect(rf.fitView).not.toHaveBeenCalled();
@@ -110,11 +113,12 @@ describe('CanvasZoomStack — compact, on a short canvas', () => {
         expect(stack.querySelectorAll('button')).toHaveLength(7);
     });
 
-    it('has a fullscreen button that hides the Studio menu', () => {
+    it('has a fullscreen button that hides the Studio menu', async () => {
+        const user = userEvent.setup();
         render(<CanvasZoomStack />);
-        fireEvent.click(screen.getByTestId('canvas-fullscreen-toggle'));
+        await user.click(screen.getByTestId('canvas-fullscreen-toggle'));
         expect(screen.getByRole('button', { name: 'Leave fullscreen' })).toBeTruthy();
-        fireEvent.click(screen.getByTestId('canvas-fullscreen-toggle'));
+        await user.click(screen.getByTestId('canvas-fullscreen-toggle'));
         expect(screen.getByRole('button', { name: 'Canvas fullscreen' })).toBeTruthy();
     });
 });

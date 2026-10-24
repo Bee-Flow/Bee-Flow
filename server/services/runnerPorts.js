@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The services side of core/automationRunner/featurePorts.js: the
  * presentation renderer the runner's presentation and fill-document steps

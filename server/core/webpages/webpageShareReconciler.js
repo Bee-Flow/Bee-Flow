@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * When a public snapshot must be rewritten.
  *

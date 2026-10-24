@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -138,18 +139,20 @@ describe('the picker lists', () => {
 });
 
 describe('"may use" — a list that could not be read', () => {
-    it('does not say “nothing to link” about a list it never read, and names the list', () => {
+    it('does not say “nothing to link” about a list it never read, and names the list', async () => {
+        const user = userEvent.setup();
         card({ listStatus: { loaded: true, unavailable: ['automations'] } });
-        fireEvent.click(screen.getByTestId('skill-grant-add'));
+        await user.click(screen.getByTestId('skill-grant-add'));
 
         expect(screen.queryByTestId('skill-grant-none')).toBeNull();
         expect(screen.getByTestId('skill-grant-menu-gap')).toBeTruthy();
         expect(screen.getByTestId('skill-grant-gap').textContent).toContain('automations');
     });
 
-    it('claims nothing at all before the lists arrive', () => {
+    it('claims nothing at all before the lists arrive', async () => {
+        const user = userEvent.setup();
         card({ listStatus: { loaded: false, unavailable: [] } });
-        fireEvent.click(screen.getByTestId('skill-grant-add'));
+        await user.click(screen.getByTestId('skill-grant-add'));
 
         expect(screen.getByTestId('skill-grant-loading')).toBeTruthy();
         expect(screen.queryByTestId('skill-grant-none')).toBeNull();
@@ -161,9 +164,10 @@ describe('"may use" — a list that could not be read', () => {
      * this" for an org that genuinely has no agent-callable automation would
      * hide the one sentence that tells the author how to get one.
      */
-    it('still says “nothing to link”, with the reason, when the lists arrived empty', () => {
+    it('still says “nothing to link”, with the reason, when the lists arrived empty', async () => {
+        const user = userEvent.setup();
         card({ listStatus: { loaded: true, unavailable: [] } });
-        fireEvent.click(screen.getByTestId('skill-grant-add'));
+        await user.click(screen.getByTestId('skill-grant-add'));
 
         expect(screen.getByTestId('skill-grant-none').textContent).toMatch(/an agent calls it/);
         expect(screen.queryByTestId('skill-grant-menu-gap')).toBeNull();
@@ -171,9 +175,10 @@ describe('"may use" — a list that could not be read', () => {
     });
 
     /** A gap in a list this menu does not offer is not this menu's sentence. */
-    it('leaves the groups and datatables gaps to the screens that show them', () => {
+    it('leaves the groups and datatables gaps to the screens that show them', async () => {
+        const user = userEvent.setup();
         card({ listStatus: { loaded: true, unavailable: ['groups', 'tables'] } });
-        fireEvent.click(screen.getByTestId('skill-grant-add'));
+        await user.click(screen.getByTestId('skill-grant-add'));
 
         expect(screen.getByTestId('skill-grant-none')).toBeTruthy();
         expect(screen.queryByTestId('skill-grant-gap')).toBeNull();
@@ -196,26 +201,28 @@ describe('"may use" — the apps half', () => {
      * apply" — so an unreadable status offered MORE apps than a healthy one.
      * Unknown narrows: built-ins only, and the card says why the list is short.
      */
-    it('offers only the platform built-in when it could not check what the org has connected', () => {
+    it('offers only the platform built-in when it could not check what the org has connected', async () => {
+        const user = userEvent.setup();
         appStatus.unavailable = true;
         card({ listStatus: { loaded: true, unavailable: [] } });
 
         expect(screen.getByTestId('skill-grant-gap').textContent).toContain('apps');
-        fireEvent.click(screen.getByTestId('skill-grant-add'));
-        fireEvent.click(screen.getByRole('menuitem', { name: /Browse apps/ }));
+        await user.click(screen.getByTestId('skill-grant-add'));
+        await user.click(screen.getByRole('menuitem', { name: /Browse apps/ }));
 
         expect(screen.getAllByText('Agent Search').length).toBeGreaterThan(0);
         expect(screen.queryByRole('button', { name: /Browse Web/ })).toBeNull();
     });
 
-    it('offers the catalog normally when the same payload came back from a read that worked', () => {
+    it('offers the catalog normally when the same payload came back from a read that worked', async () => {
+        const user = userEvent.setup();
         appStatus.integrationStatus = {};
         appStatus.unavailable = false;
         card({ listStatus: { loaded: true, unavailable: [] } });
 
         expect(screen.queryByTestId('skill-grant-gap')).toBeNull();
-        fireEvent.click(screen.getByTestId('skill-grant-add'));
-        fireEvent.click(screen.getByRole('menuitem', { name: /Browse apps/ }));
+        await user.click(screen.getByTestId('skill-grant-add'));
+        await user.click(screen.getByRole('menuitem', { name: /Browse apps/ }));
 
         expect(screen.getByRole('button', { name: /Browse Web/ })).toBeTruthy();
     });
@@ -238,13 +245,14 @@ describe('"may use" — the apps half', () => {
      * offered apps the org has never connected, and the runtime refuses them
      * later. Unknown narrows in BOTH shapes or it narrows in neither.
      */
-    it('narrows the catalog before the status has answered at all, not just after it failed', () => {
+    it('narrows the catalog before the status has answered at all, not just after it failed', async () => {
+        const user = userEvent.setup();
         appStatus.integrationStatus = null;
         appStatus.unavailable = false;
         card({ listStatus: { loaded: true, unavailable: [] } });
 
-        fireEvent.click(screen.getByTestId('skill-grant-add'));
-        fireEvent.click(screen.getByRole('menuitem', { name: /Browse apps/ }));
+        await user.click(screen.getByTestId('skill-grant-add'));
+        await user.click(screen.getByRole('menuitem', { name: /Browse apps/ }));
 
         expect(screen.getAllByText('Agent Search').length).toBeGreaterThan(0);
         expect(screen.queryByRole('button', { name: /Browse Web/ })).toBeNull();
@@ -276,6 +284,7 @@ describe('the detail wires the hook to the screens that make the claims', () => 
     const detail = () => render(<SkillDetail skill={SKILL} canManage onBack={() => {}} />);
 
     it('carries a failed automations read into BOTH the may-use card and the step reference menu', async () => {
+        const user = userEvent.setup();
         routeFetch({ '/api/automation': dead(500) });
         detail();
 
@@ -284,34 +293,36 @@ describe('the detail wires the hook to the screens that make the claims', () => 
 
         // …and the step editor's menu, which used to say "Nothing to reference
         // yet." over the very same failed read.
-        fireEvent.click(screen.getByTestId('skill-step-ref-add'));
+        await user.click(screen.getByTestId('skill-step-ref-add'));
         expect(screen.getByTestId('skill-ref-unread').textContent).toMatch(/Automations/);
         expect(screen.queryByTestId('skill-ref-none')).toBeNull();
     });
 
     it('asks again when the note offers to, and drops the note once the read works', async () => {
+        const user = userEvent.setup();
         let fail = true;
         routeFetch({ '/api/automation': () => (fail ? dead(500) : ok({ automations: [] })) });
         detail();
 
         await waitFor(() => expect(screen.getByTestId('skill-grant-gap')).toBeTruthy());
         fail = false;
-        fireEvent.click(screen.getByTestId('skill-grant-retry'));
+        await user.click(screen.getByTestId('skill-grant-retry'));
         await waitFor(() => expect(screen.queryByTestId('skill-grant-gap')).toBeNull());
     });
 
     it('does not tell the capsule that the organisation has no groups when it could not read them', async () => {
+        const user = userEvent.setup();
         routeFetch({ '/auth/groups': dead(500) });
         detail();
 
         // Wait for the four reads to land — the groups gap is not the card's
         // sentence, so the card stays silent here on purpose.
-        fireEvent.click(screen.getByTestId('skill-step-ref-add'));
+        await user.click(screen.getByTestId('skill-step-ref-add'));
         await waitFor(() => expect(screen.getByTestId('skill-ref-none')).toBeTruthy());
         expect(screen.queryByTestId('skill-grant-gap'), 'a groups gap is not the may-use card\'s sentence').toBeNull();
 
         // Open the audience capsule; the group section is where the claim was.
-        fireEvent.click(screen.getByTestId('visibility-capsule'));
+        await user.click(screen.getByTestId('visibility-capsule'));
         const note = await screen.findByTestId('visibility-groups-unreadable');
         expect(note.getAttribute('role')).toBe('status');
         expect(screen.queryByText(/No groups in this organisation yet/)).toBeNull();
@@ -320,6 +331,7 @@ describe('the detail wires the hook to the screens that make the claims', () => 
     it('says nothing at all about the lists while they are still on the wire', () => {
         routeFetch();
         detail();
+        // Sync on purpose: awaiting user.click would let the lists arrive before the loading state is read.
         fireEvent.click(screen.getByTestId('skill-step-ref-add'));
         expect(screen.getByTestId('skill-ref-loading')).toBeTruthy();
         expect(screen.queryByTestId('skill-ref-none')).toBeNull();

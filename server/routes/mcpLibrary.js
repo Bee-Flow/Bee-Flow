@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * MCP library API — mounted at /api/mcp-library.
  *

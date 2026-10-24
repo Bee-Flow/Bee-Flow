@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Characterisation of the payloads executeDirectChatToolCall builds: the full
  * option object handed to the dispatcher, the guardrail audit rows (regex,

@@ -59,7 +59,7 @@ async function mistralOCR(base64Data, mimeType, filename) {
             return null;
         }
 
-        log.info(`[MistralOCR] Processing ${isPdf ? 'PDF' : 'image'}: ${filename}`);
+        log.info(`[MistralOCR] Processing ${isPdf ? 'PDF' : 'image'}: ${log.nameForLog(filename)}`);
 
         const dataUrl = isPdf
             ? `data:application/pdf;base64,${base64Data}`
@@ -94,7 +94,7 @@ async function mistralOCR(base64Data, mimeType, filename) {
                 .map((page) => `[Page ${page.index + 1}]\n${page.markdown}`)
                 .join('\n\n---\n\n');
 
-            log.info(`[MistralOCR] Successfully extracted ${ocrResult.pages.length} pages from ${filename}`);
+            log.info(`[MistralOCR] Successfully extracted ${ocrResult.pages.length} pages from ${log.nameForLog(filename)}`);
             return markdownContent;
         }
 

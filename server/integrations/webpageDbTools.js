@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage DB Tools
  *

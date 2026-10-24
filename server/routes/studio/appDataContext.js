@@ -126,7 +126,7 @@ function handleErr(res, err, _where) {
     // / 'Forbidden' text these handlers used to return inline. Nothing else in
     // the process sets that flag, so an internal message cannot ride out on it.
     if (err && err.safe === true && status) {
-        return res.status(status).json({ error: err.message });
+        throw new HttpError(status, err.code || 'data_request_refused', err.message);
     }
     // FROZEN quota contract: a 409 always answers { error, code, limit, used }
     // (studioAppQuota errors carry all four; the FE keys off code).
@@ -139,7 +139,7 @@ function handleErr(res, err, _where) {
         });
     }
     if (status === 422 || status === 400 || status === 403) {
-        return res.status(status).json({ error: err.message });
+        throw new HttpError(status, err.code || 'data_request_refused', err.message);
     }
     // Only an HttpError may carry its own message and status; anything else is
     // a generic 500 (the terminal handler logs the cause), as before the move.

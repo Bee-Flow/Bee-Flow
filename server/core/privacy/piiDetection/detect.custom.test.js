@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * detectPii with "Your own data" ids in the category list, against a fake

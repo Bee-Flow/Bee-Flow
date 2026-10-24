@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * THE PER-TURN POLICY the round executor enforces, and the fail-closed version
  * of it.
@@ -36,7 +37,7 @@ const log = require('../../../telemetry/log');
  * @param {object} opts.agentConfig     the RUNTIME agent config
  * @param {Array}  opts.tools           the assembled tool definitions
  * @param {boolean} [opts.unattended]   nobody is watching this run
- * @param {object} [opts.automationConfirms]  toolName → 'direct'|'ask' for
+ * @param {any} [opts.automationConfirms]  toolName → 'direct'|'ask' for
  *   granted automations (their effect comes from the definition, not the name)
  * @returns {{allowedToolNames: Set<string>, confirmByTool: Map<string,string>,
  *            effectByTool: Map<string,string>, gatedTools: Set<string>,

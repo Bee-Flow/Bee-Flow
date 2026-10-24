@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import ActionsSection from './ActionsSection';
@@ -73,9 +74,10 @@ describe('create_record as an action — choosing it', () => {
         expect(screen.getByRole('radio', { name: /Add a row/ })).toBeInTheDocument();
     });
 
-    it('commits a fresh action that picks NO table', () => {
+    it('commits a fresh action that picks NO table', async () => {
+        const user = userEvent.setup();
         const { lastAction } = renderSection({ kind: 'toast', message: 'hi', tone: 'info' });
-        fireEvent.click(screen.getByRole('radio', { name: /Add a row/ }));
+        await user.click(screen.getByRole('radio', { name: /Add a row/ }));
         // Guessing a table would make a brand-new button write into a real
         // table nobody chose, on the first click.
         expect(lastAction()).toEqual({ kind: 'create_record', tableId: '', values: {} });

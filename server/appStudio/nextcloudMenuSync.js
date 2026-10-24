@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * nextcloudMenuSync.js — tell the org's Nextcloud connector "the app menu
  * changed, sync now".

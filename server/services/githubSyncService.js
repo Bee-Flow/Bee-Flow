@@ -16,7 +16,7 @@
  *   skills/<id>/workflow.md
  *   sync-manifest.json              — full index + timestamps
  */
-
+// @typecheck
 const crypto = require('crypto');
 const configStore = require('../stores/configStore');
 const githubSyncStore = require('../stores/githubSyncStore');
@@ -37,6 +37,7 @@ async function getToken(userId) {
 
 /**
  * Make an authenticated GitHub API request.
+ * @param {string} token @param {string} endpoint @param {Record<string, any>} [options] @returns {Promise<any>}
  */
 async function ghFetch(token, endpoint, options = {}) {
     const url = endpoint.startsWith('http') ? endpoint : `${GITHUB_API}${endpoint}`;
@@ -364,7 +365,7 @@ async function deleteAgentFromGitHub(agentId, agentName, token, owner, repo, bra
                 `Delete agent "${agentName || agentId}"`, branch);
         } catch (err) {
             // Non-fatal: file may not exist on GitHub
-            log.warn(`[GitHubSync] Could not delete ${basePath}/${fileName}:`, err.message);
+            log.warn(`[GitHubSync] Could not delete ${basePath}/${log.nameForLog(fileName)}:`, err.message);
         }
     }
 
@@ -615,7 +616,6 @@ function autoSyncResource(orgId, resourceType, resourceId, action = 'pending') {
     if (typeof timer.unref === 'function') timer.unref();
     _autoSyncTimers.set(key, timer);
 }
-
 module.exports = {
     syncAll,
     syncPending,

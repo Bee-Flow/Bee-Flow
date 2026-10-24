@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The per-automation run scope (handoff 5 sharing): buildRunFilterWhere's
  * `{ automation: { automationId } }` scope and the `startedByUserId` filter,

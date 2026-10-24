@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * EU AI Act — turning detected signals + the admin's answers into a
  * classification outcome. Pure; the store (stores/aiActAssessmentStore.js)

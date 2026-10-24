@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * What the change-feed routes (routes/projects/changes.js) accept.

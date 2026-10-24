@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * THE PLAYBOOK ITSELF — list, create, read and the client's transitions, plus
  * the delete that registers last.

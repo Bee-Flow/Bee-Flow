@@ -175,7 +175,7 @@ async function resolveAdminSecret(row, actorUserId, auth) {
 }
 
 /** Store (or replace) `userId`'s own key for a server, bound to its origin. */
-async function upsertOwnConnection({ row, userId, auth, url, value, label }) {
+async function upsertOwnConnection(/** @type {{row: any, userId: any, auth: any, url: any, value: any, label?: any}} */ { row, userId, auth, url, value, label }) {
     const cs = connStore();
     const provider = providerOf(row.id);
     const secretObject = { [auth.credential.key]: value };

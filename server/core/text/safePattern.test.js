@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * hasNestedQuantifier: the catastrophic-backtracking shape is refused, safe

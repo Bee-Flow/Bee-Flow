@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Org-admin endpoints for Nextcloud integration management.
  *

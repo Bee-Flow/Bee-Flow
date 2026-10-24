@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Public-share token — view + bridge purpose round-trips, cross-purpose replay
  * isolation, and the durable-secret bootstrap that makes two replicas agree

@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AppRunPage from './AppRunPage';
 import AppsHomePage, { readAppRecents } from './AppsHomePage';
@@ -75,6 +76,7 @@ describe('AppRunPage', () => {
     });
 
     it('renders the friendly empty state on 404 and retries on demand', async () => {
+        const user = userEvent.setup();
         const err = new Error('App not found');
         err.status = 404;
         studioAppsApi.getRuntime.mockRejectedValueOnce(err);
@@ -83,7 +85,7 @@ describe('AppRunPage', () => {
         expect(await screen.findByText('This app is not available to you')).toBeInTheDocument();
 
         // Retry: the second call succeeds and the app renders.
-        fireEvent.click(screen.getByRole('button', { name: /Try again/ }));
+        await user.click(screen.getByRole('button', { name: /Try again/ }));
         expect(await screen.findByText('Kitchen sink')).toBeInTheDocument();
         await waitFor(() => expect(studioAppsApi.getRuntime).toHaveBeenCalledTimes(2));
     });
@@ -116,6 +118,7 @@ describe('AppRunPage', () => {
     });
 
     it('switches screens when a nav tab is clicked', async () => {
+        const user = userEvent.setup();
         const { container } = render(<AppRunPage appId="app-1" />);
         await screen.findByText('Kitchen sink');
 
@@ -123,7 +126,7 @@ describe('AppRunPage', () => {
         expect(container.querySelector('[data-app-screen="scr_dash01"]')).not.toBeNull();
 
         const nav = screen.getByRole('navigation', { name: 'App screens' });
-        fireEvent.click(within(nav).getByRole('button', { name: /New request/ }));
+        await user.click(within(nav).getByRole('button', { name: /New request/ }));
 
         await waitFor(() => {
             expect(container.querySelector('[data-app-screen="scr_form01"]')).not.toBeNull();

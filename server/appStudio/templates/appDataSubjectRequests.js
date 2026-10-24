@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio template — Data subject requests (GDPR Articles 15 to 22).
  *

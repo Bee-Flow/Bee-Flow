@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Summary Templates API
  *
@@ -163,11 +164,7 @@ router.post('/', requireAuth, validate({ body: CreateBody }), async (req, res) =
     let groupId = null;
     if (scope === 'group') {
         groupId = req.body.groupId;
-        try {
-            await validateSharedGroupsForOrg(orgId, [groupId]);
-        } catch (err) {
-            return res.status(err.status || 400).json({ error: err.message });
-        }
+        await validateSharedGroupsForOrg(orgId, [groupId]); // refuses with a 400 the caller can read
     }
 
     const created = await store.create({ scope, name, prompt, organizationId: orgId, groupId, isDefault, createdBy: ctx.userId });

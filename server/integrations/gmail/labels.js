@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Gmail labels: the per-session label list cache and name-to-id resolution.
  */

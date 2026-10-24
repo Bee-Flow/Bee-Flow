@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Organisation policy for keeping integration answers BETWEEN runs.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Finding: the ONE shape from which every "this needs your attention" row is drawn.
  *

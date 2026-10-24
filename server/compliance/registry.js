@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ComplianceCheckRegistry — holds every compliance check module.
  *

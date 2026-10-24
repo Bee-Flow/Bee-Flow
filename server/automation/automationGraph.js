@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation graph helpers — one reading of an automation definition shared by the
  * document runner (which marks a file a model wrote) and by the compliance

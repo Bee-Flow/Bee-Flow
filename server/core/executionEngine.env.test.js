@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A component's index.js does not see the server's secrets.
  *

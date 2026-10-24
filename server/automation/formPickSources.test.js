@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * formPickSources — the registry behind an `app_pick` form question.
  *

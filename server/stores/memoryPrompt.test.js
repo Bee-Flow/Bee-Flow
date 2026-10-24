@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The <memories> block frames stored notes as quoted data: one line per note,
  * no way to open a heading or close the block from inside a note.

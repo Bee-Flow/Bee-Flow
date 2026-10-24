@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — ACTIONS and the events they hang off:
  * app_set_action (single or batched, with the duplicate-action net and the
@@ -34,7 +35,7 @@ function applySetAction(draftWrap, args) {
     const tables = Array.isArray(draftWrap.dataModel?.tables) ? draftWrap.dataModel.tables : [];
     const repaired = repairAction(rawAction, { tables });
     if (repaired.refusal) return repaired.refusal;
-    const action = repaired.action;
+    const action = /** @type {Record<string, any>} */ (repaired.action);
     const repairNotes = repaired.notes;
     const withNotes = (result) => {
         if (repairNotes.length && result && typeof result === 'object') result._hints = [...repairNotes, ...(Array.isArray(result._hints) ? result._hints : [])];

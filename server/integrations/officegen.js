@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Moved to core/documents/office/officegen.js: generating office files is
  * document plumbing, not an integration with an external system. This

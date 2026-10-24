@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The wire contract of /api/playbooks: the error envelope every refusal is
  * shaped in, the body guard, the language a NEW request builds in, and the

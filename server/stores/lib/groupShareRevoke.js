@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 // Split from documentSharing so stores/user/groups can revoke shares without

@@ -1,4 +1,5 @@
 import { fireEvent, render, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
@@ -59,14 +60,15 @@ beforeEach(() => {
 
 describe('ConnectorSyncPanel — setting it up', () => {
     it('proposes a table from one inspect run, and only creates it on confirmation', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => proposal({ mode: 'client', field: 'modifiedTime', param: null, format: 'iso' }) });
         const { getByRole, findByText, onCreateTable } = renderPanel();
 
-        fireEvent.click(getByRole('button', { name: /set up a table/i }));
+        await user.click(getByRole('button', { name: /set up a table/i }));
         expect(await findByText(/Got 12 rows back/i)).toBeTruthy();
         expect(onCreateTable).not.toHaveBeenCalled();
 
-        fireEvent.click(getByRole('button', { name: /create it/i }));
+        await user.click(getByRole('button', { name: /create it/i }));
         const [table, sync] = onCreateTable.mock.calls[0];
         expect(table.key).toBe('recent_emails');
         expect(sync).toMatchObject({
@@ -82,6 +84,7 @@ describe('ConnectorSyncPanel — setting it up', () => {
     });
 
     it('proposes linked tables when the steps returned different things', async () => {
+        const user = userEvent.setup();
         // A step kept in its own table is ONE child row per parent row; an expand
         // is many. Saying "one row per item" about the first would be wrong.
         const tableSet = { tables: [
@@ -96,12 +99,12 @@ describe('ConnectorSyncPanel — setting it up', () => {
         const onCreateTables = vi.fn();
         const { getByRole, findByText, getByText } = renderPanel({ onCreateTables });
 
-        fireEvent.click(getByRole('button', { name: /set up a table/i }));
+        await user.click(getByRole('button', { name: /set up a table/i }));
         expect(await findByText(/3 different things/i)).toBeTruthy();
         expect(getByText(/one row per Messages row/i)).toBeTruthy();
         expect(getByText(/one row per attachment,/i)).toBeTruthy();
 
-        fireEvent.click(getByRole('button', { name: /create it/i }));
+        await user.click(getByRole('button', { name: /create it/i }));
         const [tables, sync] = onCreateTables.mock.calls[0];
         expect(tables.map((t) => t.id)).toEqual(['tbl_msg', 'tbl_bod', 'tbl_att']);
         expect(sync.tableId).toBe('tbl_msg');
@@ -113,48 +116,53 @@ describe('ConnectorSyncPanel — setting it up', () => {
     });
 
     it("describes the 'request' tier as fetching less, not just writing less", async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => proposal({ mode: 'request', field: 'updated_at', param: 'updatedAfter', format: 'iso' }) });
         const { getByRole, findByText } = renderPanel();
-        fireEvent.click(getByRole('button', { name: /set up a table/i }));
+        await user.click(getByRole('button', { name: /set up a table/i }));
         expect(await findByText(/Only fetch what changed/i)).toBeTruthy();
     });
 
     it("is honest that the 'client' tier does not reduce API calls", async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => proposal({ mode: 'client', field: 'modifiedTime', param: null, format: 'iso' }) });
         const { getByRole, findByText } = renderPanel();
-        fireEvent.click(getByRole('button', { name: /set up a table/i }));
+        await user.click(getByRole('button', { name: /set up a table/i }));
         expect(await findByText(/Only save what changed/i)).toBeTruthy();
         expect(await findByText(/does not reduce API calls/i)).toBeTruthy();
     });
 
     it('offers NO incremental option when nothing says when a record changed', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => proposal({ mode: 'none', field: null, param: null, format: null }) });
         const { getByRole, findByText, queryByText, onCreateTable } = renderPanel();
-        fireEvent.click(getByRole('button', { name: /set up a table/i }));
+        await user.click(getByRole('button', { name: /set up a table/i }));
 
         expect(await findByText(/every refresh reloads the full list/i)).toBeTruthy();
         expect(queryByText(/Only fetch what changed/i)).toBeNull();
         expect(queryByText(/Only save what changed/i)).toBeNull();
 
-        fireEvent.click(getByRole('button', { name: /create it/i }));
+        await user.click(getByRole('button', { name: /create it/i }));
         expect(onCreateTable.mock.calls[0][1].incremental).toBeUndefined();
     });
 
     it('says a source with no row identity can only be replaced wholesale', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValueOnce({
             ok: true, status: 200,
             json: async () => proposal({ mode: 'none' }, { identity: null, keyField: null, defaultMode: 'replace' }),
         });
         const { getByRole, findByText, onCreateTable } = renderPanel();
-        fireEvent.click(getByRole('button', { name: /set up a table/i }));
+        await user.click(getByRole('button', { name: /set up a table/i }));
         expect(await findByText(/each refresh replaces the whole table/i)).toBeTruthy();
 
-        fireEvent.click(getByRole('button', { name: /create it/i }));
+        await user.click(getByRole('button', { name: /create it/i }));
         expect(onCreateTable.mock.calls[0][1].mode).toBe('replace');
         expect(onCreateTable.mock.calls[0][1].keyField).toBeUndefined();
     });
 
     it('an unsaved draft SAVES first instead of going grey', async () => {
+        const user = userEvent.setup();
         // Reading the columns needs the saved connector — but a disabled button
         // whose fix is another button in a different part of the window is not
         // an explanation, it is a puzzle. The action does the save.
@@ -164,24 +172,26 @@ describe('ConnectorSyncPanel — setting it up', () => {
 
         const btn = getByRole('button', { name: /save & set up a table/i });
         expect(btn.disabled).toBe(false);
-        fireEvent.click(btn);
+        await user.click(btn);
         await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
         // …and the inspect really ran against the just-saved model.
         expect(await findByRole('button', { name: /create it/i })).toBeTruthy();
     });
 
     it('a FAILED save cancels the action — it never inspects a stale model', async () => {
+        const user = userEvent.setup();
         const onSave = vi.fn().mockResolvedValue(false);
         const { getByRole } = renderPanel({ saved: false, onSave });
-        fireEvent.click(getByRole('button', { name: /save & set up a table/i }));
+        await user.click(getByRole('button', { name: /save & set up a table/i }));
         await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
         expect(authFetch).not.toHaveBeenCalled();
     });
 
     it('explains a 404 as "save first" rather than showing a raw status', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValueOnce({ ok: false, status: 404, json: async () => ({ error: 'Connector not found' }) });
         const { getByRole, findByRole } = renderPanel();
-        fireEvent.click(getByRole('button', { name: /set up a table/i }));
+        await user.click(getByRole('button', { name: /set up a table/i }));
         expect((await findByRole('alert')).textContent).toMatch(/Save your changes first/i);
     });
 });
@@ -222,11 +232,12 @@ describe('ConnectorSyncPanel — once it fills a table', () => {
     });
 
     it('reports what a manual refresh actually did', async () => {
+        const user = userEvent.setup();
         authFetch
             .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ syncs: [] }) })
             .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ inserted: 3, updated: 2, skipped: 7 }) });
         const { getByRole, findByText } = renderPanel({ connector: SYNCED, tables: TABLES });
-        fireEvent.click(getByRole('button', { name: /refresh now/i }));
+        await user.click(getByRole('button', { name: /refresh now/i }));
         expect(await findByText(/3 added, 2 updated, 7 unchanged/i)).toBeTruthy();
     });
 
@@ -239,9 +250,10 @@ describe('ConnectorSyncPanel — once it fills a table', () => {
         await waitFor(async () => expect((await findByRole('alert')).textContent).toMatch(/last refresh failed: gmail is not connected/i));
     });
 
-    it('stops filling the table by dropping the whole sync block', () => {
+    it('stops filling the table by dropping the whole sync block', async () => {
+        const user = userEvent.setup();
         const { getByRole, onChange } = renderPanel({ connector: SYNCED, tables: TABLES });
-        fireEvent.click(getByRole('button', { name: /stop filling this table/i }));
+        await user.click(getByRole('button', { name: /stop filling this table/i }));
         expect(onChange).toHaveBeenCalledWith({ sync: undefined });
     });
 });

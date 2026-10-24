@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — what the streamed turn cost, written to the monitoring store.
  *

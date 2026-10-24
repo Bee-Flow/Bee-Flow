@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Route-table freeze for routes/projects.js.
  *

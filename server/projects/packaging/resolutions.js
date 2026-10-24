@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What the INSTALLER supplies that the Blueprint deliberately did not carry.
  *

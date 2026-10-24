@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The find/replace engine behind webpage_file_replace and document_edit.
  *

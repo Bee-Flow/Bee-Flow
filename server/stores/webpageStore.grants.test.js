@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * normalizeBridgeGrants — public-AI field defaults + clamps.
  * Run: node --test stores/webpageStore.grants.test.js

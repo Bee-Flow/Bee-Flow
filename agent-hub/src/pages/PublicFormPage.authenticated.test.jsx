@@ -119,6 +119,7 @@ describe('PublicFormPage — what a signed-in visitor gets on the closing page',
     });
 
     it('saves the closing page\'s own text against the journey that produced it', async () => {
+        const user = userEvent.setup();
         let posted = null;
         vi.stubGlobal('fetch', mockFetch(journey({
             [`POST /${TOKEN}/s/${SESSION}/notebook`]: async (init) => {
@@ -130,7 +131,7 @@ describe('PublicFormPage — what a signed-in visitor gets on the closing page',
         await finishTheForm();
 
         // The journey is over by now; the save still has to reach it.
-        fireEvent.click(screen.getByTestId('form-export-notebook'));
+        await user.click(screen.getByTestId('form-export-notebook'));
 
         await waitFor(() => expect(posted).not.toBeNull());
         // No text in the request: the server reads the result back from the
@@ -140,13 +141,14 @@ describe('PublicFormPage — what a signed-in visitor gets on the closing page',
     });
 
     it('says why a save failed and lets the visitor try again', async () => {
+        const user = userEvent.setup();
         vi.stubGlobal('fetch', mockFetch(journey({
             [`POST /${TOKEN}/s/${SESSION}/notebook`]: async () => ({ ok: false, status: 500, body: { error: 'Notebooks are unavailable.' } }),
         })));
         render(<PublicFormPage token={TOKEN} authenticated />);
         await finishTheForm();
 
-        fireEvent.click(screen.getByTestId('form-export-notebook'));
+        await user.click(screen.getByTestId('form-export-notebook'));
         expect(await screen.findByText('Notebooks are unavailable.')).toBeTruthy();
         expect(screen.getByTestId('form-export-notebook').getAttribute('aria-disabled')).toBe('false');
     });

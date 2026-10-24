@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * builder_update_step — recognising a patch that changes the step's TYPE, the
  * replace spec it becomes, and the hint for it. The replace itself runs in
@@ -57,6 +58,7 @@ function typeChangeFromPatch(step, patch, draftWrap) {
 /** The replace spec for a type change, and the notes about what was read or dropped. */
 function specForTypeChange(step, patch, newType) {
     const notes = [];
+    /** @type {Record<string, any>} */
     const spec = {};
     for (const [k, v] of Object.entries(patch)) if (!['type', 'tool', 'id', 'inputs'].includes(k)) spec[k] = v;
     const inputs = (patch.inputs && typeof patch.inputs === 'object' && !Array.isArray(patch.inputs)) ? patch.inputs : {};

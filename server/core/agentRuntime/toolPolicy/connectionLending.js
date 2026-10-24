@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * BORROWED CONNECTIONS: the provider an app draws its credentials from, what
  * the agent owner has actually lent, and which apps that makes runnable "as

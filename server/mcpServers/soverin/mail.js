@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Soverin MCP — pure helpers.
  *

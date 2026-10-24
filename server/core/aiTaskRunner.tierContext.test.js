@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A scheduled run must resolve the tier UNDER THE ORG OF ITS OWNER.
  *

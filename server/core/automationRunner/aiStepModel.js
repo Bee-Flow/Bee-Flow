@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * TEMPORARY override for the model an automation's `ai_step` runs on.
  *
@@ -35,7 +36,7 @@ function aiStepOverrideFor({ configured, requestedTier }) {
     return DEFAULT_TIERS.has(tier) ? configured.trim() : null;
 }
 
-async function resolveAiStepModelOverride({ requestedTier } = {}) {
+async function resolveAiStepModelOverride(/** @type {{requestedTier?: any}} */ { requestedTier } = {}) {
     let configured = null;
     try {
         configured = await configStore.getConfig(AI_STEP_MODEL_KEY);

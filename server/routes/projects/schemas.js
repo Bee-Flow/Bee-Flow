@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * What the project routes accept (routes/projects.js and ./packaging.js).

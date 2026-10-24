@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio data model — helper shared by the dataModel/ modules.
  */

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -98,7 +99,8 @@ async function resolveTurnTier({
         }
     }
     if (standardIsFast && resolvedTier === 'standard') resolvedTier = DEFAULT_TIER;
-    return { tier: resolvedTier };
+    // modelTier is request input (unknown); the callers' tier maps treat a non-name as unknown.
+    return { tier: /** @type {string} */ (resolvedTier) };
 }
 
 module.exports = { resolveTurnTier, turnTierRefusal, DEFAULT_TIER };

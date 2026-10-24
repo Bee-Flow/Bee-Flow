@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The steps that call something OUTSIDE Bee Flow — an app action through the
  * tool catalog, or a web service over HTTP — together with the two settings

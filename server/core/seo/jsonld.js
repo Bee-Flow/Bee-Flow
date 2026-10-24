@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * schema.org JSON-LD for marketing pages.
  *
@@ -106,6 +107,7 @@ function buildJsonLd(ctx) {
     const { origin, siteName, url, title, description, locale, slug, localePrefix,
         logoUrl, sameAs, blocks, isProductPage, extraNodes, breadcrumbTrail } = ctx;
 
+    /** @type {Array<Record<string, any>>} */
     const graph = [
         organization({ siteName, origin, logoUrl, sameAs }),
         webPage({ url, title, description, locale }),

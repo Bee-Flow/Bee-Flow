@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The builder prompt must describe the catalog that actually exists.
  *

@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
 
@@ -95,9 +96,10 @@ describe('TokenisedBadge — de overlay (BFSF-303)', () => {
         expect(document.querySelector('[data-tokenised-popover]')).toBeNull();
     });
 
-    it('ontsnapt aan de berichtenrij: het paneel is een portalkind van <body>', () => {
+    it('ontsnapt aan de berichtenrij: het paneel is een portalkind van <body>', async () => {
+        const user = userEvent.setup();
         render(<Row warnings={WARNINGS} />);
-        fireEvent.click(screen.getByTestId('scan-incomplete-pill'));
+        await user.click(screen.getByTestId('scan-incomplete-pill'));
 
         const panel = document.querySelector('[data-tokenised-popover="warn"]');
         expect(panel).toBeTruthy();
@@ -105,9 +107,10 @@ describe('TokenisedBadge — de overlay (BFSF-303)', () => {
         expect(screen.getByTestId('message-row').contains(panel)).toBe(false);
     });
 
-    it('legt het paneel fixed boven elk chatvlak', () => {
+    it('legt het paneel fixed boven elk chatvlak', async () => {
+        const user = userEvent.setup();
         render(<Row warnings={WARNINGS} />);
-        fireEvent.click(screen.getByTestId('scan-incomplete-pill'));
+        await user.click(screen.getByTestId('scan-incomplete-pill'));
 
         const panel = document.querySelector('[data-tokenised-popover="warn"]');
         expect(panel.style.position).toBe('fixed');
@@ -116,18 +119,20 @@ describe('TokenisedBadge — de overlay (BFSF-303)', () => {
         expect(Number(panel.style.zIndex)).toBeGreaterThanOrEqual(10050);
     });
 
-    it('draagt de haak waar de glasthemas hun dichte vlak aan ophangen', () => {
+    it('draagt de haak waar de glasthemas hun dichte vlak aan ophangen', async () => {
+        const user = userEvent.setup();
         render(<Row warnings={WARNINGS} />);
-        fireEvent.click(screen.getByTestId('scan-incomplete-pill'));
+        await user.click(screen.getByTestId('scan-incomplete-pill'));
 
         // If this attribute disappears, the [data-theme^="glass"] rules in index.css
         // stop matching, and the panel silently falls back to the translucent --bg-card.
         expect(document.querySelectorAll('[data-tokenised-popover]').length).toBe(1);
     });
 
-    it('noemt het bestand en wat er niet gecontroleerd is', () => {
+    it('noemt het bestand en wat er niet gecontroleerd is', async () => {
+        const user = userEvent.setup();
         render(<Row warnings={WARNINGS} />);
-        fireEvent.click(screen.getByTestId('scan-incomplete-pill'));
+        await user.click(screen.getByTestId('scan-incomplete-pill'));
 
         const panel = document.querySelector('[data-tokenised-popover="warn"]');
         expect(panel.textContent).toContain('big.pdf');
@@ -135,24 +140,26 @@ describe('TokenisedBadge — de overlay (BFSF-303)', () => {
         expect(panel.textContent).toContain('too large to fully check');
     });
 
-    it('sluit op Escape en op een druk erbuiten', () => {
+    it('sluit op Escape en op een druk erbuiten', async () => {
+        const user = userEvent.setup();
         render(<Row warnings={WARNINGS} />);
-        fireEvent.click(screen.getByTestId('scan-incomplete-pill'));
+        await user.click(screen.getByTestId('scan-incomplete-pill'));
         expect(document.querySelector('[data-tokenised-popover]')).toBeTruthy();
 
         fireEvent.keyDown(document, { key: 'Escape' });
         expect(document.querySelector('[data-tokenised-popover]')).toBeNull();
 
-        fireEvent.click(screen.getByTestId('scan-incomplete-pill'));
+        await user.click(screen.getByTestId('scan-incomplete-pill'));
         expect(document.querySelector('[data-tokenised-popover]')).toBeTruthy();
         fireEvent.mouseDown(document.body);
         expect(document.querySelector('[data-tokenised-popover]')).toBeNull();
     });
 
-    it('sluit via de X in het paneel', () => {
+    it('sluit via de X in het paneel', async () => {
+        const user = userEvent.setup();
         render(<Row warnings={WARNINGS} />);
-        fireEvent.click(screen.getByTestId('scan-incomplete-pill'));
-        fireEvent.click(screen.getByLabelText('Close'));
+        await user.click(screen.getByTestId('scan-incomplete-pill'));
+        await user.click(screen.getByLabelText('Close'));
         expect(document.querySelector('[data-tokenised-popover]')).toBeNull();
     });
 });

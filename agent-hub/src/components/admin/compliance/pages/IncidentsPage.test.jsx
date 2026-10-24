@@ -113,16 +113,17 @@ describe('IncidentsPage — the incidents register', () => {
     });
 
     it('a row click opens the drawer with the GDPR actions; the attestations go through data.incidents.update', async () => {
+        const user = userEvent.setup();
         const props = pageProps('incidents');
         render(<IncidentsPage {...props} />);
-        fireEvent.click(screen.getByTestId('inc-table-row-1'));
+        await user.click(screen.getByTestId('inc-table-row-1'));
         const drawer = screen.getByTestId('inc-drawer');
-        fireEvent.click(within(drawer).getByTestId('inc-drawer-assess'));
+        await user.click(within(drawer).getByTestId('inc-drawer-assess'));
         expect(props.data.incidents.update).toHaveBeenCalledWith(1, { status: 'assessing' });
         fireEvent.change(within(drawer).getByTestId('inc-drawer-authority-ref'), { target: { value: 'AP-2026-77' } });
-        fireEvent.click(within(drawer).getByTestId('inc-drawer-authority'));
+        await user.click(within(drawer).getByTestId('inc-drawer-authority'));
         expect(props.data.incidents.update).toHaveBeenCalledWith(1, { status: 'authority_notified', authority_reference: 'AP-2026-77' });
-        fireEvent.click(within(drawer).getByTestId('inc-drawer-notify'));
+        await user.click(within(drawer).getByTestId('inc-drawer-notify'));
         expect(props.data.incidents.notify).toHaveBeenCalledWith(1);
         expect(within(drawer).getByTestId('inc-drawer-subjects')).toBeTruthy(); // high_risk → Art. 34
         expect(within(drawer).queryByTestId('inc-drawer-cra')).toBeNull();
@@ -130,12 +131,13 @@ describe('IncidentsPage — the incidents register', () => {
     });
 
     it('"Record incident" opens the modal and creates through data.incidents.create with an allow-listed body', async () => {
+        const user = userEvent.setup();
         const props = pageProps('incidents');
         render(<IncidentsPage {...props} />);
-        fireEvent.click(screen.getByTestId('inc-record'));
+        await user.click(screen.getByTestId('inc-record'));
         fireEvent.change(screen.getByTestId('inc-create-title'), { target: { value: 'Misdirected e-mail' } });
-        fireEvent.click(screen.getByTestId('inc-create-high-risk'));
-        fireEvent.click(screen.getByTestId('inc-create-submit'));
+        await user.click(screen.getByTestId('inc-create-high-risk'));
+        await user.click(screen.getByTestId('inc-create-submit'));
         await waitFor(() => expect(props.data.incidents.create).toHaveBeenCalledTimes(1));
         const body = props.data.incidents.create.mock.calls[0][0];
         expect(body).toEqual({ kind: 'breach', title: 'Misdirected e-mail', description: undefined, severity: 'medium', occurred_at: undefined, detected_at: expect.any(String), high_risk: true });
@@ -192,6 +194,7 @@ describe('IncidentsPage — the incidents register', () => {
     });
 
     it('loading → skeleton; a failed read is its own state; without hook mutations the legacy routes are used', async () => {
+        const user = userEvent.setup();
         const loading = pageProps('incidents'); loading.data.incidents = { incidents: null };
         const { unmount } = render(<IncidentsPage {...loading} />);
         expect(screen.getAllByTestId('table-skeleton-row').length).toBeGreaterThan(0);
@@ -203,8 +206,8 @@ describe('IncidentsPage — the incidents register', () => {
         const bare = pageProps('incidents'); const refresh = vi.fn(); bare.data.incidents = { incidents: INCIDENTS, refresh };
         fetchJson.mockResolvedValue({});
         render(<IncidentsPage {...bare} />);
-        fireEvent.click(screen.getByTestId('inc-table-row-1'));
-        fireEvent.click(screen.getByTestId('inc-drawer-assess'));
+        await user.click(screen.getByTestId('inc-table-row-1'));
+        await user.click(screen.getByTestId('inc-drawer-assess'));
         await waitFor(() => expect(fetchJson).toHaveBeenCalled());
         expect(fetchJson.mock.calls[0][0]).toMatch(/\/api\/compliance\/incidents\/1$/);
         expect(fetchJson.mock.calls[0][1].method).toBe('PUT');
@@ -231,6 +234,7 @@ describe('IncidentsPage — the vulnerability register (CRA Art. 14)', () => {
     });
 
     it('reads the hub\'s own `vulnerabilities` hook when it is handed one, and falls back to `incidents` when it is not', async () => {
+        const user = userEvent.setup();
         const vulnerabilities = {
             incidents: [{ id: 77, kind: 'vulnerability', status: 'open', title: 'Only in the vuln hook', severity: 'high', cve_ids: ['CVE-2026-7777'], detected_at: iso(-1 * H) }],
             busyId: null, create: vi.fn().mockResolvedValue({}), update: vi.fn().mockResolvedValue({}), notify: vi.fn(),
@@ -239,8 +243,8 @@ describe('IncidentsPage — the vulnerability register (CRA Art. 14)', () => {
         const props = pageProps('vulnerabilities');
         render(<IncidentsPage {...props} data={{ ...props.data, vulnerabilities }} />);
         expect(screen.getAllByTestId(/^inc-table-row-/).map(r => r.getAttribute('data-testid'))).toEqual(['inc-table-row-77']);
-        fireEvent.click(screen.getByTestId('inc-table-row-77'));
-        fireEvent.click(screen.getByTestId('inc-drawer-cra-early'));
+        await user.click(screen.getByTestId('inc-table-row-77'));
+        await user.click(screen.getByTestId('inc-drawer-cra-early'));
         await waitFor(() => expect(vulnerabilities.craReport).toHaveBeenCalledWith(77, expect.objectContaining({ stage: 'early_warning' })));
         expect(props.data.incidents.craReport).not.toHaveBeenCalled();
 
@@ -252,47 +256,50 @@ describe('IncidentsPage — the vulnerability register (CRA Art. 14)', () => {
         expect(screen.getByTestId('inc-table-row-1')).toBeTruthy();
     });
 
-    it('the drawer offers "Report early warning" first, then "Report full", and "Customer notified"; they hit craReport / customerNotified', () => {
+    it('the drawer offers "Report early warning" first, then "Report full", and "Customer notified"; they hit craReport / customerNotified', async () => {
+        const user = userEvent.setup();
         const props = pageProps('vulnerabilities');
         render(<IncidentsPage {...props} />);
-        fireEvent.click(screen.getByTestId('inc-table-row-9'));
+        await user.click(screen.getByTestId('inc-table-row-9'));
         let drawer = screen.getByTestId('inc-drawer');
         expect(within(drawer).getByTestId('inc-drawer-reporting').querySelectorAll('li')).toHaveLength(4);
         fireEvent.change(within(drawer).getByTestId('inc-drawer-cra-via'), { target: { value: 'ENISA SRP' } });
         fireEvent.change(within(drawer).getByTestId('inc-drawer-cra-ref'), { target: { value: 'SRP-1' } });
-        fireEvent.click(within(drawer).getByTestId('inc-drawer-cra-early'));
+        await user.click(within(drawer).getByTestId('inc-drawer-cra-early'));
         expect(props.data.incidents.craReport).toHaveBeenCalledWith(9, { stage: 'early_warning', reported_via: 'ENISA SRP', reference: 'SRP-1' });
         expect(within(drawer).queryByTestId('inc-drawer-cra-full')).toBeNull();
-        fireEvent.click(within(drawer).getByTestId('inc-drawer-cra-customers'));
+        await user.click(within(drawer).getByTestId('inc-drawer-cra-customers'));
         expect(props.data.incidents.customerNotified).toHaveBeenCalledWith(9);
         expect(within(drawer).queryByTestId('inc-drawer-authority')).toBeNull(); // no GDPR attestations on a CRA row
 
-        fireEvent.click(screen.getByTestId('inc-table-row-10'));
+        await user.click(screen.getByTestId('inc-table-row-10'));
         drawer = screen.getByTestId('inc-drawer');
         expect(within(drawer).queryByTestId('inc-drawer-cra-early')).toBeNull();
-        fireEvent.click(within(drawer).getByTestId('inc-drawer-cra-full'));
+        await user.click(within(drawer).getByTestId('inc-drawer-cra-full'));
         expect(props.data.incidents.craReport).toHaveBeenCalledWith(10, { stage: 'full', reported_via: undefined, reference: undefined });
     });
 
     it('degrades when the CRA routes 404: the buttons disable and a sentence says why', async () => {
+        const user = userEvent.setup();
         const props = pageProps('vulnerabilities');
         props.data.incidents.craReport = vi.fn().mockRejectedValue(new Error('404 Not Found'));
         render(<IncidentsPage {...props} />);
-        fireEvent.click(screen.getByTestId('inc-table-row-9'));
-        fireEvent.click(screen.getByTestId('inc-drawer-cra-early'));
+        await user.click(screen.getByTestId('inc-table-row-9'));
+        await user.click(screen.getByTestId('inc-drawer-cra-early'));
         await waitFor(() => expect(screen.getByTestId('inc-drawer-cra-unavailable')).toBeTruthy());
         expect(screen.getByTestId('inc-drawer-cra-early')).toBeDisabled();
         expect(screen.getByTestId('inc-drawer-cra-customers')).toBeDisabled();
     });
 
     it('"Record vulnerability" sends kind=vulnerability with CVE ids and the exploited flag', async () => {
+        const user = userEvent.setup();
         const props = pageProps('vulnerabilities');
         render(<IncidentsPage {...props} />);
-        fireEvent.click(screen.getByTestId('inc-record'));
+        await user.click(screen.getByTestId('inc-record'));
         fireEvent.change(screen.getByTestId('inc-create-title'), { target: { value: 'RCE in export' } });
         fireEvent.change(screen.getByTestId('inc-create-cve'), { target: { value: 'cve-2026-9 CVE-2026-10' } });
-        fireEvent.click(screen.getByTestId('inc-create-exploited'));
-        fireEvent.click(screen.getByTestId('inc-create-submit'));
+        await user.click(screen.getByTestId('inc-create-exploited'));
+        await user.click(screen.getByTestId('inc-create-submit'));
         await waitFor(() => expect(props.data.incidents.create).toHaveBeenCalledTimes(1));
         expect(props.data.incidents.create.mock.calls[0][0]).toMatchObject({ kind: 'vulnerability', title: 'RCE in export', cve_ids: ['CVE-2026-9', 'CVE-2026-10'], exploited_in_wild: true });
         expect('high_risk' in props.data.incidents.create.mock.calls[0][0]).toBe(false);
@@ -300,14 +307,15 @@ describe('IncidentsPage — the vulnerability register (CRA Art. 14)', () => {
 });
 
 describe('IncidentsPage — phone (artboard 1h)', () => {
-    it('the drawer is a right-side modal; desktop keeps the inline card', () => {
+    it('the drawer is a right-side modal; desktop keeps the inline card', async () => {
+        const user = userEvent.setup();
         const { unmount } = render(<IncidentsPage {...pageProps('incidents', { isMobile: true })} />);
-        fireEvent.click(screen.getByTestId('inc-table-card-1'));
+        await user.click(screen.getByTestId('inc-table-card-1'));
         expect(document.body.querySelector('[role="dialog"]')).not.toBeNull();
         expect(screen.getByTestId('inc-drawer').dataset.mode).toBe('modal');
         unmount();
         render(<IncidentsPage {...pageProps('incidents')} />);
-        fireEvent.click(screen.getByTestId('inc-table-row-1'));
+        await user.click(screen.getByTestId('inc-table-row-1'));
         expect(document.body.querySelector('[role="dialog"]')).toBeNull();
         expect(screen.getByTestId('inc-drawer').dataset.mode).toBe('inline');
     });

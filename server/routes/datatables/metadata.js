@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * One table's own facts: the label, the Art. 30 purpose, the lawful basis,
  * which column names the data subject, and how long its rows are kept.

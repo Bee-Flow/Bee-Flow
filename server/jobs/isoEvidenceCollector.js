@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ISO evidence collector — periodic sweep of every enabled evidence connector.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 const db = require('../../db');
@@ -39,6 +40,7 @@ async function assertQuery(resolved, fields) {
     if (!isSheet(resolved) || !fields.some((field) => COLUMNS.includes(field))) return;
     const document = await documentFor(resolved.table.id);
     if (!document || !(await content.writeContext(resourceFor(document, resolved.table.id)))) return;
+    /** @type {InstanceType<typeof HttpError> & { safe?: boolean }} */
     const error = new HttpError(400, 'encrypted_sheet_query', 'Filtering, sorting and aggregating encrypted cells is available in the spreadsheet editor.');
     error.safe = true;
     throw error;

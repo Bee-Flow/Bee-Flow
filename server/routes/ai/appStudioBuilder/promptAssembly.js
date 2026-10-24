@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio Builder — the prompt for one turn.
  *

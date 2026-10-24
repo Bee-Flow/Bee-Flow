@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 const invoiceTracker = require('./invoiceTracker');

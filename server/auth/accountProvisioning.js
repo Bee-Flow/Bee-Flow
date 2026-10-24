@@ -539,7 +539,7 @@ async function markInviteAccepted(intent, placement, userId) {
     try {
         const invitationStore = require('../stores/invitationStore');
         await invitationStore.markAccepted(invite.token);
-        log.info(`[Signup] Invitation accepted for ${intent.email} → org ${placement.organizationId}`);
+        log.info(`[Signup] Invitation accepted for ${log.textForLog(intent.email)} → org ${placement.organizationId}`);
         try {
             await userStore.logAccessAudit('invitation.redeem', 'user', userId, userId, null, {
                 invitation_id: invite.data.id,

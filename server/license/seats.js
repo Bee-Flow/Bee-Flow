@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 // Split from license/index so stores/user/users can read the seat cap without

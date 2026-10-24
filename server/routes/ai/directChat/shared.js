@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — small helpers shared by the route modules in this folder.
  *

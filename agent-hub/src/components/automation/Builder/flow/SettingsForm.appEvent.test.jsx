@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
@@ -82,10 +83,11 @@ describe('SettingsForm — app_event (dynamic availability-gated providers)', ()
         expect(pickerApps()).toEqual(['Gmail', 'Nextcloud', 'Support Inbox', 'Google Sheets']);
     });
 
-    it('the picker shows what an app can trigger on before you commit to it', () => {
+    it('the picker shows what an app can trigger on before you commit to it', async () => {
+        const user = userEvent.setup();
         renderForm(trigger({ provider: 'gmail', event: 'mail.new', filter: null }));
         openPicker();
-        fireEvent.click(screen.getAllByRole('option').find(o => o.textContent.includes('Nextcloud')));
+        await user.click(screen.getAllByRole('option').find(o => o.textContent.includes('Nextcloud')));
         expect(screen.getByText('New file')).toBeTruthy();
         expect(screen.getByText('Deck card created')).toBeTruthy();
         // A connector-gated event is flagged in the list, not silently offered.
@@ -99,13 +101,14 @@ describe('SettingsForm — app_event (dynamic availability-gated providers)', ()
         expect(pickerApps()).toEqual(['Nextcloud']);
     });
 
-    it('switching provider snaps the event to its defaultEvent and clears the filter (via buildPatch)', () => {
+    it('switching provider snaps the event to its defaultEvent and clears the filter (via buildPatch)', async () => {
+        const user = userEvent.setup();
         const step = trigger({ provider: 'gmail', event: 'label.added', filter: { labelId: 'Label_3' } });
         const { onPatch } = renderForm(step);
         openPicker();
         chooseApp('Nextcloud');
         expect(eventSelect().value).toBe('file.new');
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Save'));
         expect(onPatch).toHaveBeenCalledTimes(1);
         expect(onPatch.mock.calls[0][0].appEvent).toEqual({ provider: 'nextcloud', event: 'file.new', filter: null });
     });
@@ -147,13 +150,14 @@ describe('SettingsForm — app_event (dynamic availability-gated providers)', ()
         expect(appButton().textContent).toContain('Gmail (not available)');
     });
 
-    it('normalizes a legacy string[] providers payload from a stale backend', () => {
+    it('normalizes a legacy string[] providers payload from a stale backend', async () => {
+        const user = userEvent.setup();
         const catalog = { triggers: [{ kind: 'app_event', providers: ['gmail', 'nextcloud'] }] };
         renderForm(trigger({ provider: 'gmail', event: 'mail.new', filter: null }), { catalog });
         expect(appButton().textContent).toContain('gmail');
         openPicker();
         expect(pickerApps()).toEqual(['gmail', 'nextcloud']);
-        fireEvent.click(screen.getByLabelText('Close'));
+        await user.click(screen.getByLabelText('Close'));
         // String defs carry no events — the configured one survives as unknown.
         expect(screen.getByRole('option', { name: 'mail.new (unknown event)' })).toBeTruthy();
     });
@@ -179,24 +183,26 @@ describe('SettingsForm — app_event (dynamic availability-gated providers)', ()
         expect(screen.queryByText(/filter/i)).toBeNull();
     });
 
-    it('google-sheets.spreadsheet.changed renders spreadsheet/sheet/range controls (BFSF-480)', () => {
+    it('google-sheets.spreadsheet.changed renders spreadsheet/sheet/range controls (BFSF-480)', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(trigger({ provider: 'google-sheets', event: 'spreadsheet.changed', filter: null }));
         expect(screen.getByText(/Google Sheets filter/)).toBeTruthy();
         fireEvent.change(screen.getByPlaceholderText('1AbCDeFgHiJkLmNoPqRsTuV'), { target: { value: 'sheet-1' } });
         fireEvent.change(screen.getByPlaceholderText('Budget'), { target: { value: 'Invoices' } });
         fireEvent.change(screen.getByPlaceholderText('A1:D100'), { target: { value: 'A1:D100' } });
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Save'));
         expect(onPatch).toHaveBeenCalledTimes(1);
         expect(onPatch.mock.calls[0][0].appEvent.filter).toEqual({ spreadsheetId: 'sheet-1', sheet: 'Invoices', range: 'A1:D100' });
     });
 
-    it('the sheets filter clears a key when its box is emptied, and stays out of spreadsheet.new', () => {
+    it('the sheets filter clears a key when its box is emptied, and stays out of spreadsheet.new', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(trigger({
             provider: 'google-sheets', event: 'spreadsheet.changed',
             filter: { spreadsheetId: 'sheet-1', sheet: 'Invoices' },
         }));
         fireEvent.change(screen.getByPlaceholderText('Budget'), { target: { value: '' } });
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Save'));
         expect(onPatch.mock.calls[0][0].appEvent.filter).toEqual({ spreadsheetId: 'sheet-1' });
 
         cleanup();

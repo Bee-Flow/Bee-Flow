@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Nextcloud Talk / Notifications / Activity tools against a fake Nextcloud:

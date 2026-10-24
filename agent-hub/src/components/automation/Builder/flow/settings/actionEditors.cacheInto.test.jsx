@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
@@ -75,17 +76,19 @@ describe('the tick', () => {
         expect(screen.getByText(/Make an answers table first/i)).toBeTruthy();
     });
 
-    it('ticking it picks the table and the default window', () => {
+    it('ticking it picks the table and the default window', async () => {
+        const user = userEvent.setup();
         const { set } = renderFields();
         openAdvanced();
-        fireEvent.click(toggle());
+        await user.click(toggle());
         expect(set).toHaveBeenCalledWith('cacheInto', { datatableId: 'tbl_answers', maxAgeDays: 30 });
     });
 
-    it('unticking it clears the field rather than leaving a table behind', () => {
+    it('unticking it clears the field rather than leaving a table behind', async () => {
+        const user = userEvent.setup();
         const { set } = renderFields({ cacheInto: { datatableId: 'tbl_answers', maxAgeDays: 30 } });
         openAdvanced();
-        fireEvent.click(toggle());
+        await user.click(toggle());
         expect(set).toHaveBeenCalledWith('cacheInto', undefined);
     });
 

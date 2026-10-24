@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AiDraftPanel, { isBlankForm } from './AiDraftPanel';
@@ -31,12 +32,13 @@ describe('isBlankForm', () => {
 
 describe('<AiDraftPanel>', () => {
     it('a blank form: a brief in, the whole form applied, the current form sent for its theme and collect', async () => {
+        const user = userEvent.setup();
         const onApply = vi.fn();
         const { rerender } = render(<AiDraftPanel form={BLANK} onApply={onApply} />);
         expect(screen.queryByRole('radiogroup')).toBeNull();
         expect(screen.getByTestId('form-ai-run')).toBeDisabled();
         fireEvent.change(screen.getByTestId('form-ai-text'), { target: { value: 'A vacation request form' } });
-        fireEvent.click(screen.getByTestId('form-ai-run'));
+        await user.click(screen.getByTestId('form-ai-run'));
         await waitFor(() => expect(onApply).toHaveBeenCalledWith(DRAFT.form));
         expect(api.draftForm).toHaveBeenCalledWith({ mode: 'create', brief: 'A vacation request form', current: BLANK });
         expect((await screen.findByTestId('form-ai-done')).textContent).toContain('2 questions drafted');
@@ -46,30 +48,33 @@ describe('<AiDraftPanel>', () => {
     });
 
     it('a form with questions: a request in, the current questions along, in revise mode by default', async () => {
+        const user = userEvent.setup();
         const onApply = vi.fn();
         render(<AiDraftPanel form={FILLED} onApply={onApply} />);
         expect(screen.getByRole('radio', { name: 'Change the current questions' }).getAttribute('aria-checked')).toBe('true');
         fireEvent.change(screen.getByTestId('form-ai-text'), { target: { value: 'add a phone number' } });
-        fireEvent.click(screen.getByTestId('form-ai-run'));
+        await user.click(screen.getByTestId('form-ai-run'));
         await waitFor(() => expect(onApply).toHaveBeenCalled());
         expect(api.draftForm).toHaveBeenCalledWith({ mode: 'revise', note: 'add a phone number', current: FILLED });
     });
 
     it('"Start over" on a filled form sends a brief instead', async () => {
+        const user = userEvent.setup();
         render(<AiDraftPanel form={FILLED} onApply={vi.fn()} />);
-        fireEvent.click(screen.getByRole('radio', { name: 'Start over from a description' }));
+        await user.click(screen.getByRole('radio', { name: 'Start over from a description' }));
         fireEvent.change(screen.getByTestId('form-ai-text'), { target: { value: 'something new' } });
-        fireEvent.click(screen.getByTestId('form-ai-run'));
+        await user.click(screen.getByTestId('form-ai-run'));
         await waitFor(() => expect(api.draftForm).toHaveBeenCalledWith({ mode: 'create', brief: 'something new', current: FILLED }));
     });
 
     it('Undo puts back exactly what the editor held before the draft', async () => {
+        const user = userEvent.setup();
         const onApply = vi.fn();
         render(<AiDraftPanel form={FILLED} onApply={onApply} />);
         fireEvent.change(screen.getByTestId('form-ai-text'), { target: { value: 'shorter' } });
-        fireEvent.click(screen.getByTestId('form-ai-run'));
+        await user.click(screen.getByTestId('form-ai-run'));
         await screen.findByTestId('form-ai-done');
-        fireEvent.click(screen.getByTestId('form-ai-undo'));
+        await user.click(screen.getByTestId('form-ai-undo'));
         expect(onApply).toHaveBeenLastCalledWith(FILLED);
         expect(onApply.mock.calls[1][0]).not.toBe(FILLED); // a copy, not the same object
         expect(screen.queryByTestId('form-ai-undo')).toBeNull();

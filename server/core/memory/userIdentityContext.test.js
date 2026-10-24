@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * buildUserIdentity: the account block the chat prompt carries, and the known
  * values the memory tokeniser replaces without a detector.

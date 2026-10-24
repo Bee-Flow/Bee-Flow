@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Studio App store cross-tenant IDOR regression tests.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for orgVault — per-org AES-256-GCM secret encryption.
  * Run: node stores/orgVault.test.js

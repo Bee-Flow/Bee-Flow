@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The full copy of a truncated step output (BFSF-435).
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * `resolveModelForTierName`: who fills in a model if nobody chose one?
  *

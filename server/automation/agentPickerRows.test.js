@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The agent picker of the AI step (R2, part C).
  *

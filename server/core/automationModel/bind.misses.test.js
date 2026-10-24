@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A mapping that finds nothing says so.
  *

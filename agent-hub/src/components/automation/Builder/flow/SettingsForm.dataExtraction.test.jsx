@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
     extractFormState, buildPatch,
@@ -143,10 +144,11 @@ describe('SettingsForm — DataExtractionFields', () => {
         expect(screen.queryByText(/Structured output/)).toBeNull();
     });
 
-    it('opens on one blank row; Add field appends; the type menu offers exactly the four types', () => {
+    it('opens on one blank row; Add field appends; the type menu offers exactly the four types', async () => {
+        const user = userEvent.setup();
         renderForm(freshStep());
         expect(screen.getAllByTestId('extraction-field-row')).toHaveLength(1);
-        fireEvent.click(screen.getByText('Add field'));
+        await user.click(screen.getByText('Add field'));
         expect(screen.getAllByTestId('extraction-field-row')).toHaveLength(2);
         const typeSelect = screen.getAllByLabelText('Type')[0];
         expect([...typeSelect.options].map(o => o.value)).toEqual(['string', 'number', 'boolean', 'date']);
@@ -160,18 +162,19 @@ describe('SettingsForm — DataExtractionFields', () => {
     });
 
     it('saves through onPatch with the blank seed row dropped and the named rows in the shape the runner reads', async () => {
+        const user = userEvent.setup();
         const onPatch = vi.fn(async () => {});
         renderForm(freshStep(), { onPatch });
         const rows = () => screen.getAllByTestId('extraction-field-row');
         fireEvent.change(within(rows()[0]).getByLabelText('Name'), { target: { value: 'datum' } });
         fireEvent.change(within(rows()[0]).getByLabelText('Type'), { target: { value: 'date' } });
         fireEvent.change(within(rows()[0]).getByLabelText('What to look for'), { target: { value: 'Invoice date' } });
-        fireEvent.click(within(rows()[0]).getByRole('checkbox'));
-        fireEvent.click(screen.getByText('Add field'));
+        await user.click(within(rows()[0]).getByRole('checkbox'));
+        await user.click(screen.getByText('Add field'));
         fireEvent.change(within(rows()[1]).getByLabelText('Name'), { target: { value: 'totaal' } });
         fireEvent.change(within(rows()[1]).getByLabelText('Type'), { target: { value: 'number' } });
-        fireEvent.click(screen.getByText('Add field')); // left blank on purpose
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Add field')); // left blank on purpose
+        await user.click(screen.getByText('Save'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls.at(-1)[0];
         expect(patch.fields).toEqual([
@@ -184,36 +187,38 @@ describe('SettingsForm — DataExtractionFields', () => {
     });
 
     it('flags a repeated name on the row and leaves it out of the save', async () => {
+        const user = userEvent.setup();
         const onPatch = vi.fn(async () => {});
         renderForm(freshStep(), { onPatch });
         const rows = () => screen.getAllByTestId('extraction-field-row');
         fireEvent.change(within(rows()[0]).getByLabelText('Name'), { target: { value: 'datum' } });
-        fireEvent.click(screen.getByText('Add field'));
+        await user.click(screen.getByText('Add field'));
         fireEvent.change(within(rows()[1]).getByLabelText('Name'), { target: { value: 'datum' } });
         expect(within(rows()[1]).getByText(/already called datum/)).toBeTruthy();
         expect(within(rows()[0]).queryByText(/already called/)).toBeNull();
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Save'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls.at(-1)[0].fields).toEqual([{ name: 'datum', type: 'string' }]);
     });
 
     it('reorders with the arrows and removes with the bin — the order is the output order', async () => {
+        const user = userEvent.setup();
         const onPatch = vi.fn(async () => {});
         renderForm(freshStep(), { onPatch });
         const rows = () => screen.getAllByTestId('extraction-field-row');
         fireEvent.change(within(rows()[0]).getByLabelText('Name'), { target: { value: 'a' } });
-        fireEvent.click(screen.getByText('Add field'));
+        await user.click(screen.getByText('Add field'));
         fireEvent.change(within(rows()[1]).getByLabelText('Name'), { target: { value: 'b' } });
-        fireEvent.click(screen.getByText('Add field'));
+        await user.click(screen.getByText('Add field'));
         fireEvent.change(within(rows()[2]).getByLabelText('Name'), { target: { value: 'c' } });
         // The first row cannot move up, the last cannot move down.
         expect(within(rows()[0]).getByLabelText('Move up').disabled).toBe(true);
         expect(within(rows()[2]).getByLabelText('Move down').disabled).toBe(true);
-        fireEvent.click(within(rows()[2]).getByLabelText('Move up'));
+        await user.click(within(rows()[2]).getByLabelText('Move up'));
         expect(rows().map(r => within(r).getByLabelText('Name').value)).toEqual(['a', 'c', 'b']);
-        fireEvent.click(within(rows()[0]).getByLabelText('Remove field'));
+        await user.click(within(rows()[0]).getByLabelText('Remove field'));
         expect(rows().map(r => within(r).getByLabelText('Name').value)).toEqual(['c', 'b']);
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Save'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls.at(-1)[0].fields.map(f => f.name)).toEqual(['c', 'b']);
     });

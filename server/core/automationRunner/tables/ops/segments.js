@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * groups: how many rows fall in each answer of the chosen columns. The table

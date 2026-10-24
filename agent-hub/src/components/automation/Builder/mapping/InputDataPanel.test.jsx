@@ -63,19 +63,21 @@ describe('InputDataPanel', () => {
         expect(screen.queryByText('JSON')).toBeNull();
     });
 
-    it('lists the nearest step first and opens only that one', () => {
+    it('lists the nearest step first and opens only that one', async () => {
+        const user = userEvent.setup();
         renderPanel();
         const labels = screen.getAllByText(/Gmail search|Trigger/).map(el => el.textContent);
         expect(labels[0]).toBe('Gmail search');
         // The trigger section is collapsed, so its field is not rendered.
         expect(screen.queryByText('Email')).toBeNull();
-        fireEvent.click(screen.getByText('Trigger'));
+        await user.click(screen.getByText('Trigger'));
         expect(screen.getByText('Email')).toBeTruthy();
     });
 
-    it('clicking a field inserts its path', () => {
+    it('clicking a field inserts its path', async () => {
+        const user = userEvent.setup();
         const { onPick } = renderPanel();
-        fireEvent.click(screen.getByText('Count'));
+        await user.click(screen.getByText('Count'));
         expect(onPick).toHaveBeenCalledWith('steps.s1.output.count', { raw: false });
     });
 
@@ -115,24 +117,26 @@ describe('InputDataPanel', () => {
         expect(screen.getByText('No matches.')).toBeTruthy();
     });
 
-    it('the Table view is one click away and takes over the panel', () => {
+    it('the Table view is one click away and takes over the panel', async () => {
+        const user = userEvent.setup();
         renderPanel();
-        fireEvent.click(screen.getByLabelText('Open Gmail search as a table'));
+        await user.click(screen.getByLabelText('Open Gmail search as a table'));
         // OutputView is mounted (its mode toggle appears) and the section list
         // is gone, so there is exactly one scroller.
         expect(screen.getByText('JSON')).toBeTruthy();
         expect(screen.queryByLabelText('Search fields')).toBeNull();
-        fireEvent.click(screen.getByText('Fields'));
+        await user.click(screen.getByText('Fields'));
         expect(screen.getByLabelText('Search fields')).toBeTruthy();
     });
 
-    it('expanding a field keeps the row itself clickable as the parent path', () => {
+    it('expanding a field keeps the row itself clickable as the parent path', async () => {
+        const user = userEvent.setup();
         const { onPick } = renderPanel();
         const row = screen.getByText('Results').parentElement;
-        fireEvent.click(within(row).getByRole('button'));       // the chevron
+        await user.click(within(row).getByRole('button'));       // the chevron
         expect(screen.getByText('Subject')).toBeTruthy();
         expect(onPick).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByText('Results'));            // the row
+        await user.click(screen.getByText('Results'));            // the row
         expect(onPick).toHaveBeenCalledWith('steps.s1.output.results', { raw: false });
     });
 

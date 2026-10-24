@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { extractFormState, buildPatch } from './settings/formState';
 import SettingsForm from './SettingsForm';
@@ -99,12 +100,13 @@ describe('SettingsForm — HttpRequestFields', () => {
 
     const getStep = () => buildStepFromPayload({ kind: 'http_request', label: 'HTTP Request' });
 
-    it('renders URL and Method, and the security toggle (on by default, inside Options)', () => {
+    it('renders URL and Method, and the security toggle (on by default, inside Options)', async () => {
+        const user = userEvent.setup();
         renderForm({ ...getStep(), id: 'h1' });
         expect(screen.getByText('URL')).toBeTruthy();
         expect(screen.getByText('Method')).toBeTruthy();
         // The security toggle lives in the (collapsed) Options accordion — expand it.
-        fireEvent.click(screen.getByText('Options'));
+        await user.click(screen.getByText('Options'));
         const toggle = screen.getByRole('checkbox', { name: /Block requests to private/ });
         expect(toggle.checked).toBe(true); // blockPrivateTargets default on
     });
@@ -117,11 +119,12 @@ describe('SettingsForm — HttpRequestFields', () => {
         expect(screen.getByText('Body')).toBeTruthy();
     });
 
-    it('toggling the security checkbox off is reflected in the control', () => {
+    it('toggling the security checkbox off is reflected in the control', async () => {
+        const user = userEvent.setup();
         renderForm({ ...getStep(), id: 'h1' });
-        fireEvent.click(screen.getByText('Options'));
+        await user.click(screen.getByText('Options'));
         const toggle = screen.getByRole('checkbox', { name: /Block requests to private/ });
-        fireEvent.click(toggle);
+        await user.click(toggle);
         expect(toggle.checked).toBe(false);
     });
 });
@@ -159,17 +162,19 @@ describe('SettingsForm — Authentication section (HttpAuthPicker)', () => {
     });
 
     it('selecting a credential lands in the saved patch as auth.connectionId', async () => {
+        const user = userEvent.setup();
         const onPatch = vi.fn(async () => {});
         renderForm({ ...getStep(), id: 'h1' }, { onPatch });
         const select = await openAuthSection();
         fireEvent.change(select, { target: { value: 'c-own' } });
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Save'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls.at(-1)[0];
         expect(patch.auth).toEqual({ connectionId: 'c-own' });
     });
 
     it('picking None clears the credential (auth: null in the patch)', async () => {
+        const user = userEvent.setup();
         const onPatch = vi.fn(async () => {});
         renderForm({ ...getStep(), id: 'h1', auth: { connectionId: 'c-own' } }, { onPatch });
         // Section defaults open when a credential is set — the select loads directly.
@@ -180,7 +185,7 @@ describe('SettingsForm — Authentication section (HttpAuthPicker)', () => {
         });
         expect(select.value).toBe('c-own');
         fireEvent.change(select, { target: { value: '' } });
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Save'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls.at(-1)[0].auth).toBeNull();
     });
@@ -200,9 +205,10 @@ describe('SettingsForm — Authentication section (HttpAuthPicker)', () => {
     });
 
     it('inline create posts the new credential and auto-selects it', async () => {
+        const user = userEvent.setup();
         renderForm({ ...getStep(), id: 'h1' });
         const select = await openAuthSection();
-        fireEvent.click(screen.getByText('Add credential'));
+        await user.click(screen.getByText('Add credential'));
         // Default auth type is Bearer token — a single password field.
         const form = screen.getByText('Save credential').closest('div').parentElement;
         const nameInput = form.querySelector('input[type="text"]');
@@ -210,7 +216,7 @@ describe('SettingsForm — Authentication section (HttpAuthPicker)', () => {
         const tokenInput = form.querySelector('input[type="password"]');
         expect(tokenInput).toBeTruthy(); // secrets are never plain text inputs
         fireEvent.change(tokenInput, { target: { value: 'tok-inline-test' } });
-        fireEvent.click(screen.getByText('Save credential'));
+        await user.click(screen.getByText('Save credential'));
         await waitFor(() => expect(api.createHttpConnection).toHaveBeenCalledTimes(1));
         expect(api.createHttpConnection).toHaveBeenCalledWith({
             provider: 'http', kind: 'bearer', label: 'My bearer', secret: { token: 'tok-inline-test' },
@@ -308,9 +314,10 @@ describe('http_request — the parsed response', () => {
         expect(buildPatch(step, { ...extractFormState(step), parseResponse: 'never' }).parseResponse).toBe('never');
     });
 
-    it('offers the three choices in Options', () => {
+    it('offers the three choices in Options', async () => {
+        const user = userEvent.setup();
         renderForm(buildStepFromPayload({ kind: 'http_request', label: 'HTTP Request' }));
-        fireEvent.click(screen.getByText('Options'));
+        await user.click(screen.getByText('Options'));
         const select = screen.getByDisplayValue('Read JSON automatically');
         expect([...select.querySelectorAll('option')].map(o => o.value)).toEqual(['auto', 'always', 'never']);
     });

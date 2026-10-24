@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Curated catalogue of vendor-hosted (remote) MCP servers an ORGANISATION
  * admin may install from Settings → Organisation → MCP library.

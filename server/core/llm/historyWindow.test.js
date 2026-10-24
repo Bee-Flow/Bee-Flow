@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Head-anchored history window — the property that matters is that the
  * windowed list is a prefix-stable function of the conversation: it grows by

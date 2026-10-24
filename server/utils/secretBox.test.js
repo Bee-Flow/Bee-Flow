@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit — secretBox AES-256-GCM (H12). DB-free. Proves round-trip, byte-level
  * compatibility with the old inline crypto (existing DB rows must still

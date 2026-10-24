@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The one capability core/tools needs from the automation runner: start a
  * run. A skill linked to an automation (skillInjection.js) executes it, but

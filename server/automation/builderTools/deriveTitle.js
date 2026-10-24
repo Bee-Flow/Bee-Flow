@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — a name for an automation the model never named.
  *
@@ -169,7 +170,7 @@ function deriveTitle({ brief, def } = {}) {
  * empty or the default, so a title builder_set_metadata chose always wins.
  * @returns {{ derived: boolean, title: string }}
  */
-function ensureDraftTitle(draftWrap, { brief } = {}) {
+function ensureDraftTitle(draftWrap, /** @type {{brief?: any}} */ { brief } = {}) {
     const current = typeof draftWrap.title === 'string' ? draftWrap.title.trim() : '';
     if (current && current !== UNTITLED_AUTOMATION) return { derived: false, title: current };
     const title = deriveTitle({ brief, def: draftWrap.def });

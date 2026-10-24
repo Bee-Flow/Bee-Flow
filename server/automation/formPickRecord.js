@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Searching and reading the records an `app_pick` form question offers.
  *
@@ -50,12 +51,12 @@ const { MAX_TEXT_CHARS } = pickSources;
  */
 async function resolveCallerTools(caller) {
     const { getIntegrationTools } = require('../core/integrations/integrationTools');
-    const r = await getIntegrationTools({
+    const r = await getIntegrationTools(/** @type {any} */ ({
         userId: caller.userId,
         session: caller.session,
         isAdmin: !!caller.isAdmin,
         automationStep: true,
-    });
+    }));
     const names = new Set();
     for (const t of (r?.tools || [])) if (t?.function?.name) names.add(t.function.name);
     return names;
@@ -212,7 +213,7 @@ async function readMeetingNote(recordId, caller) {
  * @param {string} rawQuery  what the person typed
  * @param {object} caller    { userId, session, orgId, orgIds, userGroupIds, … }
  */
-async function searchRecords(sourceId, rawQuery, caller, { limit } = {}) {
+async function searchRecords(sourceId, rawQuery, caller, /** @type {{limit?: number}} */ { limit } = {}) {
     const authorized = await authorizeSource(sourceId, caller);
     if (authorized.error) return { error: authorized.error };
     const source = authorized.source;
@@ -265,7 +266,7 @@ function boundText(text) {
  * `withText: false` is the author saying "a reference is enough": no read is
  * made at all, which is both faster and the smaller privacy footprint.
  */
-async function describePick(pick, { withText = true, caller } = {}) {
+async function describePick(pick, /** @type {{withText?: boolean, caller?: any}} */ { withText = true, caller } = {}) {
     const base = {
         kind: 'app_pick',
         source: pick.source,

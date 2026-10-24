@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Consumer (individual) accounts — the signed-in user's own limits, usage and
  * subscription status, plus starting their one-time trial.
@@ -11,6 +12,7 @@ const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { HttpError } = require('../../core/http/errors');
 
 const router = express.Router();
 
@@ -125,7 +127,7 @@ router.post('/consumer/:userId/start-trial', validate({ body: StartTrialBody }),
             return res.status(409).json({ error: 'trial_already_used' });
         }
         log.error('[Subscriptions] startConsumerTrial error:', e);
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 

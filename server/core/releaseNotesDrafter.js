@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * releaseNotesDrafter — turns a build's raw git material into customer-facing
  * release notes, using the org's configured model.

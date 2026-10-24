@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -264,18 +265,20 @@ const SCANS = Object.freeze({
 });
 
 /**
- * Everything that hangs on this webpage.
+ * Alles wat aan deze webpagina hangt.
  *
- * @param {object} webpage  the PAGE ROW as the store returns it, not only its id:
- *                          `projectId` is what `scanSolution` reads, and without that
- *                          property it reports "checked, zero rows" for a page that IS
- *                          in a Solution — a real dependency that drops out of the list
- *                          as a CONFIRMED zero instead of as a gap. `id` carries the rest.
+ * @param {Record<string, any>} webpage  de PAGINARIJ zoals de store hem teruggeeft, niet
+ *                          alleen haar id: `projectId` is wat `scanSolution`
+ *                          leest, en zonder die eigenschap meldt hij
+ *                          "gecontroleerd, nul rijen" voor een pagina die wél
+ *                          in een Oplossing ligt — een echte afhankelijkheid
+ *                          die als een BEVESTIGDE nul uit de lijst valt in
+ *                          plaats van als een gat. `id` draagt de rest.
  * @param {object} [opts]
- * @param {object} [opts.db]  injection point for the tests
+ * @param {object} [opts.db]  injectiepunt voor de tests
  * @returns {Promise<{rows: Array, partial: string[], sources: object, complete: boolean}>}
- *          `partial` names the kinds that could NOT be answered. Not empty means "I don't
- *          know" — never "there is nothing".
+ *          `partial` noemt de soorten die NIET beantwoord konden worden. Niet
+ *          leeg betekent "ik weet het niet" — nooit "er is niets".
  */
 async function usageForWebpage(webpage, { db = pool } = {}) {
     const rows = [];

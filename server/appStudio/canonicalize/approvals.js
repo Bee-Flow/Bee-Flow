@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio canonicalizer — the request_approval step's own blocks: approver
  * questions, the stage chain, and the on_decided record-write hook.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Every per-organisation config key must be a decision, not an accident.
  *

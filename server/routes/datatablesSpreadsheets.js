@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * /api/datatables/spreadsheets/* — LINKING spreadsheet files as datatables.
  *

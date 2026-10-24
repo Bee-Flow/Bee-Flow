@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render as rtlRender, screen } from '@testing-library/react';
+import { render as rtlRender, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -110,7 +111,8 @@ describe('AppEditorShell — the translated shell chrome', () => {
         vi.clearAllMocks();
     });
 
-    it('names the AI builder pane and its collapse control in the active language', () => {
+    it('names the AI builder pane and its collapse control in the active language', async () => {
+        const user = userEvent.setup();
         render(<AppEditorShell app={app} onClose={vi.fn()} chatSlot={<div data-testid="chat-slot" />} />);
 
         expect(screen.getByLabelText('AI-bouwer')).toBeInTheDocument();
@@ -118,17 +120,18 @@ describe('AppEditorShell — the translated shell chrome', () => {
 
         // Collapse and reopen through the Dutch names: the affordance is keyed
         // to the button, not to the English string that used to name it.
-        fireEvent.click(screen.getByRole('button', { name: 'Verberg de AI-bouwer' }));
+        await user.click(screen.getByRole('button', { name: 'Verberg de AI-bouwer' }));
         expect(screen.getByLabelText('AI-bouwer')).toHaveClass('hidden');
-        fireEvent.click(screen.getByRole('button', { name: 'Toon de AI-bouwer' }));
+        await user.click(screen.getByRole('button', { name: 'Toon de AI-bouwer' }));
         expect(screen.getByLabelText('AI-bouwer')).not.toHaveClass('hidden');
     });
 
-    it('translates BOTH titles the collapsed AI rail flips between', () => {
+    it('translates BOTH titles the collapsed AI rail flips between', async () => {
+        const user = userEvent.setup();
         render(<AppEditorShell app={app} onClose={vi.fn()} chatSlot={<FakeAIPane />} />);
 
-        fireEvent.click(screen.getByRole('button', { name: 'ai-lock' }));
-        fireEvent.click(screen.getByRole('button', { name: 'Verberg de AI-bouwer' }));
+        await user.click(screen.getByRole('button', { name: 'ai-lock' }));
+        await user.click(screen.getByRole('button', { name: 'Verberg de AI-bouwer' }));
 
         // Two keys sit on one button here: the title says the AI is working
         // while the accessible name stays "show". A hard-coded English title
@@ -137,15 +140,16 @@ describe('AppEditorShell — the translated shell chrome', () => {
         expect(rail).toHaveAttribute('title', 'De AI is aan het bouwen — klik om mee te kijken');
     });
 
-    it('names the inspector column and its two collapse controls', () => {
+    it('names the inspector column and its two collapse controls', async () => {
+        const user = userEvent.setup();
         render(<AppEditorShell app={app} onClose={vi.fn()} />);
 
         expect(screen.getByRole('complementary', { name: 'Inspecteur' })).toBeInTheDocument();
         expect(screen.getByRole('separator', { name: 'Breedte van de inspecteur aanpassen' })).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: 'Inspecteur inklappen' }));
+        await user.click(screen.getByRole('button', { name: 'Inspecteur inklappen' }));
         expect(screen.queryByRole('complementary', { name: 'Inspecteur' })).toBeNull();
-        fireEvent.click(screen.getByRole('button', { name: 'Inspecteur tonen' }));
+        await user.click(screen.getByRole('button', { name: 'Inspecteur tonen' }));
         expect(screen.getByRole('complementary', { name: 'Inspecteur' })).toBeInTheDocument();
     });
 

@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import InputDataPanel from './InputDataPanel';
@@ -56,14 +57,15 @@ describe('InputDataPanel — grouped by step', () => {
         expect(document.body.textContent).not.toMatch(/\b(array|object|string)\b/);
     });
 
-    it('"All" flattens every field into one list, "Per step" groups them again', () => {
+    it('"All" flattens every field into one list, "Per step" groups them again', async () => {
+        const user = userEvent.setup();
         renderPanel();
-        fireEvent.click(screen.getByRole('button', { name: 'All' }));
+        await user.click(screen.getByRole('button', { name: 'All' }));
         const all = screen.getByTestId('input-all-fields');
         expect(all.textContent).toContain('Email');
         expect(all.textContent).toContain('Count');
         expect(screen.queryAllByTestId('input-group')).toHaveLength(0);
-        fireEvent.click(screen.getByRole('button', { name: 'Per step' }));
+        await user.click(screen.getByRole('button', { name: 'Per step' }));
         expect(screen.getAllByTestId('input-group')).toHaveLength(2);
     });
 

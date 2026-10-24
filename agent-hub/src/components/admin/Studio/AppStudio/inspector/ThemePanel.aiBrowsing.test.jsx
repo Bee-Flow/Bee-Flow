@@ -1,4 +1,5 @@
 import { render, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import ThemePanel from './ThemePanel';
 import { updateAiBrowsing } from '../state/definitionOps';
@@ -61,9 +62,10 @@ describe('ThemePanel — AI browsing settings', () => {
         expect(getByLabelText(/Let this app browse the web/i).checked).toBe(false);
     });
 
-    it('turning it on commits { enabled: true }', () => {
+    it('turning it on commits { enabled: true }', async () => {
+        const user = userEvent.setup();
         const { onCommit, getByLabelText } = renderPanel();
-        fireEvent.click(getByLabelText(/Let this app browse the web/i));
+        await user.click(getByLabelText(/Let this app browse the web/i));
         expect(onCommit).toHaveBeenCalledTimes(1);
         expect(onCommit.mock.calls[0][0].aiBrowsing).toEqual({ enabled: true });
     });

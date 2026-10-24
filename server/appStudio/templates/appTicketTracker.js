@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio template — Ticket tracker — intake form (create_record sequence) + status
  * kanban + a "My tickets" screen scoped to currentUser (Wave 1a).

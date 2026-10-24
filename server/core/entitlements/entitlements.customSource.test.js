@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Which licence admits an org-scoped custom integration ('custom:<uuid>') to
  * the integration ceiling (entitlements.js buildCeiling, `_customSource` from

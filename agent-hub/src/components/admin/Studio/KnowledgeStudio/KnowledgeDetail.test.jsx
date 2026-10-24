@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { knowledgeApi } from './knowledgeApi';
@@ -46,12 +47,13 @@ describe('KnowledgeDetail', () => {
     });
 
     it('reports a tab change so the caller can put it in the URL', async () => {
+        const user = userEvent.setup();
         // A tab held only in state is a tab nobody can link to — and "what
         // still uses this" is exactly the screen people send each other.
         const onTab = vi.fn();
         render(<KnowledgeDetail kbId="kb1" tab="sources" onTab={onTab} />);
         await screen.findByTestId('kb-tab-sources');
-        fireEvent.click(screen.getByRole('radio', { name: /Used by/ }));
+        await user.click(screen.getByRole('radio', { name: /Used by/ }));
         expect(onTab).toHaveBeenCalledWith('usage');
     });
 
@@ -84,13 +86,14 @@ describe('KnowledgeDetail', () => {
     });
 
     it('reuses the existing upload bucket instead of making a second one', async () => {
+        const user = userEvent.setup();
         // The ingest wrappers always attach to the OLDEST upload source; a
         // second "Uploaded files" beside the first is two piles of the same
         // thing with no way to tell them apart.
         knowledgeApi.uploadFiles.mockResolvedValue({ accepted: 1, documents: [] });
         render(<KnowledgeDetail kbId="kb1" canManage />);
         await screen.findByTestId('kb-tab-sources');
-        fireEvent.click(screen.getByTestId('kb-add-kind-upload'));
+        await user.click(screen.getByTestId('kb-add-kind-upload'));
         const file = new File(['x'], 'a.pdf', { type: 'application/pdf' });
         fireEvent.change(screen.getByLabelText('Choose files'), { target: { files: [file] } });
         await waitFor(() => expect(knowledgeApi.uploadFiles).toHaveBeenCalledWith('kb1', 's1', [file]));
@@ -98,12 +101,13 @@ describe('KnowledgeDetail', () => {
     });
 
     it('creates an upload bucket the first time there is none', async () => {
+        const user = userEvent.setup();
         knowledgeApi.listSources.mockResolvedValue({ sources: [], totals: null });
         knowledgeApi.createSource.mockResolvedValue({ source: { id: 's_new', kind: 'upload' } });
         knowledgeApi.uploadFiles.mockResolvedValue({ accepted: 1, documents: [] });
         render(<KnowledgeDetail kbId="kb1" canManage />);
         await screen.findByTestId('kb-tab-sources');
-        fireEvent.click(screen.getByTestId('kb-add-kind-upload'));
+        await user.click(screen.getByTestId('kb-add-kind-upload'));
         const file = new File(['x'], 'a.pdf', { type: 'application/pdf' });
         fireEvent.change(screen.getByLabelText('Choose files'), { target: { files: [file] } });
         await waitFor(() => expect(knowledgeApi.createSource).toHaveBeenCalledWith('kb1', expect.objectContaining({ kind: 'upload' })));
@@ -111,19 +115,21 @@ describe('KnowledgeDetail', () => {
     });
 
     it('adds a pasted-text source', async () => {
+        const user = userEvent.setup();
         knowledgeApi.createSource.mockResolvedValue({ source: { id: 's2' } });
         render(<KnowledgeDetail kbId="kb1" canManage />);
         await screen.findByTestId('kb-tab-sources');
-        fireEvent.click(screen.getByTestId('kb-add-kind-text'));
+        await user.click(screen.getByTestId('kb-add-kind-text'));
         fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'FAQ' } });
         fireEvent.change(screen.getByLabelText('Text'), { target: { value: 'Quotes are valid 30 days.' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Add source' }));
+        await user.click(screen.getByRole('button', { name: 'Add source' }));
         await waitFor(() => expect(knowledgeApi.createSource).toHaveBeenCalledWith('kb1', {
             kind: 'text', name: 'FAQ', config: { text: 'Quotes are valid 30 days.' },
         }));
     });
 
     it('turns the licence cap into a sentence with the number in it', async () => {
+        const user = userEvent.setup();
         // A cap that says only "too many" tells you nothing you can act on.
         const err = new Error('limit');
         err.code = 'source_limit_reached';
@@ -131,9 +137,9 @@ describe('KnowledgeDetail', () => {
         knowledgeApi.createSource.mockRejectedValue(err);
         render(<KnowledgeDetail kbId="kb1" canManage />);
         await screen.findByTestId('kb-tab-sources');
-        fireEvent.click(screen.getByTestId('kb-add-kind-text'));
+        await user.click(screen.getByTestId('kb-add-kind-text'));
         fireEvent.change(screen.getByLabelText('Text'), { target: { value: 'hello there' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Add source' }));
+        await user.click(screen.getByRole('button', { name: 'Add source' }));
         expect(await screen.findByText(/the most sources your plan allows \(5\)/)).toBeTruthy();
     });
 
@@ -152,12 +158,13 @@ describe('KnowledgeDetail', () => {
     });
 
     it('the automation card explains where the step lives instead of asking for one', async () => {
+        const user = userEvent.setup();
         // The relationship is backwards from every other card: an automation adds
         // itself. Somebody told "you cannot add this one" needs to know what
         // to do instead, in the same breath.
         render(<KnowledgeDetail kbId="kb1" canManage />);
         await screen.findByTestId('kb-tab-sources');
-        fireEvent.click(screen.getByTestId('kb-add-kind-automation'));
+        await user.click(screen.getByTestId('kb-add-kind-automation'));
         const panel = await screen.findByTestId('kb-signpost-automation');
         expect(panel.textContent).toMatch(/To knowledge base/);
         expect(screen.getByTestId('kb-signpost-automation-link')).toBeTruthy();
@@ -171,12 +178,13 @@ describe('KnowledgeDetail', () => {
     });
 
     it('makes the header action move focus to the add-source panel', async () => {
+        const user = userEvent.setup();
         // It used to be a <span> painted like a button: pressable-looking,
         // inert, and unreachable from the keyboard.
         render(<KnowledgeDetail kbId="kb1" canManage />);
         await screen.findByTestId('kb-tab-sources');
         const header = screen.getByTestId('studio-section-header');
-        fireEvent.click(within(header).getByRole('button', { name: /Add a source/ }));
+        await user.click(within(header).getByRole('button', { name: /Add a source/ }));
         expect(screen.getByTestId('kb-add-source').contains(document.activeElement)).toBe(true);
     });
 

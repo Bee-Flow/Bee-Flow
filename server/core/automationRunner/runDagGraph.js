@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Graph bookkeeping for the DAG walker (runDag.js): which nodes a run can
  * reach, the fan-in (join) gate that decides when a node may be queued, the

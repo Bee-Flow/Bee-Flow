@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Per-step-type field rules: everything the validator checks INSIDE one step —
  * integration_action, approval (incl. panel + stage chain), ai_step, condition,

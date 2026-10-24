@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * describe: what each column holds, so a later step (or a person, or a

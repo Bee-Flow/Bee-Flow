@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * geoDb — record shaping, the source order, status, and the monthly refresh
  * decision. Fake readers only: no test reads a 130 MB file.

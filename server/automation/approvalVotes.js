@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Votes on multi-person approvals: a vote in the current stage of a stage
  * chain, a vote on a panel, and the notices that hand the turn on. When a

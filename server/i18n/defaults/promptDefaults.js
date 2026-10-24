@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Prompt Defaults Registry
  *

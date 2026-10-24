@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render as rtlRender, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CanUseCard from './CanUseCard';
@@ -89,10 +90,11 @@ beforeEach(() => {
 });
 
 describe('examples', () => {
-    it('adds an empty example with an id of its own', () => {
+    it('adds an empty example with an id of its own', async () => {
+        const user = userEvent.setup();
         const onExamples = vi.fn();
         render(<ExamplesHarness onExamples={onExamples} />);
-        fireEvent.click(screen.getByTestId('skill-example-add'));
+        await user.click(screen.getByTestId('skill-example-add'));
         const [next] = onExamples.mock.calls.at(-1);
         expect(next).toHaveLength(1);
         expect(next[0].id).toMatch(/^ex_/);
@@ -110,13 +112,14 @@ describe('examples', () => {
      * looked stored and came back closed, and an autosave had fired for
      * nothing. Opening a field is not an edit.
      */
-    it('opens the bad half without writing anything', () => {
+    it('opens the bad half without writing anything', async () => {
+        const user = userEvent.setup();
         const onExamples = vi.fn();
         render(<ExamplesHarness
             initial={[{ id: 'e1', question: 'q', good: 'g', rationale: '', bad: '', violatedRuleId: '' }]}
             onExamples={onExamples}
         />);
-        fireEvent.click(screen.getByTestId('skill-example-add-bad'));
+        await user.click(screen.getByTestId('skill-example-add-bad'));
         expect(onExamples).not.toHaveBeenCalled();
         expect(screen.getByTestId('skill-example-violates')).toBeTruthy();
         // …and typing into it IS an edit, which does get stored.
@@ -208,24 +211,27 @@ describe('taking an example from a conversation', () => {
      * this screen must never do.
      */
     it('withdraws the promise when the checker did not run', async () => {
+        const user = userEvent.setup();
         skillsApi.exampleMessages.mockResolvedValue({
             messages: [{ index: 1, role: 'assistant', text: 'Tell Jan Bakker it is fine.' }],
             piiChecked: false,
         });
-        fireEvent.click(await openPicker());
+        await user.click(await openPicker());
         await screen.findByTestId('skill-example-message');
         expect(screen.queryByText(/Personal data is removed before the example is stored/)).toBeNull();
         expect(screen.getByText(/personal-data check is unavailable/)).toBeTruthy();
     });
 
     it('keeps the promise standing when the checker did run', async () => {
-        fireEvent.click(await openPicker());
+        const user = userEvent.setup();
+        await user.click(await openPicker());
         await screen.findByTestId('skill-example-message');
         expect(screen.getByText(/Personal data is removed before the example is stored/)).toBeTruthy();
     });
 
     it('shows the redacted preview and offers only the answers', async () => {
-        fireEvent.click(await openPicker());
+        const user = userEvent.setup();
+        await user.click(await openPicker());
         await waitFor(() => expect(skillsApi.exampleMessages).toHaveBeenCalledWith('c1'));
         const options = await screen.findAllByTestId('skill-example-message');
         expect(options).toHaveLength(1);
@@ -233,11 +239,12 @@ describe('taking an example from a conversation', () => {
     });
 
     it('stores the chosen message by its index and adds what the server hands back', async () => {
+        const user = userEvent.setup();
         const onExamples = vi.fn();
         render(<ExamplesHarness onExamples={onExamples} />);
-        fireEvent.click(screen.getByTestId('skill-example-from-chat'));
-        fireEvent.click(await screen.findByTestId('skill-example-conversation'));
-        fireEvent.click(await screen.findByTestId('skill-example-message'));
+        await user.click(screen.getByTestId('skill-example-from-chat'));
+        await user.click(await screen.findByTestId('skill-example-conversation'));
+        await user.click(await screen.findByTestId('skill-example-message'));
         await waitFor(() => expect(skillsApi.exampleFromMessage).toHaveBeenCalledWith('s1', {
             conversationId: 'c1', messageIndex: 1,
         }));
@@ -251,18 +258,20 @@ describe('taking an example from a conversation', () => {
      * next to the error line, so the screen made two contradictory claims at once.
      */
     it('does not report a failed conversation read as an empty account', async () => {
+        const user = userEvent.setup();
         skillsApi.exampleConversations.mockRejectedValue(new Error('boom'));
         render(<ExamplesHarness />);
-        fireEvent.click(screen.getByTestId('skill-example-from-chat'));
+        await user.click(screen.getByTestId('skill-example-from-chat'));
         expect(await screen.findByText(/could not be read just now/)).toBeTruthy();
         expect(screen.queryByText(/No conversations of your own yet/)).toBeNull();
     });
 
     it('does not report a failed message read as an empty conversation, and drops the promise with it', async () => {
+        const user = userEvent.setup();
         skillsApi.exampleMessages.mockRejectedValue(new Error('boom'));
         render(<ExamplesHarness />);
-        fireEvent.click(screen.getByTestId('skill-example-from-chat'));
-        fireEvent.click(await screen.findByTestId('skill-example-conversation'));
+        await user.click(screen.getByTestId('skill-example-from-chat'));
+        await user.click(await screen.findByTestId('skill-example-conversation'));
         expect(await screen.findByText(/could not be read just now/)).toBeTruthy();
         expect(screen.queryByText(/Nothing in this conversation to use/)).toBeNull();
         // The promise of the PREVIOUS conversation must not remain standing over a
@@ -277,16 +286,17 @@ describe('taking an example from a conversation', () => {
      * nothing could be copied.
      */
     it('translates the server CODE, not its English sentence, and stops offering the click', async () => {
+        const user = userEvent.setup();
         const refusal = Object.assign(new Error('The personal-data check is unavailable, so this answer cannot be copied into an example right now.'), {
             status: 503, code: 'pii_unchecked',
         });
         skillsApi.exampleFromMessage.mockRejectedValue(refusal);
         render(<ExamplesHarness />);
-        fireEvent.click(screen.getByTestId('skill-example-from-chat'));
-        fireEvent.click(await screen.findByTestId('skill-example-conversation'));
+        await user.click(screen.getByTestId('skill-example-from-chat'));
+        await user.click(await screen.findByTestId('skill-example-conversation'));
         const row = await screen.findByTestId('skill-example-message');
         expect(row.disabled).toBe(false);
-        fireEvent.click(row);
+        await user.click(row);
 
         // De zin komt nu uit t() (sleutel + fallback), niet uit e.message.
         // Twee treffers: de foutregel én de ingetrokken belofte erboven.
@@ -297,36 +307,40 @@ describe('taking an example from a conversation', () => {
     });
 
     it('surfaces a refusal instead of pretending the example was added', async () => {
+        const user = userEvent.setup();
         skillsApi.exampleFromMessage.mockRejectedValue(new Error('Conversation not found'));
         const onExamples = vi.fn();
         render(<ExamplesHarness onExamples={onExamples} />);
-        fireEvent.click(screen.getByTestId('skill-example-from-chat'));
-        fireEvent.click(await screen.findByTestId('skill-example-conversation'));
-        fireEvent.click(await screen.findByTestId('skill-example-message'));
+        await user.click(screen.getByTestId('skill-example-from-chat'));
+        await user.click(await screen.findByTestId('skill-example-conversation'));
+        await user.click(await screen.findByTestId('skill-example-message'));
         expect(await screen.findByText('Conversation not found')).toBeTruthy();
         expect(onExamples).not.toHaveBeenCalled();
     });
 });
 
 describe('"may use"', () => {
-    it('offers an automation to link and records it as an allowed automation', () => {
+    it('offers an automation to link and records it as an allowed automation', async () => {
+        const user = userEvent.setup();
         const onPatch = vi.fn();
         render(<CanUseHarness
             automations={[{ id: 'a1', title: 'Look up quote status' }]}
             onPatch={onPatch}
         />);
-        fireEvent.click(screen.getByTestId('skill-grant-add'));
-        fireEvent.click(screen.getByRole('menuitem', { name: /Look up quote status/ }));
+        await user.click(screen.getByTestId('skill-grant-add'));
+        await user.click(screen.getByRole('menuitem', { name: /Look up quote status/ }));
         expect(onPatch).toHaveBeenCalledWith({ allowedAutomationIds: ['a1'] });
     });
 
-    it('says why the automation list is empty instead of showing nothing', () => {
+    it('says why the automation list is empty instead of showing nothing', async () => {
+        const user = userEvent.setup();
         render(<CanUseHarness automations={[]} knowledgeBases={[]} />);
-        fireEvent.click(screen.getByTestId('skill-grant-add'));
+        await user.click(screen.getByTestId('skill-grant-add'));
         expect(screen.getByText(/an agent calls it/)).toBeTruthy();
     });
 
-    it('names a linked knowledge base, and unlinks it again', () => {
+    it('names a linked knowledge base, and unlinks it again', async () => {
+        const user = userEvent.setup();
         const onPatch = vi.fn();
         render(<CanUseHarness
             initial={{ knowledgeBaseIds: ['k1'] }}
@@ -335,20 +349,22 @@ describe('"may use"', () => {
         />);
         const pill = screen.getByTestId('skill-grant');
         expect(within(pill).getByText('Quote terms')).toBeTruthy();
-        fireEvent.click(within(pill).getByRole('button', { name: /Unlink Quote terms/ }));
+        await user.click(within(pill).getByRole('button', { name: /Unlink Quote terms/ }));
         expect(onPatch).toHaveBeenCalledWith({ knowledgeBaseIds: [] });
     });
 
-    it('keeps dynamic activation, with its sentence, under "All options"', () => {
+    it('keeps dynamic activation, with its sentence, under "All options"', async () => {
+        const user = userEvent.setup();
         const onPatch = vi.fn();
         render(<CanUseHarness onPatch={onPatch} />);
-        fireEvent.click(screen.getByText('All options'));
+        await user.click(screen.getByText('All options'));
         expect(screen.getByText(/the agent decides at runtime/)).toBeTruthy();
-        fireEvent.click(screen.getByTestId('skill-dynamic'));
+        await user.click(screen.getByTestId('skill-dynamic'));
         expect(onPatch).toHaveBeenCalledWith({ dynamicActivation: true });
     });
 
-    it('explains a legacy automation_id instead of hiding a field that overrides the body', () => {
+    it('explains a legacy automation_id instead of hiding a field that overrides the body', async () => {
+        const user = userEvent.setup();
         render(<CanUseCard
             enabledIntegrations={[]}
             allowedAutomationIds={[]}
@@ -357,7 +373,7 @@ describe('"may use"', () => {
             legacyAutomationId="aut_legacy"
             onChange={() => {}}
         />);
-        fireEvent.click(screen.getByText('All options'));
+        await user.click(screen.getByText('All options'));
         expect(screen.getByTestId('skill-legacy-automation').textContent).toContain('aut_legacy');
     });
 });

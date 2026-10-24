@@ -54,6 +54,23 @@
  *                     correlation id. The eslint rule already forbids echoing
  *                     err.message in these; this metric counts all of them, so
  *                     the hand-written 5xx responses can only go down.
+ *   error-echo        `.json({ error: <x>.message })` in non-test code: an
+ *                     error's own message handed to the client by hand. The
+ *                     convention is to throw an HttpError (a message written for
+ *                     the caller) or let core/http/terminalErrorHandler.js answer;
+ *                     an internal message (driver, SQL, upstream API) must not
+ *                     reach the client.
+ *   explicit-any      `: any`, `as any` and `<any>` in non-test TypeScript: a
+ *                     value the compiler stops checking. The target is a real
+ *                     type, `unknown` plus narrowing, or a generic.
+ *   as-unknown-as     `as unknown as T` double casts in non-test code: a
+ *                     conversion the compiler would refuse. The target is a
+ *                     type guard or a correct type at the source.
+ *   log-user-content  a server log call that interpolates or passes user content
+ *                     or identifiers: a prompt, a file name, an e-mail address
+ *                     or message text (`.length` of one is fine). Personal data
+ *                     does not go into logs (CLAUDE.md, privacy). The target is
+ *                     metadata: a length, a MIME type, an id, a correlation id.
  *   sse-head          a `text/event-stream` head written by hand outside
  *                     core/http/ (an object-literal or setHeader
  *                     Content-Type, or res.type()), in non-test code. The
@@ -444,6 +461,30 @@ const METRICS = {
         what: 'hand-written .status(5xx) responses',
         advice: 'throw an HttpError (core/http/errors.js) or call next(err) and let core/http/terminalErrorHandler.js answer',
     },
+    'error-echo': {
+        include: (rel) => !TEST_FILE.test(rel),
+        measure: countMatches(/\.json\(\s*\{\s*error:\s*[A-Za-z_$][\w$]*\.message\s*\}\s*\)/g),
+        what: 'responses that echo an error object\'s own message',
+        advice: 'throw an HttpError(status, code, message) with a message written for the caller (core/http/errors.js), or rethrow and let core/http/terminalErrorHandler.js answer',
+    },
+    'explicit-any': {
+        include: (rel) => !TEST_FILE.test(rel) && /\.tsx?$/.test(rel),
+        measure: countMatches(/:\s*any\b|(?<![\w$])as\s+any\b|<any>/g),
+        what: 'explicit any types',
+        advice: 'give it a real type, use unknown and narrow it, or make the function generic',
+    },
+    'as-unknown-as': {
+        include: (rel) => !TEST_FILE.test(rel),
+        measure: countMatches(/\bas\s+unknown\s+as\b/g),
+        what: 'as unknown as double casts',
+        advice: 'write a type guard, or fix the type where the value is produced',
+    },
+    'log-user-content': {
+        include: (rel) => !TEST_FILE.test(rel),
+        measure: countMatches(/\blog\.(?:debug|info|warn|error)\((?:[^;\n]*\$\{[^}]*?|[^;\n]*?,\s*)(?<!ForLog\((?:[\w$]+\.)?)(?<![\w$.])(?:[\w$]+\.)?(?:prompt|fileName|filename|originalname|originalName|email|userMessage|messageText)\b(?!\.length|\?\.length|Length|Count|Tokens)/g),
+        what: 'log calls that carry user content (prompt, file name, e-mail, message text)',
+        advice: 'log metadata instead: a length, a MIME type, an id or the correlation id, never the text or the name',
+    },
     'sse-head': {
         include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('core/http/'),
         measure: countMatches(/['"]Content-Type['"]\s*[:,]\s*['"`]text\/event-stream|\.type\(\s*['"`]text\/event-stream/gi),
@@ -585,6 +626,8 @@ if (list) {
     rows.sort((a, b) => b[0] - a[0] || a[1].localeCompare(b[1]));
     for (const [n, file] of rows) console.log(`${String(n).padStart(5)}  ${file}`);
     console.log('');
+    // Listing only reads: without a budget yet it must not record one.
+    if (!update && !fs.existsSync(budgetFile)) process.exit(0);
 }
 
 const existing = fs.existsSync(budgetFile) ? JSON.parse(fs.readFileSync(budgetFile, 'utf8')) : null;

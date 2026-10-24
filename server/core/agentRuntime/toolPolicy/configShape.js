@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The SHAPE of a stored `config.tools`: its vocabulary, its bounds, and the two
  * readers everything else in this folder starts from.

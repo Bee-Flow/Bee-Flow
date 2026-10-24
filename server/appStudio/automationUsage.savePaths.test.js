@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Every path that stores an app definition brings `automation_usage` up to date —
  * COUNTED, not listed.

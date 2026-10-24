@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ISO 27001 A.8.10 — Information deletion.
  *

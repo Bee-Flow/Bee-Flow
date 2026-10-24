@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A tiny HTTP harness for the security-key routers: a real express app with
  * the production body parser and terminal error handler, a session the test
@@ -82,7 +83,7 @@ async function serve(router, { mount = '/', session, errorHandler }) {
     const server = await new Promise((resolve) => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
     const { port } = /** @type {import('net').AddressInfo} */ (server.address());
 
-    function request(method, path, { body, origin } = {}) {
+    function request(method, path, /** @type {{body?: any, origin?: string}} */ { body, origin } = {}) {
         const payload = body === undefined ? '' : JSON.stringify(body);
         return new Promise((resolve, reject) => {
             const req = http.request({

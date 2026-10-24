@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { buildPatch } from './settings/formState';
@@ -62,8 +63,9 @@ beforeEach(() => {
 
 describe('an empty row does not trigger a save', () => {
     it('Add a document appends a row and the autosave stays silent', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(approvalStep());
-        fireEvent.click(screen.getByRole('button', { name: /add a document/i }));
+        await user.click(screen.getByRole('button', { name: /add a document/i }));
         // The row is there…
         expect(screen.getByPlaceholderText('Shown name (optional)')).toBeTruthy();
         // …and stays there past the 600ms debounce, with NOTHING sent: the
@@ -77,10 +79,11 @@ describe('an empty row does not trigger a save', () => {
 
 describe('a save echo does not take the pending row with it', () => {
     it('the exact bug: add a document, echo arrives, the input survives', async () => {
+        const user = userEvent.setup();
         const step = approvalStep({ details: 'Old details' });
         const { onPatch, rerenderForm } = renderForm(step);
 
-        fireEvent.click(screen.getByRole('button', { name: /add a document/i }));
+        await user.click(screen.getByRole('button', { name: /add a document/i }));
         await new Promise(r => setTimeout(r, 900));   // debounce window passes, no save
 
         // The parent re-renders with new step CONTENT — the shape of a save

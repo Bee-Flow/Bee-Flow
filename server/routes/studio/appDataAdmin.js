@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio data routes: what the app's owner manages. Saved datasets,
  * the data model (schema) and the app's members with their roles. The

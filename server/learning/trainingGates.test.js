@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests — required training (trainingGates.js + requireTraining.js).
  *

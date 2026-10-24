@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * EAA-Art13-accessibility-statement — attested URL + probe.
  * Run: cd server && node --test --test-force-exit compliance/checks/eaa/art13-accessibility-statement.test.js

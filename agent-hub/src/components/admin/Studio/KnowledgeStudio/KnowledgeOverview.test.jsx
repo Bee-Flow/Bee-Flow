@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { knowledgeApi } from './knowledgeApi';
@@ -50,6 +51,7 @@ describe('KnowledgeOverview', () => {
     });
 
     it('offers an "Uncategorised" chip only when a base is actually in it', async () => {
+        const user = userEvent.setup();
         knowledgeApi.list.mockResolvedValue([kb()]);
         const { unmount } = render(<KnowledgeOverview />);
         await screen.findByTestId('kb-row');
@@ -59,7 +61,7 @@ describe('KnowledgeOverview', () => {
         knowledgeApi.list.mockResolvedValue([kb(), kb({ id: 'kb2', name: 'Scratch', category_id: null })]);
         render(<KnowledgeOverview />);
         await waitFor(() => expect(screen.getAllByTestId('kb-row')).toHaveLength(2));
-        fireEvent.click(screen.getByRole('button', { name: 'Uncategorised' }));
+        await user.click(screen.getByRole('button', { name: 'Uncategorised' }));
         const rows = screen.getAllByTestId('kb-row');
         expect(rows).toHaveLength(1);
         expect(within(rows[0]).getByText('Scratch')).toBeTruthy();
@@ -157,10 +159,11 @@ describe('KnowledgeOverview', () => {
     });
 
     it('opens a base by id', async () => {
+        const user = userEvent.setup();
         const onOpen = vi.fn();
         knowledgeApi.list.mockResolvedValue([kb()]);
         render(<KnowledgeOverview onOpen={onOpen} />);
-        fireEvent.click(await screen.findByTestId('kb-row'));
+        await user.click(await screen.findByTestId('kb-row'));
         expect(onOpen).toHaveBeenCalledWith('kb1');
     });
 

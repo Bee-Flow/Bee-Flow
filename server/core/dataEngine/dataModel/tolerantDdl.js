@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio data model — tolerant DDL execution (the reconcile path): replay a
  * migration plan against SQLite, skipping only the exact already-applied

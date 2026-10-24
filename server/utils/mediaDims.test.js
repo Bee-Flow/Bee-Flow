@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Publish-time media dimension enrichment.
  *

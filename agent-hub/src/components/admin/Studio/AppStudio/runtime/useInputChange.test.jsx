@@ -1,4 +1,5 @@
 import { render, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import AppInputCheckbox from './components/AppInputCheckbox';
 import AppInputSelect from './components/AppInputSelect';
@@ -61,14 +62,15 @@ describe('onChange on discrete inputs', () => {
         expect(runAction).not.toHaveBeenCalled();
     });
 
-    it('works on a checkbox too, passing the boolean', () => {
+    it('works on a checkbox too, passing the boolean', async () => {
+        const user = userEvent.setup();
         const runAction = vi.fn();
         const { container } = renderInput(
             AppInputCheckbox,
             { id: 'cmp_c', type: 'input_checkbox', props: { name: 'urgent', label: 'Urgent' }, style: {}, onChange: 'act_flag' },
             { runAction },
         );
-        fireEvent.click(container.querySelector('input[type="checkbox"]'));
+        await user.click(container.querySelector('input[type="checkbox"]'));
         expect(runAction.mock.calls[0][1].formValues.urgent).toBe(true);
     });
 

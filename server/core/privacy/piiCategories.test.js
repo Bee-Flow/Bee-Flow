@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Canonical PII-category encoding — the one vocabulary all producers write
  * and all readers parse.

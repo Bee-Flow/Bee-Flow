@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import KnowledgeStudio from './index';
@@ -73,10 +74,11 @@ describe('KnowledgeStudio routing', () => {
     });
 
     it('writes the tab and the source into the URL', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         render(<KnowledgeStudio initialKbId="kb1" onNavigate={onNavigate} />);
         await screen.findByTestId('kb-tab-sources');
-        fireEvent.click(screen.getByText('Uploaded files'));
+        await user.click(screen.getByText('Uploaded files'));
         expect(onNavigate).toHaveBeenCalledWith('studio/knowledge/kb1/sources/s1');
     });
 
@@ -142,6 +144,7 @@ describe('the suggestion banner', () => {
     });
 
     it('links them through the ordinary agent save', async () => {
+        const user = userEvent.setup();
         // Not a shortcut that writes the id straight into the config: that
         // would be a second way to attach a knowledge base, and the one that
         // skips the usage-context check.
@@ -153,7 +156,7 @@ describe('the suggestion banner', () => {
         }));
 
         render(<KnowledgeStudio />);
-        fireEvent.click(await screen.findByText(/link them/i));
+        await user.click(await screen.findByText(/link them/i));
 
         await waitFor(() => {
             const put = authFetch.mock.calls.find(([, o]) => o?.method === 'PUT');
@@ -163,9 +166,10 @@ describe('the suggestion banner', () => {
     });
 
     it('"Not now" hides it, and it stays hidden on the next visit', async () => {
+        const user = userEvent.setup();
         knowledgeApi.suggestions.mockResolvedValue({ suggestions: [SUGGESTION] });
         const first = render(<KnowledgeStudio user={{ id: 'u1' }} />);
-        fireEvent.click(await screen.findByTestId('kb-suggestion-dismiss'));
+        await user.click(await screen.findByTestId('kb-suggestion-dismiss'));
         await waitFor(() => expect(screen.queryByTestId('kb-suggestion')).toBeNull());
         first.unmount();
 
@@ -175,12 +179,13 @@ describe('the suggestion banner', () => {
     });
 
     it('one colleague waving a pairing away is not the organisation deciding', async () => {
+        const user = userEvent.setup();
         // The dismissal is per account, per browser — scopedStorage, not a
         // server flag. A shared "hidden" would let one person silence a nudge
         // for everybody.
         knowledgeApi.suggestions.mockResolvedValue({ suggestions: [SUGGESTION] });
         const mine = render(<KnowledgeStudio user={{ id: 'u1' }} />);
-        fireEvent.click(await screen.findByTestId('kb-suggestion-dismiss'));
+        await user.click(await screen.findByTestId('kb-suggestion-dismiss'));
         await waitFor(() => expect(screen.queryByTestId('kb-suggestion')).toBeNull());
         mine.unmount();
 

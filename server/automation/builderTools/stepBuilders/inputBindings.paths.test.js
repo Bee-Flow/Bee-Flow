@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Required-input binding notes and patches, with the shared path grammar.
  *

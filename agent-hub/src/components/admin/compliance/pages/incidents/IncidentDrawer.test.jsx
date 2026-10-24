@@ -104,10 +104,11 @@ describe('IncidentDrawer — the GDPR breach row', () => {
 });
 
 describe('IncidentDrawer — the GDPR breach row: filing, closing, editing', () => {
-    it('records the authority notification with the reference the user typed, and nothing else', () => {
+    it('records the authority notification with the reference the user typed, and nothing else', async () => {
+        const user = userEvent.setup();
         const { onUpdate } = drawer();
         fireEvent.change(screen.getByTestId('inc-drawer-authority-ref'), { target: { value: '  AP-2026-118  ' } });
-        fireEvent.click(screen.getByTestId('inc-drawer-authority'));
+        await user.click(screen.getByTestId('inc-drawer-authority'));
         expect(onUpdate).toHaveBeenCalledWith(4, { status: 'authority_notified', authority_reference: 'AP-2026-118' });
     });
 
@@ -140,13 +141,14 @@ describe('IncidentDrawer — the GDPR breach row: filing, closing, editing', () 
         expect(authority.textContent).toMatch(/not filed \(decision logged\)/);
     });
 
-    it('Save appears only after an editable field changes, inside the footer, and sends an allow-listed patch', () => {
+    it('Save appears only after an editable field changes, inside the footer, and sends an allow-listed patch', async () => {
+        const user = userEvent.setup();
         const { onUpdate } = drawer();
         expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
         fireEvent.change(screen.getByTestId('inc-drawer-title'), { target: { value: 'Lost laptop (encrypted after all)' } });
         const save = within(screen.getByTestId('inc-drawer-foot')).getByRole('button', { name: 'Save' });
         expect(save.disabled).toBe(false);
-        fireEvent.click(save);
+        await user.click(save);
         expect(onUpdate).toHaveBeenCalledWith(4, {
             title: 'Lost laptop (encrypted after all)',
             description: 'Unencrypted spreadsheet on a stolen laptop',
@@ -191,34 +193,37 @@ describe('IncidentDrawer — the CRA vulnerability row', () => {
         expect(screen.getByText(/beeflow-server < 3\.4\.2/)).toBeTruthy();
     });
 
-    it('reports the early warning first, with the channel and the reference — never the vulnerability details', () => {
+    it('reports the early warning first, with the channel and the reference — never the vulnerability details', async () => {
+        const user = userEvent.setup();
         const { onCraReport } = drawer({ incident: VULN });
         expect(screen.queryByTestId('inc-drawer-cra-full')).toBeNull();
         fireEvent.change(screen.getByTestId('inc-drawer-cra-via'), { target: { value: 'ENISA platform' } });
         fireEvent.change(screen.getByTestId('inc-drawer-cra-ref'), { target: { value: 'EW-77' } });
-        fireEvent.click(screen.getByTestId('inc-drawer-cra-early'));
+        await user.click(screen.getByTestId('inc-drawer-cra-early'));
         expect(onCraReport).toHaveBeenCalledWith(9, { stage: 'early_warning', reported_via: 'ENISA platform', reference: 'EW-77' });
         expect(screen.getByTestId('inc-drawer-next').textContent).toMatch(/never the vulnerability details/i);
     });
 
-    it('moves on to "Report full" once the early warning is stamped — posted as the route\'s `full` stage', () => {
+    it('moves on to "Report full" once the early warning is stamped — posted as the route\'s `full` stage', async () => {
+        const user = userEvent.setup();
         const sent = { ...VULN, status: 'early_warning_sent', early_warning_sent_at: iso(-H) };
         const { onCraReport } = drawer({ incident: sent });
         expect(screen.queryByTestId('inc-drawer-cra-early')).toBeNull();
-        fireEvent.click(screen.getByTestId('inc-drawer-cra-full'));
+        await user.click(screen.getByTestId('inc-drawer-cra-full'));
         expect(onCraReport).toHaveBeenCalledWith(9, { stage: 'full', reported_via: undefined, reference: undefined });
         cleanup();
 
         const reported = { ...sent, notification_sent_at: iso(-0.5 * H) };
         const second = drawer({ incident: reported });
         expect(screen.getByTestId('inc-drawer-cra-full')).toHaveTextContent('Report final report');
-        fireEvent.click(screen.getByTestId('inc-drawer-cra-full'));
+        await user.click(screen.getByTestId('inc-drawer-cra-full'));
         expect(second.onCraReport).toHaveBeenCalledWith(9, expect.objectContaining({ stage: 'full' }));
     });
 
-    it('records the customer notice through its own route, and drops the button once it is stamped', () => {
+    it('records the customer notice through its own route, and drops the button once it is stamped', async () => {
+        const user = userEvent.setup();
         const { onCustomerNotified } = drawer({ incident: VULN });
-        fireEvent.click(screen.getByTestId('inc-drawer-cra-customers'));
+        await user.click(screen.getByTestId('inc-drawer-cra-customers'));
         expect(onCustomerNotified).toHaveBeenCalledWith(9);
         cleanup();
 

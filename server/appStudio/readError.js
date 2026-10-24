@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — a CLIENT-SAFE refusal on the READ path.
  *
@@ -36,7 +37,7 @@
 
 /** Een weigering met status + boodschap die de router letterlijk doorgeeft. */
 function readError(status, message) {
-    const err = new Error(message);
+    const err = /** @type {Error & {status?: number, safe?: boolean}} */ (new Error(message));
     err.status = status;
     err.safe = true;
     return err;

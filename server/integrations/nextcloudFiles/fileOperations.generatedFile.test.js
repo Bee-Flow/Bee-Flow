@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * nextcloud_upload_file with sourceHandle { kind: 'generated_file' } — the
  * bridge that lets an automation push the deck (or PDF) a document step kept

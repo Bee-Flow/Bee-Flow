@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Is about" rules: `isAbout(text, "topic")` in a condition, a filter or a
  * switch case (shared/expr/topics.mjs), answered at run time by the topic

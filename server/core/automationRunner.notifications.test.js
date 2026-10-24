@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * End-of-run notifications for an automation saved BEFORE handoff 5: its old
  * `notificationSettings` ({ enabled, level, channels: inapp|email|nc_talk|

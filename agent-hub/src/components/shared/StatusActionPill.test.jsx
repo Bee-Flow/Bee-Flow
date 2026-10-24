@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Power, Upload } from 'lucide-react';
 import { describe, it, expect, vi } from 'vitest';
 import StatusActionPill, { FOLD_CLASSES } from './StatusActionPill';
@@ -116,17 +117,19 @@ describe('StatusActionPill — action half', () => {
         expect(screen.getByRole('button', { name: 'Discard' }).style.background).toBe('');
     });
 
-    it('defaults the stale action to Republish, as a primary', () => {
+    it('defaults the stale action to Republish, as a primary', async () => {
+        const user = userEvent.setup();
         const onClick = vi.fn();
         render(<StatusActionPill status="stale" action={{ icon: Upload, onClick }} />);
         const btn = screen.getByRole('button', { name: 'Republish' });
         expect(btn).toHaveTextContent('Republish');
         expect(btn.style.background).toContain('var(--accent-primary)');
-        fireEvent.click(btn);
+        await user.click(btn);
         expect(onClick).toHaveBeenCalledTimes(1);
     });
 
-    it('wires onClick, disabled, title and an explicit aria-label', () => {
+    it('wires onClick, disabled, title and an explicit aria-label', async () => {
+        const user = userEvent.setup();
         const onClick = vi.fn();
         const { rerender } = render(
             <StatusActionPill
@@ -137,10 +140,10 @@ describe('StatusActionPill — action half', () => {
         const btn = screen.getByRole('button', { name: 'Activate automation' });
         expect(btn).toBeDisabled();
         expect(btn.title).toBe('Add a trigger first');
-        fireEvent.click(btn);
+        await user.click(btn);
         expect(onClick).not.toHaveBeenCalled();
         rerender(<StatusActionPill status="paused" action={{ label: 'Activate', onClick }} />);
-        fireEvent.click(screen.getByRole('button', { name: 'Activate' }));
+        await user.click(screen.getByRole('button', { name: 'Activate' }));
         expect(onClick).toHaveBeenCalledTimes(1);
     });
 

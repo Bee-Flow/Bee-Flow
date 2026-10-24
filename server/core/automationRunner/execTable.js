@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The `table` step: run a list of operations (join, pseudonymise, add columns,

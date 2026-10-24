@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
@@ -62,10 +63,11 @@ describe('ExecutionBar — before the run resolves', () => {
         expect(screen.queryByText(/took/)).toBeNull();
     });
 
-    it('the back button works from the skeleton', () => {
+    it('the back button works from the skeleton', async () => {
+        const user = userEvent.setup();
         const onBack = vi.fn();
         renderBar({ run: null, onBack });
-        fireEvent.click(screen.getByRole('button', { name: /Runs/ }));
+        await user.click(screen.getByRole('button', { name: /Runs/ }));
         expect(onBack).toHaveBeenCalledTimes(1);
     });
 });
@@ -193,11 +195,12 @@ describe('ExecutionBar — timing, trigger and version', () => {
 
 // ── lineage + counters ──────────────────────────────────────────────────────
 describe('ExecutionBar — lineage and counters', () => {
-    it('offers the parent run only when this run started its own journey', () => {
+    it('offers the parent run only when this run started its own journey', async () => {
+        const user = userEvent.setup();
         const onOpenRun = vi.fn();
         renderBar({ run: baseRun({ id: 'r2', parentRunId: 'r1', rootRunId: 'r2' }), onOpenRun });
         const chip = screen.getByRole('button', { name: 'This was a retry of an earlier run' });
-        fireEvent.click(chip);
+        await user.click(chip);
         expect(onOpenRun).toHaveBeenCalledWith('r1');
     });
 
@@ -266,10 +269,11 @@ describe('ExecutionBar — deadlines and error notes', () => {
 
 // ── the actions ─────────────────────────────────────────────────────────────
 describe('ExecutionBar — the action buttons', () => {
-    it('offers "Run it again" only for a failed run that has an onRetry', () => {
+    it('offers "Run it again" only for a failed run that has an onRetry', async () => {
+        const user = userEvent.setup();
         const onRetry = vi.fn().mockResolvedValue(undefined);
         const { unmount } = renderBar({ run: baseRun({ status: 'error' }), onRetry });
-        fireEvent.click(screen.getByRole('button', { name: /Run it again/ }));
+        await user.click(screen.getByRole('button', { name: /Run it again/ }));
         expect(onRetry).toHaveBeenCalledTimes(1);
         unmount();
         renderBar({ run: baseRun({ status: 'error' }), onRetry: null });
@@ -292,22 +296,25 @@ describe('ExecutionBar — the action buttons', () => {
     });
 
     it('gives awaiting_confirm a one-click Approve, passing the decision word', async () => {
+        const user = userEvent.setup();
         const onApprove = vi.fn().mockResolvedValue(undefined);
         renderBar({ run: baseRun({ status: 'awaiting_confirm' }), onApprove });
-        fireEvent.click(screen.getByRole('button', { name: /Approve/ }));
+        await user.click(screen.getByRole('button', { name: /Approve/ }));
         expect(onApprove).toHaveBeenCalledWith('approve');
         await waitFor(() => expect(screen.getByRole('button', { name: /Approve/ }).disabled).toBe(false));
     });
 
     it('gives awaiting_confirm a one-click Reject, passing the decision word', async () => {
+        const user = userEvent.setup();
         const onApprove = vi.fn().mockResolvedValue(undefined);
         renderBar({ run: baseRun({ status: 'awaiting_confirm' }), onApprove });
-        fireEvent.click(screen.getByRole('button', { name: /Reject/ }));
+        await user.click(screen.getByRole('button', { name: /Reject/ }));
         expect(onApprove).toHaveBeenCalledWith('reject');
         await waitFor(() => expect(screen.getByRole('button', { name: /Reject/ }).disabled).toBe(false));
     });
 
     it('silently drops a SECOND action while the first is in flight, and the dropped button never looks disabled (wrat)', async () => {
+        const user = userEvent.setup();
         // `act()` guards on one shared `pending` key, but BarButton only
         // disables the button whose own key is pending. So Reject stays fully
         // clickable while Approve is running — and the click does nothing at
@@ -315,10 +322,10 @@ describe('ExecutionBar — the action buttons', () => {
         let release;
         const onApprove = vi.fn(() => new Promise((res) => { release = res; }));
         renderBar({ run: baseRun({ status: 'awaiting_confirm' }), onApprove });
-        fireEvent.click(screen.getByRole('button', { name: /Approve/ }));
+        await user.click(screen.getByRole('button', { name: /Approve/ }));
         const reject = screen.getByRole('button', { name: /Reject/ });
         expect(reject.disabled).toBe(false);
-        fireEvent.click(reject);
+        await user.click(reject);
         expect(onApprove).toHaveBeenCalledTimes(1);
         expect(onApprove).toHaveBeenCalledWith('approve');
         expect(screen.queryByRole('alert')).toBeNull();
@@ -333,29 +340,32 @@ describe('ExecutionBar — the action buttons', () => {
     });
 
     it('reports a failed action inline, naming the internal action key (wrat: "retry failed: …")', async () => {
+        const user = userEvent.setup();
         const onRetry = vi.fn().mockRejectedValue(new Error('server said no'));
         renderBar({ run: baseRun({ status: 'error' }), onRetry });
-        fireEvent.click(screen.getByRole('button', { name: /Run it again/ }));
+        await user.click(screen.getByRole('button', { name: /Run it again/ }));
         await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('retry failed: server said no'));
         // and the button is usable again
         expect(screen.getByRole('button', { name: /Run it again/ }).disabled).toBe(false);
     });
 
     it('falls back to "unknown error" when the rejection carries no message', async () => {
+        const user = userEvent.setup();
         const onRetry = vi.fn().mockRejectedValue({});
         renderBar({ run: baseRun({ status: 'error' }), onRetry });
-        fireEvent.click(screen.getByRole('button', { name: /Run it again/ }));
+        await user.click(screen.getByRole('button', { name: /Run it again/ }));
         await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('retry failed: unknown error'));
     });
 
     it('disables the button and ignores a second click while the action is in flight', async () => {
+        const user = userEvent.setup();
         let release;
         const onRetry = vi.fn(() => new Promise((res) => { release = res; }));
         renderBar({ run: baseRun({ status: 'error' }), onRetry });
         const btn = screen.getByRole('button', { name: /Run it again/ });
-        fireEvent.click(btn);
+        await user.click(btn);
         expect(btn.disabled).toBe(true);
-        fireEvent.click(btn);
+        await user.click(btn);
         expect(onRetry).toHaveBeenCalledTimes(1);
         release();
         await waitFor(() => expect(screen.getByRole('button', { name: /Run it again/ }).disabled).toBe(false));
@@ -377,6 +387,7 @@ describe('ExecutionBar — copy link and open in editor', () => {
 
     it('copies a deep link carrying view=runs and this run id', () => {
         renderBar({ run: baseRun({ id: 'r42' }) });
+        // fireEvent: userEvent.setup() swaps navigator.clipboard for its own stub, and the writeText spy lives there.
         fireEvent.click(screen.getByRole('button', { name: /Copy link/ }));
         expect(writeText).toHaveBeenCalledTimes(1);
         const url = new URL(writeText.mock.calls[0][0]);
@@ -384,9 +395,10 @@ describe('ExecutionBar — copy link and open in editor', () => {
         expect(url.searchParams.get('run')).toBe('r42');
     });
 
-    it('gives the user no confirmation that anything was copied (wrat: silent success)', () => {
+    it('gives the user no confirmation that anything was copied (wrat: silent success)', async () => {
+        const user = userEvent.setup();
         renderBar({ run: baseRun({ id: 'r42' }) });
-        fireEvent.click(screen.getByRole('button', { name: /Copy link/ }));
+        await user.click(screen.getByRole('button', { name: /Copy link/ }));
         expect(screen.queryByRole('alert')).toBeNull();
         expect(screen.queryByText(/[Cc]opied/)).toBeNull();
     });
@@ -413,19 +425,21 @@ describe('ExecutionBar — copy link and open in editor', () => {
         expect(screen.getByRole('button', { name: /Copy link/ })).toBeTruthy();
     });
 
-    it('opens the editor for the run\'s automation', () => {
+    it('opens the editor for the run\'s automation', async () => {
+        const user = userEvent.setup();
         const onOpenEditor = vi.fn();
         renderBar({ run: baseRun({ automationId: 'a9' }), onOpenEditor });
-        fireEvent.click(screen.getByRole('button', { name: /Open in editor/ }));
+        await user.click(screen.getByRole('button', { name: /Open in editor/ }));
         expect(onOpenEditor).toHaveBeenCalledWith('a9');
     });
 
-    it('disables Open in editor when the run has no automation id', () => {
+    it('disables Open in editor when the run has no automation id', async () => {
+        const user = userEvent.setup();
         const onOpenEditor = vi.fn();
         renderBar({ run: baseRun({ automationId: null }), onOpenEditor });
         const btn = screen.getByRole('button', { name: /Open in editor/ });
         expect(btn.disabled).toBe(true);
-        fireEvent.click(btn);
+        await user.click(btn);
         expect(onOpenEditor).not.toHaveBeenCalled();
     });
 

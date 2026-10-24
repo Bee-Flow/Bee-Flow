@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio canonicalizer — screens and their sections.
  */

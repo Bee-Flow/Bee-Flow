@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Back-fill `audio_storage_key` for meeting notes whose recording is still on
  * THIS pod's disk but has no durable object-storage copy.

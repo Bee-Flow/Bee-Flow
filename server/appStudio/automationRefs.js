@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Which button of this app runs which automation": pure.
  *

@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -95,9 +96,10 @@ describe('VoiceprintSection', () => {
     });
 
     it('requires a confirmation before deleting', async () => {
+        const user = userEvent.setup();
         respond({ ...AVAILABLE, enrolled: true, voiceprint: { status: 'ready', createdAt: '2026-07-20T10:00:00Z' } });
         render(<VoiceprintSection />);
-        fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+        await user.click(await screen.findByRole('button', { name: 'Delete' }));
         expect(screen.getByText(/Delete your voice profile\?/)).toBeTruthy();
         // Nothing has been sent yet — only the availability probe ran.
         expect(authFetch.mock.calls.filter(c => c[1]?.method === 'DELETE')).toHaveLength(0);
@@ -120,13 +122,14 @@ describe('VoiceprintEnrollModal timing + consent', () => {
     }
 
     it('shows a passage to read and keeps the mic disabled until consent is given', async () => {
+        const user = userEvent.setup();
         await openModal();
         expect(screen.getByText(/Good morning\./)).toBeTruthy();
 
         const mic = screen.getByRole('button', { name: 'Start recording' });
         expect(mic.disabled).toBe(true);
 
-        fireEvent.click(screen.getByRole('checkbox'));
+        await user.click(screen.getByRole('checkbox'));
         expect(screen.getByRole('button', { name: 'Start recording' }).disabled).toBe(false);
     });
 

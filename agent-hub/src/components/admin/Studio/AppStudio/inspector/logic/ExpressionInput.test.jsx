@@ -1,4 +1,5 @@
 import { render, fireEvent, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import ExpressionInput from './ExpressionInput';
 import { VariablePickerProvider } from '../../../../../automation/Builder/mapping/VariablePickerContext';
@@ -132,12 +133,13 @@ describe('ExpressionInput — the condition builder is offered only where a bool
 });
 
 describe('ExpressionInput — variable picker', () => {
-    it('the {} button opens the picker and a pick inserts at the caret', () => {
+    it('the {} button opens the picker and a pick inserts at the caret', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         renderInput({ value: '', onChange });
 
-        fireEvent.click(screen.getByLabelText('Insert a variable'));
-        fireEvent.click(document.querySelector('[title="currentUser.email"]'));
+        await user.click(screen.getByLabelText('Insert a variable'));
+        await user.click(document.querySelector('[title="currentUser.email"]'));
 
         expect(onChange).toHaveBeenCalledWith('currentUser.email');
     });

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * core/webpages/webpageBindings — the static scan behind "Does something in own
  * code".

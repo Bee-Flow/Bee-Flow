@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What an http_request answer becomes, for ./execHttpRequest.js: the body
  * parsed into `data`, a cache hit served through the same guard tail as a

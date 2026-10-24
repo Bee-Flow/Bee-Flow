@@ -291,7 +291,7 @@ async function sendPdfForSigning(userId, { pdfBase64, fileName, signers, subject
     if (message) payload.message = message;
     if (fromEmail) payload.from_email = fromEmail;
 
-    log.info(`[SignRequest] Sending PDF "${fileName}" for signing to: ${signers.map(s => s.email).join(', ')}`);
+    log.info(`[SignRequest] Sending PDF "${log.nameForLog(fileName)}" for signing to: ${signers.map(s => s.email).join(', ')}`);
     return await signrequestApiRequest(subdomain, token, 'POST', '/signrequest-quick-create/', payload);
 }
 

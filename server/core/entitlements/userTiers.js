@@ -1,3 +1,4 @@
+// @typecheck
 // Compute the set of tier keys a given user is allowed to select.
 // Mirrors the gating logic in GET /ai/config/tiers-for-user so server-side
 // validators (e.g. the agent PUT endpoint) can reject tiers the user can't use.

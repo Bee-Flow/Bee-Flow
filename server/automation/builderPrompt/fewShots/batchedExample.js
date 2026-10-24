@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Batched protocol example: plan + inspect + trigger + name, one builder_add_steps, summarise + dry-run, finalize.

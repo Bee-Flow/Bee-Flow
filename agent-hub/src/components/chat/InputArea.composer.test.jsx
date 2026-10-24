@@ -1,4 +1,5 @@
 import { render as rtlRender, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -97,6 +98,7 @@ function Harness(props = {}) {
 
 describe('InputArea — what is on the toolbar', () => {
     it('keeps every tool one click deep, behind a single button', async () => {
+        const user = userEvent.setup();
         render(<Harness />);
         const plus = await screen.findByTestId('composer-tools-button');
 
@@ -104,7 +106,7 @@ describe('InputArea — what is on the toolbar', () => {
         expect(screen.queryByTestId('composer-tool-attach')).not.toBeInTheDocument();
         expect(screen.queryByTestId('composer-tool-apps')).not.toBeInTheDocument();
 
-        fireEvent.click(plus);
+        await user.click(plus);
         expect(screen.getByTestId('composer-tool-attach')).toBeInTheDocument();
         // Apps waits for the integration read; each render here starts with an
         // empty query cache, where the app would usually have it already.
@@ -306,18 +308,19 @@ describe('InputArea — Skills (C4)', () => {
     const skillUser = { id: 1, name: 'Tester', betaFeatures: ['skills'] };
 
     it('opens the skills picker, and is the only thing that does', async () => {
+        const user = userEvent.setup();
         render(<Harness user={skillUser} onToggleSkill={vi.fn()} />);
         const pill = await screen.findByTestId('composer-pill-skills');
 
-        fireEvent.click(pill);
+        await user.click(pill);
         expect(await screen.findByTestId('skills-popover')).toBeInTheDocument();
 
         // The "+" menu must NOT keep a second door to the same state: two
         // owners means one opens the picker and the other shuts it again.
-        fireEvent.click(screen.getByTestId('composer-tools-button'));
+        await user.click(screen.getByTestId('composer-tools-button'));
         expect(screen.queryByTestId('composer-tool-skills')).not.toBeInTheDocument();
 
-        fireEvent.click(pill);
+        await user.click(pill);
         await waitFor(() => expect(screen.queryByTestId('skills-popover')).not.toBeInTheDocument());
     });
 
@@ -463,13 +466,14 @@ describe('InputArea — the compact variant (NB-8)', () => {
 
 describe('InputArea — send, stop, and the mic', () => {
     it('offers the mic when the box is empty and voice is available', async () => {
+        const user = userEvent.setup();
         voiceReady = true;
         render(<Harness />);
 
         const mic = await screen.findByTestId('voice-send-button');
         expect(screen.queryByTestId('send-message-button')).not.toBeInTheDocument();
 
-        fireEvent.click(mic);
+        await user.click(mic);
         expect(await screen.findByTestId('voice-inline-panel')).toBeInTheDocument();
     });
 

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * aiStepChecks: the declarative checks on an ai_step answer, evaluated on the
  * RESTORED output against RAW run data. Synthetic data only.

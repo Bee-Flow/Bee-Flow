@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Transcriptions: the pipeline phases of a reprocess run.
  *

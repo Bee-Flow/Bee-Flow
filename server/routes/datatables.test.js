@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The /api/datatables gate chain, asserted against the router source and the
  * mount.

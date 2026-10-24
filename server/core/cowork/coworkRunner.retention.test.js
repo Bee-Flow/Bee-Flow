@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The retention sweep wiring in the cowork runner: the same config pattern as
  * jobs/runRetention.js (COWORK_RUN_RETENTION_DAYS, default 90, 0 = off) and the same

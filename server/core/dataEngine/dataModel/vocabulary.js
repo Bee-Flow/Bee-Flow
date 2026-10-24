@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Data engine — the shared VOCABULARY: field/filter/aggregate enums, the caps
  * in DATA_LIMITS, the identifier grammars every other dataModel/ module

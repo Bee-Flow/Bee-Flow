@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
@@ -32,10 +33,11 @@ describe('SettingsForm — app_trigger (Studio App trigger)', () => {
         expect(option.value).toBe('app_trigger');
     });
 
-    it('renders the App inputs editor with the file type option', () => {
+    it('renders the App inputs editor with the file type option', async () => {
+        const user = userEvent.setup();
         renderForm(trigger());
         expect(screen.getByText(/No inputs yet/)).toBeTruthy();
-        fireEvent.click(screen.getByText('Add input'));
+        await user.click(screen.getByText('Add input'));
         // The new row's type select includes every contract type incl. file.
         const typeSelect = screen.getAllByRole('combobox').at(-1);
         const values = Array.from(typeSelect.options).map(o => o.value);

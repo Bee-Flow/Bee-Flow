@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Moved: the route test harness is test-only code and lives in

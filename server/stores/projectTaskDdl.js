@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /** Schema of stores/projectTaskStore (kept apart so the store file stays small). */
 

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Beta feature catalogue: the static registry (BETA_FEATURES, BetaLifecycle),

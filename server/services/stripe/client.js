@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Stripe client: lazy SDK construction from the encrypted config (cached per
  * secret key), the enabled / test-mode probes, and the Search query escaper.
@@ -43,7 +44,8 @@ async function getClient() {
     // version against staging before rolling it out everywhere.
     const apiVersion = process.env.STRIPE_API_VERSION || '2024-12-18.acacia';
     _client = new Stripe(key, {
-        apiVersion,
+        // env-configurable, so a plain string rather than the SDK's pinned literal
+        apiVersion: /** @type {any} */ (apiVersion),
         appInfo: { name: 'BeeFlow', version: '1.0.0' },
     });
     _lastKeyHash = keyHash;

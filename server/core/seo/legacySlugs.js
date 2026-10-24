@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Retired slug → its replacement.
  *

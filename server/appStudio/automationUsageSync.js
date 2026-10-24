@@ -89,12 +89,12 @@ const REASONS = Object.freeze({
 });
 
 /**
- * What does this app switch on in automations RIGHT NOW?
+ * Wat draait deze app NU aan automatiseringen?
  *
  * @returns {Promise<{ok:boolean, reason:string, ownerId?:string|null,
- *                    entries?:Array, unset?:number}>}
- *   `ok:false` ALWAYS means "leave the index as it is" — never "write an empty
- *   list". The distinction is in `reason`.
+ *                    entries?:Array, unset?:number, error?:string, which?:string}>}
+ *   `ok:false` betekent ALTIJD "laat de index staan" — nooit "schrijf een lege
+ *   lijst". Het onderscheid staat in `reason`.
  */
 async function collectAppAutomationUsage(appId, deps = {}) {
     if (!appId) return { ok: false, reason: 'no-id' };

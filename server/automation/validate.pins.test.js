@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * BFSF-408/409/434 — the validator rules for PINNED SAMPLE DATA.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * versionFacts — what happened in ONE edit of a web page, mechanically
  * derived, plus who made it.
@@ -135,18 +136,19 @@ function restoreSummary(seq) {
 }
 
 /**
- * Who made the version, as the history list may show it.
+ * Wie de versie maakte, zoals de geschiedenislijst hem mag tonen.
  *
- * @param {string|null} actorUserId  the column value
- * @param {object} opts
- * @param {string|null} opts.viewerId  who is looking (for `isYou`)
- * @param {Map|object|null} opts.names id → display name, looked up by the route.
- *        An id that is not in there is an account that can no longer be
- *        read.
+ * @param {string|null} actorUserId  de kolomwaarde
+ * @param {object} [opts]
+ * @param {string|null} [opts.viewerId]  wie er kijkt (voor `isYou`)
+ * @param {Map<any, any>|Record<string, any>|null} [opts.names] id → weergavenaam, door de route
+ *        opgezocht. Een id dat er niet in staat is een account dat niet meer
+ *        te lezen is.
  * @returns {null | { id: string, name: string|null, isYou: boolean }}
- *          `null` = never recorded. `name: null` = recorded but not
- *          readable. The UI draws both cases as "unknown"; the distinction
- *          remains because only the second case has a trace to search on.
+ *          `null` = nooit vastgelegd. `name: null` = vastgelegd maar niet te
+ *          lezen. Beide gevallen tekent de UI als "onbekend"; het onderscheid
+ *          blijft staan omdat alleen het tweede geval een spoor heeft om op
+ *          door te zoeken.
  */
 function actorOf(actorUserId, { viewerId = null, names = null } = {}) {
     const id = typeof actorUserId === 'string' && actorUserId.trim() ? actorUserId.trim() : null;

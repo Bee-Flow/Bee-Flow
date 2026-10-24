@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR-Art32-encryption-in-transit: an env var set to an "off" word is off.
  *

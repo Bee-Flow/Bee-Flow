@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Gamma Integration Routes
  *

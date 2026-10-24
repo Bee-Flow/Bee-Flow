@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — the steps that decide where a run goes next or hold it
  * there: condition and switch, the two privacy branchers (guard, tokenize),

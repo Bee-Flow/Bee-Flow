@@ -9,7 +9,7 @@
  * has neither.
  */
 
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
@@ -39,12 +39,13 @@ describe('export bar — visibility', () => {
 
 describe('export bar — Download as .txt', () => {
     it('builds a Blob and revokes it — never an <a href> at a real endpoint', async () => {
+        const user = userEvent.setup();
         const createObjectURL = vi.fn(() => 'blob:fake');
         const revokeObjectURL = vi.fn();
         vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL });
 
         render(<FormEndingView form={form(LONG_TEXT, { title: 'Mijn SEO-blog' })} />);
-        fireEvent.click(screen.getByTestId('form-export-download'));
+        await user.click(screen.getByTestId('form-export-download'));
 
         expect(createObjectURL).toHaveBeenCalledTimes(1);
         const blob = createObjectURL.mock.calls[0][0];
@@ -55,6 +56,7 @@ describe('export bar — Download as .txt', () => {
     });
 
     it('ships the raw markdown as-is, syntax and all — no stripping', async () => {
+        const user = userEvent.setup();
         let captured = null;
         const originalBlob = globalThis.Blob;
         vi.stubGlobal('Blob', class extends originalBlob {
@@ -63,7 +65,7 @@ describe('export bar — Download as .txt', () => {
         vi.stubGlobal('URL', { ...URL, createObjectURL: vi.fn(() => 'blob:fake'), revokeObjectURL: vi.fn() });
 
         render(<FormEndingView form={form(LONG_TEXT)} />);
-        fireEvent.click(screen.getByTestId('form-export-download'));
+        await user.click(screen.getByTestId('form-export-download'));
 
         expect(captured).toBe(LONG_TEXT);
     });
@@ -71,22 +73,24 @@ describe('export bar — Download as .txt', () => {
 
 describe('export bar — Copy text', () => {
     it('copies the raw description to the clipboard', async () => {
+        const user = userEvent.setup();
         const writeText = vi.fn().mockResolvedValue(undefined);
         Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
 
         render(<FormEndingView form={form(LONG_TEXT)} />);
-        fireEvent.click(screen.getByTestId('form-export-copy'));
+        await user.click(screen.getByTestId('form-export-copy'));
 
         await waitFor(() => expect(writeText).toHaveBeenCalledWith(LONG_TEXT));
         expect(await screen.findByText('Copied')).toBeTruthy();
     });
 
     it('a denied clipboard leaves the button as it was, rather than crashing', async () => {
+        const user = userEvent.setup();
         const writeText = vi.fn().mockRejectedValue(new Error('denied'));
         Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
 
         render(<FormEndingView form={form(LONG_TEXT)} />);
-        fireEvent.click(screen.getByTestId('form-export-copy'));
+        await user.click(screen.getByTestId('form-export-copy'));
 
         await waitFor(() => expect(writeText).toHaveBeenCalled());
         expect(screen.queryByText('Copied')).toBeNull();
@@ -101,12 +105,13 @@ describe('export bar — Save to Notebook', () => {
     });
 
     it('hands off to the caller when pressed, and stays disabled through a successful save', async () => {
+        const user = userEvent.setup();
         let resolve;
         const onSaveToNotebook = vi.fn(() => new Promise(r => { resolve = r; }));
         render(<FormEndingView form={form(LONG_TEXT)} onSaveToNotebook={onSaveToNotebook} />);
 
         const button = screen.getByTestId('form-export-notebook');
-        fireEvent.click(button);
+        await user.click(button);
         await waitFor(() => expect(onSaveToNotebook).toHaveBeenCalledTimes(1));
         await waitFor(() => expect(button.disabled).toBe(true));
 
@@ -118,22 +123,24 @@ describe('export bar — Save to Notebook', () => {
     });
 
     it('shows what went wrong and lets the visitor try again', async () => {
+        const user = userEvent.setup();
         const onSaveToNotebook = vi.fn().mockRejectedValue(new Error('Could not save this to Notebooks.'));
         render(<FormEndingView form={form(LONG_TEXT)} onSaveToNotebook={onSaveToNotebook} />);
 
         const button = screen.getByTestId('form-export-notebook');
-        fireEvent.click(button);
+        await user.click(button);
         await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/Could not save/));
         expect(button.disabled).toBe(false);
     });
 
     it('does not fire twice while the first press is still going', async () => {
+        const user = userEvent.setup();
         const onSaveToNotebook = vi.fn(() => new Promise(() => {}));
         render(<FormEndingView form={form(LONG_TEXT)} onSaveToNotebook={onSaveToNotebook} />);
 
         const button = screen.getByTestId('form-export-notebook');
-        fireEvent.click(button);
-        fireEvent.click(button);
+        await user.click(button);
+        await user.click(button);
         await waitFor(() => expect(onSaveToNotebook).toHaveBeenCalledTimes(1));
     });
 });

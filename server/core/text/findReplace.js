@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Find-and-replace over a text slot, for tools an LLM drives.
  *

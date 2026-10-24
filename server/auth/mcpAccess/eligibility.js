@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Which MCP servers may THIS user put on a token?
  *

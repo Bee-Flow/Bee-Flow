@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * assertUrlIsPublic screens with the canonical SSRF table — DB-free.
  *

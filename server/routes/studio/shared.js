@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The pieces that every /api/studio aggregate shares.
  *

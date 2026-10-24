@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * projects/comments/passage.js — finding a comment's quote in the Markdown of
  * the item it is anchored to, the section around it, and reading the item.

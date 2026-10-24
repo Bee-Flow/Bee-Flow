@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Run: cd server && node --test core/meetingNotes/transcriptExcerpt.test.js
  */

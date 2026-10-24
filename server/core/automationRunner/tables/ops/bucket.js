@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * bucket: sort a column into labelled groups: numeric bands (lowest value

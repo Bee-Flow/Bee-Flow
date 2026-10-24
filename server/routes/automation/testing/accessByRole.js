@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A stand-in for the access guard the automation routers take
  * (`makeXRouter({ access })`, see automation/access.js), for route tests:

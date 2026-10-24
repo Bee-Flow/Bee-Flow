@@ -1,4 +1,5 @@
-import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -107,9 +108,10 @@ describe('het aantal', () => {
 
 describe('de lijst', () => {
     it('klapt open en noemt app › knop, met een link naar de app', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(ok({ usage: [row()] }));
         const { container } = render(<UsedByButtonsCapsule automationId={AID} />);
-        fireEvent.click(await screen.findByTestId('usedby-buttons-capsule'));
+        await user.click(await screen.findByTestId('usedby-buttons-capsule'));
         expect(screen.getByText('Expenses')).toBeTruthy();
         expect(screen.getByText('Submit claim')).toBeTruthy();
         const links = container.querySelectorAll('a');
@@ -118,37 +120,41 @@ describe('de lijst', () => {
     });
 
     it('een actie zonder knop zegt dat met zoveel woorden', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(ok({ usage: [row({ wired: false, label: null, nodeId: null })] }));
         render(<UsedByButtonsCapsule automationId={AID} />);
-        fireEvent.click(await screen.findByTestId('usedby-buttons-capsule'));
+        await user.click(await screen.findByTestId('usedby-buttons-capsule'));
         expect(screen.getByText('Not wired to a button yet')).toBeTruthy();
     });
 
     it('zonder canOpen is er een NAAM maar geen link — een 403 is erger dan geen link', async () => {
+        const user = userEvent.setup();
         // The name may be shown: the row is already owner-filtered, so this viewer was allowed to
         // read it. The LINK is a second question, and its answer comes from the server. The moment
         // a second consumer_kind is added, or one path hands over an app, this is the difference
         // between a working link and a 403.
         authFetch.mockResolvedValue(ok({ usage: [row({ canOpen: false })] }));
         const { container } = render(<UsedByButtonsCapsule automationId={AID} />);
-        fireEvent.click(await screen.findByTestId('usedby-buttons-capsule'));
+        await user.click(await screen.findByTestId('usedby-buttons-capsule'));
         expect(screen.getByText('Expenses')).toBeTruthy();
         expect(container.querySelectorAll('a').length).toBe(0);
     });
 
     it('een ontbrekend canOpen (oudere server) linkt ook niet — onbekend versmalt', async () => {
+        const user = userEvent.setup();
         const bare = row();
         delete bare.canOpen;
         authFetch.mockResolvedValue(ok({ usage: [bare] }));
         const { container } = render(<UsedByButtonsCapsule automationId={AID} />);
-        fireEvent.click(await screen.findByTestId('usedby-buttons-capsule'));
+        await user.click(await screen.findByTestId('usedby-buttons-capsule'));
         expect(container.querySelectorAll('a').length).toBe(0);
     });
 
     it('een app zonder naam toont haar id — eerlijk, niet verzonnen', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(ok({ usage: [row({ consumerTitle: null })] }));
         render(<UsedByButtonsCapsule automationId={AID} />);
-        fireEvent.click(await screen.findByTestId('usedby-buttons-capsule'));
+        await user.click(await screen.findByTestId('usedby-buttons-capsule'));
         expect(screen.getByText(APP)).toBeTruthy();
     });
 });

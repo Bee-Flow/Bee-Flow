@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The TESTCHAT (A4 part A).
  *
@@ -117,7 +118,7 @@ function isTestChat(messageMetadata) {
  *
  * @returns {{ok:true, testChat:boolean}|{ok:false, status:number, error:string, code:string}}
  */
-function gateTestChatRequest({ test, canEdit } = {}) {
+function gateTestChatRequest(/** @type {{test?: any, canEdit?: any}} */ { test, canEdit } = {}) {
     if (test !== true) return { ok: true, testChat: false };
     if (!canEdit) {
         return {

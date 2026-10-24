@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The user's own tokenization vault.
  *

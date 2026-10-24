@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Contacts API routes — execute contact actions after user approval
  * Handles both Google Contacts and Microsoft Contacts (via _provider field).

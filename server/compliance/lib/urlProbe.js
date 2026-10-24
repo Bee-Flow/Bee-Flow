@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * URL probe for compliance checks — a bounded, SSRF-guarded GET.
  *

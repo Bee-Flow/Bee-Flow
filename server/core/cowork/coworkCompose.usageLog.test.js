@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The compose call itself is also usage: one LLM call per brief, which before this existed
  * threw away its response.usage. Pinned here: it goes through the same sink as every other

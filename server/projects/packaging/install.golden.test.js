@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Characterisation of install.js: the golden behaviour pinned before the file
  * was split into install/ (context, provenance, parts per kind, grants, the

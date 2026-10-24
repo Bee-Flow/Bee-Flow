@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import CanvasPlanPanel from './CanvasPlanPanel';
@@ -9,7 +10,8 @@ const TODOS = [{ text: 'Link the table', done: true }, { text: 'Add the tiles', 
 afterEach(() => cleanup());
 
 describe('CanvasPlanPanel — open while it builds, out of the way after', () => {
-    it('is open during a build and folds to a pill when the AI stops, finished or not', () => {
+    it('is open during a build and folds to a pill when the AI stops, finished or not', async () => {
+        const user = userEvent.setup();
         const { rerender } = render(<CanvasPlanPanel todos={TODOS} running t={t} />);
         expect(screen.getByTestId('builder-plan-panel').textContent).toContain('Link the table');
 
@@ -21,11 +23,11 @@ describe('CanvasPlanPanel — open while it builds, out of the way after', () =>
         expect(pill.textContent).toContain('1/2');
 
         // And it is one press away.
-        fireEvent.click(pill);
+        await user.click(pill);
         expect(screen.getByTestId('builder-plan-panel')).toBeTruthy();
 
         // A NEW turn opens it again by itself.
-        fireEvent.click(screen.getByTestId('builder-plan-hide'));
+        await user.click(screen.getByTestId('builder-plan-hide'));
         expect(screen.queryByTestId('builder-plan-panel')).toBeNull();
         rerender(<CanvasPlanPanel todos={TODOS} running t={t} />);
         expect(screen.getByTestId('builder-plan-panel')).toBeTruthy();

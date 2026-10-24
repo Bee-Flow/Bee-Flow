@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Which family an org_custom_integrations row belongs to, read from the row
  * alone: an MCP library install (kind 'mcp_remote' whose running definition

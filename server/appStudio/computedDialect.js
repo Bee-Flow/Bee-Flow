@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Re-export shim — the implementation moved to ../core/dataEngine/computedDialect.
  *

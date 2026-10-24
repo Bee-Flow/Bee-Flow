@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Shared plumbing for the Stripe routers — the rate limiters, the cloud-only
  * gate, and caller/organisation resolution.

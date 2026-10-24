@@ -284,7 +284,7 @@ function buildCatalogSections() {
     // Rendered from the same specs so the model can never learn a stale enum.
     const design = [
         `preset: ${APP_DESIGN_PRESETS.map((p) => p.id).join('|')} — one call sets theme + design + navStyle together (an app with no preset renders as classic).`,
-        ...Object.entries(DESIGN_SPEC)
+        ...Object.entries(/** @type {Record<string, any>} */ (DESIGN_SPEC))
             .filter(([k]) => k !== 'preset')
             .map(([k, spec]) => (spec.type === 'enum'
                 ? `${k}: ${spec.values.join('|')} (default ${spec.default})`

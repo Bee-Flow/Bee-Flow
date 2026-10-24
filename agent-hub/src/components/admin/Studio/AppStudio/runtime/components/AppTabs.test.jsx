@@ -1,4 +1,5 @@
-import { fireEvent, render } from '@testing-library/react';
+import { render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect } from 'vitest';
 import AppTabs, { tabBadgeContent } from './AppTabs';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
@@ -105,9 +106,10 @@ describe('AppTabs — look: pills', () => {
         expect(getByRole('tab', { name: 'First' }).style.transition).toContain('var(--app-motion-fast, 0ms)');
     });
 
-    it('still switches tabs on click', () => {
+    it('still switches tabs on click', async () => {
+        const user = userEvent.setup();
         const { getByRole } = renderTabs({ look: 'pills' });
-        fireEvent.click(getByRole('tab', { name: 'Second' }));
+        await user.click(getByRole('tab', { name: 'Second' }));
         expect(getByRole('tab', { name: 'Second' }).getAttribute('aria-selected')).toBe('true');
         expect(getByRole('tab', { name: 'Second' }).style.background).toBe('var(--app-primary-soft)');
     });

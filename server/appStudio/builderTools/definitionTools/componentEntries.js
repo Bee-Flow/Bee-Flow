@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — reading the RAW entries of an app_add_components
  * call: what each list element is (entry, type-less wrapper group, corrupted

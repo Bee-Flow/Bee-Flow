@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * automationGraph — the definition reading every AI-Act signal shares.
  * Run: node --test --test-force-exit server/automation/automationGraph.test.js

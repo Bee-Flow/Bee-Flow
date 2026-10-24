@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio action executor — request_approval (extracted verbatim from
  * actionExecutor.js): the durable approval request an app raises without a run

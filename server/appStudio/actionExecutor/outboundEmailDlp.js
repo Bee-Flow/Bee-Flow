@@ -1,3 +1,4 @@
+// @typecheck
 const log = require('../../telemetry/log');
 
 /**
@@ -23,10 +24,10 @@ async function screenOutboundEmail(app, { text, subject }) {
 
         const shield = await require('../../core/privacy/orgShield').resolveOrgShield(orgId);
         // Mail leaves the platform whatever the org's LLM scope says, so scan it as 'all'.
-        const result = await dlpRunner.scan({
+        const result = await dlpRunner.scan(/** @type {any} */ ({
             messages: [{ role: 'user', content: `${subject}\n\n${text}` }],
             orgShieldConfig: { ...shield, dlpScope: 'all' },
-        });
+        }));
         if (result?.scanStatus !== 'ok') return { blocked: false, outcome: result?.scanStatus === 'failed' ? 'scan_failed' : 'skipped' };
         const hits = result.findings?.length || 0;
         if (!hits) return { blocked: false, outcome: 'clean' };

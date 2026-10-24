@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -115,7 +116,7 @@ function cleanAnnotations(context, pageNode, terms) {
     let removed = 0;
     for (const ref of annots.asArray()) {
         const a = context.lookup(ref);
-        const subtype = a instanceof PDFDict ? a.get(PDFName.of('Subtype'))?.asString?.() : null;
+        const subtype = a instanceof PDFDict ? /** @type {import('pdf-lib').PDFName|undefined} */ (a.get(PDFName.of('Subtype')))?.asString?.() : null;
         if (subtype === '/Link' || (a instanceof PDFDict && textReason(annotationText(context, a), terms))) { removed++; continue; }
         keep.push(ref);
     }

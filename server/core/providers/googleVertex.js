@@ -171,7 +171,7 @@ class GoogleVertexProvider extends GoogleProvider {
         const bpm = options.bpm || 90;
         const temperature = options.temperature || 1.0;
 
-        log.info(`[GoogleVertex] Music generation: "${prompt.substring(0, 80)}" (${durationMs / 1000}s, ${bpm} BPM)`);
+        log.info(`[GoogleVertex] Music generation: "${log.textForLog(prompt)}" (${durationMs / 1000}s, ${bpm} BPM)`);
 
         const audioChunks = [];
 
@@ -223,7 +223,7 @@ class GoogleVertexProvider extends GoogleProvider {
         const ai = this.createClient(apiKey, options);
         const model = options.model || 'veo-3.1-generate-001';
 
-        log.info(`[GoogleVertex] Video generation: "${prompt.substring(0, 80)}" (model: ${model})`);
+        log.info(`[GoogleVertex] Video generation: "${log.textForLog(prompt)}" (model: ${model})`);
 
         let operation = await ai.models.generateVideos({
             model,

@@ -514,7 +514,7 @@ async function streamChat(app, model, { system, messages }, onEvent) {
  * internet grounding on somebody's private notes is the case this exists to
  * prevent, and "no identity" cannot be resolved into a permission.
  */
-async function groundWithKB(app, { knowledgeBaseIds, query, topK = 6, viewer = null } = {}) {
+async function groundWithKB(app, /** @type {{knowledgeBaseIds?: any, query?: any, topK?: number, viewer?: any}} */ { knowledgeBaseIds, query, topK = 6, viewer = null } = {}) {
     const requested = Array.isArray(knowledgeBaseIds)
         ? knowledgeBaseIds.filter((x) => typeof x === 'string' && x).slice(0, MAX_KB_IDS)
         : [];

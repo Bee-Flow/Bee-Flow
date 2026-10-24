@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The edge rules of validateGraph (./graph.js): every edge references known
  * nodes, carries a label that fires, leaves no brancher unlabelled and nothing

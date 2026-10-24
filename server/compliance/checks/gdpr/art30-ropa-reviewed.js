@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR Art. 30 — Records of Processing Activities.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Microsoft Teams → Meeting Notes settings API.
  *

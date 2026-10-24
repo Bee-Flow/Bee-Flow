@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * webpageBindings — what the page ITSELF does.
  *
@@ -102,7 +103,6 @@
  * `beeflow.nl` hard-coded in the list — on a self-hosted installation that is a
  * third party.
  */
-
 'use strict';
 
 const bfElements = require('./bfElements');
@@ -195,7 +195,7 @@ function ownHosts() {
  * element scan must have seen EVERY text file that the editor shows: a slot that is
  * not read cannot yield a marking, and that is not distinguishable from "nothing is here".
  *
- * @returns {{readable:boolean, html:string, css:string, js:string, extras:Array<{path:string,text:string}>}}
+ * @returns {Promise<{readable:boolean, html:string, css:string, js:string, extras:Array<{path:string,text:string}>}>}
  */
 async function readPageCode(userId, webpageId) {
     const unreadable = { readable: false, html: '', css: '', js: '', extras: [] };

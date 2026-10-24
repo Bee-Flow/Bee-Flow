@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * SSRF guard for custom-integration outbound HTTP.
  *

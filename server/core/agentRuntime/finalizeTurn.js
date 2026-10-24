@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Streaming agent chat — end-of-turn finalization.
  *

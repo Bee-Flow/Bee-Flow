@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * saveChallenge: the session holding a WebAuthn challenge is saved before the

@@ -339,7 +339,7 @@ router.post('/requests', publicSubmitLimiter, validate({ body: PublicIntakeBody 
             ack: 'Your request has been received. We will respond within one month, as GDPR Art. 12(3) requires.',
         });
     } catch (e) {
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 
@@ -502,7 +502,7 @@ router.post('/requests/manual', requireAuth, requirePermission('admin_compliance
         const row = await dsrStore.getRequest(orgId, created.id);
         res.status(201).json(listRow(row));
     } catch (e) {
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 
@@ -549,7 +549,7 @@ router.post('/requests/:id/start', requireAuth, requirePermission('admin_complia
         const updated = await dsrStore.start(orgId, id, actorId);
         res.json(listRow(updated));
     } catch (e) {
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 
@@ -603,7 +603,7 @@ router.post('/requests/:id/extend', requireAuth, requirePermission('admin_compli
         complianceEvents.emit(complianceEvents.EVENTS.DSR_EXTENDED, { orgId, requestType: updated.request_type, requestId: id });
         res.json(listRow(updated));
     } catch (e) {
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 
@@ -619,7 +619,7 @@ router.post('/requests/:id/verify-identity', requireAuth, requirePermission('adm
         if (note) updated = await dsrStore.appendTimeline(orgId, id, { kind: 'note', by: actorId, text: note });
         res.json(listRow(updated));
     } catch (e) {
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 
@@ -703,7 +703,7 @@ router.post('/requests/:id/fulfil', requireAuth, requirePermission('admin_compli
         complianceEvents.emit(complianceEvents.EVENTS.DSR_FULFILLED, { orgId, requestType: updated.request_type, requestId: id, status });
         res.json(listRow(updated));
     } catch (e) {
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 

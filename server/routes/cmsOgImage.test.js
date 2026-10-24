@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The generated share-image route (routes/cmsOgImage.js): which requests get a
  * card, and what is cached. Handlers are called with a fake req/res; the stores

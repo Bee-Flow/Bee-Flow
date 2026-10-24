@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * origin — BEEFLOW_SERVER_LOCATION parsing.
  *
