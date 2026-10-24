@@ -14,6 +14,7 @@ const path = require('path');
 const { deps, _ticks, _remoteDescriptors, _healthOf, _logSystem } = require('./packageState');
 const { moduleRoot } = require('./packageStaging');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const { registry, betaFeatures } = deps;
 
@@ -65,8 +66,8 @@ function _pushDescriptors() {
         allCaps.push(...d.capDescriptors);
         allBetas.push(...d.betaDescriptors);
     }
-    try { registry().setRemoteModuleCapabilityDescriptors(allCaps); } catch (err) { log.debug('registry not ready', err); }
-    try { betaFeatures().setRemoteBetaFeatures(allBetas); } catch (err) { log.debug('beta not ready', err); }
+    try { registry().setRemoteModuleCapabilityDescriptors(allCaps); } catch (err) { bestEffort('modules/packageRuntime:_pushDescriptors', err); /* registry not ready */ }
+    try { betaFeatures().setRemoteBetaFeatures(allBetas); } catch (err) { bestEffort('modules/packageRuntime:_pushDescriptors#2', err); /* beta not ready */ }
 }
 
 // ── Worker tick (stop; the start lives with activation) ───────────────────

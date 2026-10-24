@@ -26,6 +26,7 @@ const fsp = require('fs/promises');
 const { Readable } = require('stream');
 const { createTtlCache } = require('../utils/ttlCache');
 const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const DEFAULT_HUB_URL = 'https://hub.beeflow.nl';
 const HUB_URL_KEY = 'beeflow_hub_url';
@@ -80,7 +81,7 @@ function _trimUrl(u) { return String(u || '').trim().replace(/\/+$/, ''); }
 async function resolveHubUrl() {
     let url = process.env.BEEFLOW_HUB_URL;
     if (!url) {
-        try { url = await configStore().getConfig(HUB_URL_KEY); } catch (err) { log.debug('default below', err); }
+        try { url = await configStore().getConfig(HUB_URL_KEY); } catch (err) { fallback('modules/hubClient:resolveHubUrl', err); /* default below */ }
     }
     url = _trimUrl(url) || DEFAULT_HUB_URL;
     if (isProd() && !/^https:\/\//i.test(url)) {
@@ -178,7 +179,7 @@ async function _accessToken({ force = false } = {}) {
 // ── Connect / disconnect ──────────────────────────────────────────────────
 async function _defaultConnectParams() {
     const out = { license_token: null, product_version: null, hostname: null, contact_email: null };
-    try { out.hostname = require('os').hostname(); } catch (err) { log.debug('leave null', err); }
+    try { out.hostname = require('os').hostname(); } catch (err) { fallback('modules/hubClient:_defaultConnectParams', err); /* leave null */ }
     // The stamped release version only; the frozen server/package.json version would misreport it.
     out.product_version = process.env.APP_VERSION || null;
     try {
@@ -254,9 +255,9 @@ async function disconnect() {
 async function getConnection() {
     const installId = await getInstallId();
     let hubUrl = DEFAULT_HUB_URL;
-    try { hubUrl = await resolveHubUrl(); } catch (err) { log.debug('keep default', err); }
+    try { hubUrl = await resolveHubUrl(); } catch (err) { fallback('modules/hubClient:getConnection', err); /* keep default */ }
     let meta = {};
-    try { meta = (await configStore().getConfig(CONNECTION_META_KEY)) || {}; } catch (err) { log.debug('none', err); }
+    try { meta = (await configStore().getConfig(CONNECTION_META_KEY)) || {}; } catch (err) { fallback('modules/hubClient:getConnection#2', err); /* none */ }
     return {
         connected: !!installId,
         hubUrl,
@@ -293,13 +294,13 @@ async function fetchMeta() {
             throw _mapHubError(resp.status, null);
         }
         _meta = { value, fetchedAt: Date.now() };
-        configStore().setConfig(META_LASTGOOD_KEY, value).catch(() => {});
+        configStore().setConfig(META_LASTGOOD_KEY, value).catch((e) => bestEffort('modules/hubClient:fetchMeta', e));
         return value;
     } catch (_) {
         try {
             const lastGood = await configStore().getConfig(META_LASTGOOD_KEY);
             if (lastGood && typeof lastGood === 'object') return lastGood;
-        } catch (err) { log.debug('fall through', err); }
+        } catch (err) { bestEffort('modules/hubClient:fetchMeta#2', err); /* fall through */ }
         return { hub_api: 1, features: [] };
     }
 }

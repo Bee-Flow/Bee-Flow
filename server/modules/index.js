@@ -23,6 +23,7 @@ const fs = require('fs');
 const { tagGate } = require('../auth/gateMeta');
 const { listModules, getModule } = require('./catalog');
 const log = require('../telemetry/log');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 // Lazy requires — the registry lazy-requires this module back (cycle safety),
 // and stores must not load before migrateDb/boot decides to.
@@ -221,7 +222,7 @@ function requireModule(moduleId, { remote = false } = {}) {
     return tagGate(async function moduleGate(req, res, next) {
         try {
             if (await isModuleActive(moduleId)) return next();
-        } catch (err) { log.debug('fall through to concealment', err); }
+        } catch (err) { bestEffort('modules/index:requireModule', err); /* fall through to concealment */ }
         return res.status(404).json({ error: 'not_found' });
     }, { axis: 'module', id: moduleId });
 }
@@ -251,7 +252,7 @@ function moduleGatedTick(moduleId, fn, name = fn.name || 'tick') {
         let active = true;
         try {
             active = await isModuleActive(moduleId);
-        } catch (err) { log.debug('fail open — see above', err); }
+        } catch (err) { fallback('modules/index:moduleGatedTick', err); /* fail open — see above */ }
         if (!active) {
             if (!announced) {
                 log.info(`[Modules] ${name} paused — module '${moduleId}' is not active on this instance`);

@@ -23,6 +23,7 @@ const {
 const { _entitlementGate, _sideloadEntitlementGate } = require('./packageEntitlement');
 const { activate } = require('./packageActivation');
 const log = require('../telemetry/log');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const { hubClient, store, packageStore, installStore, moduleAudit, packageVerify, remoteCatalog } = deps;
 
@@ -30,7 +31,7 @@ const { hubClient, store, packageStore, installStore, moduleAudit, packageVerify
 //    replicas + restarts) ────────────────────────────────────────────────────
 function _setProgress(id, phase, pct = null, error = null, detail = null) {
     _progress.set(id, { phase, pct, error, detail });
-    installStore().setPhase(id, phase, pct, { error, detail }).catch(() => { /* poller falls back to memory */ });
+    installStore().setPhase(id, phase, pct, { error, detail }).catch((e) => bestEffort('modules/packageInstall:_setProgress', e));
 }
 async function getInstallProgress(id) {
     const mem = _progress.get(id);
@@ -154,7 +155,7 @@ async function installFromHub(moduleId, { version = null, actorId = null, accept
                     error: e.message,
                     status: e.compat ? 'incompatible' : 'failed',
                 });
-            } catch (err) { log.debug('best effort', err); }
+            } catch (err) { bestEffort('modules/packageInstall:installFromHub', err); /* best effort */ }
         }
         throw e;
     } finally {
@@ -309,7 +310,7 @@ async function listVersions(moduleId) {
     const out = [];
     for (const r of (rows || [])) {
         let hasPackageFile = false;
-        try { await fsp.access(packagePath(r.moduleId, r.version)); hasPackageFile = true; } catch (_) { log.debug('package file absent', _); }
+        try { await fsp.access(packagePath(r.moduleId, r.version)); hasPackageFile = true; } catch (_) { fallback('modules/packageInstall:listVersions', _); /* package file absent */ }
         out.push({ ...r, hasPackageFile });
     }
     return out;

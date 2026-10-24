@@ -20,6 +20,7 @@ const {
     _projectDescriptors, _pushDescriptors, _stopTick, _purgeRequireCache, _drainAndDispose,
 } = require('./packageRuntime');
 const log = require('../telemetry/log');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const { store, packageStore, registry, runtime, moduleAudit, hostApiFactory } = deps;
 
@@ -114,7 +115,7 @@ function _composeHandler(entry) {
             const timer = setTimeout(() => {
                 _recordCrash(entry.moduleId, 'timeout', new Error(`request deadline ${REQUEST_TIMEOUT_MS}ms exceeded: ${url}`));
                 if (!res.headersSent) {
-                    try { res.status(503).json({ error: 'module_timeout' }); } catch (err) { log.debug('raced a write', err); }
+                    try { res.status(503).json({ error: 'module_timeout' }); } catch (err) { bestEffort('modules/packageActivation:_composeHandler', err); /* raced a write */ }
                 }
             }, REQUEST_TIMEOUT_MS);
             if (typeof timer.unref === 'function') timer.unref();
@@ -207,7 +208,7 @@ async function activate(moduleId, version, {
     const conflicts = [];
     for (const c of projected.capDescriptors) {
         let existing = null;
-        try { existing = registry().getCapability(c.id); } catch (err) { log.debug('registry not ready', err); }
+        try { existing = registry().getCapability(c.id); } catch (err) { fallback('modules/packageActivation:activate', err); /* registry not ready */ }
         if (existing && existing.moduleId !== moduleId) conflicts.push(c.id);
     }
     if (conflicts.length) {
@@ -294,7 +295,7 @@ async function activate(moduleId, version, {
     const oldEntry = _dispatch.get(moduleId);
     _dispatch.set(moduleId, entry);
     if (oldEntry && oldEntry !== entry) {
-        _drainAndDispose(moduleId, oldEntry).catch(() => {});
+        _drainAndDispose(moduleId, oldEntry).catch((e) => bestEffort('modules/packageActivation:activate#2', e));
     }
     _logSystem(moduleId, `activated v${version}`);
 

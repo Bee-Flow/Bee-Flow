@@ -29,6 +29,7 @@
 
 'use strict';
 const log = require('../telemetry/log');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const INTERVAL_SEC = parseInt(process.env.HUB_ENTITLEMENT_REFRESH_INTERVAL_SECONDS || '3600', 10);
 const BOOT_DELAY_MS = parseInt(process.env.HUB_ENTITLEMENT_REFRESH_BOOT_DELAY_MS || '45000', 10);
@@ -235,7 +236,7 @@ async function tick() {
         _health.lastTickDurationMs = Date.now() - startedAt;
         // Ride the CRL check on every entitlement tick too (own errors, never
         // fails the tick).
-        try { await crlTick(); } catch (err) { log.debug('recorded in _health.lastCrlError', err); }
+        try { await crlTick(); } catch (err) { bestEffort('modules/entitlementRefresh:tick', err); /* recorded in _health.lastCrlError */ }
     }
 }
 
@@ -260,7 +261,7 @@ async function crlTick() {
         try {
             const stored = await configStore().getConfig(CRL_CURSOR_KEY);
             cursor = Number(stored) > 0 ? Number(stored) : 0;
-        } catch (err) { log.debug('start from 0', err); }
+        } catch (err) { fallback('modules/entitlementRefresh:crlTick', err); /* start from 0 */ }
 
         // Page through the CRL; collect every revocation past the cursor.
         const revokedEntries = [];
@@ -307,7 +308,7 @@ async function crlTick() {
 
         // Full success — advance the cursor.
         if (since !== cursor) {
-            try { await configStore().setConfig(CRL_CURSOR_KEY, since); } catch (err) { log.debug('retry next tick', err); }
+            try { await configStore().setConfig(CRL_CURSOR_KEY, since); } catch (err) { bestEffort('modules/entitlementRefresh:crlTick#2', err); /* retry next tick */ }
         }
         _health.crlCursor = since;
     } catch (e) {

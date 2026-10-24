@@ -11,6 +11,7 @@ const log = require('../telemetry/log');
 const runtime = require('./index');
 const packageLoader = require('./packageLoader');
 const remoteCatalog = require('./remoteCatalog');
+const { fallback } = require('../utils/bestEffort');
 
 const { loadStates, resolveEntry, projectRow, statusFor, GRACE_OPTS, invalidateCache, refreshModuleActivations } = runtime;
 
@@ -36,7 +37,7 @@ async function auditAndPropagate(action, moduleId, actorId, beforeStatus, afterS
 // TTL cache) so back-to-back toggles audit the true previous state.
 async function currentStatus(entry) {
     let row = null;
-    try { row = await store().getState(entry.id); } catch (err) { log.debug('default below', err); }
+    try { row = await store().getState(entry.id); } catch (err) { fallback('modules/moduleLifecycle:currentStatus', err); /* default below */ }
     return statusFor(entry, row);
 }
 

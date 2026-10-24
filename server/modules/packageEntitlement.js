@@ -13,6 +13,7 @@
 const { deps, grantKeyResolver } = require('./packageState');
 const { _safeSeg } = require('./packageStaging');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const { hubClient, moduleEntitlements, subjects, configStore } = deps;
 
@@ -139,7 +140,7 @@ async function _sideloadEntitlementGate(moduleId, manifest, signedPayload) {
     }
     try {
         if (await hubClient().isConnected()) return await _entitlementGate(moduleId, manifest);
-    } catch (err) { log.debug('fall through to 402', err); }
+    } catch (err) { bestEffort('modules/packageEntitlement:_sideloadEntitlementGate', err); /* fall through to 402 */ }
     const e = new Error('offline_grant_required');
     e.code = 'offline_grant_required';
     throw e;
