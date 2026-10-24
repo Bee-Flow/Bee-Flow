@@ -430,13 +430,17 @@ const METRICS = {
     },
     'authfetch-effect': {
         include: (rel) => !TEST_FILE.test(rel),
-        measure: (text) => (/\bauthFetch\b/.test(text) && /\buseEffect\b/.test(text) ? 1 : 0),
+        // On the code only: a word in a comment is not a call.
+        measure: (text) => {
+            const code = blankNonCode(text);
+            return /\bauthFetch\b/.test(code) && /\buseEffect\b/.test(code) ? 1 : 0;
+        },
         what: 'files pairing authFetch with useEffect',
         advice: 'read through useQuery/useMutation in src/api/queries/ instead',
     },
     'authfetch-outside-api': {
         include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('api/') && rel !== 'utils/helpers.ts',
-        measure: (text) => (/(?<![\w.$])authFetch\s*\(/.test(text) ? 1 : 0),
+        measure: (text) => (/(?<![\w.$])authFetch\s*\(/.test(blankNonCode(text)) ? 1 : 0),
         what: 'files calling authFetch outside src/api',
         advice: 'call through src/api/ instead: apiClient or createJsonResource (api/client.ts), mutate() (api/mutate.ts), or a reader in api/queries/',
     },

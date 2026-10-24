@@ -14,6 +14,7 @@ import type { CustomIcon } from '../../../../hooks/useIconPack';
 import type { AddPackModalProps, BulkGenerateModalProps, BulkOptions, BulkResult, IconCategory, IconCellProps, IconEntry, IconPack, PackEditorProps, PackListItemProps } from './IconsEditor.types';
 import { errorMessage } from '../../../../utils/caughtError';
 import { logger } from '../../../../utils/logger';
+import { mutate, ApiError } from '../../../../api/mutate';
 
 const API = `${API_BASE}/api/icons`;
 
@@ -59,12 +60,15 @@ export default function IconsEditor() {
     const handleCreatePack = async (name: string) => {
         if (!name?.trim()) return;
         try {
-            const res = await authFetch(API, {
+            const res = await mutate(API, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: name.trim(), icons: {} }),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 const newPack = await res.json();
                 await fetchPacks();
                 setSelectedPackId(newPack.id);
@@ -79,8 +83,11 @@ export default function IconsEditor() {
 
     const handleActivatePack = async (id: string | null) => {
         try { // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
-            const res = await authFetch(`${API}/${id || 'default'}/activate`, { method: 'POST' });
-            if (res.ok) {
+            const res = await mutate(`${API}/${id || 'default'}/activate`, { method: 'POST' }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
+            });
+            if (res) {
                 setActivePackId(id);
                 iconPackContext.setIconPack(id);
             }
@@ -92,8 +99,11 @@ export default function IconsEditor() {
     const handleDeletePack = async (id: string) => {
         if (!(await confirm({ title: 'Delete this icon pack?', description: 'This cannot be undone.', confirmLabel: 'Delete', destructive: true }))) return;
         try { // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
-            const res = await authFetch(`${API}/${id}`, { method: 'DELETE' });
-            if (res.ok) {
+            const res = await mutate(`${API}/${id}`, { method: 'DELETE' }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
+            });
+            if (res) {
                 if (activePackId === id) {
                     setActivePackId(null);
                     iconPackContext.setIconPack(null);
@@ -133,12 +143,17 @@ export default function IconsEditor() {
             try {
                 const text = await file.text();
                 const data = JSON.parse(text);
-                const res = await authFetch(`${API}/import`, {
+                let res: Response;
+                try {
+                    res = await mutate(`${API}/import`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data),
                 });
-                if (!res.ok) throw new Error('import failed');
+                } catch (err) {
+                    if (!(err instanceof ApiError)) throw err;
+                    throw new Error('import failed');
+                }
                 const newPack = await res.json();
                 await fetchPacks();
                 setSelectedPackId(newPack.id);
@@ -395,12 +410,15 @@ const PackEditor = ({ packId, categories, isActive, onActivate, onExport, onPack
     const handleResetAll = async () => {
         if (!(await confirm({ title: 'Remove ALL custom icons from this pack?', confirmLabel: 'Remove all', destructive: true }))) return;
         try { // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
-            const res = await authFetch(`${API}/${(pack as IconPack).id}`, {
+            const res = await mutate(`${API}/${(pack as IconPack).id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ icons: {} }),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 setPack((prev: IconPack | null) => prev ? { ...prev, icons: {} } : prev);
                 onPackChanged({ icons: {} });
             }

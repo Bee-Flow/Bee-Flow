@@ -1,6 +1,7 @@
 import { jsonOrThrow } from './jsonOrThrow';
 import { API_BASE, authFetch, isDemoMode } from '../../../utils/helpers';
 import type { GoogleMeetImportInput, ImportGoogleMeetArgs, ImportTeamsArgs, MeetingRecordOptions, RegenerateArg, SpeakerPatch, TemplateInput, UploadAudioArgs, UploadNextcloudArgs } from './transcriptionsApi.types';
+import { mutate, ApiError } from '../../../api/mutate';
 
 export async function listTranscriptions() {
     const res = await authFetch(`${API_BASE}/api/transcriptions`);
@@ -330,8 +331,12 @@ export async function updateSummaryTemplate(id: string, patch: Record<string, un
 }
 
 export async function deleteSummaryTemplate(id: string) {
-    const res = await authFetch(`${API_BASE}/api/summary-templates/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    try {
+        await mutate(`${API_BASE}/api/summary-templates/${id}`, { method: 'DELETE' });
+    } catch (err) {
+        if (!(err instanceof ApiError)) throw err;
+        throw new Error(`HTTP ${err.status}`);
+    }
     return true;
 }
 

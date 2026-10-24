@@ -15,6 +15,7 @@ import type { CannedResponse } from '../../../support/SupportInboxPanel.types';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { SupportThread, SupportMessage, TicketContext, DotProps, SupportStudioProps, EmptyStateProps, TicketDetailProps, MessageBubbleProps } from './index.types';
 import { logger } from '../../../../utils/logger';
+import { mutate, ApiError } from '../../../../api/mutate';
 
 const NOT_SUPPORT_TAG = 'not-support';
 const STATUS_IDS = ['open', 'ai_responding', 'awaiting_user', 'awaiting_agent', 'resolved', 'closed'];
@@ -340,10 +341,13 @@ function TicketDetail({ threadId, user, onChanged, autoRefreshMs = 0 }: TicketDe
     };
 
     const patch = async (body: Record<string, unknown>) => {
-        const res = await authFetch(`${API_BASE}/api/support-inbox/threads/${threadId}`, {
+        const res = await mutate(`${API_BASE}/api/support-inbox/threads/${threadId}`, {
             method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        }).catch((err: unknown) => {
+            if (err instanceof ApiError) return null;
+            throw err;
         });
-        if (res.ok) { await load(); onChanged?.(); }
+        if (res) { await load(); onChanged?.(); }
     };
 
     if (!thread) return <div className="p-8 text-sm text-[var(--text-tertiary)]">{t('support.common.loading', 'Loading…')}</div>;

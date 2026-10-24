@@ -191,6 +191,7 @@ test('authfetch-effect needs both halves, and leaves tests alone', () => {
             'QueryOnly.jsx': 'const q = useQuery({ queryFn: () => authFetch(url) });\n',
             'EffectOnly.jsx': 'useEffect(() => { document.title = t; }, [t]);\n',
             'Hand.test.jsx': 'useEffect(() => {}); vi.mock("authFetch");\nauthFetch.mockResolvedValue(1);\n',
+            'Comment.jsx': '// was authFetch(url) in a useEffect\n/* authFetch useEffect */\nconst a = 1;\n',
         },
     });
     assert.strictEqual(run(dir, 'authfetch-effect').code, 0);
@@ -205,6 +206,7 @@ test('authfetch-outside-api counts files calling authFetch outside src/api, not 
             'api/client.ts': 'const res = await authFetch(url, init);\n',
             'utils/helpers.ts': 'export async function authFetch(url) { return fetch(url); }\nauthFetch(x);\n',
             'components/Hand.test.jsx': 'authFetch(url);\n',
+            'components/Comment.jsx': '// replaces authFetch(url)\n/* authFetch(x) */\nconst a = 1;\n',
         },
     });
     assert.strictEqual(run(dir, 'authfetch-outside-api').code, 0);

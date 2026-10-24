@@ -10,6 +10,7 @@ import {
 import { renderMermaidToSVG, svgToPngDataUrl } from '../../pages/documents/notebook/MermaidBlock';
 import type { NotebookEditorFacade, NotebookEditorHandle } from '../../pages/documents/notebook/detail/editorHandle';
 import type { WorkspaceNotebookProps } from './WorkspaceNotebook.types';
+import { mutate, ApiError } from '../../api/mutate';
 /** The editor ref as this panel uses it: the facade also carries TipTap's storage and commands. */
 interface WorkspaceEditorHandle extends NotebookEditorHandle {
     getEditor?: () => (NotebookEditorFacade & {
@@ -103,12 +104,15 @@ export default function WorkspaceNotebook({
         if (notebookId || creatingNotebookRef.current) return notebookId;
         creatingNotebookRef.current = true;
         try {
-            const res = await authFetch(`${API_BASE}/api/notebooks`, {
+            const res = await mutate(`${API_BASE}/api/notebooks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: `Chat Notebook – ${new Date().toLocaleDateString()}` }),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 const { notebook } = await res.json();
                 setNotebookId(notebook.id);
                 // Notify parent so it can persist the ID to the conversation
