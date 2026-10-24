@@ -423,6 +423,10 @@ jobs:
             hub-module-sdk:
               - 'hub-module-sdk/**'
               - '.nvmrc'
+              # test/signContract.test.mjs checks sign.mjs against the server's verifier.
+              - 'server/modules/packageVerify.js'
+              - 'server/license/{verify,tiers}.js'
+              - 'server/telemetry/log.js'
               - 'scripts/{eslint-budget,coverage-ratchet,entry-point}.mjs'
               - 'scripts/eslint-service-config.cjs'
               - 'scripts/eslint/**'
