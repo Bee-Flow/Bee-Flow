@@ -28,6 +28,7 @@
  * exactly the status quo.
  */
 const log = require('../telemetry/log');
+const { fallback } = require('./bestEffort');
 
 const ASSET_URL_PREFIX = '/api/cms/asset/';
 
@@ -36,7 +37,7 @@ function assetKeyFromSrc(src) {
     if (typeof src !== 'string' || !src) return null;
     let s = src;
     if (s.startsWith(ASSET_URL_PREFIX)) s = s.slice(ASSET_URL_PREFIX.length);
-    try { s = decodeURIComponent(s); } catch (err) { log.debug('keep raw', err); }
+    try { s = decodeURIComponent(s); } catch (err) { fallback('utils/mediaDims:assetKeyFromSrc', err); /* keep raw */ }
     if (s.startsWith('cms/')) return s;
     return null;
 }
@@ -96,7 +97,7 @@ async function enrichMediaDims(tree, probe, { probeTimeoutMs = 3000, budgetMs = 
                 node.height = Math.round(dims.height);
                 enriched++;
             }
-        } catch (err) { log.debug('best-effort — see header', err); }
+        } catch (err) { fallback('utils/mediaDims:enrichMediaDims', err); /* best-effort — see header */ }
     }
     return enriched;
 }

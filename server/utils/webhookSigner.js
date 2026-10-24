@@ -26,6 +26,7 @@
 const crypto = require('crypto');
 const configStore = require('../stores/configStore');
 const log = require('../telemetry/log');
+const { bestEffort } = require('./bestEffort');
 
 const KEY_PREFIX = 'org_webhook_signing_key_';
 const TIMESTAMP_HEADER = 'X-Beeflow-Timestamp';
@@ -46,7 +47,7 @@ async function getOrCreateSigningKey(orgId, { store = configStore } = {}) {
     try {
         const existing = await store.getSecret(key);
         if (existing && typeof existing === 'string' && existing.length >= 32) return existing;
-    } catch (err) { log.debug('fall through to create', err); }
+    } catch (err) { bestEffort('utils/webhookSigner:getOrCreateSigningKey', err); /* fall through to create */ }
     // Lazy path. createOrganization pre-generates this; if we get here, it
     // means the pre-generation step failed or this org pre-dates that fix.
     // Log a warning so the discrepancy surfaces in logs.

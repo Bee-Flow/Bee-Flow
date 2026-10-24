@@ -45,6 +45,7 @@
  * @returns {string} e.g. "https://beeflow.nl" — no trailing slash
  */
 const log = require('../telemetry/log');
+const { bestEffort } = require('./bestEffort');
 
 function clientHost() {
     return `${process.env.CLIENT_PROTOCOL || 'https'}://${process.env.CLIENT_PUBLIC_HOST || 'beeflow.nl'}`;
@@ -134,7 +135,7 @@ function publicBaseUrl(override = null) {
             const u = new URL(raw.trim());
             if (u.protocol !== 'http:' && u.protocol !== 'https:') continue;
             return u.origin;
-        } catch (err) { log.debug('unusable → next candidate', err); }
+        } catch (err) { bestEffort('utils/appPaths:publicBaseUrl', err); /* unusable → next candidate */ }
     }
     return clientHost();
 }
