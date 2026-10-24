@@ -567,7 +567,7 @@ router.post('/users/:id/avatar', requireOrgAdminForUser, userAvatarUpload.single
 });
 
 router.delete('/users/:id/avatar', requireOrgAdminForUser, async (req, res) => {
-    const user = await userStore.getUser(req.params.id);
+    const user = await userStore.getUser(req.params.id); // nosemgrep: ajinabraham.njsscan.traversal.resolve_path_traversal.join_resolve_path_traversal -- user.avatar is the server-generated upload path, never request input
     if (user && user.avatar && user.avatarType === 'image') {
         const filePath = path.join(__dirname, '..', '..', 'data', user.avatar); // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal -- user.avatar is the server-generated upload path stored by the avatar upload route, never request input
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);

@@ -211,7 +211,8 @@ function mentions(text, rel) {
     if (!quoted.test(text)) return false; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script that reads local source files; its regexes are anchored or single-class, linear
     if (GENERIC_BASENAMES.test(base)) {
         const parent = path.posix.basename(path.posix.dirname(rel));
-        return text.includes(`${parent}/${base}`) || new RegExp(`['"\`]${parent}['"\`]\\s*,\\s*['"\`]${base}['"\`]`).test(text);
+        const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return text.includes(`${parent}/${base}`) || new RegExp(`['"\`]${esc(parent)}['"\`]\\s*,\\s*['"\`]${esc(base)}['"\`]`).test(text); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- escaped path segments between fixed quotes, linear
     }
     return true;
 }
