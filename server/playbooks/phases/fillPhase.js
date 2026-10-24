@@ -11,6 +11,7 @@
 
 const { copyFor } = require('../copy');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 const RESPONSE_TIMEOUT_MS = 60_000;
 const STALE_MS = 15 * 60_000;
@@ -21,7 +22,7 @@ async function currentRowCount(artifacts, deps) {
     const id = artifacts && artifacts.datatableId;
     const scope = artifacts && artifacts.datatableScope;
     if (!id || !scope) return null;
-    const table = await datatableStore.getDatatable(id, scope).catch(() => null);
+    const table = await datatableStore.getDatatable(id, scope).catch((e) => fallback('playbooks/phases/fillPhase:currentRowCount', e, null));
     return table ? (Number(table.rowCount) || 0) : null;
 }
 
@@ -57,7 +58,7 @@ async function startFillPhase({ playbook, automationId, tableArtifacts, onRunCre
             startedByUserId: playbook.userId,
             onRunCreated: (run) => {
                 runId = run && run.id ? run.id : null;
-                if (typeof onRunCreated === 'function') { try { onRunCreated(run); } catch (err) { log.debug('observer', err); } }
+                if (typeof onRunCreated === 'function') { try { onRunCreated(run); } catch (err) { bestEffort('playbooks/phases/fillPhase:onRunCreated', err); /* observer */ } }
             },
         }).catch((e) => { runError = e; log.error('[playbooks/fill] run error:', e && e.message); return null; });
         const run = await Promise.race([runPromise, guard]);
@@ -93,7 +94,7 @@ async function refreshFillPhase(phase, deps, now = Date.now(), { locale = null }
     // The stale guard sits ABOVE the id check on purpose: a phase whose run was
     // never created has nothing to poll, and used to be polled for ever.
     if (!art.runId) return stale ? { status: 'failed', artifacts: art, error: copy.runNeverStarted } : null;
-    const run = await automationStore.getRun(art.runId).catch(() => null);
+    const run = await automationStore.getRun(art.runId).catch((e) => fallback('playbooks/phases/fillPhase:refreshFillPhase', e, null));
     const rowCount = await currentRowCount(art, deps);
     const rowsBefore = Number.isFinite(art.rowsBefore) ? art.rowsBefore : 0;
     const added = rowCount == null ? null : Math.max(0, rowCount - rowsBefore);
