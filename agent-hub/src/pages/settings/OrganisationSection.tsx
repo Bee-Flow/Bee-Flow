@@ -41,7 +41,7 @@ const GoogleMapsRow = () => {
     const save = async () => {
         if (!key.trim()) return;
         setSaving(true);
-        try {
+        try { // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- an ApiError is shown by mutate(); anything else is logged to the browser console of the person who clicked, nothing is sent to a client
             const res = await mutate(`${API_BASE}/ai/config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

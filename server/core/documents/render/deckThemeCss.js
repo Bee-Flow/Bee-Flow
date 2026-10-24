@@ -3,7 +3,7 @@ const { resolveDeckTheme, slideVariant } = require('../deckThemeOptions');
 const NEUTRAL_DECK_THEME = Object.freeze(resolveDeckTheme(null));
 
 function cssHex(value, fallback) {
-    const t = String(value ?? '').trim();
+    const t = String(value ?? '').trim(); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored fixed-length hex colour pattern: linear
     return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t) ? t : fallback;
 }
 

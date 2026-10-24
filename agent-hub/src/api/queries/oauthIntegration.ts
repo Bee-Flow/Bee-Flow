@@ -91,7 +91,7 @@ export function useOAuthIntegration(provider: OAuthProvider, { remoteStatus = tr
         onSuccess: () => refresh(),
     });
     const disconnect = async () => {
-        try {
+        try { // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- logs to the browser console of the person who clicked; nothing is sent to a client
             await disconnectMutation.mutateAsync();
             onSaved();
         } catch (e) { console.error(e); }

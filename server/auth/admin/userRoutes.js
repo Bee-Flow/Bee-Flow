@@ -569,7 +569,7 @@ router.post('/users/:id/avatar', requireOrgAdminForUser, userAvatarUpload.single
 router.delete('/users/:id/avatar', requireOrgAdminForUser, async (req, res) => {
     const user = await userStore.getUser(req.params.id);
     if (user && user.avatar && user.avatarType === 'image') {
-        const filePath = path.join(__dirname, '..', '..', 'data', user.avatar);
+        const filePath = path.join(__dirname, '..', '..', 'data', user.avatar); // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal -- user.avatar is the server-generated upload path stored by the avatar upload route, never request input
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
     // Use PostgreSQL to set NULL

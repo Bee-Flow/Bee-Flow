@@ -208,7 +208,7 @@ function mentions(text, rel) {
     // Package-relative spelling (`core/http/ssrfGuard.js` for server/core/...).
     const inner = rel.split('/').slice(1).join('/');
     if (inner.includes('/') && text.includes(inner)) return true;
-    if (!quoted.test(text)) return false;
+    if (!quoted.test(text)) return false; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script that reads local source files; its regexes are anchored or single-class, linear
     if (GENERIC_BASENAMES.test(base)) {
         const parent = path.posix.basename(path.posix.dirname(rel));
         return text.includes(`${parent}/${base}`) || new RegExp(`['"\`]${parent}['"\`]\\s*,\\s*['"\`]${base}['"\`]`).test(text);

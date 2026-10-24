@@ -152,7 +152,7 @@ async function putAnalyticsSettingsHandler(req, res) {
     // actually typed into it, so a save that leaves a field untouched never
     // clears the stored secret. Sending an explicit empty string clears it.
     if (username !== undefined) await configStore.setSecret(umamiClient.KEY_USERNAME, String(username || ''));
-    if (password !== undefined) await configStore.setSecret(umamiClient.KEY_PASSWORD, String(password || ''));
+    if (password !== undefined) await configStore.setSecret(umamiClient.KEY_PASSWORD, String(password || '')); // nosemgrep: ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack -- checks whether the field was sent at all, not a comparison against a stored secret
     if (apiToken !== undefined) await configStore.setSecret(umamiClient.KEY_API_TOKEN, String(apiToken || ''));
     umamiClient.invalidateEndpointCache();
     invalidateCache();

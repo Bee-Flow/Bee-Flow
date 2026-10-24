@@ -112,7 +112,7 @@ export const LinkedInIntegration = ({ connected, linkedInName, hasLinkedInConfig
     const [connecting, setConnecting] = useState(false);
     const handleConnect = async () => {
         setConnecting(true);
-        try {
+        try { // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- logs to the browser console of the person who clicked; nothing is sent to a client
             const res = await oauth.fetchAuthUrl();
             if (res.ok) {
                 const { url } = await res.json();

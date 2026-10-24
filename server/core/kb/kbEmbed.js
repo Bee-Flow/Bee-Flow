@@ -27,7 +27,7 @@ function simhash64(text) {
 
     const v = new Array(64).fill(0);
     for (const tok of tokens) {
-        const h = crypto.createHash('md5').update(tok).digest();
+        const h = crypto.createHash('md5').update(tok).digest(); // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_md5 -- feature hashing for a local similarity vector (simhash), not a security hash
         for (let bit = 0; bit < 64; bit++) {
             const byte = h[bit >> 3];
             const isSet = (byte >> (bit & 7)) & 1;

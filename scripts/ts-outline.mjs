@@ -183,7 +183,7 @@ function collectRefs(ts, root, topNames, importNames) {
 /** Parse a file into units (top-level declarations and statements) and import bindings. */
 export function analyze(file, textIn) {
     const ts = loadTs();
-    const text = textIn ?? fs.readFileSync(file, 'utf8');
+    const text = textIn ?? fs.readFileSync(file, 'utf8'); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script that reads local source files; its regexes are anchored or single-class, linear
     const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, scriptKind(ts, file));
     const lineOf = (pos) => sf.getLineAndCharacterOfPosition(pos).line + 1;
 

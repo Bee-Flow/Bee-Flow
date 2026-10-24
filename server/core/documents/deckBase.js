@@ -56,7 +56,7 @@ function clampText(value, max, warnings, what) {
  * Bee Flow storage object (as a key, or as the proxy URL the chat hands out).
  */
 function classifyImageRef(src, alt = '') {
-    const raw = String(src ?? '').trim();
+    const raw = String(src ?? '').trim(); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored patterns over single character classes, no nested repeats: linear
     if (!raw) return null;
     if (/^data:image\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=\s]+$/i.test(raw)) {
         return { dataUrl: raw.replace(/\s+/g, ''), alt: String(alt || '') };

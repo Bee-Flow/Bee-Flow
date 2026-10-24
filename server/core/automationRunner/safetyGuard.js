@@ -38,7 +38,7 @@ function _logGuardrail(auditBase, { violation_type, categories, direction, actio
 }
 
 function _hash(s) {
-    return require('crypto').createHash('sha1').update(String(s)).digest('hex').slice(0, 16);
+    return require('crypto').createHash('sha1').update(String(s)).digest('hex').slice(0, 16); // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_sha1 -- a short non-security fingerprint for a log line, not a password or signature hash
 }
 
 /**

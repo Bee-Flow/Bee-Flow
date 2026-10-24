@@ -632,7 +632,7 @@ export function applyDeps(c, name, out) {
     let next = edits.sort((x, y) => y.start - x.start).reduce((tx, e) => tx.slice(0, e.start) + e.text + tx.slice(e.end), text);
 
     // Imports, on the parsed new text.
-    const sf2 = ts.createSourceFile(c.abs, next, ts.ScriptTarget.Latest, true, /\.tsx$/.test(c.abs) ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+    const sf2 = ts.createSourceFile(c.abs, next, ts.ScriptTarget.Latest, true, /\.tsx$/.test(c.abs) ? ts.ScriptKind.TSX : ts.ScriptKind.TS); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script that reads local source files; its regexes are anchored or single-class, linear
     const bound = new Set();
     const imports = [];
     for (const st of sf2.statements) {

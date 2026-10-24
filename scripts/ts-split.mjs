@@ -91,7 +91,7 @@ function mergeRemovals(text, ranges) {
     const merged = [];
     for (const r of sorted) {
         const last = merged[merged.length - 1];
-        if (last && /^\s*$/.test(text.slice(last[1], r[0]))) last[1] = Math.max(last[1], r[1]); else merged.push([...r]);
+        if (last && /^\s*$/.test(text.slice(last[1], r[0]))) last[1] = Math.max(last[1], r[1]); else merged.push([...r]); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script that reads local source files; its regexes are anchored or single-class, linear
     }
     for (const r of merged) {
         const blankBefore = r[0] === 0 || text.slice(Math.max(0, r[0] - 2), r[0]) === '\n\n';
@@ -107,7 +107,7 @@ function applyEdits(text, edits) {
 
 function parseErrors(file, text) {
     const ts = loadTs();
-    const kind = /\.tsx$/.test(file) ? ts.ScriptKind.TSX : /\.[cm]?ts$/.test(file) ? ts.ScriptKind.TS : /\.jsx$/.test(file) ? ts.ScriptKind.JSX : ts.ScriptKind.JS;
+    const kind = /\.tsx$/.test(file) ? ts.ScriptKind.TSX : /\.[cm]?ts$/.test(file) ? ts.ScriptKind.TS : /\.jsx$/.test(file) ? ts.ScriptKind.JSX : ts.ScriptKind.JS; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script that reads local source files; its regexes are anchored or single-class, linear
     const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, kind);
     return sf.parseDiagnostics.map((d) => ts.flattenDiagnosticMessageText(d.messageText, '\n'));
 }

@@ -100,7 +100,7 @@ const SERVER_SITES = [
         what: 'het model leest het on_error-verbod (builderPrompt.js + builderTools/schemas.js)',
         check: (type) => {
             const prompt = require('../builderPrompt').buildFullSystemPrompt({ catalog: { apps: [] }, codeStepEnabled: false });
-            const schemas = read('automation/builderTools/schemas.js');
+            const schemas = fs.readdirSync(path.join(SERVER, 'automation/builderTools')).filter((n) => /^schema.*\.js$/.test(n) && !n.endsWith('.test.js')).sort().map((n) => read(`automation/builderTools/${n}`)).join('\n');
             // Both prohibition lists are prose that may run over several lines
             // ("NEVER from trigger / condition / … / <type>"), so a WINDOW after the
             // preamble instead of a single line — a list that breaks at the line break

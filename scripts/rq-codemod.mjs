@@ -62,7 +62,7 @@ function walk(node, fn) {
 const isFunctionLike = (n) => ts.isFunctionDeclaration(n) || ts.isFunctionExpression(n) || ts.isArrowFunction(n) || ts.isMethodDeclaration(n);
 
 function indentOf(text, pos) {
-    const ls = text.lastIndexOf('\n', pos - 1) + 1;
+    const ls = text.lastIndexOf('\n', pos - 1) + 1; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script that reads local source files; its regexes are anchored or single-class, linear
     return /^[ \t]*/.exec(text.slice(ls, pos))[0];
 }
 
@@ -948,9 +948,9 @@ function queryOne(ctx, effectStmt) {
         const sym = ctx.checker.getSymbolAtLocation(declSite || useSite);
         const decl = sym && sym.valueDeclaration;
         if (!sym || !decl) throw new Skip('cannot resolve a request value', p);
-        const declared = primitiveTypeText(ctx.checker, ctx.checker.getTypeOfSymbolAtLocation(sym, decl));
+        const declared = primitiveTypeText(ctx.checker, ctx.checker.getTypeOfSymbolAtLocation(sym, decl)); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script that reads local source files; its regexes are anchored or single-class, linear
         if (!declared) throw new Skip('request value is not a primitive', p);
-        const narrowed = useSite ? primitiveTypeText(ctx.checker, ctx.checker.getTypeAtLocation(useSite)) : declared;
+        const narrowed = useSite ? primitiveTypeText(ctx.checker, ctx.checker.getTypeAtLocation(useSite)) : declared; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script that reads local source files; its regexes are anchored or single-class, linear
         const needsCheck = /\bnull\b|\bundefined\b/.test(declared) && narrowed && !/\bnull\b|\bundefined\b/.test(narrowed);
         paramInfo.push({ name: p, type: declared, needsCheck });
     }
@@ -1182,7 +1182,7 @@ function queryFile(file, text, shared) {
     const srcRoot = srcRootOf(file);
     if (!srcRoot) { results.skipped.push({ file, kind: 'query', line: 0, reason: 'file is not under a src/ directory' }); return results; }
     const program = shared.program(file);
-    const sf = program.getSourceFile(path.resolve(file));
+    const sf = program.getSourceFile(path.resolve(file)); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script that reads local source files; its regexes are anchored or single-class, linear
     if (!sf) { results.skipped.push({ file, kind: 'query', line: 0, reason: 'file not in the TypeScript program' }); return results; }
     const checker = program.getTypeChecker();
     const imports = importMap(sf);
@@ -1314,7 +1314,7 @@ function convertMutation(sf, text, call, edits) {
         throw new Skip(okLater ? 'ok check is not the first use of the Response' : 'no ok check (changing it would change behaviour)');
     }
     const cond = unparen(first.expression);
-    const errName = ['err', 'apiErr', 'mutateErr'].find((nme) => !refsOf(block, nme).length && !new RegExp(`\\b${nme}\\b`).test(text.slice(first.getStart(sf), first.getEnd()))) || 'mutateErr';
+    const errName = ['err', 'apiErr', 'mutateErr'].find((nme) => !refsOf(block, nme).length && !new RegExp(`\\b${nme}\\b`).test(text.slice(first.getStart(sf), first.getEnd()))) || 'mutateErr'; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script that reads local source files; its regexes are anchored or single-class, linear
     const restMentions = after.slice(firstIdx + 1).some(mentions);
 
     const argsText = call.arguments.map((a) => a.getText(sf)).join(', ');
