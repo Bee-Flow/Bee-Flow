@@ -288,7 +288,7 @@ router.get('/marketplace/:id', requireSuperAdmin, async (req, res, next) => {
 router.get('/marketplace/:id/media/:mediaId', requireSuperAdmin, async (req, res) => {
     try {
         const base = await hubClient.resolveHubUrl();
-        const url = `${base}/hub/v1/catalog/${encodeURIComponent(req.params.id)}/media/${encodeURIComponent(req.params.mediaId)}`;
+        const url = `${base}/hub/v1/catalog/${encodeURIComponent(req.params.id)}/media/${encodeURIComponent(req.params.mediaId)}`; // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- super-admin media proxy of the own hub; ids are URI-encoded path segments
         const upstream = await fetchConfiguredEndpoint(url, { signal: AbortSignal.timeout(10_000) });
         if (!upstream.ok) return res.status(upstream.status === 404 ? 404 : 502).json({ error: 'not_found' });
         const type = upstream.headers.get('content-type') || 'application/octet-stream';

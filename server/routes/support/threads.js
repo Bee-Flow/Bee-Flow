@@ -225,7 +225,7 @@ async function getThread(req, res) {
 /** GET /t/:id/open — see registerThreadRoutes. Same 404 for every miss. */
 async function openFromMail(req, res) {
     requesterSession.setNoLeakHeaders(res);
-    const thread = await supportStore.getThread(req.params.id);
+    const thread = await supportStore.getThread(req.params.id); // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- target is the configured client host plus a URI-encoded id
     const token = req.query.token;
     if (!thread || !token || !supportStore.verifyAccessToken(thread.id, thread.requester_email, token)) {
         return res.status(404).json({ error: 'Not found' });

@@ -18,7 +18,7 @@ function withTransactionVia(getClient) {
         // inside withTransaction as soon as the fake offers it.
         const client = {
             release: () => raw.release?.(),
-            query: (sql, ...rest) => (typeof sql === 'string' && DDL_CONTROL.test(sql)
+            query: (sql, ...rest) => (typeof sql === 'string' && DDL_CONTROL.test(sql) // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- test helper, SQL strings written by the tests
                 ? Promise.resolve({ rows: [], rowCount: 0 })
                 : raw.query(sql, ...rest)),
         };
