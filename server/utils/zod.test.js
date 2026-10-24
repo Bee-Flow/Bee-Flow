@@ -215,10 +215,10 @@ test('.default() no longer runs the default through the schema; .prefault() does
         'if this is 7, .default() runs through the schema again and .prefault() is redundant');
 });
 
-test('string length counts UTF-16 units, as zod 3 did (zod 4.5 started counting code points)', () => {
+test('string length counts code points (zod 4.5+; zod 3 and 4.4 counted UTF-16 units), as Postgres varchar(n) does', () => {
     const emoji = '\u{1F600}'; // one code point, two UTF-16 units
-    assert.strictEqual(z.string().min(2).safeParse(emoji).success, true);
-    assert.strictEqual(z.string().max(1).safeParse(emoji).success, false);
+    assert.strictEqual(z.string().min(2).safeParse(emoji).success, false);
+    assert.strictEqual(z.string().max(1).safeParse(emoji).success, true);
     assert.strictEqual(z.array(z.string()).length(2).safeParse(['a', 'b']).success, true);
 });
 
