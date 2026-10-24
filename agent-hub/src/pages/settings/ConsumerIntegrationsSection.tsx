@@ -4,6 +4,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
 import { INTEGRATION_CATALOG, NEXTCLOUD_INTEGRATION_IDS, CATEGORY_ORDER, type IntegrationEntry } from '../../config/integrationCatalog';
 import { getIntegrationIcon, hasIntegrationIcon } from '../../config/integrationIcons';
+import { mutate, ApiError } from '../../api/mutate';
 
 const SAVE_DEBOUNCE_MS = 400;
 const SAVED_FLASH_MS = 1500;
@@ -101,12 +102,16 @@ const ConsumerIntegrationsSection = () => {
         timerRef.current = setTimeout(async () => {
             setSaveState('saving');
             try {
-                const res = await authFetch(`${API_BASE}/ai/user-settings`, {
+                try {
+                    await mutate(`${API_BASE}/ai/user-settings`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ enabledApps: nextList }),
                 });
-                if (!res.ok) throw new Error('Save failed');
+                } catch (err) {
+                    if (!(err instanceof ApiError)) throw err;
+                    throw new Error('Save failed');
+                }
                 serverRef.current = nextList;
                 setSaveState('saved');
                 setTimeout(() => setSaveState(prev => prev === 'saved' ? 'idle' : prev), SAVED_FLASH_MS);

@@ -5,20 +5,17 @@
  * `selectedTier` state). The tier feeds the chat stream, AI-Fill and Studio
  * generation requests.
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { ModelTierMap } from '../../../../api/queries/modelTiers';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { useConfigChatModels } from '../../../../api/queries/configModels';
+
+const EMPTY_MODEL_TIERS: ModelTierMap = {};
 
 export default function useModelTiers() {
-    const [modelTiers, setModelTiers] = useState<ModelTierMap>({});
     const [selectedTier, setSelectedTier] = useState<string>('auto');
 
-    useEffect(() => {
-        authFetch(`${API_BASE}/ai/config/chat-models`)
-            .then((r: Response) => (r.ok ? r.json() : {}))
-            .then(setModelTiers)
-            .catch((e: unknown) => console.warn('[notebooks] load model tiers failed', e));
-    }, []);
+    const modelTiersQuery = useConfigChatModels();
+    const modelTiers = modelTiersQuery.data ?? EMPTY_MODEL_TIERS;
 
     return { modelTiers, selectedTier, setSelectedTier };
 }

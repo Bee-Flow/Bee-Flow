@@ -23,6 +23,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_BASE, authFetch } from '../utils/helpers';
+import { mutate, ApiError } from '../api/mutate';
 
 /** The raw GET /ai/config body: per-provider has-flags and plain settings.
  *  Each card reads its own keys, so the shape stays open. */
@@ -106,12 +107,15 @@ export default function useProviderConfig(
     const save = useCallback(async (body: unknown, { success, error }: MutationMessages = {}) => {
         setSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/config`, {
+            const res = await mutate(`${API_BASE}/ai/config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 notify('success', success);
                 return true;
             }
@@ -132,8 +136,11 @@ export default function useProviderConfig(
         { success, error }: MutationMessages = {},
     ) => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/config/${kind}/${slug}`, { method: 'DELETE' });
-            if (res.ok) {
+            const res = await mutate(`${API_BASE}/ai/config/${kind}/${slug}`, { method: 'DELETE' }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
+            });
+            if (res) {
                 notify('success', success);
                 return true;
             }

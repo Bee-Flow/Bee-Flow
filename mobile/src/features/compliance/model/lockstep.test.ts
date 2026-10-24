@@ -11,6 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { CLIENT_DICT, SERVER_DICT, readDict } from '@/core/i18n/dictionaryText';
+import { loadWebModule } from '@/shared/testing/webModule';
 
 import { AUDIT_STATUSES, INCIDENT_SEVERITIES, INCIDENT_STATUSES, NC_STATUSES, OBJECTIVE_STATUSES, OBLIGATION_KINDS, RISK_STATUSES, SOA_DECISIONS, TREATMENT_OPTIONS } from './choices';
 import { SECTIONS } from './sections';
@@ -19,6 +20,7 @@ import { SETTING_GROUPS } from './settingsFields';
 const REPO = path.resolve(__dirname, '../../../../..');
 const read = (rel: string) => fs.readFileSync(path.join(REPO, rel), 'utf8');
 const WEB = 'agent-hub/src/components/admin/compliance';
+const WEB_DIR = 'components/admin/compliance';
 
 describe('the sections', () => {
     it('are the web rail, in its order', () => {
@@ -30,15 +32,16 @@ describe('the sections', () => {
 
 describe('the settings form', () => {
     it('has the web table’s groups, columns and kinds', () => {
-        const src = read(`${WEB}/pages/settings/settingsFields.ts`);
-        const web = [...src.matchAll(/name: '([a-z0-9_]+)', kind: '([a-z]+)'/g)]
-            .map((m) => [m[1], m[2]] as const)
-            .filter(([, kind]) => kind !== 'userfill');
+        // The web module itself, run (it has no runtime imports).
+        const { SETTINGS_GROUPS: webGroups } = loadWebModule<{
+            SETTINGS_GROUPS: readonly { id: string; fields: readonly { name: string; kind: string }[] }[];
+        }>(`${WEB_DIR}/pages/settings/settingsFields.ts`);
+        const web = webGroups.flatMap((g) => g.fields).filter((f) => f.kind !== 'userfill').map((f) => [f.name, f.kind] as const);
         const KIND: Record<string, string> = { email: 'email', url: 'url' };
         const phone = SETTING_GROUPS.flatMap((g) => g.fields).map((f) => [f.name, KIND[f.kind] ?? f.kind] as const);
+        expect(web.length).toBeGreaterThan(20);
         expect(phone).toEqual(web);
-        const groups = [...src.matchAll(/id: '([a-z_0-9]+)',\n\s+framework:/g)].map((m) => m[1]);
-        expect(SETTING_GROUPS.map((g) => g.id)).toEqual(groups);
+        expect(SETTING_GROUPS.map((g) => g.id)).toEqual(webGroups.map((g) => g.id));
     });
 
     it('borrows only keys both dictionaries hold', () => {

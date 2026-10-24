@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import { errorMessage, isAbortError, messageOf } from '../../../utils/caughtError';
 import { logger } from '../../../utils/logger';
+import { mutate, ApiError } from '../../../api/mutate';
 
 /** The selection the preview's bridge script posts back. */
 export interface PreviewSelection {
@@ -24,8 +25,13 @@ function isFromPreviewIframe(iframeRef: RefObject<HTMLIFrameElement | null>, eve
 }
 
 async function mintToken(webpageId: string, signal?: AbortSignal): Promise<{ token: string; expiresAt?: number }> {
-    const res = await authFetch(`${API_BASE}/api/webpages/${webpageId}/preview-token`, { method: 'POST', ...(signal ? { signal } : {}) });
-    if (!res.ok) throw new Error(`token fetch ${res.status}`);
+    let res: Response;
+    try {
+        res = await mutate(`${API_BASE}/api/webpages/${webpageId}/preview-token`, { method: 'POST', ...(signal ? { signal } : {}) });
+    } catch (err) {
+        if (!(err instanceof ApiError)) throw err;
+        throw new Error(`token fetch ${err.status}`);
+    }
     return res.json();
 }
 

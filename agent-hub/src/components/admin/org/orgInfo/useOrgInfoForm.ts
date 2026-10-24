@@ -3,6 +3,7 @@ import type { ChangeEvent, Dispatch, SetStateAction } from 'react';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { logger } from '../../../../utils/logger';
+import { mutate, ApiError } from '../../../../api/mutate';
 
 /** The organisation's editable fields; every one is sent on save. */
 interface OrgFormFields {
@@ -167,11 +168,14 @@ function useOrgLogo(
         const formData = new FormData();
         formData.append('logo', file);
         try {
-            const res = await authFetch(`${API_BASE}/auth/organizations/${orgId}/logo`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/auth/organizations/${orgId}/logo`, {
                 method: 'POST',
                 body: formData,
             });
-            if (!res.ok) {
+            } catch (err) {
+                if (!(err instanceof ApiError)) throw err;
                 setMessage({ type: 'error', text: t('org.logo_upload_failed', 'Logo upload failed') });
                 return;
             }
@@ -187,8 +191,10 @@ function useOrgLogo(
     const handleLogoRemove = async () => {
         if (!orgId) return;
         try {
-            const res = await authFetch(`${API_BASE}/auth/organizations/${orgId}/logo`, { method: 'DELETE' });
-            if (!res.ok) {
+            try {
+                await mutate(`${API_BASE}/auth/organizations/${orgId}/logo`, { method: 'DELETE' });
+            } catch (err) {
+                if (!(err instanceof ApiError)) throw err;
                 setMessage({ type: 'error', text: t('org.logo_remove_failed', 'Failed to remove logo') });
                 return;
             }

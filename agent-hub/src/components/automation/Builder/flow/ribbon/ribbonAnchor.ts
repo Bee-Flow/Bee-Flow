@@ -35,10 +35,7 @@ interface DefinitionLike {
 }
 
 // flowOrder.stepNumbers, typed: its `= null` defaults read as `null` from TypeScript.
-const numberSteps = stepNumbers as unknown as (
-    definition: DefinitionLike,
-    helpers: { isInlineId: (id: string) => boolean; parseInlineId: (id: string) => unknown },
-) => Map<string, number | string>;
+const numberSteps = stepNumbers;
 
 export interface RibbonAnchor {
     id: string;

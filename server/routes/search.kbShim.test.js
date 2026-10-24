@@ -63,7 +63,7 @@ Module._resolveFilename = function (request, parent, ...rest) {
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }
-    if (parent && /kb[\\/]kbIngestionHelpers\.js$/.test(parent.filename)
+    if (parent && /kb[\\/]kb(IngestionHelpers|Embed|Reingest|FileExtract|UrlFetch|DocLookup)\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(HELPER_IDS, request)) {
         return HELPER_IDS[request];
     }

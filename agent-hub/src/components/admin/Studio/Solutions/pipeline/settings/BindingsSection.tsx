@@ -30,7 +30,7 @@ const asObj = (v: unknown): Obj => (v !== null && typeof v === 'object' && !Arra
 const seatCode = (s: unknown): string => { const o = asObj(s); return o.userId ? `u:${o.userId}` : o.groupId ? `g:${o.groupId}` : ''; };
 const seatDecode = (code: string): Obj | null => (!code ? null : code[0] === 'u' ? { userId: code.slice(2) } : { groupId: code.slice(2) });
 type DirProps = { directory: Directory | null };
-const Directory_ = DirectoryOptions as unknown as React.ComponentType<DirProps>;
+const Directory_ = DirectoryOptions;
 
 function SeatSelect({ value, onChange, directory, label, empty }: { value: unknown; onChange: (s: Obj | null) => void; directory: Directory | null; label: string; empty: string }) {
     const { t } = useTranslation();

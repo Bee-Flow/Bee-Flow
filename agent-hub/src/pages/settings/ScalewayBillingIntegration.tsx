@@ -6,7 +6,7 @@
 // This is deliberately a per-user key, never the instance's Generative APIs key.
 
 import React, { useState } from 'react';
-import { IntegrationRow, ApiKeyField, DisconnectButton } from './IntegrationsSection';
+import { IntegrationRow, ApiKeyField, DisconnectButton } from './IntegrationPrimitives';
 import { getIntegrationIcon } from '../../config/integrationIcons';
 import { useTranslation } from '../../hooks/useTranslation';
 import useUserSettingSave from '../../hooks/useUserSettingSave';

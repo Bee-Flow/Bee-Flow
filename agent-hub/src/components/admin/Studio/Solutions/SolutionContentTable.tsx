@@ -4,6 +4,7 @@ import AddEntry from './AddEntry';
 import { NO_FILTER, isFiltering, kindsPresent, rowMatches } from './contentFilter';
 import ContentToolbar from './ContentToolbar';
 import { kindBarClass, kindInkClass } from './kindBar';
+import { SOLUTION_BANDS } from './solutionSectionData';
 import { SECTIONS, itemLabel, mayRemove, type SolutionItem, type SolutionSection } from './solutionSections';
 import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
 import type { ControlFinding } from './ControlFindingGroup';
@@ -11,11 +12,7 @@ import type { GraphNode, GraphData, ContentResources, TargetedFinding, StatusCel
 export type { ContentResources, TargetedFinding } from './SolutionContentTable.types';
 
 /** The three bands, and which membership sections land in each. */
-export const BANDS = [
-    { key: 'people', labelKey: 'solutions.band_people', fallback: 'People use', sections: ['apps', 'webpages'] },
-    { key: 'work', labelKey: 'solutions.band_work', fallback: 'Work happens', sections: ['automations', 'approvals'] },
-    { key: 'knowledge', labelKey: 'solutions.band_knowledge', fallback: 'Knowledge & data', sections: ['datatables', 'agents', 'skills', 'documentTemplates', 'knowledgeBases', 'notebooks'] },
-];
+export const BANDS = SOLUTION_BANDS;
 
 /** The graph and the palette spell a knowledge base differently. One map. */
 const FINDING_KIND: Record<string, string> = { knowledge_base: 'kb' };

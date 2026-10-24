@@ -14,7 +14,7 @@ import type { Group } from '../../mapping/upstream/upstream.types';
 import type { RouteConfig } from './routeTypes';
 
 // routeEditors.jsx is untyped: its `= null` defaults would type those props as `null`.
-const RouteFields = RouteFieldsJs as unknown as ComponentType<Record<string, unknown>>;
+const RouteFields = RouteFieldsJs;
 
 export const MAILS = [
     {

@@ -21,6 +21,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { FormMessage, OrgInfoSaveState } from '../../components/admin/org/orgInfo/useOrgInfoForm';
 import type { SettingsUser } from './shell/settingsShellTypes';
+import { mutate, ApiError } from '../../api/mutate';
 
 /* ── Google Maps integration card ────────────────────────────────────────── */
 const GoogleMapsRow = () => {
@@ -41,12 +42,15 @@ const GoogleMapsRow = () => {
         if (!key.trim()) return;
         setSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/config`, {
+            const res = await mutate(`${API_BASE}/ai/config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ googleMapsApiKey: key }),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) { setHasKey(true); setKey(''); setOpen(false); }
+            if (res) { setHasKey(true); setKey(''); setOpen(false); }
         } catch (e) { console.error(e); }
         setSaving(false);
     };

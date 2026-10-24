@@ -8,6 +8,8 @@
 import type { TranslateFn } from '@/core/i18n';
 
 import { categoryDef } from './piiCatalog';
+import { SPECIAL_CATEGORY_SPELLINGS } from '../mirror/specialCategories';
+
 
 interface Label {
     key: string;
@@ -59,16 +61,7 @@ export function categoryLabel(id: string, t: TranslateFn): string {
 // web's list is activity/specialCategories.ts; activity.lockstep.test.ts pins
 // both against the server.
 
-/** Every spelling of a health category, squashed to bare lower-case letters and digits. */
-export const SPECIAL_CATEGORY_SPELLINGS: readonly string[] = Object.freeze([
-    // The canonical ids (personalColumns KIND_OF_CATEGORY → 'health').
-    'healthinsurancenumber',
-    'medicalcondition',
-    'medication',
-    // The older spellings producers wrote (personalColumns LOOSE_KIND → 'health').
-    'health',
-    'medical',
-]);
+export { SPECIAL_CATEGORY_SPELLINGS };
 
 const squash = (value: string): string => value.toLowerCase().replace(/[^a-z0-9]/g, '');
 

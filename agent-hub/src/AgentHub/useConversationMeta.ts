@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { projectErrorText } from '../components/projects/workspace/projectErrorText';
 import { toast } from '../components/shared/Toast';
 import { API_BASE, authFetch } from '../utils/helpers';
-import { mutate } from '../api/mutate';
+import { mutate, ApiError } from '../api/mutate';
 import type { TranslateFn } from '../hooks/useTranslation';
 import { errorMessage } from '../utils/caughtError';
 
@@ -224,12 +224,15 @@ const useConversationMeta = ({
 
     const handleCreateLabel = async (name: string, color: string) => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/labels`, {
+            const res = await mutate(`${API_BASE}/ai/labels`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, color }),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 const label = await res.json();
                 setConversationLabels(prev => [...prev, label]);
                 return label;
@@ -251,12 +254,15 @@ const useConversationMeta = ({
 
     const handleEditLabel = async (labelId: string, updates: Partial<ConversationLabel>) => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/labels/${labelId}`, {
+            const res = await mutate(`${API_BASE}/ai/labels/${labelId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updates),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 setConversationLabels(prev => prev.map(l => l.id === labelId ? { ...l, ...updates } : l));
             }
         } catch (e) {

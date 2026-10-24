@@ -12,7 +12,7 @@ import SupportToolsTab from './tabs/SupportToolsTab';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ModelTierMap } from '../../api/queries/modelTiers';
 import type { SupportAgentRow, SupportAgentData, PreviewReply } from './SupportAIConfig.types';
-import { logger } from '../../utils/logger';
+import { useConfigTiersForUser } from '../../api/queries/configModels';
 
 const CONFIG_TABS = [
     { id: 'agent', label: 'Agent' },
@@ -43,6 +43,8 @@ function deriveAgentData(agent: SupportAgentRow | null | undefined): SupportAgen
     };
 }
 
+const EMPTY_TIERS: ModelTierMap = {};
+
 export default function SupportAIConfig() {
     const { t } = useTranslation();
     const [agent, setAgent] = useState<SupportAgentRow | null>(null);
@@ -56,7 +58,6 @@ export default function SupportAIConfig() {
     const [previewing, setPreviewing] = useState(false);
     const [previewReply, setPreviewReply] = useState<PreviewReply | null>(null);
     const [previewError, setPreviewError] = useState<string | null>(null);
-    const [tiers, setTiers] = useState<ModelTierMap>({});
     const [tab, setTab] = useState('agent');
     const mountedRef = useRef(true);
 
@@ -96,18 +97,8 @@ export default function SupportAIConfig() {
     // Same tier source the rest of the app uses (InputArea, BuilderSplit, …).
     // We mirror it locally so we can surface a "this tier has no modelId in
     // your AI Config" warning without the admin having to test-reply first.
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/ai/config/tiers-for-user?taskType=direct_chat`);
-                if (!res.ok) return;
-                const json = await res.json();
-                if (!cancelled) setTiers(json || {});
-            } catch (err) { logger.debug('model tiers unavailable, defaults stay', err); }
-        })();
-        return () => { cancelled = true; };
-    }, []);
+    const tiersQuery = useConfigTiersForUser();
+    const tiers = tiersQuery.data ?? EMPTY_TIERS;
 
     // AgentEditorUI gives us field-level changes; we merge into our local
     // `data` and mark dirty so the Save button activates.

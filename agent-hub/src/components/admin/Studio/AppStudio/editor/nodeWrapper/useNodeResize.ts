@@ -26,7 +26,7 @@ interface NodeResizeInputs {
 type GripEvent = PointerEvent<HTMLDivElement>;
 
 // resize.js defaults `stepPx`, which makes TypeScript read the options as that key alone.
-const heightFromDrag = heightFromDragJs as unknown as (options: { startHeight: string; dy: number; stepPx?: number }) => string;
+const heightFromDrag = heightFromDragJs;
 
 const release = (e: GripEvent) => e.currentTarget?.releasePointerCapture?.(e.pointerId);
 

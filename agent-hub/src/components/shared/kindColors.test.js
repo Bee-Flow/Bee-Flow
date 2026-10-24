@@ -27,7 +27,8 @@ const APP_CSS = readAppCss();
 // The --type-* and --kind-* two-set blocks live in themes.css: the block and
 // order assertions below read that one file, so they pin the real layout.
 const THEMES_CSS = readStylesheet('themes.css');
-const SELF = fs.readFileSync(path.join(HERE, 'kindColors.ts'), 'utf8');
+// The kind variables live in kindKeys.ts (KIND_VARS), the rest in kindColors.ts.
+const SELF = ['kindColors.ts', 'kindKeys.ts'].map(f => fs.readFileSync(path.join(HERE, f), 'utf8')).join('\n');
 
 const THEMES = ['dark', 'light', 'glass', 'glass-dark', 'high-contrast', 'paper', 'obsidian', 'sepia'];
 const NO_COMMENTS = APP_CSS.replace(/\/\*[\s\S]*?\*\//g, '');

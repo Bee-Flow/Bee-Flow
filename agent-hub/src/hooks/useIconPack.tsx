@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, ty
 import { API_BASE, authFetch } from '../utils/helpers';
 import { buildStampedCacheKey, ICONPACK_CACHE_PREFIX } from '../utils/storageMigrations';
 import { logger } from '../utils/logger';
+import { mutate, ApiError } from '../api/mutate';
 
 /** One override: an emoji, or an image the icon API serves. */
 export interface CustomIcon {
@@ -122,10 +123,13 @@ export function IconPackProvider({ children }: { children: ReactNode }) {
 
     const setIconPack = useCallback(async (newPackId: string | null) => {
         try {
-            const res = await authFetch(`${API_BASE}/api/icons/${newPackId || 'default'}/activate`, {
+            const res = await mutate(`${API_BASE}/api/icons/${newPackId || 'default'}/activate`, {
                 method: 'POST'
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 setActivePackId(newPackId);
             }
         } catch (err) {

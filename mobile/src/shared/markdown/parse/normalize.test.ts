@@ -1,38 +1,24 @@
 /**
- * The web's two pre-passes, ported. Textual lockstep: each pattern here must
- * appear verbatim in agent-hub's MarkdownRenderer.jsx, so a change there fails
- * this test instead of drifting.
+ * The web's two pre-passes, ported. The patterns are the web's own (generated
+ * copy of agent-hub's markdownRules.ts, under ../mirror); the web's
+ * stripDirectiveBlocks is run beside the port below.
  */
 
-import fs from 'node:fs';
-
-import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
-
 import {
-    DIRECTIVE_CLOSE,
-    DIRECTIVE_OPEN,
     normalizeAnswer,
     stripDirectiveBlocks,
     stripWrappingCodeBlock,
-    WRAPPING_FENCE_CLOSE,
-    WRAPPING_FENCE_OPEN,
 } from './normalize';
+import { stripDirectiveBlocks as webStripDirectiveBlocks } from '../mirror/markdownRules';
 
-const WEB = fs.readFileSync(`${AGENT_HUB_SRC}/components/renderers/MarkdownRenderer.tsx`, 'utf8');
 
-describe('lockstep with the web', () => {
-    it.each([
-        ['WRAPPING_FENCE_OPEN', WRAPPING_FENCE_OPEN],
-        ['WRAPPING_FENCE_CLOSE', WRAPPING_FENCE_CLOSE],
-        ['DIRECTIVE_OPEN', DIRECTIVE_OPEN],
-        ['DIRECTIVE_CLOSE', DIRECTIVE_CLOSE],
-    ])('%s is the web’s own pattern', (_name, pattern) => {
-        expect(WEB).toContain(String(pattern));
-    });
-
-    it('replaces a directive with the same heading level', () => {
-        expect(WEB).toContain(`${String(DIRECTIVE_OPEN)}, '## $2')`);
-    });
+describe('stripDirectiveBlocks, against the web', () => {
+    it.each([':::writing Title\nBody\n:::', ':::note  A note\ntext\n\n:::', 'plain\n:::\n:::tip x', '::: not a directive'])(
+        'gives the web’s answer for %j',
+        (text) => {
+            expect(stripDirectiveBlocks(text)).toBe(webStripDirectiveBlocks(text));
+        },
+    );
 });
 
 describe('stripWrappingCodeBlock', () => {

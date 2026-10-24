@@ -15,8 +15,4 @@ export const InspectorHost = InspectorHostJs;
 
 export const PreviewStage = PreviewStageJs;
 
-export const AddBlockDialog = AddBlockDialogJs as unknown as ComponentType<{
-    onAdd: (type: string, variant?: string) => void;
-    onCancel: () => void;
-    design?: Record<string, unknown> | null;
-}>;
+export const AddBlockDialog = AddBlockDialogJs;

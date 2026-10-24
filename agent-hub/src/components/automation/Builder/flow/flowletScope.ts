@@ -51,7 +51,7 @@ export function getScopedGraph(def: FlowDefinition | null | undefined, scopeKey:
  * @param {object} nextGraph      the edited graph for that scope
  * @returns {object} next whole definition
  */
-export function setScopedGraph(def: FlowDefinition, scopeKey: string | null, nextGraph: FlowDefinition) {
+export function setScopedGraph(def: FlowDefinition | null, scopeKey: string | null, nextGraph: FlowDefinition) {
     if (!scopeKey) return nextGraph;
     const base = def || {};
     return {

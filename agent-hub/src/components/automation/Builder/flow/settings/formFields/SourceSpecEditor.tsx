@@ -9,7 +9,7 @@ import { FormRow, denseInputClass } from '../formPrimitives';
 import type { SourceSpec } from './fieldEditor.types';
 
 // A JavaScript component whose props TypeScript infers from their defaults.
-const PathField = PathFieldJs as unknown as ComponentType<Record<string, unknown>>;
+const PathField = PathFieldJs;
 
 /** The cap the server applies to `limit` (formDynamicFields MAX_SOURCE_LIMIT). */
 export const SOURCE_LIMIT_MAX = 10000;
@@ -100,7 +100,7 @@ export default function SourceSpecEditor({ spec, onChange, kind, ariaBase, previ
     const ctx = useVariablePickerContext();
     const sample = previewSample ?? ctx.previewSample;
     const ref = spec?.ref || '';
-    const quickPicks = useMemo(() => collectArrayPaths(ctx.groups as unknown as Parameters<typeof collectArrayPaths>[0], sample), [ctx.groups, sample]);
+    const quickPicks = useMemo(() => collectArrayPaths(ctx.groups, sample), [ctx.groups, sample]);
     const list = useMemo(() => (ref && sample ? getList(sample, ref) as unknown[] | null : null), [ref, sample]);
     const keys = sampleKeys(list);
     const set = (changes: Partial<SourceSpec>) => onChange(tidy({ ...(spec || { ref: '' }), ...changes }));

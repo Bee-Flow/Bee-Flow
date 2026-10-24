@@ -5,7 +5,12 @@
         "mobile/src/features/forms/mirror",
         "mobile/src/features/runs/mirror",
         "mobile/src/shared/ui/mirror",
-        "mobile/src/features/app-studio/mirror"
+        "mobile/src/features/app-studio/mirror",
+        "mobile/src/features/org/mirror",
+        "mobile/src/features/orgPeople/mirror",
+        "mobile/src/features/projects/mirror",
+        "mobile/src/features/orgShield/mirror",
+        "mobile/src/shared/markdown/mirror"
     ],
     "entries": [
         {
@@ -284,6 +289,36 @@
             "target": "mobile/src/features/app-studio/mirror/typeEventLists.ts",
             "transform": "none",
             "why": "Which events a component type may carry (a mirror of each type's `events` in the server's COMPONENT_SPECS): the inspector and the phone read one list; core/logic/events.ts re-exports it, and catalogLockstep.test.js still pins it against the server spec."
+        },
+        {
+            "source": "agent-hub/src/components/admin/subscriptions/access/countries.ts",
+            "target": "mobile/src/features/org/mirror/countries.ts",
+            "transform": "none",
+            "why": "The billing-country list, code for code and in the web's order: the org screen's picker on the phone reads the web's own table (model/countries.ts types and re-exports it)."
+        },
+        {
+            "source": "agent-hub/src/config/orgRoles.ts",
+            "target": "mobile/src/features/orgPeople/mirror/orgRoles.ts",
+            "transform": "none",
+            "why": "The org roles and the permission copy of the web (ORG_ROLES, PERMISSION_CATALOG): roles.lockstep.test.ts holds the phone's ids and English copy to this generated copy."
+        },
+        {
+            "source": "agent-hub/src/components/admin/Studio/Solutions/solutionSectionData.ts",
+            "target": "mobile/src/features/projects/mirror/solutionSectionData.ts",
+            "transform": "none",
+            "why": "What a Solution can hold (section key, kind, movable, ownerFields) and the content table's three bands: the web's tables without their icons; sections.lockstep.test.ts holds the phone's SECTIONS and BANDS to this copy."
+        },
+        {
+            "source": "agent-hub/src/components/admin/security/guardrails/orgShield/activity/specialCategories.ts",
+            "target": "mobile/src/features/orgShield/mirror/specialCategories.ts",
+            "transform": "none",
+            "why": "The spellings of a health category (GDPR Art. 9), organisation totals only: one list for the web's Activity view and the phone's (model/activity.ts re-exports it); activity.lockstep.test.ts pins it against the server."
+        },
+        {
+            "source": "agent-hub/src/components/renderers/markdownRules.ts",
+            "target": "mobile/src/shared/markdown/mirror/markdownRules.ts",
+            "transform": "none",
+            "why": "The pure rules of the web's MarkdownRenderer (wrapping-fence and :::directive patterns, webpage/document link cards, heading slug and anchor key, code-block language labels): the phone's parse/ and renderers/ tests run the web's own copy beside their ports."
         }
     ]
 }

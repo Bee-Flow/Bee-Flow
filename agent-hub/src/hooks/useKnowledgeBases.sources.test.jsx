@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { act, waitFor } from '@testing-library/react';
+import { renderHookWithClient } from '../test/render';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import useKnowledgeBases from './useKnowledgeBases';
 import { knowledgeApi } from '../components/admin/Studio/KnowledgeStudio/knowledgeApi';
@@ -34,7 +35,7 @@ beforeEach(() => {
 
 describe('useKnowledgeBases — sources', () => {
     it('loads a knowledge base’s sources and totals', async () => {
-        const { result } = renderHook(() => useKnowledgeBases());
+        const { result } = renderHookWithClient(() => useKnowledgeBases());
         await act(async () => { await result.current.fetchKBSources('kb1'); });
         expect(knowledgeApi.listSources).toHaveBeenCalledWith('kb1');
         expect(result.current.kbSources).toHaveLength(1);
@@ -44,14 +45,14 @@ describe('useKnowledgeBases — sources', () => {
 
     it('reports a sources failure without pretending there are none', async () => {
         knowledgeApi.listSources.mockRejectedValue(new Error('sources are down'));
-        const { result } = renderHook(() => useKnowledgeBases());
+        const { result } = renderHookWithClient(() => useKnowledgeBases());
         await act(async () => { await result.current.fetchKBSources('kb1'); });
         expect(result.current.kbSourcesError).toBe('sources are down');
         expect(result.current.kbSources).toEqual([]);
     });
 
     it('asks for nothing, and clears, when there is no knowledge base', async () => {
-        const { result } = renderHook(() => useKnowledgeBases());
+        const { result } = renderHookWithClient(() => useKnowledgeBases());
         await act(async () => { await result.current.fetchKBSources('kb1'); });
         await waitFor(() => expect(result.current.kbSources).toHaveLength(1));
         knowledgeApi.listSources.mockClear();

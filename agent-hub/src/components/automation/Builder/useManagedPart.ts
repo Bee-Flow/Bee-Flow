@@ -26,7 +26,7 @@ export default function useManagedPart({ serverAutomation, isStep }: { serverAut
     const readOnlyRef = useRef(false);
     readOnlyRef.current = readOnly;
     /** True when `e` was the stage's refusal; the banner then speaks for it. */
-    const noteManagedRefusal = useCallback((e: any) => {
+    const noteManagedRefusal = useCallback((e: unknown) => {
         const info = managedRefusalOf(e);
         if (info) setManagedRefusal(info);
         return !!info;

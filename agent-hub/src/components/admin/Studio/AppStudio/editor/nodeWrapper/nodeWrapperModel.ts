@@ -18,7 +18,7 @@ interface FoundNode {
     section: { id: string };
     screen?: { id: string };
 }
-export const findNode = findNodeJs as unknown as (definition: AppDefinition | null, id: string) => FoundNode | null;
+export const findNode = findNodeJs;
 
 /** One mark of nodeLogicSummary: what kind of logic the component carries. */
 export type LogicMark = LogicSummaryMark;

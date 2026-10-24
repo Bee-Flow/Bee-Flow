@@ -1,6 +1,7 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderWithClient } from '../../test/render';
 import AppRunPage from './AppRunPage';
 import AppsHomePage, { readAppRecents } from './AppsHomePage';
 import { KITCHEN_SINK } from '../../components/admin/Studio/AppStudio/state/sampleDefinitions';
@@ -45,7 +46,7 @@ beforeEach(() => {
 
 describe('AppRunPage', () => {
     it('renders the app shell with the app name and the home screen content', async () => {
-        render(<AppRunPage appId="app-1" />);
+        renderWithClient(<AppRunPage appId="app-1" />);
 
         // App name in the shell top bar + a real heading from the definition.
         expect(await screen.findByText('Kitchen sink')).toBeInTheDocument();
@@ -62,7 +63,7 @@ describe('AppRunPage', () => {
     });
 
     it('restores the previous document title on unmount', async () => {
-        const { unmount } = render(<AppRunPage appId="app-1" />);
+        const { unmount } = renderWithClient(<AppRunPage appId="app-1" />);
         await screen.findByText('Kitchen sink');
         await waitFor(() => expect(document.title).toBe('Kitchen sink'));
         unmount();
@@ -70,7 +71,7 @@ describe('AppRunPage', () => {
     });
 
     it('requests the draft definition when draft is set', async () => {
-        render(<AppRunPage appId="app-1" draft />);
+        renderWithClient(<AppRunPage appId="app-1" draft />);
         await screen.findByText('Kitchen sink');
         expect(studioAppsApi.getRuntime).toHaveBeenCalledWith('app-1', { draft: true });
     });
@@ -81,7 +82,7 @@ describe('AppRunPage', () => {
         err.status = 404;
         studioAppsApi.getRuntime.mockRejectedValueOnce(err);
 
-        render(<AppRunPage appId="app-1" />);
+        renderWithClient(<AppRunPage appId="app-1" />);
         expect(await screen.findByText('This app is not available to you')).toBeInTheDocument();
 
         // Retry: the second call succeeds and the app renders.
@@ -100,7 +101,7 @@ describe('AppRunPage', () => {
         err.code = 'not_in_audience';
         studioAppsApi.getRuntime.mockRejectedValueOnce(err);
 
-        render(<AppRunPage appId="app-1" />);
+        renderWithClient(<AppRunPage appId="app-1" />);
         expect(await screen.findByText('This app is shared with specific groups')).toBeInTheDocument();
         expect(screen.getByText(/Ask the app’s owner or your administrator to share it with your group/)).toBeInTheDocument();
         expect(screen.queryByText('This app is not available to you')).not.toBeInTheDocument();
@@ -112,14 +113,14 @@ describe('AppRunPage', () => {
         err.status = 403;
         studioAppsApi.getRuntime.mockRejectedValueOnce(err);
 
-        render(<AppRunPage appId="app-1" />);
+        renderWithClient(<AppRunPage appId="app-1" />);
         expect(await screen.findByText('This app is not available to you')).toBeInTheDocument();
         expect(screen.queryByText('This app is shared with specific groups')).not.toBeInTheDocument();
     });
 
     it('switches screens when a nav tab is clicked', async () => {
         const user = userEvent.setup();
-        const { container } = render(<AppRunPage appId="app-1" />);
+        const { container } = renderWithClient(<AppRunPage appId="app-1" />);
         await screen.findByText('Kitchen sink');
 
         // Home screen first.
@@ -142,13 +143,13 @@ describe('AppRunPage', () => {
 // on this device, in per-user scoped storage — nothing is sent to the server.
 describe('AppRunPage recording an open', () => {
     it('records an app that actually opened', async () => {
-        render(<AppRunPage appId="app-1" />);
+        renderWithClient(<AppRunPage appId="app-1" />);
         await screen.findByText('Kitchen sink');
         await waitFor(() => expect(readAppRecents()['app-1']).toBeGreaterThan(0));
     });
 
     it('does not record a draft preview', async () => {
-        render(<AppRunPage appId="app-1" draft />);
+        renderWithClient(<AppRunPage appId="app-1" draft />);
         await screen.findByText('Kitchen sink');
         // The builder inspecting their own unpublished work is not a reader
         // reaching for a tool, so it may not colour their shortcuts.
@@ -160,7 +161,7 @@ describe('AppRunPage recording an open', () => {
         err.status = 404;
         studioAppsApi.getRuntime.mockRejectedValue(err);
 
-        render(<AppRunPage appId="app-1" />);
+        renderWithClient(<AppRunPage appId="app-1" />);
         await screen.findByText('This app is not available to you');
         // A 404 is not an open — offering it back as a shortcut would send the
         // reader straight into the same dead end.
@@ -168,7 +169,7 @@ describe('AppRunPage recording an open', () => {
     });
 
     it('sends nothing to the server for the sake of the recents list', async () => {
-        render(<AppRunPage appId="app-1" />);
+        renderWithClient(<AppRunPage appId="app-1" />);
         await screen.findByText('Kitchen sink');
         await waitFor(() => expect(readAppRecents()['app-1']).toBeGreaterThan(0));
 
@@ -197,7 +198,7 @@ describe('AppRunPage recording an open', () => {
     // directory — so losing the stamp here shows up as an empty shortcut
     // list instead of as a silently green suite.
     it('feeds the directory’s "Recently used" section, end to end', async () => {
-        const { unmount } = render(<AppRunPage appId="app-1" />);
+        const { unmount } = renderWithClient(<AppRunPage appId="app-1" />);
         await screen.findByText('Kitchen sink');
         await waitFor(() => expect(readAppRecents()['app-1']).toBeGreaterThan(0));
         unmount();
@@ -208,7 +209,7 @@ describe('AppRunPage recording an open', () => {
                 { id: 'app-2', name: 'Never Opened', isPublished: true },
             ],
         });
-        render(<AppsHomePage />);
+        renderWithClient(<AppsHomePage />);
         await screen.findByText('Never Opened');
 
         const recent = within(await screen.findByTestId('apps-recent'));

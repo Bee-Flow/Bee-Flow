@@ -93,8 +93,8 @@ export function NotebookOverlays({ citationSource, onCloseCitation, signOpen, on
     title: string;
     versions: React.ReactNode;
 }) {
-    const Citation = CitationOverlay as unknown as React.ComponentType<any>;
-    const Sign = SendForSigningModal as unknown as React.ComponentType<any>;
+    const Citation = CitationOverlay;
+    const Sign = SendForSigningModal;
     return (
         <>
             <Citation source={citationSource} onClose={onCloseCitation} />

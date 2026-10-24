@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { authFetch, API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { errorMessage } from '../../../utils/caughtError';
+import { mutate, ApiError } from '../../../api/mutate';
 
 interface SupportTag {
     id: string;
@@ -43,8 +44,11 @@ export default function SupportTagsTab() {
     };
 
     const remove = async (id: string) => {
-        const res = await authFetch(`${API_BASE}/api/support/tags/${id}`, { method: 'DELETE' });
-        if (res.ok) await load();
+        const res = await mutate(`${API_BASE}/api/support/tags/${id}`, { method: 'DELETE' }).catch((err: unknown) => {
+            if (err instanceof ApiError) return null;
+            throw err;
+        });
+        if (res) await load();
     };
 
     return (

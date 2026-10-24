@@ -3,21 +3,22 @@ import type { MutableRefObject } from 'react';
 import { toast } from '../../shared/Toast';
 import type { SavingState } from './header/LiveActions';
 import { logger } from '../../../utils/logger';
+import type { FlowDefinition } from './flow/types';
 
 
 export interface UseVisualSaveOptions {
     api: any;
-    ensureAutomationCreated: (defForCreate?: any) => Promise<any>;
+    ensureAutomationCreated: (defForCreate?: FlowDefinition | null) => Promise<string | undefined>;
     setServerAutomation: (row: any) => void;
-    setDraft: (def: any) => void;
-    markServerConfirmed: (def: any) => void;
-    adoptSaveValidation: (r: any) => void;
-    adoptSaveRejection: (e: any) => void;
-    noteManagedRefusal: (e: any) => boolean;
+    setDraft: (def: FlowDefinition) => void;
+    markServerConfirmed: (def: FlowDefinition) => void;
+    adoptSaveValidation: (r: unknown) => void;
+    adoptSaveRejection: (e: unknown) => void;
+    noteManagedRefusal: (e: unknown) => boolean;
     setSavingState: (s: SavingState) => void;
-    savedTimer: MutableRefObject<any>;
+    savedTimer: MutableRefObject<ReturnType<typeof setTimeout> | null>;
     readOnlyRef: MutableRefObject<boolean>;
-    effectiveDef: any;
+    effectiveDef: FlowDefinition | null;
 }
 
 /**
@@ -46,7 +47,7 @@ export default function useVisualSave({
      * here so undos auto-persist to the server too. A save failure surfaces
      * as a toast; the local draft stays so the user doesn't lose work.
      */
-    const visualSaveTimer = useRef<any>(null);
+    const visualSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     // Set for the duration of ONE draftHistory.commit whose caller persists the
     // definition itself (onSaveStep). applyVisualDraft then updates the draft
     // but skips its debounced PUT — see the comment at that commit.
@@ -57,7 +58,7 @@ export default function useVisualSave({
     // pending def and run it once the current PUT resolves (coalescing).
     const saveInFlightRef = useRef(false);
     const queuedSaveRef = useRef<any>(undefined);
-    const _doVisualSave = useCallback(async (nextDef: any) => {
+    const _doVisualSave = useCallback(async (nextDef: FlowDefinition) => {
         // Belt-and-braces with applyVisualDraft's guard — this is the last hop
         // before the wire, and a null here becomes a stored `{}` (BFSF-318).
         if (!nextDef) return;
@@ -72,15 +73,15 @@ export default function useVisualSave({
             setSavingState('saved');
             if (savedTimer.current) clearTimeout(savedTimer.current);
             savedTimer.current = setTimeout(() => setSavingState('idle'), 1500);
-        } catch (e: any) {
-            console.warn('[BuilderShell] visual save failed:', e.message);
+        } catch (e: unknown) {
+            console.warn('[BuilderShell] visual save failed:', (e as Error).message);
             noteManagedRefusal(e);
             adoptSaveRejection(e);
             setSavingState('error');
-            toast.error(`Save failed — your edits are still on the canvas. ${e.message || ''}`.trim());
+            toast.error(`Save failed — your edits are still on the canvas. ${(e as Error).message || ''}`.trim());
         }
     }, [api, ensureAutomationCreated, markServerConfirmed, adoptSaveValidation, adoptSaveRejection, noteManagedRefusal]);
-    const performVisualSave = useCallback(async (nextDef: any) => {
+    const performVisualSave = useCallback(async (nextDef: FlowDefinition) => {
         if (saveInFlightRef.current) { queuedSaveRef.current = nextDef; return; }
         saveInFlightRef.current = true;
         try {
@@ -99,10 +100,10 @@ export default function useVisualSave({
     // persisted, plus the current save fn — so the unmount effect (which has
     // stale [] closures) can FLUSH it instead of silently dropping the last
     // <500ms of edits when the user navigates away in-app.
-    const pendingSaveRef = useRef({ def: null, perform: performVisualSave });
+    const pendingSaveRef = useRef<{ def: FlowDefinition | null; perform: typeof performVisualSave }>({ def: null, perform: performVisualSave });
     pendingSaveRef.current.perform = performVisualSave;
 
-    const applyVisualDraft = useCallback((nextDef: any) => {
+    const applyVisualDraft = useCallback((nextDef: FlowDefinition | null) => {
         // Never apply/persist an absent definition. `forceSaveNow` and
         // `syncServerRow` already guard this; without the same guard here an
         // undo back to the pre-first-edit state pushed `definition: null` to

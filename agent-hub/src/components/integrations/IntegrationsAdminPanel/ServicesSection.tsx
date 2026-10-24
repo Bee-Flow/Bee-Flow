@@ -3,9 +3,10 @@
 // IntegrationsAdminPanel.jsx; all bindings are threaded in as props.
 import { Check, Loader2 } from 'lucide-react';
 import React from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { ServicesSectionProps } from './adminPanel.types';
+import { mutate, ApiError } from '../../../api/mutate';
 
 export default function ServicesSection({
     linkedinClientId, setLinkedinClientId, linkedinClientSecret, setLinkedinClientSecret,
@@ -61,12 +62,15 @@ export default function ServicesSection({
                                     if (!linkedinClientId.trim() || !linkedinClientSecret.trim()) return;
                                     setSavingLinkedIn(true);
                                     try {
-                                        const res = await authFetch(`${API_BASE}/ai/config`, {
+                                        const res = await mutate(`${API_BASE}/ai/config`, {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({ linkedinClientId, linkedinClientSecret }),
+                                        }).catch((err: unknown) => {
+                                            if (err instanceof ApiError) return null;
+                                            throw err;
                                         });
-                                        if (res.ok) {
+                                        if (res) {
                                             setHasLinkedInConfig(true);
                                             setLinkedinClientId('');
                                             setLinkedinClientSecret('');
@@ -126,12 +130,15 @@ export default function ServicesSection({
                                     if (!withingsClientId.trim() || !withingsClientSecret.trim()) return;
                                     setSavingWithings(true);
                                     try {
-                                        const res = await authFetch(`${API_BASE}/ai/config`, {
+                                        const res = await mutate(`${API_BASE}/ai/config`, {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({ withingsClientId, withingsClientSecret }),
+                                        }).catch((err: unknown) => {
+                                            if (err instanceof ApiError) return null;
+                                            throw err;
                                         });
-                                        if (res.ok) {
+                                        if (res) {
                                             setHasWithingsConfig(true);
                                             setWithingsClientId('');
                                             setWithingsClientSecret('');
@@ -183,12 +190,15 @@ export default function ServicesSection({
                                     const newVal = !useAzureDocProcessing;
                                     setSavingAzureToggle(true);
                                     try {
-                                        const res = await authFetch(`${API_BASE}/ai/config`, {
+                                        const res = await mutate(`${API_BASE}/ai/config`, {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({ useAzureDocProcessing: newVal }),
+                                        }).catch((err: unknown) => {
+                                            if (err instanceof ApiError) return null;
+                                            throw err;
                                         });
-                                        if (res.ok) {
+                                        if (res) {
                                             setUseAzureDocProcessing(newVal);
                                             setMessage({ type: 'success', text: newVal ? 'Azure processing enabled for Knowledge Bases' : 'Switched to local processing for Knowledge Bases' });
                                         }
@@ -235,12 +245,15 @@ export default function ServicesSection({
                                             const body: Record<string, string> = {};
                                             if (azureDocEndpoint.trim()) body.azureDocIntelligenceEndpoint = azureDocEndpoint;
                                             if (azureDocKey.trim()) body.azureDocIntelligenceKey = azureDocKey;
-                                            const res = await authFetch(`${API_BASE}/ai/config`, {
+                                            const res = await mutate(`${API_BASE}/ai/config`, {
                                                 method: 'POST',
                                                 headers: { 'Content-Type': 'application/json' },
                                                 body: JSON.stringify(body),
+                                            }).catch((err: unknown) => {
+                                                if (err instanceof ApiError) return null;
+                                                throw err;
                                             });
-                                            if (res.ok) {
+                                            if (res) {
                                                 if (azureDocEndpoint.trim()) setHasAzureDocEndpoint(true);
                                                 if (azureDocKey.trim()) setHasAzureDocKey(true);
                                                 setAzureDocEndpoint('');
@@ -296,12 +309,15 @@ export default function ServicesSection({
                                             const body: Record<string, string> = { azureOpenaiEmbeddingModel: azureEmbedModel };
                                             if (azureEmbedEndpoint.trim()) body.azureOpenaiEmbeddingEndpoint = azureEmbedEndpoint;
                                             if (azureEmbedKey.trim()) body.azureOpenaiEmbeddingKey = azureEmbedKey;
-                                            const res = await authFetch(`${API_BASE}/ai/config`, {
+                                            const res = await mutate(`${API_BASE}/ai/config`, {
                                                 method: 'POST',
                                                 headers: { 'Content-Type': 'application/json' },
                                                 body: JSON.stringify(body),
+                                            }).catch((err: unknown) => {
+                                                if (err instanceof ApiError) return null;
+                                                throw err;
                                             });
-                                            if (res.ok) {
+                                            if (res) {
                                                 if (azureEmbedEndpoint.trim()) setHasAzureEmbedEndpoint(true);
                                                 if (azureEmbedKey.trim()) setHasAzureEmbedKey(true);
                                                 setAzureEmbedEndpoint('');

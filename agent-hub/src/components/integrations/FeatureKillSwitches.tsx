@@ -4,6 +4,7 @@ import { BookOpen, FolderKanban, Sparkles, FileDown, Maximize2, LayoutList, Chec
 import { useTranslation } from '../../hooks/useTranslation';
 import type { LucideIcon } from 'lucide-react';
 import { logger } from '../../utils/logger';
+import { mutate, ApiError } from '../../api/mutate';
 
 interface FlagDef {
     key: string;
@@ -76,12 +77,15 @@ export default function FeatureKillSwitches() {
         const newVal = !flags[key];
         setSaving(s => ({ ...s, [key]: true }));
         try {
-            const res = await authFetch(`${API_BASE}/ai/config`, {
+            const res = await mutate(`${API_BASE}/ai/config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ [key]: newVal }),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 setFlags(f => ({ ...f, [key]: newVal }));
                 setMessage({ type: 'success', text: `${label} ${newVal ? 'enabled' : 'disabled'}` });
             } else {

@@ -63,7 +63,7 @@ require.cache[STUB_GUARDRAIL] = { id: STUB_GUARDRAIL, filename: STUB_GUARDRAIL, 
 const origResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
     const from = parent && parent.filename ? parent.filename : '';
-    if (from.endsWith(path.join('automationRunner', 'safety.js'))) {
+    if (/automationRunner[\\/]safety(Scan|Egress|Guard|Leaves)?\.js$/.test(from)) {
         if (request === '../privacy/piiDetection') return STUB_PII;
         if (request === '../../stores/guardrailEventStore') return STUB_GUARDRAIL;
     }

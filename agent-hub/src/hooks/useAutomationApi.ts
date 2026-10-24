@@ -167,8 +167,8 @@ export default function useAutomationApi() {
         createAutomation: <T = unknown>(body: unknown) => send<T>('POST', '/', body),
         updateAutomation: (id: string, body: unknown) => send('PUT', `/${id}`, body),
         deleteAutomation: (id: string) => send('DELETE', `/${id}`),
-        activate: (id: string) => send('POST', `/${id}/activate`),
-        deactivate: (id: string) => send('POST', `/${id}/deactivate`),
+        activate: <T = unknown>(id: string) => send<T>('POST', `/${id}/activate`),
+        deactivate: <T = unknown>(id: string) => send<T>('POST', `/${id}/deactivate`),
         // `body` is `{ triggerPayload }` — the data the run ENTERS with. Both
         // routes have always read it; nothing ever sent one, so an automation you
         // could not fire for real (a form the visitor has not filled in yet, an
@@ -176,8 +176,8 @@ export default function useAutomationApi() {
         // `trigger.output === {}` and every step mapping off the trigger
         // resolved to undefined. BuilderShell now passes the trigger node's own
         // saved sample (BFSF-408).
-        run: (id: string, body?: unknown) => send('POST', `/${id}/run`, body || {}),
-        dryRun: (id: string, body?: unknown) => send('POST', `/${id}/dry-run`, body || {}),
+        run: <T = unknown>(id: string, body?: unknown) => send<T>('POST', `/${id}/run`, body || {}),
+        dryRun: <T = unknown>(id: string, body?: unknown) => send<T>('POST', `/${id}/dry-run`, body || {}),
         diagnoseTrigger: (id: string) => send('POST', `/${id}/diagnose-trigger`),
         // Executions list — cursor-paginated + filterable. Returns
         // { runs, nextCursor }. listStepRuns is the same route (a Step's runs
@@ -377,11 +377,11 @@ export default function useAutomationApi() {
         listSteps: <T = unknown>() => stepGet<T>('/'),
         getStep: (id: string) => stepGet(`/${id}`),
         createStep: (body: unknown) => stepSend('POST', '/', body),
-        updateStep: (id: string, body: unknown) => stepSend('PUT', `/${id}`, body),
+        updateStep: <T = unknown>(id: string, body: unknown) => stepSend<T>('PUT', `/${id}`, body),
         deleteStep: (id: string) => stepSend('DELETE', `/${id}`),
-        publishStep: (id: string) => stepSend('POST', `/${id}/publish`),
-        setStepSharing: (id: string, body: unknown) => stepSend('PUT', `/${id}/sharing`, body),
-        setStepExpose: (id: string, exposeAsTool: boolean) => stepSend('PUT', `/${id}/expose`, { exposeAsTool }),
+        publishStep: <T = unknown>(id: string) => stepSend<T>('POST', `/${id}/publish`),
+        setStepSharing: <T = unknown>(id: string, body: unknown) => stepSend<T>('PUT', `/${id}/sharing`, body),
+        setStepExpose: <T = unknown>(id: string, exposeAsTool: boolean) => stepSend<T>('PUT', `/${id}/expose`, { exposeAsTool }),
         listStepVersions: (id: string) => stepGet(`/${id}/versions`),
         testStep: (id: string, inputs: unknown) => stepSend('POST', `/${id}/test`, { inputs }),
         // "Find repeating work" — runs a read-only scan of the user's

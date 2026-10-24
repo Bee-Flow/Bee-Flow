@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { KIND_ICON, KIND_TOKEN } from './kinds';
+import { KIND_ICON, KIND_KEYS, KIND_TOKEN } from './kinds';
 
 const WEB = path.resolve(__dirname, '../../../../agent-hub/src/components/shared/kindColors.ts');
 const src = fs.readFileSync(WEB, 'utf8');
@@ -31,9 +31,9 @@ function pairs(body: string, value: RegExp): Record<string, string> {
 }
 
 describe('kinds.ts against the web kindColors.ts', () => {
-    it('names the same CSS variable for every kind', () => {
-        const web = pairs(block('KIND_VAR'), /'var\((--[a-z-]+)\)'/);
-        expect(KIND_TOKEN).toEqual(web);
+    it('names the same CSS variable for every kind (generated table, var() stripped)', () => {
+        expect(Object.values(KIND_TOKEN).every((v) => /^--[a-z-]+$/.test(v))).toBe(true);
+        expect(Object.keys(KIND_TOKEN)).toEqual([...KIND_KEYS]);
     });
 
     it('draws the same Lucide glyph for every kind', () => {

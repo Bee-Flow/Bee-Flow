@@ -8,6 +8,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import type { EmojiClickData } from 'emoji-picker-react';
 import type { CustomIcon } from '../../hooks/useIconPack';
 import { errorMessage } from '../../utils/caughtError';
+import { mutate, ApiError } from '../../api/mutate';
 
 interface IconPickerModalProps {
     isOpen: boolean;
@@ -51,11 +52,14 @@ export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEm
         formData.append('icon', file);
 
         try {
-            const res = await authFetch(`${API_BASE}/api/icons/upload`, {
+            const res = await mutate(`${API_BASE}/api/icons/upload`, {
                 method: 'POST',
                 body: formData
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 const data = await res.json();
                 onApply({ type: 'image', value: data.url });
             } else {

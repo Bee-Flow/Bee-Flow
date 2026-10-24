@@ -33,6 +33,7 @@ import MapEmbedRenderer from './MapEmbedRenderer';
 const MermaidRenderer = lazy(() => import('./MermaidRenderer'));
 import WebpageLinkCard from '../webpages/WebpageLinkCard';
 import DocumentLinkCard from '../documents/DocumentLinkCard';
+import { DOCUMENT_CARD, LANG_LABELS, WEBPAGE_CARD, WRAPPING_FENCE_CLOSE, WRAPPING_FENCE_OPEN, anchorKey, headingSlug, stripDirectiveBlocks } from './markdownRules';
 
 /**
  * Inline loading placeholder shown while a special ```json-*``` block is still
@@ -99,15 +100,7 @@ const CollapsibleCodeBlock = ({ className, children, ...props }: import('./Markd
     const language = langMatch ? langMatch[1] : '';
 
     // Pretty language labels
-    const langLabels: Record<string, string> = {
-        python: 'Python', py: 'Python', javascript: 'JavaScript', js: 'JavaScript',
-        typescript: 'TypeScript', ts: 'TypeScript', jsx: 'JSX', tsx: 'TSX',
-        html: 'HTML', css: 'CSS', json: 'JSON', bash: 'Bash', sh: 'Shell',
-        sql: 'SQL', yaml: 'YAML', yml: 'YAML', markdown: 'Markdown', md: 'Markdown',
-        java: 'Java', cpp: 'C++', c: 'C', rust: 'Rust', go: 'Go', ruby: 'Ruby',
-        php: 'PHP', swift: 'Swift', kotlin: 'Kotlin', r: 'R', lua: 'Lua',
-        xml: 'XML', csv: 'CSV', toml: 'TOML', ini: 'INI', dockerfile: 'Dockerfile',
-    };
+    const langLabels = LANG_LABELS;
     const displayLang = langLabels[language.toLowerCase()] || (language ? language.charAt(0).toUpperCase() + language.slice(1) : '');
 
     // Determine if this is a short snippet (1-2 lines, no explicit language)
@@ -525,14 +518,14 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, inline =
 
         // 1. Remove opening fence (greedy, handles partial stream)
         // Match start of string, with optional leading whitespace
-        const startMatch = cleaned.match(/^\s*```(?:markdown|md|text)?\n/i);
+        const startMatch = cleaned.match(WRAPPING_FENCE_OPEN);
         if (startMatch) {
             cleaned = cleaned.substring(startMatch[0].length);
         }
 
         // 2. Remove closing fence (if present at end)
         // Match newline + ``` + optional trailing whitespace
-        const endMatch = cleaned.match(/\n```\s*$/);
+        const endMatch = cleaned.match(WRAPPING_FENCE_CLOSE);
         if (endMatch) {
             cleaned = cleaned.substring(0, endMatch.index);
         }
@@ -540,17 +533,7 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, inline =
         return cleaned;
     };
 
-    // Strip :::directive blocks (e.g. :::writing Title) emitted by newer GPT models
-    const stripDirectiveBlocks = (text: string): string => {
-        if (typeof text !== 'string') return text;
-        // Convert :::writing Title  →  ## Title
-        // Convert :::note Title, :::tip Title, etc. the same way
-        let cleaned = text.replace(/^:::(writing|note|tip|warning|important|caution)[\t ]+(.+)$/gm, '## $2');
-        // Remove standalone closing ::: markers (on their own line)
-        cleaned = cleaned.replace(/^:::[\t ]*$/gm, '');
-        return cleaned;
-    };
-
+    // :::directive blocks (e.g. :::writing Title) from newer GPT models are stripped by markdownRules.
     const cleanContent = stripDirectiveBlocks(stripWrappingCodeBlock(textContent as string));
 
     const unclosedBlock = detectUnclosedCodeBlock(cleanContent);
@@ -580,13 +563,13 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, inline =
                     // Links — anchor links scroll within message, external open in new tab
                     a({ node, children, href, ...props }) {
                         // Webpage links render as a clickable card instead of a plain anchor
-                        if (href && /^\/app\/(?:studio\/)?webpages\/[a-zA-Z0-9_-]+$/.test(href)) {
+                        if (href && WEBPAGE_CARD.test(href)) {
                             const label = typeof children === 'string' ? children : (Array.isArray(children) ? children.join('') : String(href));
                             return <WebpageLinkCard href={href} label={label} />;
                         }
                         // Document links do the same — the model is told to end
                         // its reply with "[<name>](<url>)" after building one.
-                        if (href && /^\/app\/studio\/documents\/[a-zA-Z0-9_-]+$/.test(href)) {
+                        if (href && DOCUMENT_CARD.test(href)) {
                             const label = typeof children === 'string' ? children : (Array.isArray(children) ? children.join('') : String(href));
                             return <DocumentLinkCard href={href} label={label} />;
                         }
@@ -596,7 +579,7 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, inline =
                                     href={href}
                                     onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                                         e.preventDefault();
-                                        const fragment = href.slice(1).toLowerCase().replace(/[^a-z0-9]/g, '');
+                                        const fragment = anchorKey(href.slice(1));
                                         const container = e.currentTarget.closest('.markdown-content');
                                         if (!container) return;
 
@@ -607,7 +590,7 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, inline =
                                         if (!target) {
                                             const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
                                             for (const h of headings) {
-                                                const hText = (h.textContent || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                                                const hText = anchorKey(h.textContent || '');
                                                 if (hText.includes(fragment) || fragment.includes(hText)) {
                                                     target = h;
                                                     break;
@@ -642,12 +625,7 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, inline =
                                 return '';
                             };
                             const text = React.Children.toArray(children).map(extractText).join('');
-                            const slug = text
-                                .toLowerCase()
-                                .replace(/[^\p{L}\p{N}\s-]/gu, '')
-                                .replace(/\s+/g, '-')
-                                .replace(/-+/g, '-')
-                                .replace(/^-|-$/g, '');
+                            const slug = headingSlug(text);
                             return React.createElement(tag, { id: slug, 'data-heading': text, ...hProps }, children);
                         };
                         return acc;

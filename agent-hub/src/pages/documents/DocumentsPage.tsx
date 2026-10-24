@@ -32,9 +32,7 @@ import { messageOf } from '../../utils/caughtError';
 const Pager = PagerJs;
 // The notebook workspace carries the editor, the sources and the chat: loaded
 // only when a notebook is opened.
-const NotebookDetail = lazy(() => import('./notebook/detail/NotebookDetail')) as unknown as React.ComponentType<{
-    notebookId: string; user: unknown; onBack: () => void; onListChanged: () => void; onOpenProject: (projectId: string) => void;
-}>;
+const NotebookDetail = lazy(() => import('./notebook/detail/NotebookDetail'));
 
 export interface DocumentsPageProps {
     /** Studio exposes organisation management; the member workspace does not. */

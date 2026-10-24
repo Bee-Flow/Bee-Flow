@@ -4,6 +4,7 @@ import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { toast } from '../../../shared/Toast';
 import type { AdminMessage, AdminUser, AskConfirm, UserFormData } from './types';
+import { mutate, ApiError } from '../../../../api/mutate';
 
 const EMPTY_USER: UserFormData = {
     id: '', username: '', displayName: '', firstName: '', lastName: '', email: '', phone: '',
@@ -198,8 +199,11 @@ export default function useUserActions({ loadData, setMessage, askConfirm, t }: 
             const formData = new FormData();
             formData.append('avatar', file);
             try {
-                const res = await authFetch(`${API_BASE}/auth/users/${userData.id}/avatar`, { method: 'POST', body: formData });
-                if (res.ok) {
+                const res = await mutate(`${API_BASE}/auth/users/${userData.id}/avatar`, { method: 'POST', body: formData }).catch((err: unknown) => {
+                    if (err instanceof ApiError) return null;
+                    throw err;
+                });
+                if (res) {
                     const data = await res.json();
                     setUserData(p => ({ ...p, avatar: data.avatar, avatarType: 'image' }));
                     setMessage({ type: 'success', text: 'Avatar uploaded' });

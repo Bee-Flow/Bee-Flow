@@ -12,7 +12,7 @@ import { FormRow, denseInputClass } from '../formPrimitives';
 import type { FieldKind, FieldPathOption } from './reliabilityModel';
 
 // A JavaScript component whose props TypeScript infers from their defaults.
-export const PathField = PathFieldJs as unknown as ComponentType<Record<string, unknown>>;
+export const PathField = PathFieldJs;
 
 export interface PickerProps {
     ariaBase: string;
@@ -60,7 +60,7 @@ export function ListSourceField({ listRef, value, onChange, ariaBase, previewSam
     const { t } = useTranslation();
     const ctx = useVariablePickerContext();
     const sample = previewSample ?? ctx.previewSample;
-    const quickPicks = useMemo(() => collectArrayPaths(ctx.groups as unknown as Parameters<typeof collectArrayPaths>[0], sample), [ctx.groups, sample]);
+    const quickPicks = useMemo(() => collectArrayPaths(ctx.groups, sample), [ctx.groups, sample]);
     const list = useMemo(() => (listRef && sample ? getList(sample, listRef) as unknown[] | null : null), [listRef, sample]);
     const keys = sampleKeys(list);
     return (

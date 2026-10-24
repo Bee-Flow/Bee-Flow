@@ -10,6 +10,7 @@ import { Send, ArrowLeft, Bot, User, AlertTriangle } from 'lucide-react';
 import { authFetch, API_BASE } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
+import { mutate, ApiError } from '../../api/mutate';
 
 export const STATUS_LABELS: Record<string, string> = {
     open: 'Open',
@@ -137,12 +138,15 @@ export function ThreadDetail({ threadId, onBack, onChanged }: { threadId: string
         if (!body) return;
         setSending(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/support/threads/${threadId}/messages`, {
+            const res = await mutate(`${API_BASE}/api/support/threads/${threadId}/messages`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ body }),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 setReply('');
                 await load();
                 onChanged && onChanged();

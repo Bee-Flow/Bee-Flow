@@ -5,7 +5,9 @@
  * that a client could still offer as a filter. The server's own tables are
  * the source (core/privacy/personalColumns.js maps a category to the kind
  * 'health'; core/privacy/specialCategories.js says which kinds are special).
- * When this fails, the server changed: port it to the phone and the web.
+ * The web's list is generated into ../mirror/specialCategories.ts and used
+ * by activity.ts directly, so it is compared with the server here once.
+ * When this fails, the server changed: port it to the web (the phone follows).
  */
 
 import fs from 'node:fs';
@@ -45,11 +47,6 @@ describe('special categories (GDPR Art. 9)', () => {
         const server = [...keysOfKind(columns, 'KIND_OF_CATEGORY', 'health'), ...keysOfKind(columns, 'LOOSE_KIND', 'health')];
         expect(server.length).toBeGreaterThanOrEqual(5);
         expect(sorted(SPECIAL_CATEGORY_SPELLINGS)).toEqual(sorted(server.map(squash)));
-    });
-
-    it('the web keeps the same list', () => {
-        const web = read('agent-hub/src/components/admin/security/guardrails/orgShield/activity/specialCategories.ts');
-        expect(sorted(frozenList(web, 'export const SPECIAL_CATEGORY_SPELLINGS'))).toEqual(sorted(SPECIAL_CATEGORY_SPELLINGS));
     });
 
     it('the note is in the dictionary with the same English', () => {

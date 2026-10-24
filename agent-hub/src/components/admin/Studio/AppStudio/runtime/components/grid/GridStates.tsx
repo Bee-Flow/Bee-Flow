@@ -13,11 +13,7 @@ import type { RunAction } from './gridTypes';
 
 // uiBits.jsx is JS: its prop types are inferred from the `= null` defaults,
 // which would reject the strings EmptyText renders. Same function, typed.
-const EmptyTextTyped = EmptyText as unknown as (props: {
-    text: string;
-    title?: string | null;
-    art?: string | null;
-}) => ReactElement;
+const EmptyTextTyped = EmptyText;
 
 export interface GridEmptyStateProps {
     emptyText: string;

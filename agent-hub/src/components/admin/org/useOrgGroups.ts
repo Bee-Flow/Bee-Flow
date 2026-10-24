@@ -4,6 +4,7 @@ import type { OrgMember, Organization } from './useOrgDirectory';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { toast } from '../../shared/Toast';
 import useOutsideDismiss from '../../../hooks/useOutsideDismiss';
+import { mutate, ApiError } from '../../../api/mutate';
 
 export interface OrgGroups {
     showCreateGroup: boolean;
@@ -124,7 +125,7 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
         if (!newGroupName.trim()) return;
         setCreatingGroup(true);
         try {
-            const res = await authFetch(`${API_BASE}/auth/groups`, {
+            const res = await mutate(`${API_BASE}/auth/groups`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -132,8 +133,11 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
                     description: newGroupDesc.trim(),
                     organizationId: newGroupOrg || null,
                 }),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 setNewGroupName('');
                 setNewGroupDesc('');
                 setShowCreateGroup(false);
@@ -149,8 +153,11 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
     const handleDeleteGroup = async (groupId: string) => {
         if (!(await confirm({ title: 'Delete this group?', description: 'Users will be unassigned.', confirmLabel: 'Delete', destructive: true }))) return;
         try {
-            const res = await authFetch(`${API_BASE}/auth/groups/${groupId}`, { method: 'DELETE' });
-            if (res.ok) await fetchData();
+            const res = await mutate(`${API_BASE}/auth/groups/${groupId}`, { method: 'DELETE' }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
+            });
+            if (res) await fetchData();
         } catch (err) {
             console.error('Failed to delete group:', err);
         }
@@ -158,12 +165,15 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
 
     const handleUpdateGroupDesc = async (groupId: string) => {
         try {
-            const res = await authFetch(`${API_BASE}/auth/groups/${groupId}`, {
+            const res = await mutate(`${API_BASE}/auth/groups/${groupId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ description: editGroupDesc }),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 setEditingGroup(null);
                 await fetchData();
             }
@@ -174,12 +184,15 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
 
     const handleUpdateGroupRole = async (groupId: string, newRole: string) => {
         try {
-            const res = await authFetch(`${API_BASE}/auth/groups/${groupId}`, {
+            const res = await mutate(`${API_BASE}/auth/groups/${groupId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ orgRole: newRole }),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 await fetchData();
             }
         } catch (err) {
@@ -192,12 +205,15 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
             ? currentGroups.filter(g => g !== groupId)
             : [...currentGroups, groupId];
         try {
-            const res = await authFetch(`${API_BASE}/auth/users/${userId}`, {
+            const res = await mutate(`${API_BASE}/auth/users/${userId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ groups: updatedGroups }),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) await fetchData();
+            if (res) await fetchData();
         } catch (err) {
             console.error('Failed to update user groups:', err);
         }

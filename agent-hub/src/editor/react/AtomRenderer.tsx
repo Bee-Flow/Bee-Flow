@@ -15,11 +15,11 @@ export interface AtomNode { type: string; attrs?: Record<string, any>; [key: str
 interface NodeViewProps { node: AtomNode; view: any; editable: boolean; selected?: boolean; inline?: boolean }
 
 // The node views are JavaScript components; their props are described here.
-const ChartView = ChartViewJs as unknown as React.ComponentType<NodeViewProps>;
-const FormulaView = FormulaViewJs as unknown as React.ComponentType<NodeViewProps>;
+const ChartView = ChartViewJs;
+const FormulaView = FormulaViewJs;
 const ImageView = ImageViewJs as unknown as React.ComponentType<NodeViewProps>;
-const MathView = MathViewJs as unknown as React.ComponentType<NodeViewProps>;
-const MermaidView = MermaidViewJs as unknown as React.ComponentType<NodeViewProps>;
+const MathView = MathViewJs;
+const MermaidView = MermaidViewJs;
 
 interface BoundaryProps { type: string; label: string; children?: React.ReactNode }
 interface BoundaryState { error: unknown }

@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 import McpLogoJs from '../../utils/mcpLogos';
 
 // A .jsx module; its inferred props do not know the server shape.
-const McpLogo = McpLogoJs as unknown as ComponentType<{ server: Record<string, unknown>; size?: number; className?: string }>;
+const McpLogo = McpLogoJs;
 
 interface ServerLogoProps {
     /** Anything with a name; id/repository/homepage/icon improve the logo. */

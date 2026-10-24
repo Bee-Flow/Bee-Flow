@@ -1,5 +1,6 @@
-import { render, screen, fireEvent, act, within } from '@testing-library/react';
+import { screen, fireEvent, act, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { renderWithClient } from '../test/render';
 
 /**
  * WebpagesPage — characterisation tests for the SAVE DISCIPLINE (Track W0).
@@ -221,7 +222,7 @@ async function flush(ms = 0) {
 }
 
 async function renderPage() {
-    const utils = render(<WebpagesPage user={USER} embedded />);
+    const utils = renderWithClient(<WebpagesPage user={USER} embedded />);
     await flush();
     expect(screen.getByText('Page A')).toBeInTheDocument();
     return utils;
@@ -707,7 +708,7 @@ describe('WebpagesPage — list', () => {
 describe('WebpagesPage — deep link', () => {
     it('opens the page named in the URL, even one absent from the list (BFSF-187)', async () => {
         override('GET', /\/api\/webpages$/, () => ({ webpages: [] }));
-        render(<WebpagesPage user={USER} embedded initialWebpageId="A" />);
+        renderWithClient(<WebpagesPage user={USER} embedded initialWebpageId="A" />);
         await flush();
 
         expect(callsTo('GET', /\/api\/webpages\/A$/)).toHaveLength(1);
@@ -715,7 +716,7 @@ describe('WebpagesPage — deep link', () => {
     });
 
     it('treats studio/webpages/new as "show the create form", not as an id to fetch', async () => {
-        render(<WebpagesPage user={USER} embedded initialWebpageId="new" />);
+        renderWithClient(<WebpagesPage user={USER} embedded initialWebpageId="new" />);
         await flush();
 
         // No GET /api/webpages/new — that 404s and used to paint an error

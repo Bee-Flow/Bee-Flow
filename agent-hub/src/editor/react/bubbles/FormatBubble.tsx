@@ -18,18 +18,13 @@ import type { AskState } from './AskPortal';
 // The toolbar primitives are JavaScript components; their props are described here.
 type SetOpen = (next: boolean | ((open: boolean) => boolean)) => void;
 type Icon = React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
-const Btn = BtnJs as unknown as React.ComponentType<{ onClick: () => void; active?: boolean; icon: Icon; title: string; disabled?: boolean }>;
-const Item = ItemJs as unknown as React.ComponentType<{ icon: Icon; label: string; active?: boolean; onClick: () => void }>;
-const Dropdown = DropdownJs as unknown as React.ComponentType<{
-  trigger: (open: boolean, setOpen: SetOpen) => React.ReactNode;
-  children: (setOpen: SetOpen) => React.ReactNode;
-}>;
-const MenuDivider = MenuDividerJs as unknown as React.ComponentType;
-const MenuLabel = MenuLabelJs as unknown as React.ComponentType<{ children: React.ReactNode }>;
-const BubbleDivider = BubbleDividerJs as unknown as React.ComponentType;
-const useFloatingRect = useFloatingRectJs as unknown as (
-  view: any, options?: { enabled?: boolean },
-) => { top: number; left: number; bottom: number } | null;
+const Btn = BtnJs;
+const Item = ItemJs;
+const Dropdown = DropdownJs;
+const MenuDivider = MenuDividerJs;
+const MenuLabel = MenuLabelJs;
+const BubbleDivider = BubbleDividerJs;
+const useFloatingRect = useFloatingRectJs;
 
 interface Props {
   view: any;

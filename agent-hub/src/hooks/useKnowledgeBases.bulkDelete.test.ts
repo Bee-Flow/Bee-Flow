@@ -1,4 +1,5 @@
-import { renderHook, act } from '@testing-library/react';
+import { act } from '@testing-library/react';
+import { renderHookWithClient } from '../test/render';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import useKnowledgeBases from './useKnowledgeBases';
 import { toast } from '../components/shared/Toast';
@@ -53,7 +54,7 @@ describe('useKnowledgeBases — bulk delete batching', () => {
             }
             return { ok: true, status: 200, json: async () => ([]) };
         });
-        const { result } = renderHook(() => useKnowledgeBases());
+        const { result } = renderHookWithClient(() => useKnowledgeBases());
         act(() => { result.current.setSelectedKB({ id: 'kb1', name: 'Docs' }); });
         act(() => { result.current.setKbSelectedIds(new Set(idsOf(450))); });
         await act(async () => { await result.current.bulkDeleteSelected(); });
@@ -68,7 +69,7 @@ describe('useKnowledgeBases — bulk delete batching', () => {
             }
             return { ok: true, status: 200, json: async () => ([]) };
         });
-        const { result } = renderHook(() => useKnowledgeBases());
+        const { result } = renderHookWithClient(() => useKnowledgeBases());
         act(() => { result.current.setSelectedKB({ id: 'kb1', name: 'Docs' }); });
         act(() => { result.current.setKbSelectedIds(new Set(idsOf(5))); });
         await act(async () => { await result.current.bulkDeleteSelected(); });
@@ -87,7 +88,7 @@ describe('useKnowledgeBases — bulk delete batching', () => {
             }
             return { ok: true, status: 200, json: async () => ([]) };
         });
-        const { result } = renderHook(() => useKnowledgeBases());
+        const { result } = renderHookWithClient(() => useKnowledgeBases());
         act(() => { result.current.setSelectedKB({ id: 'kb1', name: 'Docs' }); });
         act(() => { result.current.setKbSelectedIds(new Set(idsOf(450))); });
         await act(async () => { await result.current.bulkDeleteSelected(); });

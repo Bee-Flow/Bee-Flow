@@ -4,131 +4,26 @@ import { Microsoft365Group } from './Microsoft365Integration';
 import ScalewayBillingIntegration from './ScalewayBillingIntegration';
 import SimpleApiKeyIntegration from './SimpleApiKeyIntegration';
 import { toast } from '../../components/shared/Toast';
-import { getIntegrationIcon } from '../../config/integrationIcons';
 import { useEntitlements } from '../../components/licensing/EntitlementsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import useUserSettingSave from '../../hooks/useUserSettingSave';
-import { openGoogleOAuthPopup } from '../../lib/googleOAuthPopup';
-import { isTrustedOAuthOrigin } from '../../lib/oauthMessageOrigin';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import NcScopeSection from '../../components/integrations/nextcloud/NcScopeSection';
 import OrgMcpConnections from './OrgMcpConnections';
 import type { McpServerSource } from '../../components/apps/appCatalog';
 import type { UserSettingSaveResult } from '../../hooks/useUserSettingSave';
 import type { SettingsStatuses, SettingsUser } from './shell/settingsShellTypes';
-import type { GroupLabelProps, IntegrationRowProps, ApiKeyFieldProps, DisconnectButtonProps, FirefliesIntegrationProps, YouTrackIntegrationProps, SignRequestIntegrationProps, GammaIntegrationProps, AFASIntegrationProps, VplanIntegrationProps, NMBRSIntegrationProps, GoogleWorkspaceIntegrationProps, LinkedInIntegrationProps, WithingsIntegrationProps, GitHubIntegrationProps, NextcloudIntegrationProps, McpCredential, McpCredentialServer, McpCredentialRowsProps, IntegrationGroupProps, IntegrationsSectionProps } from './IntegrationsSection.types';
+import type { GroupLabelProps, FirefliesIntegrationProps, YouTrackIntegrationProps, SignRequestIntegrationProps, GammaIntegrationProps, AFASIntegrationProps, VplanIntegrationProps, NMBRSIntegrationProps, GitHubIntegrationProps, NextcloudIntegrationProps, McpCredential, McpCredentialServer, McpCredentialRowsProps, IntegrationGroupProps, IntegrationsSectionProps } from './IntegrationsSection.types';
 import { logger } from '../../utils/logger';
-// ── Shared UI helpers ─────────────────────────────────────────────────────────
-// Pull translations from the hook directly so parents don't have to thread `t`
-// through. Historically callers forgot to pass t={t}, causing render-time
-// crashes ("TypeError: t is not a function") the moment an integration was
-// connected and this badge actually rendered.
-const ConnectedBadge = () => {
-    const { t } = useTranslation();
-    return (
-        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0 [background:rgba(5,150,105,0.1)] [color:#059669]!">
-            {t('settings.connected')}
-        </span>
-    );
-};
+import { mutate, ApiError } from '../../api/mutate';
+import { IntegrationRow, ApiKeyField, DisconnectButton } from './IntegrationPrimitives';
+import { GoogleWorkspaceIntegration, LinkedInIntegration, WithingsIntegration } from './OAuthIntegrations';
 
 const GroupLabel = ({ children }: GroupLabelProps) => (
     <p className="text-[11px] font-semibold uppercase tracking-widest px-1 mb-2 text-[var(--text-muted)]">
         {children}
     </p>
 );
-// ── Integration row (expands inline) ─────────────────────────────────────────
-// Exported so SimpleApiKeyIntegration can reuse the same primitives (circular
-// import — safe because they're only read at render time).
-export const IntegrationRow = ({ icon, name, description, connected, badge, children, last = false }: IntegrationRowProps) => {
-    const [expanded, setExpanded] = useState(false);
-
-    return (
-        <div data-tour="integration-card" style={{ borderBottom: last ? 'none' : '1px solid var(--border-subtle)' }}>
-            <button
-                type="button"
-                aria-expanded={expanded}
-                className="w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)]"
-                onClick={() => setExpanded(v => !v)}
-            >
-                <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    {icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium text-[var(--text-primary)]">{name}</p>
-                    <p className="text-[11px] truncate text-[var(--text-muted)]">{description}</p>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                    {/* An explicit badge renders alongside Connected (e.g. "Update
-                        needed" when a connected integration needs re-consent). */}
-                    {connected ? <>{badge || null}<ConnectedBadge /></> : badge || null}
-                    <svg
-                        className="transition-transform"
-                        style={{ color: 'var(--text-muted)', width: '13px', height: '13px', transform: expanded ? 'rotate(90deg)' : 'none' }}
-                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                </div>
-            </button>
-
-            {expanded && (
-                <div className="px-5 pb-4 pt-2 space-y-3 [background:var(--bg-secondary)] [border-top:1px_solid_var(--border-subtle)]">
-                    {children}
-                </div>
-            )}
-        </div>
-    );
-};
-// ── Field helpers ─────────────────────────────────────────────────────────────
-// The Save / Disconnect labels come from the hook, not from a `t` prop: most
-// rows never passed one, so their button read "Save" in every language.
-export const ApiKeyField = ({ placeholder, value, onChange, onSave, saving, hint, canSave }: ApiKeyFieldProps) => {
-    const { t } = useTranslation();
-    return (
-        <div>
-            <div className="flex gap-2">
-                <input
-                    type="password"
-                    value={value}
-                    onChange={onChange}
-                    placeholder={placeholder}
-                    aria-label={placeholder}
-                    // These are API tokens, not account passwords — without this the
-                    // browser's password manager offers to save them.
-                    autoComplete="off"
-                    data-1p-ignore
-                    data-lpignore="true"
-                    className="flex-1 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
-                    onKeyDown={e => e.key === 'Enter' && (canSave ?? value.trim()) && onSave()}
-                />
-                <button
-                    type="button"
-                    onClick={onSave}
-                    disabled={saving || !(canSave ?? value.trim())}
-                    className="px-4 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-40 transition-opacity bg-[var(--accent-primary)]"
-                >
-                    {saving ? '…' : t('settings.save', 'Save')}
-                </button>
-            </div>
-            {hint && <p className="text-[11px] mt-1.5 text-[var(--text-muted)]">{hint}</p>}
-        </div>
-    );
-};
-
-export const DisconnectButton = ({ onDisconnect, disconnecting }: DisconnectButtonProps) => {
-    const { t } = useTranslation();
-    return (
-        <button
-            type="button"
-            onClick={onDisconnect}
-            disabled={disconnecting}
-            className="px-4 py-2 rounded-lg text-[13px] font-medium transition-opacity disabled:opacity-50 [background:var(--bg-primary)] [color:var(--text-muted)]! [border:1px_solid_var(--border-default)]"
-        >
-            {disconnecting ? '…' : t('settings.disconnect', 'Disconnect')}
-        </button>
-    );
-};
 // ── Fireflies ─────────────────────────────────────────────────────────────────
 // Single-key integration — all save/disconnect/error logic lives in
 // SimpleApiKeyIntegration + useUserSettingSave; this is just declarative config.
@@ -455,277 +350,6 @@ const NMBRSIntegration = ({ hasNmbrsConfig, apiMode: initialMode, subdomain: ini
     );
 };
 
-// ── Google Workspace ──────────────────────────────────────────────────────────
-// BFSF-255: manual connect for Gmail/Calendar/Drive & co. Email/password
-// accounts never go through Google-SSO login, so without this tile the whole
-// Google toolset was silently dead for them; SSO users also had no way to see
-// or revoke their authorisation. The popup + postMessage flow lives in
-// lib/googleOAuthPopup (shared with the Meeting Notes surfaces); lazy status
-// fetch (GitHub).
-const GoogleWorkspaceIntegration = ({ onSaved, last }: GoogleWorkspaceIntegrationProps) => {
-    const { t } = useTranslation();
-    const [status, setStatus] = useState<{
-        meetScopesGranted?: boolean; configured: boolean; connected: boolean; needsReauth?: boolean; email?: string;
-} | null>(null); // null = loading skeleton
-    const [connecting, setConnecting] = useState(false);
-    const [disconnecting, setDisconnecting] = useState(false);
-    const [error, setError] = useState('');
-
-    const checkStatus = async () => {
-        try {
-            const res = await authFetch(`${API_BASE}/api/integrations/google/status`);
-            setStatus(res.ok ? await res.json() : { configured: false, connected: false });
-        } catch { setStatus({ configured: false, connected: false }); }
-    };
-    React.useEffect(() => { checkStatus(); }, []);
-
-    const handleConnect = async () => {
-        setConnecting(true); setError('');
-        try {
-            await openGoogleOAuthPopup({
-                authFetch,
-                apiBase: API_BASE,
-                onOpened: () => setConnecting(false),
-                onDone: ({ success, closed }) => {
-                    if (closed) return;
-                    checkStatus();
-                    if (success) onSaved();
-                },
-            });
-        } catch (e) {
-            setError((e as Error)?.message || t('integ.google_error', 'Could not start the Google connection. Try again.'));
-            setConnecting(false);
-        }
-    };
-    const handleDisconnect = async () => {
-        setDisconnecting(true); setError('');
-        try {
-            await authFetch(`${API_BASE}/api/integrations/google/disconnect`, { method: 'POST' });
-            await checkStatus();
-            onSaved();
-        } catch (e) { console.error(e); }
-        setDisconnecting(false);
-    };
-
-    const loading = status === null;
-    const connected = !!status?.connected;
-    const needsReauth = !loading && !connected && !!status?.needsReauth;
-    // Connected before the Meet scopes were added to the connector — the token
-    // works for Gmail/Calendar/Drive but Meeting Notes can't read Meet
-    // recordings until the user re-consents (incremental: existing grants stay).
-    const needsMeetReconsent = connected && status?.meetScopesGranted === false;
-    return (
-        <IntegrationRow
-            last={last}
-            connected={connected}
-            badge={needsMeetReconsent ? (
-                <span className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0 bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] text-[var(--warning-ink)]">
-                    {t('integ.google_update_needed', 'Update needed')}
-                </span>
-            ) : null}
-            name="Google Workspace"
-            description={loading
-                ? '…'
-                : connected
-                    ? (status?.email ? t('integ.google_connected_as', { email: status.email }) : t('integ.google_connected'))
-                    : needsReauth
-                        ? t('integ.google_needs_reauth')
-                        : t('integ.google_desc')}
-            icon={<svg viewBox="0 0 24 24" className="w-[20px] h-[20px]" aria-hidden="true"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" /><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z" /><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z" /><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z" /></svg>}
-        >
-            {loading ? (
-                <p className="text-[12px] text-[var(--text-muted)]">…</p>
-            ) : !status.configured ? (
-                <p className="text-[12px] text-[var(--text-muted)]">{t('integ.google_not_configured')}</p>
-            ) : connected ? (
-                <div className="space-y-2">
-                    {needsMeetReconsent && (
-                        <div className="rounded-lg px-3 py-2.5 border bg-[color-mix(in_srgb,var(--warning)_8%,transparent)] border-[color-mix(in_srgb,var(--warning)_35%,transparent)]">
-                            <p className="text-[11px] text-[var(--warning-ink)]">
-                                {t('integ.google_meet_scope_missing', 'Meeting Notes needs extra Google Meet permissions to import your meeting recordings — re-authorize to grant them. Your existing Gmail, Calendar and Drive access is kept.')}
-                            </p>
-                            <button
-                                type="button"
-                                onClick={handleConnect}
-                                disabled={connecting}
-                                className="mt-2 px-4 py-2 rounded-lg text-[13px] font-medium disabled:opacity-50 bg-[var(--warning)] text-[var(--accent-primary-fg)]"
-                            >
-                                {connecting ? t('integ.google_opening', 'Opening Google…') : t('integ.google_reauthorize', 'Re-authorize Google')}
-                            </button>
-                        </div>
-                    )}
-                    <p className="text-[11px] text-[var(--text-muted)]">{t('integ.google_disconnect_note')}</p>
-                    <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />
-                </div>
-            ) : (
-                <button
-                    onClick={handleConnect}
-                    disabled={connecting}
-                    className="px-4 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-50"
-                    style={{ background: needsReauth ? '#d97706' : '#4285F4' }}
-                >
-                    {connecting
-                        ? t('integ.google_opening', 'Opening Google…')
-                        : needsReauth ? t('integ.google_reconnect') : t('integ.google_connect')}
-                </button>
-            )}
-            {error && <p className="text-[11px] mt-2 [color:#dc2626]!">{error}</p>}
-        </IntegrationRow>
-    );
-};
-
-// ── LinkedIn ──────────────────────────────────────────────────────────────────
-const LinkedInIntegration = ({ connected, linkedInName, hasLinkedInConfig, onSaved, last }: LinkedInIntegrationProps) => {
-    const { t } = useTranslation();
-    const [connecting, setConnecting] = useState(false);
-    const [disconnecting, setDisconnecting] = useState(false);
-    React.useEffect(() => {
-        const handler = (e: MessageEvent) => {
-            if (!isTrustedOAuthOrigin(e.origin, API_BASE)) return;
-            if (e.data?.type === 'linkedin-callback' && e.data?.success) onSaved();
-        };
-        window.addEventListener('message', handler);
-        return () => window.removeEventListener('message', handler);
-    }, [onSaved]);
-    const handleConnect = async () => {
-        setConnecting(true);
-        try {
-            const res = await authFetch(`${API_BASE}/api/integrations/linkedin/auth-url`);
-            if (res.ok) {
-                const { url } = await res.json();
-                const [w, h] = [600, 700];
-                window.open(url, 'linkedin-oauth', `width=${w},height=${h},left=${(screen.width - w) / 2},top=${(screen.height - h) / 2}`);
-            }
-        } catch (e) { console.error(e); }
-        setConnecting(false);
-    };
-    const handleDisconnect = async () => {
-        setDisconnecting(true);
-        try { await authFetch(`${API_BASE}/api/integrations/linkedin/disconnect`, { method: 'POST' }); onSaved(); }
-        catch (e) { console.error(e); }
-        setDisconnecting(false);
-    };
-    return (
-        <IntegrationRow
-            last={last}
-            connected={connected}
-            name="LinkedIn"
-            description={connected ? (linkedInName ? t('integ.linkedin_connected_as', { name: linkedInName }) : t('integ.linkedin_connected')) : t('integ.linkedin_desc')}
-            icon={<svg viewBox="0 0 24 24" fill="none" className="w-[20px] h-[20px]"><rect x="2" y="2" width="20" height="20" rx="4" fill="#0A66C2" /><path d="M7.5 9.5h2v7h-2v-7zm1-3.2a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4zm3.5 3.2h1.9v1h0c.27-.5.92-1.1 1.9-1.1 2 0 2.4 1.3 2.4 3.1v3.6h-2v-3.2c0-.8 0-1.8-1.1-1.8s-1.3.9-1.3 1.7v3.3h-2v-6.6z" fill="white" /></svg>}
-        >
-            {!hasLinkedInConfig && <p className="text-[12px] text-[var(--text-muted)]">{t('integ.linkedin_not_configured')}</p>}
-            {hasLinkedInConfig && !connected && (
-                <button onClick={handleConnect} disabled={connecting} className="px-4 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-50 [background:#0A66C2]">
-                    {connecting ? t('integ.linkedin_opening') : t('integ.linkedin_connect')}
-                </button>
-            )}
-            {connected && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
-        </IntegrationRow>
-    );
-};
-
-// ── Withings ──────────────────────────────────────────────────────────────────
-// Self-fetching status (the Google Workspace pattern) rather than a prop off the
-// shared `statuses` blob: the vault row is the only truth about whether this is
-// connected, and it changes from a popup this component owns.
-const WithingsIntegration = ({ onSaved, last }: WithingsIntegrationProps) => {
-    const { t } = useTranslation();
-    const [status, setStatus] = useState<{ configured: boolean; connected: boolean; needsReauth?: boolean; withingsUserId?: string; } | null>(null);
-    const [connecting, setConnecting] = useState(false);
-    const [disconnecting, setDisconnecting] = useState(false);
-    const [error, setError] = useState('');
-
-    const checkStatus = React.useCallback(async () => {
-        try {
-            const res = await authFetch(`${API_BASE}/api/integrations/withings/status`);
-            setStatus(res.ok ? await res.json() : { configured: false, connected: false });
-        } catch (_) {
-            setStatus({ configured: false, connected: false });
-        }
-    }, []);
-    React.useEffect(() => { checkStatus(); }, [checkStatus]);
-
-    React.useEffect(() => {
-        const handler = (e: MessageEvent) => {
-            if (!isTrustedOAuthOrigin(e.origin, API_BASE)) return;
-            if (e.data?.type !== 'withings-callback') return;
-            checkStatus();
-            if (e.data.success) onSaved();
-        };
-        window.addEventListener('message', handler);
-        return () => window.removeEventListener('message', handler);
-    }, [onSaved, checkStatus]);
-
-    const handleConnect = async () => {
-        setConnecting(true); setError('');
-        try {
-            const res = await authFetch(`${API_BASE}/api/integrations/withings/auth-url`);
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok || !data.url) throw new Error(data.error || 'Could not start the Withings connection.');
-            const [w, h] = [600, 760];
-            window.open(data.url, 'withings-oauth', `width=${w},height=${h},left=${(screen.width - w) / 2},top=${(screen.height - h) / 2}`);
-        } catch (e) {
-            setError((e as Error)?.message || t('integ.withings_error', 'Could not start the Withings connection. Try again.'));
-        }
-        setConnecting(false);
-    };
-
-    const handleDisconnect = async () => {
-        setDisconnecting(true); setError('');
-        try {
-            await authFetch(`${API_BASE}/api/integrations/withings/disconnect`, { method: 'POST' });
-            await checkStatus();
-            onSaved();
-        } catch (e) { console.error(e); }
-        setDisconnecting(false);
-    };
-
-    const loading = status === null;
-    const connected = !!status?.connected;
-    const needsReauth = !loading && !connected && !!status?.needsReauth;
-
-    return (
-        <IntegrationRow
-            last={last}
-            connected={connected}
-            name="Withings"
-            description={loading
-                ? '…'
-                : connected
-                    ? (status?.withingsUserId
-                        ? t('integ.withings_connected_as', { id: status.withingsUserId })
-                        : t('integ.withings_connected'))
-                    : needsReauth
-                        ? t('integ.withings_needs_reauth')
-                        : t('integ.withings_desc')}
-            icon={getIntegrationIcon('withings')}
-        >
-            {loading ? (
-                <p className="text-[12px] text-[var(--text-muted)]">…</p>
-            ) : !status.configured ? (
-                <p className="text-[12px] text-[var(--text-muted)]">{t('integ.withings_not_configured')}</p>
-            ) : connected ? (
-                <div className="space-y-2">
-                    <p className="text-[11px] text-[var(--text-muted)]">{t('integ.withings_disconnect_note')}</p>
-                    <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />
-                </div>
-            ) : (
-                <button
-                    onClick={handleConnect}
-                    disabled={connecting}
-                    className="px-4 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-50"
-                    style={{ background: needsReauth ? '#d97706' : '#00A9A6' }}
-                >
-                    {connecting
-                        ? t('integ.withings_opening')
-                        : needsReauth ? t('integ.withings_reconnect') : t('integ.withings_connect')}
-                </button>
-            )}
-            {error && <p className="text-[11px] mt-2 [color:#dc2626]!">{error}</p>}
-        </IntegrationRow>
-    );
-};
-
 // ── GitHub ────────────────────────────────────────────────────────────────────
 const GitHubIntegration = ({ onSaved, last }: GitHubIntegrationProps) => {
     const { t } = useTranslation();
@@ -934,11 +558,14 @@ const McpCredentialRows = ({ servers, reload, onSaved, last }: McpCredentialRows
         if (!value?.trim()) return;
         setSaving(stateKey);
         try {
-            const res = await authFetch(`${API_BASE}/ai/mcp-servers/user-credentials`, {
+            const res = await mutate(`${API_BASE}/ai/mcp-servers/user-credentials`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ serverId, credKey, value: value.trim() }),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) { setCredValues(prev => ({ ...prev, [stateKey]: '' })); reload(); onSaved?.(); }
+            if (res) { setCredValues(prev => ({ ...prev, [stateKey]: '' })); reload(); onSaved?.(); }
             else toast.error(t('common.save_failed', 'Save failed'));
         } catch {
             // The typed value stays in the field, so the user can retry.

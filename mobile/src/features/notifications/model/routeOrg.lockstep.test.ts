@@ -4,22 +4,18 @@
  * registry, so a segment the web adds or a section that moves goes red here.
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
-
 import { ORG_SECTIONS } from '@/features/org';
 import { WEB_ONLY_ORG_SECTIONS, WEB_ORG_SECTIONS } from '@/features/org/model/sections';
+import { loadWebModule } from '@/shared/testing/webModule';
 
 import { translateWebLink } from './route';
 import { ORG_SETTINGS_SEGMENTS, adminTarget, legacyOrgSettingsTarget } from './routeOrg';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/authedApp/settingsRoutes.ts');
+const webRoutes = loadWebModule<{ SETTINGS_ORG_ID_TO_URL: Record<string, string> }>('authedApp/settingsRoutes.ts');
 
-/** SETTINGS_ORG_ID_TO_URL as [id, segment] pairs, in the web's order. */
+/** SETTINGS_ORG_ID_TO_URL as [id, segment] pairs, in the web's order (the web module itself, run). */
 function webOrgSegments(): [string, string][] {
-    const src = fs.readFileSync(WEB, 'utf8');
-    const body = /export const SETTINGS_ORG_ID_TO_URL(?::[^=]+)?\s*=\s*\{([\s\S]*?)\};/.exec(src)?.[1] ?? '';
-    return [...body.matchAll(/(\w+):\s*'([^']+)'/g)].map((m) => [m[1] as string, m[2] as string]);
+    return Object.entries(webRoutes.SETTINGS_ORG_ID_TO_URL);
 }
 
 describe('the organisation settings segments', () => {

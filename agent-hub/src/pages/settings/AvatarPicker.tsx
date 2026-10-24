@@ -2,9 +2,10 @@ import React, { useState, useRef, useCallback } from 'react';
 import { toast } from '../../components/shared/Toast';
 import useOutsideDismiss from '../../hooks/useOutsideDismiss';
 import { useTranslation } from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
 import { AvatarDisplay } from '../AdvancedSettings';
 import type { PreferencesUser } from './PreferencesSection.types';
+import { mutate, ApiError } from '../../api/mutate';
 
 // ── Emoji picker data ────────────────────────────────────────────────────────
 const EMOJI_CATEGORIES = [
@@ -38,12 +39,16 @@ const AvatarPicker = ({ user, onSaved }: AvatarPickerProps) => {
     const save = useCallback(async (avatar: string | null, avatarType: string | null) => {
         setSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/auth/update-profile`, {
+            try {
+                await mutate(`${API_BASE}/auth/update-profile`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ avatar, avatarType }),
             });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            } catch (err) {
+                if (!(err instanceof ApiError)) throw err;
+                throw new Error(`HTTP ${err.status}`);
+            }
             onSaved(avatar, avatarType);
             setOpen(false);
         } catch {

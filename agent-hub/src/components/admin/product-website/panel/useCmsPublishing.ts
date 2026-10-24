@@ -8,7 +8,7 @@ import type useCmsHistory from './useCmsHistory';
 import type useCmsPanelState from './useCmsPanelState';
 import { messageOf, errorMessage } from '../../../../utils/caughtError';
 import { authFetch } from '../../../../utils/helpers';
-import { mutate } from '../../../../api/mutate';
+import { mutate, ApiError } from '../../../../api/mutate';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { useTranslation } from '../../../../hooks/useTranslation';
@@ -87,12 +87,16 @@ export default function useCmsPublishing({
             }
             setLiveSiteId(activeSiteId);
             try {
-                const res = await authFetch(cmsApi.siteLive(activeSiteId), {
+                try {
+                    await mutate(cmsApi.siteLive(activeSiteId), {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ live: true }),
                 });
-                if (!res.ok) throw new Error(`Failed to set live (${res.status})`);
+                } catch (err) {
+                    if (!(err instanceof ApiError)) throw err;
+                    throw new Error(`Failed to set live (${err.status})`);
+                }
             } catch (err) {
                 toast.error(messageOf(err, ''));
                 setLiveSiteId(liveSiteId);   // roll back optimistic update
@@ -100,12 +104,16 @@ export default function useCmsPublishing({
         } else {
             setLiveSiteId(null);
             try {
-                const res = await authFetch(cmsApi.siteLive(activeSiteId), {
+                try {
+                    await mutate(cmsApi.siteLive(activeSiteId), {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ live: false }),
                 });
-                if (!res.ok) throw new Error(`Failed to take site offline (${res.status})`);
+                } catch (err) {
+                    if (!(err instanceof ApiError)) throw err;
+                    throw new Error(`Failed to take site offline (${err.status})`);
+                }
             } catch (err) {
                 toast.error(messageOf(err, ''));
                 setLiveSiteId(liveSiteId);

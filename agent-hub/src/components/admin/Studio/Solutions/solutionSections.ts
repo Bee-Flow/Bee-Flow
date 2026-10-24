@@ -1,5 +1,6 @@
 import { AppWindow, BookOpen, Bot, FileText, Globe, Library, ShieldCheck, Sparkles, Table2, Workflow } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
+import { SECTION_DATA } from './solutionSectionData';
 
 /**
  * What a Solution can hold, section by section: notebooks, apps, automations,
@@ -47,18 +48,25 @@ export interface SolutionSection {
     ownerFields: string[] | null;
 }
 
-export const SECTIONS: SolutionSection[] = [
-    { key: 'notebooks', icon: BookOpen, labelKey: 'projects.notebooks', kind: 'notebook', movable: true, ownerFields: ['userId', 'ownerId'] },
-    { key: 'apps', icon: AppWindow, labelKey: 'projects.apps', kind: 'app', movable: true, ownerFields: ['userId', 'ownerId'] },
-    { key: 'automations', icon: Workflow, labelKey: 'projects.automations', kind: 'automation', movable: true, ownerFields: ['userId', 'ownerId'] },
-    { key: 'webpages', icon: Globe, labelKey: 'projects.webpages', kind: 'webpage', movable: true, ownerFields: ['userId', 'ownerId'] },
-    { key: 'datatables', icon: Table2, labelKey: 'datatables.heading', kind: 'datatable', movable: true, ownerFields: ['ownerUserId'] },
-    { key: 'agents', icon: Bot, labelKey: 'agent_studio.title', kind: 'agent', movable: true, ownerFields: ['ownerId'] },
-    { key: 'skills', icon: Sparkles, labelKey: 'skills.title', kind: 'skill', movable: true, ownerFields: ['ownerId'] },
-    { key: 'documentTemplates', icon: FileText, labelKey: 'documents.library.templates', kind: 'document_template', movable: true, ownerFields: ['userId'] },
-    { key: 'knowledgeBases', icon: Library, labelKey: 'knowledge.title', kind: 'knowledge_base', movable: true, ownerFields: null },
-    { key: 'approvals', icon: ShieldCheck, labelKey: 'projects.approvals', kind: 'approval', movable: false, ownerFields: null },
-];
+const SECTION_ICONS: Record<string, SolutionSection['icon']> = {
+    notebooks: BookOpen,
+    apps: AppWindow,
+    automations: Workflow,
+    webpages: Globe,
+    datatables: Table2,
+    agents: Bot,
+    skills: Sparkles,
+    documentTemplates: FileText,
+    knowledgeBases: Library,
+    approvals: ShieldCheck,
+};
+
+export const SECTIONS: SolutionSection[] = SECTION_DATA.map(row => ({
+    ...row,
+    ownerFields: row.ownerFields ? [...row.ownerFields] : null,
+    icon: SECTION_ICONS[row.key] as SolutionSection['icon'],
+}));
+
 
 /** An item's display name. An approval's identity is the question it asks. */
 export function itemLabel(item: Record<string, unknown>): string {

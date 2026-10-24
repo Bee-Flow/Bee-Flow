@@ -12,7 +12,7 @@ import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
 
 import { CODE_PANEL, GITHUB_DARK, paintedScope } from './codeTheme';
 import { htmlToRuns, scopeKey } from './hljsHtml';
-import { GRAMMAR_OF, isCompactSnippet, LANGUAGE_LABELS, languageLabel } from './languages';
+import { GRAMMAR_OF, isCompactSnippet, languageLabel } from './languages';
 import { highlightDelay, highlightRuns } from './useHighlight';
 
 const WEB = fs.readFileSync(`${AGENT_HUB_SRC}/components/renderers/MarkdownRenderer.tsx`, 'utf8');
@@ -26,16 +26,13 @@ describe('lockstep with the web', () => {
         expect(Object.entries(GRAMMAR_OF)).toEqual(registered);
     });
 
-    it('labels languages as the web’s header does', () => {
-        const table = /const langLabels(?:: [^=]+)? = \{([\s\S]*?)\};/.exec(WEB)?.[1] ?? '';
-        const labels = Object.fromEntries([...table.matchAll(/(\w+): '([^']+)'/g)].map((m) => [m[1], m[2]]));
-        expect(LANGUAGE_LABELS).toEqual(labels);
-    });
-
     it('paints the web’s panel', () => {
-        for (const colour of [CODE_PANEL.background, CODE_PANEL.headerText, CODE_PANEL.copied]) expect(WEB).toContain(`'${colour}'`);
-        expect(WEB).toContain(`background: '${CODE_PANEL.headerBackground}'`);
-        expect(WEB).toContain(`borderBottom: '1px solid ${CODE_PANEL.headerBorder}'`);
+        // Tailwind arbitrary classes (`[background:#1e1e2e]`, `[border-bottom:1px_solid_rgba(…)]`) and one style object.
+        const bare = (text: string) => text.replace(/[\s_]/g, '');
+        const web = bare(WEB);
+        for (const colour of [CODE_PANEL.background, CODE_PANEL.headerText, CODE_PANEL.copied]) expect(web).toContain(bare(colour));
+        expect(web).toContain(bare(`[background:${CODE_PANEL.headerBackground}]`));
+        expect(web).toContain(bare(`[border-bottom:1px solid ${CODE_PANEL.headerBorder}]`));
         expect(WEB).toContain("import 'highlight.js/styles/github-dark.min.css';");
     });
 

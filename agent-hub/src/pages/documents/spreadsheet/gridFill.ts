@@ -7,7 +7,7 @@ import type { Range, Whole } from './sheetModel';
 
 interface Block { c0: number; r0: number; c1: number; r1: number }
 interface FillApi { fillBlock: (block: Block, direction: 'down' | 'right', raw: (col: number, row: number) => string) => Record<string, string> }
-const { fillBlock } = fillModule as unknown as FillApi;
+const { fillBlock } = fillModule;
 
 export type RawAt = (col: number, row: number) => string;
 export type IsNumber = (col: number, row: number) => boolean;

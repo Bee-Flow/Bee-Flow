@@ -8,6 +8,7 @@ import useTranslation from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import scopedStorage from '../../../../utils/scopedStorage';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { mutate, ApiError } from '../../../../api/mutate';
 
 /**
  * Studio → Knowledge. Three screens behind one route
@@ -159,12 +160,16 @@ export default function KnowledgeStudio({
             const current = Array.isArray(config.knowledge_base_ids) ? config.knowledge_base_ids : [];
             if (current.includes(suggestion.kbId)) { loadOverviewExtras(); return; }
             config.knowledge_base_ids = [...current, suggestion.kbId];
-            const save = await authFetch(`${API_BASE}/api/agents/${encodeURIComponent(suggestion.agentId)}`, {
+            try {
+                await mutate(`${API_BASE}/api/agents/${encodeURIComponent(suggestion.agentId)}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ config }),
             });
-            if (!save.ok) throw new Error('save');
+            } catch (err) {
+                if (!(err instanceof ApiError)) throw err;
+                throw new Error('save');
+            }
             loadOverviewExtras();
         } catch (_) {
             // A nudge that cannot be taken is dismissed rather than left

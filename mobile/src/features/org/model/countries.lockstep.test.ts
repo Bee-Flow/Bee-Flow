@@ -1,33 +1,15 @@
 /**
- * The billing-country list is the web's, code for code and name for name, in
- * the same order: an organisation saved on the phone must show the same
- * country in the browser's select, and the other way round.
+ * The billing-country list is the web's own table (a generated copy under
+ * ../mirror, see scripts/shared-mirror.manifest.json), so only the lookup
+ * helpers are tested here.
  */
-
-import fs from 'node:fs';
-import path from 'node:path';
 
 import { COUNTRIES, countryName } from './countries';
 
-const WEB = path.resolve(
-    __dirname,
-    '../../../../../agent-hub/src/components/admin/subscriptions/access/countries.ts',
-);
-
-function webCountries(): { code: string; name: string }[] {
-    const src = fs.readFileSync(WEB, 'utf8');
-    const body = src.slice(src.indexOf('export const COUNTRIES'), src.indexOf('];'));
-    return [...body.matchAll(/\{ code: '([A-Z]{2})', name: (?:"([^"]*)"|'([^']*)') \}/g)].map((m) => ({
-        code: m[1] as string,
-        name: (m[2] ?? m[3]) as string,
-    }));
-}
-
 describe('the billing-country list', () => {
-    it('matches the web list exactly', () => {
-        const web = webCountries();
-        expect(web.length).toBeGreaterThan(150);
-        expect(COUNTRIES.map((c) => ({ code: c.code, name: c.name }))).toEqual(web);
+    it('is the web list, complete and unique', () => {
+        expect(COUNTRIES.length).toBeGreaterThan(150);
+        expect(new Set(COUNTRIES.map((c) => c.code)).size).toBe(COUNTRIES.length);
     });
 
     it('names a stored code, and keeps an unknown one as it is', () => {

@@ -257,7 +257,8 @@ test('BIJT — webpageBindings kent geen tagnaam en schrijft geen eigen tagpatro
     // Own name (not `src`) to avoid an accidental word match with "src/App.jsx" in
     // the error messages of the test above — otherwise the source-text
     // counter sees two unrelated assertions as source-text checks.
-    const bindingsSrc = fs.readFileSync(path.join(__dirname, 'webpageBindings.js'), 'utf8');
+    // The scan lives in webpageBfScan.js, webpageBindings.js only assembles it: read both.
+    const bindingsSrc = ['webpageBindings.js', 'webpageBfScan.js'].map(f => fs.readFileSync(path.join(__dirname, f), 'utf8')).join('\n');
 
     // (1) No tag name in a string literal. The same check that the drift test
     //     does over the whole server source, here from close up: this file is the newest

@@ -38,9 +38,10 @@ import { useCallback, useEffect, useEffectEvent, useState, type ChangeEvent } fr
 import { knowledgeApi } from '../components/admin/Studio/KnowledgeStudio/knowledgeApi';
 import { toast } from '../components/shared/Toast';
 import useConfirm from '../components/shared/useConfirm';
-import { API_BASE, authFetch, mutate } from '../api/mutate';
+import { API_BASE, authFetch, mutate, ApiError } from '../api/mutate';
 import { errorMessage } from '../utils/caughtError';
 import { logger } from '../utils/logger';
+import { useN8nIngestible } from '../api/queries/knowledgeBases';
 
 /** A knowledge base row. Consumers render more of it than this hook reads. */
 export interface KnowledgeBase {
@@ -101,6 +102,8 @@ const MAX_BULK_DELETE = 200;
 
 /** What to put on screen for a thrown value that may not be an Error. */
 const failureText = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
+const EMPTY_N8N_WORKFLOWS: unknown[] = [];
 
 export default function useKnowledgeBases({
     listContext = null,
@@ -191,7 +194,6 @@ export default function useKnowledgeBases({
     const [reindexing, setReindexing] = useState(false);
 
     // ── n8n / Drive / Azure ──────────────────────────────────────────
-    const [n8nWorkflows, setN8nWorkflows] = useState<unknown[]>([]);
     const [n8nIngestMode, setN8nIngestMode] = useState('data'); // 'data' | 'definition'
     const [drivePickerOpen, setDrivePickerOpen] = useState(false);
     const [driveConnected, setDriveConnected] = useState(false);
@@ -214,15 +216,7 @@ export default function useKnowledgeBases({
     });
     useEffect(() => { loadSelected(selectedKB?.id); }, [selectedKB?.id]);
 
-    useEffect(() => {
-        if (kbInputMode !== 'n8n') return;
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/kb/n8n/ingestible`);
-                if (res.ok) setN8nWorkflows(await res.json());
-            } catch (e) { console.error('Failed to fetch n8n ingestible:', e); }
-        })();
-    }, [kbInputMode]);
+    const n8nWorkflows = useN8nIngestible(kbInputMode).data ?? EMPTY_N8N_WORKFLOWS;
 
     useEffect(() => {
         if (!enableDrive) return;
@@ -264,12 +258,15 @@ export default function useKnowledgeBases({
         if (!newKBName.trim()) return;
         setCreatingKB(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/kb`, {
+            const res = await mutate(`${API_BASE}/api/kb`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: newKBName, description: newKBDesc }),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 const kb = await res.json();
                 setNewKBName(''); setNewKBDesc(''); setShowCreateKB(false);
                 fetchKBs();
@@ -286,12 +283,15 @@ export default function useKnowledgeBases({
         if (!editingKB || !editName.trim()) return;
         setSavingEdit(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/kb/${editingKB}`, {
+            const res = await mutate(`${API_BASE}/api/kb/${editingKB}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: editName, description: editDesc }),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 setEditingKB(null);
                 fetchKBs();
                 if (selectedKB?.id === editingKB) {

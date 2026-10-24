@@ -20,7 +20,7 @@ const registry = new Map<string, Map<string, RangeList>>();
 interface HighlightCtor { new (...ranges: Range[]): unknown }
 
 function api(): { highlights: Map<string, unknown>; Highlight: HighlightCtor } | null {
-    const g = globalThis as unknown as { CSS?: { highlights?: Map<string, unknown> }; Highlight?: HighlightCtor };
+    const g = globalThis;
     if (!g.CSS || !g.CSS.highlights || typeof g.Highlight !== 'function') return null;
     return { highlights: g.CSS.highlights, Highlight: g.Highlight };
 }

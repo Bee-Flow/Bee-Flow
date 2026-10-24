@@ -39,7 +39,7 @@
 import type { CSSProperties } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { BookOpen, Bot, ClipboardList, FileText, Globe, LayoutGrid, Mic, Package, Scale, Table, Workflow, Zap, Clapperboard } from 'lucide-react';
-import { KIND_ALIASES, KIND_KEYS } from './kindKeys';
+import { KIND_ALIASES, KIND_KEYS, KIND_VARS } from './kindKeys';
 import type { KindKey } from './kindKeys';
 
 export type { KindKey };
@@ -67,21 +67,7 @@ export interface KindTileStyle {
 
 export { KIND_KEYS };
 
-const KIND_VAR: KindTable<string> = Object.freeze({
-    automation: 'var(--type-trigger)',
-    datatable: 'var(--type-data)',
-    app: 'var(--kind-app)',
-    webpage: 'var(--kind-web)',
-    document: 'var(--kind-doc)',  // a printable artefact — rose (2026-09-15)
-    form: 'var(--type-pause)',
-    agent: 'var(--type-ai)',
-    skill: 'var(--kind-skill)',
-    kb: 'var(--kind-kb)',
-    meeting: 'var(--kind-meet)',
-    playbook: 'var(--kind-playbook)',  // a phased build the AI runs — emerald (2026-09-13)
-    solution: 'var(--text-secondary)', // a container, deliberately neutral
-    compliance: 'var(--kind-compliance)', // an area you administer — teal, retuned from --type-guard (2026-09-14)
-});
+const KIND_VAR: KindTable<string> = KIND_VARS;
 
 /** The glyph of each kind — the exact lucide names artboard 1b draws. */
 const KIND_ICON: KindTable<LucideIcon> = Object.freeze({

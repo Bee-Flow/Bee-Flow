@@ -60,7 +60,7 @@ export interface AppEditorShellProps {
 }
 
 // Typed views of .jsx/.js siblings whose defaults would mistype their props.
-const Canvas = CanvasJs as unknown as ComponentType<{ app: HeaderApp; onCommit: (def: AppDefinition) => void; editActionState: Record<string, unknown> }>;
+const Canvas = CanvasJs;
 const CanvasPlanPanel = CanvasPlanPanelJs;
 // inspector/InspectorPanel.tsx is TypeScript now; the alias keeps the compiled text.
 const InspectorPanel = InspectorPanelJs;

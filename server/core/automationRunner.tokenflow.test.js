@@ -67,7 +67,7 @@ require.cache[STUB_PII] = { id: STUB_PII, filename: STUB_PII, loaded: true, expo
 const origResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
     const from = parent && parent.filename ? parent.filename : '';
-    if (request === '../privacy/piiDetection' && from.endsWith(path.join('automationRunner', 'safety.js'))) return STUB_PII;
+    if (request === '../privacy/piiDetection' && /automationRunner[\\/]safety(Scan|Egress|Guard|Leaves)?\.js$/.test(from)) return STUB_PII;
     return origResolve.call(this, request, parent, ...rest);
 };
 

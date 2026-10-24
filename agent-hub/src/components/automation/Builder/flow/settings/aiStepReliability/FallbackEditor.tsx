@@ -7,7 +7,7 @@ import { ProblemRing } from '../runProblem';
 import { bindingFromText, textFromBinding, type Binding, type Fallback } from './reliabilityModel';
 
 // A JavaScript component whose props TypeScript infers from their defaults.
-const TemplateField = TemplateFieldJs as unknown as ComponentType<Record<string, unknown>>;
+const TemplateField = TemplateFieldJs;
 
 interface OutputFieldRow { key: string; type?: string }
 

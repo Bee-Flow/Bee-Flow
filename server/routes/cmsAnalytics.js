@@ -22,106 +22,21 @@
 'use strict';
 
 const express = require('express');
-const { fetchConfiguredEndpoint } = require('../core/http/configuredEndpointFetch');
 const configStore = require('../stores/configStore');
-const cmsStore = require('../stores/cmsStore');
 const umamiClient = require('../core/umamiClient');
 const analyticsQueries = require('../core/cms/analyticsQueries');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
-const { SITE_ID_RE, getLiveSiteId } = require('./cmsShared');
+const { SITE_ID_RE } = require('./cmsShared');
 const { requireSuperAdmin } = require('../auth/permissions');
 const log = require('../telemetry/log');
 const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf, closedObject, choice, typeError } = require('../core/http/schemaParts');
 const { HttpError } = require('../core/http/errors');
+const { KEY_ANALYTICS_SITE_MAP, rangeToWindow, KEY_ANALYTICS_RECORDER_MAP, getTrackerOptions, readMap, getAnalyticsSettings, getAnalyticsSiteMap, resolveAnalyticsTarget, getRecorderMap, setAnalyticsWebsiteId, provisionAnalyticsForSite, windowFromReq, requireTarget, _cache, invalidateCache, metricTypes, pickFilters, getAnalyticsSettingsHandler, putAnalyticsSettingsHandler, getDiagnoseHandler, probeScript, getAnalyticsSitesHandler, getAnalyticsStatusHandler, putRecorderHandler, getAnalyticsOverviewHandler } = require('./cmsAnalyticsHandlers');
 
 const router = express.Router();
 
-const { KEY_ANALYTICS_ENABLED, KEY_ANALYTICS_CONSENT_MODE, KEY_ANALYTICS_SITE_MAP, rangeToWindow } = analyticsQueries;
-const KEY_ANALYTICS_RECORDER_MAP = 'cms_analytics_recorder_map';
-const KEY_ANALYTICS_TRACKER_OPTS = 'cms_analytics_tracker_options';
-const KEY_ANALYTICS_RECORDER_OPTS = 'cms_analytics_recorder_options';
-
-/**
- * Tracker options mirrored onto the public <script> tag.
- *
- * `performance` is deliberately NOT in here: web vitals are cookieless browser
- * timings that ride along with a pageview already being sent under the same
- * consent decision, and making them optional is how they ended up switched off
- * and unnoticed for the whole life of the feature.
- */
-const TRACKER_DEFAULTS = Object.freeze({
-    tag: '',                 // free-text label → the `tag` dimension
-    excludeSearch: false,    // strip ?query from recorded URLs
-    excludeHash: true,       // #anchors otherwise fragment one page into many
-    doNotTrack: false,       // honour the browser's DNT header
-    domains: '',             // comma-separated allow-list of hostnames
-});
-
-const RECORDER_DEFAULTS = Object.freeze({
-    sampleRate: 1,           // upstream default is 0.15 — useless at low traffic
-    maskLevel: 'strict',
-});
-// Single source of truth lives at the Umami boundary — see umamiClient.
-// Redefining a friendlier list here is exactly what produced a 400 on every
-// value except 'strict'.
-const MASK_LEVELS = umamiClient.MASK_LEVELS;
-
 // ── Settings + site map ──────────────────────────────────────────────
-
-async function getTrackerOptions() {
-    const v = await configStore.getConfig(KEY_ANALYTICS_TRACKER_OPTS);
-    const stored = (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
-    return {
-        tag: typeof stored.tag === 'string' ? stored.tag.slice(0, 60) : TRACKER_DEFAULTS.tag,
-        excludeSearch: stored.excludeSearch === true,
-        excludeHash: stored.excludeHash !== false,
-        doNotTrack: stored.doNotTrack === true,
-        domains: typeof stored.domains === 'string' ? stored.domains.slice(0, 300) : TRACKER_DEFAULTS.domains,
-    };
-}
-
-async function getRecorderOptions() {
-    const v = await configStore.getConfig(KEY_ANALYTICS_RECORDER_OPTS);
-    const stored = (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
-    const rate = Number(stored.sampleRate);
-    return {
-        sampleRate: Number.isFinite(rate) && rate > 0 && rate <= 1 ? rate : RECORDER_DEFAULTS.sampleRate,
-        maskLevel: MASK_LEVELS.includes(stored.maskLevel) ? stored.maskLevel : RECORDER_DEFAULTS.maskLevel,
-    };
-}
-
-// Settings, site map and target resolution are shared with the CMS MCP
-// analytics tools (core/cms/analyticsQueries.js).
-const queries = analyticsQueries.createAnalyticsQueries({
-    configStore, umamiClient, getLiveSiteId, siteIdRe: SITE_ID_RE,
-});
-const { readMap, getSettings: getAnalyticsSettings, getSiteMap: getAnalyticsSiteMap, resolveTarget: resolveAnalyticsTarget } = queries;
-const getRecorderMap      = () => readMap(KEY_ANALYTICS_RECORDER_MAP);
-
-async function setAnalyticsWebsiteId(siteId, websiteId) {
-    const map = await getAnalyticsSiteMap();
-    map[siteId] = websiteId;
-    await configStore.setConfig(KEY_ANALYTICS_SITE_MAP, map);
-}
-
-// Best-effort: ensure the live/published site has a Umami website provisioned
-// and its id persisted. Never throws — analytics must not break publishing.
-async function provisionAnalyticsForSite(siteId, { name, domain } = {}) {
-    try {
-        const settings = await getAnalyticsSettings();
-        if (!settings.enabled) return null;
-        if (!(await umamiClient.isConfigured())) return null;
-        const map = await getAnalyticsSiteMap();
-        if (map[siteId]) return map[siteId];
-        const websiteId = await umamiClient.ensureWebsite({ name, domain });
-        await setAnalyticsWebsiteId(siteId, websiteId);
-        return websiteId;
-    } catch (err) {
-        log.warn('[CMS] analytics provisioning skipped:', err.message);
-        return null;
-    }
-}
 
 // Drop a site's mappings when it's deleted, so resolveAnalyticsTarget's
 // fallback can't surface a deleted site's numbers.
@@ -151,29 +66,12 @@ router.use(requireSuperAdmin, analyticsLimiter);
 
 // ── Range + target resolution ────────────────────────────────────────
 
-function windowFromReq(src) {
-    return rangeToWindow((src.range || '7d').toString(), { start: src.start, end: src.end });
-}
-
-// Shared preflight for every data route: enabled → configured → provisioned.
-// Returns the target, or null after having already sent the degenerate response.
-async function requireTarget(req, res) {
-    const settings = await getAnalyticsSettings();
-    if (!settings.enabled) { res.json({ enabled: false }); return null; }
-    if (!(await umamiClient.isConfigured())) { res.json({ enabled: true, configured: false }); return null; }
-    const src = req.method === 'POST' ? (req.body || {}) : req.query;
-    const target = await resolveAnalyticsTarget(src.siteId);
-    if (!target) { res.json({ enabled: true, configured: true, provisioned: false }); return null; }
-    return target;
-}
-
 // ── Response cache ───────────────────────────────────────────────────
 //
 // Section switching and the realtime poll would otherwise stampede Umami. Short
 // TTL so the dashboard still feels live; `fresh=1` (the refresh button) bypasses.
 const CACHE_TTL_MS = 15_000;
 const REALTIME_TTL_MS = 3_000;
-const _cache = new Map();
 
 function cacheGet(key) {
     const hit = _cache.get(key);
@@ -187,8 +85,6 @@ function cacheSet(key, value, ttl) {
     if (_cache.size > 500) _cache.clear();
     _cache.set(key, { value, expires: Date.now() + ttl });
 }
-
-function invalidateCache() { _cache.clear(); }
 
 // ── Umami read surface (closed allow-list) ───────────────────────────
 //
@@ -242,32 +138,6 @@ const REPORTS = Object.freeze({
     // for the same page from colliding on one cache entry.
     heatmap:     ['mode', 'type', 'urlPath'],
 });
-
-// Dimensions a caller may filter on — mirrors Umami's own filter vocabulary.
-// Resolved lazily rather than spread at module load: routes/cmsPublicSite.test.js
-// stubs umamiClient with a partial object, and a load-time spread would make
-// merely importing this router throw.
-const metricTypes = () => umamiClient.METRIC_TYPES || [];
-
-/**
- * Collect drill-down filters.
- *
- * Two shapes, because the two transports differ: JSON report bodies nest them
- * under `filters`, while GET requests pass them as top-level params the way
- * Umami's own API expects (?country=NL). Bracket syntax (?filters[country]=NL)
- * is NOT an option — Express 5's default query parser is 'simple' and would
- * hand us the literal key "filters[country]".
- */
-function pickFilters(src) {
-    const nested = src && typeof src.filters === 'object' && !Array.isArray(src.filters) ? src.filters : null;
-    const out = {};
-    for (const k of metricTypes()) {
-        const v = nested ? nested[k] : src?.[k];
-        if (v === undefined || v === null || v === '') continue;
-        out[k] = String(v).slice(0, 500);
-    }
-    return out;
-}
 
 // The only resources whose `type` param is a METRIC_TYPES dimension.
 const DIMENSION_RESOURCES = new Set(['metrics', 'values']);
@@ -430,354 +300,7 @@ router.post('/report/:type', async (req, res) => {
 
 // ── Settings ─────────────────────────────────────────────────────────
 
-async function getAnalyticsSettingsHandler(req, res) {
-    const [settings, configured, tracker, recorder] = await Promise.all([
-        getAnalyticsSettings(),
-        umamiClient.isConfigured(),
-        getTrackerOptions(),
-        getRecorderOptions(),
-    ]);
-    res.json({
-        enabled: settings.enabled,
-        consentMode: settings.consentMode,
-        url: settings.url,
-        configured,
-        tracker,
-        recorder,
-        maskLevels: MASK_LEVELS,
-        // Booleans only. Which credentials exist is useful to show; their
-        // values must never leave the server.
-        storedCredentials: {
-            username: !!(await configStore.getSecret(umamiClient.KEY_USERNAME)),
-            password: !!(await configStore.getSecret(umamiClient.KEY_PASSWORD)),
-            apiToken: !!(await configStore.getSecret(umamiClient.KEY_API_TOKEN)),
-        },
-    });
-}
-
-async function putAnalyticsSettingsHandler(req, res) {
-    const { enabled, consentMode, url, username, password, apiToken, tracker, recorder } = req.body || {};
-    if (tracker && typeof tracker === 'object') {
-        const cur = await getTrackerOptions();
-        await configStore.setConfig(KEY_ANALYTICS_TRACKER_OPTS, {
-            tag: typeof tracker.tag === 'string' ? tracker.tag.trim().slice(0, 60) : cur.tag,
-            excludeSearch: tracker.excludeSearch !== undefined ? tracker.excludeSearch === true : cur.excludeSearch,
-            excludeHash: tracker.excludeHash !== undefined ? tracker.excludeHash === true : cur.excludeHash,
-            doNotTrack: tracker.doNotTrack !== undefined ? tracker.doNotTrack === true : cur.doNotTrack,
-            domains: typeof tracker.domains === 'string' ? tracker.domains.trim().slice(0, 300) : cur.domains,
-        });
-    }
-    if (recorder && typeof recorder === 'object') {
-        const cur = await getRecorderOptions();
-        const rate = Number(recorder.sampleRate);
-        await configStore.setConfig(KEY_ANALYTICS_RECORDER_OPTS, {
-            sampleRate: Number.isFinite(rate) && rate > 0 && rate <= 1 ? rate : cur.sampleRate,
-            maskLevel: MASK_LEVELS.includes(recorder.maskLevel) ? recorder.maskLevel : cur.maskLevel,
-        });
-    }
-    if (enabled !== undefined) {
-        await configStore.setConfig(KEY_ANALYTICS_ENABLED, enabled === true);
-    }
-    if (consentMode !== undefined) {
-        await configStore.setConfig(KEY_ANALYTICS_CONSENT_MODE,
-            consentMode === 'cookies' ? 'cookies' : 'cookieless');
-    }
-    if (url !== undefined) {
-        await configStore.setConfig(umamiClient.KEY_URL, String(url || '').trim().replace(/\/+$/, ''));
-    }
-    // Secrets — the panel only sends a credential field when the operator
-    // actually typed into it, so a save that leaves a field untouched never
-    // clears the stored secret. Sending an explicit empty string clears it.
-    if (username !== undefined) await configStore.setSecret(umamiClient.KEY_USERNAME, String(username || ''));
-    if (password !== undefined) await configStore.setSecret(umamiClient.KEY_PASSWORD, String(password || ''));
-    if (apiToken !== undefined) await configStore.setSecret(umamiClient.KEY_API_TOKEN, String(apiToken || ''));
-    umamiClient.invalidateEndpointCache();
-    invalidateCache();
-
-    const settings = await getAnalyticsSettings();
-    const configured = await umamiClient.isConfigured();
-    // Turning analytics on (or saving fresh creds) provisions the live site
-    // immediately so its public pages start tracking without waiting for the
-    // next publish. Best-effort, fire-and-forget.
-    if (settings.enabled && configured) {
-        const liveSiteId = await getLiveSiteId().catch(() => null);
-        if (liveSiteId) {
-            const project = await cmsStore.getProject(liveSiteId).catch(() => null);
-            provisionAnalyticsForSite(liveSiteId, {
-                name: project?.name || 'CMS site',
-                domain: req.get('host'),
-            }).catch(() => {});
-        }
-    }
-    res.json({
-        success: true, enabled: settings.enabled, consentMode: settings.consentMode,
-        url: settings.url, configured,
-        tracker: await getTrackerOptions(),
-        recorder: await getRecorderOptions(),
-    });
-}
-
-/**
- * Diagnose the whole chain, in causal order, and stop at the first break.
- *
- * This exists because the failure modes here are all silent: a tracker that
- * never loads, a consent mode nobody satisfies, an internal URL the browser
- * cannot reach — every one of them presents as "the dashboard is empty", and
- * telling them apart used to mean reading source.
- */
-async function getDiagnoseHandler(req, res) {
-    const checks = [];
-    const add = (id, label, status, detail) => checks.push({ id, label, status, detail });
-
-    const settings = await getAnalyticsSettings();
-    const configured = await umamiClient.isConfigured();
-
-    add('enabled', 'Analytics is switched on',
-        settings.enabled ? 'pass' : 'fail',
-        settings.enabled ? null : 'Nothing is tracked while the master switch is off.');
-
-    add('configured', 'Umami credentials are set',
-        configured ? 'pass' : 'fail',
-        configured ? null : 'Set the Umami URL plus either an API token or a username and password.');
-
-    const internalUrl = process.env.UMAMI_URL || settings.url || '';
-    add('urls', 'Server and browser URLs make sense',
-        settings.url ? 'pass' : 'fail',
-        settings.url
-            ? (process.env.UMAMI_URL && process.env.UMAMI_URL !== settings.url
-                ? `The server calls ${internalUrl}; visitors load the script from ${settings.url}. That split is normal in Docker.`
-                : null)
-            : 'Without a public URL the browser has nowhere to load the tracker from.');
-
-    if (!configured) {
-        add('reachable', 'Umami answers', 'skip', 'Needs credentials first.');
-        add('script', 'The tracker script is reachable', 'skip', 'Needs a public URL first.');
-    } else {
-        try {
-            const sites = await umamiClient.listWebsites();
-            add('reachable', 'Umami answers', 'pass', `${sites.length} website${sites.length === 1 ? '' : 's'} registered.`);
-        } catch (err) {
-            add('reachable', 'Umami answers', 'fail', `The server could not reach ${internalUrl}: ${err.message}`);
-        }
-
-        // The check nothing performed before: is the URL the BROWSER uses
-        // actually serving a script? A wrong public URL is invisible
-        // server-side, because the server never loads it.
-        if (settings.url) {
-            add('script', 'The tracker script is reachable', ...await probeScript(settings.url));
-        }
-    }
-
-    const map = await getAnalyticsSiteMap();
-    const tracked = Object.keys(map).length;
-    add('provisioned', 'A site is registered for tracking',
-        tracked > 0 ? 'pass' : 'fail',
-        tracked > 0 ? `${tracked} site${tracked === 1 ? '' : 's'} mapped.` : 'Publish a CMS site to register it with Umami.');
-
-    add('consent', 'Visitors can be counted',
-        settings.consentMode === 'cookieless' ? 'pass' : 'warn',
-        settings.consentMode === 'cookieless'
-            ? 'Cookieless mode counts every visitor immediately — no banner interaction needed.'
-            : 'In cookie mode NOTHING is counted until a visitor clicks Accept, including your own testing.');
-
-    const recorderMap = await getRecorderMap();
-    const recording = Object.keys(recorderMap).length;
-    add('recorder', 'Session recording', recording > 0 ? 'pass' : 'info',
-        recording > 0
-            ? 'On. Recording is consent-gated in every mode, so recorded sessions will always be fewer than total sessions.'
-            : 'Off. Heatmaps and replays need it; pageviews and events do not.');
-
-    res.json({ checks });
-}
-
-/**
- * Fetch the public /script.js.
- *
- * Outbound HTTP driven by an operator-supplied URL, so: super-admin only (the
- * router gate), no redirects followed, a hard timeout, and only the status and
- * content-type are echoed — never the body.
- */
-async function probeScript(publicUrl) {
-    const url = `${publicUrl.replace(/\/+$/, '')}/script.js`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5000);
-    try {
-        const r = await fetchConfiguredEndpoint(url, { redirect: 'manual', signal: controller.signal });
-        const type = r.headers.get('content-type') || '';
-        if (r.status >= 300 && r.status < 400) return ['warn', `${url} redirects (${r.status}). Point the URL at the final origin.`];
-        if (!r.ok) return ['fail', `${url} returned ${r.status}. Visitors' browsers will get the same.`];
-        if (!/javascript|ecmascript/i.test(type)) {
-            return ['warn', `${url} answered ${r.status} but as "${type || 'no content-type'}" — probably not the tracker.`];
-        }
-        return ['pass', `${url} serves the tracker.`];
-    } catch (err) {
-        return ['fail', `Could not load ${url}: ${err.name === 'AbortError' ? 'timed out' : err.message}`];
-    } finally {
-        clearTimeout(timer);
-    }
-}
-
-async function getAnalyticsSitesHandler(req, res) {
-    const [projects, map, recorderMap, liveSiteId] = await Promise.all([
-        cmsStore.listProjects(),
-        getAnalyticsSiteMap(),
-        getRecorderMap(),
-        getLiveSiteId(),
-    ]);
-    const sites = projects.map(p => ({
-        id: p.id,
-        name: p.name,
-        live: p.id === liveSiteId,
-        tracked: !!map[p.id],
-        websiteId: map[p.id] || null,
-        recording: !!recorderMap[p.id],
-    }));
-    res.json({ sites, liveSiteId });
-}
-
-// Connection diagnostic. Surfaces the internal-vs-public URL split, which is
-// the standard way this integration silently half-works: the browser loads
-// /script.js fine from the public origin while every server→Umami call fails.
-async function getAnalyticsStatusHandler(req, res) {
-    const settings = await getAnalyticsSettings();
-    const configured = await umamiClient.isConfigured();
-    const out = {
-        enabled: settings.enabled,
-        configured,
-        publicUrl: settings.url,
-        internalUrl: process.env.UMAMI_URL || settings.url || '',
-        usingInternalOverride: !!process.env.UMAMI_URL,
-        reachable: false,
-        websiteCount: null,
-        error: null,
-    };
-    if (configured) {
-        try {
-            const sites = await umamiClient.listWebsites();
-            out.reachable = true;
-            out.websiteCount = sites.length;
-        } catch (err) {
-            out.error = err.message;
-        }
-    }
-    res.json(out);
-}
-
-// ── Session recording opt-in (heatmaps + replays) ────────────────────
-//
-// Stored in config rather than on the site doc so the toggle takes effect
-// immediately, like every other setting on this dashboard — a site-doc flag
-// would only apply on the next publish.
-async function putRecorderHandler(req, res) {
-    const { siteId, enabled } = req.body || {};
-    if (!siteId || !SITE_ID_RE.test(String(siteId))) {
-        return res.status(400).json({ error: 'Invalid siteId' });
-    }
-    const map = await getAnalyticsSiteMap();
-    const websiteId = map[siteId];
-    if (!websiteId) return res.status(409).json({ error: 'Site is not tracked yet — publish it first' });
-
-    const on = enabled === true;
-
-    // Umami gates recording per website and returns
-    // {ok:false, reason:'recorder_disabled'} on /api/record until it is set,
-    // so this MUST stick or heatmaps/replays stay silently empty. The flag
-    // is derived from replayConfig upstream — sending recorderEnabled
-    // directly returns 200 and changes nothing, hence the read-back.
-    //
-    // Upstream FIRST, then persist. The other order stores an opt-in Umami
-    // rejected: the public site would then load recorder.js, every
-    // /api/record would be discarded, and this dashboard would confidently
-    // report "Recording on" while capturing nothing.
-    let upstream = null;
-    try {
-        const opts = await getRecorderOptions();
-        const site = await umamiClient.updateWebsite(websiteId, {
-            replayConfig: umamiClient.buildReplayConfig({ enabled: on, ...opts }),
-        });
-        if (!!site?.recorderEnabled !== on) {
-            upstream = `Umami did not apply the recorder setting (recorderEnabled=${site?.recorderEnabled}).`;
-        }
-    } catch (err) {
-        upstream = err.message;
-    }
-
-    if (upstream) {
-        log.warn('[CMS] recorder flag not applied upstream:', upstream);
-        const recording = !!(await getRecorderMap())[siteId];
-        throw new HttpError(502, 'recorder_not_applied', `Umami rejected the recorder change: ${upstream}`, {
-            success: false, siteId, recording,
-        });
-    }
-
-    const recorderMap = await getRecorderMap();
-    if (on) recorderMap[siteId] = true; else delete recorderMap[siteId];
-    await configStore.setConfig(KEY_ANALYTICS_RECORDER_MAP, recorderMap);
-
-    res.json({ success: true, siteId, recording: on, upstreamWarning: null });
-}
-
 // ── Overview ─────────────────────────────────────────────────────────
-
-// Every dimension is fetched in parallel and failures are captured per key
-// rather than thrown, so one broken dimension degrades instead of blanking the
-// page — but the failure is REPORTED in partialErrors. A silently swallowed
-// error here is what hid the `type: 'url'` 400 on Umami 3.x for so long.
-async function settle(partialErrors, key, promise, fallback) {
-    try {
-        return await promise;
-    } catch (err) {
-        partialErrors.push({ key, message: err.message });
-        return fallback;
-    }
-}
-
-async function getAnalyticsOverviewHandler(req, res) {
-    try {
-        const target = await requireTarget(req, res);
-        if (!target) return undefined;
-
-        const { websiteId, siteId } = target;
-        const { startAt, endAt, unit } = windowFromReq(req.query);
-        const tz = (req.query.timezone || 'UTC').toString();
-        // The shell renders a filter chip over these totals, so they have to
-        // honour it — until now /overview was the one data route that ignored
-        // filters entirely and showed site-wide numbers under a filtered chip.
-        const filters = pickFilters(req.query);
-        const errs = [];
-        const metric = (key, type, limit) => settle(errs, key,
-            umamiClient.getMetrics(websiteId, { type, startAt, endAt, limit, filters }), []);
-
-        const [stats, pageviews, pages, referrers, browsers, os, devices, countries, active] = await Promise.all([
-            settle(errs, 'stats', umamiClient.getStats(websiteId, { startAt, endAt, ...filters }), null),
-            settle(errs, 'pageviews', umamiClient.getPageviews(websiteId, { startAt, endAt, unit, timezone: tz, ...filters }), null),
-            metric('pages', 'path', 25),
-            metric('referrers', 'referrer', 25),
-            metric('browsers', 'browser', 10),
-            metric('os', 'os', 10),
-            metric('devices', 'device', 10),
-            metric('countries', 'country', 25),
-            settle(errs, 'active', umamiClient.getActive(websiteId), null),
-        ]);
-
-        // `active` shape varies by Umami version: [{x:N}] or {visitors:N} or N.
-        let activeCount = null;
-        if (Array.isArray(active)) activeCount = active[0]?.x ?? active.length ?? null;
-        else if (active && typeof active === 'object') activeCount = active.x ?? active.visitors ?? null;
-        else if (typeof active === 'number') activeCount = active;
-
-        res.json({
-            enabled: true, configured: true, provisioned: true,
-            siteId, websiteId, range: { startAt, endAt, unit },
-            stats, pageviews, pages, referrers, browsers, os, devices, countries,
-            active: activeCount,
-            partialErrors: errs,
-        });
-    } catch (err) {
-        log.error('[CMS] analytics overview error:', err.message);
-        throw new HttpError(502, 'analytics_unavailable', 'Failed to load analytics');
-    }
-}
 
 // ── Registration ─────────────────────────────────────────────────────
 // (the requireSuperAdmin + limiter gate is installed near the top of the file,

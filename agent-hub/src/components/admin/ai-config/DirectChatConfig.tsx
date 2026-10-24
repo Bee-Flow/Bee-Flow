@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { StatusMessage } from './chatModelTiers/tierTypes';
+import { mutate, ApiError } from '../../../api/mutate';
 
 const DirectChatConfig = () => {
     const { t } = useTranslation();
@@ -29,12 +30,15 @@ const DirectChatConfig = () => {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/config/direct-chat`, {
+            const res = await mutate(`${API_BASE}/ai/config/direct-chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ systemPrompt })
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 setMessage({ type: 'success', text: t('admin_ai_config.direct_saved', 'System prompt saved!') });
             } else {
                 setMessage({ type: 'error', text: t('admin_ai_config.direct_save_failed', 'Failed to save') });

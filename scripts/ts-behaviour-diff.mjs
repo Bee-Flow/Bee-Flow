@@ -7,8 +7,17 @@
 // an agent added, a dropped prop, a changed argument shows up as `+`/`-`
 // compiled lines.
 //
-//   node scripts/ts-behaviour-diff.mjs --base <rev> [--head <rev>] [--paths agent-hub/src,server]
-//                                      [--report round.json] [--baseline previous.json] [--quiet]
+//   node scripts/ts-behaviour-diff.mjs [--base <rev>] [--head <rev>] [--paths agent-hub/src,server]
+//                                      [--only a.ts,dir/,@list.txt] [--report round.json]
+//                                      [--baseline previous.json] [--quiet]
+//
+// --base defaults to HEAD: the uncommitted work of this checkout.
+// --only keeps just those files (comma separated; a directory means everything under it;
+// `@file` reads one path per line). Paths are relative to the repository root, or to the
+// current directory. Use it when other sessions have uncommitted changes in the same
+// checkout: their files are not compared and do not show up as noise. A rename counts when
+// either its old or its new path is listed. --paths with explicit files narrows the diff the
+// same way, but git then cannot see a rename whose other half is outside the list.
 //
 // --report writes every difference ({ file, oldPath, removed, added }).
 // --baseline is the report of the previous round: a difference already there
@@ -56,16 +65,39 @@ export function newSince(report, baseline) {
     });
 }
 
+/** `--only` spec -> repo-relative paths (a trailing `/` marks a directory). `@list.txt` reads one path per line. */
+export function parseOnly(spec, { cwd = process.cwd(), root = ROOT } = {}) {
+    const raw = [];
+    for (const item of spec.split(',').map((x) => x.trim()).filter(Boolean)) {
+        if (item.startsWith('@')) raw.push(...fs.readFileSync(item.slice(1), 'utf8').split('\n').map((x) => x.trim()).filter((x) => x && !x.startsWith('#')));
+        else raw.push(item);
+    }
+    return raw.map((item) => {
+        const dir = item.endsWith('/') || (fs.existsSync(path.resolve(cwd, item)) && fs.statSync(path.resolve(cwd, item)).isDirectory());
+        let rel = path.isAbsolute(item) ? path.relative(root, item) : (fs.existsSync(path.resolve(cwd, item)) || !fs.existsSync(path.join(root, item)) ? path.relative(root, path.resolve(cwd, item)) : item);
+        rel = rel.split(path.sep).join('/').replace(/\/+$/, '');
+        return dir ? `${rel}/` : rel;
+    });
+}
+
+/** Keep the changed files that `only` (parseOnly output) names, by new or old path. */
+export function filterOnly(files, only) {
+    if (!only) return files;
+    const hit = (p) => only.some((o) => (o.endsWith('/') ? p.startsWith(o) : p === o));
+    return files.filter((f) => hit(f.path) || hit(f.oldPath));
+}
+
 function arg(name, fallback) { const i = process.argv.indexOf(name); return i === -1 ? fallback : process.argv[i + 1]; }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-    const base = arg('--base'); const head = arg('--head', null);
-    if (!base) { console.error('usage: node scripts/ts-behaviour-diff.mjs --base <rev> [--head <rev>] [--paths a,b] [--report out.json] [--baseline prev.json]'); process.exit(2); }
+    const base = arg('--base', 'HEAD'); const head = arg('--head', null);
+    if (process.argv.includes('--help')) { console.error('usage: node scripts/ts-behaviour-diff.mjs [--base <rev, default HEAD>] [--head <rev>] [--paths a,b] [--only files] [--report out.json] [--baseline prev.json]'); process.exit(2); }
     if (!hasEsbuild()) { console.error(ESBUILD_HINT); process.exit(2); }
     const paths = arg('--paths', 'agent-hub/src,server').split(',').filter(Boolean);
     const quiet = process.argv.includes('--quiet');
     const range = head ? [base, head] : [base];
-    const files = changedFiles(git('diff', '--name-status', '-M40%', '-l100000', ...range, '--', ...paths));
+    const only = arg('--only') ? parseOnly(arg('--only')) : null;
+    const files = filterOnly(changedFiles(git('diff', '--name-status', '-M40%', '-l100000', ...range, '--', ...paths)), only);
     const report = [];
     for (const f of files) {
         let before; let after;

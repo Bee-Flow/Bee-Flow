@@ -117,6 +117,7 @@ module.exports = [
             'routes/publicGithubStats.js',            // api.github.com
             'routes/search.js',                       // google.serper.dev
             'routes/templates.js',                    // SEARCH_SERVICE_URL, the operator's own search service (env)
+            'routes/templateKb.js',                   // SEARCH_SERVICE_URL (env), split out of routes/templates.js
             'routes/knowledgeBases/search.js',        // SEARCH_SERVICE_URL (env)
             'routes/projects/collab.testkit.js',      // test helper against a local test server
         ],

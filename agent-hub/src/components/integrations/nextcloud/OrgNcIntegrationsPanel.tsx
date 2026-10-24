@@ -3,6 +3,7 @@ import { Cloud, Save, Loader2, Check, AlertTriangle, ChevronRight, Users } from 
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { errorMessage } from '../../../utils/caughtError';
+import { mutate, ApiError } from '../../../api/mutate';
 
 interface NcCatalogItem {
     id: string;
@@ -84,12 +85,16 @@ const OrgNcIntegrationsPanel = ({ user }: OrgNcIntegrationsPanelProps) => {
         if (!config) return;
         setSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/auth/admin/${orgId}/nc-integrations`, {
+            try {
+                await mutate(`${API_BASE}/auth/admin/${orgId}/nc-integrations`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ enabled: config.enabled }),
             });
-            if (!res.ok) throw new Error('Save failed');
+            } catch (err) {
+                if (!(err instanceof ApiError)) throw err;
+                throw new Error('Save failed');
+            }
             setMessage({ type: 'ok', text: 'Saved' });
         } catch (e) {
             setMessage({ type: 'error', text: errorMessage(e) });
@@ -106,12 +111,16 @@ const OrgNcIntegrationsPanel = ({ user }: OrgNcIntegrationsPanelProps) => {
         // Optimistic
         setGroups((gs: NcGroup[]) => gs.map((g: NcGroup) => g.id === groupId ? { ...g, disabledIntegrations: next } : g));
         try {
-            const res = await authFetch(`${API_BASE}/auth/admin/${orgId}/nc-integrations/groups/${encodeURIComponent(groupId)}`, {
+            try {
+                await mutate(`${API_BASE}/auth/admin/${orgId}/nc-integrations/groups/${encodeURIComponent(groupId)}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ disabledIntegrations: next }),
             });
-            if (!res.ok) throw new Error('Save failed');
+            } catch (err) {
+                if (!(err instanceof ApiError)) throw err;
+                throw new Error('Save failed');
+            }
         } catch (e) {
             // Revert on failure
             setGroups((gs: NcGroup[]) => gs.map((g: NcGroup) => g.id === groupId ? { ...g, disabledIntegrations: cur } : g));

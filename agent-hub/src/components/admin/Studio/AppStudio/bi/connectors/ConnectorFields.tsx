@@ -14,11 +14,7 @@ import Disclosure from '../../../../../shared/Disclosure';
 import AutomationPickerJs from '../../inspector/AutomationPicker';
 
 // AutomationPicker.jsx defaults `appRef` to null and `formFields` to [].
-const AutomationPicker = AutomationPickerJs as unknown as ComponentType<{
-    open: boolean;
-    onClose: () => void;
-    onPick: (automation: { id?: string; title?: string } | null) => void;
-}>;
+const AutomationPicker = AutomationPickerJs;
 
 interface TextFieldProps {
     label: string;

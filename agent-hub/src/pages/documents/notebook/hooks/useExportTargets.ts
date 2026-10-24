@@ -4,26 +4,15 @@
  * Used by NotebooksPage (it copied these two probes). The
  * results gate the SignRequest and Nextcloud entries in the export menu.
  */
-import { useState, useEffect } from 'react';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { useAiUserSettings, useAuthAppPasswordStatus } from '../../../../api/queries/notebook';
 
 export default function useExportTargets() {
-    const [signRequestConfigured, setSignRequestConfigured] = useState<boolean>(false);
-    const [nextcloudConfigured, setNextcloudConfigured] = useState<boolean>(false);
 
-    useEffect(() => {
-        authFetch(`${API_BASE}/ai/user-settings`)
-            .then((r: Response) => (r.ok ? r.json() : {}))
-            .then((d: { hasSignRequestConfig?: boolean }) => setSignRequestConfigured(!!d.hasSignRequestConfig))
-            .catch((e: unknown) => console.warn('[notebooks] SignRequest config probe failed', e));
-    }, []);
+    const signRequestConfiguredQuery = useAiUserSettings();
+    const signRequestConfigured = signRequestConfiguredQuery.data ?? false;
 
-    useEffect(() => {
-        authFetch(`${API_BASE}/auth/app-password-status`)
-            .then((r: Response) => (r.ok ? r.json() : {}))
-            .then((d: { hasAppPassword?: boolean }) => setNextcloudConfigured(!!d.hasAppPassword))
-            .catch((e: unknown) => console.warn('[notebooks] Nextcloud config probe failed', e));
-    }, []);
+    const nextcloudConfiguredQuery = useAuthAppPasswordStatus();
+    const nextcloudConfigured = nextcloudConfiguredQuery.data ?? false;
 
     return { signRequestConfigured, nextcloudConfigured };
 }
