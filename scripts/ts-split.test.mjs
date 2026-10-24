@@ -4,7 +4,7 @@
  * moved code needs, and REFUSE a move that would import back.
  */
 
-import test from 'node:test';
+import nodeTest from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -13,7 +13,12 @@ import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { split } from './ts-split.mjs';
+// The policy job runs the repo-script tests with only the root packages, so
+// without agent-hub's typescript these tests skip (as ts-move-types.test.mjs does).
+let hasTs = false;
+try { createRequire(new URL('../agent-hub/package.json', import.meta.url))('typescript'); hasTs = true; } catch { /* not installed */ }
+const test = hasTs ? nodeTest : nodeTest.skip;
+const { split } = hasTs ? await import('./ts-split.mjs') : {};
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);

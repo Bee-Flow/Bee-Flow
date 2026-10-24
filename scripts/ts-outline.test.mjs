@@ -4,7 +4,8 @@
  * Fixtures live in a throwaway directory under os.tmpdir().
  */
 
-import test from 'node:test';
+import nodeTest from 'node:test';
+import { createRequire } from 'node:module';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -12,7 +13,12 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-import { format, outline } from './ts-outline.mjs';
+// The policy job runs the repo-script tests with only the root packages, so
+// without agent-hub's typescript these tests skip (as ts-move-types.test.mjs does).
+let hasTs = false;
+try { createRequire(new URL('../agent-hub/package.json', import.meta.url))('typescript'); hasTs = true; } catch { /* not installed */ }
+const test = hasTs ? nodeTest : nodeTest.skip;
+const { format, outline } = hasTs ? await import('./ts-outline.mjs') : {};
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 

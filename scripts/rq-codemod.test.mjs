@@ -1,9 +1,15 @@
-import { test } from 'node:test';
+import nodeTest from 'node:test';
+import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { run } from './rq-codemod.mjs';
+// The policy job runs the repo-script tests with only the root packages, so
+// without agent-hub's typescript these tests skip (as ts-move-types.test.mjs does).
+let hasTs = false;
+try { createRequire(new URL('../agent-hub/package.json', import.meta.url))('typescript'); hasTs = true; } catch { /* not installed */ }
+const test = hasTs ? nodeTest : nodeTest.skip;
+const { run } = hasTs ? await import('./rq-codemod.mjs') : {};
 
 /** A throw-away `src/` tree; returns the root and a path helper. */
 function sandbox(files) {
