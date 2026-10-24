@@ -33,10 +33,10 @@ export function useMeetingEdits(id: string, closeSheet: () => void) {
         onError: showError,
     });
 
-    // Niet onvoorwaardelijk groen: de server antwoordt 200 óók als het
-    // uitwerken van actiepunten, besluiten en vragen is omgevallen, en zegt dat
-    // alleen in `artifactsRegenerated`. describeRegenerateOutcome is dezelfde
-    // regel als in de webclient, puur en apart getest.
+    // Not unconditionally green: the server ALSO answers 200 when the elaboration
+    // of action items, decisions and questions has failed, and says so only in
+    // `artifactsRegenerated`. describeRegenerateOutcome is the same rule as in the
+    // web client, pure and tested separately.
     const regenerate = useRegenerateSummary(id, {
         onSuccess: (res) => {
             closeSheet();

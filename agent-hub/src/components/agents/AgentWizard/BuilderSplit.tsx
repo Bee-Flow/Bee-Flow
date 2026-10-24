@@ -44,9 +44,9 @@ interface BuilderSplitProps {
 
 export default function BuilderSplit({ agent: initialAgent, plan, history, tier, locale, onBack, onPublished, onDirtyChange, rightHeaderExtras = null, user = null, initialRefinement = null, readOnly = false, onNavigate = null }: BuilderSplitProps) {
     const { t } = useTranslation();
-    // Relatieve tijd ("bijgewerkt gisteren") op de Kennis-kaart. De hook moet
-    // hier staan — hij leest de vertaler — en wordt als functie doorgegeven,
-    // zodat de kaart zelf puur blijft en zonder provider te testen is.
+    // Relative time ("updated yesterday") on the Knowledge card. The hook must stay here — it reads the
+    // translator — and is passed on as a function, so that the card itself stays pure and can be tested
+    // without a provider.
     const rel = useRelativeTime();
 
     // Every useState of the editor — moved to builderSplit/useBuilderState.ts.
@@ -135,9 +135,8 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
     });
     const { datatableGrantCount, automationGrantCount } = canUse;
 
-    // De testset (A4 deel D). Zelfde vorm als de kaarten hierboven: de lezing
-    // gaat pas de deur uit als de tab open staat, en een mislukte lezing komt
-    // als zodanig op de kaart — nooit als "nog nooit gedraaid".
+    // The test set (A4 part D). Same shape as the cards above: the reading only leaves the door once the tab
+    // is open, and a failed reading reaches the card as such — never as "never run yet".
     const testSet = useAgentTests({
         enabled: activeTab === AGENT_TAB_IDS.TEST,
         agentId: agent?.id || null,
@@ -162,14 +161,13 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
         setDescription, avatar, setAvatar, setInstructions, setModel, setSelectedTier, setEnabledIntegrations,
         setKnowledgeBaseIds, stateRef, plan, chatTier, tier, locale, t, allSkills, setAllSkills,
         availableIntegrations, tiers, queueSave, schedulesAllowed: schedules.schedulesAllowed, agent, refreshAgentSchedules: schedules.refreshAgentSchedules,
-        // De persona zoals hij in de kolom staat. Onbekend blijft undefined:
-        // de merge leest dat als "laat staan", niet als "er is er geen".
+        // The persona as it stands in the column. Unknown stays undefined: the merge reads that as "leave it
+        // alone", not as "there is none".
         currentPersona: agent?.persona ?? conceptFacts.persona ?? undefined,
-        // …en dit is het enige geval waarin "er is er geen" wél waar is: er is
-        // nog helemaal geen agentrij, dus er valt niets te beschermen en de
-        // verfijning schrijft de eerste versie. Zodra er een id is, betekent
-        // een ontbrekende persona "niet gelezen" (de lijstroute strippt de
-        // kolom en `?draft=1` kan 403'en) en blijft de kolom staan.
+        // …and this is the only case in which "there is none" IS true: there is no agent row at all yet, so
+        // there is nothing to protect and the refinement writes the first version. Once there is an id, a
+        // missing persona means "not read" (the list route strips the column, and `?draft=1` may 403) and
+        // the column stays in place.
         noStoredPersona: !agent?.id,
     });
 

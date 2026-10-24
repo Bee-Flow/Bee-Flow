@@ -1,37 +1,36 @@
 /**
- * Elk pad dat een app-definitie bewaart, brengt `automation_usage` in stap —
- * GETELD, niet opgesomd.
+ * Every path that stores an app definition brings `automation_usage` up to date —
+ * COUNTED, not listed.
  *
- * `reconcileAutomationUsage` is delete-then-insert op (consumer_kind,
- * consumer_id). Een schrijfpad dat de reconcile overslaat voegt dus niet
- * gewoon niets toe: het laat de rijen van de VÓRIGE definitie staan. Een actie
- * die haar automatisering kwijtraakt houdt de capsule "Gebruikt door 1 knop" in de
- * lucht, en een die er een krijgt komt er nooit in — en het scherm waarop je
- * dat zou zien is precies het scherm dat op die index leunt.
+ * `reconcileAutomationUsage` is delete-then-insert on (consumer_kind,
+ * consumer_id). A write path that skips the reconcile does not simply add nothing:
+ * it leaves the rows of the PREVIOUS definition in place. An action that loses its
+ * automation keeps the capsule "Gebruikt door 1 knop" hanging in the air, and one that
+ * gets one never shows up in it — and the screen where you would see that is
+ * exactly the screen that leans on that index.
  *
- * ── WAAROM TELLEN EN NIET OPSOMMEN ──────────────────────────────────
+ * ── WHY COUNT AND NOT LIST ──────────────────────────────────────────
  *
- * Dat is de les van W5, letterlijk: daar leefde de reconcile in de routes,
- * werd één bestand genoemd, en hielden ZEVEN van de acht save-paden in dat
- * bestand vrolijk de rijen van de vorige versie vast. Een lijst die "dit
- * bestand doet het" zegt, zegt niets over de acht handlers erin.
+ * That is the lesson of W5, literally: there the reconcile lived in the routes,
+ * one file was named, and SEVEN of the eight save paths in that file quietly kept
+ * the rows of the previous version. A list that says "this file does it" says
+ * nothing about the eight handlers in it.
  *
- * Hier zijn het er TIEN, verdeeld over vier bestanden:
- *   routes/studioApps/ (map)                 4 — aanmaken, definitie opslaan,
- *                                                sjabloon-upgrade, versie terugzetten
- *   projects/packaging/install/parts/apps.js 1 — een app uit een Oplossing (aanmaken)
- *   projects/packaging/install/patch.js      1 — en daarna met haar definitie gevuld
- *   projects/packaging/upgrade.js            1 — een app die een upgrade vervangt
- *   appStudio/builderTools/persistence.js    3 — de AI-bouwer (create + save + retry)
+ * Here there are TEN, spread over four files:
+ *   routes/studioApps/ (folder)              4 — create, save definition,
+ *                                                template upgrade, restore version
+ *   projects/packaging/install/parts/apps.js 1 — an app from a Solution (create)
+ *   projects/packaging/install/patch.js      1 — and afterwards filled with its definition
+ *   projects/packaging/upgrade.js            1 — an app that replaces an upgrade
+ *   appStudio/builderTools/persistence.js    3 — the AI builder (create + save + retry)
  *
- * Ze gaan alle tien door DRIE storefuncties, en dáár hangt de reconcile —
- * niet in de routes. Dat is de tweede helft van de W5-les: zolang de
- * schrijvers zelf herindexeren, kan een NIEUWE aanroeper geen gat openen, hij
- * kan hoogstens ongedocumenteerd zijn. De sterke test hieronder is daarom
- * mechanisch: hij zoekt in de store ELKE plek die `studio_apps.definition`
- * schrijft, leidt de omvattende functie af, en eist dat die functie via haar
- * herindexerende wrapper wordt geëxporteerd. Een vierde schrijver die er ooit
- * bij komt is dan rood, niet stil.
+ * They all go through THREE store functions, and THAT is where the reconcile
+ * hangs — not in the routes. That is the second half of the W5 lesson: as long as
+ * the writers themselves re-index, a NEW caller cannot open a gap, at most it can
+ * be undocumented. The strong test below is therefore mechanical: it searches the
+ * store for EVERY place that writes `studio_apps.definition`, derives the enclosing
+ * function, and requires that function to be exported through its re-indexing
+ * wrapper. A fourth writer that ever gets added will then turn red, not silent.
  *
  * Run: cd server && node --test --test-reporter=tap appStudio/automationUsage.savePaths.test.js
  */
@@ -46,7 +45,7 @@ const path = require('node:path');
 const SERVER = path.resolve(__dirname, '..');
 const read = (rel) => fs.readFileSync(path.join(SERVER, rel), 'utf8');
 
-/** Een bestand, of een map met routedelen: dan elk niet-test-.js-bestand erin, samen. */
+/** A file, or a folder of route parts: then every non-test .js file in it, together. */
 const readSite = (rel) => {
     const full = path.join(SERVER, rel);
     if (fs.statSync(full).isFile()) return fs.readFileSync(full, 'utf8');
@@ -62,9 +61,9 @@ const STORE_DIR = 'stores/studioApp';
 const readStore = () => `${read(STORE)}\n${readSite(STORE_DIR)}`;
 
 /**
- * De aanroepplekken die een app-definitie wegschrijven, per bestand met het
- * minimum dat er moet staan. GETELD: één bestand noemen zou zeven van de tien
- * paden vrij laten, precies zoals bij de webpagina's.
+ * The call sites that write an app definition, per file, with the minimum that
+ * must be there. COUNTED: naming one file would leave seven of the ten paths free,
+ * exactly as with the web pages.
  */
 const DEFINITION_WRITE_SITES = [
     // aanmaken · definitie opslaan · sjabloon-upgrade · versie terugzetten
@@ -73,7 +72,7 @@ const DEFINITION_WRITE_SITES = [
     // een app uit een Oplossing: aangemaakt, en daarna met haar definitie gevuld
     { file: 'projects/packaging/install/parts/apps.js', atLeast: 1 },
     { file: 'projects/packaging/install/patch.js', atLeast: 1 },
-    // een app die door een Oplossing-upgrade wordt VERVANGEN
+    // an app that is REPLACED by a Solution upgrade
     { file: 'projects/packaging/upgrade.js', atLeast: 1 },
     // de AI-bouwer: create, save, en de save-na-conflict
     { file: 'appStudio/builderTools/persistence.js', atLeast: 3 },
@@ -97,18 +96,18 @@ test('tien aanroepplekken bewaren een app-definitie, verdeeld over vier bestande
 // ── de mechanische helft: welke storefuncties schrijven de definitie? ──
 
 /**
- * Elke plek in de store die `studio_apps.definition` schrijft, met de
- * omvattende functienaam.
+ * Every place in the store that writes `studio_apps.definition`, with the
+ * enclosing function name.
  *
- * Drie vormen, want er zijn drie manieren om die kolom te raken:
+ * Three forms, because there are three ways to touch that column:
  *   INSERT INTO studio_apps (… definition …)
  *   SET definition = $n::jsonb
- *   sets.push(`definition = …`)      — de dynamische SET-bouwers
- * `published_definition` matcht hier niet (`\b` grijpt niet na een underscore).
- * Die kolom is een KOPIE en heeft zijn eigen schrijver — `setStudioAppPublished`
- * — die sinds de sluitronde van P4 óók herindexeert, want de reconciler bouwt de
- * UNIE van draft en published: bezoekers draaien de gepubliceerde kopie. Zie de
- * aparte test verderop.
+ *   sets.push(`definition = …`)      — the dynamic SET builders
+ * `published_definition` does not match here (`\\b` does not catch after an underscore).
+ * That column is a COPY and has its own writer — `setStudioAppPublished` —
+ * which since the P4 closing round ALSO re-indexes, because the reconciler builds the
+ * UNION of draft and published: visitors run the published copy. See the
+ * separate test further on.
  */
 function definitionWritersIn(src) {
     const fnAt = [...src.matchAll(/async function (\w+)\s*\(/g)].map(m => ({ at: m.index, name: m[1] }));
@@ -135,9 +134,9 @@ function definitionWritersIn(src) {
 }
 
 /**
- * De body van één functie, van haar `async function <naam>(` tot de volgende
- * functiekop. Ruw maar genoeg: de wrappers zijn allemaal een paar regels, en
- * het alternatief (haakjes tellen) zou hier alleen maar meer kunnen breken.
+ * The body of one function, from its `async function <name>(` to the next
+ * function header. Crude but sufficient: the wrappers are all a few lines, and
+ * the alternative (counting brackets) would only be able to break more here.
  */
 function bodyOf(src, name) {
     const start = src.search(new RegExp(`async function ${name}\\s*\\(`));
@@ -151,17 +150,17 @@ test('elke storefunctie die de definitie schrijft, wordt via haar herindexerende
     const src = readStore();
     const writers = definitionWritersIn(src);
 
-    // De premisse zelf: als deze scan niets meer vindt, is hij kapot — en een
-    // kapotte scan faalt niet, hij zwijgt.
+    // The premise itself: if this scan finds nothing anymore, it is broken — and a
+    // broken scan does not fail, it stays silent.
     assert.ok(writers.size >= 3,
         `de scan vond ${writers.size} definitieschrijver(s) in ${STORE}; verwacht minstens 3 `
         + '(createStudioApp, saveDefinition, restoreVersion)');
 
-    // Bewust brontekst, zoals de bestandskop zegt: dit is de mechanische
-    // helft die ELKE schrijfplek in de store afloopt, inclusief een die geen
-    // enkele test aandrijft. Het GEDRAG erachter (roept de wrapper de
-    // reconciler ook echt aan?) staat behavioraal in
-    // stores/studioAppStore.test.js — bewaakt door de laatste test hieronder.
+    // Deliberately source text, as the file header says: this is the mechanical
+    // half that walks EVERY write place in the store, including one that no test
+    // drives. The BEHAVIOUR behind it (does the wrapper really call the
+    // reconciler?) is tested behaviourally in
+    // stores/studioAppStore.test.js — guarded by the last test below.
     for (const [fn, proofs] of writers) {
         assert.match(src, new RegExp(`\\b${fn}:\\s*${fn}Indexed\\b`),
             `${STORE}: ${fn} schrijft studio_apps.definition (${proofs.join(', ')}) maar wordt niet als `
@@ -170,13 +169,13 @@ test('elke storefunctie die de definitie schrijft, wordt via haar herindexerende
             `${STORE}: de wrapper ${fn}Indexed bestaat niet`);
     }
 
-    // En ELKE wrapper roept de reconciler ook echt aan.
+    // And EVERY wrapper really calls the reconciler too.
     //
-    // Dit stond er als één `assert.match` over het hele bestand, en dat is
-    // precies één aanroep te weinig om iets te bewijzen: met alleen de aanroep
-    // in `createStudioAppIndexed` bleef de controle groen terwijl je hem uit
-    // `saveDefinitionIndexed` — het pad dat élke autosave van élke app neemt —
-    // kon weghalen. Nu per wrapper, op zijn eigen body.
+    // This used to be one `assert.match` over the whole file, and that is
+    // exactly one call too few to prove anything: with only the call in
+    // `createStudioAppIndexed` the check stayed green while you could remove it from
+    // `saveDefinitionIndexed` — the path that EVERY autosave of EVERY app takes.
+    // Now per wrapper, on its own body.
     for (const fn of writers.keys()) {
         const body = bodyOf(src, `${fn}Indexed`);
         assert.ok(body, `${STORE}: de body van ${fn}Indexed is niet te vinden`);
@@ -185,18 +184,18 @@ test('elke storefunctie die de definitie schrijft, wordt via haar herindexerende
             + 'definitie staan (de reconcile is delete-then-insert), en houdt een actie die haar automatisering '
             + 'kwijtraakt de capsule voor altijd in de lucht');
     }
-    // De reconciler wordt door één helper aangeroepen, niet tien keer los.
+    // The reconciler is called through one helper, not ten times separately.
     assert.match(src, /reconcileAppAutomationUsageDetached\(/,
         `${STORE}: de wrappers horen de automation-usage-reconciler aan te roepen`);
 });
 
 /**
- * De GEPUBLICEERDE definitie is de vijfde schrijver, en de index telt hem mee.
+ * The PUBLISHED definition is the fifth writer, and the index counts it.
  *
- * De reconciler bouwt de unie van draft en published, want de vraag die de
- * capsule beantwoordt ("wie breekt er als ik dit weggooi") gaat over productie
- * en bezoekers draaien de gepubliceerde kopie. Zonder een wrapper op
- * `setStudioAppPublished` verandert publiceren en depubliceren de index niet.
+ * The reconciler builds the union of draft and published, because the question
+ * the capsule answers ("who breaks if I throw this away") is about production,
+ * and visitors run the published copy. Without a wrapper on
+ * `setStudioAppPublished`, publishing and unpublishing do not change the index.
  */
 test('de publish-schrijver gaat ook door een herindexerende wrapper', () => {
     // Bewust brontekst, zelfde reden als hierboven.
@@ -212,12 +211,12 @@ test('de publish-schrijver gaat ook door een herindexerende wrapper', () => {
 });
 
 /**
- * En het GEDRAG erachter — want alles hierboven leest bronbestanden.
+ * And the BEHAVIOUR behind it — because everything above reads source files.
  *
- * De echte aanroepen staan in stores/studioAppStore.test.js, met de
- * in-memory Postgres-stand-in en de reconciler vervangen door een teller. Dat
- * is de test die rood wordt als een wrapper wél bestaat maar niets doet; deze
- * regel zorgt dat hij niet stilletjes kan verdwijnen.
+ * The real calls are in stores/studioAppStore.test.js, with the in-memory Postgres
+ * stand-in and the reconciler replaced by a counter. That is the test that turns red
+ * if a wrapper exists but does nothing; this line makes sure it cannot quietly
+ * disappear.
  */
 test('de gedragstesten van de wrappers bestaan', () => {
     const behaviour = read('stores/studioAppStore.test.js');
@@ -230,11 +229,11 @@ test('de gedragstesten van de wrappers bestaan', () => {
 });
 
 test('beide kanten van de ontbrekende FK worden opgeruimd', () => {
-    // Er is geen FK naar `studio_apps` en geen naar `automations`, dus geen van
-    // beide verwijderingen ruimt zichzelf op. Blijft een rij staan, dan claimt
-    // hij namens een knop of een automatisering die niet meer bestaat.
-    // Bewust brontekst, zelfde reden als hierboven — twee bestanden, geen van
-    // beide een test die dit gedrag al aandrijft.
+    // There is no FK to `studio_apps` and none to `automations`, so neither deletion
+    // cleans up after itself. If a row stays, it claims on behalf of a button or an
+    // automation that no longer exists.
+    // Deliberately source text, same reason as above — two files, neither of them a
+    // test that already drives this behaviour.
     assert.match(readStore(), /purgeAppAutomationUsage\(/,
         `${STORE}: een verwijderde app hoort haar rijen mee te nemen`);
     assert.match(readStore(), /async function deleteStudioAppIndexed\b/,
@@ -259,10 +258,10 @@ function* sources(dir) {
 }
 
 /**
- * De andere richting, en de reden dat de lijst hierboven te vertrouwen is: wie
- * de reconciler AANROEPT moet hier staan. Een tweede aanroeper die er ooit
- * bijkomt is geen fout — hij is alleen ongedocumenteerd, en dan hoort iemand
- * te controleren of zijn buren hetzelfde doen. Precies zoals bij de webpagina's.
+ * The other direction, and the reason the list above can be trusted: whoever
+ * CALLS the reconciler must be listed here. A second caller that ever gets added is
+ * not an error — it is only undocumented, and then someone has to check whether its
+ * neighbours do the same. Exactly as with the web pages.
  */
 const RECONCILER_CALLERS = [
     // De backstop. De enige plek waar "de app is veranderd" en "de index is

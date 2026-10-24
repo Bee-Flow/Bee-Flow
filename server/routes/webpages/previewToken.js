@@ -20,10 +20,9 @@ function register(router) {
     // receives a short-lived HMAC token, and bakes it into the iframe document.
     // The iframe then sends `Authorization: Bearer <token>` on cross-origin
     // calls to /api/webpages-preview/...
-    // Neemt niets aan dan de pagina in het pad: het token wordt op de EIGENAAR
-    // gescoopt en op de kijker, allebei uit de sessie. Een body-sleutel die
-    // eruitziet alsof hij dat kan verschuiven (`userId`, `scope`) hoort een 400
-    // te krijgen en niet genegeerd te worden.
+    // Accepts nothing but the page in the path: the token is scoped to the OWNER and to
+    // the viewer, both taken from the session. A body key that looks as if it could shift
+    // that (`userId`, `scope`) should get a 400 and not be ignored.
     router.post('/:id/preview-token', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
         const userId = req.session.user.id;
         // Owner OR org/group-published reader — same visibility as GET /:id, so
@@ -42,10 +41,10 @@ function register(router) {
         // Scope the token to the page OWNER so all authorized viewers read/write
         // the SAME per-page database (webpageDbStore keys by the token's userId).
         // AI/automations/integrations already act as the author independently.
-        // `userId` = de eigenaar (paginadatabase + acts-as-author-bruggen),
-        // `viewerUserId` = wie er nu kijkt. De tabelroutes gebruiken alleen de
-        // tweede: een datatable heeft graden per persoon, en een gedeelde
-        // pagina mag de tabelrechten van de auteur niet uitlenen.
+        // `userId` = the owner (page database + acts-as-author bridges),
+        // `viewerUserId` = who is looking now. The table routes use only the
+        // second: a datatable has rights per person, and a shared page may not
+        // lend out the author's table rights.
         const { token, expiresAt } = issuePreviewToken({
             userId: wp.userId, webpageId: wp.id, viewerUserId: userId,
         });

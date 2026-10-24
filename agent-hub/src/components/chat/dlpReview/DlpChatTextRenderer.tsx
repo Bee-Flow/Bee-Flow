@@ -19,10 +19,10 @@ export default function DlpChatTextRenderer({ text, spans, onAddSpan, onRemoveSp
         <div className="flex justify-end">
             <div
                 className="max-w-[85%] rounded-2xl rounded-br-none p-4 bg-[var(--user-bubble-bg)] text-[var(--user-bubble-fg)]"
-                /* C10 — dezelfde twee tokens als de bubbel in het gesprek, en
-                   net als daar zonder hex-noodwaarde: index.css declareert ze
-                   voor alle acht thema's, dus een vaste grijstint hier zou de
-                   revisie in een ander thema zetten dan het bericht zelf. */
+                /* C10: the same two tokens as the bubble in the conversation, and
+                   just as there, without a hex fallback: index.css declares them
+                   for all eight themes, so a fixed grey here would put the revision
+                   in a different theme than the message itself. */
             >
                 <DlpHighlightedText text={text} spans={spans} onAddSpan={onAddSpan} onRemoveSpan={onRemoveSpan} />
             </div>

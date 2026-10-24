@@ -1,43 +1,39 @@
 /**
- * personaFacts — de FEITEN achter de tab "Rol" (Agents-artboard 1c, A3 deel A),
- * los van hoe ze getekend worden.
+ * personaFacts: the FACTS behind the "Rol" tab (Agents artboard 1c, A3 part A),
+ * separate from how they are drawn.
  *
- * Alles hier is puur: in gaat de opgeslagen `agents.persona` plus de rauwe
- * automatiseringslijst, eruit komen FEITEN — nooit zinnen. De zinnen staan in de
- * kaarten, want daar staan ook de letterlijke `t()`-sleutels die de i18n-guard
- * leest. Een reden om iets NIET te mogen is daarom een CODE
- * (`'not_owner'`), geen tekst.
+ * Everything here is pure: in goes the stored `agents.persona` plus the raw automation
+ * list, and out come FACTS, never sentences. The sentences are in the cards, because
+ * that is where the literal `t()` keys live that the i18n guard reads. A reason for
+ * something NOT to be allowed is therefore a CODE (`'not_owner'`), not text.
  *
- * ── DIT IS EEN SPIEGEL, EN DE SPIEGEL MOET KLOPPEN ──────────────────
- * `server/core/agentRuntime/personaPrompt.js` normaliseert elke persona
- * opnieuw bij het opslaan: hij knipt teksten af, ontdubbelt bullets
- * hoofdletter-ongevoelig en gooit alles boven de twintigste bullet weg. Deze
- * module doet exact hetzelfde vóórdat er iets de deur uit gaat, om één reden:
- * anders typt iemand een eenentwintigste regel, ziet hem staan, slaat op, en
- * is hij weg zonder dat er ooit iets op het scherm stond. Wijkt de server af,
- * dan wijkt deze module mee — niet andersom.
+ * ── THIS IS A MIRROR, AND THE MIRROR MUST MATCH ──────────────────
+ * `server/core/agentRuntime/personaPrompt.js` normalises every persona again on save:
+ * it truncates texts, deduplicates bullets case-insensitively, and throws away everything
+ * above the twentieth bullet. This module does exactly the same before anything goes out
+ * the door, for one reason: otherwise someone types a twenty-first line, sees it there,
+ * saves, and it is gone without anything ever having been on the screen. If the server
+ * deviates, then this module deviates along with it, not the other way round.
  *
- * ── DE TOONWAARDEN ZIJN PROMPTTEKST, GEEN UI-TEKST ──────────────────
- * `tone.chips` wordt letterlijk in het systeemprompt gerenderd
- * (`Tone: formal, friendly.`). De WAARDE moet dus stabiel Engels zijn — hij
- * mag niet meebewegen met de schermtaal, anders staat er morgen een andere
- * instructie in het prompt omdat iemand de interface op Duits zette, en klopt
- * "staat deze chip aan?" niet meer. Het LABEL gaat wél door `t()`; dat staat
- * in `ToneCard.jsx`.
+ * ── THE TONE VALUES ARE PROMPT TEXT, NOT UI TEXT ─────────────────
+ * `tone.chips` is rendered literally in the system prompt (`Tone: formal, friendly.`).
+ * The VALUE must therefore be stable English. It must not move along with the interface
+ * language, otherwise tomorrow there is a different instruction in the prompt because
+ * someone set the interface to German, and "is this chip on?" no longer holds. The
+ * LABEL does go through `t()`; that is in `ToneCard.jsx`.
  *
- * De eerste drie waarden komen uit het vocabulaire dat de server zelf al kent
- * (`personaPrompt.TONE_CHIPS`); de laatste twee niet, en dat mag: dat
- * vocabulaire is uitdrukkelijk GEEN whitelist — een onbekende chip blijft
- * woordelijk staan. Een chip die de eigenaar zelf typte (of die uit de
- * AI-parse komt) hoort daarom óók op het scherm, en niet stil verdwenen.
+ * The first three values come from the vocabulary the server already knows
+ * (`personaPrompt.TONE_CHIPS`); the last two do not, and that is allowed: that
+ * vocabulary is explicitly NOT a whitelist, so an unknown chip stays verbatim. A chip
+ * the owner typed himself (or that comes from the AI parse) therefore also belongs on
+ * screen, and must not silently disappear.
  *
- * ── ONBEKEND IS GEEN LEEG, OOK HIER NIET ────────────────────────────
- * Een `persona` die we niet konden lezen is niet "een agent zonder rol": de
- * kolom wordt op de lijstroute juist GESTRIPT (`agentCrud.parseConfig`), en
- * `GET /agents/:id` geeft hem alleen mét `?draft=1` én bewerkrecht. Vandaar
- * `readable`, en vandaar dat de automatiseringslijst een eigen `READ`-toestand draagt:
- * een mislukte lezing van `/api/automation` is niet "deze gebruiker heeft geen
- * automations".
+ * ── UNKNOWN IS NOT EMPTY, HERE TOO ──────────────────────────────
+ * A `persona` we could not read is not "an agent without a role": the column is
+ * STRIPPED on the list route (`agentCrud.parseConfig`), and `GET /agents/:id` only gives
+ * it with `?draft=1` and edit rights. Hence `readable`, and hence the automation list
+ * carries its own `READ` state: a failed read of `/api/automation` is not "this user
+ * has no automations".
  */
 import { isAgentCallable } from '../../../admin/Studio/SkillsStudio/skillModel';
 import { READ } from '../canUse/canUseFacts';
@@ -82,10 +78,10 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
 }
 
 /**
- * Tekst, geknipt — spiegel van `_text` in personaPrompt.js, inclusief het
- * weghalen van stuurtekens en het platslaan van regeleindes in een enkelregelig
- * veld. Zonder dat laatste levert één geplakte alinea in een bullet op het
- * scherm iets anders op dan wat er wordt opgeslagen.
+ * Text, truncated: mirror of `_text` in personaPrompt.js, including the removal of
+ * control characters and the flattening of line endings in a single-line field.
+ * Without that last part, one pasted paragraph in a bullet would show on screen
+ * something different from what is stored.
  */
 export function clampText(value: unknown, max: number, { multiline = false }: { multiline?: boolean } = {}): string {
     if (typeof value !== 'string') return '';
@@ -127,25 +123,25 @@ export function emptyPersona(): Persona {
 }
 
 /**
- * Wat er in de kolom staat, in de volle vorm.
+ * What is in the column, in full form.
  *
- * STRUCTUREEL, niet klemmend — en dat is een bewuste asymmetrie met de server.
- * De server is de enige schrijver van deze kolom en normaliseert bij élke
- * opslag, dus wat hier binnenkomt is al geknipt en al ontdubbeld; het nog eens
- * doen levert niets op en kost wél iets: `clampText` haalt spaties weg, en een
- * leesfunctie die "hallo " tot "hallo" maakt terwijl iemand tikt duwt de
- * cursor terug. Geknipt wordt er daarom alleen wáár de gebruiker iets kan
- * verliezen dat hij zelf heeft ingetypt — bij de bullets (`addBullet`,
- * `editBullet`) en bij de chips — plus met `maxLength` op de tekstvakken.
+ * STRUCTURAL, not clamping, and that is a deliberate asymmetry with the server.
+ * The server is the only writer of this column and normalises on EVERY save, so what
+ * arrives here is already truncated and already deduplicated. Doing it again gains
+ * nothing and costs something: `clampText` strips spaces, and a read function that
+ * turns "hallo " into "hallo" while someone is typing pushes the cursor back.
+ * Truncation is therefore done only where the user could lose something he typed
+ * himself: at the bullets (`addBullet`, `editBullet`) and at the chips, plus
+ * `maxLength` on the text boxes.
  *
- * Wat hier wél gebeurt is VERSMALLEN: een onbekende `unknown.mode` wordt
- * `'honest'` (de smalste: belooft niets, pakt niets) en een onbekende
- * `mode` wordt `'fields'`, precies zoals `normalisePersona` op de server.
+ * What does happen here is NARROWING: an unknown `unknown.mode` becomes `'honest'`
+ * (the narrowest: it promises nothing and grabs nothing), and an unknown `mode` becomes
+ * `'fields'`, exactly as `normalisePersona` does on the server.
  *
- * `readable` is het antwoord op "stond hier iets dat we konden lezen" en NIET
- * op "staat er iets in de velden". Een agent van vóór A1c heeft een lege
- * persona die wél gelezen is; een lijstrij heeft er géén, want die route
- * strippt de kolom. Die twee mogen niet hetzelfde scherm opleveren.
+ * `readable` is the answer to "was there something here that we could read", and NOT
+ * to "is there something in the fields". An agent from before A1c has an empty persona
+ * that IS read; a list row has NONE, because that route strips the column. Those two
+ * must not produce the same screen.
  */
 export function personaShape(raw: unknown): { persona: Persona; readable: boolean } {
     const persona = emptyPersona();
@@ -161,14 +157,13 @@ export function personaShape(raw: unknown): { persona: Persona; readable: boolea
         text: typeof tone.text === 'string' ? tone.text : '',
     };
 
-    // GEKLEMD, anders dan de tekstvelden hierboven. De reden is niet de server
-    // maar de INDEX: `BulletsCard` tekent deze lijst en geeft posities terug,
-    // terwijl `removeBullet`/`editBullet` op de geklemde lijst werken. Waren
-    // dat twee verschillende lijsten, dan wees regel 3 op het scherm naar
-    // regel 2 in de mutatie — `removeBullet(['a','A','b'], 2)` haalde dan 'A'
-    // weg in plaats van 'b'. Bereikbaar zodra iets anders dan deze kaart een
-    // lijst in de persona zet (een parse-antwoord, een refine-merge, een
-    // import), dus de twee lijsten zijn hier één lijst.
+    // CLAMPED, unlike the text fields above. The reason is not the server
+    // but the INDEX: `BulletsCard` draws this list and returns positions, while
+    // `removeBullet`/`editBullet` work on the clamped list. If those were two different
+    // lists, then line 3 on screen would point to line 2 in the mutation:
+    // `removeBullet(['a','A','b'], 2)` would remove 'A' instead of 'b'. Reachable as soon
+    // as something other than this card puts a list in the persona (a parse answer, a
+    // refine merge, an import), so the two lists are one list here.
     persona.does = clampList(input.does, { max: PERSONA_LIMITS.bullets, itemMax: PERSONA_LIMITS.bullet });
     persona.doesNot = clampList(input.doesNot, { max: PERSONA_LIMITS.bullets, itemMax: PERSONA_LIMITS.bullet });
 
@@ -184,12 +179,11 @@ export function personaShape(raw: unknown): { persona: Persona; readable: boolea
     return { persona, readable: true };
 }
 
-// ── Schrijven ───────────────────────────────────────────────────────
+// ── Writing ───────────────────────────────────────────────────────
 //
-// Elke helper geeft een VOLLEDIGE nieuwe persona terug, niet een patch. De
-// server leest een ontbrekende `persona` als "laat de kolom staan"
-// (routes/agents/crud.js), dus een half object opsturen zou een veld dat
-// iemand net leegmaakte stilletjes laten staan.
+// Every helper returns a COMPLETE new persona, not a patch. The server reads a missing
+// `persona` as "keep the column" (routes/agents/crud.js), so sending a half object
+// would silently keep a field that someone had just emptied.
 
 /** Een kopie van `persona` met `patch` erover, in de volle vorm. */
 export function patchPersona(persona: unknown, patch: Record<string, unknown>): Persona {
@@ -207,9 +201,9 @@ export function toneChipsFull(persona: unknown): boolean {
 }
 
 /**
- * Zet één toonchip aan of uit. Uitzetten mag altijd; aanzetten kan niet meer
- * als de twaalf vol zijn — dan gebeurt er niets, en `toneChipsFull` zorgt dat
- * die knop dan al uit staat.
+ * Turns one tone chip on or off. Switching off is always allowed; switching on is no
+ * longer possible when the twelve are full. Then nothing happens, and `toneChipsFull`
+ * makes sure that button is already off.
  */
 export function toggleToneChip(persona: unknown, chip: unknown): Persona {
     const base = personaShape(persona).persona;
@@ -224,10 +218,10 @@ export function toggleToneChip(persona: unknown, chip: unknown): Persona {
 }
 
 /**
- * De chips zoals de kaart ze tekent: eerst de vijf die de kaart AANBIEDT, dan
- * wat de eigenaar (of de AI-parse) er zelf bij zette. Die tweede groep hoort
- * er echt bij te staan — de server bewaart hem woordelijk en rendert hem in
- * het prompt, dus hem niet tekenen zou de instructie verzwijgen.
+ * The chips as the card draws them: first the five that the card OFFERS, then whatever
+ * the owner (or the AI parse) added himself. That second group must really be shown.
+ * The server stores it verbatim and renders it in the prompt, so not drawing it would
+ * hide the instruction.
  */
 export function toneChipRows(persona: unknown): Array<{ value: string; on: boolean; offered: boolean }> {
     const base = personaShape(persona).persona;
@@ -241,13 +235,13 @@ export function toneChipRows(persona: unknown): Array<{ value: string; on: boole
 }
 
 /**
- * Botst de taalregel met de zachte taalchip?
+ * Does the language rule clash with the soft language chip?
  *
- * `persona.language` rendert een ABSOLUTE regel ("Always write your replies in
- * X, whatever language the question is in", personaPrompt.js), en de chip zegt
- * "tenzij anders gevraagd". Staan ze allebei aan, dan bevat het prompt twee
- * instructies die elkaar tegenspreken, en niemand ziet dat — de taal staat in
- * de hero en de chip staat hier.
+ * `persona.language` renders an ABSOLUTE rule ("Always write your replies in X,
+ * whatever language the question is in", personaPrompt.js), and the chip says
+ * "unless asked otherwise". If both are on, the prompt contains two instructions that
+ * contradict each other, and nobody sees that: the language is in the hero and the
+ * chip is here.
  */
 export function toneLanguageClash(persona: unknown): boolean {
     const base = personaShape(persona).persona;
@@ -256,10 +250,9 @@ export function toneLanguageClash(persona: unknown): boolean {
 }
 
 /**
- * Een bullet toevoegen. Geeft `{list, rejected}` terug: `rejected` zegt WAAROM
- * er niets veranderde, als code — `'empty'`, `'duplicate'` of `'full'`. De
- * server gooit alle drie stilzwijgend weg; hier krijgt de gebruiker het te
- * horen vóór hij denkt dat het gelukt is.
+ * Adds a bullet. Returns `{list, rejected}`: `rejected` says WHY nothing changed, as a
+ * code: `'empty'`, `'duplicate'` or `'full'`. The server silently throws all three
+ * away; here the user hears it before he thinks it succeeded.
  */
 export function addBullet(bullets: unknown, value: unknown): { list: string[]; rejected: BulletRejection } {
     const current = clampList(bullets, { max: PERSONA_LIMITS.bullets, itemMax: PERSONA_LIMITS.bullet });
@@ -271,15 +264,15 @@ export function addBullet(bullets: unknown, value: unknown): { list: string[]; r
 }
 
 /**
- * Een bullet vervangen; leeg maken verwijdert hem (zoals de server hem zou
- * wegknippen). Zelfde vorm als `addBullet`: `{list, rejected}`.
+ * Replaces a bullet; making it empty removes it (as the server would truncate it away).
+ * Same shape as `addBullet`: `{list, rejected}`.
  *
- * `'duplicate'` is de reden dat deze functie een reden HEEFT. Klemmen na de
- * vervanging ontdubbelt hoofdletter-ongevoelig en houdt de eerste treffer, dus
- * een regel bewerken naar iets dat al in de lijst staat liet er twee in gaan en
- * één uit komen — de regel die je bewerkte was weg, zonder één woord op het
- * scherm. Dat is precies de stille verdwijning waar deze kaart tegen bestaat,
- * dan door de kaart zelf gedaan. Nu verandert er niets en zegt de kaart waarom.
+ * `'duplicate'` is the reason this function HAS a reason. Clamping after the
+ * replacement deduplicates case-insensitively and keeps the first hit, so editing a
+ * line to something already in the list let two in and one out: the line you were
+ * editing was gone, without a single word on screen. That is exactly the silent
+ * disappearance this card guards against, now done by the card itself. Now nothing
+ * changes and the card says why.
  */
 export function editBullet(bullets: unknown, index: number, value: unknown): { list: string[]; rejected: BulletRejection } {
     const current = clampList(bullets, { max: PERSONA_LIMITS.bullets, itemMax: PERSONA_LIMITS.bullet });
@@ -311,18 +304,18 @@ export function removeBullet(bullets: unknown, index: number): string[] {
 // ── De hand-off-automation ─────────────────────────────────────────────
 
 /**
- * Mag deze bewerker een hand-off-automation kiezen?
+ * May this editor choose a hand-off automation?
  *
- * `verifyHandoffAutomation` (routes/agents/crud.js) toetst de automatisering tegen
- * `agent.owner_id`, terwijl `GET /api/automation` de automatiseringen van de INGELOGDE
- * gebruiker teruggeeft. Bewerkt een org-admin andermans agent, dan toont de
- * kiezer dus automatiseringen die de server gegarandeerd weigert — en een keuze
- * aanbieden die zeker sneuvelt is de stille vorm van niets doen.
+ * `verifyHandoffAutomation` (routes/agents/crud.js) checks the automation against
+ * `agent.owner_id`, while `GET /api/automation` returns the automations of the
+ * LOGGED-IN user. If an org admin edits someone else's agent, the picker therefore
+ * shows automations that the server is guaranteed to refuse. Offering a choice that
+ * surely fails is the silent form of doing nothing.
  *
- * Onbekend versmalt: zonder allebei de ids weten we niet of dit dezelfde
- * persoon is, en dan wordt er niet gekozen.
+ * Unknown narrows: without both ids we do not know whether this is the same person,
+ * and then nothing is chosen.
  *
- * Geeft `null` terug als kiezen mag.
+ * Returns `null` if choosing is allowed.
  */
 export function handoffBlockedBecause({ agentOwnerId, userId }: { agentOwnerId?: unknown; userId?: unknown }): 'not_owner' | 'unknown_owner' | null {
     const owner = typeof agentOwnerId === 'string' && agentOwnerId ? agentOwnerId : null;
@@ -332,23 +325,21 @@ export function handoffBlockedBecause({ agentOwnerId, userId }: { agentOwnerId?:
 }
 
 /**
- * De automatiseringen die als hand-off in aanmerking komen.
+ * The automations that qualify as hand-off.
  *
- * De poort is `trigger.kind === 'agent_call'` — dezelfde die
- * `automationToTool` (server/automation/agentCallableTools.js) hanteert, want
- * dat is de enige soort die de runtime als actie aanbiedt. Uitgeschakelde
- * automatiseringen worden NIET weggefilterd maar gemarkeerd (`active: false`): ze
- * staan in de lijst van de gebruiker, de server weigert ze, en verzwijgen
- * levert alleen "waar is mijn automation gebleven".
+ * The gate is `trigger.kind === 'agent_call'`, the same one that `automationToTool`
+ * (server/automation/agentCallableTools.js) applies, because that is the only kind the
+ * runtime offers as an action. Switched-off automations are NOT filtered out but marked
+ * (`active: false`): they stay in the user's list, the server refuses them, and hiding
+ * them would only yield "where has my automation gone".
  *
- * `state` reist mee — met één correctie. Een `READ.OK` met iets dat GEEN lijst
- * is, is geen lege lijst maar een ONLEESBAAR antwoord, en dat wordt hier
- * `READ.ERROR`. Zonder die versmalling zei de kaart "No automatisering can be started
- * by an agent yet" op precies de invoer die de standaardwaarden opleveren
- * (`automations = null, automationsState = READ.OK`) — terwijl `selectedHandoff`
- * hiernaast en `toolGrants.automationRows` hiernaast dezelfde invoer wél als
- * onleesbaar lezen. Eén kaart die zichzelf tegenspreekt is erger dan een kaart
- * die zegt dat ze het niet weet.
+ * `state` travels along, with one correction. A `READ.OK` with something that is NOT a
+ * list is not an empty list but an UNREADABLE answer, and that becomes `READ.ERROR`
+ * here. Without that narrowing, the card said "No automatisering can be started by an
+ * agent yet" on exactly the input the defaults yield (`automations = null,
+ * automationsState = READ.OK`), while `selectedHandoff` and `toolGrants.automationRows`
+ * next to it read the same input as unreadable. One card contradicting itself is worse
+ * than a card that says it does not know.
  */
 export function handoffChoices({ automations, state = READ.OK }: { automations?: unknown; state?: string }): { rows: HandoffRow[]; state: string } {
     if (state !== READ.OK) return { rows: [], state };
@@ -366,11 +357,11 @@ export function handoffChoices({ automations, state = READ.OK }: { automations?:
 }
 
 /**
- * De gekozen automatisering, zoals de kaart hem moet tekenen.
+ * The chosen automation, as the card must draw it.
  *
- * Nooit `null` bij een gezet id: een automatisering die we niet kunnen benoemen is
- * `readable: false` en blijft staan mét zijn id. Hem weglaten zou beweren dat
- * er geen hand-off is, terwijl de server hem wel degelijk kan verifiëren.
+ * Never `null` for a set id: an automation we cannot name is `readable: false` and
+ * stays with its id. Leaving it out would claim there is no hand-off, while the server
+ * can indeed verify it.
  */
 export function selectedHandoff({ automations, state = READ.OK, automationId }: {
     automations?: unknown;

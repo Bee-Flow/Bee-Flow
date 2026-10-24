@@ -71,11 +71,11 @@ describe('landing on the gate', () => {
         expect(await screen.findByAltText('MFA QR code')).toHaveAttribute('src', 'data:image/png;base64,QR');
     });
 
-    // BFSF-274: twee gelijktijdige /setup-calls racen op session.save, waarna de
-    // QR op het scherm bij een ander secret hoort dan de sessie bewaart en elke
-    // ingetikte code "Invalid" is. De module-level in-flight guard laat er
-    // daarom maar een door, ook als het scherm twee keer tegelijk gemonteerd
-    // wordt (remount, of het dubbele effect van StrictMode in dev).
+    // BFSF-274: two simultaneous /setup calls race on session.save. Afterwards the QR on
+    // the screen belongs to a different secret than the session stores, and every typed
+    // code is "Invalid". The module-level in-flight guard therefore lets only one through,
+    // even if the screen is mounted twice at once (a remount, or the double effect of
+    // StrictMode in dev).
     it('fires a single /auth/mfa/setup when two gates mount at the same time', async () => {
         render(
             <>

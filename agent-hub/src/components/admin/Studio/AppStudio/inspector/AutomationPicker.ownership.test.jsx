@@ -12,19 +12,18 @@ vi.mock('../../../../../utils/helpers', async (importOriginal) => ({
 import AutomationPicker from './AutomationPicker';
 
 /**
- * "Nieuwe vanuit deze knop" mag alleen door de EIGENAAR van de app.
+ * “New from this button” may only be used by the OWNER of the app.
  *
- * De automatisering die hier ontstaat wordt door één app-actie gedraaid, en die actie
- * draait als de app-eigenaar. Onder de klikker gemaakt is de knop stuk vanaf de
- * eerste druk; onder de eigenaar gemaakt terwijl iemand anders klikt is erger —
- * dan heeft die iemand een automatisering geschreven die met andermans rechten draait.
- * De server weigert (crud.js → appRefOwnerVerdict); dit bestand gaat over wat
- * de gebruiker daarvan te zien krijgt.
+ * The automation created here is run by one app action, and that action
+ * runs as the app owner. Created under the clicker, the button is broken from the
+ * first press; created under the owner while someone else clicks is worse —
+ * then that person has written an automation that runs with someone else's rights.
+ * The server refuses (crud.js → appRefOwnerVerdict); this file is about what
+ * the user gets to see of that.
  *
- * De valkuil die het afdekt: de rij had één tak voor élke 403 en die zei
- * "Automations are not part of this plan". Een eigendomsweigering kwam dus op het
- * scherm aan als een factureringsprobleem, en de enige aangeboden uitweg was de
- * verkeerde.
+ * The pitfall it covers: the row had one branch for EVERY 403, and that branch said
+ * “Automations are not part of this plan”. An ownership refusal thus reached the
+ * screen as a billing problem, and the only way out offered was the wrong one.
  */
 
 const authFetch = vi.fn();
@@ -76,12 +75,12 @@ describe('een eigendomsweigering leest als een eigendomsweigering', () => {
 });
 
 describe('en de licentieweigering blijft zijn eigen zin houden', () => {
-    // Op de CODE, niet op de zin. `/api/automation` zit achter
-    // requireLicenseFeature('automations') → requireFeature, en die antwoordt
-    // letterlijk `{ error: 'feature_locked' }` (server/license/middleware.js).
-    // In dat woord zit noch "tier_required" noch "licen", dus de oude
-    // prozamatch was onbereikbaar voor de poort die er echt staat en de
-    // gebruiker las de kale servertekst `feature_locked` in het rode zinnetje.
+    // Based on the CODE, not the sentence. `/api/automation` sits behind
+    // requireLicenseFeature('automations') → requireFeature, and that answers
+    // literally `{ error: 'feature_locked' }` (server/license/middleware.js).
+    // That word contains neither “tier_required” nor “licen”, so the old
+    // prose match was unreachable for the gate that is actually there, and the
+    // user read the bare server text `feature_locked` in the red sentence.
     it('herkent feature_locked — het antwoord dat requireFeature ECHT stuurt', async () => {
         await tryToCreate(refuse(403, {
             error: 'feature_locked', feature: 'automations', required: 'team', current: 'free',

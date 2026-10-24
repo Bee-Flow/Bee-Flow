@@ -1,11 +1,10 @@
 // @vitest-environment node
 /**
- * De feiten achter de testset-kaart (A4 deel D).
+ * The facts behind the test-set card (A4 part D).
  *
- * Wat hier vastligt is de rekenregel achter "11 / 12 goed", en vooral de drie
- * gevallen waarin er GEEN getal mag staan: nooit gedraaid, niet gelezen, en
- * halverwege omgevallen. Plus dat een weigering ("er is geen model ingericht
- * om te beoordelen") nooit als een mislukte test binnenkomt.
+ * What is fixed here is the calculation rule behind "11 / 12 passed", and above all the
+ * three cases in which there may be NO number: never run, not read, and halfway failed.
+ * Plus that a refusal ("no model is set up to judge") never arrives as a failed test.
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/tests/testSetFacts.test.js
  */
@@ -94,9 +93,9 @@ describe('summariseRun — waar de run over ging', () => {
     });
 
     it('zonder een lijst vragen valt de dekking terug op wat er TOEN stond', () => {
-        // `results.testCount` is hoeveel vragen deze agent had toen de run
-        // liep. Dat is een ander feit dan "wat je nu hebt", en `when` is wat de
-        // kaart nodig heeft om er niet de verkeerde zin bij te zetten.
+        // `results.testCount` is how many questions this agent had when the run ran. That is a
+        // different fact from "what you have now", and `when` is what the card needs in order not
+        // to attach the wrong sentence to it.
         const s = summariseRun({ lastRun: run({ passed: 4, total: 5, results: { items: Array.from({ length: 5 }, () => item()), testCount: 9 } }) });
         expect(s.coverage).toEqual({ ran: 5, of: 9, when: 'then' });
     });
@@ -267,9 +266,8 @@ describe('applyRunEvent — een lopende run is geen uitslag', () => {
 
 describe('BIJT — de bewakers die niemand uitoefende', () => {
     it('een rij met total 0 is geen "0 of 0 passed" maar een onafgeronde run', () => {
-        // De kop van testSetFacts zegt dat de kaart de belofte van de route
-        // ("een afgebroken run wordt niet opgeslagen") NIET mag aannemen: een
-        // oude of handmatig bewerkte rij komt hier gewoon binnen.
+        // The header of testSetFacts says that the card must NOT assume the route's promise
+        // ("an aborted run is not stored"): an old or manually edited row arrives here just the same.
         const s = summariseRun({ lastRun: run({ passed: 0, total: 0, results: { items: [] } }), tests: tests() });
         expect(s.state).toBe(RUN_STATE.UNFINISHED);
         expect(s.passed).toBe(null);
@@ -277,8 +275,8 @@ describe('BIJT — de bewakers die niemand uitoefende', () => {
     });
 
     it('een fout MIDDEN in de stream is geen "er is niets getest"', () => {
-        // `run_failed` komt van de route pas nadat er al test_result-events
-        // gestreamd zijn. Wat er niet gebeurde is opslaan, niet testen.
+        // `run_failed` comes from the route only after test_result events have already been
+        // streamed. What did not happen is storing, not testing.
         const r = refusalFor({ status: 0, body: { code: 'run_failed', error: 'boom' } });
         expect(r.kind).toBe(REFUSAL.RUN_STOPPED);
         expect(r.kind).not.toBe(REFUSAL.UNKNOWN);

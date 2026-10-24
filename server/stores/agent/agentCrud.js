@@ -257,23 +257,22 @@ async function updateAgent(id, name, description, systemPrompt, ownerId, model =
 }
 
 /**
- * Een EXPLICIET versiepunt van de huidige conceptstaat, los van de
- * autosave-snapshot die updateAgent hierboven zelf al schrijft.
+ * An EXPLICIT version point of the current draft state, separate from the
+ * autosave snapshot that updateAgent above already writes itself.
  *
- * Twee dingen liggen hier bewust vast:
+ * Two things are deliberately fixed here:
  *
- *   Er wordt de RAUWE rij gesnapshot, niet de weergave van getAgent(). In die
- *   weergave is `persona` een PROJECTIE die bij een leesfout helemaal wegvalt
- *   (_withPersona laat de sleutel dan weg) — en een restore van zo'n snapshot
- *   leest dat als "geen persona" en schrijft de kolom leeg. De rauwe rij draagt
- *   de kolom zoals hij is, dus een restore herstelt hem zoals hij was.
+ *   The RAW row is snapshotted, not the presentation of getAgent(). In that
+ *   presentation `persona` is a PROJECTION that drops away entirely on a read error
+ *   (_withPersona then omits the key) — and a restore of such a snapshot reads that as
+ *   "no persona" and writes the column empty. The raw row carries the column
+ *   as it is, so a restore restores it as it was.
  *
- *   `changeSummary` wordt altijd meegegeven, zodat createVersion niet zijn
- *   _autoSummary-query hoeft te doen om een zin te verzinnen die de aanroeper
- *   al weet.
+ *   `changeSummary` is always supplied, so that createVersion does not need to run its
+ *   _autoSummary query to invent a sentence that the caller already knows.
  *
- * Bestaat de agent niet, dan komt er `null` terug — geen lege snapshot, want
- * "niets te herstellen" en "een snapshot van niets" zijn niet hetzelfde.
+ * If the agent does not exist, `null` comes back — not an empty snapshot, because
+ * "nothing to restore" and "a snapshot of nothing" are not the same.
  *
  * @param {string} id
  * @param {string|null} [userId]

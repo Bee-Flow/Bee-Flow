@@ -1,31 +1,24 @@
 /**
- * Public Webpage Viewer — unauthenticated, mounted at TWEE adressen:
+ * Public Webpage Viewer — unauthenticated, mounted at TWO addresses:
  *
- *   /share/:token   het token IS het adres (het oorspronkelijke model; het
- *                   N-share-model blijft, een pagina mag er zoveel hebben als
- *                   de eigenaar maakt)
- *   /w/:slug        het adres van de pagina zelf (W3 stap 4). De pagina wijst
- *                   met `public_share_id` naar ÉÉN canonieke share; dit adres
- *                   bedient die.
+ *   /share/:token   the token IS the address (the original model; the N-share
+ *                   model remains, a page may have as many as the owner makes)
+ *   /w/:slug        the address of the page itself (W3 step 4). The page points
+ *                   with `public_share_id` to ONE canonical share; this address
+ *                   serves that one.
  *
- * ── ÉÉN VIEWER, ÉÉN POORT ───────────────────────────────────────────
+ * ── ONE VIEWER, ONE GATE ────────────────────────────────────────────
  *
- * Bewust hetzelfde bestand en dezelfde router, op twee mounts. Een tweede
- * viewer voor /w zou betekenen dat de toegangscontrole — wachtwoord, e-mail,
- * vervaldatum, intrekking, rate-limit, CSP, sandbox — twee keer bestaat, en
- * dan is het een kwestie van tijd tot er één wordt bijgewerkt. Wat per mount
- * verschilt is uitsluitend HOE de share wordt OPGEZOCHT (`resolveShareOr404`)
- * en waar de eigen links naartoe wijzen (`base`); alles daarna is identiek.
+ * Deliberately the same file and the same router, on two mounts. A second viewer for /w would mean that the access control — password, email, expiry date,
+ * revocation, rate limit, CSP, sandbox — exists twice, and then it is only a matter of time before one of them gets updated. What differs per mount is
+ * exclusively HOW the share is LOOKED UP (`resolveShareOr404`) and where its own links point (`base`); everything after that is identical.
  *
- * ── HET ADRES IS DE SLEUTEL, DUS HET ADRES HEEFT ENTROPIE ───────────
+ * ── THE ADDRESS IS THE KEY, SO THE ADDRESS HAS ENTROPY ──────────────
  *
- * Bij `unlisted` is de URL het enige dat een bezoeker hoeft te weten. Een slug
- * die puur uit de paginanaam komt zou elke openbare pagina op de installatie
- * opsombaar maken; daarom bevat elke slug 60 willekeurige bits
- * (stores/webpage/publicAddress.mintSlug). De liveness-toets is dezelfde als
- * die van het token (publicShareStore.findLiveShareById deelt hem letterlijk
- * met findByToken), zodat een ingetrokken share op geen van beide adressen
- * nog iets toont.
+ * With `unlisted` the URL is the only thing a visitor needs to know. A slug that comes purely from the page name would make every public page on the
+ * installation enumerable; therefore every slug contains 60 random bits
+ * (stores/webpage/publicAddress.mintSlug). The liveness check is the same as that of the token (publicShareStore.findLiveShareById shares it verbatim with
+ * findByToken), so that a revoked share shows nothing on either address.
  *
  * This is the only route in the app that serves user-supplied HTML to
  * anonymous visitors, so it carries the bulk of the external-publishing
@@ -58,8 +51,8 @@
  *                             SameSite=Lax, and bound to share ID + HMAC.
  *
  * ── No request schema, on purpose ───────────────────────────────────
- * Every route here is a page an anonymous visitor's browser NAVIGATES to or
- * POSTs an HTML form at, and every answer is HTML. A schema refusal travels
+ * Every route here is a page that an anonymous visitor's browser NAVIGATES to or
+ * POSTs an HTML form to, and every answer is HTML. A schema refusal travels
  * to the terminal error handler and answers JSON, so a mangled link would put
  * `{"error": …}` on a visitor's screen instead of the unlock page. What is
  * read is checked where it decides anything: `v` and `k` are HMAC tokens
@@ -109,7 +102,7 @@ const unlockLimiter = rateLimit({
 
 const UNLOCK_COOKIE_NAME = 'bf_unlock';
 
-/** De tweede mount. Eén plek, zodat de mount in index.js en de takken hier niet uiteen kunnen lopen. */
+/** The second mount. One place, so that the mount in index.js and the branches here cannot drift apart. */
 const SLUG_MOUNT = '/w';
 
 function setSecurityHeaders(res, { allowFraming = false, nonce = '' } = {}) {
@@ -148,12 +141,10 @@ function isHttpsRequest(req) {
 }
 
 /**
- * Onder welke mount dit verzoek binnenkwam: '/share' of '/w'.
+ * Under which mount this request came in: '/share' or '/w'.
  *
- * Alles wat de viewer over zichzelf uitschrijft — de iframe-src, het
- * formulier-action, de magic-link, het pad van de unlock-cookie — hangt
- * hieraan. Valt terug op '/share', want een onbekende mount hoort het OUDE
- * gedrag te krijgen en niet het nieuwe.
+ * Everything the viewer writes about itself — the iframe src, the form action, the magic link, the path of the unlock cookie — depends
+ * on this. Falls back to '/share', because an unknown mount should get the OLD behaviour and not the new.
  */
 function mountBase(req) {
     const b = typeof req?.baseUrl === 'string' ? req.baseUrl.replace(/\/+$/, '') : '';
@@ -166,9 +157,8 @@ function setUnlockCookie(req, res, shareId, email) {
         httpOnly: true,
         sameSite: 'lax',
         secure: isHttpsRequest(req),
-        // Aan de MOUNT gebonden, niet hardgecodeerd op '/share'. Een cookie met
-        // pad '/share' wordt op /w nooit meegestuurd, en dan blijft een
-        // wachtwoordpagina daar eeuwig om hetzelfde wachtwoord vragen.
+        // Bound to the MOUNT, not hard-coded to '/share'. A cookie with path '/share' is
+        // never sent on /w, and then a password page there would ask for the same password forever.
         path: mountBase(req),
         maxAge: publicShareToken.UNLOCK_COOKIE_TTL_MS,
     });
@@ -401,21 +391,19 @@ router.use(viewLimiter);
 const formParser = express.urlencoded({ extended: false, limit: '4kb' });
 
 /**
- * Zoek de share op die bij dit adres hoort — token of slug — en stuur anders
- * de 404-pagina.
+ * Look up the share that belongs to this address — token or slug — and otherwise
+ * send the 404 page.
  *
- * De twee takken komen op hetzelfde uit: een LEVENDE share of niets. Er is
- * geen tak die bij twijfel iets toont.
+ * The two branches come to the same thing: a LIVE share or nothing. There is no
+ * branch that shows something in case of doubt.
  *
- *   /share/:token   op de hash van het token
- *   /w/:slug        pagina op slug → `public_share_id` → dezelfde
- *                   liveness-poort. Wijst de pagina nergens heen (nooit
- *                   openbaar geweest, of "Openbaar" uitgezet), of is de
- *                   aangewezen share ingetrokken of verlopen, dan is dat een
- *                   404 en geen halve pagina. Het adres blijft dan bestaan,
- *                   maar het toont niets — precies de bedoeling: openbaar
- *                   uitzetten mag niet betekenen dat het adres later per
- *                   ongeluk iets anders gaat serveren.
+ *   /share/:token   on the hash of the token
+ *   /w/:slug        page by slug → `public_share_id` → the same
+ *                   liveness gate. If the page points nowhere (never public, or "Public"
+ *                   switched off), or the designated share is revoked or expired, that is a
+ *                   404 and not a half page. The address then still exists, but
+ *                   shows nothing — precisely the intention: making something non-public may not
+ *                   mean that the address later accidentally serves something else.
  *
  * @returns {{share, addr, base}|null}
  */
@@ -434,9 +422,9 @@ async function resolveShareOr404(req, res) {
         const page = await publicAddress.resolveSlug(addr);
         if (!page || !page.publicShareId) return notFound();
         const share = await publicShareStore.findLiveShareById(page.publicShareId);
-        // Extra vergrendeling: de share MOET van deze pagina zijn. Een wijzer
-        // die door een fout naar de share van een andere pagina wijst, mag
-        // nooit de bytes daarvan onder dit adres serveren.
+        // Extra lock: the share MUST belong to this page. A pointer that
+        // through an error points to the share of another page may never
+        // serve that page's bytes under this address.
         if (!share || share.webpageId !== page.webpageId) return notFound();
         return { share, addr, base };
     }

@@ -1,74 +1,74 @@
 /**
- * De Bee Flow-elementen zoals ze BIJ DE LEZER werken.
+ * The Bee Flow elements as they work FOR THE READER.
  *
- * ── WELKE VAN DE DRIE PLEKKEN DIT IS ────────────────────────────────
+ * -- WHICH OF THE THREE PLACES THIS IS ------------------------------
  *
- * Dit is de CLIENT-kant: de preview in de app en een INGELOGDE lezer. Daar
- * draait wel JavaScript en zijn de bruggen er, dus hier werken de elementen
- * echt — anders dan in de publieke snapshot, waar geen JS draait en alles wat
- * JS nodig heeft inert is, en anders dan op een publieke react-share, waar de
- * brug ze weigert. Wat er per plek van een element overblijft, staat in
- * server/core/webpages/bfElements.js; dit bestand VOERT de client-kant uit.
+ * This is the CLIENT side: the preview in the app and a LOGGED-IN reader.
+ * JavaScript does run there and the bridges exist, so here the elements
+ * really work, unlike in the public snapshot, where no JS runs and everything
+ * that needs JS is inert, and unlike on a public react share, where the
+ * bridge refuses them. What remains of an element per place is stated in
+ * server/core/webpages/bfElements.js; this file IMPLEMENTS the client side.
  *
- * ── HET VOCABULAIRE STAAT HIER NIET ─────────────────────────────────
+ * -- THE VOCABULARY IS NOT HERE ---------------------------------------
  *
- * Geen enkele elementnaam, geen enkel attribuut en geen enkele bovengrens
- * staat in dit bestand opgeschreven. Alles komt uit ./bfElements.js, de
- * gegenereerde spiegel van de registry. De uitgezonden code bevat de namen dus
- * wél (ze staan in de meegegeven JSON), maar de BRON hier niet — dat is precies
- * het verschil tussen "afgeleid" en "een tweede lijst", en een tweede lijst is
- * de drift die W4 bestaat om te voorkomen. Een test in
- * composeWebpageDocument.test.js houdt dit bestand daaraan.
+ * Not a single element name, attribute or upper bound is written down in
+ * this file. Everything comes from ./bfElements.js, the generated mirror of
+ * the registry. The emitted code does contain the names (they are in the
+ * JSON passed in), but the SOURCE here does not: that is exactly the
+ * difference between "derived" and "a second list", and a second list is
+ * the drift W4 exists to prevent. A test in composeWebpageDocument.test.js
+ * holds this file to that.
  *
- * Wat hier wél met de hand staat is CLIENT_HANDLING: de beslissing die deze
- * plek moet uitspreken over élk element van het vocabulaire — precies zoals
- * VANILLA_HANDLING dat doet in server/services/webpageBfTable.js. Een element
- * dat de registry kent maar dat hier geen renderer heeft, is niet stil: het
- * telt als een gat (`clientCoverageGaps()`), het staat in `window.beeflowBf`
- * als "unsupported" in plaats van als "live", en de lezer krijgt op de pagina
- * een zichtbare melding te zien.
+ * What IS hand-written here is CLIENT_HANDLING: the decision this place
+ * has to state about every element of the vocabulary, exactly as
+ * VANILLA_HANDLING does in server/services/webpageBfTable.js. An element
+ * the registry knows but that has no renderer here is not silent: it
+ * counts as a gap (`clientCoverageGaps()`), it appears in `window.beeflowBf`
+ * as "unsupported" instead of "live", and the reader gets a visible notice
+ * on the page.
  *
- * ── FALEN IS BELANGRIJKER DAN LUKKEN ────────────────────────────────
+ * -- FAILING MATTERS MORE THAN SUCCEEDING -----------------------------
  *
- * Een element dat zijn bron niet kan lezen moet dat TONEN. De vier redenen
- * blijven daarbij uit elkaar, want ze vragen om ander gedrag van de lezer:
+ * An element that cannot read its source must SHOW that. The reasons stay
+ * apart, because they call for different behaviour from the reader:
  *
- *   unavailable  de brug is er niet (geen preview-token) — dit blok wordt met
- *                opzet ook zónder token uitgezonden, juist om dat te kunnen
- *                zeggen in plaats van onzichtbaar te blijven;
- *   forbidden    de server zei 401/403 — je mag dit niet zien;
- *   gone         de server zei 404 — de bron is niet (meer) aan deze pagina
- *                gebonden;
- *   failed       al het andere — er ging iets stuk;
- *   empty        het lezen lukte en er is niets. Dat is GEEN fout, en het mag
- *                er ook niet als een fout uitzien.
+ *   unavailable  the bridge is not there (no preview token); this block is
+ *                deliberately emitted even without a token, precisely to be
+ *                able to say so instead of staying invisible;
+ *   forbidden    the server said 401/403: you may not see this;
+ *   gone         the server said 404: the source is no longer bound to
+ *                this page;
+ *   failed       everything else: something broke;
+ *   empty        the read worked and there is nothing. That is NOT an error,
+ *                and it must not look like one.
  *
- * Op een publieke snapshot gaat die reden bewust NIET mee naar de lezer
- * (services/webpageBfTable.js legt uit waarom: een anonieme bezoeker mag
- * "mag niet" en "kapot" niet uit elkaar kunnen houden). Hier is het publiek een
- * ander: een ingelogde lezer of de auteur in zijn eigen preview, en die moet
- * juist wél weten waaróm er niets staat.
+ * On a public snapshot that reason deliberately does NOT go to the reader
+ * (services/webpageBfTable.js explains why: an anonymous visitor must not
+ * be able to tell "not allowed" from "broken"). Here the audience is
+ * different: a logged-in reader or the author in their own preview, who
+ * needs to know why nothing is shown.
  */
 
 import { BF_ELEMENTS, type BfElementDef } from './bfElements';
 
-/** Het voorvoegsel van alle elementen; de rest van de naam is de renderersleutel. */
+/** The prefix of all elements; the rest of the name is the renderer key. */
 const PREFIX = 'bf-';
 
-/** De sleutel waaronder een element zijn renderer vindt: de naam ná het voorvoegsel. */
+/** The key under which an element finds its renderer: the name after the prefix. */
 export function localNameOf(tag?: string | null): string {
     return String(tag || '').slice(PREFIX.length);
 }
 
 /**
- * Wat DEZE plek met elk element doet — de beslissing die de client uitspreekt.
+ * What THIS place does with each element: the decision the client states.
  *
- *   live  — er staat hieronder een renderer voor, en die praat met de bruggen.
+ *   live  - there is a renderer for it below, and it talks to the bridges.
  *
- * Een element uit de registry dat hier ontbreekt is een GAT, geen stilte:
- * `clientCoverageGaps()` meldt het, de test valt erover, `window.beeflowBf`
- * noemt het "unsupported" en de lezer krijgt een melding in plaats van een lege
- * plek. Wie een element toevoegt, zet zijn sleutel hier neer.
+ * An element from the registry that is missing here is a GAP, not silence:
+ * `clientCoverageGaps()` reports it, the test fails on it, `window.beeflowBf`
+ * calls it "unsupported" and the reader gets a notice instead of an empty
+ * spot. Whoever adds an element puts its key here.
  */
 export const CLIENT_HANDLING: Readonly<Record<string, string>> = Object.freeze({
     table: 'live',
@@ -79,32 +79,32 @@ export const CLIENT_HANDLING: Readonly<Record<string, string>> = Object.freeze({
 });
 
 /**
- * De naam van de renderfunctie die bij een sleutel hoort.
+ * The name of the render function that belongs to a key.
  *
- * De RENDERERS-tabel in het uitgezonden blok wordt hieruit GEGENEREERD, en de
- * dekkingscontrole leest daarna de uitgezonden brontekst om te zien of die
- * functie er ook echt staat. Zonder dat was RENDERERS een tweede, met de hand
- * bijgehouden lijst naast CLIENT_HANDLING: een sleutel eruit halen liet de
- * controle groen en `window.beeflowBf` "live" beweren over een element dat op de
- * pagina "unsupported" toonde — de brug loog dan tegen de pagina.
+ * The RENDERERS table in the emitted block is GENERATED from this, and the
+ * coverage check then reads the emitted source text to see whether that
+ * function really exists. Without that, RENDERERS was a second, hand-kept
+ * list next to CLIENT_HANDLING: removing a key left the check green and
+ * `window.beeflowBf` claiming "live" for an element that showed "unsupported"
+ * on the page; the bridge was then lying to the page.
  */
 export function rendererNameOf(local?: string | null): string {
     return 'render' + String(local || '').charAt(0).toUpperCase() + String(local || '').slice(1);
 }
 
 /**
- * De twee richtingen tussen de registry en de renderers hierboven.
+ * The two directions between the registry and the renderers above.
  *
- * @returns {{missing:string[], stray:string[]}} `missing`: in het vocabulaire,
- *   maar hier niet bediend. `stray`: hier bediend, maar het vocabulaire kent
- *   het niet (meer).
+ * @returns {{missing:string[], stray:string[]}} `missing`: in the vocabulary,
+ *   but not served here. `stray`: served here, but the vocabulary does not
+ *   know it (any more).
  */
 export function clientCoverageGaps(body: string | null = null): { missing: string[]; stray: string[]; unimplemented: string[] } {
     const locals = BF_ELEMENTS.map((def: BfElementDef) => localNameOf(def.tag));
     const declared = Object.keys(CLIENT_HANDLING);
-    // Derde richting: verklaard, maar er staat geen functie voor in de
-    // uitgezonden code. Alleen te toetsen op de BRONTEKST, want de renderers
-    // bestaan pas in de browser.
+    // Third direction: declared, but there is no function for it in the
+    // emitted code. Can only be checked on the SOURCE TEXT, because the
+    // renderers only exist in the browser.
     const unimplemented = body === null ? [] : declared.filter(
         l => !new RegExp(`function ${rendererNameOf(l)}\\b`).test(body),
     );
@@ -116,10 +116,9 @@ export function clientCoverageGaps(body: string | null = null): { missing: strin
 }
 
 /**
- * Het vocabulaire zoals de BROWSER het nodig heeft: alleen de velden waar de
- * uitgezonden code iets mee doet. De Nederlandse verantwoordingen (`why`) en de
- * teksten van de andere twee plekken blijven achter — die gaan de pagina van
- * een lezer niet aan.
+ * The vocabulary as the BROWSER needs it: only the fields the emitted code
+ * does something with. The Dutch justifications (`why`) and the texts of the
+ * other two places stay behind; they are none of a reader's page's business.
  */
 function clientVocabulary(unimplemented: string[] = []) {
     return BF_ELEMENTS.map((def: BfElementDef) => {
@@ -128,14 +127,14 @@ function clientVocabulary(unimplemented: string[] = []) {
         return {
             tag: def.tag,
             local,
-            // Geen renderer ⇒ geen 'live'. Liever herkenbaar niet-bediend dan
-            // een belofte die deze plek niet waarmaakt. `served` telt ook de
-            // ONTBREKENDE functie mee, zodat de brug niet "live" kan zeggen over
-            // iets dat de pagina als "unsupported" te zien krijgt.
+            // No renderer => no 'live'. Better recognisably not served than
+            // a promise this place does not keep. `served` also counts the
+            // MISSING function, so the bridge cannot say "live" about
+            // something the page shows as "unsupported".
             state: served ? def.surfaces.clientComposer.state : 'unsupported',
             needsJs: !!def.needsJs,
-            // Over hoeveel rijen dit element rekent. Uit de registry, zodat de
-            // preview hetzelfde getal oplevert als de gepubliceerde pagina.
+            // How many rows this element works with. From the registry, so the
+            // preview yields the same number as the published page.
             ...(def.reads ? { reads: def.reads } : {}),
             attributes: def.attributes.map(a => ({
                 name: a.name,
@@ -151,7 +150,7 @@ function clientVocabulary(unimplemented: string[] = []) {
     });
 }
 
-/** JSON dat veilig binnen een inline <script> staat. */
+/** JSON that is safe inside an inline <script>. */
 function jsonLiteral(value: unknown): string {
     return JSON.stringify(value)
         .replace(/</g, '\\u003c')
@@ -160,11 +159,11 @@ function jsonLiteral(value: unknown): string {
 }
 
 /**
- * De opmaak. Een custom element is standaard `display:inline` en leeg — precies
- * de onzichtbaarheid die hier bestreden wordt — dus alles krijgt eerst een blok.
- * Verder alleen neutrale grijstinten met doorzichtigheid, zodat het op een
- * lichte én een donkere pagina leesbaar is, en de auteur het met zijn eigen CSS
- * kan overschrijven (deze stijl staat vóór de zijne in de <head>).
+ * The styling. A custom element is `display:inline` and empty by default,
+ * exactly the invisibility being fought here, so everything first becomes a
+ * block. Beyond that only neutral greys with transparency, so it is readable
+ * on a light and a dark page, and the author can override it with their own
+ * CSS (this style comes before theirs in the <head>).
  */
 function buildBfStyles() {
     const selector = BF_ELEMENTS.map((def: BfElementDef) => def.tag).join(',');
@@ -191,7 +190,7 @@ ${selector}{display:block;margin:.5em 0}
 </style>`;
 }
 
-/** Het vocabulaire, de brug-opzoeker en alle zinnen die de lezer kan zien. */
+/** The vocabulary, the bridge lookup and all sentences the reader can see. */
 function emitVocabulary(unimplemented: string[] = []): string {
     return `
   var ELEMENTS = ${jsonLiteral(clientVocabulary(unimplemented))};
@@ -203,10 +202,10 @@ function emitVocabulary(unimplemented: string[] = []): string {
     BY_TAG[ELEMENTS[vi].tag] = ELEMENTS[vi];
     VOCAB[ELEMENTS[vi].tag] = { state: ELEMENTS[vi].state, needsJs: ELEMENTS[vi].needsJs, message: null };
   }
-  // De bruggen worden op naam GELEZEN en nooit hier gedefinieerd. Dit blok
-  // wordt namelijk ook uitgezonden als de shims hierboven ontbraken (geen
-  // token): juist dan moet een element zeggen dat het zijn bron niet kan
-  // bereiken, in plaats van onzichtbaar te blijven.
+  // The bridges are READ by name and never defined here. This block is
+  // also emitted when the shims above were missing (no token): precisely
+  // then an element must say it cannot reach its source, instead of
+  // staying invisible.
   function bridge(name) {
     try { return window[name] || null; } catch (e) { return null; }
   }
@@ -239,7 +238,7 @@ function emitVocabulary(unimplemented: string[] = []): string {
   };`;
 }
 
-/** Bouwstenen voor de DOM, en het onderscheid tussen de soorten mislukking. */
+/** Building blocks for the DOM, and the distinction between the kinds of failure. */
 function emitDom() {
     return `
   function node(tag, cls, text) {
@@ -248,11 +247,11 @@ function emitDom() {
     if (text !== null && text !== undefined) n.textContent = String(text);
     return n;
   }
-  // Wat de AUTEUR in het element schreef, blijft van hem — dezelfde regel als
-  // op de twee serverplekken (inertBlock verhuist zijn kinderen, bfDecorate laat
-  // ze staan). Ze gaan één keer in een eigen blok; wij schrijven daarna alleen
-  // nog in ons EIGEN blok ernaast. Weggooien mocht niet: bij een tikfout in een
-  // attribuut verdween zo de hele formuliermarkup van de auteur uit de preview.
+  // What the AUTHOR wrote in the element stays theirs: the same rule as in
+  // the two server places (inertBlock moves its children, bfDecorate leaves
+  // them in place). They go into a block of their own once; afterwards we only
+  // write in our OWN block next to it. Discarding was not allowed: with a typo
+  // in an attribute the author's whole form markup vanished from the preview.
   function own(host) {
     if (host.__bfOwn && host.__bfOwn.parentNode === host) return host.__bfOwn;
     var box = node("div", "bf-own");
@@ -270,9 +269,9 @@ function emitDom() {
     return box;
   }
   function empty(box) { while (box.firstChild) box.removeChild(box.firstChild); }
-  // Het element waar dit ONDER hangt. Een statusregel zit in een gewone <div>,
-  // maar de stand hoort op het bf-element zelf te staan — daar mikt de CSS van
-  // de auteur op, en daar zet de publieke brug hem ook neer.
+  // The element this hangs UNDER. A status line sits in a plain <div>,
+  // but the state belongs on the bf element itself: that is what the
+  // author's CSS targets, and where the public bridge puts it too.
   function hostOf(el) {
     var n = el;
     while (n && n.nodeType === 1) {
@@ -289,13 +288,13 @@ function emitDom() {
   }
   function clear(host) {
     empty(out(host));
-    // Leeghalen wist ook het oordeel: anders blijft "loading" op een element
-    // staan dat inmiddels gewoon zijn rijen toont.
+    // Emptying also wipes the verdict: otherwise "loading" stays on an element
+    // that by now simply shows its rows.
     mark(host, null);
   }
-  // Wij nemen het over: onze uitvoer vervangt wat de auteur als terugval
-  // schreef (een "laden…"-tekst, het label van een knop). Verbergen, niet
-  // weggooien — zodra het alsnog misgaat komt zijn tekst terug.
+  // We take over: our output replaces what the author wrote as a fallback
+  // (a "loading..." text, a button label). Hide, do not discard: as soon as
+  // it goes wrong after all, their text comes back.
   function takeOver(host) {
     var box = out(host);
     empty(box);
@@ -314,18 +313,18 @@ function emitDom() {
   function show(host, kind, text, detail) {
     var box = out(host);
     empty(box);
-    // Een melding is een MISLUKKING, geen render: wat de auteur zelf schreef
-    // komt weer tevoorschijn (of blijft staan), zodat zijn terugvaltekst en zijn
-    // velden er nog zijn.
+    // A notice is a FAILURE, not a render: what the author wrote
+    // reappears (or stays), so their fallback text and their
+    // fields are still there.
     own(host).hidden = false;
-    // De stand op het bf-ELEMENT, ook als deze aanroep een statusregel eronder
-    // betreft — dezelfde plek waar de publieke brug hem neerzet, zodat CSS en
-    // tests op beide plekken hetzelfde kunnen vragen.
+    // The state on the bf ELEMENT, even when this call concerns a status line
+    // below it: the same place where the public bridge puts it, so CSS and
+    // tests can ask the same thing in both places.
     mark(host, kind);
     box.appendChild(message(kind, text, detail));
   }
-  // De drie soorten mislukking uit elkaar houden. "Leeg" komt hier NOOIT langs:
-  // dat is geen fout en hoort er ook niet als een fout uit te zien.
+  // Keep the three kinds of failure apart. "Empty" NEVER passes through here:
+  // it is not an error and must not look like one.
   function classify(err) {
     var status = (err && typeof err.status === "number") ? err.status : 0;
     if (status === 401 || status === 403) return "forbidden";
@@ -351,8 +350,8 @@ function emitDom() {
 }
 
 /**
- * De attribuutlezer: dezelfde regels als de serverkant (aliassen, defaults,
- * voorwaardelijk verplicht), maar hier over dezelfde meegegeven definities.
+ * The attribute reader: the same rules as the server side (aliases, defaults,
+ * conditionally required), but here over the same passed-in definitions.
  */
 function emitAttributes() {
     return `
@@ -396,8 +395,8 @@ function emitAttributes() {
     }
     return out;
   }
-  // Een gesloten lijst met waarden is een belofte: een waarde die er niet in
-  // staat wordt gemeld, niet stil op de default gezet.
+  // A closed list of values is a promise: a value that is not in it
+  // is reported, not silently set to the default.
   function badValues(def, attrs) {
     var out = [];
     for (var i = 0; i < def.attributes.length; i++) {
@@ -409,12 +408,12 @@ function emitAttributes() {
   }`;
 }
 
-/** Het lezen zelf: één plek waar de rijen vandaan komen, voor beide lezers. */
+/** The reading itself: one place the rows come from, for both readers. */
 function emitRows() {
     return `
-  // Leest ALS DE BEZOEKER, met diens eigen graad, en geknipt tot de kolommen
-  // die de auteur aan deze pagina heeft gebonden. Dat is een andere lezer dan
-  // de publieke snapshot gebruikt, en met opzet.
+  // Reads AS THE VISITOR, with their own grade, and clipped to the columns
+  // the author bound to this page. That is a different reader from the one
+  // the public snapshot uses, deliberately.
   function readRows(def, attrs) {
     var tables = bridge("beeflowTables");
     if (!tables || typeof tables.query !== "function") return null;
@@ -427,10 +426,10 @@ function emitRows() {
       if (max) want = Math.min(want, max);
       if (want) opts.limit = want;
     } else if (def.reads && def.reads.rowsMax) {
-      // Een element zonder limit-attribuut vroeg niets, en dan koos de server
-      // zijn eigen default (50) terwijl de gepubliceerde pagina er 500 leest:
-      // twee verschillende getallen voor hetzelfde element. Het getal staat nu
-      // in de registry en beide plekken vragen het op.
+      // An element without a limit attribute asked for nothing, so the server
+      // picked its own default (50) while the published page reads 500:
+      // two different numbers for the same element. The number now lives
+      // in the registry and both places ask for it.
       opts.limit = def.reads.rowsMax;
     }
     return tables.query(attrs[def.binding.from], opts);
@@ -442,7 +441,7 @@ function emitRows() {
 `;
 }
 
-/** De tabel: rijen als gewone opmaak. */
+/** The table: rows as plain markup. */
 function emitTable() {
     return `
   function renderTable(el, def, attrs) {
@@ -497,8 +496,8 @@ function emitStat() {
       var rows = (res && res.rows) || [], cols = (res && res.columns) || [];
       var value = rows.length;
       if (attrs.agg !== "count") {
-        // De kolom moet gebonden ZIJN. Staat hij er niet bij, dan is dat "mag
-        // je niet zien" — geen nul.
+        // The column must be BOUND. If it is not there, that means "you may
+        // not see it", not zero.
         if (cols.indexOf(attrs.column) === -1) return show(el, "forbidden", SAY.columnGone, attrs.column);
         var nums = [];
         for (var i = 0; i < rows.length; i++) {
@@ -514,15 +513,15 @@ function emitStat() {
       var box = takeOver(el);
       box.appendChild(node("span", "bf-stat-value", formatNumber(value)));
       if (attrs.label) box.appendChild(node("span", "bf-stat-label", attrs.label));
-      // Een getal over een AFGEKAPTE uitslag is een verkeerd getal. Dat mag
-      // nooit zonder die mededeling op de pagina staan.
+      // A number over a TRUNCATED result is a wrong number. It must
+      // never appear on the page without that notice.
       var partial = partialNotice(res, rows);
       if (partial) box.appendChild(partial);
     }, function (err) { fail(el, err); });
   }`;
 }
 
-/** Het starten van een automatisering, en het bevestigen zonder modaal venster. */
+/** Starting an automation, and confirming without a modal dialog. */
 function emitRunner() {
     return `
   function runAutomation(host, def, attrs, inputs, done) {
@@ -530,10 +529,10 @@ function emitRunner() {
     if (!autos || typeof autos.run !== "function") { show(host, "unavailable", SAY.unavailable); return done(); }
     show(host, "busy", SAY.running);
     autos.run(attrs[def.binding.from], inputs || {}, { wait: true }).then(function (res) {
-      // LET OP: deze route antwoordt met 200 en een MISLUKTE run in het lichaam.
-      // Wie alleen naar de HTTP-status kijkt, meldt "gelukt" over iets dat
-      // stukliep. Alleen 'success' zonder fout is gelukt; al het andere is een
-      // eigen, zichtbare stand.
+      // NOTE: this route answers 200 with a FAILED run in the body.
+      // Whoever only looks at the HTTP status reports "succeeded" about
+      // something that broke. Only 'success' without an error succeeded; everything
+      // else is a visible state of its own.
       var status = (res && res.status) ? String(res.status) : "";
       if (res && res.error) show(host, "failed", SAY.runFailed, String(res.error));
       else if (status === "success") show(host, "done", SAY.done);
@@ -541,10 +540,10 @@ function emitRunner() {
       done();
     }, function (err) { fail(host, err); done(); });
   }
-  // \`confirm\` is hier met opzet GEEN window.confirm: de preview draait in een
-  // iframe met sandbox="allow-scripts allow-forms" en zonder allow-modals
-  // negeert de browser confirm() stil — de knop zou dan nooit iets doen. Twee
-  // klikken met een zichtbare tussenstand werkt overal.
+  // \`confirm\` is deliberately NOT window.confirm here: the preview runs in an
+  // iframe with sandbox="allow-scripts allow-forms" and without allow-modals,
+  // so the browser silently ignores confirm() and the button would never do
+  // anything. Two clicks with a visible intermediate state works everywhere.
   function arming(btn, label, go) {
     var armed = false, timer = null;
     function disarm() {
@@ -567,12 +566,12 @@ function emitRunner() {
 `;
 }
 
-/** De twee elementen die iets LATEN GEBEUREN: de knop en het formulier. */
+/** The two elements that MAKE SOMETHING HAPPEN: the button and the form. */
 function emitControls() {
     return `
   function renderButton(el, def, attrs) {
-    // De tekst IN het element is bij deze soort het LABEL, geen opmaak — lezen
-    // vóór takeOver, want daarna is hij verborgen.
+    // For this kind the text INSIDE the element is the LABEL, not markup. Read
+    // it before takeOver, because afterwards it is hidden.
     var label = attrs.label || String(el.textContent || "").trim() || SAY.run;
     var box = takeOver(el);
     var btn = node("button", "bf-btn", label), status = node("div", "bf-status");
@@ -591,10 +590,10 @@ function emitControls() {
     btn.addEventListener("click", function () { press(!!attrs.confirm); });
   }
   function renderForm(el, def, attrs) {
-    // De kinderen van de auteur BLIJVEN staan én ZICHTBAAR — dat zijn zijn
-    // velden, niet een terugvaltekst. Er komt alleen een knop en een statusregel
-    // bij. Geen echt <form>-element: met allow-forms zou een Enter de hele frame
-    // wegnavigeren.
+    // The author's children STAY and stay VISIBLE: those are their
+    // fields, not a fallback text. Only a button and a status line are
+    // added. No real <form> element: with allow-forms an Enter would navigate
+    // the whole frame away.
     var label = attrs["submit-label"] || SAY.submit;
     var box = out(el);
     empty(box);
@@ -634,7 +633,7 @@ function emitControls() {
   }`;
 }
 
-/** Het gespreksblok: de agentische lus van de brug, ingebed in de pagina. */
+/** The conversation block: the bridge's agentic loop, embedded in the page. */
 function emitAgent() {
     return `
   function renderAgent(el, def, attrs) {
@@ -656,8 +655,8 @@ function emitAgent() {
       send.disabled = true;
       return show(status, "unavailable", SAY.unavailable);
     }
-    // Zonder attribuut is dit de agent van de PAGINA — de brug kiest hem, want
-    // die kent de binding. Staat er wel een id, dan gaat het mee.
+    // Without the attribute this is the PAGE's agent: the bridge picks it, as
+    // it knows the binding. If an id is present, it is passed along.
     var agentId = attrs[def.binding.from] || null;
     function busy(on) {
       input.disabled = on;
@@ -676,11 +675,11 @@ function emitAgent() {
       if (agentId) opts.agentId = agentId;
       ai.ask(question, opts).then(function (res) {
         if (!answer.textContent && res && res.text) answer.textContent = String(res.text);
-        // Een leeg antwoord is een uitkomst, geen niets: zeg het.
+        // An empty answer is an outcome, not nothing: say so.
         if (!answer.textContent) show(status, "empty", SAY.emptyAnswer);
-        // Een AFGEKAPT antwoord ziet er precies zo betrouwbaar uit als een heel
-        // antwoord — dezelfde fout die het getalelement bij een afgekapte
-        // uitslag meldt.
+        // A TRUNCATED answer looks exactly as reliable as a complete
+        // one: the same fault the number element reports for a truncated
+        // result.
         else if (res && res.truncated) show(status, "partial", SAY.partialAnswer);
         else clear(status);
         busy(false);
@@ -699,13 +698,13 @@ function emitAgent() {
 }
 
 /**
- * Het opzoeken en bijwerken van de elementen op de pagina, plus het venster
- * waarin een pagina kan vragen wat er hier van een element terechtkomt.
+ * Finding and updating the elements on the page, plus the window in which a
+ * page can ask what becomes of an element here.
  */
 function rendererTable() {
-    // Uit CLIENT_HANDLING, niet uit een tweede lijst hieronder. De functienamen
-    // volgen `rendererNameOf`; `clientCoverageGaps` toetst op de uitgezonden
-    // brontekst dat elke naam er ook echt staat.
+    // From CLIENT_HANDLING, not from a second list below. The function names
+    // follow `rendererNameOf`; `clientCoverageGaps` checks against the emitted
+    // source text that every name really exists.
     return Object.keys(CLIENT_HANDLING)
         .map(local => `${local}: ${rendererNameOf(local)}`)
         .join(', ');
@@ -719,8 +718,8 @@ function emitBoot() {
     el.setAttribute(READY, "1");
     var tag = String(el.tagName || "").toLowerCase();
     var def = BY_TAG[tag];
-    // Onbekend is HERKENBAAR onbekend. Zonder dit blijft er niets staan: een
-    // onbekend element is voor de browser een lege inline-doos.
+    // Unknown is RECOGNISABLY unknown. Without this nothing is left: an
+    // unknown element is an empty inline box to the browser.
     if (!def) return show(el, "unknown", SAY.unknown, tag);
     var render = RENDERERS[def.local];
     if (!render) return show(el, "unsupported", SAY.unsupported, tag);
@@ -740,8 +739,8 @@ function emitBoot() {
     var all = root.querySelectorAll("*");
     for (var i = 0; i < all.length; i++) if (isOurs(all[i].tagName)) upgrade(all[i]);
   }
-  // Wat de PAGINA zelf later neerzet, telt ook mee. Zonder dit werkt een
-  // element dat uit script.js komt nergens, en wel zonder één melding.
+  // What the PAGE itself inserts later counts too. Without this, an
+  // element that comes from script.js works nowhere, and without a single notice.
   function watch() {
     if (typeof MutationObserver !== "function") return;
     new MutationObserver(function (records) {
@@ -755,8 +754,8 @@ function emitBoot() {
     scan(document.body || document.documentElement);
     watch();
   }
-  // Dezelfde vorm als de publieke brug, zodat een pagina op beide plekken met
-  // dezelfde vraag kan uitvinden wat er van een element terechtkomt.
+  // The same shape as the public bridge, so a page can find out in both
+  // places with the same question what becomes of an element.
   window.beeflowBf = {
     elements: VOCAB,
     lookup: function (tag) { return this.elements[String(tag || "").toLowerCase()] || null; },
@@ -773,23 +772,23 @@ function emitBoot() {
 }
 
 /**
- * De stijl plus het script dat de elementen op de pagina tot leven brengt.
+ * The style plus the script that brings the elements on the page to life.
  *
- * Met opzet NIET achter dezelfde poort als de bruggen hierboven: zonder token
- * bestaan `beeflowTables` / `beeflowAutomations` / `beeflowAI` niet, en juist
- * dan moet elk element zeggen dat het zijn bron niet kan bereiken. Dit blok
- * definieert die bruggen nooit — het leest ze alleen op naam.
+ * Deliberately NOT behind the same gate as the bridges above: without a token
+ * `beeflowTables` / `beeflowAutomations` / `beeflowAI` do not exist, and
+ * precisely then every element must say it cannot reach its source. This
+ * block never defines those bridges; it only reads them by name.
  */
 export function buildBfElementsScript() {
-    // De renderers eerst, dan pas het vocabulaire: de dekkingscontrole leest de
-    // uitgezonden BRONTEKST, en wat er niet in staat mag geen 'live' beloven.
+    // The renderers first, only then the vocabulary: the coverage check reads the
+    // emitted SOURCE TEXT, and what is not in it must not promise 'live'.
     const body = `${emitDom()}${emitAttributes()}${emitRows()}${emitTable()}${emitStat()}`
         + `${emitRunner()}${emitControls()}${emitAgent()}`;
     const gaps = clientCoverageGaps(body);
     if (gaps.missing.length || gaps.stray.length || gaps.unimplemented.length) {
-        // Luid in de ontwikkelconsole, maar nooit fataal: een witte pagina is
-        // een slechtere waarschuwing dan een melding op het element zelf, en
-        // die melding komt er hoe dan ook (state 'unsupported').
+        // Loud in the dev console, but never fatal: a white page is a worse
+        // warning than a notice on the element itself, and that notice appears
+        // anyway (state 'unsupported').
         console.warn('[bfElements] de client bedient het vocabulaire niet volledig:', gaps);
     }
     return `${buildBfStyles()}<script>(function(){${emitVocabulary(gaps.unimplemented)}${body}${emitBoot()}

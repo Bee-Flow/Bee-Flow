@@ -1,23 +1,22 @@
 /**
- * `readDataBinding` op een GEKOPPELDE tabel — het vierde-en-een-half leespad.
+ * `readDataBinding` on a LINKED table — the four-and-a-half-th read path.
  *
- * `resolveDataBinding` levert de live context voor een serverstap
- * (ai_generate.promptContext, de bron van ai_extract, generate_file). Het
- * compileerde tegen de MODELtabel en bevroeg `studioAppDbStore`, dus voor een
- * tabel die haar rijen uit een Studio-datatabel haalt raakte het de LEGE
- * schaduwtabel: `[]`, en een SQL-fout werd door de catch `null`. Een AI-stap
- * die "de openstaande tickets" als context bindt kreeg dus een leeg antwoord
- * dat niet te onderscheiden was van "er zijn geen rijen".
+ * `resolveDataBinding` supplies the live context for a server step (ai_generate.promptContext,
+ * the source of ai_extract, generate_file). It compiled against the MODEL table and queried
+ * `studioAppDbStore`, so for a table that fetches its rows from a Studio datatable it touched
+ * the EMPTY shadow table: `[]`, and an SQL error was turned into `null` by the catch. An AI
+ * step that binds "the open tickets" as context thus received an empty answer that could not
+ * be told apart from "there are no rows".
  *
- * Wat hier gepind wordt:
- *   • de rijen komen uit de DATATABEL, op de scope-sleutel, met dialect pg;
- *   • de graad is die van de KIJKER — de moduledoc belooft "alles hier gaat als
- *     de VIEWER", en voor deze soort was dat niet waar;
- *   • een WEIGERING wordt niet tot `null` afgevlakt: hij gooit door, met status
- *     en reden, zodat "leeg" en "mocht niet" verschillende antwoorden blijven;
- *   • een tabel zonder `source` gedraagt zich exact zoals altijd.
+ * What is pinned here:
+ *   • the rows come from the DATATABLE, on the scope key, with dialect pg;
+ *   • the grade is that of the VIEWER — the module doc promises "everything here runs as the
+ *     VIEWER", and for this kind that was not true;
+ *   • a REFUSAL is not flattened to `null`: it throws, with status and reason, so that "empty"
+ *     and "not allowed" remain different answers;
+ *   • a table without `source` behaves exactly as it always has.
  *
- * Draaien: cd server && node --test --test-reporter=tap appStudio/stepDataSource.datatable.test.js
+ * Run: cd server && node --test --test-reporter=tap appStudio/stepDataSource.datatable.test.js
  */
 
 'use strict';
@@ -173,8 +172,8 @@ test('row_scope:own bindt de filter aan de KIJKER, niet aan de app-eigenaar', as
 });
 
 test('een kijker zonder graad krijgt een WEIGERING, geen lege context', async () => {
-    // Dit is de kern: `[]` en "je mag niet kijken" zijn verschillende antwoorden,
-    // en de eerste ziet er voor de AI-stap uit als een lege tabel.
+    // This is the core: `[]` and "you may not look" are different answers, and the first looks to the
+    // AI step like an empty table.
     reset();
     const err = await refusal(stepDataSource.resolveDataBinding(app, model(), RECORDS, opts()));
     assert.strictEqual(err.status, 403);

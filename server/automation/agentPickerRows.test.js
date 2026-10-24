@@ -1,16 +1,15 @@
 /**
- * De agent-kiezer van de AI-stap (R2, deel C).
+ * The agent picker of the AI step (R2, part C).
  *
- * Twee dingen worden hier vastgelegd, en het tweede is het belangrijkste:
+ * Two things are fixed here, and the second is the most important:
  *
- *   1. een agent die je NIET kunt kiezen staat er wél, mét de reden. Stil
- *      weglaten is de fout die deze module bestaat om te voorkomen;
- *   2. de reden is uitleg en nooit een tweede oordeel. `canUse` komt uit
- *      `mayAutomationUseAgent` — dezelfde functie als de save-check — en de
- *      laatste test hieronder draait beide over dezelfde tabel gevallen zodat
- *      een reden die zou gaan verbreden een rode test is en geen stille grant.
+ *   1. an agent that you may NOT choose IS listed, with the reason. Silently leaving it out is the fault that
+ *      this module exists to prevent;
+ *   2. the reason is explanation and never a second judgement. `canUse` comes from `mayAutomationUseAgent` —
+ *      the same function as the save check — and the last test below runs both over the same table of cases,
+ *      so that a reason that would broaden is a red test and not a silent grant.
  *
- * Draaien: cd server && node --test --test-reporter=tap automation/agentPickerRows.test.js
+ * Run: cd server && node --test --test-reporter=tap automation/agentPickerRows.test.js
  */
 
 'use strict';
@@ -23,9 +22,8 @@ const { mayAutomationUseAgent } = require('./agentCatalog');
 
 const VIEWER = { userId: 'u1', orgId: 'org1', groups: ['g1'] };
 
-// Twee publicatie-feiten, want het zijn twee schakelaars: `is_published` zet de
-// agent in de bibliotheek, `published_version > 0` bepaalt of `getForRuntime`
-// de gepubliceerde config serveert in plaats van het levende klad.
+// Two publication facts, because they are two switches: `is_published` puts the agent in the library,
+// `published_version > 0` determines whether `getForRuntime` serves the published config instead of the live draft.
 const agent = (over = {}) => ({
     id: 'agt_1',
     name: 'Helper',
@@ -79,10 +77,9 @@ test('gedeeld met een groep waar de vrager WEL in zit', () => {
 });
 
 test('een onleesbare groepenlijst is geen groepenlijst — onbekend versmalt', () => {
-    // `shared_groups` hoort een array te zijn; komt er iets anders binnen, dan
-    // leest `mayAutomationUseAgent` dat als "met niemand in het bijzonder gedeeld"
-    // en blijft de org-regel de poort. Vastgelegd omdat de rij uit de database
-    // komt en een JSON-parse daar kan mislukken.
+    // `shared_groups` is expected to be an array; if something else comes in, then `mayAutomationUseAgent`
+    // reads that as "shared with nobody in particular" and the organisation rule remains the gate. Pinned
+    // because the row comes from the database and a JSON parse can fail there.
     const row = rowFor({ shared_groups: 'g1' });
     assert.strictEqual(row.canUse, true, 'de org-regel geldt nog steeds; alleen de groepsversmalling valt weg');
 });
@@ -120,9 +117,8 @@ test('rommel in de lijst wordt overgeslagen, niet als agent geteld', () => {
 });
 
 test('de reden is uitleg, nooit een tweede oordeel', () => {
-    // Dezelfde tabel door beide kanten. `canUse` MOET uit `mayAutomationUseAgent`
-    // komen en de reden mag daar niets aan veranderen: een rij is kiesbaar dan
-    // en slechts dan als er geen reden op staat.
+    // The same table from both sides. `canUse` MUST come from `mayAutomationUseAgent` and the reason may
+    // change nothing about that: a row is choosable then and only then when no reason is attached to it.
     const cases = [
         {},
         { is_published: false },
@@ -154,19 +150,17 @@ test('de reden is uitleg, nooit een tweede oordeel', () => {
 });
 
 test('explainRefusal valt terug op "unavailable" en nooit op "dan mag het wel"', () => {
-    // Een geval dat geen van de drie regels raakt (de weigering kwam ergens
-    // anders vandaan). De vage zin is dan het eerlijke antwoord.
+    // A case that touches none of the three rules (the refusal came from somewhere else). The vague sentence
+    // is then the honest answer.
     assert.strictEqual(explainRefusal(null, VIEWER), 'unavailable');
     assert.strictEqual(explainRefusal(agent({ owner_id: 'u1' }), VIEWER), 'unavailable');
 });
 
 test('gedeeld zonder gepubliceerde VERSIE draagt dezelfde raad: publiceer hem', () => {
-    // De publiceer-schakelaar staat aan, maar er is nooit een versie
-    // gepubliceerd — `getForRuntime` serveert dan het levende klad van de
-    // eigenaar, en daar mag de onbewaakte automatisering van een ander niet op draaien
-    // (automation/agentCatalog.js: servesPublishedConfig). De rij blijft
-    // ZICHTBAAR, want weglaten stuurt iemand op zoek naar een bug in plaats van
-    // naar de publiceerknop.
+    // The publish switch is on, but a version was never published — `getForRuntime` then serves the owner's
+    // live draft, and an unwatched automation of someone else may not run on that (automation/agentCatalog.js:
+    // servesPublishedConfig). The row remains VISIBLE, because leaving it out sends someone looking for a bug
+    // instead of to the publish button.
     const row = rowFor({ published_version: 0 });
     assert.ok(row);
     assert.strictEqual(row.canUse, false);

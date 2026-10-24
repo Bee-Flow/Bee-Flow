@@ -150,10 +150,10 @@ test('the whole page of stats comes from ONE call, and lands on the right rows',
 });
 
 test('othersConversationCount rijdt mee, en is de KIJKER-relatieve teller (A5)', async () => {
-    // Het reed hier bewust niet mee toen het alleen een verwijder-vraag was.
-    // De kaartvoet heeft het nodig als BEWIJS voor "Only you": `userCount` is
-    // COUNT(DISTINCT user_id) over ALLE gesprekken, dus één telt net zo goed
-    // als een collega die er veertig voerde terwijl de eigenaar er nul voerde.
+    // It was deliberately not included here when it was only a delete question.
+    // The card footer needs it as EVIDENCE for "Only you": `userCount` is
+    // COUNT(DISTINCT user_id) over ALL conversations, so one person counts just as
+    // much as a colleague who conducted forty while the owner conducted none.
     const res = await dispatch();
     assert.deepStrictEqual(Object.keys(res.body[0].stats).sort(),
         ['conversationCount', 'lastUsedAt', 'othersConversationCount', 'userCount']);
@@ -162,8 +162,8 @@ test('othersConversationCount rijdt mee, en is de KIJKER-relatieve teller (A5)',
 });
 
 test('zonder gelezen kijker is "van iemand anders" ONBEKEND, geen nul', async () => {
-    // Zonder excludeUserId telt de FILTER elke rij mee, en dan zou een 0 hier
-    // "niemand anders" beweren zonder enig bewijs.
+    // Without excludeUserId the FILTER counts every row, and then a 0 here would
+    // claim "nobody else" without any evidence.
     fx.userId = null;
     fx.stats = new Map([['a1', STAT({ conversationCount: 9, userCount: 3, othersConversationCount: 9 })]]);
     const res = await dispatch();
@@ -256,8 +256,8 @@ test('a table grant grounds an agent — two axes, not KB only; websearch is not
 });
 
 test('a config nobody could read is verdict null — never "answers from memory"', async () => {
-    // Onleesbaar is geen lege config. `null` is een DERDE waarde, en de
-    // kaartvoet hoort daarop te zwijgen in plaats van te waarschuwen.
+    // Unreadable is not an empty config. `null` is a THIRD value, and the
+    // card footer should stay silent on it instead of warning.
     fx.all = [
         { id: 'a1', owner_id: 'u1', name: 'Corrupt', organization_id: 'org1', config: 'not an object' },
         { id: 'a2', owner_id: 'u1', name: 'Half', organization_id: 'org1', config: { knowledge_base_ids: 'kb1' } },

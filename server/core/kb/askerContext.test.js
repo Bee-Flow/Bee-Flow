@@ -1,19 +1,17 @@
 'use strict';
 
 /**
- * `askerContext` — wie er vraagt, buiten een request om.
+ * `askerContext`: who is asking, outside a request.
  *
- * ── WAAROM DIT BESTAAT ──────────────────────────────────────────────
- * Dit is de org-resolutie voor elke plek die BUITEN een request draait: een
- * stream, een toolronde, een achtergrondbeantwoorder, en sinds M4 de poort die
- * beslist of een schrijver een regel op de tijdlijn van een vergadering mag
- * plakken. De request-kant van diezelfde vraag is `auth.resolveUserOrgIds`, en
- * die twee liepen uiteen: deze kant las een veld (`user.organizationIds`) dat
- * nergens in stores/ bestaat, en telde de orgs die uit de GROEPEN van de
- * gebruiker volgen niet mee. Iemand die zijn org alleen via een groep bereikt
- * kon een vergadering dus openen maar er niets uit filen.
+ * ── WHY THIS EXISTS ─────────────────────────────────────────────────
+ * This is the org resolution for every place that runs OUTSIDE a request: a stream, a tool round,
+ * a background responder, and since M4 the gate that decides whether a writer may paste a line onto
+ * the timeline of a meeting. The request-side of that same question is `auth.resolveUserOrgIds`, and
+ * those two had diverged: this side read a field (`user.organizationIds`) that does not exist in
+ * stores/, and did not count the orgs that follow from the GROUPS of the user. Someone who reached
+ * his org only via a group could therefore open a meeting but file nothing from it.
  *
- * Draaien: cd server && node --test --test-force-exit core/kb/askerContext.test.js
+ * Run: cd server && node --test --test-force-exit core/kb/askerContext.test.js
  */
 
 const test = require('node:test');
@@ -122,15 +120,14 @@ test('een omgevallen userStore VERSMALT — nooit een lege set die als "geen fil
 });
 
 test('een omgevallen groepenlijst laat de directe org staan en voegt niets toe', async () => {
-    // De naam van deze test was al goed; de assertie eiste het tegendeel
-    // ([] met "een halve resolutie is geen resolutie"). Die eis brak twee
-    // suites in de zichtbaarheidslaag, en dat was terecht: de twee feiten
-    // hebben verschillende herkomst. `organizationId` kwam terug uit een
-    // GESLAAGDE lezing; de groepsuitbreiding is een losse, ADDITIEVE vraag.
-    // Die tweede laten mislukken maakt de eerste niet onbekend.
+    // The name of this test was already right; the assertion demanded the opposite
+    // ([] with "half a resolution is no resolution"). That demand broke two suites in the
+    // visibility layer, and rightly so: the two facts have different origins. `organizationId` came
+    // back from a SUCCESSFUL read; the group expansion is a separate, ADDITIVE question.
+    // Letting that second one fail does not make the first one unknown.
     //
-    // Versmallen-bij-onbekend blijft gelden waar we werkelijk niets weten:
-    // valt de GEBRUIKERSlezing om, dan is de Set leeg (de test hieronder).
+    // Narrowing-when-unknown still applies where we really know nothing: if the USER read
+    // fails, then the Set is empty (the test below).
     fx.users.u6 = { id: 'u6', organizationId: 'orgA', groups: ['g1'] };
     fx.getAllGroupsThrows = true;
     const ctx = await askerContext('u6');
@@ -139,8 +136,8 @@ test('een omgevallen groepenlijst laat de directe org staan en voegt niets toe',
 });
 
 test('maar een omgevallen GEBRUIKERSlezing levert wel een lege set op', async () => {
-    // Het onderscheid dat de test hierboven maakt, van de andere kant:
-    // hier weten we niets, dus valt alles weg.
+    // The distinction that the test above makes, from the other side:
+    // here we know nothing, so everything falls away.
     fx.getUserThrows = true;
     const ctx = await askerContext('u6');
     assert.deepStrictEqual([...ctx.orgIds], [], 'niets gelezen is niets toekennen');

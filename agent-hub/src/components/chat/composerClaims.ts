@@ -161,30 +161,30 @@ export function shieldLine(data: ShieldStatus | null | undefined): ShieldLine | 
 }
 
 /**
- * ── De voetregel (C11) ──────────────────────────────────────────────────
+ * ── The footer line (C11) ───────────────────────────────────────────────
  *
- * Het artboard zet onder de composer: "Bee Flow draait op je eigen server.
- * Gesprekken verlaten je organisatie niet." Twee zinnen, en op élke installatie
- * is er minstens één van onwaar:
+ * The artboard places this under the composer: "Bee Flow runs on your own server.
+ * Conversations do not leave your organisation." Two sentences, and on every
+ * installation at least one of them is untrue:
  *
- *   • Op beeflow.nl (Scaleway Kapsule) draait Bee Flow NIET op je eigen server.
- *   • Op self-host verlaat het gesprek de organisatie wél zodra de org een
- *     externe provider gebruikt — dan gaat de tekst naar buiten, alleen met
- *     plaatsvervangers in plaats van persoonsgegevens.
+ *   • On beeflow.nl (Scaleway Kapsule) Bee Flow does NOT run on your own server.
+ *   • On self-host, the conversation DOES leave the organisation as soon as the org
+ *     uses an external provider. Then the text goes outside, only with stand-ins
+ *     in place of personal data.
  *
- * De eerste zin is te bewijzen: `deploymentMode` komt uit /auth/setup-status
- * (server-env DEPLOYMENT_MODE) en zegt precies dit. De tweede is dat niet —
- * niets wat dit scherm kan opvragen zegt of het antwoordende model lokaal
- * draait. Er is dus geen conditie waaronder hij mag renderen, en hij staat
- * daarom nergens in deze module: een zin die je niet kunt onderbouwen hoort
- * niet achter een `if`, hij hoort niet te bestaan.
+ * The first sentence is provable: `deploymentMode` comes from /auth/setup-status
+ * (server env DEPLOYMENT_MODE) and says exactly this. The second is not. Nothing
+ * this screen can query says whether the answering model runs locally. There is
+ * therefore no condition under which it may render, and it is therefore nowhere in
+ * this module. A sentence you cannot substantiate does not belong behind an `if`.
+ * It should not exist.
  *
- * Wat overblijft is één altijd-ware mededeling (het model kan zich vergissen)
- * plus, waar hij waar is, de plek waar dit draait. De privacyclaim zelf blijft
- * waar hij onderbouwd wordt: `shieldLine()` hierboven, in de toolbar, waar hij
- * ook een waarschuwende toon kan aannemen als de detector eruit ligt. Twee
- * keer dezelfde claim uit dezelfde bron, drie centimeter uit elkaar, levert
- * geen extra zekerheid op — alleen een tweede plek om te verlopen.
+ * What remains is one always-true notice (the model can be mistaken) plus, where it
+ * is true, the place where this runs. The privacy claim itself stays where it is
+ * substantiated: `shieldLine()` above, in the toolbar, where it can also take on a
+ * warning tone if the detector is off. Twice the same claim from the same source,
+ * three centimetres apart, yields no extra certainty. It only gives a second place
+ * to go stale.
  */
 export const FOOTER_LINES = Object.freeze({
     ownServer: Object.freeze({
@@ -199,14 +199,14 @@ export const FOOTER_LINES = Object.freeze({
 
 /**
  * @param p.deploymentMode  'cloud' | 'self-hosted' (useDeploymentMode).
- * @param p.signedIn        Is er een ingelogde gebruiker?
- * @returns de zinnen, in leesvolgorde.
+ * @param p.signedIn        Is there a signed-in user?
+ * @returns the sentences, in reading order.
  *
- * `signedIn` doet er toe omdat "je eigen server" iemand ÍN de organisatie
- * aanspreekt. In een embed op de website van een klant leest dezelfde zin als
- * een uitspraak over de server van de bezoeker, en die is gewoon onwaar. Een
- * embed geeft bovendien zijn eigen `warningText` mee; die wint hoe dan ook, en
- * het call-site houdt dan de hele voetregel in de hand.
+ * `signedIn` matters because "your own server" addresses someone INSIDE the
+ * organisation. In an embed on a customer's website the same sentence reads as a
+ * statement about the visitor's server, and that is simply untrue. An embed also
+ * passes its own `warningText`, which wins in any case, and the call site then
+ * holds the whole footer line in its hand.
  */
 export function footerNotice({ deploymentMode = 'cloud', signedIn = false }: { deploymentMode?: string; signedIn?: boolean } = {}): Array<{ key: string; en: string }> {
     const lines: Array<{ key: string; en: string }> = [];

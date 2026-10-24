@@ -11,10 +11,9 @@ import logicRows, {
 } from './logicRows';
 
 /**
- * De Logica-tab bestaat omdat de oude weergave dingen weg liet vallen. Deze
- * suite bewaakt dus vooral wat er NIET mag verdwijnen: een event dat een
- * component kan dragen maar dat aan niets hangt, een actie waar niets naar
- * wijst, en de vier oppervlakken die de server wél als bereikbaar telt.
+ * The Logic tab exists because the old view dropped things. This suite therefore mainly guards what must NOT
+ * disappear: an event that a component can carry but that is attached to nothing, an action that nothing
+ * points to, and the four surfaces that the server DOES count as reachable.
  */
 
 const ACTIONS = {
@@ -335,11 +334,10 @@ describe('assignNotices — één melding, één rij', () => {
 });
 
 describe('een bedraad slot dat de typelijst niet kent, verdwijnt niet', () => {
-    // Van de drie lezers (server, canvasbadge, deze tab) liep alleen deze tab
-    // per TYPE; de andere twee lopen per NAAM. Een slot dat een type kwijtraakt
-    // — of dat langs een install/import binnenkwam — viel hier dus uit de tabel
-    // én maakte zijn actie tot "wees": het scherm dat is gebouwd omdat er niets
-    // stil mag verdwijnen, verborg de bedrading mét de omgekeerde bewering erbij.
+    // Of the three readers (server, canvas badge, this tab) only this tab ran per TYPE; the other two run per
+    // NAME. A slot that loses its type — or that came in via an install/import — therefore dropped out of the
+    // table here AND made its action into an "orphan": the screen that was built because nothing may silently
+    // disappear hid the wiring, together with the reverse claim attached to it.
     const OUTSIDE = { id: 'nd_t', type: 'text', props: { text: 'Hallo' }, onClick: 'act_go' };
 
     it('toont hem als BEDRADE rij, met wat er gebeurt', () => {
@@ -358,8 +356,7 @@ describe('een bedraad slot dat de typelijst niet kent, verdwijnt niet', () => {
     });
 
     it('verzint geen leeg slot voor een type dat het event niet heeft', () => {
-        // Alleen wat er ECHT staat komt erbij; een text zonder onClick blijft
-        // een component zonder logica.
+        // Only what is really there comes along; a text without onClick stays a component without logic.
         const rows = logicRows(defOf([{ id: 'nd_t2', type: 'text', props: { text: 'x' } }]));
         expect(rows.filter((r) => r.nodeId === 'nd_t2')).toEqual([]);
     });
@@ -376,10 +373,8 @@ describe('countWiredLogic — de kop telt wat de tabel toont', () => {
                 toolbarActions: [{ actionId: 'act_run' }],
             },
         }]);
-        // Twee bedrade oppervlakken, nul bedrade events: de oude teller
-        // (countLogicMarks) gaf hier 0 en het segment liet het getal helemaal
-        // weg — het signaal "hier valt niets te zien" — boven een tabel met
-        // vier regels.
+        // Two wired surfaces, zero wired events: the old counter (countLogicMarks) gave 0 here and the segment left
+        // the number out entirely — the signal "nothing to see here" — above a table with four rows.
         expect(countWiredLogic(def)).toBe(2);
         expect(logicRows(def).filter((r) => r.kind !== 'screen_open')).toHaveLength(5);
     });
@@ -406,11 +401,9 @@ describe('countWiredLogic — de kop telt wat de tabel toont', () => {
 });
 
 describe('een melding over een component ZONDER logica-rijen', () => {
-    // De "scherm opent"-rij draagt het pad van het SCHERM, en dat is een
-    // voorvader van élk component erop. Zonder uitzondering landde een melding
-    // over een input_text (geen events, geen oppervlakken) op die ene regel: de
-    // bouwer las "input_text sits outside a form" onder "When the screen is
-    // opened / 2 components load their data".
+    // The "screen opens" row carries the path of the SCREEN, and that is an ancestor of every component on it.
+    // Without an exception, a message about an input_text (no events, no surfaces) landed on that one row: the
+    // builder read "input_text sits outside a form" under "When the screen is opened / 2 components load their data".
     const DEF_MIXED = {
         screens: [{
             id: 'scr_1',

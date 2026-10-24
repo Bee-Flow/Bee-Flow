@@ -223,12 +223,9 @@ async function captureWithLedger(project, exportedAt) {
 }
 
 /**
- * De naam van een organisatie, of null.
+ * The name of an organisation, or null.
  *
- * NOOIT GOOIEN: een export mag niet stuklopen omdat de organisatienaam niet te
- * lezen was. Null is bovendien geen verlies — de naam is beleefdheid voor de
- * ontvanger, geen dragend veld: het `orgId` staat er los van, en zelfs dat
- * beslist niets.
+ * NEVER THROW: an export may not break because the organisation name could not be read. Null is moreover no loss — the name is courtesy towards the recipient, not a bearing field: the `orgId` is kept separately, and even that decides nothing.
  */
 async function organizationNameFor(organizationId) {
     if (typeof organizationId !== 'string' || !organizationId) return null;
@@ -271,20 +268,19 @@ async function resolveManifestSource(req) {
             organizationId: req.session?.user?.organizationId || null,
         });
         if (!found || !readable) return { status: 404, error: 'Not found' };
-        // The id travels with the manifest so an install can record where the
+        // The id travels with the manifest so that an install can record where the
         // Solution came from. Only the RESOLVED one: the caller's own
         // `blueprintId` is echoed nowhere, so a project can never claim
         // provenance from a Blueprint this caller could not read.
         //
-        // `blueprintOrgId` komt van de GALERIJRIJ en niet uit het manifest: op
-        // dit pad heeft de server de bron zelf gelezen, en dat is iets anders
-        // dan wat een bestand over zichzelf beweert. install.provenanceOf laat
-        // het vastgestelde altijd winnen van het beweerde.
+        // `blueprintOrgId` comes from the GALLERY ROW and not from the manifest: on this path
+        // the server has read the source itself, which is something other than what a file claims about itself. install.provenanceOf always lets the
+        // established value win over the claimed one.
         return { manifest: found.manifest, blueprintId: found.id, blueprintOrgId: found.organizationId || null };
     }
     if (!manifest) return { status: 400, error: 'No Blueprint in the request.' };
-    // Een bestand: geen vastgestelde herkomst. Wat het manifest over zichzelf
-    // zegt wordt pas in de installer gelezen, en daar als bewering behandeld.
+    // A file: no established provenance. What the manifest says about itself
+    // is only read in the installer, and there it is treated as an assertion.
     return { manifest, blueprintId: null, blueprintOrgId: null };
 }
 
@@ -431,36 +427,25 @@ router.post('/:id/package/upgrade', blueprintPackaging, requireProjectRole('owne
 });
 
 /**
- * GET /:id/package/releases — de publicatiegeschiedenis van deze Oplossing.
+ * GET /:id/package/releases — the publication history of this Solution.
  *
- * De galerijrij (`project_blueprints`) wordt bij elke publicatie OVERSCHREVEN en
- * is dus een uitspraak over het heden: "dit is wat er vandaag te installeren
- * valt". `project_releases` is de geschiedenis, één onveranderlijke rij per
- * publicatie, en dit is de enige route die haar naar buiten brengt.
+ * The gallery row (`project_blueprints`) is OVERWRITTEN with every publication and is therefore a statement about the present: "this is what can be installed
+ * today". `project_releases` is the history, one immutable row per publication, and this is the only route that brings it outward.
  *
- * EIGENAAR, en niet lager. Dat is niet de gate van "wie mag dit project zien"
- * maar van "wie mag zien wat dit project ooit heeft uitgegeven": een release-rij
- * noemt per entiteit wat er veranderde, dus wie de geschiedenis leest leest een
- * inhoudsopgave van elke versie die er ooit is geweest — inclusief entiteiten
- * die er nu niet meer in zitten. Dezelfde rol als exporteren, om dezelfde reden.
- * De kop van `listReleases` in stores/blueprintStore.js noemt deze gate met
- * zoveel woorden: die functie autoriseert zelf niets.
+ * OWNER, and not lower. That is not the gate of "who may see this project" but of "who may see what this project has ever issued": a release row
+ * states per entity what changed, so whoever reads the history reads a table of contents of every version that has ever existed — including entities that are no longer in it. The same role as exporting, for the same reason.
+ * The header of `listReleases` in stores/blueprintStore.js names this gate explicitly: that function authorises nothing itself.
  *
- * ── HET MANIFEST BLIJFT THUIS ──────────────────────────────────────────────
+ * ── THE MANIFEST STAYS AT HOME ──────────────────────────────────────────
  *
- * `listReleases` levert de rijen al zonder manifest, en deze route beperkt ze
- * nog verder tot de vier velden die het scherm leest. Met de hand opgeschreven,
- * niet met sleutels-eraf: een kolom die volgend jaar aan `project_releases`
- * wordt toegevoegd bereikt de client dan niet vanzelf.
+ * `listReleases` already returns the rows without the manifest, and this route narrows them further to the four fields that the screen reads. Written out by hand,
+ * not with keys-removed: a column that is added to `project_releases` next year will not reach the client automatically that way.
  *
- * `publishedBy` valt daar bewust buiten. Het is een gebruikers-id, het scherm
- * toont geen namen (het laadt de ledenlijst niet, zie SolutionDetail), en een
- * id waar niemand een naam bij kan zetten is alleen maar een id dat rondreist.
+ * `publishedBy` deliberately falls outside that. It is a user id, the screen shows no names (it does not load the member list, see SolutionDetail), and an
+ * id to which nobody can attach a name is just an id that travels around.
  *
- * `notes` gaat WEL mee en is het punt van deze route: daar zit de boolean diff
- * per entiteit in, plus — als het model die kon schrijven — één regel per
- * gewijzigde entiteit. De diff staat er altijd; de regel kan ontbreken, en de
- * Versies-tab houdt die twee uit elkaar.
+ * `notes` DOES go along and is the point of this route: that is where the boolean diff per entity sits, plus — if the model was able to write it — one line per
+ * changed entity. The diff is always there; the line may be missing, and the Versions tab keeps those two apart.
  */
 router.get('/:id/package/releases', blueprintPackaging, requireProjectRole('owner'), requireSolutionProject, async (req, res) => {
     // A failed read rejects to a 500, never `{ releases: [] }`: an empty list
@@ -534,58 +519,38 @@ router.get('/:id/package/releases/:releaseId', blueprintPackaging, requireProjec
 });
 
 /**
- * GET /:id/package/installs — hoe vaak deze Oplossing is geïnstalleerd.
+ * GET /:id/package/installs — how often this Solution has been installed.
  *
- * Twee getallen: in de eigen organisatie, en elders op deze instantie. Verder
- * niets.
+ * Two numbers: in the own organisation, and elsewhere on this instance. Nothing
+ * else.
  *
- * ── De enige uitzondering op de org-scoping, en hoe smal zij is ────────────
+ * ── The only exception to the org scoping, and how narrow it is ──────────
  *
- * Blueprints zijn strikt org-gescoopt. Dit is het enige antwoord dat over die
- * grens heen kijkt, want een Blueprint wordt juist gedeeld met een ander team
- * en de maker heeft er recht op te weten dát er iets mee gebeurt. De
- * uitzondering is daarom zo klein gemaakt dat er niets anders uit kán komen:
+ * Blueprints are strictly org-scoped. This is the only answer that looks across that boundary, because a Blueprint is shared precisely with another team and the maker is entitled to know THAT something is being done with it. The exception is therefore made so small that nothing else can come out of it:
  *
- *   • ALLEEN DE BRON. `requireProjectRole('owner')` op het project waar de
- *     Blueprint uit gemaakt is — dezelfde gate als exporteren, en dus per
- *     definitie iemand uit de bron-organisatie. Een installateur elders kan
- *     deze route voor die Blueprint niet bereiken: hij is geen eigenaar van
- *     dit project.
- *   • WELKE BLUEPRINTS ERBIJ HOREN komt uit `listBlueprintsFor` — de ENE
- *     org-scoping-query van de store (zie de kop van `canRead`). Er is hier
- *     geen tweede lezing die het met die query oneens kan raken; wat de lezer
- *     niet in zijn galerij ziet, telt hij hier ook niet.
- *   • DE PAYLOAD IS EEN ALLOW-LIST van twee getallen. Geen project-id, geen
- *     naam, geen eigenaar, geen organisatienaam, geen tijdstip, en geen
- *     uitsplitsing per organisatie — bij n=1 is een aggregaat over één
- *     organisatie geen aggregaat meer.
+ *   • ONLY THE SOURCE. `requireProjectRole('owner')` on the project where the Blueprint was made — the same gate as exporting, and therefore by definition
+ *     someone from the source organisation. An installer elsewhere cannot reach this route for that Blueprint: he is not an owner of this project.
+ *   • WHICH BLUEPRINTS BELONG HERE comes from `listBlueprintsFor` — the ONE org-scoping query of the store (see the header of `canRead`). There is no second reading here that
+ *     could disagree with that query; what the reader does not see in his gallery, he does not count here either.
+ *   • THE PAYLOAD IS AN ALLOW-LIST of two numbers. No project id, no name, no owner, no
+ *     organisation name, no timestamp, and no breakdown per organisation — with n=1 an aggregate over one organisation is no longer an aggregate.
  *
- * ── Wat dit getal NIET kan zien, en dat is de eerlijke grens ───────────────
+ * ── What this number CANNOT see, and that is the honest limit ───────────
  *
- * Alleen deze database. Een bestand dat iemand op zijn eigen self-host
- * installeert is per definitie onzichtbaar, dus het scherm zegt "minstens n" en
- * nooit "n" (SolutionInstallsTab.jsx zet die zin er onvoorwaardelijk bij).
+ * Only this database. A file that someone installs on his own self-host is by definition invisible, so the screen says "at least n" and
+ * never "n" (SolutionInstallsTab.jsx adds that sentence unconditionally).
  *
- * WELKE ID'S MEETELLEN — en waarom de galerij alleen niet genoeg is. Gooit de
- * maker zijn Blueprint weg, dan verdwijnt hij uit `listBlueprintsFor` terwijl de
- * projecten die eruit geïnstalleerd zijn gewoon blijven bestaan mét hun
- * `installed_from_blueprint_id`. Met alleen de galerijlijst stond er dan
- * stellig "niemand heeft dit geïnstalleerd" — het antwoord waarop iemand
- * besluit een Oplossing weg te gooien. Daarom komen de id's uit de galerij ÉN
- * uit de eigen publicatiegeschiedenis van dit project (`listReleases`, gescoopt
- * op precies het project-id dat de gate hierboven heeft geautoriseerd). Beide
- * bronnen zijn al van deze lezer; er komt geen id bij uit een andere
- * organisatie.
+ * WHICH IDS COUNT — and why the gallery alone is not enough. If the maker throws away his Blueprint, it disappears from `listBlueprintsFor` while the
+ * projects installed from it simply keep existing, with their `installed_from_blueprint_id`. With the gallery list alone it would say, firmly, "nobody has installed this" —
+ * the answer on which someone decides to throw away a Solution. That is why the ids come from the gallery AND from the project's own publication history
+ * (`listReleases`, scoped to exactly the project id that the gate above has authorised). Both sources already belong to this reader; no id is added from another
+ * organisation.
  *
- * De grens daarvan is eerlijk en blijft de veilige kant op: de geschiedenis
- * bewaart de laatste twintig publicaties, dus een verwijderde Blueprint waarvan
- * óók alle release-rijen weggesnoeid zijn valt alsnog buiten de telling. Dat
- * maakt het getal lager, nooit hoger — en het scherm zegt "minstens".
+ * The limit of that is honest and stays on the safe side: the history keeps the last twenty publications, so a deleted Blueprint of which
+ * ALL release rows have also been pruned falls out of the count after all. That makes the number lower, never higher — and the screen says "at least".
  *
- * NUL BLIJFT DAARDOOR EEN ANTWOORD: geen galerijrij én geen enkele release-rij
- * betekent dat dit project nooit gepubliceerd is, en dan is "nul installaties"
- * geen gat maar een feit. Een mislukte lees is dat niet, en die eindigt dan ook
- * in de 500 hieronder — het scherm zegt dan "niet te lezen", niet "nul".
+ * ZERO REMAINS AN ANSWER THEREBY: no gallery row and not a single release row means that this project has never been published, and then "zero installs"
+ * is not a gap but a fact. A failed read is not that, and that one ends in the 500 below — the screen then says "not readable", not "zero".
  */
 router.get('/:id/package/installs', blueprintPackaging, requireProjectRole('owner'), requireSolutionProject, async (req, res) => {
     const projectStore = require('../../stores/projectStore');
@@ -605,20 +570,18 @@ router.get('/:id/package/installs', blueprintPackaging, requireProjectRole('owne
         .filter(b => b?.solutionKey === `sol_${project.id}`)
         .map(b => b.id));
 
-    // …plus elke Blueprint waaronder dit project ooit gepubliceerd heeft.
-    // Zonder deze tweede bron leest een verwijderde galerijrij als "nul
-    // installaties". GEEN catch: kan de geschiedenis niet gelezen worden,
-    // dan is de telling onbekend en hoort dat als 500 op het scherm te
-    // komen, niet als nul.
+    // …plus every Blueprint under which this project has ever been published.
+    // Without this second source a deleted gallery row would read as "zero
+    // installs". NO catch: if the history cannot be read, the count is unknown and that should
+    // reach the screen as a 500, not as zero.
     for (const release of (await store.listReleases(project.id)) || []) {
         if (typeof release?.blueprintId === 'string' && release.blueprintId) ids.add(release.blueprintId);
     }
 
-    // "Hier" is de organisatie van de Blueprint zelf, en dat is die van het
-    // project waar hij uit komt — niet die van de sessie. Voor de eigenaar
-    // van dit project zijn dat dezelfde, behalve wanneer het project ooit
-    // van organisatie is gewisseld; dan is de vraag "hoeveel bij ons" een
-    // vraag over waar de Oplossing nú thuishoort.
+    // "Here" is the organisation of the Blueprint itself, and that is that of the
+    // project it comes from — not that of the session. For the owner of this project those are the
+    // same, except when the project has at some point changed organisation; then the question "how many here" is a
+    // question about where the Solution belongs NOW.
     const counted = await store.countInstallsFor([...ids], { organizationId: project.organizationId || null });
 
     // Twee velden, met de hand opgeschreven. Niets van een projectrij en

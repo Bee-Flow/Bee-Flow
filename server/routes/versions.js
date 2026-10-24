@@ -103,24 +103,23 @@ router.get('/:agentId', async (req, res) => {
 });
 
 /**
- * POST /versions/:agentId/pre-refine — het undo-punt van een AI-verfijning.
+ * POST /versions/:agentId/pre-refine — the undo point of an AI refinement.
  *
- * De verfijn-rail roept dit aan VÓÓR hij de gemergede staat wegschrijft, zodat
- * "Ongedaan maken" een gewone restore van deze rij is (kind 'pre_refine', die
- * pruneVersions nooit opruimt). Bewust een eigen route en geen vlag op de
- * wizard-route: die is stateloos en kent de agent niet, en dit is een SCHRIJF
- * op één agent — dus door dezelfde per-agent poort als restore en delete.
+ * The refine rail calls this BEFORE it writes the merged state, so that "Ongedaan maken"
+ * is an ordinary restore of this row (kind 'pre_refine', which pruneVersions never
+ * cleans up). Deliberately its own route and not a flag on the wizard route: that one is
+ * stateless and does not know the agent, and this is a WRITE on one agent — so it goes
+ * through the same per-agent gate as restore and delete.
  *
- * Het antwoord draagt de version-id. Lukt de snapshot niet, dan hoort de client
- * dat te weten en zijn undo-knop te laten zeggen dat er niets te herstellen is;
- * een stilzwijgend "ok" zou een knop opleveren die later iets ANDERS herstelt.
+ * The answer carries the version id. If the snapshot fails, the client must know that
+ * and have its undo button say that there is nothing to restore; a silent "ok" would
+ * produce a button that later restores something DIFFERENT.
  */
 router.post('/:agentId/pre-refine', validate({ body: PreRefineBody }), async (req, res) => {
     const agent = await requireEditableAgent(req, res);
     if (!agent) return;
-    // De snapshot leest de RAUWE agentrij (persona-kolom incl.) — zie
-    // stores/agent/agentCrud.snapshotAgent voor waarom dat niet de
-    // weergave van getAgent() mag zijn.
+    // The snapshot reads the RAW agent row (persona column included) — see
+    // stores/agent/agentCrud.snapshotAgent for why that must not be the view of getAgent().
     const created = await agentStore.snapshotAgent(agent.id, getEffectiveUserId(req), {
         kind: 'pre_refine', changeSummary: 'Before AI refine',
     });

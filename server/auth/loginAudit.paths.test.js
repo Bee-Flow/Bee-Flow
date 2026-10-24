@@ -102,11 +102,10 @@ const REFUSAL_PATHS = [
 ];
 
 test('every refusal path audits the refusal', () => {
-    // Bewust brontekst, zoals de bestandskop zegt: dit test de SET van
-    // plekken (dezelfde aanpak als accountStatusGate.paths.test.js), niet één
-    // aanroep. Elke plek voor echt aandrijven zou vier eigen zware routes
-    // (wachtwoord-hashing, MFA, OPAQUE) moeten optuigen om te bewijzen wat
-    // hier in één keer voor alle vier geldt.
+    // Deliberately source text, as the file header says: this tests the SET of places (the same approach
+    // as accountStatusGate.paths.test.js), not one call. Driving each place for real would require
+    // rigging four heavy routes of its own (password hashing, MFA, OPAQUE) to prove what here holds for
+    // all four at once.
     for (const [rel, why] of REFUSAL_PATHS) {
         const src = read(rel);
         assert.match(
@@ -178,13 +177,11 @@ test('the suspended-account refusal is audited before the floor, not after', () 
 });
 
 test('the audit module never looks an account up for itself', () => {
-    // The login path spends a dummy bcrypt so that a name matching nothing
-    // costs what a real one costs. A store lookup here to enrich a row would
-    // put that difference straight back.
-    // Bewust brontekst: een spy op vandaag bewijst alleen dat DEZE aanroep
-    // niet opzoekt, niet dat de module het vermogen daartoe mist — de
-    // eigenschap gaat over wat er WEL in het bestand staat, niet over gedrag
-    // op een input.
+    // The login path spends a dummy bcrypt so that a name matching nothing costs what a real one costs. A
+    // store lookup here to enrich a row would put that difference straight back.
+    // Deliberately source text: a spy today proves only that THIS call does not look anything up, not
+    // that the module lacks the capability to do so — the property concerns what IS in the file, not
+    // behaviour on an input.
     const src = fs.readFileSync(path.join(AUTH, 'loginAudit.js'), 'utf8');
     assert.ok(
         !/getUserByEmail|getUser\(/.test(src),

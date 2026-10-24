@@ -15,14 +15,14 @@ const log = require('../telemetry/log');
 const TABLE = 'mcp_servers';
 
 async function initTable() {
-    // Migrate: drop old HTTP-based schema if it exists. Herkenning: het oude
-    // schema had wél 'url' maar nog géén 'transport' — het huidige schema
-    // heeft beide, dus alleen op 'url' testen (zoals eerst) liet deze DROP
-    // elke boot opnieuw vuren op de NIEUWE tabel. De stille catch eromheen
-    // maskeerde dat; nu de probe klopt geeft een échte fout (verbinding,
-    // timeout) gewoon een luide init-fout. De DROP loopt via runDdl — die
-    // serialiseert óók statements die db.exec' substring-queue passeren
-    // (zoals DROP TABLE).
+    // Migrate: drop old HTTP-based schema if it exists. Recognition: the old
+    // schema DID have 'url' but NOT yet 'transport' — the current schema
+    // has both, so testing only on 'url' (as before) let this DROP
+    // fire on the NEW table at every boot. The silent catch around it
+    // masked that; now that the probe is correct, a real error (connection,
+    // timeout) simply gives a loud init error. The DROP runs via runDdl — that
+    // serialises ALSO statements that pass db.exec's substring queue
+    // (such as DROP TABLE).
     const oldSchema = await db.getOne(
         `SELECT 1 AS old
            FROM information_schema.columns
@@ -59,10 +59,10 @@ async function initTable() {
         )
     `);
 
-    // Migrate: add new columns if they don't exist yet. ADD COLUMN zonder
-    // IF NOT EXISTS: de verwachte duplicate_column is hier het
-    // idempotentie-mechanisme en blijft stil (tolerate); elke ándere fout —
-    // die de oude catch (_) net zo hard inslikte — wordt nu luid verzameld.
+    // Migrate: add new columns if they don't exist yet. ADD COLUMN without
+    // IF NOT EXISTS: the expected duplicate_column is the
+    // idempotency mechanism here and stays silent (tolerate); every other error —
+    // which the old catch swallowed just as hard — is now collected loudly.
     const newCols = [
         { name: 'transport', def: "TEXT DEFAULT 'stdio'" },
         { name: 'url', def: 'TEXT' },
@@ -78,7 +78,7 @@ async function initTable() {
             reden: 'kolom bestaat al — verwachte idempotentie',
         })),
         // Make command nullable (HTTP servers don't need a command);
-        // DROP NOT NULL is zelf al idempotent, dus fouten zijn hier echt.
+        // DROP NOT NULL is itself already idempotent, so errors here are real.
         `ALTER TABLE ${TABLE} ALTER COLUMN command DROP NOT NULL`,
     ]);
 

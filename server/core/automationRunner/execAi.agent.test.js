@@ -1,19 +1,19 @@
 /**
- * R2 — een AI-stap die door een AGENT wordt gedraaid.
+ * R2: an AI step that is run by an AGENT.
  *
- * Wat hier bewaakt wordt is niet "komt de rol in de prompt", maar de AFTREK op
- * de tools. Een automatisering draait onbewaakt: er is niemand om een bevestiging aan
- * te vragen, dus alles wat een mens zou moeten goedkeuren mag hier niet
- * automatisch lopen. Die aftrek loopt over `core/agentRuntime/toolPolicy` —
- * dezelfde functie waarmee de chat `ask` bepaalt — en dat is precies waarom de
- * ECHTE toolPolicy hier meedraait: alleen het tool-registry eronder is een
- * stub, zodat de attributie (en het kapot maken daarvan) deterministisch is.
+ * What is guarded here is not "does the role end up in the prompt" but the SUBTRACTION
+ * on the tools. An automation runs unattended: there is nobody to ask for a confirmation,
+ * so everything that a person would have to approve may not run automatically here.
+ * That subtraction runs over `core/agentRuntime/toolPolicy`, the same function with
+ * which the chat determines `ask`, and that is exactly why the REAL toolPolicy runs
+ * here: only the tool registry underneath is a stub, so that the attribution (and
+ * breaking it) is deterministic.
  *
- * De vier gevallen die het plan noemt staan er allemaal in: per permissie
- * aan/uit, een agent die verzendende tools heeft, een degraded registry, en een
- * automation-eigenaar die minder mag dan de eigenaar van de agent.
+ * The four cases the plan names are all in there: per permission on/off, an agent
+ * that has sending tools, a degraded registry, and an automation owner who may do less
+ * than the owner of the agent.
  *
- * Draaien: node --test --test-reporter=tap core/automationRunner/execAi.agent.test.js
+ * Run: node --test --test-reporter=tap core/automationRunner/execAi.agent.test.js
  */
 
 'use strict';
@@ -30,17 +30,17 @@ const assert = require('node:assert');
 const { installResolveStub } = require('../../testUtils/stubRequire');
 const { forcedToolViaChat } = require('../../testUtils/forcedToolViaChat');
 
-// ── Het tool-registry (de enige laag onder toolPolicy die een stub is) ─────
+// ── The tool registry (the only layer under toolPolicy that is a stub) ─────
 //
-// Echte toolnamen, want `sideEffectMap` classificeert op NAAM: `gmail_search`
-// leest, `gmail_compose` verstuurt, `drive_upload_file` schrijft. Zo geeft de
-// echte policy hier ook echt haar drie antwoorden.
+// Real tool names, because `sideEffectMap` classifies by NAME: `gmail_search`
+// reads, `gmail_compose` sends, `drive_upload_file` writes. That way the real
+// policy also gives its three answers here.
 const APP_TOOLS = {
     gmail: ['gmail_search', 'gmail_compose'],
     drive: ['drive_upload_file', 'drive_search'],
-    // `availableTo: ['automation_step']` — een app die de AGENT-kiezer nooit heeft
-    // kunnen tonen, dus een app waarover geen eigenaar ooit iets kon
-    // opschrijven. Echte namen uit het registry, want de aftrek attribueert ze.
+    // `availableTo: ['automation_step']`: an app that the AGENT picker could never show,
+    // so an app about which no owner could ever write anything. Real names from the
+    // registry, because the subtraction attributes them.
     'automation-evolution': ['automation_propose_evolution', 'automation_apply_evolution'],
 };
 const APP_CONTEXTS = { 'automation-evolution': ['automation_step'] };
@@ -359,10 +359,10 @@ test('useTools on: the catalog is asked for the AUTOMATION OWNER with the agent\
 
     assert.strictEqual(catalogCalls.length, 1);
     assert.strictEqual(catalogCalls[0].userId, 'u1', 'the asker is the automation owner, never the agent owner');
-    // NIET `automationStep` — die vlag schakelt precies twee apps aan
-    // (`automation-evolution` en `kb-ingest`) en dat zijn de twee die de
-    // agent-kiezer nooit heeft kunnen tonen. Een agent krijgt hier de apps van
-    // een gesprek, plus niets wat zijn eigenaar nooit heeft kunnen weigeren.
+    // NOT `automationStep`: that flag switches on exactly two apps
+    // (`automation-evolution` and `kb-ingest`), and those are the two the agent picker
+    // could never show. An agent gets here the apps of a conversation, plus nothing
+    // that its owner could never have refused.
     assert.strictEqual(catalogCalls[0].automationStep, false, 'an agent gets no app its own picker could never show');
     assert.deepStrictEqual(catalogCalls[0].agentConfig, agentConfig);
     assert.deepStrictEqual(offeredToolNames(), ['gmail_search']);
@@ -376,13 +376,12 @@ test('the catalog is asked for the step\'s OWN agent: that agent\'s bound automa
 });
 
 test('an automation-only app is refused even when a catalog hands it over', async () => {
-    // Twee sloten: de catalogus wordt zonder `automationStep` gevraagd, EN de
-    // aftrek weigert wat het registry buiten de agent-context plaatst. Dit is
-    // het tweede — het eerste is een argument dat iemand kan terugdraaien.
-    // `automation_apply_evolution` accepteert status 'proposed', dus zonder deze
-    // regel kan een agent die tot één leesactie is gecureerd binnen dezelfde
-    // toollus zijn eigen automatisering herschrijven (en zijn eigen permissies
-    // aanzetten).
+    // Two locks: the catalogue is requested without `automationStep`, AND the
+    // subtraction refuses what the registry places outside the agent context. This is
+    // the second; the first is an argument that someone can reverse.
+    // `automation_apply_evolution` accepts status 'proposed', so without this rule an
+    // agent curated down to one read action could, within the same tool loop, rewrite
+    // its own automation (and switch its own permissions on).
     agentConfig = { tools: { gmail: { actions: ['gmail_search'] } } };
     catalogTools = [toolDef('gmail_search'), toolDef('automation_propose_evolution'), toolDef('automation_apply_evolution')];
     const out = await execAiStep(agentStep({ useTools: true }), CTX, {}, 'live');
@@ -391,12 +390,12 @@ test('an automation-only app is refused even when a catalog hands it over', asyn
 });
 
 test('the catalog never sees the agent\'s knowledge bases — with either switch', async () => {
-    // `getIntegrationTools` biedt `kb_search` aan op de enkele AANWEZIGHEID van
-    // `knowledge_base_ids`. Met useKnowledge UIT was dat de permissie die net
-    // was uitgezet; met useKnowledge AAN was het een tool die altijd faalt (de
-    // dispatch-context van execAi draagt geen `agentId`). De kennis van de
-    // agent bereikt de stap langs `knowledgeBaseIdsForStep` — één zoekopdracht
-    // per run, met de automation-eigenaar als vrager.
+    // `getIntegrationTools` offers `kb_search` on the mere PRESENCE of
+    // `knowledge_base_ids`. With useKnowledge OFF, that was the permission that had just
+    // been switched off; with useKnowledge ON, it was a tool that always fails (the
+    // dispatch context of execAi carries no `agentId`). The knowledge of the agent reaches
+    // the step via `knowledgeBaseIdsForStep`: one search per run, with the automation
+    // owner as the asker.
     agentConfig = { knowledge_base_ids: ['kb_agent_shared'], tools: { gmail: { actions: ['gmail_search'] } } };
     for (const useKnowledge of [false, true]) {
         catalogCalls.length = 0;
@@ -406,8 +405,8 @@ test('the catalog never sees the agent\'s knowledge bases — with either switch
         // per-actie-beperking uitzetten, en dat is een verbreding.
         assert.deepStrictEqual(catalogCalls[0].agentConfig.tools, agentConfig.tools);
     }
-    // En de grondslag werkt nog: met useKnowledge AAN wordt de bank van de
-    // agent wél doorzocht (dat is het pad dat er voor is).
+    // And the foundation still works: with useKnowledge ON, the agent's base is searched
+    // (that is the path that exists for it).
     assert.ok(kbGetCalls.includes('kb_agent_shared'), 'the agent\'s base is still searched as grounding');
 });
 
@@ -436,11 +435,11 @@ test('a write the owner put on "ask" is withheld; the same write on "direct" run
 });
 
 test('an action the agent was curated away from is withheld even if the catalog offers it', async () => {
-    // De catalogus past de grants normaal zelf toe; hier doet hij dat niet, wat
-    // precies de tak is waarin `getIntegrationTools` zijn policy-module niet kon
-    // laden. De stap mag dan geen volledige toolbelt krijgen.
-    // Beide zijn niet-verzendend en `drive_upload_file` schrijft met de
-    // default-confirm 'direct' — alleen de GRANT kan hem dus tegenhouden.
+    // The catalogue normally applies the grants itself; here it does not, which is
+    // precisely the branch in which `getIntegrationTools` could not load its policy
+    // module. The step must then not get a full toolbelt.
+    // Both are non-sending, and `drive_upload_file` writes with the default confirm
+    // 'direct': only the GRANT can hold it back.
     agentConfig = { tools: { drive: { actions: ['drive_search'] } } };
     catalogTools = [toolDef('drive_search'), toolDef('drive_upload_file')];
     const out = await execAiStep(agentStep({ useTools: true }), CTX, {}, 'live');
@@ -478,8 +477,8 @@ test('startAutomations off: automation and Step tools are dropped, the rest surv
 });
 
 test('startAutomations without useTools: the automations come, the integration tools do not', async () => {
-    // Twee schakelaars, twee vragen. "Alleen andere automations starten" is een
-    // geldige stand en mag niet stilletjes op nul uitkomen.
+    // Two switches, two questions. "Only start other automations" is a valid setting
+    // and must not quietly come to zero.
     agentConfig = {};
     catalogTools = [
         toolDef('gmail_search'),
@@ -501,14 +500,14 @@ test('startAutomations on: a granted automation survives, one the owner put on "
     assert.deepStrictEqual(out.toolsWithheld, ['automation_r2']);
 });
 
-// ── 8. Een degraded registry versmalt, hij verbreedt niet ─────────────────
+// ── 8. A degraded registry narrows, it does not widen ─────────────────
 
 test('a degraded registry serves NO registry tools — not "everything" — on an uncurated agent', async () => {
     registryDegraded = true;
     toolPolicy._resetAppIndex();
     assert.strictEqual(toolPolicy.isAttributionAvailable(), false, 'precondition: attribution is broken');
 
-    agentConfig = {};                       // geen grants: zonder deze regel het wijdste geval
+    agentConfig = {};                       // no grants: without this rule the widest case
     catalogTools = [
         toolDef('gmail_search'),
         toolDef('automation_r1', { __automation: { id: 'r1', userId: 'u1' } }),
@@ -521,10 +520,9 @@ test('a degraded registry serves NO registry tools — not "everything" — on a
 });
 
 test('an MCP tool is judged on its own id, not on its name', async () => {
-    // Een MCP-naam staat in geen enkel registry, dus de confirm-laag kent hem
-    // niet en zou hem als "geen app claimt dit" doorlaten. De grant hangt aan
-    // de DEFINITIE (`_mcp.serverId` → `mcp:<id>`), en daar wordt hij hier ook
-    // aan gemeten.
+    // An MCP name is in no registry at all, so the confirm layer does not know it and
+    // would let it through as "no app claims this". The grant hangs on the DEFINITION
+    // (`_mcp.serverId` → `mcp:<id>`), and it is measured there here too.
     agentConfig = { tools: { 'mcp:srv1': { actions: ['srv1_read'] } } };
     catalogTools = [
         toolDef('srv1_read', { _mcp: { serverId: 'srv1' } }),
@@ -556,11 +554,10 @@ test('an unreadable agentPermissions value is read as "nothing is allowed"', asy
 });
 
 test('an MCP server the owner put on "ask" is withheld, name or no name', async () => {
-    // `confirmForTool` attribueert op de NAAM en een MCP-naam staat in geen
-    // registry, dus de opgeslagen `confirm: 'ask'` van de eigenaar bereikt
-    // `buildToolPolicy` nooit en de tool viel op `legacyDefault: 'direct'`.
-    // Opgeslagen, teruggelezen, nergens afgedwongen — op een onbewaakt
-    // oppervlak een verzendende tool die niemand tegenhoudt.
+    // `confirmForTool` attributes by NAME, and an MCP name is in no registry, so the
+    // owner's stored `confirm: 'ask'` never reached `buildToolPolicy` and the tool fell
+    // to `legacyDefault: 'direct'`. Stored, read back, enforced nowhere: on an
+    // unattended surface, a sending tool that nobody holds back.
     agentConfig = { tools: { 'mcp:srv1': { actions: '*', confirm: 'ask' } } };
     catalogTools = [toolDef('srv1_send_message', { _mcp: { serverId: 'srv1' } })];
     const out = await execAiStep(agentStep({ useTools: true }), CTX, {}, 'live');
@@ -577,12 +574,11 @@ test('an org custom integration on "ask" is withheld the same way', async () => 
 });
 
 test('an unticked automation list also empties the reusable STEPS', async () => {
-    // `getIntegrationTools` duwt herbruikbare Steps rechtstreeks op de lijst —
-    // buiten `addTools` (dus buiten `isToolAllowed`) én buiten de
-    // automations-curatie. `_startsAutomation` telt ze wél als automation-starter,
-    // dus zonder deze doorsnede hangen ze aan een schakelaar waarvan de belofte
-    // ("alleen wat de agent-eigenaar heeft gegrant") voor hen niet geldt.
-    // Een LEGE sectie is een keuze: alles uitgevinkt.
+    // `getIntegrationTools` pushes reusable Steps straight onto the list: outside
+    // `addTools` (so outside `isToolAllowed`) AND outside the automation curation.
+    // `_startsAutomation` does count them as automation starters, so without this
+    // intersection they hang on a switch whose promise ("only what the agent owner has
+    // granted") does not hold for them. An EMPTY section is a choice: everything unticked.
     agentConfig = { tools: { automations: {} } };
     catalogTools = [toolDef('step_weekly', { __step: { id: 'blk1', userId: 'u1' } })];
     const off = await execAiStep(agentStep({ startAutomations: true }), CTX, {}, 'live');
@@ -597,11 +593,11 @@ test('an unticked automation list also empties the reusable STEPS', async () => 
 // ── 10. `activate_skill` gaat door dezelfde poort ─────────────────────────
 
 test('a skill that RUNS A AUTOMATION hangs on startAutomations, not on nothing at all', async () => {
-    // Een skill met een `automationId` heeft geen tekstbody: `activate_skill`
-    // draait `executeAutomation(..., mode: 'live')`. Zonder deze poort kreeg een
-    // stap met alle drie de permissies UIT een tool waarmee het model een
-    // automatisering live start — en `effectOf('activate_skill')` is 'writes', dus de
-    // bevestigingsaftrek houdt hem niet tegen.
+    // A skill with an `automationId` has no text body: `activate_skill` runs
+    // `executeAutomation(..., mode: 'live')`. Without this gate, a step with all three
+    // permissions OFF got a tool with which the model starts an automation live, and
+    // `effectOf('activate_skill')` is 'writes', so the confirmation subtraction does not
+    // hold it back.
     skillResult = {
         systemPromptAddendum: '\n\n[AVAILABLE SKILLS — ON DEMAND]\n- s1',
         tools: [toolDef('activate_skill')], dynamicSkillIds: ['s1'], automationSkillIds: ['s1'], staticCount: 0,
@@ -615,9 +611,9 @@ test('a skill that RUNS A AUTOMATION hangs on startAutomations, not on nothing a
 });
 
 test('a plain skill keeps its activate_skill without any permission at all', async () => {
-    // Skills horen bij wat de agent IS. Alleen de automation-startende variant
-    // hangt aan een schakelaar; de rest zou anders achter `useTools` verdwijnen
-    // en dat is een andere belofte dan de sectie doet.
+    // Skills belong to what the agent IS. Only the automation-starting variant hangs on a
+    // switch; the rest would otherwise disappear behind `useTools`, and that is a
+    // different promise from the one the section makes.
     skillResult = {
         systemPromptAddendum: '\n\n[AVAILABLE SKILLS — ON DEMAND]\n- s2',
         tools: [toolDef('activate_skill')], dynamicSkillIds: ['s2'], automationSkillIds: [], staticCount: 0,
@@ -627,9 +623,9 @@ test('a plain skill keeps its activate_skill without any permission at all', asy
 });
 
 test('an injection that cannot say whether a skill runs an automation is read as "it might"', async () => {
-    // Een oudere (of gestubde) `buildSkillInjection` levert geen
-    // `automationSkillIds`. Onbekend versmalt: de tool telt dan als
-    // automation-starter en hangt aan `startAutomations`.
+    // An older (or stubbed) `buildSkillInjection` does not deliver
+    // `automationSkillIds`. Unknown narrows: the tool then counts as an automation
+    // starter and hangs on `startAutomations`.
     skillResult = {
         systemPromptAddendum: '\n\n[AVAILABLE SKILLS — ON DEMAND]\n- s3',
         tools: [toolDef('activate_skill')], dynamicSkillIds: ['s3'], staticCount: 0,
@@ -642,13 +638,12 @@ test('an injection that cannot say whether a skill runs an automation is read as
 // ── 11. De reden reist mee ────────────────────────────────────────────────
 
 test('every withheld name carries WHY it was withheld', async () => {
-    // Zonder de reden werd de naam aan de andere kant opnieuw beoordeeld met
-    // `confirmForTool`, en die geeft élke verzendende tool 'ask' — ook als hij
-    // in werkelijkheid op een uitgezette schakelaar sneuvelde. Het scherm
-    // adviseerde dan een goedkeuringsstap die niets verandert.
+    // Without the reason, the name was reassessed on the other side with `confirmForTool`,
+    // and that gives EVERY sending tool 'ask', even if it in fact fell away on a switch that
+    // was off. The screen then advised a confirmation step that changes nothing.
     const { agentToolsForStep, resolveStepAgent } = require('./aiStepAgent');
-    // `drive: {actions: []}` is een UITGESPROKEN weigering; een ontbrekende
-    // entry zou de geen-migratieregel zijn ("elke actie van deze app").
+    // `drive: {actions: []}` is an EXPLICIT refusal; a missing entry would be the
+    // no-migration rule ("every action of this app").
     agentConfig = { tools: { gmail: { actions: ['gmail_search', 'gmail_compose'] }, drive: { actions: [] } } };
     catalogTools = [
         toolDef('gmail_search'),
@@ -664,13 +659,13 @@ test('every withheld name carries WHY it was withheld', async () => {
     assert.strictEqual(gate.reasons.drive_search, 'unavailable', 'the agent was never granted Drive');
 });
 
-// ── 12. De bodem: geen enkele overgebleven tool vraagt om een mens ────────
+// ── 12. The floor: no remaining tool asks for a human ────────────────────────
 
 test('in NONE of the six shapes does a tool that needs approval survive', async () => {
-    // De invariant van dit hele oppervlak, als tabel — zodat een latere
-    // verruiming ergens in de keten hier stukloopt en niet pas in productie.
-    // Gemeten met de policy zelf, op de NAAM én op de definitie (een MCP- of
-    // custom-tool wordt op zijn naam niet geattribueerd).
+    // The invariant of this whole surface, as a table, so that a later widening
+    // somewhere in the chain breaks here and not only in production. Measured with the
+    // policy itself, on the NAME and on the definition (an MCP or custom tool is not
+    // attributed by its name).
     const { withholdConfirmTools } = require('./aiStepAgent');
     const catalog = () => ([
         toolDef('gmail_search'), toolDef('gmail_compose'), toolDef('drive_upload_file'),
@@ -709,9 +704,9 @@ test('in NONE of the six shapes does a tool that needs approval survive', async 
 });
 
 test('the subtraction is the CHAT\'s function, not a second list of its own', async () => {
-    // Twee lijsten is twee plekken die uit elkaar kunnen lopen, en de plek die
-    // drift is altijd de plek waar niemand naar kijkt. Als `buildToolPolicy`
-    // gooit, mag er dus ook geen eigen oordeel overblijven: geen tools.
+    // Two lists are two places that can drift apart, and the place that drifts is always
+    // the place nobody looks at. So if `buildToolPolicy` throws, no separate judgement may
+    // remain either: no tools.
     const { withholdConfirmTools } = require('./aiStepAgent');
     const real = toolPolicy.buildToolPolicy;
     let called = 0;

@@ -115,11 +115,11 @@ test('validate: a clean model yields no errors', () => {
     assert.deepStrictEqual(dm.validateDataModel(clean).errors, []);
 });
 
-// ── 1b. table.source — de TWEEDE tabelsoort ─────────────────────────
-// Zonder `source` bezit de app haar eigen opslag (de soort die er altijd al
-// was); met `source` staan de rijen in een Studio-datatabel. Deze blok pint de
-// twee dingen die niet mogen verschuiven: `mode` kent twee waarden en een derde
-// is een FOUT, en niets aan de bestaande soort verandert.
+// ── 1b. table.source — the SECOND kind of table ──────────────────────
+// Without `source` the app owns its own storage (the kind that always existed);
+// with `source` the rows live in a Studio datatable. This block pins the two things
+// that must not shift: `mode` has two values and a third is an ERROR, and nothing about
+// the existing kind changes.
 
 const sourced = (source) => model([table({ id: 'tbl_link01', key: 'orders', source })]);
 
@@ -164,9 +164,9 @@ test('canonicalize: an ABSENT source mode narrows to read; a filled-in one is le
     assert.strictEqual(out.tables[0].source.mode, 'read', 'never asked for write, never gets it');
     assert.ok(repairs.some(r => /source mode defaulted to read/.test(r)), 'and it says so');
 
-    // Een INGEVULDE mode blijft staan — ook een onbekende. Hem naar 'read'
-    // duwen zou een typefout in een recht veranderen zonder dat iemand het ziet;
-    // validateDataModel wijst hem daarna af.
+    // A FILLED-IN mode stays as it is — even an unknown one. Pushing it to 'read' would
+    // turn a typo in a permission into a permission nobody sees; validateDataModel
+    // rejects it afterwards.
     const { model: typo } = dm.canonicalizeDataModel(sourced({ kind: 'datatable', datatableId: 'tbl_dt0001', mode: 'readWrite' }));
     assert.strictEqual(typo.tables[0].source.mode, 'readWrite');
     assert.ok(dm.validateDataModel(typo).errors.some(e => /source\.mode/.test(e)));
@@ -177,7 +177,7 @@ test('canonicalize: a model without source canonicalizes byte-identically', () =
     const { model: out } = dm.canonicalizeDataModel(structuredClone(before));
     assert.ok(!('source' in out.tables[0]), 'no source key invented');
     assert.deepStrictEqual(out, before);
-    // Een expliciete null laat geen sleutel rondslingeren.
+    // An explicit null leaves no key lying around.
     const { model: nulled } = dm.canonicalizeDataModel(sourced(null));
     assert.ok(!('source' in nulled.tables[0]));
 });

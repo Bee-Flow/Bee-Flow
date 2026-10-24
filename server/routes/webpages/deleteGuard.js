@@ -1,48 +1,46 @@
 /**
- * De 409-poort voor DELETE /:id — zie de uitleg hieronder.
+ * The 409 gate for DELETE /:id — see the explanation below.
  *
- * Eigen module omdat dit geen HTTP is maar een uitspraak: wat gebruikt deze
- * pagina nog, en welke deelvraag kon NIET worden beantwoord. De route
- * (./lifecycle.js) doet er alleen een status omheen.
+ * Its own module because this is not HTTP but a verdict: what still uses this page, and
+ * which sub-question could NOT be answered. The route (./lifecycle.js) only wraps a
+ * status around it.
  */
 
 const webpageUsage = require('../../core/webpages/webpageUsage');
 const log = require('../../telemetry/log');
 
 /**
- * ── WAT ER STUKGAAT, VOORDAT HET STUKGAAT (W5 deel C) ───────────────
+ * ── WHAT BREAKS, BEFORE IT BREAKS (W5 part C) ───────────────────────
  *
- * Een webpagina is geen los ding. Ze ligt in een Oplossing die haar in een
- * scherm heeft opgenomen, een AUTOMATISERING noemt haar bij naam in een
- * `webpage_db_exec`-stap, een gewone chat kan haar in het zijpaneel hebben, en
- * een agent kan haar als tool openen. Geen van die storingen NOEMT deze pagina
- * op het moment dat ze optreedt, en geen ervan is terug te draaien — dus
- * antwoordt de eerste DELETE met 409 en de lijst, en komt alleen een tweede
- * met `?confirm=1` erlangs. Letterlijk de twee-trap van de vergadernotitie
- * (routes/transcriptions/noteActions.js), de kennisbank en de tabel, met
- * dezelfde `code:'in_use'` + `usage` die shared/DangerZone.jsx leest.
+ * A web page is not a standalone thing. It lies in a Solution that has included it in a
+ * screen, an AUTOMATION names it in a `webpage_db_exec` step, an ordinary chat can have
+ * it in the side panel, and an agent can open it as a tool. None of those failures NAMES
+ * this page at the moment they occur, and none of them can be reverted — so the first
+ * DELETE answers with 409 and the list, and only a second one with `?confirm=1` gets
+ * past. Literally the two-step of the meeting note (routes/transcriptions/noteActions.js),
+ * the knowledge base and the table, with the same `code:'in_use'` + `usage` that
+ * shared/DangerZone.jsx reads.
  *
- * `unchecked` TELT ALS IN GEBRUIK. "Drie dingen gebruiken deze pagina" en "ik
- * kon de agents niet nakijken" komen allebei terug als 409 en leiden naar
- * dezelfde knop, maar het zijn niet dezelfde uitspraak: de eerste is een
- * lijst, de tweede is een gat. Wie ze samenvoegt, vertelt de lezer dat een
- * scan is geslaagd die niet liep. Vandaag zijn de agent- én de chat-deelvraag
- * principieel onbeantwoordbaar (zie de kop van core/webpages/webpageUsage.js),
- * dus staat elke pagina achter minstens één 409 — dat is de eerlijke stand, en
- * de ontsnappingsklep is een BEVESTIGDE tweede aanroep, nooit een stille retry.
+ * `unchecked` COUNTS AS IN USE. "Three things use this page" and "I could not check the
+ * agents" both come back as 409 and lead to the same button, but they are not the same
+ * verdict: the first is a list, the second is a gap. Whoever merges them tells the reader
+ * that a scan succeeded that did not run. Today the agent AND the chat sub-question are in
+ * principle unanswerable (see the header of core/webpages/webpageUsage.js), so every page
+ * sits behind at least one 409 — that is the honest state, and the escape hatch is a
+ * CONFIRMED second call, never a silent retry.
  *
- * En de scan die ZELF omvalt is de gevaarlijkste van de drie: die zou als een
- * lege lijst terugkomen, en een lege lijst is precies de zin waarop iemand
- * doorklikt. Vandaar dat een omgevallen scan hier ALLE soorten als
- * niet-gecontroleerd meldt in plaats van als nul — onbekend versmalt.
+ * And the scan that ITSELF falls over is the most dangerous of the three: it would come
+ * back as an empty list, and an empty list is exactly the sentence someone clicks through.
+ * That is why a scan that failed here reports ALL kinds as not checked rather than as
+ * zero — unknown narrows.
  */
 async function describeWebpageDeleteBlock(wp, userId) {
     let scan;
     try {
         scan = await webpageUsage.usageForWebpage(wp);
     } catch (err) {
-        // `usageForWebpage` vangt elke deelvraag apart op, dus hier belanden
-        // betekent dat er niets gecontroleerd is. Niet "niets gebruikt dit".
+        // `usageForWebpage` catches each sub-question separately, so arriving here means that
+        // nothing was checked. Not "nothing uses this".
         log.warn(`[Webpages] Delete guard scan failed for ${wp?.id}:`, err.message);
         return {
             error: 'Could not check what uses this webpage',
@@ -59,16 +57,15 @@ async function describeWebpageDeleteBlock(wp, userId) {
     const { rows, partial, sources, complete } = scan;
     if (rows.length === 0 && partial.length === 0) return null;
     return {
-        // Twee verschillende zinnen voor twee verschillende feiten. De client
-        // kiest zijn eigen woorden (DangerZone toont zijn eigen kop), maar een
-        // logregel of een curl mag hier niet het verkeerde verhaal lezen.
+        // Two different sentences for two different facts. The client chooses its own words
+        // (DangerZone shows its own heading), but a log line or a curl must not tell the wrong
+        // story here.
         error: rows.length > 0
             ? 'This webpage is still in use'
             : 'Could not check what uses this webpage',
         code: 'in_use',
-        // Andermans Oplossing houdt soort en rol en verliest zijn naam —
-        // dezelfde versmalling als GET /:id/usage, zodat het tabblad en deze
-        // poort niet van elkaar kunnen gaan verschillen.
+        // Someone else's Solution keeps kind and role and loses its name — the same narrowing as
+        // GET /:id/usage, so that the tab and this gate cannot come to differ from each other.
         usage: webpageUsage.redactForeign(rows, userId),
         unchecked: partial,
         sources,

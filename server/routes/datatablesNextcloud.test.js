@@ -57,8 +57,8 @@ test('the sub-router is mounted on /nextcloud BEFORE any /:id route, after the S
 
 test('linking carries no feature flag of its own — it is a capability of the Nextcloud connection', () => {
     assert.doesNotMatch(SRC, /requireBetaFeature/);
-    // Bewust brontekst: een afwezige feature-vlag is een eigenschap van de
-    // code, niet van gedrag dat aanroepen kan laten zien.
+    // Deliberately source text: an absent feature flag is a property of the
+    // code, not of behaviour that callers can observe.
     assert.doesNotMatch(PARENT, /nextcloud_datatables/);
 });
 
@@ -103,8 +103,8 @@ test('the per-table mirror routes sit in the parent, at the right grades, and re
     assert.match(at('put', '/:id/nextcloud'), /requireDatatableGrade\('owner'\),\s*requireManageForOrgScope\(\),\s*requireMirror/);
     assert.match(at('put', '/:id/nextcloud/relations'), /requireDatatableGrade\('owner'\),\s*requireManageForOrgScope\(\),\s*requireMirror/);
     assert.match(at('post', '/:id/nextcloud/relink'), /requireDatatableGrade\('owner'\),\s*requireManageForOrgScope\(\),\s*requireMirror/);
-    // Bewust brontekst: moet op ELKE mirror-route gelden, ook een die geen
-    // test aandrijft — zie de bestandskop.
+    // Deliberately source text: must apply to EVERY mirror route, including one that no
+    // test drives — see the file header.
     assert.match(PARENT, /function requireMirror\(req, res, next\) \{\s*if \(!sources\.isSourceMirror\(req\.datatable\)\) return res\.status\(404\)/);
 });
 

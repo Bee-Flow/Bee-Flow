@@ -1,17 +1,16 @@
 /**
- * Een geplande cowork-run rekent zijn verbruik af via HETZELFDE
- * pad als interactieve chats: usageStore.logUsage, met de eigenaar en de al
- * opgeloste effectieve org als attributie. Vóór dit bestond bereikte het
- * niet-agent-pad van executeTask ai_usage_log nooit — nul kosten, geen
- * PAYG-billing, geen org-dashboard: een stille quota-omzeiling.
+ * A scheduled cowork run settles its usage via the SAME path as
+ * interactive chats: usageStore.logUsage, with the owner and the already
+ * resolved effective org as attribution. Before this existed, the non-agent
+ * path of executeTask never reached ai_usage_log: zero cost, no PAYG
+ * billing, no org dashboard: a silent quota bypass.
  *
- * Drie eigenschappen worden hier gepind:
- *   1. de juiste velden (user/org/model/source/tokens) bereiken de sink,
- *      precies één keer per run;
- *   2. een falende usage-log laat de run gewoon slagen — boekhouding is geen
- *      poortwachter;
- *   3. het foutpad rekent de al verbrande tokens alsnog af, en een run die
- *      vóór de eerste model-call strandt logt géén lege regel.
+ * Three properties are pinned here:
+ *   1. the right fields (user/org/model/source/tokens) reach the sink,
+ *      exactly once per run;
+ *   2. a failing usage log lets the run succeed anyway: bookkeeping is not a gatekeeper;
+ *   3. the failure path still bills the tokens already burned, and a run that
+ *      stalls before the first model call logs NO empty line.
  *
  * Run: node --test --test-force-exit core/aiTaskRunner.usageLog.test.js
  */
@@ -51,8 +50,8 @@ const restore = installResolveStub({
     },
     '../db': { pool: { query: async () => ({ rows: [] }) } },
     '../stores/terminationStore': { logTermination: async () => {} },
-    // Tier-resolutie is elders gepind (tierContext-test); hier volstaat een
-    // vaste uitkomst zodat de test over de attributie gaat.
+    // Tier resolution is pinned elsewhere (tierContext test); here a
+    // fixed outcome suffices so the test is about attribution.
     './llm/modelResolver': {
         resolveModelForTier: async () => modelForTier,
         resolveEffectiveOrgId: async () => 'org-eff',

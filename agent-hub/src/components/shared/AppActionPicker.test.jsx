@@ -130,14 +130,14 @@ describe('AppActionPicker', () => {
 });
 
 /**
- * Het PER-APP selectiemodel en de effect-chips (A2 stap 4).
+ * The PER-APP selection model and the effect chips (A2 step 4).
  *
- * De platte `selected`-lijst kan "over deze app is niets gezegd" en "deze app
- * mag niets" niet uit elkaar houden — bevinding 1 van de A1b-rechtenlaagreview.
- * Wat hier gepind wordt is dat de schil het per-app model wél draagt, dat een
- * app met onbekende acties niets te vinken geeft (in plaats van een leeg
- * lijstje dat "geen acties" beweert), en dat een onbekend effect onder
- * "Sends" valt — dezelfde smalle lezing als de runtime.
+ * The flat `selected` list cannot tell apart "nothing was said about this app" and
+ * "this app may do nothing". That is finding 1 of the A1b rights-layer review.
+ * What is pinned here is that the shell does carry the per-app model, that an app
+ * with unknown actions has nothing to tick (instead of an empty list that claims
+ * "no actions"), and that an unknown effect falls under "Sends". That is the same
+ * narrow reading as the runtime.
  */
 
 const EFFECT_APPS = [
@@ -178,7 +178,7 @@ describe('AppActionPicker — het per-app selectiemodel', () => {
             selection: new Map([['gmail', new Set()]]),
         });
         expect(getByText(/0 of 4 actions selected/i)).toBeTruthy();
-        // Geen telbadge in de app-lijst — nul is nul, niet "niets gezegd".
+        // No count badge in the app list. Zero is zero, not "nothing said".
         expect(queryByLabelText(/selected$/)).toBeNull();
     });
 
@@ -186,7 +186,7 @@ describe('AppActionPicker — het per-app selectiemodel', () => {
         const { getByRole, getByTestId, queryByRole } = renderEffects();
         fireEvent.click(getByRole('button', { name: /^Broken app$/ }));
         expect(getByTestId('app-actions-unknown')).toBeTruthy();
-        // Geen "Enable all" op een app waarvan we de acties niet kennen.
+        // No "Enable all" on an app whose actions we do not know.
         expect(queryByRole('button', { name: /enable all/i })).toBeNull();
     });
 });
@@ -208,8 +208,8 @@ describe('AppActionPicker — de effect-chips', () => {
     });
 
     it('dimt een rij die kan versturen en zegt dat er eerst bevestigd wordt', () => {
-        // De ZIN komt van de aanroeper: "altijd eerst bevestigen" is de regel
-        // van de agent-runtime, niet van elke surface die deze schil rendert.
+        // The SENTENCE comes from the caller. "Always confirm first" is the rule of the
+        // agent runtime, not of every surface that renders this shell.
         const { getByRole } = renderEffects({ text: { sendsNote: 'always confirmed first' } });
         const row = getByRole('button', { name: /^Compose/ });
         expect(row.getAttribute('data-testid')).toBe('action-row-sends');
@@ -220,9 +220,9 @@ describe('AppActionPicker — de effect-chips', () => {
     });
 
     it('verzint die zin NIET op een surface die de regel niet heeft', () => {
-        // De AI-stap van de automations-builder rendert dezelfde schil, maar
-        // daar geldt "elke verzending wordt eerst bevestigd" niet — daar staat
-        // één bevestiging vóór de eerste onbeheerde run.
+        // The AI step of the automations builder renders the same shell, but there the
+        // rule "every send is confirmed first" does not apply. There, one confirmation
+        // sits before the first unattended run.
         const { getByRole } = renderEffects();
         const row = getByRole('button', { name: /^Compose/ });
         expect(row.getAttribute('data-testid')).toBe('action-row-sends');
@@ -251,8 +251,8 @@ describe('AppActionPicker — de effect-chips', () => {
     });
 
     it('verspringt mee als er een NIEUW focusverzoek komt terwijl de kiezer openstaat', () => {
-        // Een schil die blijft staan tussen twee ↗-klikken zou anders op de
-        // eerste app blijven hangen — de tweede klik doet dan niets zichtbaars.
+        // A shell that stays between two ↗ clicks would otherwise hang on the first app.
+        // The second click then does nothing visible.
         const { rerender, getByRole } = render(
             <AppActionPicker apps={EFFECT_APPS} selection={new Map()} onToggle={vi.fn()} onClose={vi.fn()} focusAppId="gmail" />,
         );

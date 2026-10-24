@@ -1,65 +1,65 @@
 // @typecheck
 /**
- * Meeting prefs — per-vergadering opnamevoorkeur en tags (M5, "Gepland & regels").
+ * Meeting prefs — per-meeting recording preference and tags (M5, "Scheduled & rules").
  *
- * Dit is de VERHUIZING van de opname-uitsluiting, geen tweede waarheid. Tot nu
- * toe leefde "niet opnemen" als vier string-arrays in vier configStore-docs:
+ * This is the RELOCATION of the recording exclusion, not a second source of truth. Until now
+ * "do not record" lived as four string arrays in four configStore docs:
  *   org_talk_notes_<orgId>  / user_talk_notes_<userId>   → excludedRoomTokens[], excludedEventUids[]
  *   org_gmeet_notes_<orgId> / user_gmeet_notes_<userId>  → excludedMeetingCodes[], excludedEventIds[]
- * Aanwezigheid in zo'n array betekende "niet opnemen"; er was geen positieve
- * waarde, dus "aan" en "nooit een mening gehad" waren hetzelfde. Deze tabel
- * neemt die rol over, `backfillFromExclusions()` haalt de bestaande
- * uitsluitingen op, en de oude arrays worden niet meer gelezen. Ze blijven wél
- * staan: een rollback naar de vorige image moet de uitsluitingen nog vinden.
+ * Presence in such an array meant "do not record"; there was no positive
+ * value, so "on" and "never had an opinion" were the same thing. This table
+ * takes over that role, `backfillFromExclusions()` fetches the existing
+ * exclusions, and the old arrays are no longer read. They DO remain in place:
+ * a rollback to the previous image must still find the exclusions.
  *
- * ── VORM ──────────────────────────────────────────────────────────────
+ * ── SHAPE ──────────────────────────────────────────────────────────────
  *   meeting_prefs(provider, id_kind, external_id, user_id, org_id, tags, record)
  *
- *   provider     'talk' | 'gmeet' | 'teams' — hetzelfde label dat de Gepland-lijst toont.
- *   id_kind      'room' | 'event' | 'code'. Eén provider heeft TWEE id-ruimtes:
- *                Talk een roomToken (de ruimte, elke call daarin) en een
- *                eventUid (één agenda-occurrence); Meet een meetingCode (de
- *                serie) en een eventId (één occurrence). Zonder id_kind zouden
- *                een roomToken en een eventUid in dezelfde sleutel botsen en
- *                zou een uitsluiting op de één die van de ander worden.
- *   user_id      de eigenaar van de voorkeur; '' = org-brede regel.
- *   org_id       '' = persoonlijke regel. De CHECK dwingt af dat precies één
- *                van de twee gevuld is, zodat dezelfde voorkeur nooit als twee
- *                rijen kan bestaan. '' i.p.v. NULL omdat NULL in een sleutel
- *                niet botst (zelfde reden als skill_activations.agent_id).
- *   record       DRIEWAARDIG: TRUE = wel opnemen, FALSE = niet opnemen,
- *                NULL/geen rij = geen mening → erven. Dat derde geval is geen
- *                luxe: zonder NULL zou de backfill voor élke niet-uitgesloten
- *                vergadering een `true` moeten schrijven en dan bevriest hij de
- *                globale autoRecord/autoImport-schakelaar op zijn stand van nu.
- *   tags         de tags die de notitie krijgt die hier straks uit komt. Nieuw;
- *                de oude opslag had er geen bron voor, dus dit begint leeg. Let
- *                op: dit is iets ANDERS dan de tags op een bestaande notitie
- *                (GET /api/transcriptions/tags) — die hangen aan het resultaat,
- *                deze aan de afspraak.
+ *   provider     'talk' | 'gmeet' | 'teams' — the same label that the Scheduled list shows.
+ *   id_kind      'room' | 'event' | 'code'. One provider has TWO id spaces:
+ *                Talk a roomToken (the room, every call in it) and an
+ *                eventUid (one calendar occurrence); Meet a meetingCode (the
+ *                series) and an eventId (one occurrence). Without id_kind a
+ *                roomToken and an eventUid would collide in the same key and
+ *                an exclusion on the one would become that of the other.
+ *   user_id      the owner of the preference; '' = org-wide rule.
+ *   org_id       '' = personal rule. The CHECK enforces that exactly one of
+ *                the two is filled, so the same preference can never exist as two
+ *                rows. '' instead of NULL because NULL does not collide in a key
+ *                (same reason as skill_activations.agent_id).
+ *   record       THREE-VALUED: TRUE = record, FALSE = do not record,
+ *                NULL/no row = no opinion → inherit. That third case is not a
+ *                luxury: without NULL the backfill would have to write a
+ *                `true` for every non-excluded meeting, and then it would freeze the
+ *                global autoRecord/autoImport switch at its current position.
+ *   tags         the tags that the note receiving this will get later. New;
+ *                the old storage had no source for it, so this starts empty. Note:
+ *                this is something DIFFERENT from the tags on an existing note
+ *                (GET /api/transcriptions/tags) — those hang on the result,
+ *                these on the arrangement.
  *
- * ── DE RIJ IS PER GEBRUIKER ───────────────────────────────────────────
- * Twee deelnemers aan dezelfde vergadering hebben elk hun eigen rij en mogen
- * verschillend beslissen. `listPrefs` filtert daarom op `user_id = $n` (exact,
- * nooit een LIKE of een OR die andermans rij binnenlaat) en op org-rijen alleen
- * via `user_id = '' AND org_id = $n`. Een aanroep zónder userId én zónder orgId
- * levert [] — een filter dat naar niemand scoopt geeft niets terug in plaats
- * van alles (zelfde regel als automationStore.buildRunFilterWhere).
+ * ── THE ROW IS PER USER ───────────────────────────────────────────────
+ * Two participants of the same meeting each have their own row and may decide
+ * differently. `listPrefs` therefore filters on `user_id = $n` (exact,
+ * never a LIKE or an OR that lets in someone else's row) and on org rows only
+ * via `user_id = '' AND org_id = $n`. A call with neither a userId nor an orgId
+ * yields [] — a filter that scopes to nobody returns nothing rather than
+ * everything (same rule as automationStore.buildRunFilterWhere).
  *
- * ── DE 1-OP-1-STANDAARD ───────────────────────────────────────────────
- * Bij ten hoogste twee deelnemers is `record` standaard FALSE: een
- * één-op-één-gesprek is zelden een vergadering en vaak het gevoeligste wat er
- * op de agenda staat. "Twee deelnemers" en "aantal onbekend" zijn daarbij niet
- * hetzelfde, maar onbekend VERSMALT: het telt niet als "meer dan twee", dus ook
- * dan blijft de standaard FALSE. Alleen een GEKEND aantal boven de twee laat de
- * globale schakelaar (`fallback`) beslissen. Een expliciete voorkeur wint altijd
- * van deze standaard — dat is precies waarvoor `record = TRUE` bestaat.
+ * ── THE 1-ON-1 DEFAULT ────────────────────────────────────────────────
+ * With at most two participants `record` defaults to FALSE: a
+ * one-to-one conversation is rarely a meeting and often the most sensitive thing
+ * on the calendar. "Two participants" and "count unknown" are not the
+ * same there, but unknown NARROWS: it does not count as "more than two", so even
+ * then the default stays FALSE. Only a KNOWN count above two lets the
+ * global switch (`fallback`) decide. An explicit preference always wins
+ * over this default — that is precisely what `record = TRUE` exists for.
  *
- * ── UITSLUITING VERSMALT ──────────────────────────────────────────────
- * Raken er meerdere rijen aan dezelfde vergadering (org + user, of ruimte +
- * occurrence), dan wint één enkele FALSE. Dat is exact wat de oude unie van
- * org- en user-arrays deed: een org kon uitsluiten en een gebruiker kon daar
- * niet omheen. Pas als geen enkele rakende rij FALSE zegt, telt een TRUE.
+ * ── EXCLUSION NARROWS ─────────────────────────────────────────────────
+ * If several rows touch the same meeting (org + user, or room +
+ * occurrence), then a single FALSE wins. That is exactly what the old union
+ * of org and user arrays did: an org could exclude and a user could not
+ * get around it. Only when no touching row says FALSE does a TRUE count.
  */
 
 'use strict';
@@ -79,8 +79,8 @@ const SMALL_MEETING_MAX = 2;
 const BACKFILL_KEY = 'meeting_prefs_backfill_v1';
 
 /**
- * De vier oude uitsluitdocumenten, met per document welk veld op welke
- * id-ruimte slaat. Dit is de ENIGE plek die de oude vorm nog kent.
+ * The four old exclusion documents, with per document which field stores which
+ * id space. This is the ONLY place that still knows the old shape.
  */
 const LEGACY_SOURCES = Object.freeze([
     { prefix: 'user_talk_notes_', provider: 'talk', scope: 'user', fields: [['excludedEventUids', 'event'], ['excludedRoomTokens', 'room']] },
@@ -113,7 +113,7 @@ function mapRow(r) {
         userId: r.user_id || null,
         orgId: r.org_id || null,
         tags: parseTags(r.tags),
-        // Alleen een echte boolean is een mening; alles anders is "geen mening".
+        // Only a real boolean is an opinion; everything else is "no opinion".
         record: r.record === true ? true : r.record === false ? false : null,
         updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : null,
         updatedBy: r.updated_by || null,
@@ -121,9 +121,9 @@ function mapRow(r) {
 }
 
 /**
- * Normaliseer een lijst identiteiten. Accepteert [{kind, id}] en gooit lege of
- * onbekende soorten weg. Volgorde blijft behouden: bel met de MEEST SPECIFIEKE
- * eerst (occurrence vóór ruimte/serie) — tags worden in die volgorde verzameld.
+ * Normalise a list of identities. Accepts [{kind, id}] and discards empty or
+ * unknown kinds. Order is preserved: call with the MOST SPECIFIC
+ * first (occurrence before room/series) — tags are collected in that order.
  */
 function normalizeIds(ids) {
     const out = [];
@@ -152,8 +152,8 @@ function gmeetIds({ eventId = null, meetingCode = null } = {}) {
 }
 
 /**
- * Teams-identiteiten van een vergadering, meest specifiek eerst: de
- * agenda-afspraak (deze keer) en de seriemaster in Outlook (de hele serie).
+ * Teams identities of a meeting, most specific first: the
+ * calendar appointment (this time) and the series master in Outlook (the whole series).
  */
 function teamsIds({ eventId = null, seriesMasterId = null } = {}) {
     return normalizeIds([{ kind: 'event', id: eventId }, { kind: 'code', id: seriesMasterId }]);
@@ -180,48 +180,48 @@ const initDB = makeStoreInit('MeetingPrefsStore', async () => {
         `CREATE INDEX IF NOT EXISTS idx_meeting_prefs_user ON meeting_prefs(user_id, provider) WHERE user_id <> ''`,
         `CREATE INDEX IF NOT EXISTS idx_meeting_prefs_org ON meeting_prefs(org_id, provider) WHERE user_id = ''`,
     ]);
-    // runDdl meldt SQLSTATE-fouten terug i.p.v. te gooien. Hier is dat niet
-    // genoeg: op een half aangelegd schema zou elke lees stilletjes leeg
-    // teruggeven — en leeg betekent hier "niemand heeft opnemen uitgezet".
+    // runDdl reports SQLSTATE errors back instead of throwing. Here that is not
+    // enough: on a half-built schema every read would silently return empty —
+    // and empty means here "nobody has switched recording off".
     if (res.failures.length) {
         throw new Error(`meeting_prefs DDL faalde (${res.failures.map(f => f.code).join(', ')}) — zie de [DDL:meetingPrefsStore]-regels`);
     }
-    // De backfill hoort BINNEN de init-belofte: elke publieke functie wacht op
-    // initDB(), dus geen enkele lezer kan de tabel zien vóór de bestaande
-    // uitsluitingen erin staan. Andersom zou een lees in dat venster "geen
-    // mening" lezen en dus opnemen wat iemand had uitgezet.
+    // The backfill belongs WITHIN the init promise: every public function waits on
+    // initDB(), so no reader can see the table before the existing
+    // exclusions are in it. The other way round, a read in that window would read "no
+    // opinion" and therefore record what somebody had switched off.
     await backfillFromExclusions();
 });
 
 /**
- * Haal de bestaande uitsluitingen uit de vier configStore-documenten en schrijf
- * ze als `record = FALSE`-rijen. Idempotent (ON CONFLICT DO NOTHING) en niet
- * destructief: de oude velden blijven staan.
+ * Fetch the existing exclusions from the four configStore documents and write
+ * them as `record = FALSE` rows. Idempotent (ON CONFLICT DO NOTHING) and not
+ * destructive: the old fields remain in place.
  *
- * ALLEEN uitsluitingen. Voor vergaderingen die er niet in staan wordt niets
- * geschreven — een `record = true`-rij zou de globale schakelaar bevriezen.
+ * ONLY exclusions. For meetings that are not in there nothing is written —
+ * a `record = true` row would freeze the global switch.
  *
- * Faalt luid. Eén onleesbaar document laat de hele backfill (en daarmee de
- * store-init) falen in plaats van die gebruiker over te slaan: overslaan zou
- * betekenen dat diens uitsluiting stilzwijgend verdwijnt, en dat is precies de
- * fout die deze verhuizing niet mag maken. De init-memo probeert het opnieuw.
+ * Fails loudly. One unreadable document makes the whole backfill (and with it
+ * the store init) fail instead of skipping that user: skipping would
+ * mean that their exclusion silently disappears, and that is precisely the
+ * mistake that this relocation may not make. The init memo retries.
  *
- * ── EEN LEGE SCAN IS GEEN BEWIJS ─────────────────────────────────────
- * De marker wordt alleen gezet als de scan ook echt IETS heeft gezien. Voor
- * één document gold dat onderscheid al (onleesbaar ≠ leeg); voor de
- * VERZAMELING gold het niet, en daar zit een echte race: `migrateConfigJson()`
- * in configStore is fire-and-forget (niets await het) en schrijft een
- * achtergebleven data/config.json rij voor rij weg. Draait deze backfill in
- * dat venster, dan levert `listKeysWithPrefix` nul sleutels — en met een
- * onvoorwaardelijke marker sloeg élke latere boot de scan over en waren die
- * uitsluitingen voorgoed weg. Dat is exact de FALSE→TRUE die deze verhuizing
- * niet mag maken, dus: geen documenten gezien = niets bewezen = geen marker.
- * De prijs is vier prefix-scans (index-range reads die niets teruggeven) per
- * boot op een installatie die werkelijk geen vergaderinstellingen heeft.
+ * ── AN EMPTY SCAN IS NO PROOF ─────────────────────────────────────────
+ * The marker is only set if the scan really SAW something. For one document that
+ * distinction already held (unreadable ≠ empty); for the COLLECTION it did not,
+ * and there lies a real race: `migrateConfigJson()`
+ * in configStore is fire-and-forget (nothing awaits it) and writes a
+ * leftover data/config.json row by row. If this backfill runs in
+ * that window, then `listKeysWithPrefix` yields zero keys — and with an unconditional
+ * marker every later boot skipped the scan and those exclusions were
+ * gone for good. That is exactly the FALSE→TRUE that this relocation
+ * may not make, so: no documents seen = nothing proven = no marker.
+ * The price is four prefix scans (index-range reads that return nothing) per
+ * boot on an installation that really has no meeting settings.
  *
- * Handmatige herstelweg, als de marker tóch te vroeg blijkt te staan:
+ * Manual recovery path, if the marker nevertheless turns out to be set too early:
  *   node -e "require('./stores/meetingPrefsStore').backfillFromExclusions({force:true}).then(console.log)"
- * (vanuit server/ — `force` slaat de markercontrole over en herleest alles).
+ * (from server/ — `force` skips the marker check and rereads everything).
  */
 async function backfillFromExclusions({ force = false } = {}) {
     const configStore = require('./configStore');
@@ -238,8 +238,8 @@ async function backfillFromExclusions({ force = false } = {}) {
             const ownerId = key.slice(src.prefix.length);
             if (!ownerId) continue;
             const doc = await configStore.getConfig(key);
-            // Geen document = niets uit te sluiten. Een document dat GEEN object
-            // is, is onleesbaar — en onleesbaar is iets anders dan leeg.
+            // No document = nothing to exclude. A document that is NOT an
+            // object is unreadable — and unreadable is something other than empty.
             if (doc === null || doc === undefined) continue;
             if (typeof doc !== 'object' || Array.isArray(doc)) {
                 throw new Error(`meeting_prefs backfill: ${key} is geen object — onleesbaar telt niet als leeg`);
@@ -260,8 +260,8 @@ async function backfillFromExclusions({ force = false } = {}) {
     }
 
     if (scanned === 0) {
-        // Niets gezien is niet hetzelfde als niets te vinden. Geen marker, dus
-        // de volgende boot kijkt opnieuw.
+        // Nothing seen is not the same as nothing found. No marker, so
+        // the next boot looks again.
         return { skipped: false, scanned, inserted, marked: false };
     }
     await configStore.setConfig(BACKFILL_KEY, { completedAt: new Date().toISOString(), scanned, inserted });
@@ -270,9 +270,9 @@ async function backfillFromExclusions({ force = false } = {}) {
 }
 
 /**
- * Eén uitsluitingsrij. Roept GEEN initDB aan — hij draait er zelf binnenin.
- * ON CONFLICT DO NOTHING: een rij die er al staat (bv. omdat de gebruiker sinds
- * de vorige poging opnieuw heeft gekozen) wint van de oude waarde.
+ * One exclusion row. Does NOT call initDB — it runs that itself internally.
+ * ON CONFLICT DO NOTHING: a row that already exists (e.g. because the user has
+ * chosen again since the previous attempt) beats the old value.
  */
 async function _insertExclusion({ provider, idKind, externalId, userId, orgId }) {
     const res = await run(
@@ -287,8 +287,8 @@ async function _insertExclusion({ provider, idKind, externalId, userId, orgId })
 // ── lezen ────────────────────────────────────────────────────────────
 
 /**
- * De voorkeurrijen die voor DEZE gebruiker gelden: zijn eigen rijen plus de
- * org-brede rijen van zijn org. Nooit die van iemand anders.
+ * The preference rows that apply for THIS user: their own rows plus the
+ * org-wide rows of their org. Never those of anyone else.
  *
  * @param {{provider?: string, userId?: string|null, orgId?: string|null}} [args]
  * @returns {Promise<Array<{provider,idKind,externalId,userId,orgId,tags,record}>>}
@@ -298,7 +298,7 @@ async function listPrefs({ provider, userId = null, orgId = null } = {}) {
     const uid = normId(userId);
     const oid = normId(orgId);
     if (!p) return [];
-    if (!uid && !oid) return [];   // scoopt naar niemand → levert niets, niet alles
+    if (!uid && !oid) return [];   // scopes to nobody → yields nothing, not everything
     await initDB();
 
     const params = [p];
@@ -344,13 +344,13 @@ function resolvePrefs(rows, ids) {
 }
 
 /**
- * Aantal deelnemers voor de 1-op-1-standaard, of NULL als het niet te weten is.
+ * Number of participants for the 1-on-1 default, or NULL if it is not known.
  *
- * Accepteert een agenda-vergadering van beide providers (`attendees[]` +
- * organisator) of een expliciete `participantCount`. Een LEGE deelnemerslijst
- * levert NULL: dat is "de agenda vertelde ons niets", niet "nul mensen".
- * Alleen een echte, eindige, niet-negatieve telling geldt als bekend — een
- * string als '3' niet, want gokken is hier hetzelfde als fail-open.
+ * Accepts a calendar meeting from either provider (`attendees[]` +
+ * organizer) or an explicit `participantCount`. An EMPTY participant list
+ * yields NULL: that means "the calendar told us nothing", not "zero people".
+ * Only a real, finite, non-negative count counts as known — a string like '3'
+ * does not, because guessing here is the same as fail-open.
  */
 function participantCountOf(meeting) {
     if (meeting == null) return null;
@@ -369,7 +369,7 @@ function participantCountOf(meeting) {
             ? (a.email || a.cn || a.displayName || a.name || null)
             : (typeof a === 'string' ? a : null);
         if (ident) ids.add(String(ident).trim().toLowerCase());
-        else anon += 1;   // een deelnemer zonder naam is nog steeds een deelnemer
+        else anon += 1;   // a participant without a name is still a participant
     }
     const organizer = meeting.organizerEmail
         || (meeting.organizer && typeof meeting.organizer === 'object' ? (meeting.organizer.email || meeting.organizer.cn) : meeting.organizer);
@@ -380,13 +380,13 @@ function participantCountOf(meeting) {
 }
 
 /**
- * Moet deze vergadering opgenomen worden?
+ * Should this meeting be recorded?
  *
  * @param {object} [args]
- * @param {Array} [args.rows]             rijen uit listPrefs (of loadMeetingPrefs)
- * @param {Array} [args.ids]              [{kind, id}] van deze vergadering
- * @param {number|null} [args.participantCount]  NULL/undefined = onbekend
- * @param {boolean} [args.fallback]       de globale autoRecord/autoImport-stand
+ * @param {Array} [args.rows]             rows from listPrefs (or loadMeetingPrefs)
+ * @param {Array} [args.ids]              [{kind, id}] of this meeting
+ * @param {number|null} [args.participantCount]  NULL/undefined = unknown
+ * @param {boolean} [args.fallback]       the global autoRecord/autoImport setting
  * @returns {{record: boolean, reason: string}}
  *   reason: opted_out | opted_in | small_meeting | unknown_size | auto | auto_off
  */
@@ -396,15 +396,15 @@ function decideRecord({ rows = [], ids = [], participantCount = null, fallback =
     if (opinion === true) return { record: true, reason: 'opted_in' };
 
     const n = participantCountOf({ participantCount });
-    // Onbekend is niet "meer dan twee". Het versmalt, net als twee deelnemers.
+    // Unknown is not "more than two". It narrows, just like two participants do.
     if (n === null) return { record: false, reason: 'unknown_size' };
     if (n <= SMALL_MEETING_MAX) return { record: false, reason: 'small_meeting' };
     return fallback ? { record: true, reason: 'auto' } : { record: false, reason: 'auto_off' };
 }
 
 /**
- * Laad de voorkeuren van één gebruiker voor één provider en geef er een kleine
- * beslisser omheen. Eén query per lijst vergaderingen, niet één per rij.
+ * Load one user's preferences for one provider and wrap a small
+ * decider around them. One query per list of meetings, not one per row.
  * @param {{ provider?: string, userId?: string|null, orgId?: string|null }} [opts]
  */
 async function loadMeetingPrefs({ provider, userId = null, orgId = null } = {}) {
@@ -426,10 +426,10 @@ async function loadMeetingPrefs({ provider, userId = null, orgId = null } = {}) 
 // ── schrijven ────────────────────────────────────────────────────────
 
 /**
- * Bepaal de scope van een schrijfactie. Precies één van beide: een
- * persoonlijke rij (user_id gevuld, org_id '') of een org-brede rij. De CHECK
- * in het schema dwingt hetzelfde af, zodat dezelfde voorkeur nooit als twee
- * rijen kan bestaan.
+ * Determine the scope of a write action. Exactly one of two: a personal
+ * row (user_id set, org_id '') or an org-wide row. The CHECK
+ * in the schema enforces the same, so the same preference can never exist as
+ * two rows.
  */
 function _scopeOf(userId, orgId) {
     const uid = normId(userId);
@@ -440,11 +440,11 @@ function _scopeOf(userId, orgId) {
 }
 
 /**
- * Zet de opnamevoorkeur voor één vergadering. `record` mag TRUE, FALSE of NULL
- * zijn; NULL wist de mening (terug naar erven) zonder de tags aan te raken.
- * Schrijft één rij per meegegeven identiteit.
+ * Set the recording preference for one meeting. `record` may be TRUE, FALSE or NULL;
+ * NULL clears the opinion (back to inheriting) without touching the tags.
+ * Writes one row per supplied identity.
  *
- * @returns {Promise<number>} aantal geschreven rijen
+ * @returns {Promise<number>} number of rows written
  * @param {{ provider?: string, ids?: Array<{kind: string, id: string}>, userId?: string|null, orgId?: string|null, record?: boolean|null, updatedBy?: string|null }} [opts]
  */
 async function setRecord({ provider, ids, userId = null, orgId = null, record, updatedBy = null } = {}) {
@@ -471,9 +471,9 @@ async function setRecord({ provider, ids, userId = null, orgId = null, record, u
 }
 
 /**
- * Zet de tags voor één vergadering. Raakt `record` NIET aan — een nieuwe rij
- * krijgt `record NULL` (geen mening), zodat tagsetten nooit stilletjes een
- * opnamekeuze maakt.
+ * Set the tags for one meeting. Does NOT touch `record` — a new row
+ * gets `record NULL` (no opinion), so tag sets never silently make a
+ * recording decision.
  * @param {{ provider?: string, ids?: Array<{kind: string, id: string}>, userId?: string|null, orgId?: string|null, tags?: string[], updatedBy?: string|null }} [opts]
  */
 async function setTags({ provider, ids, userId = null, orgId = null, tags = [], updatedBy = null } = {}) {

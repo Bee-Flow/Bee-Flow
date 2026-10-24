@@ -3,14 +3,14 @@ import { describe, it, expect } from 'vitest';
 import { alwaysSkipped, buildTestPayload, SKIP_REASONS } from './testPayload';
 
 /**
- * Wat een testrun meeneemt — en waarom de lijst van wat er NIET in zit even
- * hard telt als de payload zelf.
+ * What a test run takes along — and why the list of what is NOT in it counts
+ * just as much as the payload itself.
  *
- * De oude testknop stuurde alleen de statische waarden mee. Alles wat aan een
- * formulierveld hing kwam als `undefined` aan, viel uit de JSON, en de run
- * begon met een lege trigger — zonder dat er iets over gezegd werd. Dat is
- * precies het geval waarin iemand met de helft van de invoer test en de
- * verkeerde conclusie trekt.
+ * The old test button sent only the static values. Anything hooked to a form
+ * field came through as `undefined`, fell out of the JSON, and the run began
+ * with an empty trigger — without anything being said about it. That is exactly
+ * the case in which someone tests with half the input and draws the wrong
+ * conclusion.
  */
 
 const FIELDS = [
@@ -43,7 +43,7 @@ describe('buildTestPayload — wat er wél in gaat', () => {
     });
 
     it('stuurt een LEGE waarde als lege waarde mee — dat is een antwoord, geen gat', () => {
-        // Een leeg tekstveld is niet hetzelfde als een veld dat er niet is.
+        // An empty text field is not the same as a field that does not exist.
         const { payload, skipped } = buildTestPayload({
             inputMapping: { subject: { kind: 'field', name: 'title' }, n: { kind: 'field', name: 'amount' } },
             formFields: FIELDS,
@@ -66,10 +66,10 @@ describe('buildTestPayload — bestandsvelden gaan nooit mee, en dat wordt gezeg
     });
 
     it('slaat een parameter over die de automatisering als `file` declareert, ook zonder bestandsveld', () => {
-        // De picker schrijft `{kind:'static', value:''}` als er geen
-        // bestandsinvoer is om naar te wijzen. Die lege string als bestand
-        // meesturen is erger dan hem overslaan: de stap faalt dan op iets
-        // anders dan de echte reden.
+        // The picker writes `{kind:'static', value:''}` when there is no
+        // file input to point to. Sending that empty string along as a file is
+        // worse than skipping it: the step then fails on something other
+        // than the real reason.
         const { payload, skipped } = buildTestPayload({
             inputMapping: { doc: { kind: 'static', value: '' } },
             formFields: FIELDS,
@@ -130,9 +130,9 @@ describe('alwaysSkipped — wat er onder de knop kan staan vóór de klik', () =
             },
             formFields: FIELDS,
         };
-        // Het bestandsveld: altijd. Het tekstveld: hangt ervan af of het
-        // formulier op dat moment op het scherm staat, dus dat hoort bij de
-        // uitslag en niet bij de knop.
+        // The file field: always. The text field: depends on whether the
+        // form is on screen at that moment, so that belongs in the outcome and
+        // not with the button.
         expect(alwaysSkipped(args)).toEqual([{ param: 'doc', field: 'upload', reason: SKIP_REASONS.FILE }]);
     });
 
@@ -144,13 +144,13 @@ describe('alwaysSkipped — wat er onder de knop kan staan vóór de klik', () =
     });
 });
 
-// ── de UNIE van gedeclareerde parameters en mapping-regels ──────────────────
+// ── the UNION of declared parameters and mapping rules ──────────────────
 //
-// Een parameter die de automatisering declareert maar die geen mapping-regel heeft is
-// de drift-toestand die ContractDrift op het scherm al toont ("The automatisering also
-// expects: + invoiceFile *"). Liep de lus alleen over `inputMapping`, dan reisde
-// die parameter niet mee ÉN werd hij niet gemeld — de tester zag een run met een
-// lege trigger-output en concludeerde dat de automatisering stuk was.
+// A parameter that the automation declares but that has no mapping rule is the
+// drift state that ContractDrift already shows on screen (“The automation also
+// expects: + invoiceFile *”). If the loop only ran over `inputMapping`, that
+// parameter neither travelled along NOR was it reported — the tester saw a run with an
+// empty trigger output and concluded the automation was broken.
 
 describe('een gedeclareerde parameter zonder mapping-regel', () => {
     const paramMeta = {
@@ -167,8 +167,8 @@ describe('een gedeclareerde parameter zonder mapping-regel', () => {
         expect(payload).toEqual({ subject: 'Hallo' });
         const byParam = Object.fromEntries(skipped.map((s) => [s.param, s.reason]));
         expect(byParam.note).toBe(SKIP_REASONS.NO_MAPPING);
-        // Het contract wint: een `file` blijft een FILE-overslag, ook zonder
-        // regel — dat is de specifiekere reden en de fix is een andere.
+        // The contract wins: a `file` remains a FILE skip, even without
+        // a rule — that is the more specific reason, and the fix is a different one.
         expect(byParam.invoiceFile).toBe(SKIP_REASONS.FILE);
     });
 
@@ -184,9 +184,9 @@ describe('een gedeclareerde parameter zonder mapping-regel', () => {
     });
 
     it('een mapping-regel voor een parameter die de automatisering NIET meer kent gaat gewoon mee', () => {
-        // De andere kant van de unie. Wat er wél gemapt is blijft reizen: de
-        // testroute doet geen contractcontrole, en wegfilteren zou de test iets
-        // anders laten draaien dan de knop.
+        // The other side of the union. What IS mapped keeps travelling: the
+        // test route does no contract check, and filtering it out would make the test
+        // run something different from the button.
         const { payload } = buildTestPayload({
             inputMapping: { ...inputMapping, legacy: { kind: 'static', value: 7 } },
             formFields, formValues, paramMeta: { subject: { type: 'string', required: true } },

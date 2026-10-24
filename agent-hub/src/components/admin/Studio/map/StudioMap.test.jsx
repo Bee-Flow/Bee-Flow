@@ -3,19 +3,17 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
- * De kaart op het Startscherm. Wat hier vastligt zijn de dingen die stil
- * verkeerd gaan:
+ * The card on the Start screen. What is pinned here are the things that silently go wrong:
  *
- *   1. een teller die niet gelezen kon worden is GEEN 0 — en een echte 0 is
- *      wél een 0;
- *   2. de plaat is niet de informatie: de SVG is voor de schermlezer
- *      onzichtbaar, en alle elf verbindingen staan als zin in de DOM;
- *   3. klikken licht precies de eigen randen op, en dooft de rest;
- *   4. de scope bepaalt alleen de ZIN onder het getal, en een scope die we
- *      niet kennen versmalt naar de voorzichtigste zin.
+ *   1. a counter that could not be read is NOT a 0 — and a genuine 0 is a 0;
+ *   2. the plate is not the information: the SVG is invisible to the screen reader,
+ *      and all eleven connections stand in the DOM as a sentence;
+ *   3. clicking lights up precisely its own edges, and dims the rest;
+ *   4. the scope determines only the SENTENCE under the number, and a scope we do
+ *      not know narrows to the most cautious sentence.
  *
- * De model-kant (de tien soorten, de elf randen, de meetkunde, de chrome)
- * staat in studioMap.test.js — die is de drifttest, deze is het scherm.
+ * The model side (the ten kinds, the eleven edges, the geometry, the chrome) is in
+ * studioMap.test.js — that is the drift test, this one is the screen.
  */
 
 const { authFetchMock, countsSpy } = vi.hoisted(() => ({ authFetchMock: vi.fn(), countsSpy: vi.fn() }));
@@ -26,9 +24,9 @@ vi.mock('../../../../utils/helpers', async (importOriginal) => ({
     authFetch: (...args) => authFetchMock(...args),
 }));
 
-// De echte hook, met een spion op de OPTIES. `poll: false` is de hele reden
-// dat deze kaart geen tweede poller naast die van de rail zet, en zonder deze
-// pin verdwijnt die keuze bij de eerste refactor zonder één rode test.
+// The real hook, with a spy on the OPTIONS. `poll: false` is the whole reason that
+// this card places no second poller next to the rail's, and without this pin that
+// choice disappears at the first refactor without a single red test.
 vi.mock('../../../../hooks/useStudioCounts', async (importOriginal) => {
     const actual = await importOriginal();
     return {
@@ -88,7 +86,7 @@ describe('StudioMap', () => {
             const li = screen.getByTestId(`studio-map-sentence-${edge.id}`);
             expect(li.textContent, edge.id).toContain(edge.labelFallback);
         }
-        // en de tegels zijn echte knoppen, geen vormpjes in een plaat
+        // and the tiles are real buttons, not shapes in a plate
         expect(screen.getByTestId('studio-map-tile-agent').tagName).toBe('BUTTON');
         // het werkwoord staat op de rand zelf, uit het vocabulaire
         expect(screen.getByTestId('studio-map-edge-agent-grounds-kb').textContent).toBe('grounds');
@@ -104,15 +102,15 @@ describe('StudioMap', () => {
 
         it('toont voor een sleutel die het antwoord niet had GEEN nul', () => {
             render(<StudioMap counts={{ automations: 9 }} />);
-            // 'agents' zat niet in het antwoord: niet mogen zien en omgevallen
-            // zijn ononderscheidbaar, en allebei zijn ze geen nul.
+            // 'agents' was not in the answer: not allowed to see and failed are
+            // indistinguishable, and both are not zero.
             expect(screen.queryByTestId('studio-map-count-agent')).toBeNull();
             const dash = screen.getByTestId('studio-map-count-agent-unknown');
             expect(dash.textContent.startsWith('—')).toBe(true);
             expect(dash.textContent).not.toBe('0');
-            // De zin staat er ook voor wie het streepje niet ziet: een `title`
-            // spreekt niet elke schermlezer uit, en het streepje is het enige
-            // verschil met "nog geen antwoord".
+            // The sentence is also there for whoever does not see the dash: a `title` is not
+            // spoken by every screen reader, and the dash is the only difference from
+            // “no answer yet”.
             expect(dash.textContent).toMatch(/not the same as none/i);
             fireEvent.click(screen.getByTestId('studio-map-tile-agent'));
             expect(screen.getByTestId('studio-map-detail-unknown').textContent).toMatch(/not the same as none/i);
@@ -146,10 +144,9 @@ describe('StudioMap', () => {
         it('laat een mislukte telling geen getallen verzinnen, en belooft er ook geen', async () => {
             authFetchMock.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
             render(<StudioMap />);
-            // Een 500 is geen "nog even wachten": deze kaart pollt niet, dus
-            // dat getal komt niet meer. Het streepje plus zijn zin is het
-            // eerlijke antwoord; "The number is not in yet" zou een belofte
-            // zijn die nooit wordt ingelost.
+            // A 500 is not “wait a little longer”: this card does not poll, so that number
+            // will not come any more. The dash plus its sentence is the honest answer;
+            // “The number is not in yet” would be a promise that is never kept.
             await waitFor(() => expect(screen.getByTestId('studio-map-count-kb-unknown')).toBeTruthy());
             expect(screen.queryByTestId('studio-map-count-kb')).toBeNull();
             fireEvent.click(screen.getByTestId('studio-map-tile-kb'));
@@ -166,9 +163,9 @@ describe('StudioMap', () => {
         });
 
         it('`null` van de ouder is een ANTWOORD, geen ontbrekende prop', () => {
-            // countsProp === undefined is de enige toestand waarin de kaart
-            // zelf gaat lezen. Zou dit `== null` zijn, dan overrulet de kaart
-            // een ouder die net gezegd heeft dat hij ze niet heeft.
+            // countsProp === undefined is the only state in which the card reads itself. If
+            // this were `== null`, the card would override a parent that has just said it
+            // does not have them.
             render(<StudioMap counts={null} />);
             expect(authFetchMock).not.toHaveBeenCalled();
         });
@@ -200,11 +197,10 @@ describe('StudioMap', () => {
         });
 
         it('zegt NIET "de hele organisatie" over een teller die de server per gebruiker telt', () => {
-            // GET /api/studio/counts kent geen scope-parameter, en telt
-            // `automations` met `WHERE user_id = $1`. Een strip die 'org'
-            // doorgeeft verandert dat getal dus niet — alleen de zin eronder,
-            // en die zou dan negen eigen automatiseringen tot een organisatiefeit
-            // maken.
+            // GET /api/studio/counts has no scope parameter, and counts `automations` with
+            // `WHERE user_id = $1`. A strip that passes 'org' thus does not change that
+            // number — only the sentence under it, and that would then turn nine of one's
+            // own automations into an organisation fact.
             render(<StudioMap counts={{ automations: 9 }} scope="org" />);
             fireEvent.click(screen.getByTestId('studio-map-tile-automation'));
             const line = screen.getByTestId('studio-map-detail-count').textContent;
@@ -221,8 +217,8 @@ describe('StudioMap', () => {
             for (const unknown of [null, undefined, '', 'ORG', 'org ', 'everything', { kind: 'org' }]) {
                 expect(scopeSentence(t, unknown), String(unknown)).toMatch(/what you can see/i);
             }
-            // En per sleutel: alles wat de server niet org-breed telt krijgt
-            // de zichtbare zin, hoe breed de strip erboven ook staat.
+            // And per key: everything that the server does not count org-wide gets the visible
+            // sentence, however broad the strip above it is.
             for (const key of ['automations', 'runs', 'solutions', 'apps', null]) {
                 expect(scopeSentence(t, 'org', key), String(key)).toMatch(/what you can see/i);
             }
@@ -249,7 +245,7 @@ describe('StudioMap', () => {
             expect(screen.getByTestId('studio-map-tile-automation').getAttribute('data-dimmed')).toBeNull();
             expect(screen.getByTestId('studio-map-tile-datatable').getAttribute('data-dimmed')).toBeNull();
             expect(screen.getByTestId('studio-map-tile-approval').getAttribute('data-dimmed')).toBeNull();
-            // een buur uit een andere laan hoort er niet bij
+            // a neighbour from another lane does not belong here
             expect(screen.getByTestId('studio-map-tile-skill').getAttribute('data-dimmed')).toBe('true');
         });
 

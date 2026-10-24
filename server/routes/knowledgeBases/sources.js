@@ -225,16 +225,12 @@ router.delete('/:id/sources/:sid', requireAuth, requirePermission('manage_knowle
         kbId: kb.id, sourceId: source.id, tenantId: kb.tenant_id,
     });
 
-    // DE BRON VALT PAS ALS DE OPRUIMING KLAAR IS. Deze route haalde de
-    // bronrij ONVOORWAARDELIJK weg en meldde de mislukkingen erbij in
-    // `errors` — met `success: true` erboven. Dat is fail-open op precies
-    // het punt waar het pijn doet: de FK cascadeert dan juist de
-    // documentrijen weg waar `deleteDocumentChunks` NIET langs is geweest,
-    // en hun embeddings blijven doorzoekbaar zonder rij om ze aan te
-    // wijzen. De prijs van de andere kant (een bron die blijft staan) is
-    // een knop die je nog een keer indrukt; deze kant is onherstelbaar.
-    // 409 en niet 500: er is niets stukgegaan aan onze kant, de toestand
-    // laat het (nu) niet toe. Wat er wél af is staat in `deletedDocuments`.
+    // THE SOURCE IS ONLY DROPPED WHEN THE CLEAN-UP IS DONE. This route removed the
+    // source row UNCONDITIONALLY and reported the failures in
+    // `errors` — with `success: true` above it. That is fail-open at exactly the point where it hurts: the FK then cascades away
+    // the document rows that `deleteDocumentChunks` never got to, and their embeddings remain searchable without a row to point to them.
+    // The price of the other side (a source that stays) is a button you press once more; this side is irreversible.
+    // 409 and not 500: nothing broke on our side, the state does not (yet) allow it. What is already gone is in `deletedDocuments`.
     if (!complete) {
         log.warn('[KB] source kept, documents remain:', source.id, errors[0]?.error || 'documents remained after cleanup');
         return res.status(409).json({

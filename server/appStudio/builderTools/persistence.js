@@ -60,10 +60,9 @@ async function applyFinalize(draftWrap) {
     // binding/step referencing a nonexistent table/dataset/field blocks
     // finalize; when it did not (dataModel === undefined) the checks are
     // skipped — validate.js's opts contract.
-    // De Studio-datatabellen van de eigenaar, langs dezelfde helper als de
-    // publicatiepoort: zonder die lijst is een `source.datatableId` die nergens
-    // naar wijst hier alleen een waarschuwing, en de AI-builder is juist het pad
-    // dat zo'n id kan verzinnen.
+    // The owner's Studio datatables, via the same helper as the publication gate: without that
+    // list a `source.datatableId` that points nowhere is only a warning here, and the AI builder
+    // is exactly the path that can make up such an id.
     const datatables = draftWrap._ownerDatatables || await require('../datatableSource').listOwnerDatatableIds(draftWrap.userId);
     const validation = validateAppDefinition(def, {
         ownedAutomations,

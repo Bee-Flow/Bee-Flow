@@ -1,20 +1,19 @@
 /**
- * "Wat hangt er aan deze webpagina?" — en wat het antwoord NOOIT mag zeggen.
+ * "What depends on this webpage?" — and what the answer must NEVER say.
  *
- * Deze lijst voedt het Gebruikt-door-tabblad en straks de verwijderpoort, dus
- * de fout die telt is die ene: NIET WETEN dat terugkomt als ER IS NIETS. Elke
- * deelvraag heeft daarom twee tests — één waarin hij echt antwoordt, en één
- * waarin hij omvalt en dat moet ZEGGEN in plaats van nul te melden.
+ * This list feeds the Used-by tab and later the deletion gate, so the error that counts
+ * is that one: NOT KNOWING coming out as THERE IS NOTHING. Each sub-question therefore has
+ * two tests — one in which it answers for real, and one in which it falls over and must
+ * SAY so instead of reporting zero.
  *
- * Twee soorten zijn NIET te beantwoorden en hebben daarom geen scan: `agent`
- * (de bevoegdheid ontstaat bij de aanroep, er is geen rij) en `chat` (een
- * pagina in het zijpaneel reist per beurt mee en wordt nergens vastgelegd).
- * Het bouwgesprek op `webpages.chat_messages` telt bewust NIET mee: dat gaat
- * mee als de pagina weg is en kan dus niet stukgaan aan de verwijdering — het
- * als rij melden liet vrijwel elke pagina "in gebruik" heten, met de naam van
- * de pagina zelf als rij-titel.
+ * Two kinds CANNOT be answered and therefore have no scan: `agent` (the permission arises
+ * at the call; there is no row) and `chat` (a page in the side panel travels along per
+ * turn and is recorded nowhere). The build conversation on `webpages.chat_messages`
+ * deliberately does NOT count: it goes along when the page goes and so cannot break from
+ * the deletion — listing it as a row made almost every page "in use", with the name of
+ * the page itself as row title.
  *
- * Draaien: cd server && node --test --test-reporter=tap core/webpages/webpageUsage.test.js
+ * Run: cd server && node --test --test-reporter=tap core/webpages/webpageUsage.test.js
  */
 
 const test = require('node:test');
@@ -32,15 +31,15 @@ const PAGE = Object.freeze({
 });
 
 /**
- * Een nep-pg-client.
- *   tables      — welke tabellen bestaan (de rest antwoordt to_regclass NULL)
- *   project     — de rij die de Oplossing-scan terugkrijgt (null = geen rij)
- *   automations — de rijen die de automation-scan terugkrijgt
- *   failOn      — scans waarvan de query gooit ('solution' | 'automation')
- *   probeFails  — de to_regclass-probe zelf valt om. Iets ANDERS dan een tabel
- *                 die er niet is, en dat verschil is een eigen test waard:
- *                 "deze installatie heeft geen Oplossingen" is een zin die
- *                 onwaar mag zijn over een installatie die ze wél heeft.
+ * A fake pg client.
+ *   tables      — which tables exist (the rest answers to_regclass NULL)
+ *   project     — the row the Solution scan receives back (null = no row)
+ *   automations — the rows the automation scan receives back
+ *   failOn      — scans whose query throws ('solution' | 'automation')
+ *   probeFails  — the to_regclass probe itself falls over. Something DIFFERENT from a
+ *                 table that is not there, and that difference deserves a test of its
+ *                 own: "this installation has no Solutions" is a sentence that may be
+ *                 untrue about an installation that does have them.
  */
 function db({
     tables = ['projects', 'automations', 'webpages'], project = null, automations = [],
@@ -136,14 +135,13 @@ test('solution: een wijzer naar een verwijderde Oplossing is gecontroleerd leeg,
     assert.deepStrictEqual(out.sources.solution, { status: 'checked', found: 0 });
 });
 
-// ── de automatiseringen ─────────────────────────────────────────────────────
+// ── the automations ─────────────────────────────────────────────────────────
 //
-// De soort die er eerst helemaal niet was — niet als scan en ook niet als
-// onbeantwoorde soort, dus er was geen enkel veld waarin het antwoord "ik heb
-// niet gekeken" terechtkwam. Een automatisering bindt een pagina DUURZAAM (het
-// meegeleverde sjabloon in automation/templates.js draagt een
-// `webpage_db_exec`-stap met een literal `webpageId`), en zonder deze scan
-// verdween zij uit élk scherm dat de vraag stelt om daarna stil te falen.
+// The kind that was not there at all before — neither as a scan nor as an unanswered
+// kind, so there was no single field in which the answer "I have not looked" could land.
+// An automation binds a page DURABLY (the bundled template in automation/templates.js
+// carries a `webpage_db_exec` step with a literal `webpageId`), and without this scan it
+// disappeared from EVERY screen that asks the question, after which it failed silently.
 
 const AUTOMATION_ROW = {
     id: 'auto-1', title: 'Facturen verwerken', owner_id: 'owner-1', last_at: '2026-09-02T00:00:00Z',
@@ -209,9 +207,9 @@ test('een omgevallen PROBE is iets anders dan een tabel die er niet is', async (
     const d = db({ probeFails: true });
     const out = await usageForWebpage(PAGE, { db: d });
 
-    // Allebei blokkeren ze de verwijdering, maar de client bouwt op
-    // `no-projects-table` de zin "deze installatie heeft geen Oplossingen" —
-    // en die zin is onwaar over een installatie die ze wél heeft.
+    // Both block the deletion, but the client builds on
+    // `no-projects-table` the sentence "this installation has no Solutions" —
+    // and that sentence is untrue about an installation that does have them.
     assert.strictEqual(out.sources.solution.reason, REASONS.PROBE_FAILED);
     assert.strictEqual(out.sources.automation.reason, REASONS.PROBE_FAILED);
     assert.notStrictEqual(REASONS.PROBE_FAILED, REASONS.NO_PROJECTS_TABLE);
@@ -225,8 +223,8 @@ test('chat: het BOUWGESPREK is geen afhankelijkheid — het gaat mee met de pagi
 
     assert.deepStrictEqual(rowsOf(out, 'chat'), [],
         'een ding dat samen met de pagina verdwijnt kan niet stukgaan aan de verwijdering');
-    // En er wordt niet naar chat_messages gevraagd: die kolom beantwoordt de
-    // vraag niet die deze soort stelt.
+    // And chat_messages is NOT queried: that column does not answer the
+    // question this kind asks.
     assert.strictEqual(d.sqlFor('chat_messages'), undefined);
 });
 
@@ -279,10 +277,10 @@ test('elke soort komt in `sources` voor, ook als hij niets vond', async () => {
 });
 
 test('de scan leest de PAGINARIJ, niet alleen haar id', async () => {
-    // Wie de route ooit "opschoont" tot `usageForWebpage({ id })` breekt niets
-    // zichtbaars: scanSolution ziet dan geen projectId en meldt "gecontroleerd,
-    // nul rijen" voor een pagina die wél in een Oplossing ligt — een echte
-    // afhankelijkheid die als een BEVESTIGDE nul uit de lijst valt.
+    // Whoever ever "tidies up" the route to `usageForWebpage({ id })` breaks nothing
+    // visible: scanSolution then sees no projectId and reports "checked, zero rows" for a
+    // page that IS in a Solution — a real dependency that drops out of the list as a
+    // CONFIRMED zero.
     const withRow = await usageForWebpage(PAGE, { db: db({ project: PROJECT_ROW }) });
     assert.strictEqual(rowsOf(withRow, 'solution').length, 1);
 

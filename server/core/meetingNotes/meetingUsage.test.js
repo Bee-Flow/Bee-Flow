@@ -347,13 +347,12 @@ test('redaction survives a non-array and mixed ids', async () => {
     assert.strictEqual(row.title, 'X', 'a numeric id must compare as a string, not stay foreign');
 });
 
-// ── de regels die iemand met de hand in een kennisbank zette (M4) ────
+// ── the lines that someone placed by hand in a knowledge base (M4) ──
 //
-// Dit is de derde kb-predicaat. Wat hier fout kan gaan is niet "een rij te
-// weinig" maar een TELLING die iets anders zegt dan het zijpaneel: één rij
-// per gefileerde regel zou het paneel vijf keer dezelfde kennisbank laten
-// noemen, en een `lineCount` die de tag-bron meetelt zou beweren dat er
-// regels gefileerd zijn die niemand ooit heeft aangeklikt.
+// This is the third kb predicate. What can go wrong here is not "one row too few" but a COUNT that says
+// something different from the side panel: one row per filed line would make the panel name the same
+// knowledge base five times, and a `lineCount` that also counts the tag source would claim that there are
+// lines filed which nobody ever clicked on.
 
 test('filed transcript lines collapse to ONE row per knowledge base, with a count', async () => {
     const d = db({

@@ -1,55 +1,54 @@
 /**
- * Het SPOOR van de fase-events van één beurt (A4 deel C).
+ * The TRAIL of the phase events of one turn (A4 part C).
  *
- * ── WAAROM DIT ER NIET AL WAS ──────────────────────────────────────────────
+ * ── WHY THIS DID NOT ALREADY EXIST ──────────────────────────────────────────
  *
- * De server zendt tijdens elke beurt `phase`-events: `{ stage, status:
- * 'start'|'end', detail?, durationMs? }` (server/core/agentRuntime/
- * phaseEvents.js). De client deed daar tot nu toe precies één ding mee — hij
- * zette ze op `msg.currentPhase`, de ene roterende regel boven de typebolletjes
- * (`ActivityIndicator`). Elke fase overschreef dus de vorige, en de eerste
- * letter van het antwoord wiste de hele regel (`contentFlusher`).
+ * During every turn the server sends `phase` events: `{ stage, status:
+ * 'start'|'end', detail?, durationMs? }` (server/core/agentRuntime/phaseEvents.js).
+ * Until now the client did exactly one thing with them: it put them on
+ * `msg.currentPhase`, the one rotating line above the typing dots
+ * (`ActivityIndicator`). Every phase therefore overwrote the previous one, and the
+ * first letter of the answer wiped the whole line (`contentFlusher`).
  *
- * Er was daardoor geen enkele plek waar ná afloop te zien was wat er gebeurd
- * was. Dit bestand maakt dat spoor: dezelfde events, opgeteld in de volgorde
- * waarin ze binnenkwamen, blijvend op het bericht.
+ * As a result there was no place where, afterwards, one could see what had happened.
+ * This file makes that trail: the same events, added up in the order in which they
+ * arrived, kept on the message.
  *
- * ── HET SPOOR VERZINT NIETS ────────────────────────────────────────────────
+ * ── THE TRAIL INVENTS NOTHING ──────────────────────────────────────────────
  *
- * Twee regels, en ze zijn allebei belangrijker dan ze eruitzien:
+ * Two rules, and both are more important than they look:
  *
- *  1. EEN 'end' ZONDER 'start' MAAKT GEEN RIJ. Een afsluiting die bij niets
- *     hoort is geen stap die gebeurd is; er een rij van maken zou een stap op
- *     het scherm zetten waarvan we het begin nooit hebben gezien.
- *  2. EEN HERHAALDE 'start' VAN DEZELFDE OPEN FASE IS DEZELFDE STAP.
- *     `startPrivacyScanPhase` zendt per gescand venster opnieuw een start met
- *     `detail: '3/6'`, zodat de live regel meebeweegt. Wie die naïef opstapelt
- *     laat één privacyscan als zes stappen in het spoor staan — een spoor dat
- *     meer werk toont dan er gedaan is, en dat is precies de geruststelling
- *     die dit paneel hoort te bestrijden.
+ *  1. AN 'end' WITHOUT A 'start' MAKES NO ROW. A closing that belongs to nothing is
+ *     not a step that happened. Making a row of it would put a step on the screen
+ *     whose beginning we never saw.
+ *  2. A REPEATED 'start' OF THE SAME OPEN PHASE IS THE SAME STEP.
+ *     `startPrivacyScanPhase` sends a `start` per scanned window, with
+ *     `detail: '3/6'`, so that the live line moves along. Stacking those naively
+ *     leaves one privacy scan as six steps in the trail: a trail that shows more
+ *     work than was done, and that is precisely the reassurance this panel should
+ *     combat.
  *
- * ── FASES SCHUIVEN OVER ELKAAR HEEN ────────────────────────────────────────
+ * ── PHASES SLIDE OVER EACH OTHER ───────────────────────────────────────────
  *
- * `guardrails` loopt op het agentpad OM `privacy_scan` heen (guardrailsRunner
- * draait binnen de guardrails-fase). Het spoor is dus geen lijst van elkaar
- * opvolgende blokken en de duren mogen NIET opgeteld worden tot "zo lang duurde
- * de beurt" — dat telt de scan twee keer. Wie een totaal wil, neemt de
- * SPANWIJDTE (eerste start → laatste einde); zie `answerTrace.js`.
+ * `guardrails` runs on the agent path AROUND `privacy_scan` (guardrailsRunner runs
+ * inside the guardrails phase). The trail is therefore not a list of blocks that
+ * follow each other, and the durations may NOT be added up to "this is how long the
+ * turn took", because that counts the scan twice. Whoever wants a total takes the
+ * SPAN (first start to last end). See `answerTrace.js`.
  *
- * Zuiver: geen React, geen DOM, geen tijd behalve wat er binnenkomt. Zodat
- * "wat staat er in het spoor" met platte objecten te testen is.
+ * Pure: no React, no DOM, no time except what comes in. So that "what is in the
+ * trail" can be tested with plain objects.
  *
- * Draaien: cd agent-hub && ./node_modules/.bin/vitest run src/hooks/useChatEngine/phaseTrail.test.js
+ * Run: cd agent-hub && ./node_modules/.bin/vitest run src/hooks/useChatEngine/phaseTrail.test.js
  */
 
 /**
- * Hoeveel stappen één beurt in het spoor mag achterlaten.
+ * How many steps one turn may leave behind in the trail.
  *
- * Het agentpad kent negen stages, en herhaalde starts van dezelfde fase worden
- * samengevouwen — dus dit is geen begrenzing die in de praktijk bijt, maar een
- * bovengrens voor een stroom die niet ophoudt. Boven de grens komen er geen
- * nieuwe stappen meer bij; lopende stappen mogen nog wél afgesloten worden,
- * anders zou een spoor vol eeuwig-open stappen achterblijven.
+ * The agent path has nine stages, and repeated starts of the same phase are folded
+ * together. So this is not a limit that bites in practice, but an upper bound for a
+ * stream that does not stop. Above the limit no new steps are added. Running steps
+ * may still be closed, otherwise a trail full of forever-open steps would remain.
  */
 export const MAX_TRAIL_STEPS = 40;
 
@@ -71,14 +70,14 @@ export interface PhaseTrailEntry {
     [key: string]: unknown;
 }
 
-/** Een niet-lege, getrimde string, of null. */
+/** A non-empty trimmed string, or null. */
 function text(value: unknown): string | null {
     if (typeof value !== 'string') return null;
     const trimmed = value.trim();
     return trimmed || null;
 }
 
-/** Sluit de laatste nog lopende rij van deze stage. Geen start ⇒ geen rij. */
+/** Closes the last still-running row of this stage. No start means no row. */
 function closeStep(
     rows: PhaseTrailEntry[],
     stage: string,
@@ -86,8 +85,8 @@ function closeStep(
     now: number,
 ): PhaseTrailEntry[] | null {
     let at = -1;
-    // Achteruit zoeken: een fase die twee keer liep hoort zijn eigen einde te
-    // krijgen, niet dat van de vorige keer.
+    // Search backwards: a phase that ran twice should get its own end, not that of the
+    // previous time.
     for (let i = rows.length - 1; i >= 0; i--) {
         if (rows[i] && rows[i].stage === stage && rows[i].endedAt == null) { at = i; break; }
     }
@@ -97,9 +96,9 @@ function closeStep(
     next[at] = {
         ...row,
         endedAt: now,
-        // De server meet zijn eigen duur; die is nauwkeuriger dan het verschil
-        // van twee kloktikken hier. Zonder die meting valt het terug op de
-        // onze — allebei echte metingen, geen schatting.
+        // The server measures its own duration. That is more accurate than the difference
+        // of two clock ticks here. Without that measurement it falls back to ours. Both
+        // are real measurements, not estimates.
         durationMs: Number.isFinite(data.durationMs)
             ? data.durationMs
             : (Number.isFinite(row.startedAt) ? now - row.startedAt : null),
@@ -107,7 +106,7 @@ function closeStep(
     return next;
 }
 
-/** Open een stap, of schuif het detail op van dezelfde stap die nog loopt. */
+/** Open a step, or update the detail of the same step that is still running. */
 function openStep(
     rows: PhaseTrailEntry[],
     stage: string,
@@ -127,12 +126,12 @@ function openStep(
 }
 
 /**
- * Verwerk één `phase`-event in het spoor.
+ * Process one `phase` event in the trail.
  *
- * Geeft dezelfde array-referentie terug als er niets te doen viel, zodat de
- * aanroeper een overbodige kopie van het bericht kan overslaan.
+ * Returns the same array reference if there was nothing to do, so that the caller
+ * can skip a superfluous copy of the message.
  *
- * `now` is injecteerbaar zodat een test niet op de echte klok hoeft te wachten.
+ * `now` is injectable so that a test does not have to wait on the real clock.
  */
 export function appendPhase(
     trail: PhaseTrailEntry[] | undefined,

@@ -1,39 +1,37 @@
 /**
- * "Wie ziet de pagina, en het adres" — de eigenaar-only REST-kant van de
- * vierde rij (Openbaar) en van de Adres-kaart.
+ * "Who sees the page, and the address" — the owner-only REST side of the
+ * fourth row (Public) and of the Address card.
  *
- *   GET /:id/audience          het hele model: de interne stand, de openbare
- *                              stand, het adres, de kolompoort en de oplossing
- *   PUT /:id/audience/public   openbaar aan/uit, mét de kolomkeuze
+ *   GET /:id/audience          the whole model: the internal state, the public
+ *                              state, the address, the column gate and the solution
+ *   PUT /:id/audience/public   public on/off, with the column choice
  *
- * De drie andere rijen (Persoonlijk / Organisatie / Groepen) lopen NIET langs
- * hier: die blijven op `PATCH /:id/publish`, waar ze al zaten, inclusief de
- * organisatie-validatie. Er is geen tweede weg naar dezelfde kolommen.
+ * The three other rows (Personal / Organisation / Groups) do NOT go through
+ * here: they stay on `PATCH /:id/publish`, where they already were, including the
+ * organisation validation. There is no second path to the same columns.
  *
- * ── EIGENAAR-ONLY, EN DAT IS GEEN FORMALITEIT ───────────────────────
+ * ── OWNER-ONLY, AND THAT IS NOT A FORMALITY ─────────────────────────
  *
- * Dit scherm zegt welke KOLOMMEN van welke tabel naar buiten mogen, en toont
- * de ontvangerslijst van een e-mailgated link. Een org-lezer van de pagina
- * heeft daar niets te zoeken — hij zou langs deze weg de kolomnamen van
- * andermans tabel leren. Zelfde poort als webpagesGrants: eigenaar-gescoopte
- * lookup, 404 voor de rest, en de code wordt niet gelezen vóór die poort.
+ * This screen says which COLUMNS of which table may go outside, and shows the recipient
+ * list of an e-mail-gated link. An org reader of the page has no business there — by this
+ * route he would learn the column names of someone else's table. Same gate as
+ * webpagesGrants: owner-scoped lookup, 404 for the rest, and the code is not read before
+ * that gate.
  *
- * ── WAT "OPENBAAR ZETTEN" PRECIES DOET ──────────────────────────────
+ * ── WHAT "MAKE PUBLIC" PRECISELY DOES ──────────────────────────────
  *
- *   1. de kolomkeuze wordt toegepast op de bindingen — ALTIJD, ook bij een
- *      lege keuze, want een tabel die in het antwoord ontbreekt gaat op nul;
- *   2. de pagina krijgt een adres (`ensureSlug`, idempotent);
- *   3. er komt een canonieke share, of de bestaande blijft;
- *   4. de snapshot wordt geschreven VOORDAT de wijzer verspringt;
- *   5. en elke ANDERE levende share van dezelfde pagina wordt óók opnieuw
- *      gesnapshot. De kolompoort geldt voor het adres én voor elke losse
- *      /share/<token>: een bevroren snapshot die vóór de versmalling is
- *      geschreven blijft anders de weggehaalde kolom serveren.
+ *   1. the column choice is applied to the bindings — ALWAYS, also with an empty choice,
+ *      because a table missing from the answer goes to zero;
+ *   2. the page gets an address (`ensureSlug`, idempotent);
+ *   3. a canonical share is created, or the existing one stays;
+ *   4. the snapshot is written BEFORE the pointer moves;
+ *   5. and every OTHER live share of the same page is ALSO re-snapshotted. The column gate
+ *      applies to the address AND to every loose /share/<token>: a frozen snapshot that was
+ *      written before the narrowing would otherwise keep serving the withdrawn column.
  *
- * Stap 4 is de volgorde die ertoe doet. Zou de wijzer eerst verspringen en de
- * snapshot daarna falen, dan wijst /w/<slug> naar een share zonder bytes: een
- * adres dat bestaat en niets toont. Nu blijft bij een mislukte snapshot alles
- * staan zoals het stond en komt er een 500 terug.
+ * Step 4 is the order that matters. If the pointer moved first and the snapshot then failed,
+ * /w/<slug> would point to a share without bytes: an address that exists and shows nothing.
+ * Now, on a failed snapshot, everything stays as it was and a 500 comes back.
  */
 
 'use strict';
@@ -51,9 +49,9 @@ const projectStore = require('../stores/projectStore');
 const datatableAccess = require('../auth/datatableAccess');
 const datatableRuntime = require('../core/dataEngine/datatableRuntime');
 const audience = require('../core/webpages/webpagePublicAudience');
-// Dit is het enige pad dat `bridge_grants.tables` herschrijft, en die lijst is
-// de POORT waaruit de dependents-index zijn `mode` en `columns` haalt. Dus ook
-// hier reconcilen — zie core/webpages/webpageUsageSync.js.
+// This is the only path that rewrites `bridge_grants.tables`, and that list is the
+// GATE from which the dependents index takes its `mode` and `columns`. So reconcile here too —
+// see core/webpages/webpageUsageSync.js.
 const webpageUsageSync = require('../core/webpages/webpageUsageSync');
 const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
@@ -61,28 +59,23 @@ const { HttpError } = require('../core/http/errors');
 const { z, onUnknownKeys, typeError } = require('../utils/zod');
 const { worded, bodyOf, choice } = require('./webpages/schemas');
 
-// ── Wat "openbaar" mag dragen ───────────────────────────────────────
+// ── What "public" may carry ───────────────────────────────────────
 //
-// Dit is de schakelaar tussen "alleen binnen Bee Flow" en "iedereen met het
-// adres", en de body werd gelezen met terugvallen die allemaal de verkeerde
-// kant op vielen:
+// This is the switch between "only within Bee Flow" and "everyone with the address", and the
+// body was read with fallbacks that all fell the wrong way:
 //
-//   - alleen `on === false` zette UIT. `"false"` (een string), `0` of een
-//     vergeten `on` PUBLICEERDEN de pagina: share aangemaakt, snapshot
-//     geschreven, token terug, onder een 200;
-//   - een ontbrekende `publicColumns` zette elke gebonden tabel op nul
-//     kolommen. Wie alleen het wachtwoord wilde wijzigen, wiste zo de
-//     kolomkeuze;
-//   - een fout in `accessMode`, een te kort wachtwoord of een vervaldatum in
-//     het verleden werd pas NA stap 1 geweigerd. De kolomkeuze stond dan al
-//     opgeslagen — ook een VERBREDE — en de eerstvolgende hersnapshot van een
-//     levende link (webpageShareReconciler: een save, een rij die verandert)
-//     serveerde de nieuwe kolommen, terwijl de eigenaar een 400 had gezien.
+//   - only `on === false` switched OFF. `"false"` (a string), `0` or a forgotten `on`
+//     PUBLISHED the page: share created, snapshot written, token returned, under a 200;
+//   - a missing `publicColumns` set every bound table to zero columns. Whoever only wanted
+//     to change the password thereby wiped the column choice;
+//   - an error in `accessMode`, a password that was too short or an expiry date in the past
+//     was refused only AFTER step 1. The column choice was then already stored — also a
+//     WIDENED one — and the next re-snapshot of a live link (webpageShareReconciler: a save,
+//     a row that changes) served the new columns, while the owner had seen a 400.
 //
-// Nu wordt alles wat de body zelf kan laten zien vóór stap 1 gemeten. Wat
-// alleen tegen de bestaande share te toetsen is (een wachtwoord-share zonder
-// nieuw wachtwoord, een geërfde e-mailmodus zonder lijst) blijft aan
-// createShare, zoals voorheen.
+// Now everything that the body can show by itself is measured before step 1. What can only be
+// checked against the existing share (a password share without a new password, an inherited
+// e-mail mode without a list) remains with createShare, as before.
 const ON_TEXT = 'Say whether the page is public: on is true or false.';
 const COLUMNS_TEXT = 'publicColumns maps each table to the columns that may be shown publicly, like { "tbl_1": ["name"] }.';
 const COLUMNS_NEEDED = 'Say which columns may be shown publicly (publicColumns); send {} for none.';
@@ -116,9 +109,9 @@ const PublicBody = bodyOf({
 });
 
 /**
- * De basis waarop /w/<slug> wordt uitgeschreven. Zelfde voorkeur als de
- * share-URL-bouwer: een expliciete env wint, anders de herkomst van het
- * verzoek — zodat een link uit een serveromgeving niet naar localhost wijst.
+ * The base on which /w/<slug> is written out. The same preference as the share URL
+ * builder: an explicit env wins, otherwise the origin of the request — so that a link from a
+ * server environment does not point to localhost.
  */
 function publicBaseUrl(req) {
     const configured = process.env.PUBLIC_SHARE_BASE_URL || process.env.PUBLIC_BASE_URL || '';
@@ -137,36 +130,34 @@ async function ownedWebpage(req, res) {
 }
 
 /**
- * De LEVENDE canonieke share, of null.
+ * The LIVE canonical share, or null.
  *
- * Gaat langs `findLiveShareById`, dezelfde poort als /share/<token>: een
- * wijzer naar een ingetrokken of verlopen share leest hier als "niet
- * openbaar", precies zoals de bezoeker hem ziet. Het alternatief — de rij
- * tonen met een vlaggetje "ingetrokken" — zou het scherm laten zeggen dat de
- * pagina openbaar is terwijl het adres 404 geeft.
+ * Goes via `findLiveShareById`, the same gate as /share/<token>: a pointer to a withdrawn or
+ * expired share reads here as "not public", exactly as the visitor sees it. The alternative — showing
+ * the row with a "withdrawn" flag — would let the screen say that the page is public while the
+ * address answers 404.
  */
 async function liveCanonicalShare(webpage) {
     if (!webpage?.publicShareId) return { share: null, known: true };
     try {
         return { share: await publicShareStore.findLiveShareById(webpage.publicShareId), known: true };
     } catch (e) {
-        // NIET stil naar null: "niet openbaar" is een bewering over
-        // blootstelling, en die mag niet uit een mislukte lezing komen.
+        // NOT silently to null: "not public" is a statement about exposure, and that must not come
+        // from a failed read.
         log.warn('[Webpages/audience] could not read the canonical share:', e.message);
         return { share: null, known: false };
     }
 }
 
 /**
- * Alle LEVENDE shares van de pagina — het N-share-model blijft.
+ * All LIVE shares of the page — the N-share model remains.
  *
- * Levend betekent hier hetzelfde als bij de bezoeker (`liveShareOrNull`): niet
- * ingetrokken én niet verlopen. Een verlopen link telt dus niet mee, want het
- * scherm gebruikt dit getal om te zeggen wat er nog openstaat.
+ * Live means here the same as for the visitor (`liveShareOrNull`): neither withdrawn nor
+ * expired. An expired link therefore does not count, because the screen uses this number to say
+ * what is still open.
  *
- * `null` bij een onleesbare lijst, NIET 0. "Er staat verder niets open" is een
- * bewering over blootstelling, en die mag net zomin uit een mislukte lezing
- * komen als `liveCanonicalShare`'s "niet openbaar".
+ * `null` for an unreadable list, NOT 0. "Nothing else is open" is a statement about exposure,
+ * and it must no more come from a failed read than `liveCanonicalShare`'s "not public".
  */
 async function countLiveShares(webpageId, ownerId) {
     try {
@@ -181,23 +172,20 @@ async function countLiveShares(webpageId, ownerId) {
 }
 
 /**
- * Versmal ook de ANDERE levende shares van deze pagina.
+ * Narrow the OTHER live shares of this page as well.
  *
- * Een snapshot is bevroren: de rijen erin zijn server-side geschreven uit de
- * `publicColumns` van het moment waarop hij werd gemaakt. Herschrijven we na
- * een versmalling alleen de canonieke share, dan blijft elke losse
- * /share/<token> van dezelfde pagina de weggehaalde kolom gewoon serveren —
- * terwijl dit scherm zegt dat die kolom eruit is. Het N-share-model is hier
- * geen randgeval: POST /:id/public-shares maakt zulke losse shares, en het
- * intrekken ervan raakt het adres met opzet niet.
+ * A snapshot is frozen: the rows in it are written server-side from the `publicColumns` of the
+ * moment it was made. If after a narrowing we only rewrote the canonical share, every loose
+ * /share/<token> of the same page would keep serving the withdrawn column — while this screen
+ * says that column is out. The N-share model is not an edge case here: POST /:id/public-shares
+ * creates such loose shares, and withdrawing them deliberately does not touch the address.
  *
- * Zonder createdBy-filter, dus ALLE shares van de pagina: elke levende link
- * draagt dezelfde poort, ongeacht wie hem heeft aangemaakt.
+ * Without a createdBy filter, so ALL shares of the page: every live link carries the same gate,
+ * regardless of who created it.
  *
- * Gooit zodra de lijst onleesbaar is of één share niet herschreven kon worden.
- * Dat is met opzet luid: er staat dan een link open met de oude, bredere
- * kolommen, en het antwoord mag geen smallere stand beweren dan er wordt
- * geserveerd.
+ * Throws as soon as the list is unreadable or one share could not be rewritten. That is deliberately
+ * loud: a link would then be open with the old, wider columns, and the answer may not claim a
+ * narrower state than what is being served.
  */
 async function reSnapshotOtherLiveShares(wp, canonicalShareId) {
     const shares = await publicShareStore.listSharesForWebpage(wp.id, null);
@@ -228,13 +216,12 @@ async function solutionOf(webpage) {
 }
 
 /**
- * Zet een leesbare naam bij elke gebonden tabel — best-effort.
+ * Attach a readable name to every bound table — best-effort.
  *
- * Het kolomkeuzescherm vraagt "welke kolommen van DEZE tabel mogen naar
- * buiten", en `tbl_9f2a…` is daar geen antwoord op. Faalt de opzoeking (de
- * eigenaar mag de tabel niet meer lezen, de tabel is weg), dan blijft `label`
- * null en toont het scherm het id. Nooit een verzonnen naam, en nooit een
- * fout: de poort moet bedienbaar blijven ook als een binding scheef staat.
+ * The column-choice screen asks "which columns of THIS table may go outside", and `tbl_9f2a…` is no
+ * answer to that. If the lookup fails (the owner may no longer read the table, the table is gone),
+ * `label` stays null and the screen shows the id. Never an invented name, and never an error:
+ * the gate must remain usable even when a binding is skewed.
  */
 async function decorateTableLabels(model, userId) {
     const rows = model?.columnGate?.tables || [];
@@ -266,9 +253,9 @@ async function buildModel(req, wp) {
         canonicalShareKnown: canonical.known,
         shareCount,
         tables: grants.tables,
-        // Dezelfde lezing, andere plak: `ai` draagt de publieke AI-schakelaar.
-        // Geen extra I/O — `grants` staat hierboven al — en zonder deze regel
-        // valt het model terug op "niet gelezen", niet op "uit".
+        // The same reading, another slice: `ai` carries the public AI switch.
+        // No extra I/O — `grants` is already above — and without this line the model would fall
+        // back to "not read", not to "off".
         ai: grants.ai,
         solution,
         baseUrl: publicBaseUrl(req),
@@ -293,16 +280,16 @@ router.get('/:id/audience', requireAuth, validate({ query: NO_QUERY }), async (r
 });
 
 /**
- * Openbaar aan of uit.
+ * Public on or off.
  *
  * Body:
  *   on             true | false
- *   publicColumns  { [datatableId]: string[] } — de poort. Ontbreekt een
- *                  gebonden tabel, dan gaat die op NUL kolommen.
+ *   publicColumns  { [datatableId]: string[] } — the gate. If a bound table is missing,
+ *                  that one goes to ZERO columns.
  *   accessMode     'unlisted' | 'password' | 'email'
- *   password       alleen bij 'password'
- *   allowedEmails  alleen bij 'email'
- *   expiresAt      ISO-string of null
+ *   password       only with 'password'
+ *   allowedEmails  only with 'email'
+ *   expiresAt      ISO string or null
  */
 router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), async (req, res) => {
     const wp = await ownedWebpage(req, res);
@@ -312,8 +299,8 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
 
     if (body.on === false) {
         const share = wp.publicShareId ? await publicShareStore.getShareById(wp.publicShareId) : null;
-        // Wijzer eerst weg, dan pas intrekken: valt de intrekking om, dan
-        // is de pagina in elk geval niet meer "openbaar" volgens het adres.
+        // Pointer away first, then withdraw: if the withdrawal fails, the page is at least
+        // no longer "public" according to the address.
         await publicAddress.setCanonicalShare(wp.id, userId, null);
         if (share && share.webpageId === wp.id && !share.revokedAt) {
             await publicShareStore.revokeShare(share.id, share.createdBy);
@@ -323,38 +310,33 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
         return res.json(await buildModel(req, fresh || { ...wp, publicShareId: null }));
     }
 
-    // ── openbaar AAN ────────────────────────────────────────────────
-    // 1. de poort. Altijd, en vóór alles: de snapshot verderop rendert
-    //    bf-table uit precies deze lijst, dus dit moet al opgeslagen zijn
-    //    voordat er ook maar één byte naar buiten gaat.
+    // ── public ON ───────────────────────────────────────────────────
+    // 1. the gate. Always, and before everything: the snapshot further on renders
+    //    bf-table from exactly this list, so this must already be stored before
+    //    even one byte goes outside.
     const current = await bridgeGrants.getBridgeGrants(wp.id);
     const narrowed = audience.applyColumnChoice(current.tables, body.publicColumns);
     const saved = await bridgeGrants.updateBridgeGrants(wp.id, userId, { tables: narrowed });
     if (!saved) return res.status(404).json({ error: 'Webpage not found' });
-    // `applyColumnChoice` versmalt vandaag alleen `publicColumns` en laat de
-    // rest van de binding staan, dus de index verandert er meestal niet van.
-    // De aanroep staat er toch: de regel is "elk pad dat de bindingen
-    // vastlegt", niet "elk pad waarvan we vandaag weten dat het ertoe doet".
+    // `applyColumnChoice` today only narrows `publicColumns` and leaves the rest of the
+    // binding as it is, so the index usually does not change because of it. The call is there
+    // all the same: the rule is "every path that records the bindings", not "every path that we
+    // know today matters".
     webpageUsageSync.reconcileWebpageUsageDetached(wp.id);
 
-    // 2. het adres. Idempotent — een pagina die eerder openbaar was, houdt
-    //    hetzelfde /w/<slug>.
+    // 2. the address. Idempotent — a page that was public before keeps the same /w/<slug>.
     const slug = await publicAddress.ensureSlug(wp.id, userId, wp.name);
     if (!slug) return res.status(404).json({ error: 'Webpage not found' });
 
-    // 3. de share. Bestaat er al een levende canonieke met dezelfde
-    //    toegangsinstelling, dan blijft die — een nieuw token zou elke
-    //    gedeelde link breken zonder dat iemand daarom vroeg.
+    // 3. the share. If a live canonical one already exists with the same access setting, it stays —
+    //    a new token would break every shared link without anyone having asked for it.
     const { share: existing, known: canonicalKnown } = await liveCanonicalShare(wp);
-    // ONBEKEND IS HIER GEEN "er is er nog geen". Kon de huidige canonieke
-    // share niet gelezen worden, dan leest `existing === null` hieronder als
-    // "maak er maar een": er komt een TWEEDE levende link bij en het
-    // intrekken van de oude wordt overgeslagen — die blijft dus staan met
-    // het OUDE wachtwoord of de oude ontvangerslijst, terwijl het scherm
-    // belooft dat links die mensen al hebben stoppen te werken. Onbekend
-    // versmalt: niets publiceren, en het zeggen. De kolomkeuze uit stap 1
-    // is al opgeslagen — die kant op (smaller) is veilig, en het antwoord
-    // beweert niets anders.
+    // UNKNOWN IS NOT HERE "there is none yet". If the current canonical share could not be read,
+    // then `existing === null` below reads as "just make one": a SECOND live link is added and the
+    // withdrawal of the old one is skipped — so it stays in place with the OLD password or the old
+    // recipient list, while the screen promises that links people already have will stop working.
+    // Unknown narrows: publish nothing, and say so. The column choice from step 1 is already stored —
+    // that direction (narrower) is safe, and the answer claims nothing else.
     if (!canonicalKnown) {
         throw new HttpError(500, 'public_link_unreadable',
             'Could not read the current public link for this page, so nothing was published. The column choice was saved; the existing link is unchanged. Please try again.');
@@ -362,11 +344,10 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
     const accessMode = body.accessMode || (existing ? existing.accessMode : 'unlisted');
     const requested = {
         accessMode,
-        // Alleen een wachtwoord-share heeft er iets aan. `accessOptionsChanged`
-        // telt elk meegestuurd wachtwoord als een wijziging, en het paneel
-        // houdt een eerder getypt wachtwoord vast nadat de keuze terug is
-        // gezet op "unlisted" — dus elke opslag daarna sloeg een NIEUW token
-        // en brak elke link die mensen al hadden.
+        // Only a password share has any use for this. `accessOptionsChanged` counts every
+        // password sent along as a change, and the panel keeps a previously typed password after the
+        // choice has been set back to "unlisted" — so every save afterwards stored a NEW token and
+        // broke every link that people already had.
         password: accessMode === 'password' ? body.password : undefined,
         allowedEmails: body.allowedEmails,
     };
@@ -379,9 +360,8 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
             await publicShareStore.updateExpiry(existing.id, existing.createdBy, expiresAt);
         }
         await webpageSnapshot.writeSnapshot({ shareId: existing.id, webpageId: wp.id, ownerId: wp.userId });
-        // De poort geldt voor élke levende link van deze pagina, niet
-        // alleen voor het adres — anders serveert een losse /share/<token>
-        // de zojuist weggevinkte kolom gewoon verder.
+        // The gate applies to EVERY live link of this page, not only to the address — otherwise a loose
+        // /share/<token> would keep serving the column that was just unticked.
         await reSnapshotOtherLiveShares(wp, existing.id).catch(linksNotNarrowed);
         const fresh = await webpageStore.getWebpage(wp.id, userId);
         return res.json(await buildModel(req, fresh || wp));
@@ -400,9 +380,8 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
             title: wp.name || '',
         });
     } catch (e) {
-        // createShare gooit op een ongeldige modus, een te kort wachtwoord
-        // of een lege ontvangerslijst — allemaal invoerfouten van dit
-        // scherm, dus 400 met de eigen tekst.
+        // createShare throws on an invalid mode, a password that is too short, or an empty recipient
+        // list — all input errors from this screen, so 400 with its own text.
         return res.status(400).json({ error: e.message || 'Could not create the public link' });
     }
 
@@ -414,29 +393,28 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
         throw e;
     }
     await publicAddress.setCanonicalShare(wp.id, userId, created.share.id);
-    // De oude canonieke pas hierna intrekken: tot dit punt was zij het
-    // werkende adres, en een fout hierboven mocht haar niet meenemen.
+    // Withdraw the old canonical only after this: up to this point it was the working address,
+    // and an error above must not take it along.
     if (existing) {
         await publicShareStore.revokeShare(existing.id, existing.createdBy).catch(() => {});
         await publicShareStore.deleteShare(existing.id, existing.createdBy).catch(() => {});
     }
-    // Pas hierna de overige levende shares: de zojuist ingetrokken oude
-    // canonieke hoeft niet meer herschreven te worden, de losse shares wel.
+    // Only after this, the other live shares: the just-withdrawn old canonical no longer needs to be
+    // rewritten, but the loose shares do.
     await reSnapshotOtherLiveShares(wp, created.share.id).catch(linksNotNarrowed);
 
     const fresh = await webpageStore.getWebpage(wp.id, userId);
     const model = await buildModel(req, fresh || { ...wp, slug, publicShareId: created.share.id });
-    // Het onbewerkte token gaat één keer mee terug, net als bij POST
-    // /:id/public-shares: er bestaat een tweede, token-gebaseerd adres
-    // (/share/<token>) en dat is voor de eigenaar de enige kans om het te
-    // zien. Het ADRES dat het scherm toont blijft /w/<slug>.
+    // The raw token goes back once, just as with POST /:id/public-shares: there is a second,
+        // token-based address (/share/<token>), and for the owner that is the only chance to see it.
+        // The ADDRESS that the screen shows remains /w/<slug>.
     res.json({ ...model, rawToken: created.rawToken });
 });
 
 /**
- * `expiresAt` uit de body, of die van de bestaande share als het veld ontbreekt.
- * Dezelfde regels als routes/webpages.js: leeg = geen vervaldatum, en een datum
- * in het verleden is een invoerfout, geen dode link.
+ * `expiresAt` from the body, or that of the existing share if the field is missing.
+ * The same rules as routes/webpages.js: empty = no expiry date, and a date in the past
+ * is an input error, not a dead link.
  */
 function parseExpiry(input, existing) {
     if (input === undefined) return existing?.expiresAt ? new Date(existing.expiresAt) : null;

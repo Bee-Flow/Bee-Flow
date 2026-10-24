@@ -1,19 +1,18 @@
 'use strict';
 
 /**
- * "n testgesprekken" (A4).
+ * "n test conversations" (A4).
  *
- * Een testchat schrijft met opzet GEEN rij in `agent_conversations` — dat is
- * wat hem uit de historie, uit de kaartvoet (A5) en uit de Used-by-tab houdt.
- * Hij kost wel geld, dus hij staat wél in `ai_usage_log`, onder een eigen
- * bron. Deze twee dingen samen zijn de hele telling, en beide kunnen los
- * kapot:
+ * A test chat deliberately writes NO row to `agent_conversations` — that is what keeps it out
+ * of the history, out of the footer card (A5) and out of the Used-by tab. It does cost money,
+ * so it IS in `ai_usage_log`, under its own source. These two things together are the whole
+ * count, and both can break independently:
  *
- *   • de BRON kan aan één kant hernoemd worden (de runtime schrijft
- *     'agent_test_chat', de query zoekt iets anders) — dan telt hij stil op
- *     nul en ziet niemand dat er iets mis is;
- *   • de EENHEID kan verschuiven — modelaanroepen tellen in plaats van
- *     gesprekken maakt van drie testgesprekken er twaalf.
+ *   • the SOURCE can be renamed on one side (the runtime writes 'agent_test_chat', the query
+ *     looks for something else) — then it silently counts zero and nobody sees that anything
+ *     is wrong;
+ *   • the UNIT can shift — counting model calls instead of conversations turns three test
+ *     conversations into twelve.
  *
  * Run: cd server && node --test stores/usageStore.testChats.test.js
  */
@@ -25,9 +24,9 @@ const usageStore = require('./usageStore');
 const testChat = require('../core/agentRuntime/testChat');
 
 test('the store and the runtime name the SAME source', () => {
-    // De constante staat in beide bestanden letterlijk, zodat een store niets
-    // uit de runtime hoeft te trekken. Deze assertie is de prijs daarvan: één
-    // kant hernoemen wordt hier rood in plaats van stil.
+    // The constant is written out literally in both files, so that a store does not have to pull
+    // anything out of the runtime. This assertion is the price of that: renaming one side turns
+    // red here instead of silently.
     assert.strictEqual(usageStore.TEST_CHAT_SOURCE, testChat.TEST_CHAT_USAGE_SOURCE);
     assert.strictEqual(usageStore.TEST_CHAT_SOURCE, 'agent_test_chat');
 });

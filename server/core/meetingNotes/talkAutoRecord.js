@@ -112,24 +112,21 @@ async function listCandidateUsers() {
 }
 
 /**
- * Hoeveel mensen doen er mee? Antwoord NULL als het niet te weten is — die
- * onzekerheid VERSMALT in meetingPrefsStore.decideRecord (onbekend telt niet
- * als "meer dan twee").
+ * How many people take part? Answer NULL if that is not known: that uncertainty NARROWS in
+ * meetingPrefsStore.decideRecord (unknown does not count as "more than two").
  *
- * Drie bronnen, van beste naar laatste:
- *   1. de agenda-afspraak (namen + organisator),
- *   2. het conversatietype: een Talk-room van type 1 is per definitie een
- *      één-op-één,
- *   3. Talk zelf. Zonder deze derde stap zou élke groepsruimte zonder
- *      agenda-afspraak "onbekend" zijn en dus nooit meer automatisch opnemen —
- *      kijken is hier beter dan gokken. Lukt de vraag niet, dan blijft het
- *      onbekend (en wordt er dus niet opgenomen).
+ * Three sources, from best to last:
+ *   1. the calendar appointment (names + organiser),
+ *   2. the conversation type: a Talk room of type 1 is by definition a one-on-one,
+ *   3. Talk itself. Without this third step, every group room without a calendar
+ *      appointment would be "unknown" and thus never be recorded automatically: looking
+ *      is better than guessing here. If the question cannot be answered, it stays
+ *      unknown (and thus nothing is recorded).
  */
 async function countParticipants({ room, meeting, userId, orgId, session, talk, autoRecordScope = 'calendar' }) {
-    // Stap 1 en 2 (agenda + conversatietype) staan in een GEDEELDE module,
-    // zodat de Gepland-lijst exact hetzelfde antwoord geeft als deze engine op
-    // alles wat zij allebei kunnen weten. Zij hadden hier uiteenlopende
-    // antwoorden, met een toggle die UIT stond terwijl de opname liep.
+    // Steps 1 and 2 (agenda + conversation type) sit in a SHARED module, so that the Scheduled list gives
+    // exactly the same answer as this engine on everything that both can know. They had diverging answers
+    // here, with a toggle that was OFF while the recording was running.
     const { knownParticipantCount } = require('./talkParticipants');
     const known = knownParticipantCount({ room, meeting, autoRecordScope });
     if (known !== null) return known;
@@ -140,17 +137,15 @@ async function countParticipants({ room, meeting, userId, orgId, session, talk, 
         () => talk.executeNextcloudTalkTool('nextcloud_talk_list_participants', args, userId, session),
     ).catch(() => null);
     if (!res || res.error || res.nc_scope_denied || !Array.isArray(res.participants)) return null;
-    // Tijdens een gesprek telt wie er IN het gesprek zit (inCall-bitmask, bit 1),
-    // niet wie er ooit aan de conversatie is toegevoegd.
+    // During a call, count who is IN the call (inCall bitmask, bit 1), not who has ever been added to the
+    // conversation.
     //
-    // GEEN TERUGVAL OP `res.count`. Dat veld is `participants.length` uit de
-    // tool (integrations/nextcloudTalkTools.js) — IEDEREEN die ooit aan de
-    // conversatie is toegevoegd. Een groepsconversatie met vijf leden waarvan
-    // niemand in gesprek is, zou daarmee als "vijf deelnemers" tellen en dus
-    // worden opgenomen; dat gebeurt echt, want de kamerlijst wordt één keer
-    // bovenaan de scan opgehaald en een gesprek dat intussen eindigde levert
-    // overal inCall 0. `inCall === 0` is geen bekende telling maar precies de
-    // ONBEKENDE waarde, en onbekend versmalt: null → niet opnemen.
+    // NO FALLBACK TO `res.count`. That field is `participants.length` from the tool
+    // (integrations/nextcloudTalkTools.js): EVERYONE who was ever added to the conversation. A group
+    // conversation with five members of whom nobody is in the call would count as "five participants" and
+    // thus be recorded; that really happens, because the room list is fetched once at the top of the scan,
+    // and a call that ended in the meantime yields inCall 0 everywhere. `inCall === 0` is not a known count
+    // but precisely the UNKNOWN value, and unknown narrows: null → do not record.
     const inCall = res.participants.filter(p => (Number(p?.inCall) || 0) & 1).length;
     return inCall > 0 ? inCall : null;
 }
@@ -183,9 +178,8 @@ async function scanUser(userId) {
         r.hasCall && [1, 2].includes(r.participantType) && (!r.callRecording || r.callRecording === 0));
     if (!active.length) return;
 
-    // De per-vergadering keuze komt uit meeting_prefs (M5), niet meer uit de
-    // exclusielijsten in de instellingen: één query voor deze gebruiker, daarna
-    // per ruimte beslissen.
+    // The per-meeting choice comes from meeting_prefs (M5), not from the exclusion lists in the settings: one
+    // query for this user, then decide per room.
     const meetingPrefs = require('../../stores/meetingPrefsStore');
     const prefs = await meetingPrefs.loadMeetingPrefs({ provider: 'talk', userId, orgId });
 
@@ -220,9 +214,8 @@ async function scanUser(userId) {
             fallback: true,
         });
         if (!decision.record) {
-            // Bewust GEEN markSkip: een gesprek dat nu nog met z'n tweeën is kan
-            // over een tick een vergadering zijn, en dan hoort hij alsnog mee te
-            // draaien. Een uitsluiting wordt elke tick opnieuw gelezen.
+            // Deliberately NO markSkip: a conversation that is now still with just two people may become a meeting
+            // over one tick, and then it should still be recorded. An exclusion is read again every tick.
             continue;
         }
 

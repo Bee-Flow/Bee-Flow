@@ -2,12 +2,9 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 
 /**
- * FileExplorer — elke zichtbare letter komt uit het woordenboek.
+ * FileExplorer — every visible letter comes from the dictionary.
  *
- * De t() is hier een MARKEERDER: hij geeft `⟦sleutel⟧` terug in plaats van de
- * Engelse fallback. Daardoor faalt deze test zodra een string weer als letterlijke
- * tekst in de bron staat — de Engelse fallback zou er dan nog steeds goed uitzien
- * op het scherm, en precies dat is wat een i18n-retrofit stil kan laten mislukken.
+ * The t() here is a MARKER: it returns `⟦key⟧` instead of the English fallback. This test therefore fails as soon as a string is again present as literal text in the source — the English fallback would still look right on screen, and precisely that is what an i18n retrofit can silently let fail.
  */
 
 const t = (key, fallback, params) => {
@@ -27,8 +24,8 @@ vi.mock('../../hooks/useTranslation', () => ({
 
 import FileExplorer from './FileExplorer';
 
-// Eén bestand in een map (voor de maprij) en één op het hoofdniveau — de
-// per-bestand-acties zitten op de bestandsrij, en een map staat dicht.
+// One file in a folder (for the folder row) and one at the top level — the
+// per-file actions sit on the file row, and a folder stays closed.
 const EXTRA = [
     { path: 'src/App.jsx', isText: true, size: 120 },
     { path: 'notes.txt', isText: true, size: 12 },
@@ -62,9 +59,9 @@ describe('FileExplorer — i18n', () => {
     it('BIJT — Hernoemen en Verwijderen hergebruiken de kaartsleutels, ze maken geen tweede', () => {
         renderExplorer();
 
-        // Dezelfde twee sleutels die WebpageCard al gebruikt (W3). Een eigen
-        // `webpages.explorer.delete` zou dezelfde tekst een tweede keer in het
-        // woordenboek zetten.
+        // The same two keys that WebpageCard already uses (W3). An own
+        // `webpages.explorer.delete` would put the same text into the dictionary a
+        // second time.
         expect(screen.getByTitle('⟦webpages.card.rename⟧')).toBeInTheDocument();
         expect(screen.getByTitle('⟦webpages.card.delete⟧')).toBeInTheDocument();
         expect(screen.getByTitle('⟦webpages.explorer.copy_path⟧')).toBeInTheDocument();
@@ -77,8 +74,8 @@ describe('FileExplorer — i18n', () => {
         const input = screen.getByPlaceholderText('⟦webpages.explorer.ph_file⟧');
         fireEvent.change(input, { target: { value: 'a/b*c.js' } });
 
-        // Het foute segment reist als {segment}-parameter mee — niet als stuk
-        // Engels dat aan een zin is vastgeplakt.
+        // The wrong segment travels as a {segment} parameter — not as a piece of
+        // English pasted onto a sentence.
         expect(screen.getByTitle('⟦webpages.explorer.err_unsupported_chars⟧(segment=b*c.js)')).toBeInTheDocument();
     });
 

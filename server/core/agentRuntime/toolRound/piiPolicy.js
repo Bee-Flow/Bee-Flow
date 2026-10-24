@@ -156,8 +156,8 @@ async function checkArgumentPii(rc, deps, { toolCall, toolName, toolArgs, policy
                 conversation_id: conversation?.id || null,
                 violation_type: 'pii', violation_categories: _labels,
                 direction: 'output', action_taken: 'tool_blocked',
-                // Een testbeurt schrijft onder zijn eigen bron en als
-                // droogloop — zie testChat.js.
+                // A test turn writes under its own source and as a
+                // dry run: see testChat.js.
                 source: testChatMod.usageSourceFor(messageMetadata, 'agent_stream'),
                 is_dry_run: testChatMod.isDryRunTurn(messageMetadata),
                 model: modelToUse,

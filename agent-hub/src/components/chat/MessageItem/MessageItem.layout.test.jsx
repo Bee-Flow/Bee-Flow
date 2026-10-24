@@ -6,27 +6,21 @@ import MessageItem from './index';
 import DlpChatTextRenderer from '../dlpReview/DlpChatTextRenderer';
 
 /**
- * De VORM van een bericht: waar het staat, wie ernaast staat, en waarmee de
- * bubbel geschilderd wordt (C9 en C10).
+ * The SHAPE of a message: where it stands, who stands beside it, and with what the bubble is painted (C9 and C10).
  *
- * ── WAT HIER VASTLIGT ──────────────────────────────────────────────────────
+ * ── WHAT IS FIXED HERE ─────────────────────────────────────────────────────
  *
- * 1. Berichten staan in de leeskolom uit het artboard (760px), niet in een
- *    eigen bredere kolom dan de composer eronder.
- * 2. Het antwoord heeft een afzendertegel LINKS ervan — een broer van de
- *    berichtkolom, niet een regel erbóven. Een tegel die boven de tekst
- *    staat markeert geen kolom, hij is een tweede titelregel.
- * 3. Er is precies ÉÉN gezicht per beurt. Bij multi-agent stond de avatar van
- *    de antwoordende agent in een eigen rondje boven de bubbel; die is nu de
- *    vulling van de tegel, niet een tweede exemplaar ernaast.
- * 4. De gebruiker en tool-berichten krijgen geen tegel.
- * 5. De gebruikersbubbel schildert met `--user-bubble-bg/-fg` en met NIETS
- *    anders: geen hex-noodwaarde die in een warm of donker thema een koele
- *    grijze slab zou tekenen als het token ooit wegviel.
+ * 1. Messages stand in the reading column from the artboard (760px), not in a wider column than the composer below it.
+ * 2. The answer has a sender tile on the LEFT of it: a sibling of the message column, not a line above it. A tile
+ *    above the text marks no column; it is a second title line.
+ * 3. There is exactly ONE face per turn. With multi-agent, the avatar of the answering agent stood in its own
+ *    circle above the bubble; that is now the fill of the tile, not a second copy beside it.
+ * 4. The user and tool messages get no tile.
+ * 5. The user bubble paints with `--user-bubble-bg/-fg` and with NOTHING else: no hex fallback value that would
+ *    paint a cool grey slab in a warm or dark theme if the token ever dropped out.
  *
- * Er wordt op de eigenschap getest, niet op de opmaak — met één uitzondering
- * die geen andere vorm kan hebben: "welk token schildert dit" is in jsdom
- * alleen als klasse-/style-tekst te lezen, want jsdom rekent geen `var()` uit.
+ * It is tested on the property, not on the layout, with one exception that cannot have any other form: "which
+ * token paints this" is only readable in jsdom as class or style text, because jsdom does not compute `var()`.
  */
 
 const assistant = (over = {}) => ({
@@ -54,9 +48,8 @@ describe('C9 — de leeskolom', () => {
     });
 
     it('BIJT — en niet in de bredere kolom die naast de composer stond', () => {
-        // 900px berichten boven een 768px composer: twee kolommen onder elkaar
-        // die je op het scherm ziet als een gesprek dat niet boven zijn eigen
-        // invoerveld staat.
+        // 900px messages above a 768px composer: two columns under each other, which you see on screen as a
+        // conversation that does not stand above its own input field.
         const msg = assistant();
         render(<MessageItem idx={0} msg={msg} />);
         expect(wrapperOf(msg).className).not.toContain('max-w-[900px]');
@@ -103,9 +96,8 @@ describe('C9 — de afzendertegel', () => {
     });
 
     it('BIJT — en dan staat er precies één gezicht, niet twee', () => {
-        // Vóór C9 tekende de multi-agent-regel zijn eigen rondje bóven de
-        // bubbel; met een tegel ernaast zouden dat er twee zijn voor één
-        // spreker. De naam blijft wél staan — een naam is geen avatar.
+        // Before C9 the multi-agent line drew its own circle ABOVE the bubble. With a tile beside it there would be
+        // two for one speaker. The name does stay: a name is not an avatar.
         const { container } = render(<MessageItem
             idx={0}
             msg={assistant({ respondingAgentName: 'Verkoopassistent', respondingAgentAvatar: '🦊' })}
@@ -145,8 +137,7 @@ describe('C10 — de bubbel schildert met een token', () => {
     });
 
     it('en de DLP-revisie schildert de bubbel met dezelfde twee tokens', () => {
-        // De revisie toont "jouw bericht, geannoteerd". Een eigen kleur daar
-        // maakt er een los rapport van.
+        // The revision shows "your message, annotated". A separate colour there would make it a separate report.
         const { container } = render(<DlpChatTextRenderer text="Bel j.devries@vandijk.nl" spans={[]} />);
         const bubble = container.querySelector('[class*="--user-bubble-bg"]');
         expect(bubble.className).toContain('bg-[var(--user-bubble-bg)]');

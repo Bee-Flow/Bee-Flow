@@ -1,23 +1,23 @@
 'use strict';
 
 /**
- * Een VERWIJDERDE tabel moet de openbare snapshots wekken.
+ * A DELETED table must wake the public snapshots.
  *
- * De rijen van een gebonden tabel staan als statische `<table>` in de snapshot
- * onder `webpage-public-shares/<shareId>/` (services/webpageBfTable.js). Die
- * bytes werken zichzelf niet bij: alleen `notifyDatatableChanged` zet de
- * reconciler in beweging. Voor één gewiste rij deed `bumpAfterWrite` dat al —
- * voor de HELE tabel deed niemand het, en dat is nu juist de zwaarste
- * verwijdering die het product kent (`DELETE /api/datatables/:id`, en het
- * wissen van een account via `stores/user/users.js`). De namen en
- * e-mailadressen bleven dan anoniem leesbaar tot de eigenaar de pagina
- * toevallig opnieuw opsloeg.
+ * The rows of a bound table stand as a static `<table>` in the snapshot
+ * under `webpage-public-shares/<shareId>/` (services/webpageBfTable.js). Those
+ * bytes do not update themselves: only `notifyDatatableChanged` sets the
+ * reconciler in motion. For one deleted row `bumpAfterWrite` already did that —
+ * for the WHOLE table nobody did, and that is precisely the heaviest
+ * deletion the product knows (`DELETE /api/datatables/:id`, and the wiping
+ * of an account via `stores/user/users.js`). The names and
+ * e-mail addresses then remained readable anonymously until the owner
+ * happened to save the page again.
  *
- * Gedrag, niet vorm: de tap wordt écht gelopen, met een nagebootste klok voor
- * de debounce, en de twee luisteraars zijn spionnen. `db.js` is de naad — de
- * gebruikelijke require.cache-truc — zodat er geen database aan te pas komt.
+ * Behaviour, not shape: the tap is really run, with a simulated clock for
+ * the debounce, and the two listeners are spies. `db.js` is the seam — the
+ * usual require.cache trick — so no database is involved.
  *
- * Draaien: cd server && node --test --test-force-exit stores/datatableStore.deleteNotify.test.js
+ * Run: cd server && node --test --test-force-exit stores/datatableStore.deleteNotify.test.js
  */
 
 const { test, mock } = require('node:test');
@@ -143,8 +143,8 @@ test('valt de reconciler om, dan blijft de verwijdering geslaagd en loopt de and
     mock.timers.enable({ apis: ['setTimeout'] });
     t.after(() => mock.timers.reset());
 
-    // De melding hangt achter een commit die al geslaagd is: hij mag het
-    // antwoord van de verwijdering niet kunnen kantelen.
+    // The notice sits behind a commit that has already succeeded: it must not
+    // be able to tilt the answer of the deletion.
     const ok = await datatableStore.deleteDatatable('tbl_doomed', SCOPE);
     assert.strictEqual(ok, true);
 

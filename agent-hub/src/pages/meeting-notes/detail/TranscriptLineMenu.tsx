@@ -27,53 +27,50 @@ import type { PlayerSegment } from './player/player.types';
 import type { MeetingActionItem, MeetingNote } from './meetingDetailTypes';
 
 /**
- * WHAT ONE TRANSCRIPT LINE CAN BECOME — the per-line popover (Meeting Notes
- * artboard 1b, plan M4).
+ * WHAT ONE TRANSCRIPT LINE CAN BECOME: the per-line popover (Meeting Notes artboard 1b,
+ * plan M4).
  *
  * Five entries, in the order the artboard has them:
  *
  *   Action            an action item on the note, anchored to this line
  *   Decision          a decision on the note, anchored to this line
- *   To a knowledge…   a K1 `text` source carrying which transcript and which
- *                     line it came from
+ *   To a knowledge…   a K1 `text` source carrying which transcript and which line it
+ *                     came from
  *   Row in a table    one row in one of the viewer's own tables
  *   Copy quote        the sentence, with who said it and when
  *
  * ── TWO OF THESE WRITE ON THE NOTE, THREE DO NOT ────────────────────
- * "Action" and "Decision" change the meeting note, which only its owner may
- * do — so those two rows exist only when the handler for them does, exactly
- * the way ActionItemsList draws its pencil only for `onEdit`. The other three
- * write into the VIEWER's own workspace (their knowledge base, their table,
- * their clipboard) and are gated by those routes, so a colleague reading a
- * shared note keeps them.
+ * "Action" and "Decision" change the meeting note, which only its owner may change. So
+ * those two rows exist only when the handler for them does, exactly the way
+ * ActionItemsList draws its pencil only for `onEdit`. The other three write into the
+ * VIEWER's own workspace (their knowledge base, their table, their clipboard) and are
+ * gated by those routes, so a colleague reading a shared note keeps them.
  *
- * ── AND BOTH OF THOSE WRITES MUST SURVIVE "OPNIEUW" ─────────────────
- * The artifacts built here carry `source: 'user'` (lib/transcriptLines.js).
- * That one field is what keeps them out of the way of the extractor when the
- * summary is regenerated — see server/core/meetingNotes/actionItems.js, whose
- * merge rule for decisions exists because of this menu.
+ * ── AND BOTH OF THOSE WRITES MUST SURVIVE "REGENERATE" ──────────────
+ * The artifacts built here carry `source: 'user'` (lib/transcriptLines.js). That one
+ * field is what keeps them out of the way of the extractor when the summary is
+ * regenerated. See server/core/meetingNotes/actionItems.js, whose merge rule for
+ * decisions exists because of this menu.
  *
  * ── AND A LINE ONLY BECOMES EACH OF THEM ONCE ───────────────────────
- * De twee notitie-rijen lezen `buildLineMarks` — dezelfde index waarmee het
- * transcript zijn derde kolom tekent — en zeggen "staat er al" zodra deze
- * regel die soort heeft opgeleverd. Zonder dat maakte een tweede bezoek aan
- * dezelfde regel een BYTE-IDENTIEK tweede item: `buildLineActionItem` is
- * deterministisch, `appendArtifact` plakt er blind achter, en `collect()`
- * (server/core/meetingNotes/actionItems.js) ontdubbelt alleen op id — dat elk
- * item vers gemunt krijgt. Het resultaat is niet cosmetisch: er is geen
- * verwijderknop voor een los item, en `source:'user'` is juist wat elke
- * "Opnieuw" laat staan, dus de dubbel is permanent én telt mee in elke
- * open-actie-telling. De chip die het al zegt staat 150px verderop in dezelfde
- * rij; het menu is waar de vraag gesteld wordt, dus daar hoort het antwoord.
+ * The two note rows read `buildLineMarks`, the same index with which the transcript
+ * draws its third column, and say "already there" as soon as this line has delivered
+ * that kind. Without that, a second visit to the same line made a BYTE-IDENTICAL
+ * second item: `buildLineActionItem` is deterministic, `appendArtifact` pastes blindly
+ * behind it, and `collect()` (server/core/meetingNotes/actionItems.js) de-duplicates
+ * only on id, and every item gets a freshly minted id. The result is not cosmetic.
+ * There is no delete button for a single item, and `source:'user'` is precisely what
+ * every "Regenerate" leaves in place, so the duplicate is permanent and counts in every
+ * open-action tally. The chip that already says so stands 150px further on in the same
+ * row. The menu is where the question is asked, so that is where the answer belongs.
  *
- * Alleen door mensen gemaakte artefacten dragen een `segmentIndex` (de
- * extractor zet hem niet), dus deze rem gaat nooit voor een AI-item staan.
+ * Only human-made artifacts carry a `segmentIndex` (the extractor does not set it), so
+ * this brake never stands in the way of an AI item.
  *
  * ── THE WRITE HAPPENS FIRST, THE MENU CLOSES SECOND ─────────────────
- * Same rule as the destination pill, and the same implementation
- * (./destinationMenu): a failure shows the server's own message inside the
- * menu and leaves the note alone. A menu that closed on a PATCH that 500'd
- * would look exactly like one that worked.
+ * Same rule as the destination pill, and the same implementation (./destinationMenu): a
+ * failure shows the server's own message inside the menu and leaves the note alone. A
+ * menu that closed on a PATCH that returned 500 would look exactly like one that worked.
  */
 interface TranscriptLineMenuProps {
     open: boolean;
@@ -123,11 +120,11 @@ export default function TranscriptLineMenu({
     };
 
     /**
-     * Welke soorten deze regel al heeft opgeleverd.
+     * Which kinds this line has already delivered.
      *
-     * Via `anchorOf`, niet via de ruwe prop: een `segmentIndex` die als string
-     * binnenkomt zou de Map missen en de rij weer aanbieden — precies het
-     * fail-open dat hier dicht moet.
+     * Via `anchorOf`, not via the raw prop. A `segmentIndex` that arrives as a string
+     * would miss the Map and offer the row again, which is precisely the fail-open that
+     * must be closed here.
      */
     const made = useMemo(() => {
         const index = anchorOf({ segmentIndex });
@@ -238,11 +235,11 @@ export default function TranscriptLineMenu({
 }
 
 /**
- * De plek van een schrijfrij, voor een soort die deze regel al heeft.
+ * The place of a write row, for a kind that this line already has.
  *
- * Een rij die er nog wél staat maar niets doet, in plaats van een rij die
- * verdwijnt: een optie die zonder uitleg weg is laat iemand zoeken naar wat er
- * kapot ging. Geen `role="menuitem"` en geen knop — er valt niets te kiezen.
+ * A row that is still there but does nothing, rather than a row that disappears. An
+ * option that is gone without explanation lets someone search for what broke.
+ * No `role="menuitem"` and no button: there is nothing to choose.
  */
 interface AlreadyRowProps {
     icon: LucideIcon;

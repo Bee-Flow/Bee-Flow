@@ -1,19 +1,18 @@
 /**
  * Talk auto-record × meeting_prefs (M5).
  *
- * Dit is de plek waar een opname daadwerkelijk START. Wat hier fout gaat, is
- * geen verkeerd label in een lijstje maar een gesprek dat wordt opgenomen
- * terwijl iemand dat had uitgezet. Vastgelegd:
- *   - de voorkeuren worden geladen met de scope van DEZE gebruiker;
- *   - een uitsluiting (ruimte of occurrence) stopt de opname;
- *   - de 1-op-1-standaard: een Talk-conversatie van type 1 is per definitie
- *     twee mensen en wordt niet vanzelf opgenomen; een expliciete keuze wint;
- *   - een groepsruimte zonder agenda-afspraak wordt niet als "onbekend"
- *     weggegooid maar bij Talk NAGEVRAAGD — en als dat niet lukt, blijft het
- *     onbekend en wordt er dus niet opgenomen.
+ * This is the place where a recording actually STARTS. What goes wrong here is
+ * not a wrong label in a list but a conversation that gets recorded while
+ * someone had switched that off. Recorded here:
+ *   - the preferences are loaded with the scope of THIS user;
+ *   - an exclusion (room or occurrence) stops the recording;
+ *   - the 1-on-1 default: a Talk conversation of type 1 is by definition
+ *     two people and is not recorded automatically; an explicit choice wins;
+ *   - a group room without a calendar appointment is not thrown away as "unknown"
+ *     but ASKED at Talk — and if that fails, it stays unknown and so nothing is recorded.
  *
- * Alle afhankelijkheden zijn gestubd via de Module-resolve-hook; geen database,
- * geen Nextcloud.
+ * All dependencies are stubbed via the Module-resolve hook; no database,
+ * no Nextcloud.
  *
  * Run: cd server && node --test --test-force-exit core/meetingNotes/talkAutoRecord.prefs.test.js
  */
@@ -127,14 +126,13 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
     MOCK_IDS[request] = mockId;
     require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
 }
-// De module onder test bestaat uit TWEE bestanden: talkAutoRecord.js en de
-// gedeelde deelnemersteller talkParticipants.js. Beide moeten door de hook,
-// en niet alleen omdat de tweede zijn eigen requires heeft: ze wonen in
-// DEZELFDE map, en Node's `relativeResolveCache` is gesleuteld op
-// `${parent.path}\0${request}`. Staat er maar één in de hook, dan bepaalt de
-// TOEVALLIGE volgorde welk van de twee `../../stores/meetingPrefsStore` het
-// eerst oplost — en het antwoord van die ene komt daarna ook bij de ander
-// terecht, mock of echt.
+// The module under test consists of TWO files: talkAutoRecord.js and the
+// shared participant counter talkParticipants.js. Both must go through the hook,
+// and not only because the second has its own requires: they live in
+// the SAME folder, and Node's `relativeResolveCache` is keyed on
+// `${parent.path}\0${request}`. If only one of them is in the hook, the
+// CHANCE order decides which of the two `../../stores/meetingPrefsStore` resolves
+// first — and the answer of that one then also ends up in the other, mock or real.
 const MOCK_PARENTS = /meetingNotes[\\/](talkAutoRecord|talkParticipants)\.js$/;
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
@@ -149,7 +147,7 @@ const { scanAndRecord } = require('./talkAutoRecord');
 
 test.after(() => { Module._resolveFilename = originalResolve; });
 
-/** Een actieve call die deze gebruiker modereert en nog niet opneemt. */
+/** An active call that this user moderates and does not yet answer. */
 function activeRoom(token, overrides = {}) {
     return { token, type: 2, participantType: 2, hasCall: true, callRecording: 0, objectType: '', ...overrides };
 }
@@ -238,12 +236,11 @@ test('calendar-scope: de deelnemers uit de agenda-afspraak beslissen, en de occu
 
 test('NIEMAND in gesprek is ONBEKEND, niet het ledental van de conversatie', async () => {
     resetFx();
-    // Een groepsconversatie met vijf LEDEN waarvan niemand de inCall-bit
-    // draagt. De oude terugval las dan `res.count` — `participants.length` uit
-    // de tool, oftewel iedereen die ooit aan de conversatie is toegevoegd — en
-    // begon op te nemen. Dat gebeurt in productie echt: de kamerlijst wordt één
-    // keer bovenaan de scan opgehaald en een gesprek dat intussen eindigde
-    // levert overal inCall 0.
+    // A group conversation with five MEMBERS of whom nobody carries the inCall bit.
+    // The old fallback then read `res.count` — `participants.length` from the tool, i.e.
+    // everyone who was ever added to the conversation — and started recording. That really
+    // happens in production: the room list is fetched once at the top of the scan, and a
+    // conversation that ended in the meantime yields inCall 0 everywhere.
     fx.rooms = [activeRoom('t-nul')];
     fx.participants['t-nul'] = { participants: [{ inCall: 0 }, { inCall: 0 }, { inCall: 0 }, { inCall: 0 }, { inCall: 0 }] };
     await scanAndRecord();
@@ -252,8 +249,8 @@ test('NIEMAND in gesprek is ONBEKEND, niet het ledental van de conversatie', asy
 
 test('een deelnemersvorm zonder inCall-veld telt ook als onbekend', async () => {
     resetFx();
-    // `Number(undefined) || 0` doet hetzelfde als een expliciete nul; een oudere
-    // of afwijkende Talk-versie mag geen opname starten op grond van niets.
+    // `Number(undefined) || 0` does the same as an explicit zero; an older
+    // or deviating Talk version may not start a recording on the basis of nothing.
     fx.rooms = [activeRoom('t-geen-veld')];
     fx.participants['t-geen-veld'] = { participants: [{}, {}, {}, {}] };
     await scanAndRecord();
@@ -262,9 +259,9 @@ test('een deelnemersvorm zonder inCall-veld telt ook als onbekend', async () => 
 
 test('scope "all": de agenda telt niet mee, ook niet als hij er is', async () => {
     resetFx();
-    // De engine vult `calendarByToken` alleen in calendar-scope. De Gepland-
-    // lijst gebruikt daarom dezelfde regel (knownParticipantCount), zodat de
-    // twee niet elk een ander getal gebruiken voor dezelfde vergadering.
+    // The engine fills `calendarByToken` only in calendar scope. The Scheduled
+    // list therefore uses the same rule (knownParticipantCount), so that
+    // the two do not each use a different number for the same meeting.
     fx.settings.autoRecordScope = 'all';
     fx.rooms = [activeRoom('t-cal-in-all')];
     fx.meetings = [{

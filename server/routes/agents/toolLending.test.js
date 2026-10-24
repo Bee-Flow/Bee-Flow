@@ -1,30 +1,27 @@
 /**
- * GET /agents/:id/tool-lending — mag deze agent een verbinding van zijn
- * EIGENAAR lenen, en voor welke apps?
+ * GET /agents/:id/tool-lending — may this agent borrow a connection of its
+ * OWNER, and for which apps?
  *
- * Deze route bestaat omdat de kaart die vraag eerst aan zichzelf stelde: de
- * Tools-kaart las `GET /api/integrations/connections/grants`, en die route
- * filtert onvoorwaardelijk op de INGELOGDE gebruiker (routes/integrations/
- * connections.js — `grantorUserId: userId`). De runtime leent daarentegen van
- * `agent.owner_id` (toolPolicy.resolveLentProviders, aangeroepen met
- * `agent.owner_id` in routes/agents/crud.js en stores/agent/agentCrud.js). Bij
- * een gedeelde of org-agent zijn dat twee verschillende mensen, en dan bood
- * het scherm een keuze aan die de runtime anders uitvoerde — in beide
- * richtingen.
+ * This route exists because the card first asked that question of itself: the
+ * Tools card read `GET /api/integrations/connections/grants`, and that route
+ * filters unconditionally on the LOGGED-IN user (routes/integrations/
+ * connections.js — `grantorUserId: userId`). The runtime, on the other hand, borrows from
+ * `agent.owner_id` (toolPolicy.resolveLentProviders, called with
+ * `agent.owner_id` in routes/agents/crud.js and stores/agent/agentCrud.js). For a
+ * shared or org agent those are two different people, and then the screen offered
+ * a choice that the runtime executed differently — in both directions.
  *
- * Wat hier vastligt is niet "de route geeft JSON terug", maar de drie
- * eigenschappen waarop een geruststellende implementatie misgaat:
+ * What is pinned here is not "the route returns JSON", but the three properties on which a
+ * reassuring implementation goes wrong:
  *
- *   • de vraag gaat over de EIGENAAR. De grants van de bewerker zijn geen
- *     grond voor "als jou";
- *   • het antwoord is een JA/NEE PER APP en niets anders. Geen label, geen
- *     connection-id, geen begunstigde — anders leert de bewerker welke
- *     integraties de eigenaar heeft die hij zelf niet mag zien;
- *   • ONBEKEND VERSMALT. Geen eigenaar, een probe die stuk is, attributie die
- *     stuk is: alle drie `readable: false` met een lege lijst — nooit
- *     stilzwijgend "ja", en ook nooit een lege lijst die als "gelezen nul"
- *     leest. "Lenen staat uit" is wél een gelezen nul: dat is een feit, geen
- *     mislukking, en de kaart hoort daar geen foutmelding voor te tonen.
+ *   • the question is about the OWNER. The grants of the editor are no basis for "as you";
+ *   • the answer is a YES/NO PER APP and nothing else. No label, no
+ *     connection id, no beneficiary — otherwise the editor learns which integrations the owner has
+ *     that the editor may not see;
+ *   • UNKNOWN NARROWS. No owner, a broken probe, a broken attribution: all three
+ *     `readable: false` with an empty list — never silently "yes", and also never an
+ *     empty list that reads as "read zero". "Lending is off" IS a read zero: that is a fact,
+ *     not a failure, and the card should not show an error message for it.
  *
  * Run: cd server && node --test --test-force-exit routes/agents/toolLending.test.js
  */
@@ -60,8 +57,8 @@ const fx = {
 // ── Stubs, vóór de route (en vóór toolPolicy) geïnstalleerd ─────────
 stub('stores/agentStore', {
     getAgent: async (id) => (fx.agents[id] ? { ...fx.agents[id] } : null),
-    // Wat de RUNTIME leest — de gepubliceerde config, niet het concept dat de
-    // editor onder handen heeft. `null` = niet te lezen.
+    // What the RUNTIME reads — the published config, not the draft that the
+    // editor is working on. `null` = not readable.
     getForRuntime: async (id) => {
         if (fx.runtimeThrows) throw new Error('runtime config unreadable');
         if (!fx.agents[id]) return null;
@@ -93,9 +90,9 @@ stub('stores/integrationConnectionStore', {
 const LENDING_TOOLS = {
     gmail: [{ function: { name: 'gmail_search' } }, { function: { name: 'gmail_compose' } }],
     outlook: [{ function: { name: 'outlook_search' } }, { function: { name: 'outlook_compose' } }],
-    // Twee entries over DEZELFDE module, zoals de echte bron er sinds A2-4 een
-    // heeft. Zonder zo'n paar in de stub kan deze suite niet zien dat de route
-    // een app teruggaf waarvan de opslag `actAs: 'owner'` juist WEIGERT.
+    // Two entries over the SAME module, as the real source has had since A2-4. Without such a
+    // pair in the stub this suite cannot see that the route returned an app for which the
+    // storage REFUSES `actAs: 'owner'`.
     'outlook-readonly': [{ function: { name: 'outlook_search' } }],
     'agent-search': [{ function: { name: 'web_search' } }],
 };
@@ -142,9 +139,9 @@ function dispatch(url, session = { user: { id: fx.userId } }) {
 const AGENT = (over = {}) => ({
     id: 'a1', owner_id: 'owner-u', organization_id: 'org1', is_published: true, ...over,
 });
-// Zoals de echte rij: `resource_type`/`resource_id`/`expires_at`/`revoked_at`
-// staan er ALTIJD op. De oude fixture liet juist die vier weg, en dat zijn de
-// kolommen waarop deze route beslist.
+// Like the real row: `resource_type`/`resource_id`/`expires_at`/`revoked_at`
+// are ALWAYS present. The old fixture left out exactly those four, and those are the
+// columns on which this route decides.
 const GRANT = (provider, over = {}) => ({
     id: 'g-1', provider, connection_id: 'c-1', connection_label: 'Werkmail van Sam',
     grantee_id: 'grp-1', grantee_type: 'group', owner_user_id: 'owner-u',
@@ -191,10 +188,10 @@ test('de leen-vraag gaat over de EIGENAAR, niet over de ingelogde bewerker', asy
 });
 
 test('de resource-filtering volgt dispatch: deze agent én de org-brede lening', async () => {
-    // `resolveConnectionForRun` honoreert twee vormen — de grant OP deze agent
-    // en de grant zonder resource — en de route deed alleen de eerste. Een
-    // org-brede lening las daardoor als "er is niets uitgeleend", terwijl de
-    // runtime er wel degelijk op draaide.
+    // `resolveConnectionForRun` honours two forms — the grant ON this agent
+    // and the grant without a resource — and the route only did the first. An org-wide
+    // loan therefore read as "nothing is lent out", while the
+    // runtime was in fact running on it.
     fx.grantsByGrantor = {
         'owner-u': [
             GRANT('google', { resource_type: null, resource_id: null }),
@@ -209,11 +206,10 @@ test('de resource-filtering volgt dispatch: deze agent én de org-brede lening',
 });
 
 test('een VERLOPEN lening is geen lening', async () => {
-    // `listGrants` filtert alleen op revoked_at; `resolveConnectionForRun` eist
-    // óók `expires_at IS NULL OR expires_at > NOW()`. Las de kaart de verlopen
-    // grant als levend, dan bewaarde normalisatie een `actAs: 'owner'` die bij
-    // dispatch nergens op sloeg — en die werd vanzelf weer echt bij de volgende
-    // grant, zonder dat iemand opnieuw koos.
+    // `listGrants` filters only on revoked_at; `resolveConnectionForRun` ALSO requires
+    // `expires_at IS NULL OR expires_at > NOW()`. If the card read the expired
+    // grant as live, normalisation would keep an `actAs: 'owner'` that matched nothing at dispatch — and it would
+    // become real again by itself at the next grant, without anyone choosing it again.
     fx.grantsByGrantor = {
         'owner-u': [
             GRANT('google', { expires_at: new Date(Date.now() - 60000).toISOString() }),
@@ -231,10 +227,10 @@ test('een VERLOPEN lening is geen lening', async () => {
 });
 
 test('een app die zijn grants elders laat lopen komt NIET in de leenlijst', async () => {
-    // `outlook-readonly` levert de tools van `outlook` op dezelfde credentials.
-    // `normaliseToolsConfig` weigert `actAs: 'owner'` op precies die app, dus
-    // hem hier noemen liet de kaart een schakelaar aanbieden die de opslag een
-    // regel later terugdraait — zonder zelfs maar de weigeringsmelding.
+    // `outlook-readonly` provides the tools of `outlook` on the same credentials.
+    // `normaliseToolsConfig` refuses `actAs: 'owner'` on exactly that app, so naming
+    // it here made the card offer a switch that the storage reverted a line later — without even
+    // showing the refusal message.
     fx.grantsByGrantor = { 'owner-u': [GRANT('microsoft')] };
 
     const { body } = await dispatch('/a1/tool-lending');

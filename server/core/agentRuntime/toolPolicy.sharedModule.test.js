@@ -1,36 +1,28 @@
 /**
- * Twee registry-entries, ÉÉN set toolnamen (A2-4).
+ * Two registry entries, ONE set of tool names (A2-4).
  *
- * ── DE BEVINDING ────────────────────────────────────────────────────
- * `outlook` en `outlook-readonly` staan allebei in het registry en laden
- * dezelfde module; de read-only variant is een strikte SUBSET van dezelfde
- * drie namen op dezelfde credentials. De attributie-index deelde een naam toe
- * aan de EERSTE entry die hem noemde, dus `outlook` bezat `outlook_search`,
- * `outlook_read` en `outlook_list_recent` en `outlook-readonly` bezat er nul.
+ * ── THE FINDING ─────────────────────────────────────────────────────
+ * `outlook` and `outlook-readonly` are both in the registry and load the same module; the read-only variant is a
+ * strict SUBSET of the same three names on the same credentials. The attribution index assigned a name to the FIRST
+ * entry that mentioned it, so `outlook` owned `outlook_search`, `outlook_read` and `outlook_list_recent` and
+ * `outlook-readonly` owned none of them.
  *
- * Gevolg: een grant die op `outlook-readonly` was opgeslagen — de kiezer toont
- * hem als eigen app met drie acties, dus hij is gewoon op te slaan — ging
- * NERGENS over. `isToolAllowed` loste de naam op naar `outlook`, vond daar
- * geen entry, en las dat als "elke actie". Ook `{actions: []}` — "ik heb deze
- * app helemaal uitgevinkt" — hield niets tegen. Precies wat de modulekop
- * verbiedt: elk veld hier wordt gehandhaafd, of het wordt niet opgeslagen.
+ * Consequence: a grant that was stored on `outlook-readonly` — the picker shows it as its own app with three actions,
+ * so it is storable — governed NOTHING. `isToolAllowed` resolved the name to `outlook`, found no entry there and read
+ * that as "every action". Even `{actions: []}` — "I have unticked this app entirely" — held nothing back. Exactly what the
+ * module header forbids: every field here is enforced, or it is not stored.
  *
- * ── DE REGEL DIE HET DICHT ──────────────────────────────────────────
- * Claimt meer dan één app dezelfde toolnaam, dan moet ELKE claimende app die
- * naam toestaan. Dat is de smalste lezing en dus de enige die nooit
- * verbreedt: een ontbrekende entry blijft "elke actie van deze app" (de
- * geen-migratie-regel), en een entry die de naam níét noemt is een weigering
- * die blijft staan.
+ * ── THE RULE THAT CLOSES IT ─────────────────────────────────────────
+ * If more than one app claims the same tool name, then EVERY claiming app must allow that name. That is the narrowest
+ * reading and therefore the only one that never widens: a missing entry remains "every action of this app" (the
+ * no-migration rule), and an entry that does not name the tool is a refusal that stays in force.
  *
- * De EIGENAAR van een gedeelde naam volgt daarnaast een declaratie
- * (`grantsVia` in automation/toolRegistry.js) en niet de volgorde van de
- * lijst. Wie eigenaar is bepaalt waar de identiteitsvraag (`actAs`) wordt
- * beantwoord — één credential, één antwoord — en dat mag niet omslaan doordat
- * iemand twee regels in het registry omwisselt.
+ * The OWNER of a shared name follows a declaration (`grantsVia` in automation/toolRegistry.js) and not the order of the
+ * list. Who is the owner determines where the identity question (`actAs`) is answered — one credential, one answer —
+ * and that may not flip because someone swaps two lines in the registry.
  *
- * Fake apps, geen echte: wat hier gepind wordt is de VORM, niet welke
- * integraties deze week meeliften. Dat de echte registry zich aan de vorm
- * houdt, bewaakt automation/toolRegistry.test.js.
+ * Fake apps, not real ones: what is pinned here is the SHAPE, not which integrations ride along this week. That the real
+ * registry keeps to the shape is guarded by automation/toolRegistry.test.js.
  *
  * Run: node --test --test-force-exit core/agentRuntime/toolPolicy.sharedModule.test.js
  */
@@ -75,9 +67,8 @@ require.cache[registryPath] = {
         get INLINE_TOOL_APPS() { return []; },
         get ALL_TOOL_APPS() { return REGISTRY_ENTRIES; },
         loadTools: (entry) => SHARED_TOOLS[entry.app] || [],
-        // Zoals de echte bron: een module die niet laadt geeft geen exception
-        // maar `ok: false` — het verschil tussen "deze app heeft geen tools" en
-        // "ik kon deze app niet lezen".
+        // As in the real source: a module that does not load gives not an exception but `ok: false` — the difference between
+        // "this app has no tools" and "I could not read this app".
         loadToolsResult: (entry) => (LOAD_FAILS_FOR.has(entry.app)
             ? { tools: [], ok: false, reason: 'require_failed' }
             : { tools: SHARED_TOOLS[entry.app] || [], ok: true, reason: null }),
@@ -110,9 +101,8 @@ test('de eigenaar van een gedeelde naam volgt de DECLARATIE, niet de volgorde', 
     setRegistry([OTHER_ENTRY, OWNER_ENTRY, ALIAS_ENTRY]);
     assert.strictEqual(P.appIdForTool('tix_list'), 'tickets');
 
-    // Dezelfde twee entries, omgedraaid. Onder "de eerste wint" verhuisde het
-    // eigendom hier naar de alias — en daarmee de plek waar `actAs` wordt
-    // gelezen, terwijl niemand een grant verplaatste.
+    // The same two entries, reversed. Under "the first wins" the ownership moved here to the alias — and with it the place
+    // where `actAs` is read — while nobody moved a grant.
     setRegistry([OTHER_ENTRY, ALIAS_ENTRY, OWNER_ENTRY]);
     assert.strictEqual(P.appIdForTool('tix_list'), 'tickets',
         'een app die zijn grants via een ander laat lopen, bezit nooit een naam');
@@ -136,10 +126,9 @@ test('een grant op de alias beslist over de namen waarop hij is opgeslagen', () 
     assert.strictEqual(P.isToolAllowed('tix_read', cfg), false,
         'de eigenaar noemde deze app niet, maar de alias noemde deze NAAM niet — '
         + 'en een niet-genoemde naam in een gekozen lijst is een weigering');
-    // `tix_close` claimt alleen de eigenaar, en die heeft geen entry: de
-    // geen-migratie-regel blijft daar gewoon gelden.
+    // `tix_close` claims only the owner, and that one has no entry: the no-migration rule still applies there.
     assert.strictEqual(P.isToolAllowed('tix_close', cfg), true);
-    // En een grant op de ene app zegt nog steeds niets over een andere.
+    // And a grant on one app still says nothing about another.
     assert.strictEqual(P.isToolAllowed('gmail_search', cfg), true);
 });
 
@@ -161,8 +150,7 @@ test('elke claimende app moet toestaan — de smalste wint', () => {
 });
 
 test('de gedeelde regel verbreedt nooit — een weigering blijft een weigering', () => {
-    // De alias staat wagenwijd open, de eigenaar heeft alles uitgevinkt. Een
-    // "of"-lezing zou hier de weigering van de eigenaar wegpoetsen.
+    // The alias is wide open, the owner has unticked everything. An "or" reading would here wipe out the owner's refusal.
     const cfg = { tickets: { actions: [] }, 'tickets-readonly': { actions: '*' } };
     assert.strictEqual(P.isToolAllowed('tix_list', cfg), false);
     assert.strictEqual(P.isToolAllowed('tix_read', cfg), false);
@@ -176,11 +164,9 @@ test('de gedeelde regel verbreedt nooit — een weigering blijft een weigering',
 });
 
 test('een MCP-tool met dezelfde naam erft de grant van het registry NIET', () => {
-    // Een MCP-server of custom-integratie draagt zijn eigen id op de definitie
-    // (`appIdForToolDef`) en wordt nooit op naam toegeschreven. Zou een
-    // naamsgelijkenis hem alsnog onder de grant van `tickets-readonly` trekken,
-    // dan wordt een grant toegepast op iets waar hij niet over gaat — de fout
-    // van deze bevinding, in spiegelbeeld.
+    // An MCP server or custom integration carries its own id on the definition (`appIdForToolDef`) and is never assigned by
+    // name. If a name resemblance nevertheless pulled it under the grant of `tickets-readonly`, a grant would be applied to
+    // something it does not concern — the fault of this finding, in mirror image.
     const cfg = { 'tickets-readonly': { actions: [] } };
     const mcpTool = { function: { name: 'tix_read' }, _mcp: { serverId: 'srv' } };
     assert.strictEqual(P.appIdForToolDef(mcpTool), 'mcp:srv');
@@ -253,15 +239,13 @@ test('de eigenaar mag "als de eigenaar" wél opslaan, en dat blijft leenbaar', (
     LENDING_ON = false;
 });
 
-// ── De vangregel die de declaratie zelf geen fail-open laat worden ───
+// ── The catch-all rule that stops the declaration itself from becoming fail-open ───
 
 test('een naam die ALLEEN een uitstellende app levert krijgt tóch een eigenaar', () => {
-    // De regel `if (!byTool.has(name) && ids.length) byTool.set(name, ids[0])`
-    // had nul dekking: hem weghalen liet elke test groen. En hij bewaakt een
-    // ECHTE fail-open — ontbreekt de eigenaar in het registry (of laadt zijn
-    // module niet), dan zet een uitstellende app `byTool` nooit, en dan is de
-    // gedeelde naam ONGEATTRIBUEERD: de lezing die voor `set_reminder` bedoeld
-    // is en die elke per-app-grant passeert.
+    // The rule `if (!byTool.has(name) && ids.length) byTool.set(name, ids[0])` had zero coverage: removing it left every test
+    // green. And it guards a REAL fail-open — if the owner is missing from the registry (or its module does not load), then a
+    // deferring app never sets `byTool`, and then the shared name is UNATTRIBUTED: the reading that is meant for `set_reminder`
+    // and that every per-app grant passes.
     setRegistry([OTHER_ENTRY, ALIAS_ENTRY]);          // eigenaar ontbreekt
 
     assert.strictEqual(P.isAttributionAvailable(), true, 'de index is verder gezond');
@@ -276,10 +260,9 @@ test('een naam die ALLEEN een uitstellende app levert krijgt tóch een eigenaar'
 });
 
 test('een eigenaar wiens MODULE niet laadt degradeert de index — hij verdwijnt niet stil', () => {
-    // De andere helft van dezelfde wond: `loadTools` gooit nooit, dus een
-    // module die niet laadt kwam vroeger binnen als "deze app heeft geen
-    // namen". Dan neemt de vangregel hierboven de alias als eigenaar en lijkt
-    // alles gezond, terwijl de helft van de namen (tix_close) verdwenen is.
+    // The other half of the same wound: `loadTools` never throws, so a module that did not load came in as "this app has no
+    // names". Then the catch-all rule above takes the alias as owner and everything looks healthy, while half of the names
+    // (tix_close) have disappeared.
     LOAD_FAILS_FOR.add('tickets');
     setRegistry([OTHER_ENTRY, OWNER_ENTRY, ALIAS_ENTRY]);
     try {
@@ -288,10 +271,9 @@ test('een eigenaar wiens MODULE niet laadt degradeert de index — hij verdwijnt
         assert.ok(!P.isToolAllowed('tix_close', { gmail: { actions: ['gmail_search'] } }),
             'een naam die alleen de onleesbare app bezit is ongeattribueerd, en dan weigert de '
             + 'degraded tak hem — vroeger leverde precies dit de hele app terug');
-        // `tix_list` wordt nog wel geattribueerd (de alias levert hem), en daar
-        // beslist de gewone grant-regel. In het product kan die splitsing niet
-        // ontstaan: eigenaar en alias laden DEZELFDE module, dus ze vallen
-        // samen uit — en dan is elke naam van het paar ongeattribueerd.
+        // `tix_list` is still attributed (the alias supplies it), and there the ordinary grant rule decides. In the product this
+        // split cannot arise: owner and alias load the SAME module, so they fall away together — and then every name of the pair
+        // is unattributed.
         assert.strictEqual(P.appIdForTool('tix_list'), 'tickets-readonly');
     } finally {
         LOAD_FAILS_FOR.delete('tickets');
@@ -300,10 +282,9 @@ test('een eigenaar wiens MODULE niet laadt degradeert de index — hij verdwijnt
 });
 
 test('lentAppsFor slaat de uitstellende app over — de kaart mag hem niet aanbieden', () => {
-    // `normaliseToolsConfig` weigert `actAs: 'owner'` op een app die zijn
-    // grants elders laat lopen (de test hierboven), dus hem in de leenlijst
-    // zetten liet het scherm een keuze aanbieden die de opslag terugdraait —
-    // en `ownerRefused` vuurde niet eens, want de kaart dacht dat het mocht.
+    // `normaliseToolsConfig` refuses `actAs: 'owner'` on an app that lets its grants run elsewhere (the test above), so putting
+    // it on the lending list let the screen offer a choice that the storage rolls back — and `ownerRefused` did not even fire,
+    // because the card thought it was allowed.
     const apps = P.lentAppsFor(new Set(['ticketing']));
     assert.deepStrictEqual(apps, ['tickets'],
         'alleen de app die de namen bezit; de rij die ze uitleent hoort er niet in');

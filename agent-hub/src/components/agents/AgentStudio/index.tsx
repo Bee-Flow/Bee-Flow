@@ -14,21 +14,21 @@ import type { EditorAgent } from '../AgentWizard/builderSplit/editorTypes';
 import type { AppUserLike } from '../../projects/workspace/types';
 
 /**
- * Studio → Agents: het overzicht (A5) en de editor (A2/A3) in één scherm.
- * Vervangt de oude AgentDesigner als hoofdingang; het legacy-formulier is nog
- * bereikbaar via "Advanced settings" voor velden die de studio nog niet toont
- * (guardrails, embedding, bubble widget, sharing).
+ * Studio → Agents: the overview (A5) and the editor (A2/A3) in one screen.
+ * Replaces the old AgentDesigner as the main entry point; the legacy form is still reachable
+ * via "Advanced settings" for fields that the studio does not yet show (guardrails, embedding,
+ * bubble widget, sharing).
  *
- * ── DRIE TOESTANDEN, NIET TWEE ──────────────────────────────────────
- *   idle    het kaartraster (AgentOverview) — de sectiewortel
- *   wizard  de AI-landing die uit één zin een agent schrijft
- *   edit    BuilderSplit, schermvullend
+ * ── THREE STATES, NOT TWO ──────────────────────────────────────────
+ *   idle    the card grid (AgentOverview) — the section root
+ *   wizard  the AI landing that writes an agent from a single sentence
+ *   edit    BuilderSplit, full screen
  *
- * Vóór A5 deel C was `idle` de wizard-landing en stond de lijst in een 264px
- * zijbalk ernaast. Het raster nam die plek over, dus de wizard heeft nu een
- * eigen toestand — mét een weg terug en mét de "leeg beginnen"-uitgang. Zonder
- * die twee zou de landing een doodlopende straat zijn: hij tekent zelf geen
- * terugknop, en `onSwitchToManual` (createDraft) was al onbereikbaar geworden.
+ * Before A5 part C `idle` was the wizard landing and the list stood in a 264px sidebar
+ * beside it. The grid took over that spot, so the wizard now has its own state — with a way
+ * back and with the "start empty" exit. Without those two the landing would be a dead end:
+ * it draws no back button itself, and `onSwitchToManual` (createDraft) had already become
+ * unreachable.
  */
 interface AgentStudioProps {
     user?: AppUserLike | null;
@@ -89,9 +89,9 @@ export default function AgentStudio({ user, initialAgentId = null, onClose, onNa
         if (mode === 'edit' && selectedAgent?.id) {
             onNavigate(`studio/agents/${selectedAgent.id}`);
         } else if (mode === 'idle' || mode === 'wizard') {
-            // De wizard hoort bij de sectiewortel: hij heeft (nog) geen eigen
-            // route. Een concept in `edit` navigeert bewust NIET — dat zou de
-            // URL naar de lijst zetten terwijl je in de editor staat.
+            // The wizard belongs to the section root: it does not (yet) have its own route. A draft in
+            // `edit` deliberately does NOT navigate — that would set the URL to the list while you are
+            // in the editor.
             onNavigate('studio/agents');
         }
     }, [bootstrappedFor, mode, selectedAgent?.id, onNavigate]);
@@ -163,13 +163,11 @@ export default function AgentStudio({ user, initialAgentId = null, onClose, onNa
                         onOpen={selectAgent}
                         selectedId={selectedAgent?.id || null}
                         systemMode={systemMode}
-                        // Wie er kijkt. Zonder dit kan de kaartvoet "Only you"
-                        // niet waarmaken (het is een bewering over de EIGENAAR)
-                        // en valt hij terug op de neutrale vorm.
+                        // Who is looking. Without this, the card footer cannot make "Only you" true (it is a claim
+                        // about the OWNER) and falls back to the neutral form.
                         viewerId={user?.id || null}
-                        // BFSF-271 + "onbekend versmalt": de kaart beslist zelf of
-                        // ze de prullenbak toont (alleen bij can_edit === true).
-                        // Hier gaat alleen over of dit SCHERM mag verwijderen.
+                        // BFSF-271 + "unknown narrows": the card decides for itself whether it shows the bin (only
+                        // when can_edit === true). This is only about whether THIS SCREEN may delete.
                         onDelete={!systemMode && hasPermission('manage_agents') ? requestDelete : null}
                         onCreate={!systemMode && hasPermission('manage_agents') ? () => guardLeave(() => setMode('wizard')) : null}
                     />
@@ -195,11 +193,9 @@ export default function AgentStudio({ user, initialAgentId = null, onClose, onNa
                         onBack={handleBack}
                         onDirtyChange={setIsDirty}
                         onPublished={handlePublished}
-                        // De editor wijst naar andere Studio-secties (de
-                        // meeting-tip op "Kan gebruiken" gaat naar de bronnen
-                        // van een kennisbank). Zonder deze doorgifte tekent
-                        // die kaart geen knop — liever geen knop dan een
-                        // knop die niets doet.
+                        // The editor points to other Studio sections (the meeting tip on "Can use" goes to the
+                        // sources of a knowledge base). Without this pass-through that card draws no button —
+                        // better no button than a button that does nothing.
                         onNavigate={onNavigate}
                         onDeleted={() => {
                             // Server has confirmed the agent is gone; deselect and drop

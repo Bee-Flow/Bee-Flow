@@ -1,17 +1,14 @@
 /**
- * useToolCatalog — de twee lezingen achter de Tools-kaart.
+ * useToolCatalog: the two reads behind the Tools card.
  *
- * Eén ervan is de leen-vraag, en die stelde de kaart aan de verkeerde persoon.
- * `GET /api/integrations/connections/grants` filtert onvoorwaardelijk op de
- * INGELOGDE gebruiker (routes/integrations/connections.js: `grantorUserId:
- * userId`), terwijl de runtime leent van `agent.owner_id`
- * (toolPolicy.resolveLentProviders). Bij een gedeelde of org-agent — een agent
- * die iemand anders bezit en die jij als org-genoot met `manage_agents` mag
- * bewerken — zijn dat twee verschillende mensen, en bood het scherm dus een
- * keuze aan die de runtime anders uitvoerde.
+ * One of them is the lending question, and the card used to put that question to the wrong person.
+ * `GET /api/integrations/connections/grants` filters unconditionally on the LOGGED-IN user (routes/integrations/connections.js:
+ * `grantorUserId: userId`), while the runtime lends from `agent.owner_id` (toolPolicy.resolveLentProviders). For a shared or
+ * org agent, one that someone else owns and that you may edit as a fellow org member with `manage_agents`, those are two
+ * different people, and the screen offered a choice that the runtime would execute differently.
  *
- * Daarom vraagt deze hook het aan de server, per agent, en krijgt hij precies
- * één ding terug: voor welke apps lenen kan. Niet welke verbinding er hangt.
+ * Therefore this hook asks the server, per agent, and gets back exactly one thing: for which apps lending is possible.
+ * Not which connection hangs there.
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/canUse/useToolCatalog.test.jsx
  */
@@ -122,8 +119,7 @@ describe('useToolCatalog — onbekend versmalt', () => {
         expect(result.current.runtimeCurated).toBe(true);
 
         cleanup();
-        // Een oude server (of een antwoord zonder het veld) is ONBEKEND, geen
-        // "niet gecureerd": de kaart hoort er dan niets over te zeggen.
+        // An old server (or an answer without the field) is UNKNOWN, not "not curated": the card must say nothing about it then.
         handler = okHandler;
         const second = renderHook(() => useToolCatalog({ agentId: 'a1' }));
         await waitFor(() => expect(second.result.current.lentState).toBe(READ.OK));

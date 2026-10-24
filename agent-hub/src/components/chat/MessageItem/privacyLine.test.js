@@ -4,17 +4,16 @@ import { describe, it, expect } from 'vitest';
 import { describePrivacyLine, findTurnTokenMap, messageTextOf } from './privacyLine';
 
 /**
- * C7 — de privacyregel onder het bericht.
+ * C7: the privacy line under the message.
  *
- * De eigenschap die hier vastligt is niet "welke zin er staat" maar WANNEER het
- * scherm een vervanging mag aanwijzen. Een demonstratie ("vervangen door
- * [email_1] — de echte waarde bleef hier") is bewijs; hetzelfde zinnetje zonder
- * meting eronder is een privacyclaim waar iemand een beslissing op baseert.
+ * The property pinned here is not "which sentence is shown" but WHEN the screen
+ * may point to a substitution. A demonstration ("replaced by [email_1]: the real
+ * value stayed here") is evidence. The same little sentence without a measurement
+ * underneath is a privacy claim that someone bases a decision on.
  *
- * Daarom staat de degradatie hier net zo hard gepind als de demonstratie: als
- * de tokenmap ontbreekt of niets in dít bericht raakt, mag er géén
- * plaatsvervanger uit komen. Het onbekende moet versmallen, niet verdwijnen
- * achter een geruststellende teller.
+ * That is why the downgrade is pinned here just as hard as the demonstration: if
+ * the token map is missing, or nothing in THIS message touches it, no stand-in
+ * may come out. The unknown must narrow, not vanish behind a reassuring counter.
  */
 
 const TEXT = 'Bel Jan de Vries even op j.devries@vandijk.nl over de offerte.';
@@ -73,10 +72,10 @@ describe('describePrivacyLine — de demonstratievorm', () => {
     });
 
     it('wijst niets aan zodra er meer kandidaten zijn dan vervangingen', () => {
-        // DE KERN. De kluismap is conversatiebreed: twee waarden staan hier
-        // woordelijk, de server verving er één. Welke van de twee weet dit
-        // scherm niet. Er één aanwijzen is niet "de beste gok tonen" — de
-        // lezer concludeert dan dat de ándere in het klaar naar buiten ging.
+        // THE CORE. The vault map is conversation-wide: two values stand here
+        // literally, and the server replaced one. Which of the two this screen does
+        // not know. Pointing at one is not "showing the best guess". The reader then
+        // concludes that the OTHER one went out in the clear.
         const line = describePrivacyLine({
             count: 1,
             messageText: 'Niet jan@example.com maar piet@example.com gebruiken.',
@@ -88,11 +87,11 @@ describe('describePrivacyLine — de demonstratievorm', () => {
     });
 
     it('schrijft een oude kluiswaarde niet toe aan deze beurt', () => {
-        // Beurt 3 typt een adres uit beurt 1 opnieuw. De kluis kent het token
-        // nog, maar de vier vervangingen van deze beurt zaten in de BIJLAGE
-        // (attachmentIntake.js telt `aggCount` over de bijlagen en geeft de
-        // hele kluis als map mee). "4 gegevens vervangen, waaronder [email_1]"
-        // maakt dat token dan lid van een verzameling waar het niet in zit.
+        // Turn 3 types an address from turn 1 again. The vault still knows the token,
+        // but the four replacements of this turn were in the ATTACHMENT
+        // (attachmentIntake.js counts `aggCount` over the attachments and passes the
+        // whole vault along as a map). "4 data replaced, including [email_1]" would
+        // then make that token a member of a collection it is not in.
         const line = describePrivacyLine({
             count: 4,
             messageText: 'jan@example.com staat in de bijlage, kun je de offerte nakijken?',
@@ -100,10 +99,9 @@ describe('describePrivacyLine — de demonstratievorm', () => {
         });
         expect(line.form).toBe('demonstrated');
         expect(line.partial).toBe(true);
-        // De beschrijving mag het token noemen; wat er NIET mag is het als
-        // lid van de telling presenteren. Die zin staat in PrivacyLine.jsx en
-        // wordt daar getest — hier pinnen we dat `partial` de vlag is die die
-        // andere zin afdwingt.
+        // The description may name the token. What may NOT happen is presenting it
+        // as a member of the count. That sentence is in PrivacyLine.jsx and is tested
+        // there. Here we pin that `partial` is the flag that the other sentence enforces.
         expect(line.shown).toBe(1);
         expect(line.count).toBe(4);
     });
@@ -111,9 +109,8 @@ describe('describePrivacyLine — de demonstratievorm', () => {
 
 describe('describePrivacyLine — een half gecontroleerde beurt', () => {
     it('draagt de doorlaat mee in de beschrijving', () => {
-        // Onder fail_open ging het ongecontroleerde deel ONGEREDIGEERD naar de
-        // AI. De telling is dan een ondergrens, geen samenvatting, en de zin
-        // erboven mag dat niet verzwijgen.
+        // Under fail_open the unchecked part went to the AI UNREDACTED. The count is
+        // then a lower bound, not a summary, and the sentence above may not conceal that.
         const line = describePrivacyLine({
             count: 1,
             messageText: 'j.devries@vandijk.nl',
@@ -155,8 +152,8 @@ describe('describePrivacyLine — de eerlijke degradatie', () => {
     });
 
     it('leent geen bewijs van een ander bericht', () => {
-        // De map bestaat, maar deze waarde komt uit een eerdere beurt. Hem hier
-        // tonen zou een vervanging aanwijzen die in dit bericht niet gebeurde.
+        // The map exists, but this value comes from an earlier turn. Showing it here
+        // would point to a replacement that did not happen in this message.
         const line = describePrivacyLine({
             count: 1,
             messageText: TEXT,
@@ -176,8 +173,8 @@ describe('describePrivacyLine — de eerlijke degradatie', () => {
     });
 
     it('degradeert ook wanneer het bericht alleen nog de tokens draagt', () => {
-        // Staat de plaatsvervanger zelf in de tekst, dan bleef de echte waarde
-        // hier juist NIET staan — dus is er niets te demonstreren.
+        // If the stand-in itself is in the text, then the real value did NOT stay here,
+        // so there is nothing to demonstrate.
         const line = describePrivacyLine({
             count: 1,
             messageText: 'Bel [person_1] even op [email_1] over de offerte.',

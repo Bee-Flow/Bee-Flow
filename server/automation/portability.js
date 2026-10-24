@@ -222,27 +222,23 @@ function stripEnvironmentRefs(def, warnings) {
  *          non-blocking removals (today: stripped pinned outputs).
  */
 /**
- * De back-pointer naar de knop waar de automatisering vandaan komt, eraf.
+ * The back-pointer to the button from which the automation comes, removed.
  *
- * `trigger.appRef` (contract in automation/appTriggerContract.js) noemt een app,
- * een scherm en een component van ÉÉN installatie. Overgedragen wijst hij
- * nergens naar — en de triggerkaart is gebouwd om dat hardop te zeggen ("App is
- * gone"), dus een geïmporteerde automatisering zou aankomen met de melding van een
- * verwijdering die nooit heeft plaatsgevonden. Niet in de gedeelde scrub-regels:
- * dit is geen sleutel en geen persoon, alleen een label dat ophoudt waar te zijn
- * zodra het vertrekt.
+ * `trigger.appRef` (contract in automation/appTriggerContract.js) names an app, a screen and a component of
+ * ONE installation. Transferred, it points nowhere — and the trigger card is built to say so out loud ("App
+ * is gone"), so an imported automation would arrive with the message of a deletion that never took place. Not
+ * in the shared scrub rules: this is not a key and not a person, only a label that stops being true as soon
+ * as it leaves.
  *
- * BEIDE KANTEN. Hij zat alleen op de EXPORT, en daardoor gaven de twee
- * create-paden een verschillend antwoord op dezelfde invoer: `POST /` weigert
- * een definitie met een appRef naar andermans app (403 `owner_mismatch`, zie de
- * poort in routes/automation/crud.js), terwijl `POST /import` er twee handlers
- * verderop eentje binnenliet met een handgeschreven bestand. Weigeren zou daar
- * te hard zijn — het is een label, geen recht, en de rest van het bestand is
- * prima te importeren — dus: eraf halen en het zeggen.
+ * BOTH SIDES. It sat only on the EXPORT, and as a result the two create paths gave a different answer to the
+ * same input: `POST /` refuses a definition with an appRef to someone else's app (403 `owner_mismatch`, see the
+ * gate in routes/automation/crud.js), while `POST /import` admitted one two handlers further with a hand-written
+ * file. Refusing would be too harsh there — it is a label, not a right, and the rest of the file is perfectly
+ * importable — so: remove it and say so.
  *
- * @param {any} definition  wordt TER PLEKKE aangepast
- * @param {string[]} warnings  krijgt per verwijderde pointer een zin
- * @returns {number} hoeveel er zijn verwijderd
+ * @param {any} definition  is modified IN PLACE
+ * @param {string[]} warnings  receives a sentence per removed pointer
+ * @returns {number} how many were removed
  */
 function stripAppRefs(definition, warnings = []) {
     let removed = 0;

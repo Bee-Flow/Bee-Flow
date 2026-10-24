@@ -3,29 +3,17 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
- * De Geschiedenis-tab.
+ * The History tab.
  *
- * Elke test hieronder verdedigt dezelfde regel, die dit scherm gevaarlijker
- * maakt dan de meeste: EEN GESCHIEDENIS WORDT GELOOFD. Wie er "You" leest,
- * denkt dat hij het zelf deed; wie er "±0" leest, denkt dat er niets
- * veranderde; wie er "v0" leest, denkt dat er een versie 0 was. Geen van drieën
- * mag uit een ONTBREKENDE waarde ontstaan:
+ * Every test below defends the same rule, which makes this screen more dangerous than most: A HISTORY IS BELIEVED. Whoever reads "You" thinks he did it himself; whoever reads "±0" thinks that nothing changed; whoever reads "v0" thinks there was a version 0. None of the three may arise from a MISSING value:
  *
- *   - `actor: null` (nooit vastgelegd) én `actor.name: null` (account weg)
- *     lezen allebei als "Unknown". Nooit als de kijker, nooit als niets.
- *   - `lineDelta: null` tekent geen getal. `0` tekent er wél een — dat is een
- *     meting die zegt dat er evenveel regels overbleven.
- *   - `seq: null` tekent geen nummer.
+ *   - `actor: null` (never recorded) AND `actor.name: null` (account gone) both read as "Unknown". Never as the viewer, never as nothing.
+ *   - `lineDelta: null` draws no number. `0` DOES draw one — that is a measurement saying that the same number of lines remained.
+ *   - `seq: null` draws no number.
  *
- * Daarnaast: TERUGZETTEN VRAAGT EERST. De kale confirm() met zijn
- * "localhost says"-balk is weg; er komt een dialoog in de eigen chrome, en
- * annuleren betekent dat er niets gebeurt. En het terugzetten zelf blijft bij
- * de editorpagina (`onRestore`) — deze tab kent het pad naar de save-baseline
- * niet en hoort dat ook niet te kennen.
+ * Additionally: RESTORING ASKS FIRST. The bare confirm() with its "localhost says" bar is gone; there is a dialog in the own chrome, and cancelling means nothing happens. And the restoring itself stays with the editor page (`onRestore`) — this tab does not know the path to the save baseline and need not know it.
  *
- * `WebpageEditor` is gemockt: Monaco laadt lui en heeft in jsdom niets te
- * zoeken; wat hier telt is DAT de weergave alleen-lezen is en welke bytes hij
- * krijgt.
+ * `WebpageEditor` is mocked: Monaco loads lazily and has nothing to do in jsdom; what counts here is THAT the display is read-only, and WHICH bytes it receives.
  */
 
 const authFetch = vi.fn();
@@ -197,8 +185,7 @@ describe('restoring', () => {
         const dialog = await screen.findByRole('dialog');
         fireEvent.click(within(dialog).getAllByText('Restore').at(-1));
         await waitFor(() => expect(onRestore).toHaveBeenCalledWith('v-a'));
-        // Terugzetten voegt zelf een rij toe; de lijst mag niet blijven staan
-        // zoals hij was.
+        // Restoring adds a row itself; the list may not remain as it was.
         await waitFor(() => expect(urls().filter(u => u.endsWith('/wp1/versions')).length).toBe(2));
     });
 
@@ -302,14 +289,13 @@ describe('the list', () => {
     });
 });
 
-/* ── sluitronde: wat dit scherm NIET mag beweren ─────────────────────── */
+/* ── closing round: what this screen may NOT claim ─────────────────────── */
 
 describe('WebpageHistoryTab — de dekking van een momentopname', () => {
     it('legt een lege lijst niet uit als "je hebt nog niet genoeg bewerkt" als de functie hier niet werkt', async () => {
-        // react-mui is het STANDAARD projecttype: de app woont er in extra
-        // bestanden, en die zitten in geen enkele momentopname. De oude tekst
-        // schoof de schuld naar de auteur voor iets dat daar principieel niet
-        // gebeurt.
+        // react-mui is the DEFAULT project type: the app lives there in extra files, and
+        // those are in no snapshot at all. The old text shifted the blame onto the
+        // author for something that in principle does not happen there.
         authFetch.mockResolvedValue(list([], {
             coverage: { slots: ['html', 'css', 'js', 'db'], extraFiles: false, framework: 'react-mui', coversProject: false },
         }));
@@ -349,10 +335,9 @@ describe('WebpageHistoryTab — de dekking van een momentopname', () => {
 
 describe('WebpageHistoryTab — een momentopname zonder bytes', () => {
     it('zegt dat hij niet te lezen is in plaats van een leeg bestand te tonen', async () => {
-        // `readSlot` antwoordt met '' zowel voor "leeg" als voor "het object is
-        // weg". Zonder het `readable`-veld kon de kijker die twee niet uit elkaar
-        // houden — en Terugzetten op diezelfde rij schreef de leegte over de
-        // levende pagina.
+        // `readSlot` answers with '' both for "empty" and for "the object is gone".
+        // Without the `readable` field the viewer could not tell the two apart — and
+        // Restore on that same row wrote the emptiness over the live page.
         authFetch.mockImplementation((url) => (String(url).includes('/versions/v-a')
             ? ok({ version: { ...row(), readable: false, html: '', css: '', js: '' } })
             : list([row()])));
@@ -365,11 +350,10 @@ describe('WebpageHistoryTab — een momentopname zonder bytes', () => {
 
 describe('WebpageHistoryTab — de teller van de ouder', () => {
     it('roept onLoaded niet aan vanuit een state-updater', async () => {
-        // Een updater draait tijdens de render en hoort zuiver te zijn; `onLoaded`
-        // is in de echte app een setState van de OUDER. React logt daar
-        // "Cannot update a component while rendering a different component" — met
-        // een kale vi.fn() als ouder valt dat niet op, dus hier staat een ECHTE
-        // ouder omheen.
+        // An updater runs during render and should be pure; `onLoaded` in the real app
+        // is a setState of the PARENT. React logs "Cannot update a component while
+        // rendering a different component" there — with a bare vi.fn() as parent that
+        // does not show, so here a REAL parent stands around it.
         const errors = [];
         const spy = vi.spyOn(console, 'error').mockImplementation((...a) => { errors.push(a.map(String).join(' ')); });
         try {

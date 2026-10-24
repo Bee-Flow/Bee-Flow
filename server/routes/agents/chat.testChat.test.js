@@ -1,24 +1,23 @@
 'use strict';
 
 /**
- * De TESTCHAT op de gewone chatdeur (A4 deel A).
+ * The TEST CHAT on the ordinary chat door (A4 part A).
  *
- * `POST /agents/:id/chat/stream` met `{ test: true }`. Vier eigenschappen, elk
- * met een eigen test, omdat ze elk op een andere plek onwaar kunnen worden:
+ * `POST /agents/:id/chat/stream` with `{ test: true }`. Four properties, each with
+ * its own test, because each can become untrue in a different place:
  *
- *   • HET IS EEN BOUWERSRECHT. De testchat serveert het ONGEPUBLICEERDE
- *     concept. Iemand die met de agent mag praten maar hem niet mag bewerken
- *     hoort dat werk-in-uitvoering niet te kunnen uitlezen, en een
- *     rechtencontrole die niet kón draaien is geen ja.
- *   • HET IS EFEMEER, ALTIJD. Ook als de client `ephemeral: false` meestuurt.
- *     Dat ene feit is wat een testgesprek uit de historie, uit de kaartvoet
- *     (A5), uit de Used-by-tab en uit elke export houdt: er wordt geen rij
- *     geschreven, dus er valt nergens iets te filteren.
- *   • HET RIJDT OP HET A1c-PAD. `asGroup` gaat door `gateTestAsRequest`, ook
- *     samen met `test: true` — één poort, geen tweede ernaast.
- *   • EEN GEWONE BEURT BLIJFT EEN GEWONE BEURT. `test` dat niet letterlijk
- *     `true` is, is geen testchat; anders verdwijnt een echt gesprek stilletjes
- *     uit de historie omdat er ergens `test: 'false'` in een body stond.
+ *   • IT IS A BUILDER'S RIGHT. The test chat serves the UNPUBLISHED draft. Someone who
+ *     may talk to the agent but may not edit it should not be able to read work-in-progress,
+ *     and an authorisation check that could not run is not a yes.
+ *   • IT IS EPHEMERAL, ALWAYS. Even when the client sends `ephemeral: false`.
+ *     That one fact is what keeps a test conversation out of the history, out of the card footer
+ *     (A5), out of the Used-by tab and out of every export: no row is written, so there is
+ *     nothing anywhere to filter.
+ *   • IT RUNS ON THE A1c PATH. `asGroup` goes through `gateTestAsRequest`, also together with
+ *     `test: true` — one gate, no second one beside it.
+ *   • AN ORDINARY TURN REMAINS AN ORDINARY TURN. `test` that is not literally `true` is not
+ *     a test chat; otherwise a real conversation would quietly vanish from the history because
+ *     `test: 'false'` stood somewhere in a body.
  *
  * Run: cd server && node --test routes/agents/chat.testChat.test.js
  */
@@ -172,10 +171,10 @@ test('an editor asking for a test chat gets one, and it is ephemeral', async () 
 });
 
 test('a client that asks for a persisted test chat still gets an ephemeral one', async () => {
-    // Dit is de eigenschap waar alle andere tellingen op leunen. Zou `ephemeral`
-    // hier overneembaar zijn, dan zou één client-vlag een testgesprek in de
-    // historie, de kaartvoet én de Used-by-tab laten opduiken als gewoon
-    // gesprek — en dan is elk van die getallen onwaar.
+    // This is the property that all other counts lean on. Were `ephemeral`
+    // overridable here, then one client flag would make a test conversation appear in the
+    // history, the card footer and the Used-by tab as an ordinary conversation — and then each of
+    // those numbers would be untrue.
     await dispatch({ message: 'hi', test: true, ephemeral: false, conversationId: 'c9' });
     assert.strictEqual(fx.metadata[0].ephemeral, true);
     assert.strictEqual(fx.conversationReads, 0);

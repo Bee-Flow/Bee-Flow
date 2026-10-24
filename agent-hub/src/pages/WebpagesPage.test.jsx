@@ -153,16 +153,14 @@ function route(method, url, opts) {
     if (method === 'GET' && (m = path.match(/^\/api\/webpages\/([^/]+)\/files\?path=(.+)$/))) {
         return { content: `/* ${decodeURIComponent(m[2])} */` };
     }
-    // "Wie gebruikt deze pagina" (W5) — de verwijderdialoog vraagt het vóór
-    // hij iets vraagt.
+    // "Who uses this page" (W5). The delete dialog asks it before it asks anything else.
     //
-    // De standaard is de ECHTE standaard van de server, niet de prettige:
-    // `complete` is er nooit waar en `unchecked` bevat altijd minstens `chat`
-    // en `agent` (twee soorten hebben geen rij die ze kan beantwoorden — zie
-    // server/core/webpages/webpageUsage.js). Een fixture met
-    // `complete: true, unchecked: []` beschrijft een antwoord dat de route niet
-    // kan geven, en liet de enige paginabrede verwijdertest door een scherm
-    // lopen dat geen enkele gebruiker ooit ziet.
+    // The default is the REAL default of the server, not the pleasant one. `complete`
+    // is never true, and `unchecked` always contains at least `chat` and `agent` (two
+    // kinds have no row that they can answer, see server/core/webpages/webpageUsage.js).
+    // A fixture with `complete: true, unchecked: []` describes an answer that the route
+    // cannot give, and it let the only page-usage delete test run through a screen that
+    // no user ever sees.
     if (method === 'GET' && /\/usage$/.test(path)) {
         return {
             usage: [],
@@ -554,14 +552,13 @@ describe('WebpagesPage — versions', () => {
         fireEvent.click(screen.getByText('Restore'));
         await flush();
 
-        // W4 verving de kale window.confirm() door de gedeelde bevestigingsdialoog
-        // (components/shared/useConfirm): een browserdialoog kan geen uitleg
-        // dragen over WAT er wel en niet wordt teruggezet, en in een sandboxed
-        // frame negeert de browser hem stilzwijgend. Bevestigen is dus een tweede
-        // klik in de app, geen native venster.
+        // W4 replaced the bare window.confirm() with the shared confirmation dialog
+        // (components/shared/useConfirm). A browser dialog cannot carry an explanation of
+        // WHAT is and is not restored, and in a sandboxed frame the browser ignores it
+        // silently. Confirming is thus a second click in the app, not a native window.
         expect(window.confirm).not.toHaveBeenCalled();
-        // getBy…, niet findBy…: deze suite draait op nepklokken, en waitFor zou
-        // dan op een timer wachten die niemand vooruitzet.
+        // getBy…, not findBy…: this suite runs on fake clocks, and waitFor would then wait
+        // on a timer that nobody advances.
         const dialog = screen.getByRole('dialog');
         fireEvent.click(within(dialog).getByRole('button', { name: 'Restore' }));
         await flush();
@@ -569,9 +566,9 @@ describe('WebpagesPage — versions', () => {
         expect(callsTo('POST', /\/api\/webpages\/A\/versions\/v1\/restore$/)).toHaveLength(1);
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-        // History is sinds W4 een TAB en geen overlay meer: je blijft er staan na
-        // het terugzetten, precies zoals bij elke andere sectie. De code komt
-        // terug in beeld via de Code-tab, niet doordat er iets sluit.
+        // History has been a TAB since W4, not an overlay: you stay there after restoring,
+        // exactly as with every other section. The code comes back into view via the Code
+        // tab, not because something closes.
         fireEvent.click(screen.getByRole('radio', { name: /Code/ }));
         await flush();
         expect(screen.getByTestId('html')).toHaveValue('<p>restored</p>');
@@ -585,17 +582,16 @@ describe('WebpagesPage — versions', () => {
 
 describe('WebpagesPage — list', () => {
     /**
-     * W5 deel C verving de kale `confirm('Delete this webpage?')` door de
-     * gedeelde verwijderdialoog. Een browservenster kan de lijst van wat er
-     * aan deze pagina hangt niet dragen, en dat is precies de vraag die de
-     * persoon moet beantwoorden voordat hij op rood drukt. Bevestigen is dus
-     * een tweede klik IN de app, tegen een lijst die de server heeft geleverd.
+     * W5 part C replaced the bare `confirm('Delete this webpage?')` with the shared
+     * delete dialog. A browser window cannot carry the list of what hangs on this page,
+     * and that is precisely the question the person must answer before pressing red.
+     * Confirming is thus a second click IN the app, against a list the server supplied.
      */
     it('deletes a page through the dialog — never through window.confirm', async () => {
-        // Het pad dat IEDEREEN loopt: niets gevonden, twee soorten niet te
-        // controleren, dus de waarschuwing, de naam, en pas op de tweede druk
-        // een bevestigd verzoek. De server weigert de eerste met 409 — dat is
-        // hier de gesimuleerde stand, en het is de normale stand.
+        // The path that EVERYONE walks: nothing found, two kinds not checkable, so the
+        // warning, the name, and only on the second press a confirmed request. The server
+        // refuses the first with 409. That is the simulated state here, and it is the
+        // normal state.
         let seen = 0;
         override('DELETE', /\/api\/webpages\/B/, (opts, url) => {
             seen += 1;
@@ -605,8 +601,8 @@ describe('WebpagesPage — list', () => {
                 usage: [], unchecked: ['chat', 'agent'], complete: false,
             }, 409);
         });
-        // `container` sluit het portaal van de dialoog uit, zodat "de kaart
-        // staat er nog" niet per ongeluk de naam in de dialoogkop leest.
+        // `container` excludes the dialog's portal, so that "the card is still there" does
+        // not accidentally read the name in the dialog heading.
         const { container } = await renderPage();
         fireEvent.click(within(cardOf('Page B')).getByTitle('Delete'));
         await flush();
@@ -615,8 +611,7 @@ describe('WebpagesPage — list', () => {
         // De dialoog vraagt het eerst aan de server, en zegt pas daarna iets.
         expect(callsTo('GET', /\/api\/webpages\/B\/usage$/)).toHaveLength(1);
         const dialog = screen.getByRole('dialog');
-        // Geen "niets gebruikt dit": dat is de zin die deze stand niet mag
-        // opleveren.
+        // No "nothing uses this". That is the sentence this state may not produce.
         expect(within(dialog).queryByTestId('danger-unused')).toBeNull();
         expect(within(dialog).getByTestId('danger-unchecked')).toBeInTheDocument();
         expect(within(dialog).getByTestId('webpage-delete-unchecked')).toBeInTheDocument();
@@ -651,21 +646,21 @@ describe('WebpagesPage — list', () => {
             code: 'in_use', error: 'This webpage is still in use', unchecked: ['agent'],
             usage: [{ kind: 'solution', id: 'proj-1', title: 'Offertes', role: 'contains', ownerId: 'u1' }],
         }, 409));
-        // `container` sluit het portaal van de dialoog uit, zodat "de kaart
-        // staat er nog" niet per ongeluk de naam in de dialoogkop leest.
+        // `container` excludes the dialog's portal, so that "the card is still there" does
+        // not accidentally read the name in the dialog heading.
         const { container } = await renderPage();
         fireEvent.click(within(cardOf('Page B')).getByTitle('Delete'));
         await flush();
 
         const dialog = screen.getByRole('dialog');
-        // Twee soorten zijn niet te controleren, dus de naam is óók zonder
-        // gevonden rijen verplicht: dit is de standaardstand van dit product.
+        // Two kinds cannot be checked, so the name is also mandatory without found rows.
+        // This is the default state of this product.
         fireEvent.change(within(dialog).getByLabelText(/type the name/i), { target: { value: 'Page B' } });
         fireEvent.click(within(dialog).getByRole('button', { name: 'Delete for good' }));
         await flush();
 
-        // De lijst van de server staat er, de pagina staat er nog, en de naam
-        // wordt opnieuw gevraagd — tegen die lijst, niet tegen een lege.
+        // The list from the server stands there, the page still stands there, and the name
+        // is asked for again, against that list and not against an empty one.
         expect(within(dialog).getByText('Offertes')).toBeInTheDocument();
         expect(within(container).getByText('Page B')).toBeInTheDocument();
         expect(within(dialog).getByRole('button', { name: 'Delete for good' })).toBeDisabled();

@@ -1,25 +1,18 @@
 'use strict';
 
 /**
- * P4 deel D — de EIGENDOMSPOORT op "Nieuwe vanuit deze knop", als BEDRADING.
+ * P4 part D — the OWNERSHIP GATE on "New from this button", as WIRING.
  *
- * De pure regel staat in appStudio/appRefLookup.appRefOwnerVerdict en heeft
- * daar zijn eigen tests. Wat die niet dekken is de draad ertussen: de route
- * die de app-rij LAADT en de uitspraak toepast — inclusief de vraag welke
- * eigenaar er uiteindelijk in de kolom `automations.user_id` belandt.
+ * The pure rule lives in appStudio/appRefLookup.appRefOwnerVerdict and has its own tests
+ * there. What those do not cover is the thread between them: the route that LOADS the app row and applies the verdict — including the question of which owner ends up in the column `automations.user_id`.
  *
- * Waarom dat de moeite is: een automatisering gemaakt vanuit een app-knop wordt door
- * die knop ALS DE APP-EIGENAAR gedraaid (automationBridge weigert bij ongelijke
- * eigenaars). Zet de route hem stilzwijgend onder de klikker, dan is de knop
- * stuk vanaf de eerste klik; zet ze hem onder de app-eigenaar terwijl iemand
- * anders klikt, dan draait er straks andermans automatisering met de rechten van de
- * eigenaar. Vandaar: alleen doorgaan als die twee dezelfde persoon zijn, en
- * "ik kon het niet nagaan" is een weigering, geen gok.
+ * Why that matters: an automation created from an app button is run BY THAT BUTTON AS THE APP OWNER (automationBridge refuses when the owners differ). If the route silently puts it under the clicker, the button is
+ * broken from the first click; if it puts it under the app owner while someone else clicks, a stranger's automation will run later with the owner's rights. Hence: only proceed if those two are the same person, and "I could not check it" is a refusal, not a guess.
  *
- * Alleen de database eronder is een dubbelganger; `validateDefinition`,
- * `appTriggerRef` en `appRefOwnerVerdict` zijn de echte.
+ * Only the database underneath is a double; `validateDefinition`,
+ * `appTriggerRef` and `appRefOwnerVerdict` are the real ones.
  *
- * Draaien: cd server && node --test --test-reporter=tap routes/automation/crud.appRefOwner.test.js
+ * Run: cd server && node --test --test-reporter=tap routes/automation/crud.appRefOwner.test.js
  */
 
 const { test } = require('node:test');
@@ -98,7 +91,7 @@ const OTHER = 'user-other';
 const APP_ID = '5f2a1c34-8b7d-4e19-9f00-2ab3c4d5e6f7';
 const REF = { appId: APP_ID, screenId: 'scr_dash01', nodeId: 'cmp_btn123' };
 
-/** Wat "Nieuwe vanuit deze knop" POST — een lege app_trigger met back-pointer. */
+/** What "New from this button" POSTs — an empty app_trigger with a back pointer. */
 const DEF = (appRef) => ({
     trigger: { id: 'trg', type: 'trigger', kind: 'app_trigger', params: [], ...(appRef ? { appRef } : {}) },
     steps: [],
@@ -132,10 +125,8 @@ test('de app-eigenaar maakt hem, en de rij landt onder de app-eigenaar', async (
 });
 
 test('een ANDER dan de app-eigenaar krijgt een weigering, en er wordt niets gemaakt', async () => {
-    // Dit is het geval dat P4 moet dichtzetten: de knop maakte de automatisering onder
-    // `req.session.user.id`. Zodra sessie en app-eigenaar uit elkaar lopen — een
-    // geïnstalleerde of overgedragen Oplossing — draait die automatisering straks met
-    // andermans rechten, of hij weigert bij de eerste klik.
+    // This is the case that P4 has to close: the button created the automation under
+    // `req.session.user.id`. As soon as session and app owner diverge — an installed or transferred Solution — that automation will run later with someone else's rights, or it refuses at the first click.
     reset();
     const res = await post(OTHER, DEF(REF));
 
@@ -146,18 +137,13 @@ test('een ANDER dan de app-eigenaar krijgt een weigering, en er wordt niets gema
 });
 
 test('een COLLEGA MET BEWERKRECHT is ook een ander — bewerkrecht is geen eigendom', async () => {
-    // Het geval waarvan iedereen aanneemt dat het werkt, en dat het juist niet
-    // mag. Iemand die de app mag BEWERKEN (gedeelde groep, org-toegang) is niet
-    // de persoon met wiens rechten de knop straks draait: automationBridge
-    // weigert op `automation.userId !== app.userId`, dus onder de collega
-    // gemaakt is de knop stuk vanaf de eerste klik, en onder de eigenaar
-    // gemaakt heeft de collega een automatisering geschreven die met andermans
-    // rechten draait. De poort kijkt daarom naar `app.userId` en naar niets
-    // anders — geen canWrite, geen gedeelde groep.
+    // The case everyone assumes works, and which is precisely what must NOT happen. Someone who may EDIT the app (shared group, org access) is
+    // not the person with whose rights the button will later run: automationBridge refuses on `automation.userId !== app.userId`, so created under the colleague
+    // the button is broken from the first click, and created under the owner the colleague has written an automation that runs with someone else's rights. The gate therefore looks at `app.userId` and at nothing else — no canWrite, no shared group.
     reset();
     APPS[APP_ID] = {
         id: APP_ID, userId: OWNER, name: 'Expense claims',
-        // Alles wat "deze collega mag hier bij" zou kunnen betekenen:
+        // Everything that "this colleague may access it here" could mean:
         sharedGroups: ['grp_team'], organizationId: 'org1',
     };
     const res = await post(OTHER, DEF(REF));
@@ -178,8 +164,8 @@ test('een app die niet bestaat is een weigering, geen automatisering zonder herk
 });
 
 test('een ONLEESBARE eigenaar weigert — de store die eruit ligt is geen vrijbrief', async () => {
-    // Faal nooit open op eigendom. Valt studioAppStore om, dan is het antwoord
-    // "ik kon het niet nagaan" en dat is een weigering, geen gok.
+    // Never fail open on ownership. If studioAppStore falls over, the answer is
+    // "I could not check it", and that is a refusal, not a guess.
     reset();
     appLookupThrows = true;
     const res = await post(OWNER, DEF(REF));
@@ -200,8 +186,7 @@ test('een app-rij zonder eigenaar weigert, en wijst hem niet aan de klikker toe'
 });
 
 test('een automatisering ZONDER back-pointer verandert niet: hij hoort bij wie hem maakt', async () => {
-    // De poort mag geen tol heffen op elke andere manier om een automatisering te
-    // maken. Geen appRef → geen app-lees, en de eigenaar is de sessie.
+    // The gate may not levy a toll on any other way of creating an automation. No appRef → no app read, and the owner is the session.
     reset();
     const res = await post(OTHER, DEF(null));
 
@@ -211,9 +196,9 @@ test('een automatisering ZONDER back-pointer verandert niet: hij hoort bij wie h
 });
 
 test('een HALVE back-pointer komt er niet doorheen via de achterdeur', async () => {
-    // `appTriggerRef` geeft null terug voor een half geschreven ref, dus de
-    // eigendomspoort slaat hem over — maar de validator weigert hem alsnog.
-    // Netto: geen automatisering, en zeker geen automatisering met een half adres.
+    // `appTriggerRef` returns null for a half-written ref, so the
+    // ownership gate skips it — but the validator refuses it all the same.
+    // Net result: no automation, and certainly no automation with a half address.
     reset();
     const res = await post(OTHER, DEF({ appId: APP_ID, screenId: 'scr_dash01' }));
 

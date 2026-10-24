@@ -3,17 +3,16 @@ import { describe, it, expect } from 'vitest';
 import { dispatchSSEEvent } from '../dispatch';
 
 /**
- * De `phase`-events op de chatkant, nu ze twee dingen moeten doen.
+ * The `phase` events on the chat side, now that they have to do two things.
  *
- * De LIVE REGEL (`currentPhase`) is met opzet vluchtig: elke fase overschrijft
- * de vorige, en de eerste letter van het antwoord wist hem. Het SPOOR
- * (`phaseTrail`, A4 deel C) is het tegenovergestelde en moet blijven staan.
+ * The LIVE LINE (`currentPhase`) is deliberately volatile. Each phase overwrites the
+ * previous one, and the first letter of the answer wipes it. The TRAIL (`phaseTrail`,
+ * A4 part C) is the opposite and must stay.
  *
- * Wat hier getest wordt is de plek waar die twee uit elkaar lopen: de live
- * regel laat een `end` vallen die niet bij de huidige fase hoort — juist, want
- * `guardrails` sluit ná `privacy_scan` en de regel is dan allang iets anders.
- * Het spoor mag dat einde NIET laten vallen; dan zou de duur van een echte
- * stap verdwijnen.
+ * What is tested here is the place where those two come apart. The live line drops
+ * an `end` that does not belong to the current phase, correctly, because `guardrails`
+ * closes after `privacy_scan` and the line is by then long since something else. The
+ * trail may NOT drop that end. Otherwise the duration of a real step would disappear.
  */
 
 const ID = 'assistant-1';

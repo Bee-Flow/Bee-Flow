@@ -31,28 +31,23 @@ async function askerContext(userId) {
         const ids = [];
         if (user?.organizationId) ids.push(user.organizationId);
         /**
-         * ── ÉÉN ORG-RESOLUTIE, TWEE KANTEN VAN DEZELFDE VRAAG ─────────
-         * Hier stond `user.organizationIds` — een veld dat nergens in
-         * stores/ bestaat (`getUser` is `SELECT *` op users; de kolommen
-         * zijn organizationId en groups), dus die tak leverde altijd
-         * niets op. Het LEESPAD dat de gebruiker de notitie of de
-         * kennisbank überhaupt laat openen is `auth.resolveUserOrgIds`,
-         * en dat voegt juist wél elke org toe die uit de GROEPEN van de
-         * gebruiker volgt.
+         * ── ONE ORG RESOLUTION, TWO SIDES OF THE SAME QUESTION ─────────
+         * Here stood `user.organizationIds`, a field that does not exist anywhere in
+         * stores/ (`getUser` is `SELECT *` on users; the columns are organizationId and
+         * groups), so that branch always yielded nothing. The READ path that lets the user
+         * open the note or the knowledge base at all is `auth.resolveUserOrgIds`, and that
+         * DOES add every org that follows from the GROUPS of the user.
          *
-         * Zolang de twee uiteenliepen weigerde deze kant legitieme
-         * schrijvers: iemand met `users.organizationId = ''` die org X
-         * alleen via een groep bereikt kon een gepubliceerde vergadering
-         * van org X gewoon openen, maar kreeg op "file deze regel" een
-         * `transcription_not_visible` — een 400 op een vergadering die op
-         * dat moment op zijn scherm stond. Versmallend, dus geen lek, maar
-         * wel een kapotte functie voor een echte populatie.
+         * As long as the two diverged, this side refused legitimate writers: someone with
+         * `users.organizationId = ''` who reached org X only via a group could open a published
+         * meeting of org X, but got a `transcription_not_visible` on "file this line", a 400 on
+         * a meeting that was on his screen at that moment. Narrowing, so no leak, but a broken
+         * function for a real population.
          *
-         * Bewust GEEN kopie van `resolveUserOrgIds`: die geeft `null` voor
-         * een super-admin ("geen filter"), en `null` leest
-         * `canUserAccessKB` als volledige toegang. Hier blijft het altijd
-         * een Set — een super-admin krijgt op dit pad dus gewoon zijn
-         * eigen orgs, en dat is de kant die versmalt.
+         * Deliberately NOT a copy of `resolveUserOrgIds`: that gives `null` for a super-admin
+         * ("no filter"), and `null` reads `canUserAccessKB` as full access. Here it stays
+         * always a Set, so a super-admin on this path just gets his own orgs, and that is the
+         * side that narrows.
          */
         let groupIds = userGroups;
         if (!groupIds.length) {
@@ -62,22 +57,19 @@ async function askerContext(userId) {
             }
         }
         /**
-         * ── DE GROEPS-UITBREIDING HEEFT ZIJN EIGEN VANGNET ────────────
-         * Deze lookup is ADDITIEF: hij voegt orgs toe die de gebruiker via
-         * een groep bereikt. Faalt hij, dan is de juiste uitkomst "de orgs
-         * die ik wél zeker weet", niet "geen enkele org".
+         * ── THE GROUP EXPANSION HAS ITS OWN SAFETY NET ────────────────
+         * This lookup is ADDITIVE: it adds orgs that the user reaches via a group. If it
+         * fails, the correct outcome is "the orgs I know for certain", not "no org at all".
          *
-         * Zonder deze aparte catch viel de hele resolutie terug op een lege
-         * Set zodra `getAllGroups` omviel — inclusief de `organizationId`
-         * die al gewoon uit de gebruiker was gelezen. Dat kostte een
-         * ingelogde org-genoot zijn eigen organisatiekennisbanken door een
-         * databasehapering in een lookup die daar niets mee te maken heeft,
-         * en het is precies hoe deze wijziging bij binnenkomst twee tests in
-         * de zichtbaarheidslaag rood zette: een stub zonder `getAllGroups`.
+         * Without this separate catch the whole resolution fell back to an empty Set as soon as
+         * `getAllGroups` failed, including the `organizationId` that had already been read from the
+         * user just fine. That cost a logged-in org member his own organisation's knowledge bases
+         * because of a database hiccup in a lookup that had nothing to do with it, and it is exactly
+         * how this change, on arrival, turned two tests in the visibility layer red: a stub without
+         * `getAllGroups`.
          *
-         * Versmallen blijft de regel — de buitenste catch hieronder doet dat
-         * nog steeds voor een mislukte GEBRUIKERSlezing, waar we werkelijk
-         * niets weten. Het verschil is dat een deelfout nu een deel kost.
+         * Narrowing remains the rule: the outer catch below still does that for a failed USER read,
+         * where we really know nothing. The difference is that a partial failure now costs a part.
          */
         if (Array.isArray(groupIds) && groupIds.length) {
             try {

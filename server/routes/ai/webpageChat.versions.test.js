@@ -1,22 +1,15 @@
 /**
- * De AI-beurt en de versiegeschiedenis (W4).
+ * The AI turn and the version history (W4).
  *
- * ── WAAROM DIT EEN BRONTEKST-TEST IS ────────────────────────────────────────
+ * ── WHY THIS IS A SOURCE-TEXT TEST ──────────────────────────────────────
  *
- * De schrijfweg zit diep in de SSE-stream van POST /ai/chat/webpage/stream: een
- * adapter, een gereedschapslus, een validatieronde. Die hele machine namaken om
- * één createVersion-aanroep te zien is een test die vooral zichzelf bewijst.
- * Wat hier op het spel staat is een BESLISSING, en die is in de brontekst
- * zichtbaar: dezelfde vorm die webpageShareReconciler.test.js gebruikt om te
- * tonen dat de datatable-tap de gedeelde reconciler écht aanroept.
+ * The write path sits deep inside the SSE stream of POST /ai/chat/webpage/stream: an
+ * adapter, a tool loop, a validation round. Recreating that whole machine to see one createVersion call is a test that mostly proves itself.
+ * What is at stake here is a DECISION, and that decision is visible in the source text: the same form that webpageShareReconciler.test.js uses to show that the datatable tap really does call the shared reconciler.
  *
- * WAT DIT KAN BEWIJZEN: dat de AI-arm per beurt een momentopname schrijft, met
- * `source: 'ai'`, met een samenvatting die uit de GEREEDSCHAPPEN komt, en met
- * een regelverschil dat tegen de stand van vóór de beurt is gemeten.
+ * WHAT THIS CAN PROVE: that the AI arm writes a snapshot per turn, with `source: 'ai'`, with a summary that comes from the TOOLS, and with a line difference that is measured against the state from before the turn.
  *
- * WAT DIT NIET KAN BEWIJZEN: dat die aanroep bij een echte beurt ook werkelijk
- * gebeurt. Dat hangt aan de gereedschapslus erboven; deze test kijkt naar de
- * bedrading, niet naar het gedrag.
+ * WHAT THIS CANNOT PROVE: that this call actually happens during a real turn. That hangs on the tool loop above; this test looks at the wiring, not at the behaviour.
  *
  * Run: node --test --test-force-exit routes/ai/webpageChat.versions.test.js
  */
@@ -32,7 +25,7 @@ const SRC = fs.readFileSync(require.resolve('./webpageChat/finalize'), 'utf8');
 const LOOP_SRC = fs.readFileSync(require.resolve('./webpageChat/toolLoop'), 'utf8');
 const TOOLS_SRC = fs.readFileSync(require.resolve('./webpageChat/tools'), 'utf8');
 
-/** Het blok dat de bewerkingen van deze beurt wegschrijft. */
+/** The block that writes the operations of this turn. */
 function persistBlock() {
     const start = SRC.indexOf('if (dirtySlots.size > 0) {');
     assert.ok(start !== -1, 'sanity: het persistentieblok van de beurt is niet meer te vinden');
@@ -42,17 +35,16 @@ function persistBlock() {
 }
 
 test("een AI-beurt schrijft zijn momentopname met source 'ai'", () => {
-    // Vóór W4 stond hier geen source, dus landden AI-beurten als 'manual' —
-    // de waarde 'ai' was al gereserveerd en werd nergens geschreven.
+    // Before W4 there was no source here, so AI turns landed as 'manual' —
+    // the value 'ai' was already reserved and was written nowhere.
     const block = persistBlock();
     assert.match(block, /createVersion\([\s\S]*?'ai'/,
         "zonder deze waarde is een AI-beurt in de lijst niet van een handmatige save te onderscheiden");
 });
 
 test('BIJT: de 5-minuten-debounce staat NIET meer in het AI-pad', () => {
-    // Toetsaanslagen mogen samengevat worden; een beurt is een gebeurtenis.
-    // Onder de debounce deelden twee beurten binnen vijf minuten één
-    // terugzetpunt, en dan is de tweede beurt niet meer los terug te draaien.
+    // Keystrokes may be summarised; a turn is an event.
+    // Under the debounce, two turns within five minutes shared one restore point, and then the second turn could no longer be restored on its own.
     const block = persistBlock();
     assert.ok(!/shouldAutoVersion/.test(block),
         'een tweede beurt binnen het venster hoort zijn eigen terugzetpunt te krijgen');
@@ -70,8 +62,8 @@ test('het regelverschil wordt gemeten tegen de stand van VÓÓR de beurt', () =>
     const block = persistBlock();
     assert.match(block, /slotsLineDelta\(preTurnFiles, liveFiles, dirtySlots\)/,
         'liveFiles wordt door de gereedschappen ter plekke overschreven — zonder de kopie is er niets meer te meten');
-    // Bewust brontekst, zoals de bestandskop hierboven uitlegt: de bedrading
-    // pinnen is hier het haalbare, niet het gedrag van een echte SSE-beurt.
+    // Deliberately source text, as the file header above explains: pinning the wiring
+    // is what is achievable here, not the behaviour of a real SSE turn.
     assert.match(LOOP_SRC, /const preTurnFiles = \{ \.\.\.liveFiles \};/,
         'de kopie moet gemaakt worden vóór de eerste gereedschapsronde');
     // De gereedschappen schrijven liveFiles in tools.js; de lus maakt de kopie

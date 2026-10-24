@@ -9,14 +9,12 @@ import {
 } from './toolGrants';
 
 /**
- * Het GRANTS-CONTRACT, aan de schrijvende kant.
+ * The GRANTS CONTRACT, on the writing side.
  *
- * `server/core/agentRuntime/toolPolicy.test.js` pint de LEZENDE kant al: een
- * ontbrekende entry geeft de hele app, `{actions: []}` geeft niets. Wat er tot
- * nu toe nergens stond is de kant die deze stage bouwt — dat de KIEZER een
- * uitgevinkte app als `{actions: []}` moet wegschrijven en de sleutel nooit mag
- * weglaten. Die twee helften horen bij elkaar; los van elkaar is de ene een
- * regel die niemand toepast en de andere een gewoonte die niemand afdwingt.
+ * `server/core/agentRuntime/toolPolicy.test.js` already pins the READING side: a missing entry gives the whole
+ * app, `{actions: []}` gives nothing. What until now stood nowhere is the side that this stage builds: the PICKER
+ * must write an unticked app as `{actions: []}` and must never omit the key. Those two halves belong together.
+ * On their own, one is a rule that nobody applies and the other a habit that nobody enforces.
  */
 
 const APPS = [
@@ -63,15 +61,14 @@ describe('het grants-contract: uitvinken schrijft, weglaten geeft terug', () => 
 
         expect(Object.prototype.hasOwnProperty.call(after, 'gmail')).toBe(true);
         expect(after.gmail.actions).toEqual([]);
-        // De regel, in de vorm waarin hij fout gaat: dit is NIET hetzelfde als
-        // een lege map. Een lege map betekent "niemand heeft iets gezegd", en
-        // toolPolicy.js leest dat als de hele app.
+        // The rule in the form in which it goes wrong: this is NOT the same as an empty map. An empty map means
+        // "nobody said anything", and toolPolicy.js reads that as the whole app.
         expect(after).not.toEqual({});
         expect(grantedActionsOf(after, 'gmail')).toEqual([]);
     });
 
     it('geeft de hele app terug zodra de sleutel ontbreekt — de val die dit contract afdekt', () => {
-        // Precies wat een naïeve kiezer schrijft: alleen de aangevinkte apps.
+        // Exactly what a naive picker writes: only the ticked apps.
         const naive = {};
         expect(grantedActionsOf(naive, 'gmail')).toBe('*');
         // ...tegenover wat hij moet schrijven.
@@ -89,8 +86,8 @@ describe('het grants-contract: uitvinken schrijft, weglaten geeft terug', () => 
 
         expect(out.gmail.actions).toEqual(['gmail_search']);
         expect(out['google-drive'].actions).toEqual([]);
-        // Alles aan wordt `'*'`, niet de uitgeschreven lijst: dan erft de app
-        // een actie die er volgende release bij komt.
+        // Everything on becomes `'*'`, not the written-out list. Then the app inherits an action that comes in with
+        // the next release.
         expect(out['agent-search'].actions).toBe('*');
     });
 
@@ -112,7 +109,7 @@ describe('het grants-contract: uitvinken schrijft, weglaten geeft terug', () => 
     });
 
     it('klapt een ONTBREKENDE entry uit naar alle acties — anders neemt de eerste opslag alles af', () => {
-        // Een agent van vóór de kiezer: geen `tools` map, dus alles mag.
+        // An agent from before the picker: no `tools` map, so everything may.
         const sel = initialSelection(null, APPS);
         expect([...sel.get('gmail')]).toEqual(['gmail_search', 'gmail_compose', 'gmail_create_draft']);
 
@@ -161,18 +158,16 @@ describe('losse schrijvers', () => {
 
     it('setAppConfirm neemt geen acties af — een app zonder entry houdt zijn hele toolbelt', () => {
         const out = setAppConfirm(null, 'gmail', CONFIRM.ASK);
-        // De acties gaan EXPLICIET mee. Zonder dat was `{confirm}` een entry
-        // zonder actielijst, en dat is bij een app die de kiezer nooit kon
-        // tonen het verschil tussen niets en alles — zie de test hieronder.
+        // The actions go along EXPLICITLY. Without that, `{confirm}` would be an entry without an action list, and for
+        // an app that the picker could never show that is the difference between nothing and everything. See the test below.
         expect(out.gmail).toEqual({ actions: '*', confirm: 'ask' });
         expect(grantedActionsOf(out, 'gmail')).toBe('*');
     });
 
     it('setAppConfirm/setAppActAs verbreden een `requiresGrant`-app niet van NIETS naar ALLES', () => {
-        // De bevinding: twee VERSMALLENDE gebaren op de kaart ("Confirm first",
-        // "Als: de vrager") zetten een entry zonder actielijst neer, en die las
-        // de runtime als "de eigenaar noemde deze app" — een volledige headless
-        // browser op een agent die tot gmail_search was gecureerd.
+        // The finding: two NARROWING gestures on the card ("Confirm first", "As: the person asking") laid down an entry
+        // without an action list, and the runtime read that as "the owner named this app". That gave a full headless
+        // browser on an agent that had been curated to gmail_search only.
         const curated = { gmail: { actions: ['gmail_search'] } };
         const opts = { requiresGrant: true };
 
@@ -183,8 +178,8 @@ describe('losse schrijvers', () => {
         const alsAls = setAppActAs(curated, 'browser-fetch', ACT_AS.VIEWER, opts);
         expect(alsAls['browser-fetch']).toEqual({ actions: [], actAs: 'viewer' });
 
-        // En op een agent die NIEMAND cureerde blijft "alles" ook echt alles:
-        // de entry legt vast wat de rij op dat moment toonde.
+        // And on an agent that NOBODY curated, "everything" stays really everything: the entry records what the row showed
+        // at that moment.
         const vers = setAppConfirm(null, 'browser-fetch', CONFIRM.ASK, opts);
         expect(vers['browser-fetch']).toEqual({ actions: '*', confirm: 'ask' });
     });
@@ -204,13 +199,11 @@ describe('grantedActionsOf spiegelt de lezer op de server', () => {
         expect(grantedActionsOf({ gmail: { actions: '*' } }, 'gmail')).toBe('*');
     });
 
-    // ── Apps die de kiezer nooit kon tonen (A2-1) ───────────────────
-    // `browse_web` en de andere INLINE geregistreerde tools stonden in geen
-    // enkele lijst die de kiezer leest. Bij zulke apps is zwijgen geen keuze:
-    // niemand kreeg hem ooit te zien, dus "de eigenaar liet hem staan" kan
-    // niet waar zijn. De server leest dat zo (toolPolicy.isToolAllowed), en
-    // deze kant moet dat spiegelen — anders opent de kiezer met vinkjes aan
-    // die de runtime weigert.
+    // ── Apps that the picker could never show (A2-1) ────────────────
+    // `browse_web` and the other INLINE registered tools were in no list that the picker reads. For such apps,
+    // silence is not a choice: nobody ever got to see them, so "the owner left it alone" cannot be true. The server
+    // reads it that way (toolPolicy.isToolAllowed), and this side must mirror that. Otherwise the picker opens with
+    // ticks on that the runtime refuses.
     it('een app die expliciet gegund moet worden is bij zwijgen NIETS, niet alles', () => {
         const curated = { gmail: { actions: ['gmail_search'] } };
         expect(grantedActionsOf(curated, 'browser-fetch', { requiresGrant: true })).toEqual([]);
@@ -228,9 +221,8 @@ describe('grantedActionsOf spiegelt de lezer op de server', () => {
     it('een genoemde entry beslist gewoon, ook voor zo een app', () => {
         const opts = { requiresGrant: true };
         expect(grantedActionsOf({ 'browser-fetch': { actions: '*' } }, 'browser-fetch', opts)).toBe('*');
-        // Een entry ZONDER actielijst is geen uitgeschreven keuze. Dit stond
-        // hier als `'*'` en dat was de spiegel van precies de fail-open die de
-        // kaart zelf produceerde (`setAppConfirm` schreef zo'n entry).
+        // An entry WITHOUT an action list is not a written-out choice. This used to be here as `'*'`, and that was the
+        // mirror of precisely the fail-open that the card itself produced (`setAppConfirm` wrote such an entry).
         expect(grantedActionsOf({ 'browser-fetch': {} }, 'browser-fetch', opts)).toEqual([]);
         expect(grantedActionsOf({ 'browser-fetch': { confirm: 'ask' } }, 'browser-fetch', opts)).toEqual([]);
         // ...en bij een gewone app verandert er niets.
@@ -249,8 +241,7 @@ describe('grantedActionsOf spiegelt de lezer op de server', () => {
         expect([...curated.get('gmail')]).toEqual(['gmail_search']);
         expect([...curated.get('browser-fetch')]).toEqual([]);
 
-        // En op een agent zonder curatie staat hij gewoon aan — hij mag hem
-        // vandaag ook echt.
+        // And on an agent without curation it simply stays on. It may really do that today too.
         const legacy = initialSelection(null, apps);
         expect([...legacy.get('browser-fetch')]).toEqual(['browse_web']);
     });
@@ -258,8 +249,8 @@ describe('grantedActionsOf spiegelt de lezer op de server', () => {
     it('onleesbaar is GEEN verzoek om alles', () => {
         expect(grantedActionsOf({ gmail: { actions: 'gmail_search' } }, 'gmail')).toEqual([]);
         expect(grantedActionsOf({ gmail: { actions: 42 } }, 'gmail')).toEqual([]);
-        // En een entry die zelf geen object is: de server maakt daar sinds deze
-        // stage `{actions: []}` van, dus de kaart mag er geen "alles" van maken.
+        // And an entry that is not an object itself: since this stage the server makes `{actions: []}` of that, so the
+        // card may not make "everything" of it.
         expect(grantedActionsOf({ gmail: 'nope' }, 'gmail')).toEqual([]);
     });
 });
@@ -344,21 +335,19 @@ describe('toolRows', () => {
         expect(rows.find(r => r.appId === 'gmail').canActAsOwner).toBe(false);   // verstuurt
         expect(rows.find(r => r.appId === 'google-drive').canActAsOwner).toBe(true);
 
-        // Leen-grants onleesbaar ⇒ geen optie. "Ik kon het niet nagaan" is geen ja.
+        // Lend grants unreadable ⇒ no option. "I could not check" is not a yes.
         const blind = toolRows({ ...base, lentApps: null, lendingEnabled: true });
         expect(blind.find(r => r.appId === 'google-drive').canActAsOwner).toBe(false);
 
-        // Lenen uit ⇒ geen optie, ook met een grant in de hand.
+        // Lending off ⇒ no option, even with a grant in hand.
         const off = toolRows({ ...base, lentApps: lent, lendingEnabled: false });
         expect(off.find(r => r.appId === 'google-drive').canActAsOwner).toBe(false);
     });
 
     it('leest de leenlijst PER APP, niet per provider', () => {
-        // Gmail en Drive delen dezelfde provider ('google'), en dat is precies
-        // waarom de rij niet op een provider mag matchen: de server antwoordt
-        // ja/nee per app (`GET /agents/:id/tool-lending`), zodat de kaart geen
-        // eigen vertaling van providers naar apps maakt die van de runtime
-        // (toolPolicy.lentAppsFor) kan afwijken.
+        // Gmail and Drive share the same provider ('google'), and that is precisely why the row may not match on a
+        // provider. The server answers yes/no per app (`GET /agents/:id/tool-lending`), so that the card makes no
+        // translation of its own from providers to apps, which could deviate from the runtime's (toolPolicy.lentAppsFor).
         const rows = toolRows({ ...base, lentApps: new Set(['gmail']), lendingEnabled: true });
         expect(rows.find(r => r.appId === 'google-drive').canActAsOwner).toBe(false);
         expect(rows.find(r => r.appId === 'google-drive').ownerLendsUncurated).toBe(false);
@@ -375,14 +364,13 @@ describe('toolRows', () => {
         expect(drive.ownerRefused).toBe(true);
     });
 
-    // ── A2-2: de capsule en de runtime over DEZELFDE toestand ───────
-    // `A2_2_CURATED` staat er letterlijk zo ook in
-    // server/core/agentRuntime/toolPolicy.test.js. Daar is het de invoer van
-    // `mayLendOwnerConnection`, hier van de rij die de capsule tekent — één
-    // toestand, twee kanten, en ze moeten hetzelfde zeggen.
+    // ── A2-2: the capsule and the runtime over the SAME state ───────
+    // `A2_2_CURATED` appears literally in the same form in server/core/agentRuntime/toolPolicy.test.js. There it is
+    // the input of `mayLendOwnerConnection`, and here it is the input of the row that the capsule draws. One state,
+    // two sides, and they must say the same thing.
     const A2_2_CURATED = Object.freeze({
-        // De eigenaar heeft alleen Gmail gecureerd. Over Drive heeft hij nooit
-        // iets gezegd, terwijl zijn Google-verbinding wél uitgeleend is.
+        // The owner has curated only Gmail. He never said anything about Drive, while his Google connection has in fact
+        // been lent out.
         gmail: { actions: ['gmail_search'], actAs: 'viewer' },
     });
 
@@ -396,22 +384,20 @@ describe('toolRows', () => {
         expect(drive.actAs).toBe(ACT_AS.VIEWER);
         expect(drive.ownerLendingUnset).toBe(true);
         expect(drive.ownerLendsUncurated).toBe(false);
-        // En de melding hoort bij "niets opgeslagen", niet bij "kan het niet":
-        // Drive verstuurt niets, dus de eigenaar kan het alsnog kiezen.
+        // And the notice belongs to "nothing stored", not to "cannot do it": Drive does not send anything, so the owner
+        // can still choose it.
         expect(drive.canActAsOwner).toBe(true);
 
-        // Gmail heeft een OPGESLAGEN keuze — daar is niets veranderd en dus
-        // niets te melden.
+        // Gmail has a STORED choice. Nothing has changed there, so there is nothing to report.
         const gmail = rows.find(r => r.appId === 'gmail');
         expect(gmail.ownerLendingUnset).toBe(false);
         expect(gmail.ownerLendsUncurated).toBe(false);
     });
 
     it('meldt bij een agent die NIEMAND cureerde dat de verbinding wél geleend wordt', () => {
-        // De opt-in-grens: zolang `hasCuratedGrants` false is kijkt de runtime
-        // niet naar de map en leent hij als vanouds — ook voor een app die
-        // verstuurt. De capsule zegt "as the person asking", dus de rij moet
-        // het verschil hardop maken in plaats van het te laten staan.
+        // The opt-in boundary: as long as `hasCuratedGrants` is false, the runtime does not look at the map and lends as
+        // it always did, also for an app that sends. The capsule says "as the person asking", so the row must make the
+        // difference explicit instead of letting it stand.
         const rows = toolRows({
             ...base, toolsConfig: null,
             lentApps: new Set(['gmail', 'google-drive']), lendingEnabled: true,
@@ -532,12 +518,11 @@ describe('automations als tool', () => {
 });
 
 
-// ── Twee rijen over dezelfde module ─────────────────────────────────
+// ── Two rows about the same module ─────────────────────────────────
 //
-// `outlook` bezit vier namen; `outlook-readonly` levert er drie van, op
-// dezelfde credentials. De runtime laat ELKE app die een naam levert
-// meebeslissen (toolPolicy `_decidingApps`), dus de smalste wint. De kaart
-// telde per rij alleen de eigen entry en rapporteerde dus MEER dan er draait.
+// `outlook` owns four names; `outlook-readonly` delivers three of them, on the same credentials. The runtime lets
+// EVERY app that supplies a name take part in the decision (toolPolicy `_decidingApps`), so the strictest wins.
+// The card counted per row only its own entry, and so reported MORE than actually runs.
 
 const OUTLOOK_APPS = [
     {
@@ -568,9 +553,8 @@ describe('gedeelde toolnamen: de kaart telt wat de RUNTIME serveert', () => {
     });
 
     it('de rij van de EIGENAAR wordt versmald door de entry op de andere rij', () => {
-        // Gemeten gedrag van de server: met deze map serveert de runtime alleen
-        // `outlook_compose`. De kaart toonde er vier — over-rapporteren, en dat
-        // is precies de richting die deze laag verbiedt.
+        // Measured behaviour of the server: with this map the runtime serves only `outlook_compose`. The card showed four
+        // of them. That is over-reporting, and it is precisely the direction that this layer forbids.
         const cfg = { outlook: { actions: '*' }, 'outlook-readonly': { actions: [] } };
         const { names, narrowedBy } = effectiveActionsOf(cfg, OUTLOOK_APPS[0], { apps: OUTLOOK_APPS });
         expect(names).toEqual(['outlook_compose']);
@@ -589,9 +573,8 @@ describe('gedeelde toolnamen: de kaart telt wat de RUNTIME serveert', () => {
     it('een app die de map NIET noemt versmalt niets — anders zou zwijgen een weigering zijn', () => {
         const cfg = { 'outlook-readonly': { actions: ['outlook_search'] } };
         const { names } = effectiveActionsOf(cfg, OUTLOOK_APPS[0], { apps: OUTLOOK_APPS });
-        // `outlook` heeft geen entry (⇒ alles), `outlook-readonly` wel en die
-        // laat alleen search door van de drie die hij claimt. `compose` claimt
-        // hij niet, dus die blijft.
+        // `outlook` has no entry (⇒ everything), but `outlook-readonly` does, and that one lets through only search of the
+        // three it claims. `compose` it does not claim, so that one stays.
         expect(names).toEqual(['outlook_search', 'outlook_compose']);
     });
 
@@ -611,8 +594,8 @@ describe('de eerste curatie mag geen bijvangst maken', () => {
     ];
 
     it('legt de stand van een `requiresGrant`-app vast zodra de map gecureerd raakt', () => {
-        // "Confirm first" op de Gmail-rij maakt de map gecureerd — en zonder
-        // deze regel raakt de agent daarmee stilzwijgend zijn browser kwijt.
+        // "Confirm first" on the Gmail row makes the map curated. Without this rule the agent would thereby silently lose
+        // its browser.
         const before = null;
         const after = setAppConfirm(before, 'gmail', CONFIRM.ASK);
         const kept = keepRequiresGrantApps(before, after, { apps: CATALOG, enabledIntegrations: ['gmail', 'browser-fetch'] });
@@ -631,7 +614,7 @@ describe('de eerste curatie mag geen bijvangst maken', () => {
         const curated = { gmail: { actions: ['gmail_search'] } };
         const after = setAppConfirm(curated, 'gmail', CONFIRM.ASK);
         expect(keepRequiresGrantApps(curated, after, { apps: CATALOG })['browser-fetch']).toBeUndefined();
-        // Van niets naar niets: geen curatie, dus ook geen vastlegging.
+        // From nothing to nothing: no curation, so also no recording.
         expect(keepRequiresGrantApps(null, {}, { apps: CATALOG })).toEqual({});
     });
 

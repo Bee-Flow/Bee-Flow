@@ -155,15 +155,14 @@ describe('examples', () => {
     });
 
     /**
-     * PROVENANCE, en verder niets. Deze regel hing alleen aan het BESTAAN van
-     * `sourceConversationId`, en dat veld is cliënt-invoer: PUT /api/skills/:id
-     * neemt `examplesV2` rechtstreeks uit de body over en scant niets. Een met
-     * de hand getypt voorbeeld met een willekeurig id droeg dus de zin
-     * "personal data removed" zonder dat er ooit een guard aan te pas kwam —
-     * precies de belofte die de kiezer zelf zorgvuldig intrekt zodra de check
-     * niet gedraaid heeft. En "one of YOUR conversations" stond er voor élke
-     * lezer van een gedeelde skill; die zin overleeft de klik en wordt door
-     * collega's gelezen.
+     * PROVENANCE, and nothing more. This rule hung only on the EXISTENCE of
+     * `sourceConversationId`, and that field is client input: PUT /api/skills/:id
+     * takes `examplesV2` straight from the body and scans nothing. A hand-typed
+     * example with an arbitrary id thus carried the sentence “personal data removed”
+     * without any guard ever being involved — precisely the promise the chooser
+     * withdraws himself as soon as the check did not run. And “one of YOUR
+     * conversations” stood there for EVERY reader of a shared skill; that phrase
+     * survives the click and is read by colleagues.
      */
     it('says where an example came from — and promises nothing about a check it cannot see', () => {
         render(<ExamplesHarness initial={[{ id: 'e1', question: 'q', good: 'g', sourceConversationId: 'c1' }]} />);
@@ -247,10 +246,9 @@ describe('taking an example from a conversation', () => {
     });
 
     /**
-     * Een mislukte lezing is geen lege lijst. "No conversations of your own
-     * yet." is een uitspraak over het ACCOUNT, en die stond er na een 500 —
-     * naast de foutregel, dus het scherm deed twee tegenstrijdige beweringen
-     * tegelijk.
+     * A failed read is not an empty list. “No conversations of your own
+     * yet.” is a statement about the ACCOUNT, and it stood there after a 500 —
+     * next to the error line, so the screen made two contradictory claims at once.
      */
     it('does not report a failed conversation read as an empty account', async () => {
         skillsApi.exampleConversations.mockRejectedValue(new Error('boom'));
@@ -267,16 +265,16 @@ describe('taking an example from a conversation', () => {
         fireEvent.click(await screen.findByTestId('skill-example-conversation'));
         expect(await screen.findByText(/could not be read just now/)).toBeTruthy();
         expect(screen.queryByText(/Nothing in this conversation to use/)).toBeNull();
-        // De belofte van het VORIGE gesprek mag niet blijven staan over een
-        // lezing die nooit iets opleverde.
+        // The promise of the PREVIOUS conversation must not remain standing over a
+        // read that never produced anything.
         expect(screen.queryByText(/Personal data is removed before the example is stored/)).toBeNull();
     });
 
     /**
-     * De 503 mint `code: 'pii_unchecked'` en de cliënt gebruikte hem nergens:
-     * `setError(e.message)` zette de rauwe Engelse serverzin op een Nederlands
-     * scherm. En de berichten bleven klikbaar terwijl de waarschuwing erboven
-     * zei dat er niets gekopieerd kon worden.
+     * The 503 mints `code: 'pii_unchecked'`, and the client used it nowhere:
+     * `setError(e.message)` put the raw English server sentence on a Dutch-language
+     * screen. And the messages stayed clickable while the warning above said that
+     * nothing could be copied.
      */
     it('translates the server CODE, not its English sentence, and stops offering the click', async () => {
         const refusal = Object.assign(new Error('The personal-data check is unavailable, so this answer cannot be copied into an example right now.'), {

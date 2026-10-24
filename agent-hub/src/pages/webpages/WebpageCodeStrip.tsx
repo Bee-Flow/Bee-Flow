@@ -8,37 +8,21 @@ import type { ExtraContents } from './webpageEditorTypes';
 import type { FileKey } from './ide/ideFiles';
 
 /**
- * De strip boven de editor in de Code-tab: welke bestanden heeft deze pagina,
- * hoe groot zijn ze, en wat betekenen de markeringen in de code?
+ * The strip above the editor in the Code tab: which files does this page have, how large are they, and what do the markers in the code mean?
  *
- * ── TWEE DINGEN DIE DIT SCHERM NIET MAG BEWEREN ─────────────────────
+ * ── TWO THINGS THIS SCREEN MAY NOT CLAIM ─────────────────────────────
  *
- * 1. "DEZE PAGINA HEEFT DRIE BESTANDEN." Dat is de uitzondering, niet de
- *    regel: een react-mui-project heeft zijn app in `src/`, een vanilla-project
- *    mag bestanden naast de slots zetten. `webpageCodeFiles.js` bouwt daarom de
- *    lijst uit wat er IS — inclusief een bestand dat alleen de server kent.
+ * 1. "THIS PAGE HAS THREE FILES." That is the exception, not the rule: a react-mui project has its app in `src/`, and a vanilla project may place files beside the slots. `webpageCodeFiles.js` therefore builds the list from what IS there — including a file that only the server knows about.
  *
- * 2. "ER ZIJN GEEN KOPPELINGEN." Als de markeringen niet konden worden
- *    berekend — de aanroep faalde, of de server kon de bestanden niet lezen —
- *    dan zegt de legenda dát, in plaats van te zwijgen. Een pagina zonder
- *    markeringen mag er niet uitzien als een pagina zonder koppelingen; dat is
- *    de hele reden dat deze legenda bestaat.
+ * 2. "THERE ARE NO BINDINGS." If the markers could not be computed — the call failed, or the server could not read the files — then the legend says THAT, instead of staying silent. A page without markers may not look like a page without bindings; that is the whole reason this legend exists.
  *
- * ── ÉÉN LEZING, TWEE GEBRUIKERS ─────────────────────────────────────
+ * ── ONE READING, TWO USERS ───────────────────────────────────────────
  *
- * `useBfMarks` (useBfMarks.ts) haalt de markeringen op bij `GET /api/webpages/:id/bindings` —
- * dezelfde parser als de rest van W4 (`core/webpages/webpageBindings.js`), die
- * het vocabulaire uit `core/webpages/bfElements.js` haalt. De IDE geeft die
- * uitslag aan twee kanten door: aan deze strip (de legenda) en aan Monaco (de
- * decoraties). Eén lezing, dus de legenda kan niet iets anders beweren dan de
- * editor tekent.
+ * `useBfMarks` (useBfMarks.ts) fetches the markers from `GET /api/webpages/:id/bindings` — the same parser as the rest of W4 (`core/webpages/webpageBindings.js`), which takes the vocabulary from `core/webpages/bfElements.js`. The IDE passes that result to two sides: to this strip (the legend) and to Monaco (the decorations). One reading, so the legend cannot claim anything other than what the editor draws.
  *
- * ── DE MARKERINGEN KOMEN VAN DE OPGESLAGEN KOPIE ────────────────────
+ * ── THE MARKERS COME FROM THE SAVED COPY ────────────────────────────
  *
- * De server leest wat er in de opslag staat, de editor toont wat er in het
- * scherm staat. Zolang er niets onopgeslagen is, is dat hetzelfde; daarna
- * schuiven de regelnummers. De strip zegt dat er dan bij (`legend_stale`) en
- * de IDE haalt de markeringen opnieuw op zodra er is opgeslagen.
+ * The server reads what is in storage; the editor shows what is on screen. As long as nothing is unsaved, those are the same; after that the line numbers shift. The strip says so then (`legend_stale`), and the IDE fetches the markers again as soon as there is a save.
  */
 
 /** Een markering zoals de server hem teruggeeft: waar hij staat en waar hij aan hangt. */
@@ -64,18 +48,16 @@ export function familyLabel(t: (key: string | undefined, fallbackOrParams?: stri
         case 'agent': return t('webpages.code.family_agent', 'Agent');
         case 'incomplete': return t('webpages.code.family_incomplete', 'Not linked yet');
         case 'unknown': return t('webpages.code.family_unknown', 'Not recognised');
-        // Een familie die het vocabulaire later toevoegt: liever de kale sleutel
-        // dan niets, zodat hij opvalt in plaats van te verdwijnen.
+        // A family that adds the vocabulary later: the bare key is preferable to nothing,
+        // so that it stands out instead of disappearing.
         default: return family;
     }
 }
 
 /**
- * Waar deze markering aan hangt, in één stuk tekst.
+ * Where this marker hangs, in one piece of text.
  *
- * `dynamic` is met opzet een eigen antwoord: de auteur HEEFT een adres
- * opgeschreven, maar de pagina bouwt het terwijl ze draait. Dat als "niet
- * gekoppeld" tonen zou hem naar een fout laten zoeken die er niet is.
+ * `dynamic` is deliberately an answer of its own: the author HAS written down an address, but the page builds it while it runs. Showing that as "not linked" would send him looking for a fault that does not exist.
  */
 function targetText(t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string, mark: StripMark) {
     if (mark.targetId) return mark.targetId;
@@ -105,10 +87,9 @@ function decorationHover(t: (key: string | undefined, fallbackOrParams?: string 
         if (Array.isArray(mark.missing) && mark.missing.length) {
             return `${head} — ${t('webpages.code.needs_attribute', 'needs {attr}', { attr: mark.missing.join(', ') })}`;
         }
-        // WAT ER GEBEURT ZODRA DE PAGINA GEPUBLICEERD IS. De zin komt uit de
-        // gespiegelde registry, dus hij is precies dezelfde als wat de lezer op
-        // /w/<slug> te zien krijgt. Zonder dit las een knop die daar dood is als
-        // een gelijkwaardige koppeling.
+        // WHAT HAPPENS ONCE THE PAGE IS PUBLISHED. The sentence comes from the mirrored
+        // registry, so it is exactly the same as what the reader sees at /w/<slug>.
+        // Without this, a button that is dead there would read like an equal binding.
         const fate = publishedFate(mark.tag);
         if (fate && !survivesPublishing(mark.tag) && fate.notice) {
             return `${head}\n\n${t('webpages.code.published_fate', 'Once published: {notice}', { notice: fate.notice })}`;
@@ -119,11 +100,9 @@ function decorationHover(t: (key: string | undefined, fallbackOrParams?: string 
 }
 
 /**
- * De Monaco-decoraties voor ÉÉN bestand.
+ * The Monaco decorations for ONE file.
  *
- * Hier komen de twee helften samen: `bfDecorations.js` weet hoe een decoratie
- * eruitziet, `t` weet hoe de tekst luidt. De IDE roept dit aan; de editor krijgt
- * kant-en-klare data en hoeft niets van `bf-*` te weten.
+ * This is where the two halves come together: `bfDecorations.js` knows what a decoration looks like, `t` knows how the text reads. The IDE calls this; the editor receives ready-made data and needs to know nothing about `bf-*`.
  */
 interface FileDecorationsArgs {
     marks: (StripMark | null)[];
@@ -188,11 +167,9 @@ function FileChip({ t, file, active, dirty, onOpen }: FileChipProps) {
 }
 
 /**
- * Hoeveel bestanden, en hoe groot samen.
+ * How many files, and how large together.
  *
- * Zit er een bestand bij waarvan we de bytes niet kennen, dan is het totaal een
- * ONDERgrens en zegt het dat ook. Een som die stilzwijgend een bestand overslaat
- * is een verkeerd getal, en dat is erger dan een vaag getal.
+ * If a file is included whose bytes we do not know, the total is a LOWER bound and says so. A sum that silently skips a file is a wrong number, and that is worse than a vague number.
  */
 interface TotalsProps {
     t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
@@ -213,7 +190,7 @@ function Totals({ t, count, totalBytes, complete }: TotalsProps) {
     );
 }
 
-/** De legenda: wat de tinten betekenen — of waarom er geen zijn. */
+/** The legend: what the shades mean — or why there are none. */
 interface LegendProps {
     t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
     marksState: MarksState;
@@ -232,10 +209,9 @@ function Legend({ t, marksState, readOnly, stale }: LegendProps) {
         return BF_FAMILIES.filter(f => counts.has(f)).map(f => ({ family: f, count: counts.get(f) }));
     }, [marksState.marks]);
 
-    // Hoeveel van deze koppelingen het publiceren NIET overleven. Drie van de vijf
-    // elementen zijn op een gepubliceerde pagina inert (er draait daar geen JS),
-    // en dit scherm is het enige dat de koppelingen laat zien — dus het hoort ook
-    // dít te laten zien.
+    // How many of these bindings publishing will NOT survive. Three of the five
+    // elements are inert on a published page (no JS runs there), and this screen is
+    // the only one that shows the bindings — so it must show this too.
     const inertOnPublish = useMemo(
         () => marksState.marks.filter(m => m.known !== false && !survivesPublishing(m.tag)).length,
         [marksState.marks],
@@ -258,8 +234,8 @@ function Legend({ t, marksState, readOnly, stale }: LegendProps) {
         );
     }
 
-    // De stand die deze legenda bestaat om te tonen: er is niets berekend, dus
-    // het ONTBREKEN van markeringen zegt niets over de pagina.
+    // The state this legend exists to show: nothing has been computed, so the
+    // ABSENCE of markers says nothing about the page.
     if (!marksState.available) {
         return (
             <span className="flex items-center gap-1.5 flex-wrap [color:var(--warning-ink,#8a5a00)]">
@@ -323,11 +299,11 @@ function Legend({ t, marksState, readOnly, stale }: LegendProps) {
  * @param {string} [props.js]
  * @param {Array<import('./webpageEditorTypes').ExtraFileMeta>} [props.extraFiles]
  * @param {import('./webpageEditorTypes').ExtraContents} [props.extraContents]
- * @param {object} props.marksState       de uitslag van `useBfMarks`
- * @param {string | null} [props.activeKey]  het bestand dat de editor toont
- * @param {function} [props.onOpen]       (key) => void — open dit bestand
- * @param {object} [props.dirtyFiles]     editor-sleutel → onopgeslagen?
- * @param {boolean} [props.readOnly]      geen eigenaar: /bindings is eigenaar-only
+ * @param {object} props.marksState       the result of `useBfMarks`
+ * @param {string | null} [props.activeKey]  the file the editor shows
+ * @param {function} [props.onOpen]       (key) => void — open this file
+ * @param {object} [props.dirtyFiles]     editor key → unsaved?
+ * @param {boolean} [props.readOnly]      not the owner: /bindings is owner-only
  */
 interface WebpageCodeStripProps {
     framework?: string | undefined;

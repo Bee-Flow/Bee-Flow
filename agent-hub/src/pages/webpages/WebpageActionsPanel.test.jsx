@@ -2,16 +2,11 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
- * WebpageActionsPanel — de kolom "Laat gebeuren".
+ * WebpageActionsPanel — the "Lets things happen" column.
  *
- * `authFetch` levert het contract van GET /api/webpages/:id/bindings (server:
- * core/webpages/webpageBindings.js); het grants-paneel eronder is gemockt, want
- * dat heeft zijn eigen test — hier telt alleen DAT het gepromoveerd is.
+ * `authFetch` supplies the contract of GET /api/webpages/:id/bindings (server: core/webpages/webpageBindings.js); the grants panel beneath it is mocked, because that has its own test — here only THAT it has been promoted counts.
  *
- * Wat hier vastligt is wat het scherm mag BEWEREN: een onleesbare scan leest
- * nooit als "deze pagina doet niets", niet-herleidbare oproepen worden benoemd,
- * de leeshulp-disclaimer staat er altijd, en wat "Maak er een automation van"
- * aanmaakt bevat het vaste deel van de URL — nooit het beletselteken.
+ * What is fixed here is what the screen may CLAIM: an unreadable scan never reads as "this page does nothing", calls that cannot be traced back are named, the reading-aid disclaimer is always there, and what "Make an automation from this" creates contains the fixed part of the URL — never the ellipsis.
  */
 
 const authFetch = vi.fn();
@@ -111,9 +106,9 @@ describe('WebpageActionsPanel', () => {
         render(<WebpageActionsPanel webpageId="wp1" />);
 
         expect(await screen.findByText(/No calls to other services found/)).toBeInTheDocument();
-        // De grens van de scan staat ZICHTBAAR op het scherm, niet in een
-        // tooltip en niet achter een `hidden` — vandaar toBeVisible en niet
-        // toBeInTheDocument (een bijttest die hem verborg bleef anders groen).
+        // The boundary of the scan is VISIBLE on screen, not in a tooltip and not behind
+        // a `hidden` — hence toBeVisible and not toBeInTheDocument (a bite-test that
+        // hid it would otherwise stay green).
         expect(screen.getByText(/reading aid, not a security check/)).toBeVisible();
     });
 
@@ -132,7 +127,7 @@ describe('WebpageActionsPanel', () => {
         render(<WebpageActionsPanel webpageId="wp1" />);
 
         expect(await screen.findByText(/2 calls in this page's code could not be checked/)).toBeInTheDocument();
-        // …en dan is "niets gevonden" een leugen, dus die regel blijft weg.
+        // …and then "nothing found" is a lie, so that line stays away.
         expect(screen.queryByText(/No calls to other services found/)).toBeNull();
     });
 
@@ -221,7 +216,7 @@ describe('scaffoldHttpAutomation', () => {
         });
         expect(body.definition.steps[0].url).toBe('https://api.vendor.com/v1/');
         expect(body.definition.steps[0].url).not.toContain('…');
-        // …en de automatisering zegt zelf dat hij nog niet af is.
+        // …and the automation itself says that it is not yet finished.
         expect(body.description).toMatch(/built the rest of the address/);
     });
 
@@ -229,7 +224,7 @@ describe('scaffoldHttpAutomation', () => {
         const body = scaffoldHttpAutomation({ ...CALL, kind: 'xhr', method: 'POST' });
         expect(body.definition.steps[0].blockPrivateTargets).toBe(true);
         expect(body.definition.steps[0].method).toBe('POST');
-        // Een fetch levert geen methode op; die mag niet verzonnen worden als POST.
+        // A fetch yields no method; that may not be invented as POST.
         expect(scaffoldHttpAutomation(CALL).definition.steps[0].method).toBe('GET');
     });
 

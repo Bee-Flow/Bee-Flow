@@ -46,35 +46,35 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice, flag, idList, bool, NOTHING, NO_QUERY } = require('./schemas');
 
-// ── Wat een notitie-actie mag dragen ────────────────────────────────
+// ── What a note action may carry ────────────────────────────────────
 //
-// Elk schema hieronder is `.strict()`, en op de publicatieroute is dat het
-// hele punt. `{"isPublished":true,"sharedGrous":["g-hr"]}` viel terug op een
-// LEGE groepenlijst, en een lege lijst op een gepubliceerde notitie betekent
-// DE HELE ORGANISATIE — zo staat het in de kop van de route zelf. Wie één
-// groep koos deelde de vergadering met iedereen, onder `{success:true}` en
-// met `sharedGroups: []` als antwoord.
+// Every schema below is `.strict()`, and on the publish route that is the whole
+// point. `{"isPublished":true,"sharedGrous":["g-hr"]}` fell back to an EMPTY group
+// list, and an empty list on a published note means THE WHOLE ORGANISATION — that
+// is how the route's own header describes it. Whoever chose one group shared the
+// meeting with everyone, under `{success:true}` and with `sharedGroups: []` as
+// the answer.
 //
-// `tags`, `actionItems`, `decisions` en `questions` blijven bij hun eigen
-// toetsen: core/meetingNotes/actionItems.js bouwt elk item uit een allow-list
-// op en weigert wat het niet begrijpt. Wat de schema's toevoegen is dat een
-// verkeerd gespelde sleutel ernaast niet meer stil wegvalt.
+// `tags`, `actionItems`, `decisions` and `questions` keep their own checks:
+// core/meetingNotes/actionItems.js builds each item from an allow-list and refuses
+// what it does not understand. What the schemas add is that a misspelled key next
+// to them no longer drops out silently.
 
 const PatchBody = bodyOf({
     title: worded('Een titel is tekst.').trim().max(300, 'Een titel is hoogstens 300 tekens.').optional(),
-    // Dezelfde zin die core/meetingNotes/actionItems.js zelf gebruikt voor
-    // "dit is geen lijst" — één boodschap voor één feit, ongeacht wie hem
-    // als eerste tegenkomt.
+    // The same sentence that core/meetingNotes/actionItems.js itself uses for
+    // "this is not a list" — one message for one fact, regardless of who
+    // encounters it first.
     actionItems: z.array(z.unknown(), { error: typeError({ invalid: 'actionItems must be an array' }) }).optional(),
     decisions: z.array(z.unknown(), { error: typeError({ invalid: 'decisions must be an array' }) }).optional(),
     questions: z.array(z.unknown(), { error: typeError({ invalid: 'questions must be an array' }) }).optional(),
     tags: z.array(z.unknown(), { error: typeError({ invalid: 'tags must be an array' }) }).optional(),
 });
 
-// Welke prompt de samenvatting schrijft. `{"templatId":"tpl_1"}` viel terug op
-// het ingebouwde 'general'-sjabloon en HERSCHREEF de samenvatting daarmee —
-// een knop die belooft de samenvatting opnieuw te schrijven, die dat met het
-// verkeerde sjabloon doet en er de naam van dat sjabloon onder stempelt.
+// Which prompt writes the summary. `{"templatId":"tpl_1"}` fell back to the
+// built-in 'general' template and REWROTE the summary with it — a button that
+// promises to write the summary again, which does so with the wrong template and
+// stamps that template's name under it.
 const RegenerateBody = bodyOf({
     template: worded('template is de sleutel van een ingebouwd sjabloon.').trim().min(1).optional(),
     templateId: worded('templateId is het id van een opgeslagen sjabloon.').trim().min(1).nullish(),
@@ -189,12 +189,11 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
     //   customPrompt — an ephemeral "try before saving" prompt (owner-only, already gated above)
     //   template     — a built-in key (default 'general'; unknown keys fall back to general)
     //
-    // ── EN WELKE STEMPEL DAT OPLEVERT (M4 stap 3) ───────────────────
-    // Elke tak zet `stamp`, óók de eenmalige prompt — die zet hem juist
-    // LEEG. De samenvatting wordt hier overschreven; een stempel van het
-    // vorige sjabloon laten staan zou een sjabloonnaam plakken op tekst
-    // die dat sjabloon nooit geschreven heeft. Een lege stempel is dus
-    // geen "vergeten veld" maar het antwoord.
+    // ── WHICH STAMP THAT YIELDS (M4 step 3) ─────────────────────────
+    // Every branch sets `stamp`, including the one-off prompt — which sets it
+    // EMPTY. The summary is overwritten here; leaving a stamp of the previous
+    // template in place would paste a template name onto text that template never
+    // wrote. An empty stamp is therefore not a "forgotten field" but the answer.
     let templatePrompt;
     let stamp;
     if (templateId) {
@@ -203,16 +202,16 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
             return res.status(404).json({ error: 'Template not found' });
         }
         templatePrompt = tpl.prompt;
-        // De versie van DIT moment, niet die van het moment waarop iemand
-        // de notitie later opent.
+        // The version of THIS moment, not that of the moment when someone later
+        // opens the note.
         stamp = stampForTemplate(tpl);
     } else if (typeof customPrompt === 'string' && customPrompt.trim()) {
         templatePrompt = customPrompt.trim().slice(0, 20000);
         stamp = { ...EMPTY_STAMP };
     } else {
         templatePrompt = builtinPrompt(template);
-        // Dezelfde terugval als builtinPrompt: een onbekende sleutel
-        // stempelt 'general', want die prompt heeft het geschreven.
+        // The same fallback as builtinPrompt: an unknown key stamps 'general',
+        // because that prompt wrote it.
         stamp = stampForBuiltin(template);
     }
 
@@ -245,24 +244,22 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
     );
     const speakers = applySpeakerSummaries(storedSpeakers, speakerSummaries);
 
-    // ── "Opnieuw" REPLACES THE AI'S ITEMS, NOT THE PERSON'S ─────────
+    // ── "Opnieuw" REPLACES THE AI'S ITEMS, NOT THE PERSON'S ───────────
     // This write used to be `actionItems: artifacts.actionItems` — a total
-    // replacement. Anything the owner had added themselves (M3 lets them
-    // add one, and give it a destination) was gone, with no undo and no
-    // warning, from a button whose whole promise is "write the summary
-    // again". The merge keeps every `source:'user'` item, in front of the
-    // freshly extracted ones.
+    // replacement. Anything the owner had added themselves (M3 lets them add one,
+    // and give it a destination) was gone, with no undo and no warning, from a
+    // button whose whole promise is "write the summary again". The merge keeps
+    // every `source:'user'` item, in front of the freshly extracted ones.
     // A FAILED EXTRACTION IS NOT AN EMPTY MEETING.
     //
-    // extractMeetingArtifacts used to answer four empty arrays for three
-    // different outcomes: a meeting with nothing in it, a reply it could
-    // not parse, and a call that threw. Merging that third case wrote the
-    // emptiness over everything the last good pass had found — the action
-    // items, the decisions and the questions all gone, from a button that
-    // promises to write the summary AGAIN. Een mislukte pass heeft nu
-    // helemaal geen lijsten, en `artifactsUsable` versmalt op alles wat er
-    // niet als afgeronde pass uitziet — de vorige poort (`ok !== false`)
-    // liet een antwoord zónder lijsten nog door als "gelukt".
+    // extractMeetingArtifacts used to answer four empty arrays for three different
+    // outcomes: a meeting with nothing in it, a reply it could not parse, and a call
+    // that threw. Merging that third case wrote the emptiness over everything the
+    // last good pass had found — the action items, the decisions and the questions
+    // all gone, from a button that promises to write the summary AGAIN. A failed
+    // pass now has no lists at all, and `artifactsUsable` narrows down on everything
+    // that does not look like a completed pass — the previous gate (`ok !== false`)
+    // still let an answer WITHOUT lists through as "successful".
     const usable = artifactsUsable(artifacts);
     const mergedActionItems = usable
         ? mergeRegeneratedActionItems(transcription.actionItems, artifacts.actionItems)
@@ -286,24 +283,24 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
         log.warn(`[Transcriptions] Regenerate ${req.params.id}: artifact extraction failed — keeping the existing action items, decisions and questions.`);
     }
 
-    // ── EN WAT ER TIJDENS DE RUN ZELF BIJKWAM ───────────────────────
-    // Alles hierboven merget tegen de MOMENTOPNAME van r.136 — en tussen
-    // dat lezen en deze schrijfactie zitten vier LLM-aanroepen (drie
-    // gekapt op 540 s). De "Opnieuw"-banner staat boven het tabblad, dus
-    // wie in het transcript blijft en een regel als besluit vastlegt,
-    // schrijft precies in dat venster. Voor de merge is die rij
-    // onzichtbaar; deze update wiste hem, zonder melding en zonder undo.
+    // ── AND WHAT CAME IN DURING THE RUN ITSELF ──────────────────────
+    // Everything above merges against the SNAPSHOT of r.136 — and between that read
+    // and this write there are four LLM calls (three of them cut off at 540 s). The
+    // "Opnieuw" banner sits above the tab, so whoever stays in the transcript and
+    // records a line such as a decision writes exactly into that window. For the
+    // merge that row is invisible; this update wiped it, without notice and without
+    // undo.
     //
-    // De route kan dat niet zelf repareren: hij weet niets van wat er ná
-    // zijn read is gebeurd. Wat hij WEL kan is zijn vertrekpunt meegeven —
-    // het moment waarop hij zijn invoer las — zodat de store in hetzelfde
-    // statement alleen vervangt wat er vóór dat moment al stond.
+    // The route cannot repair that itself: it knows nothing of what happened after
+    // its read. What it CAN do is pass along its starting point — the moment it read
+    // its input — so that the store, in the same statement, only replaces what
+    // already stood there before that moment.
     //
-    // ÉÉN KLOK: `readAt` komt van de databaseklok, uit dezelfde read, en
-    // wordt daar vergeleken met stempels van diezelfde klok. `updatedAt`
-    // is de terugval (ook een databasewaarde, en per definitie van vóór
-    // onze read, dus hooguit conservatiever). Nooit Date.now() van deze
-    // node: dat zou de tweede klok zijn waar zo'n venster op stukloopt.
+    // ONE CLOCK: `readAt` comes from the database clock, from the same read, and is
+    // compared there with stamps of that same clock. `updatedAt` is the fallback
+    // (also a database value, and by definition from before our read, so at most
+    // more conservative). Never Date.now() of this node: that would be the second
+    // clock that such a window breaks down on.
     const artifactsSince = transcription.readAt || transcription.updatedAt || null;
     const written = await transcriptionStore.updateTranscription(req.params.id, userId, {
         summary,
@@ -315,11 +312,10 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
         ...(Object.keys(speakerSummaries).length ? { speakers } : {}),
         ...stamp,
     });
-    // Wat er ECHT in de kolom staat na die schrijfactie. Dat kan afwijken
-    // van wat we stuurden — een rij die tijdens de run ontstond blijft
-    // staan — en dan is het antwoord hieronder de enige plek waar de
-    // client hem te zien krijgt. Ontbreekt het (een oudere store), dan
-    // valt elk veld terug op wat het altijd was.
+    // What is ACTUALLY in the column after that write. That can differ from what
+    // we sent — a row that came into being during the run stays — and then the
+    // answer below is the only place where the client sees it. If it is missing (an
+    // older store), each field falls back to what it always was.
     const stored = written && typeof written === 'object' ? written : {};
 
     // The summary IS what a meeting-tag knowledge source stores, so a
@@ -342,28 +338,25 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
         // the surviving user items vanish from the screen until a refetch —
         // indistinguishable, to the person watching, from having lost them.
         actionItems: stored.actionItems || mergedActionItems,
-        // What was STORED, not what the extractor handed back: on a failed
-        // pass those are two different lists, and answering with the
-        // extractor's would empty the screen for a write that never
-        // happened. On a SUCCESSFUL pass they differ too, now that the
-        // merge carries a person's decisions across — answering with the
-        // extractor's half would make those vanish from the card until a
-        // refetch, which to the person watching is losing them.
-        // En sinds het venster hierboven is "wat is opgeslagen" letterlijk
-        // wat de UPDATE teruggaf: dat is de enige lijst die ook de rijen
-        // bevat die tijdens de run zijn ontstaan.
+        // What was STORED, not what the extractor handed back: on a failed pass those
+        // are two different lists, and answering with the extractor's would empty the
+        // screen for a write that never happened. On a SUCCESSFUL pass they differ too,
+        // now that the merge carries a person's decisions across — answering with the
+        // extractor's half would make those vanish from the card until a refetch,
+        // which to the person watching is losing them.
+        // And since the window above, "what was stored" is literally what the UPDATE
+        // returned: that is the only list that also contains the rows that came into
+        // being during the run.
         decisions: stored.decisions || (usable ? mergedDecisions : (transcription.decisions || [])),
         questions: stored.questions || (usable ? mergedQuestions : (transcription.questions || [])),
-        // Het scherm moet het KUNNEN zeggen: zonder dit veld is een
-        // mislukte pass daar niet te onderscheiden van "er kwam niets
-        // nieuws uit", en drukt niemand nog eens op Opnieuw.
+        // The screen must be ABLE to say so: without this field, a failed pass is
+        // indistinguishable from "nothing new came out", and nobody presses Again once more.
         artifactsRegenerated: usable,
         chapters,
         speakers,
-        // De stempel gaat mee terug zodat de kaart hem meteen kan tonen.
-        // Zonder dit zou het scherm tot de volgende ophaalronde het VORIGE
-        // sjabloon blijven noemen bij een samenvatting die net door een
-        // ander sjabloon is geschreven.
+        // The stamp goes back too, so that the card can show it immediately. Without
+        // this, the screen would keep naming the PREVIOUS template until the next fetch
+        // round, for a summary that was just written by a different template.
         ...stamp,
     });
 });
@@ -373,9 +366,9 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
 router.get('/:id/export', requireAuth, validate({ query: ExportQuery }),
     require('../../compliance/dataPortability/stampExport')('meeting_notes'), async (req, res) => {
     const userId = req.session.user.id;
-    // `?fromat=txt` leverde een markdown-bestand: de parameter viel weg en
-    // de standaard nam het over. Nu is de naam van de parameter net zo
-    // gesloten als zijn waarde al was.
+    // `?fromat=txt` produced a markdown file: the parameter was dropped and the
+    // default took over. Now the name of the parameter is as strictly closed as its
+    // value already was.
     const format = req.query.format || 'md';
     const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
     const transcription = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });

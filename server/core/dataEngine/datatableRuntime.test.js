@@ -1,13 +1,12 @@
 /**
- * core/dataEngine/datatableRuntime — de gedeelde datatable-runner.
+ * core/dataEngine/datatableRuntime: the shared datatable runner.
  *
- * Geen databank: `stores/datatableStore` en `stores/datatableDbStore` worden
- * gemonkeypatcht, zodat de ECHTE `queryCompiler` en de ECHTE
- * `auth/datatableAccess` meelopen. Wat hier getoetst wordt is precies wat een
- * stub niet mag wegnemen: de graadbeslissing, de kolombegrenzing en de vraag
- * welke SQL er daadwerkelijk uitkomt.
+ * No database: `stores/datatableStore` and `stores/datatableDbStore` are monkey-patched, so that the
+ * REAL `queryCompiler` and the REAL `auth/datatableAccess` run along. What is tested here is precisely
+ * what a stub must not take away: the grade decision, the column bounding and the question which SQL
+ * actually comes out.
  *
- * Draaien: cd server && node --test --test-force-exit core/dataEngine/datatableRuntime.test.js
+ * Run: cd server && node --test --test-force-exit core/dataEngine/datatableRuntime.test.js
  */
 
 const test = require('node:test');
@@ -43,8 +42,8 @@ function table(over = {}) {
         rowCount: 3,
     };
     const out = { ...base, ...over };
-    // Houd de twee spellingen synchroon, zodat een test die er één zet niet per
-    // ongeluk de andere laat staan.
+    // Keep the two spellings in sync, so that a test which changes one does not accidentally
+    // leave the other behind.
     if ('ownerUserId' in over) out.owner_user_id = over.ownerUserId;
     if ('owner_user_id' in over) out.ownerUserId = over.owner_user_id;
     if ('organizationId' in over) out.organization_id = over.organizationId;
@@ -113,7 +112,7 @@ test('resolveForPrincipal grades the caller fresh and returns the descriptor + a
 });
 
 test('no grade at all is a 404, never a 403 — the table must not be probeable', async () => {
-    // Een buitenstaander: andere org, geen grant.
+    // An outsider: another org, no grant.
     await withPatches(baseStubs(), async () => {
         await assert.rejects(
             () => runtime.resolveForPrincipal('tbl_1', principal({ userId: 'u-other', orgId: 'org-2', organizationId: 'org-2' })),
@@ -189,12 +188,12 @@ test('BITE — filtering and sorting on an unbound column is refused (no value o
         await assert.rejects(
             () => runtime.readRows(r, { allowColumns: ['name'], sort: { field: 'secret_note', dir: 'asc' } }),
             (e) => e.status === 400 && e.code === 'column_not_bound');
-        // Dezelfde toets moet gelden voor de LIJST-vorm van sort: die accepteert
-        // de compiler ook, en alleen `sort.field` lezen liet hem er langs.
+        // The same check must hold for the LIST form of sort: the compiler accepts that too, and reading
+        // only `sort.field` let it slip past.
         await assert.rejects(
             () => runtime.readRows(r, { allowColumns: ['name'], sort: [{ field: 'secret_note', dir: 'asc' }] }),
             (e) => e.status === 400 && e.code === 'column_not_bound');
-        // Op een gebonden kolom mag het wel.
+        // On a bound column it is allowed.
         const ok = await runtime.readRows(r, { allowColumns: ['name'], filters: [{ field: 'name', op: 'eq', value: 'x' }] });
         assert.strictEqual(ok.count, 0);
         const okSorted = await runtime.readRows(r, { allowColumns: ['name'], sort: [{ field: 'name', dir: 'asc' }] });
@@ -292,8 +291,8 @@ test('BITE — aggregateRows binds groupBy, aggregates, filters and sort to allo
     await withPatches(baseStubs({ rows: [] }), async () => {
         const r = await runtime.resolveForPrincipal('tbl_1', principal());
         const bound = (over) => runtime.aggregateRows(r, { allowColumns: ['name'], ...over });
-        // Groeperen op een kolom die deze consument niet mag lezen is hetzelfde
-        // orakel als erop filteren: de waarden komen er letterlijk uit.
+        // Grouping by a column that this consumer may not read is the same oracle as filtering on it:
+        // the values come out literally.
         await assert.rejects(
             () => bound({ groupBy: [{ field: 'secret_note' }] }),
             (e) => e.status === 400 && e.code === 'column_not_bound');
@@ -316,8 +315,8 @@ test('BITE — aggregateRows binds groupBy, aggregates, filters and sort to allo
 
 test('aggregateRows gives the distinct values of a bound column, with the access filter in the WHERE', async () => {
     const rows = [{ name: 'ACME', n: 4 }, { name: 'Globex', n: 2 }];
-    // row_scope 'own' dwingt een created_by-predicaat af: dat moet VÓÓR de
-    // GROUP BY staan, anders telt een rij mee die deze persoon niet mag zien.
+    // row_scope 'own' enforces a created_by predicate: that must stand BEFORE the
+    // GROUP BY, otherwise a row counts that this person may not see.
     await withPatches(baseStubs({ rows, t: table({ row_scope: 'own', ownerUserId: 'u-else', is_published: true, shared_groups: ['g1'] }) }), async () => {
         const r = await runtime.resolveForPrincipal('tbl_1', principal({ groupIds: ['g1'] }));
         const out = await runtime.aggregateRows(r, {

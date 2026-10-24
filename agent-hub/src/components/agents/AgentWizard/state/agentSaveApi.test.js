@@ -1,12 +1,11 @@
 /**
- * `adoptedPromptAfterSave` — de ene regel die persona en prompt bij elkaar
- * houdt na een opslag (A3 deel B).
+ * `adoptedPromptAfterSave`: the one rule that keeps persona and prompt together after
+ * a save (A3 part B).
  *
- * Een persona in veldmodus IS de bron van `agents.system_prompt`: de server
- * rendert hem en negeert wat de client meestuurde. Neemt de editor dat antwoord
- * niet over, dan schrijft de eerstvolgende opslag zónder persona zijn oude
- * tekst er weer overheen — en beschrijft de kolom daarna een prompt dat de
- * agent niet meer draait.
+ * A persona in field mode IS the source of `agents.system_prompt`: the server renders it
+ * and ignores what the client sent. If the editor does not adopt that answer, the next
+ * save without a persona writes its old text over it again, and the column then
+ * describes a prompt that the agent no longer runs.
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/state/agentSaveApi.test.js
  */

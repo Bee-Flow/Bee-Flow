@@ -1,14 +1,13 @@
 /**
- * `return_to_app` aan de runnerkant — het effectenobject dat de app krijgt.
+ * `return_to_app` on the runner side: the effects object that the app receives.
  *
- * Twee dingen die deze stap moet waarmaken, en die allebei stil kunnen falen:
+ * Two things this step must make true, and both can fail silently:
  *
- *   1. HET OBJECT WORDT UIT EEN ALLOW-LIST GEBOUWD. Niet door sleutels van de
- *      stap te verwijderen — dan reist een veld dat volgend jaar aan een stap
- *      wordt toegevoegd vanzelf mee de browser in.
- *   2. WAT NIET MEEGAAT, WORDT GEZEGD. Een effect dat hier wegvalt, verdwijnt
- *      anders precies zoals de instructie die deze stap moest redden. Dus:
- *      `output._ignored` (de runregel die de runweergave toont) én een regel op
+ *   1. THE OBJECT IS BUILT FROM AN ALLOW-LIST. Not by deleting keys from the step: then a
+ *      field that is added to a step next year would travel into the browser by itself.
+ *   2. WHAT DOES NOT GO ALONG IS SAID. An effect that drops out here would otherwise vanish
+ *      exactly like the instruction that this step was meant to rescue. So:
+ *      `output._ignored` (the run line that the run view shows) AND a line in
  *      `_templateWarnings`.
  *
  * Run: cd server && node --test core/automationRunner/execReturnToApp.test.js
@@ -60,9 +59,8 @@ test('the effects object is built from an allow-list — an unrelated step field
         id: 'r1',
         type: 'return_to_app',
         toast: { message: 'Done' },
-        // Alles hieronder hoort NIET in het effectenobject: interne velden, een
-        // veld dat een latere stage zou kunnen toevoegen, en iets wat er
-        // gewoon niet in thuishoort.
+        // Everything below does NOT belong in the effects object: internal fields, a field that a
+        // later stage might add, and anything that simply does not belong there.
         label: 'Back to the app',
         position: { x: 1, y: 2 },
         secretSauce: 'nope',
@@ -96,8 +94,8 @@ test('a value outside the vocabulary is dropped, narrowed AND recorded — never
     for (const entry of output._ignored) {
         assert.ok(entry.reason && entry.reason.length > 10, `${entry.field}: give a real reason`);
     }
-    // …en dezelfde drie staan in het runlog-kanaal, zodat ze ook zichtbaar zijn
-    // voor wie niet de stapuitvoer opent.
+    // ...and the same three also appear in the run-log channel, so that they are visible
+    // to whoever does not open the step output.
     assert.strictEqual(state._templateWarnings.filter(w => w.startsWith('return_to_app r1:')).length, 3,
         JSON.stringify(state._templateWarnings));
 });
@@ -140,8 +138,8 @@ test('a long toast is cut to the same ceiling the validator enforces', async () 
 });
 
 test('it never throws — unlike stop_error, this step ends the run SUCCESSFULLY', async () => {
-    // Als deze stap zou gooien, zou elke app die netjes terugkeert een rode run
-    // opleveren. De hele reden dat runDag een terminaalbegrip nodig had.
+    // If this step were to throw, every app that returns politely would produce a red run.
+    // That is the whole reason runDag needed a notion of terminal.
     const { output } = await execReturnToApp({ id: 'r1', type: 'return_to_app' }, {}, stateWith());
     assert.deepStrictEqual(output._appEffects, { onError: 'stay' });
 });

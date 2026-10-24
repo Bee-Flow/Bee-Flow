@@ -104,8 +104,8 @@ stub('../core/meetingNotes/summaryHelpers', {
     toContextBias: pure.toContextBias,
     buildTranscriptArtifacts: pure.buildTranscriptArtifacts,
     buildPipelineNotices: pure.buildPipelineNotices,
-    // De ECHTE poort, niet een stub ervan: welke uitkomsten deze route mag
-    // wegschrijven is precies wat hier op het spel staat.
+    // The REAL gate, not a stub of it: which outcomes this route may
+    // write is exactly what is at stake here.
     artifactsUsable: pure.artifactsUsable,
     ARTIFACTS_FAILED: pure.ARTIFACTS_FAILED,
     // Reprocess now re-extracts the structured artifacts from the new transcript.
@@ -151,8 +151,8 @@ stub('../auth', { resolveUserOrgIds: async () => new Set(['org-1']) });
 stub('../stores/userStore', { getUser: async () => ({ groups: [] }), getAllGroups: async () => [] });
 // The module under test: proves require('../db') resolves and run() is reached.
 stub('../db', { run: async (sql, params) => { runCalls.push({ sql, params }); return { rowCount: 1 }; } });
-// Het standaardsjabloon van de eigenaar. Default null = geen sjabloon, precies
-// wat elke bestaande test hier al aannam; één test zet hem.
+// The owner's default template. Default null = no template, exactly
+// what every existing test here already assumed; one test sets it.
 stub('../stores/summaryTemplateStore', {
     resolveDefaultTemplate: async () => defaultTemplate,
     resolveDefaultPrompt: async () => (defaultTemplate ? defaultTemplate.prompt : null),
@@ -645,14 +645,11 @@ test('a decision the user picked off a line survives a reprocess too', async () 
 });
 
 
-// ── EEN MISLUKTE ARTEFACT-PASS IS GEEN LEGE VERGADERING ──────────────
+// ── A FAILED ARTIFACT PASS IS NOT AN EMPTY MEETING ────────────────────
 //
-// extractMeetingArtifacts kent DRIE uitkomsten en zegt met `ok` welke. Deze
-// route las die vlag niet: een time-out of onparseerbaar JSON leverde vier lege
-// lijsten, en die werden over een notitie geschreven die al 'completed' was —
-// actiepunten, besluiten en vragen weg, zonder undo en zonder dat het scherm
-// iets liet zien. De regenerate-route dicht dit al (noteActions.js); deze
-// schrijft met een kale UPDATE en had dus zijn eigen tanden nodig.
+// extractMeetingArtifacts knows THREE outcomes and says with `ok` which one. This route did not read that flag: a time-out or unparseable JSON yielded four empty lists, and those were written over a note that was already 'completed' —
+// action items, decisions and questions gone, with no undo and without the screen showing anything. The regenerate route closes that already (noteActions.js); this one
+// wrote with a bare UPDATE and therefore needed its own teeth.
 
 test('a failed artifact pass keeps the action items, decisions and questions', async () => {
     storedTranscription.status = 'completed';
@@ -666,8 +663,8 @@ test('a failed artifact pass keeps the action items, decisions and questions', a
     storedTranscription.questions = [
         { id: 'q-0', text: 'Wie betaalt de licentie?', timestamp: '31:00', open: true },
     ];
-    // Precies wat de helper teruggeeft bij een time-out van de smart-tier én
-    // bij een antwoord dat niet te parsen was.
+    // Exactly what the helper returns on a time-out of the smart tier and
+    // on an answer that could not be parsed.
     providerStubs.artifacts = async () => ({ actionItems: [], decisions: [], questions: [], tags: [], ok: false });
 
     const res = await dispatch({ url: '/t-123/reprocess' });
@@ -679,9 +676,8 @@ test('a failed artifact pass keeps the action items, decisions and questions', a
     const actionItems = JSON.parse(params[10]);
     assert.deepStrictEqual(actionItems.map((i) => i.text), ['Offerte versturen', 'Planning bijwerken']);
     assert.strictEqual(actionItems[1].done, true, 'de afgevinkte staat blijft staan');
-    // De hertranscriptie SLAAGDE, dus de ankers naar de vervangen transcriptie
-    // gaan er wél uit — regel 42 van een opnieuw gediarizeerde transcriptie is
-    // een andere zin.
+    // The re-transcription SUCCEEDED, so the anchors to the replaced transcript
+    // do go — line 42 of a re-diarised transcript is a different sentence.
     assert.ok(!('segmentIndex' in actionItems[0]));
     assert.ok(!('timestamp' in actionItems[0]));
 
@@ -695,23 +691,21 @@ test('a failed artifact pass keeps the action items, decisions and questions', a
 });
 
 test('an answer this route does not recognise as a finished pass empties nothing', async () => {
-    // ONBEKEND MOET VERSMALLEN. De poort stond op `artifacts.ok !== false`, en
-    // dat is fail-open: alles wat GEEN `ok:false` draagt gold als geslaagd —
-    // ook een antwoord zonder lijsten. De merge kreeg dan `undefined` als verse
-    // lijst en verving elke opgeslagen AI-rij door niets: actiepunten,
-    // besluiten en vragen weg van een notitie die al 'completed' was, zonder
-    // undo en zonder dat het scherm iets liet zien.
+    // UNKNOWN MUST NARROW. The gate stood on `artifacts.ok !== false`, and
+    // that is fail-open: everything that does NOT carry `ok:false` counted as successful —
+    // including an answer without lists. The merge then got `undefined` as the fresh list and replaced every stored AI row with nothing: action items,
+    // decisions and questions gone from a note that was already 'completed', with no
+    // undo and without the screen showing anything.
     //
-    // De vraag is nu "heeft deze pass daadwerkelijk een antwoord gelezen", en
-    // die stelt de waarde zelf: geen lijsten = niets om mee te schrijven.
+    // The question is now "did this pass actually read an answer", and the value itself states that: no lists = nothing to write with.
     storedTranscription.status = 'completed';
     storedTranscription.actionItems = [
         { id: 'ai-0', source: 'ai', text: 'Offerte versturen', assignee: 'Tom', done: true },
     ];
     storedTranscription.decisions = [{ id: 'd-0', text: 'We gaan met leverancier B verder' }];
     storedTranscription.questions = [{ id: 'q-0', text: 'Wie betaalt de licentie?', open: true }];
-    // Geen `ok:false`, en ook geen lijsten — precies de vorm die de oude poort
-    // als "gelukt" doorliet.
+    // No `ok:false`, and also no lists — precisely the shape that the old gate
+    // let through as "succeeded".
     providerStubs.artifacts = async () => ({});
 
     const res = await dispatch({ url: '/t-123/reprocess' });
@@ -724,8 +718,8 @@ test('an answer this route does not recognise as a finished pass empties nothing
     assert.strictEqual(JSON.parse(params[10])[0].done, true);
     assert.deepStrictEqual(JSON.parse(params[11]).map((d) => d.text), ['We gaan met leverancier B verder']);
     assert.deepStrictEqual(JSON.parse(params[12]).map((q) => q.text), ['Wie betaalt de licentie?']);
-    // En het staat op het scherm: de samenvatting draagt de notitieregel, want
-    // een stille mislukking laat de gebruiker denken dat er niets besproken is.
+    // And it shows on the screen: the summary carries the note line, because a silent failure
+    // would make the user think that nothing was discussed.
     assert.match(params[8], /actiepunten/i);
 });
 
@@ -739,16 +733,15 @@ test('a failed artifact pass says so on the note', async () => {
     assert.strictEqual(res.statusCode, 202);
     await waitFor(() => runCalls.length === 1);
     assert.match(runCalls[0].params[8], /actiepunten/i, 'de notitie meldt de mislukte pass');
-    // De tagkolom krijgt een echte lege lijst, geen SQL-NULL, van een pass die
-    // geen tags heeft kunnen bedenken.
+    // The tag column gets a real empty list, not an SQL NULL, from a pass that
+    // could not come up with any tags.
     assert.deepStrictEqual(JSON.parse(runCalls[0].params[13]), []);
 });
 
 test('a SUCCESSFUL pass on a meeting with nothing in it still clears the AI rows', async () => {
-    // De keerzijde, en de reden dat `ok` bestaat: `ok:true` met lege lijsten
-    // betekent "in deze vergadering is niets afgesproken" en moet wél
-    // opruimen. Zonder dit onderscheid zou de regel hierboven verouderde
-    // actiepunten voor eeuwig laten staan.
+    // The flip side, and the reason that `ok` exists: `ok:true` with empty lists
+    // means "nothing was agreed in this meeting" and must clear. Without this distinction the rule above would keep outdated
+    // action items in place for ever.
     storedTranscription.status = 'completed';
     storedTranscription.actionItems = [{ id: 'ai-0', source: 'ai', text: 'Oud AI-punt', done: false }];
     storedTranscription.decisions = [{ id: 'd-0', text: 'Oud besluit' }];
@@ -766,12 +759,11 @@ test('a SUCCESSFUL pass on a meeting with nothing in it still clears the AI rows
 });
 
 
-// ── DE SJABLOONSTEMPEL OVERLEEFT EEN REPROCESS NIET ONGECONTROLEERD ──
+// ── THE TEMPLATE STAMP DOES NOT SURVIVE A REPROCESS UNCHECKED ─────────────
 //
-// Reprocess schrijft de samenvatting OPNIEUW. De stempel ("met welk sjabloon
-// is dit gemaakt") gaat dus mee — ook als het antwoord "geen sjabloon" is.
-// Een oude stempel laten staan zou een sjabloonnaam plakken op tekst die dat
-// sjabloon nooit geschreven heeft.
+// Reprocess writes the summary AGAIN. The stamp ("with which template
+// was this made") therefore goes along — also when the answer is "no template".
+// Leaving an old stamp in place would stick a template name on text that that template never wrote.
 
 test('reprocess schrijft de sjabloonstempel van het gebruikte standaardsjabloon', async () => {
     defaultTemplate = { id: 'tpl-7', name: 'Standaard', prompt: 'DEFAULT PROMPT', version: 3 };
@@ -780,8 +772,8 @@ test('reprocess schrijft de sjabloonstempel van het gebruikte standaardsjabloon'
 
     await waitFor(() => runCalls.length === 1);
     const { sql, params } = runCalls[0];
-    // Gelezen via de eigen plaatshouder van elke kolom, niet op positie in de
-    // lijst: de kolomvolgorde is geen belofte van de route, de kolom wél.
+    // Read through each column's own placeholder, not by position in the
+    // list: the column order is no promise of the route, the column is.
     assert.strictEqual(paramFor(sql, params, 'summary_template_id'), 'tpl-7');
     assert.strictEqual(paramFor(sql, params, 'summary_template_version'), 3);
 });

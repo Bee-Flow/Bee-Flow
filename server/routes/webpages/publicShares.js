@@ -1,12 +1,11 @@
 /**
- * Externe (openbare) deel-links en hun momentopnames.
+ * External (public) share links and their snapshots.
  *
  * GET/POST /:id/public-shares  ·  POST /:id/public-shares/:shareId/refresh
  * PATCH/DELETE /:id/public-shares/:shareId
  *
- * `reSnapshotWebpageShares` staat hier en niet bij de save-routes die hem
- * aanroepen: het vernieuwen van een gepubliceerde momentopname is een uitspraak
- * over DEZE deel-links, niet over het opslaan.
+ * `reSnapshotWebpageShares` lives here and not with the save routes that call it:
+ * refreshing a published snapshot is a verdict about THESE share links, not about saving.
  */
 
 const webpageStore = require('../../stores/webpageStore');
@@ -22,29 +21,29 @@ const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice, NOTHING, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
 
-// ── Wat een deel-link mag dragen ────────────────────────────────────
+// ── What a share link may carry ────────────────────────────────────
 //
-// Dit is het WIJDSTE publiek dat er is: een adres dat iedereen met de link
-// opent, zonder account. Twee dingen zijn daarom veranderd.
+// This is the WIDEST audience there is: an address that anyone with the link opens,
+// without an account. Two things have therefore changed.
 //
-// `.strict()`, want `accessMode` stond er met een standaardwaarde:
-// `{accessMode = 'unlisted'} = req.body`. Eén letter verkeerd —
-// `{"accesMode":"password","password":"…"}` — en de SMALSTE keuze op het
-// scherm werd de WIJDSTE: een link zonder wachtwoord, met een 200 en de URL
-// eronder om te kopiëren. Precies het patroon dat de datatable-sharing-route
-// hierboven al uit zijn body heeft gehaald.
+// `.strict()`, because `accessMode` stood there with a default value:
+// `{accessMode = 'unlisted'} = req.body`. One letter wrong —
+// `{"accesMode":"password","password":"…"}` — and the NARROWEST choice on the screen
+// became the WIDEST: a link without a password, with a 200 and the URL beneath it to
+// copy. Exactly the pattern that the datatable sharing route above has already removed
+// from its body.
 //
-// En `accessMode` is nu VERPLICHT in plaats van standaard 'unlisted'. Een
-// openbaar adres hoort niet iets te zijn wat je krijgt door te zwijgen. Het
-// scherm (ExternalShareSection) stuurt hem altijd mee.
+// And `accessMode` is now REQUIRED instead of defaulting to 'unlisted'. A public address
+// should not be something you get by staying silent. The screen (ExternalShareSection)
+// always sends it along.
 const MODE_TEXT = 'Kies hoe de link beschermd is: unlisted, password of email.';
 const PASSWORD_TEXT = 'Een wachtwoord is tekst van minstens 6 tekens.';
 const EMAIL_TEXT = 'Elk toegelaten adres is tekst.';
 const ShareBody = bodyOf({
     accessMode: choice(publicShareStore.ACCESS_MODES, MODE_TEXT),
-    // De lengte staat óók in de store (die is de enige die hashen mag), maar
-    // een getal kwam daar ongehinderd langs: `(123456).length` is undefined en
-    // `undefined < 6` is onwaar. Het type is hier dus geen formaliteit.
+    // The length is ALSO stored in the store (which is the only one that may hash), but a
+    // number got past there unhindered: `(123456).length` is undefined and `undefined < 6`
+    // is false. The type is therefore not a formality here.
     password: worded(PASSWORD_TEXT).min(6, PASSWORD_TEXT).optional(),
     // Leeg-na-trimmen viel in de store weg en liet een e-mailpoort met een
     // LEGE lijst achter: een link die niemand meer kan openen, onder een 200
@@ -55,8 +54,8 @@ const ShareBody = bodyOf({
     title: worded('Een titel is tekst.').max(300, 'Een titel is hoogstens 300 tekens.').optional(),
 });
 
-// Alleen de vervaldatum. `{"expiresA": …}` was een 200 met de ongewijzigde
-// rij erbij — een wijziging die de lezer als geslaagd las en die nooit plaatsvond.
+// Only the expiry date. `{"expiresA": …}` was a 200 with the unchanged row next to it —
+// a change that the reader took as successful and that never took place.
 const ExpiryBody = bodyOf({
     expiresAt: z.union([z.string(), z.number(), z.null()], { error: () => 'expiresAt is een tijdstip of null.' }),
 });
@@ -69,12 +68,11 @@ const ExpiryBody = bodyOf({
 // creation forever. `ownerId` is the page owner (all callers here are
 // owner-only mutations).
 //
-// De implementatie staat sinds W3 stap 4 in core/webpages/webpageShareReconciler:
-// een eigenaar-save is niet meer de enige aanleiding. Een rij die uit een
-// gebonden tabel verdwijnt (retentie, DSR, een automatisering) moet ook publiek
-// verdwijnen, en die tap hangt aan datatableStore. Eén implementatie, twee
-// aanleidingen — twee kopieën zouden vroeg of laat verschillend gaan denken
-// over ingetrokken shares.
+// The implementation has since W3 step 4 lived in core/webpages/webpageShareReconciler:
+// an owner save is no longer the only trigger. A row that disappears from a bound table
+// (retention, DSR, an automation) must also disappear publicly, and that hook hangs on
+// datatableStore. One implementation, two triggers — two copies would sooner or later
+// come to disagree about withdrawn shares.
 function reSnapshotWebpageShares(webpageId, ownerId) {
     shareReconciler.reSnapshotWebpageSharesDetached(webpageId, ownerId);
 }
@@ -242,10 +240,9 @@ function register(router) {
         // Always revoke the row first so the token stops working immediately,
         // even if the snapshot purge takes time / fails.
         await publicShareStore.revokeShare(share.id, userId);
-        // Was dit DE canonieke share, dan is /w/<slug> nu een adres zonder
-        // pagina. De wijzer moet mee weg — anders blijft het scherm "openbaar"
-        // zeggen over een link die 404 geeft. Op share-id, dus het intrekken
-        // van een lósse share raakt het adres niet.
+        // Was this THE canonical share, then /w/<slug> is now an address with no page. The
+        // pointer must go too — otherwise the screen keeps saying "public" about a link that
+        // answers 404. On share id, so withdrawing a loose share does not touch the address.
         await publicAddress.clearCanonicalShare(share.id).catch(() => {});
         await publicShareStore.deleteShare(share.id, userId).catch(() => {});
         res.json({ success: true });

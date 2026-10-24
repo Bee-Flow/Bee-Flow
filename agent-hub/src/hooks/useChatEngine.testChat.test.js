@@ -1,11 +1,11 @@
 /**
- * Wat de chatkant VERSTUURT wanneer hij in testmodus staat (A4 deel A).
+ * What the chat side SENDS when it is in test mode (A4 part A).
  *
- * De server kan nog zo netjes weigeren — als de client de vlag niet meestuurt
- * is er geen testchat, en als hij hem per ongeluk altijd meestuurt verdwijnt
- * elk gewoon gesprek uit de historie. Dat zijn de twee kanten die hier gepind
- * worden, plus de derde: een beslissing op de kaart is pas iets waard als hij
- * de VOLGENDE beurt daadwerkelijk meerijdt.
+ * The server can refuse as neatly as it likes. If the client does not send the flag,
+ * there is no test chat, and if it accidentally always sends it, every ordinary
+ * conversation disappears from the history. Those are the two sides pinned here,
+ * plus a third: a decision on the card is only worth something if it is actually
+ * carried along with the NEXT turn.
  */
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -64,17 +64,16 @@ beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
     sessionStorage.clear();
-    // Een VERSE stream per aanroep: één gedeeld responseobject raakt na de
-    // eerste beurt leeggelezen, en dan ziet de hook een stream zonder `done`
-    // en blijft hij op "interrupted" staan — waarna een derde beurt niet eens
-    // meer de deur uit gaat.
+    // A FRESH stream per call. One shared response object is read empty after the
+    // first turn, and then the hook sees a stream without `done` and stays on
+    // "interrupted". After that, a third turn does not even go out the door.
     authFetch.mockImplementation(async () => streamResponse(OK_STREAM));
 });
 
 describe('de testmodus op de agentchat', () => {
     it('BIJT — een gewone chat stuurt GEEN test-vlag mee', async () => {
-        // Zou hij dat wel doen, dan wordt elk echt gesprek efemeer en
-        // verdwijnt het uit de historie, de kaartvoet en de Used-by-tab.
+        // If it did so, every real conversation would become ephemeral and would disappear
+        // from the history, the card footer and the Used-by tab.
         const { result } = setup();
         await act(async () => { await result.current.sendMessage('hoi'); });
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
@@ -133,12 +132,11 @@ describe('BIJT — één ja draait één actie', () => {
     const KEY = 'a'.repeat(32);
 
     it('een beslissing rijdt ÉÉN keer mee, niet elke volgende beurt', async () => {
-        // Dit is het gat waarop de hele bevestigingskaart stond: de server
-        // verbruikt een goedkeuring per request, maar bouwt zijn Map elke beurt
-        // opnieuw uit de body. Bleef de client dezelfde verzameling meesturen,
-        // dan kocht één klik op "Approve and run" élke latere beurt waarin het
-        // model diezelfde call met dezelfde argumenten voorstelde — zonder
-        // kaart, zonder klik.
+        // This is the gap on which the whole confirmation card stood. The server consumes
+        // an approval per request, but builds its Map afresh each turn from the body. If
+        // the client kept sending the same collection along, one click on "Approve and
+        // run" would buy every later turn in which the model proposed that same call with
+        // the same arguments. Without a card, without a click.
         const { result } = setup({ testChat: { enabled: true } });
         await act(async () => { await result.current.sendMessage('beurt 1'); });
 
@@ -175,11 +173,11 @@ describe('BIJT — één ja draait één actie', () => {
 
 describe('BIJT — een testchat heeft geheugen', () => {
     it('stuurt de beurten van dit gesprek mee, want de server bewaart er geen', async () => {
-        // Een efemere conversatie is `{ …, messages: [] }` en chatStream bouwt
-        // de prompt daaruit. Zonder history begint elke testbeurt vanaf nul:
-        // beurt 3 kan niet naar beurt 1 verwijzen, en een vastgehouden actie
-        // wordt nooit opnieuw voorgesteld — dus wordt de goedkeuring nooit
-        // verbruikt en beloven de knoppen een vervolg dat er niet is.
+        // An ephemeral conversation is `{ …, messages: [] }`, and chatStream builds the
+        // prompt from that. Without history every test turn starts from zero. Turn 3
+        // cannot refer to turn 1, and a held action is never proposed again, so the
+        // approval is never consumed and the buttons promise a follow-up that does not
+        // exist.
         const { result } = setup({ testChat: { enabled: true } });
         await act(async () => { await result.current.sendMessage('wat zijn de openingstijden?'); });
         await act(async () => { await result.current.sendMessage('en op zaterdag?'); });
@@ -200,10 +198,9 @@ describe('BIJT — een testchat heeft geheugen', () => {
 
 describe('BIJT — één testgesprek is één gesprek', () => {
     it('elke beurt draagt dezelfde sessiesleutel', async () => {
-        // De server hasht die tot zijn efemere conversatie-id. Zonder sleutel
-        // krijgt elke BEURT een eigen id en telt `COUNT(DISTINCT
-        // conversation_id)` beurten: "6 testgesprekken" voor één gesprek van
-        // zes berichten.
+        // The server hashes that into its ephemeral conversation id. Without a key every
+        // TURN gets its own id, and `COUNT(DISTINCT conversation_id)` counts turns: "6
+        // test conversations" for one conversation of six messages.
         const { result } = setup({ testChat: { enabled: true } });
         await act(async () => { await result.current.sendMessage('een'); });
         await act(async () => { await result.current.sendMessage('twee'); });

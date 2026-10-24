@@ -5,34 +5,25 @@ import RoleCard, { RoleEmpty, RoleNote } from './RoleCard';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 
 /**
- * "Doet wel" en "Doet niet" — twee bulletlijsten van dezelfde vorm
- * (Agents-artboard 1c). Eén component, want ze verschillen alleen in glyph,
- * titel en in de regel eronder — en juist die regel is het hele punt.
+ * "Does" and "Does not": two bullet lists of the same shape (Agents artboard 1c). One component, because they differ only in
+ * glyph, title and the line underneath, and precisely that line is the whole point.
  *
- * ── "DOET NIET" IS EEN BELOFTE, EN NIEMAND DWINGT HEM AF ────────────
- * Gemeten, niet aangenomen: `doesNot` komt in de hele codebase precies één
- * keer voor buiten zijn eigen normalisatie, namelijk in
- * `renderSystemPrompt` (server/core/agentRuntime/personaPrompt.js), waar het
- * een blok "What you never do:" in het systeemprompt wordt. Verder niets. Geen
- * guardrail leest het (`core/agentRuntime/guardrailsRunner.js` kent alleen
- * unicode-smokkel, PII en de regex-patronen van het Privacy Shield), geen
- * toolpoort kijkt ernaar (`toolPolicy.js` beslist op `config.tools`), en er is
- * geen uitvoerfilter. Ook `strictKnowledge` — de buurman-instelling — is
- * enkel een preambule in datzelfde prompt (`contextBuilder.js:216`).
+ * ── "DOES NOT" IS A PROMISE, AND NOBODY ENFORCES IT ───────────────
+ * Measured, not assumed: `doesNot` occurs in the whole codebase exactly once outside its own normalisation, namely in
+ * `renderSystemPrompt` (server/core/agentRuntime/personaPrompt.js), where it becomes a block "What you never do:" in the
+ * system prompt. Nothing else. No guardrail reads it (`core/agentRuntime/guardrailsRunner.js` knows only unicode smuggling,
+ * PII and the regex patterns of the Privacy Shield), no tool gate looks at it (`toolPolicy.js` decides on `config.tools`),
+ * and there is no output filter. `strictKnowledge`, the neighbouring setting, is merely a preamble in that same prompt
+ * (`contextBuilder.js:216`).
  *
- * Een regel hier is dus een INSTRUCTIE aan het model, geen blokkade. Dat mag
- * niet impliciet blijven: de gebruiker die "Nooit korting toezeggen" opschrijft
- * denkt een grens te hebben getrokken, en heeft een verzoek gedaan. Wat wél
- * hard is, is wat de agent nooit gekregen heeft — een app, tabel of automatisering die
- * niet in `config.tools` staat wordt niet eens aangeboden, en een grant op
- * `{confirm:'ask'}` houdt de actie tegen tot een mens ja zegt. Daar wijst de
- * regel onder de kaart naartoe.
+ * A rule here is therefore an INSTRUCTION to the model, not a block. That may not stay implicit: the user who writes
+ * "Never grant discounts" thinks they have drawn a boundary, and has in fact made a request. What IS hard is what the
+ * agent never received: an app, table or automation that is not in `config.tools` is not even offered, and a grant on
+ * `{confirm:'ask'}` holds the action back until a human says yes. The line under the card points to that.
  *
- * ── DE SERVER GOOIT STIL WEG, DEZE KAART NIET ───────────────────────
- * `_list` in personaPrompt.js ontdubbelt hoofdletter-ongevoelig en stopt bij
- * twintig. Alle drie de afwijzingen (leeg, dubbel, vol) komen daarom hier op
- * het scherm vóór de opslag, in plaats van als een regel die zomaar niet
- * verschijnt.
+ * ── THE SERVER SILENTLY DISCARDS, THIS CARD DOES NOT ───────────────
+ * `_list` in personaPrompt.js de-duplicates case-insensitively and stops at twenty. All three rejections (empty, duplicate,
+ * full) therefore come up here on the screen before saving, instead of as a rule that simply does not appear.
  */
 
 /** De afwijzingsreden als zin. Letterlijke t()-aanroepen voor de i18n-guard. */
@@ -43,13 +34,11 @@ function rejectionMessage(t: TranslateFn, code: BulletRejection) {
 }
 
 /**
- * Eén regel: klikken bewerkt hem, leeg opslaan verwijdert hem.
+ * One rule: clicking edits it, saving empty removes it.
  *
- * BEWERKEN KAN OOK AFGEWEZEN WORDEN. Een regel bewerken naar iets dat al in de
- * lijst staat leverde twee regels in en één regel uit — de bewerkte regel was
- * weg, zonder één woord op het scherm. `editBullet` geeft daar nu
- * `'duplicate'` op terug, en dan blijft het invoerveld staan mét de reden
- * eronder; precies wat `AddRow` hieronder al deed.
+ * EDITING CAN ALSO BE REJECTED. Editing a rule to something that is already in the list let two rules in and one out: the
+ * edited rule was gone, without a single word on the screen. `editBullet` now returns `'duplicate'` for that, and then the
+ * input field stays in place with the reason under it, exactly what `AddRow` below already did.
  */
 function BulletRow({ t, text, index, onEdit, onRemove, readOnly }: {
     t: TranslateFn;
@@ -128,7 +117,7 @@ function AddRow({ t, onAdd }: { t: TranslateFn; onAdd?: (value: string) => Bulle
         const code = onAdd?.(draft) ?? null;
         setRejected(code);
         if (!code) { setDraft(''); setOpen(false); }
-        // Leeg is geen fout maar een afgebroken invoer: dicht, zonder melding.
+        // Empty is not an error but an interrupted input: closed, without a message.
         if (code === 'empty') { setDraft(''); setOpen(false); setRejected(null); }
     };
 

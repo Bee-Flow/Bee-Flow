@@ -3,17 +3,17 @@ import { describe, it, expect } from 'vitest';
 import { dispatchSSEEvent } from '../dispatch';
 
 /**
- * Het `rule_attribution`-event van een testchat.
+ * The `rule_attribution` event of a test chat.
  *
- * Eén regel telt hier: een leeg of onleesbaar payload mag een eerder oordeel
- * NIET wissen. Een lege chiprij waar net nog een chip stond leest als "er is
- * niets gevolgd", en dat is precies de bewering die de attributie-pass niet
- * mag doen — hij mag alleen zwijgen.
+ * One rule applies here: an empty or unreadable payload may NOT erase an earlier
+ * judgement. An empty chip row where a chip stood just before reads as "no rule was
+ * followed", and that is exactly the claim the attribution pass may not make. It may
+ * only stay silent.
  */
 
 const ID = 'assistant-1';
 
-/** Een minimale dispatch-omgeving: alleen wat dit event aanraakt. */
+/** A minimal dispatch environment: only what this event touches. */
 function harness(initial = {}) {
     let messages = [{ id: ID, role: 'assistant', content: 'Dat zeg ik niet.', ...initial }];
     const ctx = { setMessages: (fn) => { messages = fn(messages); } };

@@ -1,29 +1,21 @@
 /**
- * O4 — de releasenotitie bij POST /:id/package/export.
+ * O4 — the release note at POST /:id/package/export.
  *
- * De notitie is de INHOUDSOPGAVE van een versie: per entiteit added/changed/
- * unchanged, plus — als er een model voor is — één regel over wat er veranderde.
- * De Versies-tab rendert precies dat.
+ * The note is the TABLE OF CONTENTS of a version: per entity added/changed/
+ * unchanged, plus — if there is a model for it — one line about what changed. The Versions tab renders precisely that.
  *
- * Twee dingen moeten hier kloppen, en ze horen bij elkaar:
+ * Two things have to be right here, and they belong together:
  *
- *   1. DE SERVER SCHRIJFT HEM. Hij stond eerst als `req.body?.notes` in de
- *      publicatie-aanroep. Niemand vulde dat veld — de enige client stuurt
- *      `{ save }` — dus elke release kreeg `{}` en de Versies-tab las ELKE
- *      versie als "niet vastgelegd", ook de publicatie van vandaag.
- *   2. DE CLIENT SCHRIJFT HEM NIET. Dezelfde regel liet de schrijfkant
- *      openstaan: de store toetst alleen "plat object ≤ 64 KB", dus een
- *      eigenaar kon zelf een `entities`-lijst posten en het scherm toonde die
- *      verzonnen lijst als DE vastgelegde diff — met een entiteit die in
- *      werkelijkheid veranderde netjes op 'unchanged'. Een diff is een uitspraak
- *      van de server over twee manifesten.
+ *   1. THE SERVER WRITES IT. It used to be `req.body?.notes` in the publication call. Nobody filled in that field — the only client sends `{ save }` — so every release
+ *      got `{}` and the Versions tab read EVERY version as "not recorded", including the publication of today.
+ *   2. THE CLIENT DOES NOT WRITE IT. The same rule left the write side open: the store only checks "flat object ≤ 64 KB", so an owner could post
+ *      an `entities` list himself and the screen showed that invented list as THE recorded diff — with an entity that actually changed shown neatly as 'unchanged'. A diff is a
+ *      statement by the server about two manifests.
  *
- * En de derde: PUBLICEREN MAG NOOIT OP DE NOTITIE STUKLOPEN. Valt de tekstlaag
- * om, past de envelop niet, is de vorige versie niet te lezen — dan publiceert
- * de release zonder notitie, nooit niet.
+ * And the third: PUBLISHING MAY NEVER FAIL ON THE NOTE. If the text layer falls over, the envelope does not fit, or the previous version cannot be read — then the
+ * release publishes without a note, never fails to publish.
  *
- * Hermetisch: capture, de stores, de gates en de LLM-laag zijn via require.cache
- * vervangen. Er komt geen database en geen provider aan te pas.
+ * Hermetic: capture, the stores, the gates and the LLM layer are replaced via require.cache. No database and no provider is involved.
  *
  * Run: cd server && node --test routes/projects/packaging.notes.test.js
  */
@@ -149,7 +141,7 @@ function exportProject(body) {
             r.on('data', c => { text += c; });
             r.on('end', () => {
                 let json = null;
-                try { json = JSON.parse(text); } catch { /* niet-JSON is zelf het antwoord */ }
+                try { json = JSON.parse(text); } catch { /* non-JSON is itself the answer */ }
                 resolve({ status: r.statusCode, json });
             });
         });
@@ -187,8 +179,8 @@ test('een publicatie krijgt de diff tegen de vórige versie van deze maker mee',
     const res = await exportProject({ save: true });
     assert.strictEqual(res.status, 200);
 
-    // De linkerkant komt uit de galerijrij van ALICE — de versieserie loopt per
-    // maker, dus de rij van bob is een andere serie en niet de vorige versie.
+    // The left-hand side comes from the gallery row of ALICE — the version series runs per
+    // maker, so bob's row is a different series and not the previous version.
     assert.deepStrictEqual(called('getBlueprintById').map(c => c.args.id), ['bp_mine']);
     assert.deepStrictEqual(called('listBlueprintsFor')[0].args,
         { userId: 'alice', organizationId: 'org_project' });
@@ -214,9 +206,9 @@ test('de eerste publicatie vergelijkt met niets, en kost geen enkele modelaanroe
 });
 
 test('de modelaanroep draagt de organisatie van het PROJECT en de gebruiker', async () => {
-    // Zonder die context valt de tier-resolutie terug op de globale fast-tier;
-    // dan gaat de vorm van deze Oplossing naar het model van de instantie in
-    // plaats van naar het model dat deze werkruimte koos.
+    // Without that context the tier resolution falls back to the global fast tier;
+    // then the shape of this Solution goes to the model of the instance instead of
+    // to the model that this workspace chose.
     reset();
     await exportProject({ save: true });
     assert.deepStrictEqual(called('resolveModel')[0].args.opts, { userOrgId: 'org_project', userId: 'alice' });
@@ -233,9 +225,8 @@ test('een notitie uit de request-body bereikt de database NIET', async () => {
         omitted: 0,
         textsDropped: false,
     };
-    // Sinds het schema (routes/projects/schemas.js) is `notes` geen sleutel
-    // die de export neemt: de request wordt geweigerd met die naam, en er
-    // wordt niets gepubliceerd.
+    // Since the schema (routes/projects/schemas.js) `notes` is not a key that
+    // the export takes: the request is refused with that name, and nothing is published.
     const refused = await exportProject({ save: true, notes: forged });
     assert.strictEqual(refused.status, 400);
     assert.deepStrictEqual(called('publishRelease'), []);
@@ -267,9 +258,8 @@ test('een omgevallen model kost de ZIN, niet de diff', async () => {
 });
 
 test('een notitie die niet binnen MAX_NOTES_BYTES past wordt weggelaten, niet geweigerd', async () => {
-    // publishRelease GOOIT boven die grens, en dat zou een publicatie
-    // tegenhouden vanwege een bijzaak. De route legt de envelop daarom naast de
-    // ECHTE constante van de store, niet naast een kopie.
+    // publishRelease NEVER throws above that limit, and that would hold a publication back over a
+    // side matter. The route therefore lays the envelope next to the REAL constant of the store, not next to a copy.
     reset();
     const store = require('../../stores/blueprintStore');
     const original = store.MAX_NOTES_BYTES;
@@ -283,7 +273,7 @@ test('een notitie die niet binnen MAX_NOTES_BYTES past wordt weggelaten, niet ge
     }
 });
 
-// ── 4. De publicatie wordt omgeroepen — als POKE, niet als antwoord ─────────
+// ── 4. The publication is announced — as a POKE, not as an answer ─────────
 
 test('na een geslaagde publicatie gaat er een blueprint.published de deur uit', async () => {
     reset();
@@ -294,9 +284,8 @@ test('na een geslaagde publicatie gaat er een blueprint.published de deur uit', 
     assert.strictEqual(emitted.args.projectId, 'p1');
     assert.deepStrictEqual(emitted.args.event, { kind: 'blueprint.published', actorId: 'alice' });
 
-    // GEEN Blueprint-id, geen versienummer, geen naam: een projectlid buiten de
-    // organisatie van de Blueprint zou anders via de activiteitenstroom een
-    // versie op zijn scherm krijgen die de galerijlijst hem juist onthoudt.
+    // NO Blueprint id, no version number, no name: a project member outside the organisation of the Blueprint would otherwise get, via the activity stream,
+    // a version on his screen that the gallery list deliberately withholds from him.
     const asText = JSON.stringify(emitted.args.event);
     for (const leak of ['bp_mine', 'sol_p1', 'Onboarding', 'Acme']) {
         assert.ok(!asText.includes(leak), `${leak} hoort niet in een poke`);

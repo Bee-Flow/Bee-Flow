@@ -19,9 +19,9 @@
  * Terminology follows the node catalogue that shipped with the datatable step
  * (add-nl-routines-nodes-translations.js): a datatable is a "datatabel", a
  * routine stays a "routine", an organisation is an "organisatie". And "dit
- * account", never "jij": on a self-hosted install the built-in `admin` login is
+ * account" (this account), never "jij" (you, informal): on a self-hosted install the built-in `admin` login is
  * routinely shared between several human operators, so "alleen jij kunt dit
- * zien" would be a promise the product cannot keep.
+ * zien" (only you can see this) would be a promise the product cannot keep.
  *
  * Idempotent: only fills keys that are missing, so a workspace that curated its
  * own wording keeps it. ADD, NEVER RENAME — a renamed key is a screen that

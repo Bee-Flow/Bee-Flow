@@ -1,29 +1,28 @@
 /**
- * routes/webpages — de versiegeschiedenis als LEESBARE lijst (W4).
+ * routes/webpages — the version history as a READABLE list (W4).
  *
- * Vóór deze stap gaf `GET /:id/versions` rijen terug met een samenvatting, een
- * tijd en een aantal bytes. Wie iets maakte, hoe groot de wijziging was, welk
- * nummer een versie draagt en welke versie het publiek eigenlijk leest —
- * daarvan stond niets in het antwoord, dus kon het scherm het ook niet tonen
- * zonder het te verzinnen.
+ * Before this step, `GET /:id/versions` returned rows with a summary, a time and a
+ * number of bytes. Who made something, how large the change was, which number a
+ * version carries and which version the public actually reads — none of that was in
+ * the answer, so the screen could not show it either without making it up.
  *
- * Wat hier vastligt is precies wat het antwoord MAG beweren:
+ * What is pinned here is exactly what the answer MAY claim:
  *
- *   MAKER      een `actor_user_id` die niet te lezen is, is NIET de lezer en
- *              NIET leeg. Het antwoord zegt dan dat de maker onbekend is. Het
- *              kale id verlaat de route nooit als los veld — het zit in
- *              `actor`, waar de vraag "wie was dit" al beantwoord is.
- *   GEPUBLICEERD  welke versie het publiek leest, komt uit
- *              `published_version_id` en staat als eigen veld in het antwoord.
- *              Een wijzer naar een versie van een ANDERE pagina levert niets,
- *              geen nummer dat in deze lijst niets betekent.
- *   TERUGZETTEN  maakt een momentopname met `source: 'restore'` en een
- *              samenvatting die zegt dat hij van VÓÓR het terugzetten is.
- *   ÉÉN WEG    Bekijk leest dezelfde route als de lijst en krijgt dezelfde
- *              vorm terug; er is geen tweede weg naar deze rijen.
+ *   MAKER         an `actor_user_id` that cannot be read is NOT the reader and NOT
+ *                 empty. The answer then says that the maker is unknown. The bare id
+ *                 never leaves the route as a loose field — it sits in `actor`, where
+ *                 the question "who was this" has already been answered.
+ *   PUBLISHED     which version the public reads comes from `published_version_id`
+ *                 and is stated as its own field in the answer. A pointer to a version
+ *                 of a DIFFERENT page yields nothing, no number that means nothing in
+ *                 this list.
+ *   RESTORE       creates a snapshot with `source: 'restore'` and a summary that says
+ *                 it is from BEFORE the restore.
+ *   ONE PATH      Bekijk reads the same route as the list and gets the same shape
+ *                 back; there is no second path to these rows.
  *
- * Geen database: auth is gestubd vóór de router laadt en elke store-aanraking
- * is gemonkeypatcht (patroon van webpages.publish.test.js).
+ * No database: auth is stubbed before the router loads and every store touch is
+ * monkeypatched (pattern of webpages.publish.test.js).
  *
  * Run: node --test --test-force-exit routes/webpages.versions.test.js
  */
@@ -93,11 +92,11 @@ function patch(page, over = {}) {
         [webpageStore, 'getWebpage', async (id, userId) => (userId === page.userId ? { ...page } : null)],
         [webpageStore, 'getVersions', async () => []],
         [webpageStore, 'getVersionMeta', async () => null],
-        // De opslag is in deze tests bereikbaar. Expliciet, want de ECHTE
-        // `slotsAreReadable` antwoordt hier `false` (er draait geen RustFS) en
-        // dan zouden alle meet-tests hieronder "niet gemeten" krijgen zonder dat
-        // dat iets over de route zegt. Een test die het omgekeerde wil, zet hem
-        // zelf op `false` — zie de twee tests over onleesbare opslag.
+        // The store is reachable in these tests. Stated explicitly, because the REAL
+        // `slotsAreReadable` answers `false` here (no RustFS is running), and then all the
+        // measurement tests below would get "not measured" without that saying anything
+        // about the route. A test that wants the opposite sets it to `false` itself — see
+        // the two tests about unreadable storage.
         [webpageStore, 'slotsAreReadable', () => true],
         [webpageStore, 'listExtraFiles', async () => []],
         // Standaard NIETS opzoeken — een test die de store wél nodig heeft,
@@ -223,8 +222,8 @@ test('de gepubliceerde versie komt uit published_version_id, met zijn nummer', a
 });
 
 test('BIJT: een wijzer naar een versie van een ANDERE pagina levert niets', async (t) => {
-    // getVersionMeta zoekt alleen op id. Zonder de paginacontrole zou hier een
-    // nummer verschijnen dat in deze lijst nergens bij hoort.
+    // getVersionMeta looks up by id only. Without the page check, a number would appear
+    // here that belongs to nothing in this list.
     await withPatches(patch({ ...BASE_PAGE, publishedVersionId: 'v-foreign' }, {
         getVersions: async () => [row()],
         getVersionMeta: async () => ({ id: 'v-foreign', webpageId: 'wp2', seq: 3 }),
@@ -431,10 +430,9 @@ test('binnen het debounce-venster verschijnt er geen rij — dat blijft zo', asy
 // ── 8. De sluitronde: "leeg" en "onleesbaar" komen niet op hetzelfde uit ──
 
 test('onbereikbare opslag levert GEEN regelverschil bij het terugzetten', async (t) => {
-    // `readSlot` GOOIT niet als RustFS weg is — hij antwoordt met ''. De
-    // catch-tak die "niet gemeten" op null zet, vuurde daardoor nooit voor juist
-    // het geval waarvoor hij geschreven is, en de rij kreeg ±0: de bewering "er
-    // veranderde niets" uit een niet-meting.
+    // `readSlot` does NOT THROW when RustFS is gone — it answers ''. The catch branch that
+    // sets "not measured" to null therefore never fired for exactly the case it was written
+    // for, and the row got ±0: the claim "nothing changed" from a non-measurement.
     const calls = [];
     await withPatches(restorePatches(calls, {
         slotsAreReadable: () => false,
@@ -465,9 +463,8 @@ test('onbereikbare opslag boekt bij een handmatige save niet de hele tekst als a
 });
 
 test('een momentopname waarvan de bytes weg zijn wordt NIET teruggezet', async (t) => {
-    // De rij bestaat, de objecten niet meer. Terugzetten zou lege strings over de
-    // levende pagina schrijven — blanco — terwijl de bevestiging net beloofde dat
-    // je het kon terugdraaien.
+    // The row exists, the objects do not. Restoring would write empty strings over the live
+    // page — blank — while the confirmation had just promised that you could undo it.
     const calls = [];
     await withPatches(restorePatches(calls, {
         getVersion: async () => ({

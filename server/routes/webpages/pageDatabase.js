@@ -1,7 +1,7 @@
 /**
- * De paginadatabank achter de sessie: de DB-viewer (Schema / Browse / SQL) en
- * de reset. Spiegelt het AI-tooloppervlak in webpageDbTools.js, maar met de
- * sessie als grens in plaats van het model.
+ * The page database behind the session: the DB viewer (Schema / Browse / SQL) and the
+ * reset. Mirrors the AI tool surface in webpageDbTools.js, but with the session as the
+ * boundary instead of the model.
  *
  * DELETE /:id/db  ·  GET /:id/db/schema  ·  POST /:id/db/query  ·  POST /:id/db/exec
  */
@@ -13,17 +13,16 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, NOTHING, NO_QUERY } = require('./schemas');
 
-// ── Wat de DB-viewer mag sturen ─────────────────────────────────────
+// ── What the DB viewer may send ─────────────────────────────────────
 //
-// Dit IS de plek waar SQL binnenkomt — de SQL-tab van de viewer — en het is
-// het enige oppervlak in deze router waar dat mag. De grens is de sessie: de
-// tokenroutes van de preview schrijven rijen, deze route draait wat de
-// eigenaar intypt, en webpageDbStore weigert zelf een mutatie op `query`.
+// This IS the place where SQL comes in — the SQL tab of the viewer — and it is the only
+// surface in this router where that may happen. The boundary is the session: the token
+// routes of the preview write rows, this route runs what the owner types in, and
+// webpageDbStore refuses a mutation on `query` itself.
 //
-// `params` moest een lijst zijn en werd anders stilletjes `[]`: een
-// benoemd-parameterobject — `{":id": 3}` — liet de statement dan draaien
-// ZONDER bindingen, en `?`-plekken zonder waarde geven een andere rij terug
-// dan waar iemand om vroeg. Nu is het een lijst of een 400.
+// `params` had to be a list and otherwise silently became `[]`: a named-parameter object
+// — `{":id": 3}` — then let the statement run WITHOUT bindings, and `?` places without a
+// value returned a different row than the one someone asked for. Now it is a list or a 400.
 const SQL_TEXT = 'sql is required';
 const PARAMS_TEXT = 'params is een lijst met waarden.';
 const DbBody = bodyOf({

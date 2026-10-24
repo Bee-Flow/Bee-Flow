@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
- * De client van POST /api/studio/ai/route.
+ * The client of POST /api/studio/ai/route.
  *
- * Het punt dat elke test hier bewaakt: "de router koos niets" en "ik kon het
- * antwoord niet lezen" mogen NOOIT dezelfde vorm krijgen. Een mislukte fetch
- * is `ok: false`, nooit een geslaagd resultaat met `kind: null`.
+ * The point every test here guards: "the router chose nothing" and "I could not
+ * read the answer" must NEVER get the same shape. A failed fetch is `ok: false`,
+ * never a successful result with `kind: null`.
  */
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));

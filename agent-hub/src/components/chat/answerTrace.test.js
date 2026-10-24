@@ -3,17 +3,16 @@ import { describe, it, expect } from 'vitest';
 import { answerTraceFor, countSentences, traceSpanMs } from './answerTrace';
 
 /**
- * Welke regels het spoor mag tonen, en — belangrijker — welke het NIET mag
- * verzinnen.
+ * Which rules the trail may show and, more importantly, which it may NOT invent.
  *
- * De harde regels:
- *   • een stap zonder event bestaat niet in het spoor; hij ontbreekt, met een
- *     reden die over de METING gaat en niet over de agent;
- *   • een zoekstap zonder passages levert "niet gemeld", nooit "0 resultaten";
- *   • toon en taal staan er nooit als feit — niemand meet ze;
- *   • de regelrij is GEOORDEELD en houdt dat woord, ook als hij naast vier
- *     opgetekende regels staat;
- *   • een beslissing die na de beurt alsnog valt, werkt regel 4 bij.
+ * The hard rules:
+ *   • a step without an event does not exist in the trail. It is missing, with a
+ *     reason that concerns the MEASUREMENT and not the agent;
+ *   • a search step without passages yields "not reported", never "0 results";
+ *   • tone and language are never shown as fact. Nobody measures them;
+ *   • the rule row is JUDGED and keeps that word, even when it stands next to four
+ *     recorded rules;
+ *   • a decision that falls after the turn updates rule 4.
  */
 
 const KEY = 'a'.repeat(32);
@@ -78,10 +77,9 @@ describe('een volle beurt', () => {
 
 describe('wat er niet gemeten is', () => {
     it('BIJT — toon en taal zijn ALTIJD weggelaten, met de reden', () => {
-        // `persona.tone.chips` en `persona.language` bestaan, maar dat is wat
-        // er GEVRAAGD is. Niemand meet of het antwoord die toon trof of in die
-        // taal geschreven is. Ze als feit tonen zou van een wens een uitslag
-        // maken.
+        // `persona.tone.chips` and `persona.language` exist, but that is what was
+        // REQUESTED. Nobody measures whether the answer hit that tone or was written
+        // in that language. Showing them as fact would turn a wish into a result.
         const r = rowsById(fullTurn()).answer;
         expect(r.omitted).toEqual([
             { fact: 'tone', reason: 'not_measured' },
@@ -92,9 +90,9 @@ describe('wat er niet gemeten is', () => {
     });
 
     it('BIJT — een zoekstap zonder passages meldt NIET "0 resultaten"', () => {
-        // kb_sources gaat alleen over de lijn als includeSourceReferences aan
-        // staat, en de project-KB-injectie zendt het nooit. Nul passages
-        // betekent dus "niet gemeld", niet "niets gevonden".
+        // kb_sources only goes over the line if includeSourceReferences is on, and the
+        // project KB injection never sends it. Zero passages therefore means "not
+        // reported", not "nothing found".
         const msg = { ...fullTurn(), kbSources: [] };
         const r = rowsById(msg).sources;
         expect(r.state).toBe('recorded');
@@ -104,9 +102,8 @@ describe('wat er niet gemeten is', () => {
     });
 
     it('BIJT — zonder kb_search-tool is er geen zoekterm om te tonen', () => {
-        // De auto-injectie zoekt zonder ook maar iets over zijn zoekvraag te
-        // zenden. Er is dan niets te tonen, en de vraag van de gebruiker
-        // invullen zou een gok zijn.
+        // The auto-injection searches without sending anything of its search query.
+        // There is then nothing to show, and filling in the user's question would be a guess.
         const msg = { ...fullTurn(), toolHistory: [] };
         const r = rowsById(msg).sources;
         expect(r.query).toBeNull();
@@ -142,9 +139,8 @@ describe('een beurt zonder tools', () => {
     });
 
     it('BIJT — een ontbrekende regel draagt geen feiten', () => {
-        // Een ontbrekende stap mag nergens een getal of een naam bij krijgen:
-        // dan is hij op het scherm niet meer van een gemeten stap te
-        // onderscheiden.
+        // A missing step may not get a number or a name. Then on the screen it can no
+        // longer be told apart from a measured step.
         const rows = rowsById(plain());
         expect(rows.sources).not.toHaveProperty('results');
         expect(rows.sources).not.toHaveProperty('query');
@@ -159,10 +155,9 @@ describe('een beurt zonder tools', () => {
 
 describe('een beurt waarin de attributie ontbreekt', () => {
     it('regel 3 ontbreekt, met een reden over de CONTROLE', () => {
-        // De pass draait alleen in een testchat, alleen bij een rol met
-        // doesNot-bullets, en geeft niets terug als hij omvalt. Geen van die
-        // gevallen zegt iets over de agent — de reden moet dus over de
-        // controle gaan.
+        // The pass runs only in a test chat, only for a role with doesNot bullets, and
+        // returns nothing when it fails. None of those cases says anything about the
+        // agent, so the reason must concern the check.
         const msg = { ...fullTurn(), ruleAttribution: undefined };
         expect(rowsById(msg).rule).toMatchObject({ state: 'missing', reason: 'no_attribution' });
     });
@@ -190,9 +185,9 @@ describe('een beurt waarin de attributie ontbreekt', () => {
 
 describe('zonder spoor', () => {
     it('een herladen bericht zegt dat er NIETS opgetekend is', () => {
-        // Na een herlaadbeurt komt het bericht uit de historie: toolHistory en
-        // kbSources zijn er nog, het fase-spoor niet. "Niets opgetekend" is dan
-        // waar; "de agent deed niets" niet.
+        // After a reload the message comes from the history: toolHistory and kbSources
+        // are still there, the phase trail is not. "Nothing recorded" is then true;
+        // "the agent did nothing" is not.
         const rows = rowsById({ id: 'm-3', role: 'assistant', content: '' });
         expect(rows.question).toMatchObject({ state: 'missing', reason: 'no_trace' });
         expect(rows.sources).toMatchObject({ state: 'missing', reason: 'no_trace' });
@@ -220,9 +215,9 @@ describe('een beslissing die daarna alsnog valt', () => {
     });
 
     it('BIJT — een goedkeuring van de SERVER is iets anders dan een klik', () => {
-        // Server: de call heeft gedraaid. Klik: hij gaat draaien. Het spoor
-        // moet die twee uit elkaar kunnen houden, anders staat er "it ran" bij
-        // iets dat nog moet gebeuren.
+        // Server: the call has run. Click: it is going to run. The trail must be able
+        // to keep those two apart, otherwise "it ran" stands next to something that
+        // still has to happen.
         const msg = fullTurn();
         msg.pendingToolCalls = [{ ...msg.pendingToolCalls[0], status: 'approved' }];
         expect(rowsById(msg).held_action.actions[0]).toMatchObject({ status: 'approved', by: 'server' });
@@ -265,8 +260,8 @@ describe('zinnen tellen', () => {
     it('BIJT — een codeblok is geen proza en blaast de telling niet op', () => {
         const text = 'Zo doe je dat. \n```js\n// Eerst dit. Dan dat.\nconsole.log(1);\n```\nKlaar.';
         expect(countSentences(text)).toBe(2);
-        // Zonder het wegknippen zouden de twee zinnen in het commentaar
-        // meetellen en stond er "4 sentences" onder een antwoord van twee.
+        // Without cutting them away, the two sentences in the comment would count, and
+    // "4 sentences" would stand under an answer of two.
         expect(countSentences('Zo doe je dat. // Eerst dit. Dan dat. Klaar.')).toBe(4);
     });
 
@@ -296,8 +291,8 @@ describe('BIJT — een tabelrij is geen document', () => {
         expect(row.documents).toBe(null);
         expect(row.rows).toBe(3);
         expect(row.tables).toBe(1);
-        // En geen "Not shown: number of results": er was geen kennisstap om
-        // een aantal van te missen.
+        // And no "Not shown: number of results": there was no knowledge step to miss a
+    // count from.
         expect(row.omitted).toEqual([]);
     });
 

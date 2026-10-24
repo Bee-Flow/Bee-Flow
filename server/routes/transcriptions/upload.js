@@ -29,25 +29,24 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice } = require('./schemas');
 
-// ── Wat een upload mag dragen ───────────────────────────────────────
+// ── What an upload may carry ───────────────────────────────────────
 //
-// Multipart, dus het schema staat ACHTER multer: die leest de stream en zet
-// de tekstvelden pas daarna op `req.body` (het bestand gaat naar `req.file`,
-// niet naar de body). Een `validate()` ervoor zou dus een lege body zien.
+// Multipart, so the schema sits BEHIND multer: that reads the stream and only then
+// puts the text fields on `req.body` (the file goes to `req.file`, not to the body).
+// A `validate()` in front of it would see an empty body.
 //
-// `.strict()`, want elk veld hieronder verandert wat er met de opname
-// GEBEURT, en elk veld viel stil weg als je het verkeerd spelde:
-// `{languge:'en'}` liet een Engelse vergadering in het Nederlands
-// transcriberen, `{atendees:'Tom, Anna'}` liet de namenlijst vallen die
-// sprekerherkenning haar enige houvast geeft, en `{provder:'local'}` stuurde
-// de audio naar de standaarddienst in plaats van naar de zelfgehoste.
+// `.strict()`, because every field below changes what HAPPENS to the recording, and
+// every field silently dropped out when misspelled: `{languge:'en'}` let an English
+// meeting be transcribed in Dutch, `{atendees:'Tom, Anna'}` dropped the name list
+// that speaker recognition relies on, and `{provder:'local'}` sent the audio to the
+// default service instead of the self-hosted one.
 //
-// `capture_mode` was bovendien een stille terugval — `=== 'recording' ?
-// 'recording' : 'upload'` — dus een browseropname die hier verkeerd gespeld
-// binnenkwam werd als geüpload bestand geboekt. Dat onderscheid is precies
-// wat bepaalt of de "deze bytes bestaan nergens anders"-waarschuwing verschijnt.
+// `capture_mode` was moreover a silent fallback — `=== 'recording' ? 'recording' :
+// 'upload'` — so a browser recording that arrived here misspelled was booked as an
+// uploaded file. That distinction is exactly what decides whether the "these bytes
+// exist nowhere else" warning appears.
 //
-// Alles is tekst: FormData draagt geen andere typen.
+// Everything is text: FormData carries no other types.
 const CAPTURE_TEXT = 'capture_mode is "recording" of "upload".';
 const UploadBody = bodyOf({
     capture_mode: choice(['recording', 'upload'], CAPTURE_TEXT).optional(),
@@ -55,8 +54,8 @@ const UploadBody = bodyOf({
     title: worded('Een titel is tekst.').optional(),
     context_terms: worded('context_terms is tekst.').optional(),
     attendees: worded('attendees is tekst met namen.').optional(),
-    // parseSpeakerCount klemt hem daarna op 1..50; wat het schema toevoegt is
-    // dat "twee" geen stille Auto meer is.
+    // parseSpeakerCount then clamps it to 1..50; what the schema adds is that "two"
+    // is no longer a silent Auto.
     num_speakers: z.coerce.number({ error: typeError({ invalid: 'num_speakers is een getal.' }) })
         .int('num_speakers is een heel getal.').optional(),
     provider: worded('provider is de naam van een transcriptiedienst.').trim().min(1).optional(),

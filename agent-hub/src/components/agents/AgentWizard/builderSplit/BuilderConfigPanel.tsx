@@ -69,15 +69,15 @@ export interface BuilderConfigPanelProps {
 }
 
 /**
- * De ROL-tab van de agent-editor: de actiepillen-balk met haar popovers en de
- * instructie-editor.
+ * The ROLE tab of the agent editor: the action-pill bar with its popovers and
+ * the instruction editor.
  *
- * Sinds A2 stap 1 zit hier GEEN kopbalk en GEEN identiteitsblok meer. De
- * opslagstatus, publiceren, de zichtbaarheidscapsule en de terugpijl zitten in
- * de gedeelde `AgentEditorHeader`; avatar, naam, omschrijving, de chips en —
- * sinds A3 deel B — de categorietag in `AgentHero`, boven de tabs. Dit bestand
- * tekent alleen nog wat ONDER de heldere identiteit hoort — en alles komt nog
- * steeds via props binnen; er staat hier geen state.
+ * Since A2 step 1 there is NO heading bar and NO identity block here any more.
+ * The save status, publish, the visibility capsule and the back arrow sit in the
+ * shared `AgentEditorHeader`. The avatar, name, description, the chips and,
+ * since A3 part B, the category tag sit in `AgentHero`, above the tabs. This file
+ * only draws what belongs BELOW that clear identity, and everything still comes in
+ * through props. There is no state here.
  */
 export default function BuilderConfigPanel({
     ro, t, agent,
@@ -98,11 +98,10 @@ export default function BuilderConfigPanel({
 }: BuilderConfigPanelProps) {
     return (
         <div className="max-w-4xl mx-auto px-10 pt-6 pb-12">
-            {/* `inert` (React 19 native) blokkeert muis én toetsenbord voor de
-                hele subtree zonder de layout aan te raken — anders dan
-                fieldset[disabled], waarvan display:contents door browsers niet
-                gehonoreerd wordt (een fieldset maakt altijd een eigen blok en
-                zou deze flex-rijen voor IEDEREEN breken). */}
+            {/* `inert` (React 19 native) blocks mouse AND keyboard for the entire
+                subtree without touching the layout. Unlike fieldset[disabled], whose
+                display:contents is not honoured by browsers (a fieldset always makes
+                its own block and would break these flex rows for EVERYONE). */}
             <div ref={actionBarRef} inert={ro || undefined} className={`flex flex-wrap items-center gap-2 relative mb-8 ${ro ? 'opacity-60' : ''}`}>
                 <div className="mr-1">
                     <ModelTierSelector
@@ -238,22 +237,20 @@ export default function BuilderConfigPanel({
                 )}
             </div>
 
-            {/* De categorie stond hier als volle-breedte veld met een kop
-                erboven. Sinds A3 deel B staat hij in de identiteitsrij als
-                "Sales ▾"-tag naast de naam (AgentHero) — hij hoort bij wie de
-                agent IS, en hier stond hij vóór de vijf rolkaarten. Eén
-                besturing, één plek: twee categorie-keuzelijsten op één scherm
-                zijn twee plekken waar iemand hem kan zetten en één waar hij
-                daarna niet meer klopt. */}
+            {/* The category used to stand here as a full-width field with a heading
+                above it. Since A3 part B it sits in the identity row as a "Sales ▾"
+                tag next to the name (AgentHero). It belongs to who the agent IS, and
+                here it stood before the five role cards. One control, one place: two
+                category dropdowns on one screen are two places where someone can set
+                it, and one place where it is no longer correct afterwards. */}
 
-            {/* "Als het niet weet" (Agents-artboard 1c, ingevuld door A2 stap 2).
-                `strictKnowledge` stond tot nu toe als vinkje BOVEN een
-                bestandenlijst in de uploadmodal — twee klikken diep, op een
-                scherm dat over bestanden gaat terwijl de instelling over
-                ANTWOORDEN gaat. Het artboard tekent hier nog twee keuzes naast
-                ("zoek op het web", "geef door aan een mens"); die bestaan nog
-                niet als agentinstelling, en drie knoppen tekenen waarvan er
-                één werkt is erger dan één knop die het doet. */}
+            {/* "If it does not know" (Agents artboard 1c, filled in by A2 step 2).
+                `strictKnowledge` used to be a checkbox ABOVE a file list in the upload
+                modal: two clicks deep, on a screen about files, while the setting is
+                about ANSWERS. The artboard draws two choices next to it ("search the
+                web", "hand over to a human"). Those do not yet exist as an agent
+                setting, and three buttons of which one works is worse than one button
+                that does. */}
             <div className="mb-8" inert={ro || undefined}>
                 <div className="text-[13px] font-medium text-[var(--text-secondary)] mb-1">
                     {t('agent_studio.role.unknown_title', "If it doesn't know")}

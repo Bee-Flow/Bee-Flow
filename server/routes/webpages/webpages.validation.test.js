@@ -1,29 +1,29 @@
 /**
- * Wat de webpagina-routes aannemen, en wat ze zeggen als ze weigeren
+ * What the webpage routes accept, and what they say when they refuse
  * (routes/webpages/*.js).
  *
- * Vijf stille terugvallen stonden hier, allemaal onder een 200:
+ * Five silent fallbacks stood here, all under a 200:
  *
- *   - `PUT /:id/chat {"mesages": [...]}` WISTE de hele gespreksgeschiedenis
- *     van de bouw-AI. `Array.isArray(req.body?.messages) ? … : []` maakte van
- *     een typefout een lege lijst, en het antwoord was `{success:true,count:0}`.
- *   - `PATCH /:id/publish {"isPublished": "false"}` PUBLICEERDE de pagina: de
- *     store schrijft `!!isPublished`, en de tekst "false" is waar. Het antwoord
- *     echode `isPublished: "false"` terug.
- *   - `PATCH /:id/publish {}` depubliceerde hem, om dezelfde reden vanaf de
- *     andere kant, en wiste de gepinde momentopname.
- *   - `POST /:id/public-shares {"accesMode":"password", "password":"…"}` maakte
- *     een link ZONDER wachtwoord: `accessMode` viel terug op 'unlisted', de
- *     smalste keuze op het scherm werd het wijdste publiek dat er is.
- *   - `POST / {"framework":"raect"}` bouwde de pagina als `vanilla`.
+ *   - `PUT /:id/chat {"mesages": [...]}` WIPED the whole conversation history of the
+ *     build AI. `Array.isArray(req.body?.messages) ? … : []` turned a typo into an empty
+ *     list, and the answer was `{success:true,count:0}`.
+ *   - `PATCH /:id/publish {"isPublished": "false"}` PUBLISHED the page: the store writes
+ *     `!!isPublished`, and the text "false" is true. The answer echoed
+ *     `isPublished: "false"` back.
+ *   - `PATCH /:id/publish {}` unpublished it, for the same reason from the other side, and
+ *     wiped the pinned snapshot.
+ *   - `POST /:id/public-shares {"accesMode":"password", "password":"…"}` made a link
+ *     WITHOUT a password: `accessMode` fell back to 'unlisted', and the narrowest choice on
+ *     the screen became the widest public there is.
+ *   - `POST / {"framework":"raect"}` built the page as `vanilla`.
  *
- * Wat dit bestand vastlegt is het deel waar een beller iets mee kan:
+ * What this file records is the part where a caller can do something about it:
  *
- *   - de 400 NOEMT het veld (`body.isPublished`), niet alleen "ongeldig";
- *   - de boodschap is een zin, ook voor een veld dat simpelweg ontbreekt;
- *   - de stores worden niet bereikt, dus een geweigerd verzoek verandert niets.
+ *   - the 400 NAMES the field (`body.isPublished`), not just "invalid";
+ *   - the message is a sentence, also for a field that is simply missing;
+ *   - the stores are not reached, so a refused request changes nothing.
  *
- * Draaien: cd server && node --test routes/webpages/webpages.validation.test.js
+ * Run: cd server && node --test routes/webpages/webpages.validation.test.js
  */
 
 'use strict';
@@ -64,16 +64,14 @@ const PAGE = {
     knowledgeBaseIds: [],
 };
 
-// Elke store-aanroep komt in `touched` terecht. Een geweigerd verzoek moet
-// hem leeg laten.
+// Every store call ends up in `touched`. A refused request must leave it empty.
 let touched = [];
 const spy = (what, value) => (...args) => { touched.push({ what, args }); return value; };
 
 /**
- * De echte router achter een echte express-app, mét de terminale
- * foutafhandelaar erachter — net als in index.js. Zonder die laatste wordt
- * `next(err)` uit een schema express' eigen 500-pagina in plaats van de 400
- * die de server werkelijk verstuurt.
+ * The real router behind a real express app, with the terminal error handler behind it —
+ * just as in index.js. Without that last one, `next(err)` from a schema turns into express's
+ * own 500 page instead of the 400 that the server actually sends.
  */
 function stubs() {
     return [
@@ -185,8 +183,8 @@ test('leegmaken blijft DELETE, en die neemt geen body aan', async () => {
 // ═══ PATCH /:id/publish ═════════════════════════════════════════════
 
 test('de tekst "false" publiceert niet meer, maar wordt bij naam geweigerd', async () => {
-    // De store schrijft `!!isPublished`, en "false" is waar: dit ZETTE de
-    // pagina open voor de hele organisatie en pinde er een momentopname bij.
+    // The store writes `!!isPublished`, and "false" is true: this OPENED the
+    // page for the whole organisation and pinned a snapshot to it.
     await refuses('PATCH', '/wp1/publish', { isPublished: 'false' }, 'body.isPublished');
     await refuses('PATCH', '/wp1/publish', { isPublished: 'true' }, 'body.isPublished');
 });
@@ -306,8 +304,8 @@ test('een verkeerd gespeld pad geeft geen inhoudsopgave meer terug', async () =>
 });
 
 test('een onbekende querysleutel op NO_QUERY krijgt een zin, niet zods eigen "Unrecognized key(s)"', async () => {
-    // GET /:id/sources draagt `query: NO_QUERY` (routes/webpages/sources.js) —
-    // anders dan de /files-route hierboven, die zijn eigen FileQuery gebruikt.
+    // GET /:id/sources carries `query: NO_QUERY` (routes/webpages/sources.js) —
+    // unlike the /files route above, which uses its own FileQuery.
     const res = await call('GET', '/wp1/sources?bogus=1', undefined);
     assert.strictEqual(res.statusCode, 400);
     assert.strictEqual(res.body.error, 'Dit accepteert geen queryparameters.');

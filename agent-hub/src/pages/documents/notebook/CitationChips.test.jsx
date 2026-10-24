@@ -131,9 +131,9 @@ describe('CitationChips — rows and dates', () => {
     });
 
     it('a LIVE table row cites the table it was read from', () => {
-        // Een rij die op het moment van de vraag uit de tabel kwam heeft geen
-        // pagina, geen rijbereik en geen datum. Zonder de tabelnaam is "Widget
-        // A" precies de kale chip waar het paginanummer voor bestaat.
+        // A row that came out of the table at the moment of the question has no page, no row
+        // range and no date. Without the table name, "Widget A" is precisely the bare chip
+        // that the page number exists for.
         const row = src({
             title: 'Widget A', kind: 'datatable_row', page: null, section: 'Producten',
             datatableId: 't-1', rowId: 'r-7', sourceName: 'Producten',
@@ -143,9 +143,9 @@ describe('CitationChips — rows and dates', () => {
     });
 
     it('BIJT — een halve rijverwijzing plakt geen tabelnaam op een gewone passage', () => {
-        // `datatableId` en `rowId` zijn een paar (core/kb/citation.js zet ze
-        // samen of geen van beide). Op `sourceName` alleen afgaan zou
-        // "Nextcloud · /Sales" achter elke kb-chip in het product zetten.
+        // `datatableId` and `rowId` are a pair (core/kb/citation.js sets them together or
+        // neither). Relying on `sourceName` alone would put "Nextcloud · /Sales" behind
+        // every kb chip in the product.
         for (const over of [{ datatableId: 't-1' }, { rowId: 'r-7' }, {}]) {
             expect(chipLabel(src({ page: null, sourceName: 'Nextcloud · /Sales', ...over }), 0, t))
                 .toBe('Personeelshandboek');
@@ -153,9 +153,8 @@ describe('CitationChips — rows and dates', () => {
     });
 
     it('een tabelrij draagt de tabelglyph, niet die van een document', () => {
-        // Op "anders dan een document" alleen testen is te zwak: een rij die
-        // terugvalt op de generieke bestandsglyph is ook "anders", en dan is
-        // een rij weer een pagina van een pdf.
+        // Testing only for "other than a document" is too weak. A row that falls back to the
+        // generic file glyph is also "other", and then a row is once again a page of a pdf.
         const row = src({ title: 'Widget A', kind: 'datatable_row', page: null, datatableId: 't-1', rowId: 'r-7', sourceName: 'Producten' });
         const { container } = render(<CitationChips sources={[src(), row]} t={t} />);
         const [doc, table] = [...container.querySelectorAll('[data-testid="citation-chip"] svg')];
@@ -164,8 +163,8 @@ describe('CitationChips — rows and dates', () => {
     });
 
     it('noemt de tabel niet twee keer in de tooltip', () => {
-        // De "kop" van een rij is de naam van de tabel, en die staat al in het
-        // label: "Widget A · Producten — Producten" leest als een fout.
+        // The "heading" of a row is the name of the table, and that is already in the label.
+        // "Widget A · Products — Products" reads as an error.
         const row = src({ title: 'Widget A', kind: 'datatable_row', page: null, section: 'Producten', datatableId: 't-1', rowId: 'r-7', sourceName: 'Producten' });
         render(<CitationChips sources={[row]} t={t} />);
         expect(screen.getByTestId('citation-chip').getAttribute('title')).toBe('Widget A · Producten');

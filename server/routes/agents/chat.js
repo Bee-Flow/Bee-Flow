@@ -444,12 +444,11 @@ router.post('/:id/chat/stream', streamLimiter, validate({ body: TurnBody }), asy
         } catch (e) {
             // An edit check that could not run is not permission to simulate.
             log.error('[AgentChat] test-mode edit check failed:', e.message);
-            // Eén mislukte check weigert BEIDE affordances als er beide
-            // gevraagd zijn. `code` blijft de sterkste (een testchat serveert
-            // het concept), maar `codes` noemt elke geweigerde affordance —
-            // anders mist een client die op het A1c-contract
-            // (`test_as_check_failed`) afhandelt precies het geval waarin hij
-            // óók `test: true` meestuurde.
+            // One failed check refuses BOTH affordances when both have been
+            // requested. `code` remains the strongest (a test chat serves the draft), but
+            // `codes` names every refused affordance — otherwise a client that handles
+            // the A1c contract (`test_as_check_failed`) misses precisely the case in which
+            // it ALSO sent `test: true`.
             const _refused = [];
             if (wantsTest) _refused.push(testChatMod.TEST_CHAT_CODES.checkFailed);
             if (req.body?.asGroup) _refused.push('test_as_check_failed');

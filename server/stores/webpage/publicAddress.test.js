@@ -1,13 +1,12 @@
 /**
- * Het adres: hoe het gemaakt wordt, en hoe het teruggevonden wordt.
+ * The address: how it is made, and how it is found again.
  *
- * De harde eis staat in de kop van publicAddress.js: bij `unlisted` IS het
- * adres de sleutel, dus mag het niet uit de paginanaam te raden zijn. De
- * eerste tests hier bewaken precies dat; de rest bewaakt dat het adres niet
- * verspringt, dat het bij twijfel niets oplevert, en dat de wijzer naar de
- * canonieke share op share-id werkt en niet op pagina-id.
+ * The hard requirement is stated in the header of publicAddress.js: with `unlisted` the address IS
+ * the key, so it may not be guessable from the page name. The first tests here guard exactly that;
+ * the rest guard that the address does not shift, that it yields nothing when in doubt, and that the
+ * pointer works towards the canonical share on share id and not on page id.
  *
- * db-stub vóór de require, zoals stores/webpage/bridgeGrants.test.js.
+ * db stub before the require, as in stores/webpage/bridgeGrants.test.js.
  *
  * Run: node --test --test-force-exit stores/webpage/publicAddress.test.js
  */
@@ -15,9 +14,9 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-// ── db-stub ──────────────────────────────────────────────────────────
-// Eén rij `webpages`, plus een verzameling bezette slugs zodat de unieke
-// index nagebootst kan worden.
+// ── db stub ──────────────────────────────────────────────────────────
+// One `webpages` row, plus a set of taken slugs so that the unique index can be
+// simulated.
 const OWNER = 'u1';
 let row = null;              // { id, user_id, slug, public_share_id, name }
 let takenSlugs = new Set();

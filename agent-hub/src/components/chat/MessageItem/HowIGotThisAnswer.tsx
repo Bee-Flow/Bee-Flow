@@ -40,9 +40,8 @@ interface HowIGotThisAnswerProps {
 }
 
 const HowIGotThisAnswer = ({ msg, idx, allMessages, hasPrivacyInfo, t: tProp, showSources = false }: HowIGotThisAnswerProps) => {
-    // De aanroeper geeft `t` door; een aanroeper die dat niet doet krijgt de
-    // hook, zodat een paneel nooit rauwe sleutels of onvertaalbaar Engels toont
-    // omdat één prop vergeten is.
+    // The caller passes `t` on. A caller that does not do so gets the hook, so that a panel never shows raw keys
+    // or untranslatable English because one prop was forgotten.
     const { t: tHook } = useTranslation();
     const t = tProp || tHook;
     const visibleTools = (msg.toolHistory as ToolEntry[] | undefined)?.filter((t: ToolEntry) => t.name !== 'sequentialthinking') || [];

@@ -5,17 +5,16 @@ import type { TranslateFn } from '../../../../hooks/useTranslation';
 import RoleCard, { RoleCounter, RoleEmpty, RoleTextArea } from './RoleCard';
 
 /**
- * "Wie is het" — de rol en de expertise van de agent (Agents-artboard 1c).
+ * "Who it is": the role and expertise of the agent (Agents artboard 1c).
  *
- * Eén tekstvak, want dit is het enige veld van de vijf waar een zin beter werkt
- * dan een lijst: "een ervaren binnendienst-collega die onze offertes kent, en
- * die voor verkopers werkt en niet voor klanten" is één gedachte met een
- * afbakening erin, en die knipt niet netjes in bullets.
+ * One text box, because this is the only field of the five where a sentence works
+ * better than a list: "an experienced back-office colleague who knows our quotes, and
+ * who works for sales staff and not for customers" is one thought with a delimitation
+ * in it, and that does not cut neatly into bullets.
  *
- * De tekst wordt letterlijk het EERSTE blok van het systeemprompt
- * (`renderSystemPrompt` zet `who` vooraan). Vandaar de teller: de server knipt
- * op 600 tekens zonder iets te zeggen, en dan is de afbakening — meestal de
- * laatste zin — weg.
+ * The text becomes literally the FIRST block of the system prompt (`renderSystemPrompt`
+ * puts `who` at the front). Hence the counter: the server truncates at 600 characters
+ * without saying anything, and then the delimitation, usually the last sentence, is gone.
  */
 export default function WhoCard({ t, value = '', onChange, readOnly = false }: {
     t: TranslateFn;

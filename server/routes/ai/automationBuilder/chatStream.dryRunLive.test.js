@@ -6,7 +6,7 @@
  *   - chatStream installs a watcher on the draft BEFORE dispatching
  *     builder_request_dry_run, so `dryrun_started` — carrying the run's id —
  *     is on the wire while the tool is still running. The frontend turns it
- *     into the same 'running' stub a manual run gets, and the canvas follows
+ *     into the same 'running' stub that a manual run gets, and the canvas follows
  *     the steps live;
  *   - the watcher is cleared once the call has landed, so a later tool cannot
  *     announce a run that is over;

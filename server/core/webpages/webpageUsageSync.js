@@ -1,125 +1,115 @@
 /**
- * De usage-index, geschreven vanuit een WEBPAGINA (`consumer_kind='webpage'`).
+ * The usage index, written from a WEBPAGE (`consumer_kind='webpage'`).
  *
- * `automation_datatable_usage` beantwoordt één vraag: WIE raakt deze tabel aan?
- * Voor automatiseringen wordt hij op elke definitie-save geschreven, voor kennisbanken
- * op elke bronwijziging. De waarde `'webpage'` staat sinds W3 in
- * `datatableStore.CONSUMER_KINDS` en werd nog door niemand geschreven — dit
- * bestand is die schrijver.
+ * `automation_datatable_usage` answers one question: WHO touches this table? For
+ * automations it is written on every definition save, for knowledge bases on every source
+ * change. The value `'webpage'` has been in `datatableStore.CONSUMER_KINDS` since W3 and
+ * was written by nobody — this file is that writer.
  *
- * ── WAAROM DIT GEEN COSMETICA IS ────────────────────────────────────
+ * ── WHY THIS IS NOT COSMETIC ────────────────────────────────────────
  *
- * Drie oppervlakken lezen die index, en alle drie geloven wat er staat:
- *   - de "Wordt gebruikt door"-lijst van een tabel;
- *   - de poort die een tabel-verwijdering met 409 tegenhoudt;
- *   - de waarschuwing bij het laten vallen van een KOLOM (`columns`).
- * Een pagina die er niet in staat, is een pagina die niemand ziet als hij op
- * het punt staat de tabel eronder weg te halen. Ontbrekende rijen zijn hier dus
- * geen achterstand in een lijstje maar een stille poort.
+ * Three surfaces read that index, and all three believe what it says:
+ *   - the "Used by" list of a table;
+ *   - the gate that holds back a table deletion with 409;
+ *   - the warning when a COLUMN is dropped (`columns`).
+ * A page that is not in there is a page nobody sees when they are about to remove the
+ * table beneath it. Missing rows are therefore not a backlog in a list but a silent gate.
  *
- * ── DRIE REGELS DIE NIET MOGEN VERSCHUIVEN ──────────────────────────
+ * ── THREE RULES THAT MUST NOT SHIFT ─────────────────────────────────
  *
- * 1. EEN MISLUKTE SCAN WIST NIETS. `reconcileUsageFor` is delete-then-insert
- *    op `(consumer_kind, id)`: wie hem een LEGE lijst geeft, wist alle rijen
- *    van die pagina. De bindingsscan kan mislukken — de objectopslag ligt plat,
- *    een extra bestand is niet op te halen — en `readPageCode` zegt dat met
- *    `readable:false` in plaats van met lege strings. Zou dat hier als "deze
- *    pagina gebruikt niets" worden gelezen, dan wist een storing de index en
- *    staat de 409-poort daarna open zonder dat iemand iets merkt. Onbekend
- *    versmalt: de oude rijen blijven staan, en dat wordt luid gezegd
- *    (`ok:false` + een regel in het log), nooit stil.
+ * 1. A FAILED SCAN DELETES NOTHING. `reconcileUsageFor` is delete-then-insert on
+ *    `(consumer_kind, id)`: whoever gives it an EMPTY list wipes all rows of that page.
+ *    The binding scan can fail — the object store is down, an extra file cannot be
+ *    fetched — and `readPageCode` says so with `readable:false` rather than with empty
+ *    strings. Were that read here as "this page uses nothing", a fault would wipe the
+ *    index and the 409 gate would stand open afterwards without anyone noticing.
+ *    Unknown narrows: the old rows stay, and that is said loudly (`ok:false` + a line
+ *    in the log), never silently.
  *
- * 2. HIJ DRAAIT OP ELKE SAVE, DUS HIJ HANGT ERNAAST. Nooit in het pad van de
- *    save: `reconcileWebpageUsageDetached` wordt niet ge-await en gooit nooit.
- *    Een index is geen bewerking waard. Hij is bovendien GEDEBOUNCET (dezelfde
- *    vorm als `datatableStore.notifyDatatableChanged`): de eerste save zet een
- *    timer, elke save daarbinnen valt eronder, en de pass leest de toestand pas
- *    op het moment dat hij vuurt — dus de LAATSTE toestand, niet de eerste. Een
- *    autosave-reeks in de Code-tab kost zo één scan in plaats van tien.
- *    Idempotent is hij per constructie: `step_id` is `dt:<datatableId>`, één rij
- *    per gebonden tabel. Een regelnummer als sleutel zou bij elke bewerking een
- *    nieuwe `step_id` schrijven en de index onbeperkt laten groeien.
+ * 2. IT RUNS ON EVERY SAVE, SO IT HANGS BESIDE IT. Never in the path of the save:
+ *    `reconcileWebpageUsageDetached` is not awaited and never throws. An index is not
+ *    worth an operation. Moreover it is DEBOUNCED (same shape as
+ *    `datatableStore.notifyDatatableChanged`): the first save sets a timer, every save
+ *    within it falls under it, and the pass reads the state only at the moment it fires —
+ *    so the LAST state, not the first. An autosave sequence in the Code tab thus costs one
+ *    scan instead of ten. It is idempotent by construction: `step_id` is `dt:<datatableId>`,
+ *    one row per bound table. A line number as key would write a new `step_id` on every
+ *    edit and let the index grow without bound.
  *
- * 3. EEN VERWIJDERDE PAGINA LAAT NIETS ACHTER. Er is geen FK van deze index
- *    naar `webpages` (andere store), dus niets ruimt de rijen op. `listUsage`
- *    LEFT JOINt, en een achtergebleven rij vertelt een tabel-eigenaar dat iets
- *    wat hij niet kan zien zijn tabel gebruikt. Vandaar `purgeWebpageUsage` op
- *    het delete-pad — én, als vangnet, een reconcile die geen paginarij meer
- *    vindt en dan zelf opruimt in plaats van te schrijven. Afzeggen dekt ook
- *    de pass die AL LIEP: `_purgeEpoch` telt per pagina hoe vaak er is
- *    opgeruimd, en een pass die met een ouder getal terugkomt schrijft niet
- *    meer. Zonder dat zette een pass die de paginarij nog zag de rijen terug
- *    vlak nadat de verwijdering ze had weggehaald.
+ * 3. A DELETED PAGE LEAVES NOTHING BEHIND. There is no FK from this index to `webpages`
+ *    (another store), so nothing cleans up the rows. `listUsage` does a LEFT JOIN, and a
+ *    leftover row tells a table owner that something he cannot see is using his table.
+ *    Hence `purgeWebpageUsage` on the delete path — and, as a safety net, a reconcile that
+ *    finds no page row any more and then cleans up itself instead of writing. Cancelling
+ *    also covers the pass that was ALREADY RUNNING: `_purgeEpoch` counts per page how often
+ *    there has been a purge, and a pass that comes back with an older number does not write
+ *    any more. Without that, a pass that still saw the page row would write the rows back
+ *    just after the deletion had removed them.
  *
- * ── DE SCOPE KOMT VAN DE EIGENAAR, NOOIT UIT `organization_id` ───────
+ * ── THE SCOPE COMES FROM THE OWNER, NEVER FROM `organization_id` ────
  *
- * `webpages.organization_id` is NULL tot een pagina voor het eerst naar de ORG
- * wordt gepubliceerd (`setWebpagePublished` is de enige schrijver; een kloon
- * zet hem terug op null, een openbaar adres raakt hem niet). Tabellen van een
- * org-lid zijn daarentegen ORG-scoped vanaf hun eerste rij. Wie de scope dus
- * uit die kolom afleidt, biedt de index voor élke niet-gepubliceerde pagina de
- * PERSOONLIJKE scope aan — de INSERT van `reconcileUsageFor` is gegrendeld op
- * `(scope_kind, scope_id)` van de tabel, matcht niet, en schrijft nul rijen op
- * een reconcile die zichzelf geslaagd noemt. Precies dezelfde les als bij de
- * automations (`routes/automation/crud.js`: "A datatable is scoped by
- * organisation and needs it stored, not derived").
+ * `webpages.organization_id` is NULL until a page is published for the first time to the
+ * ORG (`setWebpagePublished` is the only writer; a clone sets it back to null, a public
+ * address does not touch it). Tables of an org member, by contrast, are ORG-scoped from
+ * their first row. Whoever derives the scope from that column therefore offers the
+ * PERSONAL scope for every unpublished page — the INSERT of `reconcileUsageFor` is locked
+ * on `(scope_kind, scope_id)` of the table, does not match, and writes zero rows during a
+ * reconcile that calls itself successful. Exactly the same lesson as with the automations
+ * (`routes/automation/crud.js`: "A datatable is scoped by organisation and needs it stored,
+ * not derived").
  *
- * De bron is daarom de EIGENAAR: `resolveDatatablePrincipalForUser(page.userId)`
- * → `datatableScopesFor`, dezelfde twee scopes die de tabel-routes zelf voor
- * hem oplossen. Het zijn er ook echt twee — een org-lid bereikt zijn
- * organisatie- én zijn persoonlijke tabellen, en een pagina die er van allebei
- * één bindt hoort er allebei één te indexeren. `reconcileUsageFor` neemt die
- * lijst en leest per rij de scope van de TABEL, zodat één transactie beide
- * dekt.
+ * The source is therefore the OWNER: `resolveDatatablePrincipalForUser(page.userId)` →
+ * `datatableScopesFor`, the same two scopes that the table routes themselves resolve for
+ * him. There really are two — an org member reaches his organisation AND his personal
+ * tables, and a page that binds one of each should index both. `reconcileUsageFor` takes
+ * that list and reads per row the scope of the TABLE, so one transaction covers both.
  *
- * ── WAT ER IN DE INDEX KOMT: DE VERENIGING VAN TWEE BRONNEN ─────────
+ * ── WHAT GOES INTO THE INDEX: THE UNION OF TWO SOURCES ─────────────
  *
- * Een pagina bereikt een tabel op twee manieren, en de index moet ze allebei
- * kennen:
+ * A page reaches a table in two ways, and the index must know both:
  *
- *   de BINDING   `bridge_grants.tables` — de poort. Alleen hierdoor mag
- *                `window.beeflowTables` de tabel lezen of schrijven, en juist
- *                die weg is voor een scan onzichtbaar: een pagina die haar
- *                rijen met `beeflowTables.query('tbl_x')` uit eigen JS haalt,
- *                heeft geen enkel `bf-*`-element. Zonder deze bron zou dat de
- *                zwaarste gebruiker zijn die nergens staat.
- *   het ELEMENT  `<bf-table source="…">` / `<bf-stat source="…">`, gevonden
- *                door `webpageBindings.collectUses`. Dit is wat de auteur
- *                OPSCHREEF, ook als de binding er (nog) niet is.
+ *   the BINDING   `bridge_grants.tables` — the gate. Only through this may
+ *                 `window.beeflowTables` read or write the table, and precisely that
+ *                 route is invisible to a scan: a page that fetches its rows from its
+ *                 own JS with `beeflowTables.query('tbl_x')` has no single `bf-*`
+ *                 element. Without this source that would be the heaviest user who is
+ *                 nowhere listed.
+ *   the ELEMENT   `<bf-table source="…">` / `<bf-stat source="…">`, found by
+ *                 `webpageBindings.collectUses`. This is what the author WROTE, even if
+ *                 the binding is (still) absent.
  *
- * De poort is de bovengrens: wat niet gebonden is, kan de pagina op geen enkele
- * manier lezen. De vereniging is dus altijd ruimer dan wat er echt bereikbaar
- * is, en dat is de goede kant om te missen — een rij te veel maakt een
- * verwijdering luidruchtiger, een rij te weinig maakt hem stil.
+ * The gate is the upper bound: what is not bound cannot be read by the page in any way.
+ * The union is therefore always wider than what is actually reachable, and that is the
+ * right side to miss on — one row too many makes a deletion louder, one row too few makes
+ * it silent.
  *
- * Daarom mag `unresolved` uit de scan hier ook niet blokkeren: een
- * `<bf-table source={id}>` waarvan het adres ter plekke wordt gebouwd, kan de
- * scan niet aanwijzen — maar aan de andere kant moet die tabel gebonden zijn om
- * te werken, en dán staat hij al in de binding.
+ * That is why `unresolved` from the scan may not block here either: a
+ * `<bf-table source={id}>` whose address is built on the spot cannot be pointed at by the
+ * scan — but on the other hand that table must be bound to work, and then it is already in
+ * the binding.
  *
- * `mode` en `columns` komen uit de BINDING, want alleen die weet ze: een
- * element noemt geen kolommen, en of de pagina mag schrijven staat in de grant.
- * Zonder binding is het antwoord `read` en geen enkele kolom — de smalle kant.
+ * `mode` and `columns` come from the BINDING, because only that knows them: an element names
+ * no columns, and whether the page may write is in the grant. Without a binding the answer
+ * is `read` and no column at all — the narrow side.
  *
- * ── DE DERDE STAND: ONLEESBARE GRANTS ───────────────────────────────
+ * ── THE THIRD STATE: UNREADABLE GRANTS ──────────────────────────────
  *
- * De grants worden uit dezelfde paginarij gelezen als de scope; valt die lezing
- * om, dan is er geen halve reconcile mogelijk. Rijen schrijven met een LEGE
- * kolomlijst zou de kolom-drop-waarschuwing voor deze pagina uitzetten, en dat
- * is precies dezelfde stille poort als regel 1. Beide bronnen leesbaar, of
- * niets schrijven.
+ * The grants are read from the same page row as the scope; if that read falls over, a
+ * half reconcile is not possible. Writing rows with an EMPTY column list would switch off
+ * the column-drop warning for this page, which is exactly the same silent gate as rule 1.
+ * Both sources readable, or write nothing.
  */
 
 'use strict';
 const { featureModule } = require('../featureModules');
 const logger = require('../../telemetry/log');
 
-/** De log-prefix, zodat een ops-regel het pad noemt. */
+/** The log prefix, so that an ops line names the path. */
 const LABEL = 'Webpages';
 
 /**
- * De sleutel van één rij binnen deze pagina: één rij per TABEL, niet per
- * element. Zie regel 2 — stabiel over saves heen is de hele eis.
+ * The key of one row within this page: one row per TABLE, not per element.
+ * See rule 2 — stability across saves is the whole requirement.
  */
 const STEP_PREFIX = 'dt:';
 
@@ -139,20 +129,17 @@ const REASONS = Object.freeze({
 });
 
 /**
- * De scopes waarvan deze pagina tabellen mag noemen — org eerst, dan
- * persoonlijk.
+ * The scopes in which this page may name tables — org first, then personal.
  *
- * Zie de kop: dit gaat langs de EIGENAAR en niet langs `page.organizationId`.
- * Valt die opzoeking om (`identityError`, of hij gooit), dan is de organisatie
- * onbekend en zou alleen de persoonlijke scope aanbieden een org-pagina stil op
- * nul rijen zetten. Onbekend versmalt hier naar NIETS DOEN: een lege lijst
- * terug, wat de aanroeper als `no-scope` leest en dus als "laat de index
- * staan". De kolom op de paginarij is daarbij het laatste vangnet — hij is
- * onvolledig (NULL tot publicatie) maar nooit verkeerd.
+ * See the heading: this goes via the OWNER and not via `page.organizationId`. Should that
+ * lookup fall over (`identityError`, or it throws), the organisation is unknown, and
+ * offering only the personal scope would silently leave an org page at zero rows. Unknown
+ * narrows here to DOING NOTHING: an empty list back, which the caller reads as `no-scope`
+ * and therefore as "leave the index as it is". The column on the page row is the last safety
+ * net in that case — it is incomplete (NULL until publication) but never wrong.
  *
- * `webpages.user_id` is NOT NULL, dus een pagina zonder eigenaar bestaat alleen
- * als de rij onder ons vandaan is gehaald — en dan is een lege lijst het
- * eerlijke antwoord.
+ * `webpages.user_id` is NOT NULL, so a page without an owner only exists if the row was
+ * fetched from under us — and then an empty list is the honest answer.
  */
 async function scopesForPage(page, deps = {}) {
     if (!page || !page.userId) return [];
@@ -161,9 +148,9 @@ async function scopesForPage(page, deps = {}) {
     try {
         const principal = await access.resolveDatatablePrincipalForUser(page.userId);
         if (principal && principal.identityError) {
-            // "Ik kon de organisatie niet lezen" is iets anders dan "hij heeft
-            // er geen". De kolom weet het soms wél; is ook die leeg, dan is er
-            // geen scope waar we voor kunnen instaan.
+            // "I could not read the organisation" is something other than "he has
+            // none". The column sometimes DOES know; if that is empty too, then there is
+            // no scope we can vouch for.
             return page.organizationId
                 ? [datatableStore.orgScope(page.organizationId), datatableStore.userScope(page.userId)]
                 : [];
@@ -180,12 +167,12 @@ async function scopesForPage(page, deps = {}) {
 }
 
 /**
- * Wat bindt deze pagina NU aan tabellen?
+ * What does this page bind to tables RIGHT NOW?
  *
  * @returns {Promise<{ok:boolean, reason:string, scopes?:Array, entries?:Array,
  *                    ownerId?:string|null, unresolved?:number}>}
- *   `ok:false` betekent ALTIJD "laat de index staan" — nooit "schrijf een lege
- *   lijst". Het onderscheid staat in `reason`.
+ *   `ok:false` ALWAYS means "leave the index as it is" — never "write an empty list".
+ *   The distinction is in `reason`.
  */
 async function collectWebpageUsage(webpageId, deps = {}) {
     if (!webpageId) return { ok: false, reason: 'no-id' };
@@ -197,9 +184,8 @@ async function collectWebpageUsage(webpageId, deps = {}) {
     try {
         page = await webpageStore.getWebpageRaw(webpageId);
     } catch (e) {
-        // Een LEESFOUT is geen verdwenen pagina. Zou dit als 'no-page' worden
-        // gelezen, dan ruimde een databasehik de index op van een pagina die
-        // gewoon bestaat.
+        // A READ ERROR is not a vanished page. Were this read as 'no-page', a database
+        // hiccup would clear the index of a page that simply exists.
         return { ok: false, reason: 'unreadable-page', error: e.message };
     }
     if (!page) return { ok: false, reason: 'no-page' };
@@ -207,10 +193,9 @@ async function collectWebpageUsage(webpageId, deps = {}) {
     const scopes = await scopesForPage(page, { datatableStore, datatableAccess: deps.datatableAccess });
     if (!scopes.length) return { ok: false, reason: 'no-scope', ownerId: page.userId || null };
 
-    // De EIGENAAR leest, niet de aanroeper: de opslagsleutel van elk slot hangt
-    // aan het account van de eigenaar. Een kloon wordt zo onder zijn NIEUWE
-    // eigenaar gescand, en een save door een beheerder leest niet per ongeluk
-    // een lege pagina.
+    // The OWNER reads, not the caller: the storage key of each slot hangs on the
+    // owner's account. A clone is thus scanned under its NEW owner, and a save by an
+    // administrator does not accidentally read an empty page.
     const ownerId = page.userId || null;
     let code;
     try {
@@ -220,11 +205,10 @@ async function collectWebpageUsage(webpageId, deps = {}) {
     }
     if (!code || code.readable !== true) return { ok: false, reason: 'unreadable-code', ownerId };
 
-    // `fallbackIds` blijft leeg: geen enkel tabel-element kent een terugval
-    // (alleen `<bf-agent>` doet dat, en dat is een andere familie). Een terugval
-    // die er ooit bijkomt levert hier `unknown-fallback` op — het element valt
-    // dan in `unresolved` in plaats van met een geraden id in de index te
-    // belanden, en de binding hieronder dekt het alsnog.
+    // `fallbackIds` stays empty: no table element has a fallback (only `<bf-agent>` does,
+    // and that is a different family). A fallback that ever comes in here yields
+    // `unknown-fallback` — the element then lands in `unresolved` instead of ending up in
+    // the index with a guessed id, and the binding below covers it regardless.
     const uses = bindings.collectUses(bindings.scanBfElements(code), { fallbackIds: {} });
     const fromCode = (uses && uses.targets && Array.isArray(uses.targets.datatable))
         ? uses.targets.datatable : [];
@@ -248,12 +232,12 @@ async function collectWebpageUsage(webpageId, deps = {}) {
         return {
             datatableId,
             stepId: `${STEP_PREFIX}${datatableId}`,
-            // Alleen een expliciete schrijf-grant maakt hier 'readwrite'; al het
-            // andere — geen binding, een onbekende waarde — is 'read'.
+            // Only an explicit write grant makes 'readwrite' here; everything else —
+            // no binding, an unknown value — is 'read'.
             mode: bound && bound.mode === 'readwrite' ? 'readwrite' : 'read',
-            // Wat de pagina van deze tabel MAG lezen. Dit is wat de
-            // kolom-drop-waarschuwing leest, dus een lege lijst betekent hier
-            // "geen kolom genoemd" en nooit "alle kolommen".
+            // What the page MAY read from this table. This is what the column-drop
+            // warning reads, so an empty list here means "no column named" and never
+            // "all columns".
             columns: bound && Array.isArray(bound.columns) ? [...bound.columns] : [],
         };
     });
@@ -264,8 +248,8 @@ async function collectWebpageUsage(webpageId, deps = {}) {
         scopes,
         ownerId,
         entries,
-        // Elementen die wél iets binden maar niet aan te wijzen zijn. Ze
-        // blokkeren niets (zie de kop) maar horen wel in de logregel thuis.
+        // Elements that do bind something but cannot be pointed at. They block
+        // nothing (see the heading) but do belong in the log line.
         unresolved: (uses && Array.isArray(uses.unresolved))
             ? uses.unresolved.filter(u => u && u.kind === 'datatable').length
             : 0,
@@ -273,31 +257,30 @@ async function collectWebpageUsage(webpageId, deps = {}) {
 }
 
 /**
- * Zet de index gelijk aan wat deze pagina nu bindt.
+ * Sets the index equal to what this page binds now.
  *
- * Gooit nooit. Het antwoord zegt of er IETS is geschreven en waarom niet:
- * `ok:false` betekent dat de bestaande rijen zijn blijven staan.
+ * Never throws. The answer says whether ANYTHING has been written and why not:
+ * `ok:false` means the existing rows have remained in place.
  */
 async function reconcileWebpageUsage(webpageId, deps = {}) {
     const log = deps.log || console;
     if (!webpageId) return { ok: false, reason: 'no-id', written: 0 };
     const usageSync = deps.usageSync || featureModule('automation/datatableUsageSync');
-    // Zie regel 3 in de kop: het getal waaraan een pass merkt dat er tijdens
-    // zijn lezing is opgeruimd. Vóór de eerste await gelezen, dus elke purge
-    // die daarna komt verhoogt hem.
+    // See rule 3 in the heading: the number by which a pass notices that something was purged
+    // during its read. Read before the first await, so every purge that comes afterwards
+    // raises it.
     const epochAtStart = _purgeEpoch.get(webpageId) || 0;
 
-    // Eén try om ALLES. "Gooit nooit" hierboven is een belofte aan de save die
-    // hem aanroept, en die belofte mag niet afhangen van de vraag of elke
-    // aangeroepen laag zijn eigen belofte nakomt.
+    // One try for EVERYTHING. "Never throws" above is a promise to the save that calls it,
+    // and that promise must not depend on whether every layer called underneath keeps its
+    // own promise.
     try {
         const collected = await collectWebpageUsage(webpageId, deps);
 
-        // De pagina is weg. Dit is het VANGNET achter purgeWebpageUsage, niet
-        // de hoofdweg: de delete-route ruimt zelf op. Belandt er toch een
-        // reconcile na een verwijdering (een gedebouncete pass die nog liep),
-        // dan is opruimen het juiste antwoord — schrijven zou rijen terugzetten
-        // voor een pagina die niemand meer kan openen.
+        // The page is gone. This is the SAFETY NET behind purgeWebpageUsage, not the main
+        // road: the delete route cleans up itself. If a reconcile still follows a deletion
+        // (a debounced pass that was still running), then cleaning up is the right answer —
+        // writing would put rows back for a page nobody can open any more.
         if (collected.reason === 'no-page') {
             const purged = await usageSync.purgeUsageFor('webpage', webpageId, { label: LABEL });
             return { ok: true, reason: 'no-page', written: 0, purged };
@@ -309,10 +292,9 @@ async function reconcileWebpageUsage(webpageId, deps = {}) {
             return { ok: false, reason: collected.reason, written: 0 };
         }
 
-        // De pagina is verwijderd terwijl deze pass las. Doorschrijven zou de
-        // rijen terugzetten die de purge net heeft weggehaald — een spookrij
-        // die daarna een tabel-verwijdering met 409 tegenhoudt namens een
-        // pagina die niemand meer kan openen.
+        // The page was deleted while this pass was reading. Writing on would put back the
+        // rows that the purge has just removed — a ghost row that then holds back a table
+        // deletion with 409 on behalf of a page nobody can open any more.
         if ((_purgeEpoch.get(webpageId) || 0) !== epochAtStart) {
             log.warn(`[${LABEL}] ${webpageId}: usage index left as-is — ${REASONS.superseded}`);
             return { ok: false, reason: 'superseded', written: 0 };
@@ -322,16 +304,16 @@ async function reconcileWebpageUsage(webpageId, deps = {}) {
             'webpage', webpageId, collected.scopes, collected.entries, { label: LABEL },
         );
         if (written < 0) {
-            // syncUsageFor logt de fout zelf; de reconcile draait in een
-            // transactie, dus de rijen staan er nog zoals ze stonden.
+            // syncUsageFor logs the error itself; the reconcile runs in a transaction,
+            // so the rows are still as they were.
             return { ok: false, reason: 'failed', written: 0 };
         }
-        // NUL rijen op een NIET-lege lijst is geen geslaagde reconcile. De
-        // INSERT is gegrendeld op de scope van de tabel, dus dit is precies de
-        // vorm waarin een verkeerde scope zich meldt: de DELETE liep wél, de
-        // INSERT niet, en zonder deze tak heet dat `{ok:true, written:0}` en
-        // gaat de 409-poort op elke genoemde tabel stil open. syncUsageFor logt
-        // hier zelf al een regel; wat hier telt is dat de UITSLAG het zegt.
+        // ZERO rows on a NON-empty list is not a successful reconcile. The
+        // INSERT is locked on the scope of the table, so this is precisely the shape in which
+        // a wrong scope announces itself: the DELETE did run, the INSERT did not, and without
+        // this branch it would be called `{ok:true, written:0}` and the 409 gate on every
+        // named table would silently stand open. syncUsageFor already logs a line here itself;
+        // what counts here is that the RESULT says so.
         if (written === 0 && collected.entries.length > 0) {
             log.warn(`[${LABEL}] ${webpageId}: ${collected.entries.length} table binding(s) but nothing indexed — ${REASONS['not-indexed']}`);
             return {
@@ -342,10 +324,10 @@ async function reconcileWebpageUsage(webpageId, deps = {}) {
                 unresolved: collected.unresolved || 0,
             };
         }
-        // De kop belooft dat een adres dat de scan niet kan aanwijzen wordt
-        // GEMELD. Het blokkeert niets, dus het hoort niet in `ok` — maar zonder
-        // deze regel gaf een pagina met tien `<bf-table source={id}>` nul
-        // signaal, want het detached pad gooit de returnwaarde weg.
+        // The heading promises that an address the scan cannot point at is REPORTED. It blocks
+        // nothing, so it does not belong in `ok` — but without this line a page with ten
+        // `<bf-table source={id}>` gave no signal at all, because the detached path throws away
+        // the return value.
         if (collected.unresolved > 0) {
             log.warn(`[${LABEL}] ${webpageId}: ${collected.unresolved} table reference(s) the scan could not resolve — indexed ${written} row(s) from the bindings instead`);
         }
@@ -362,30 +344,27 @@ async function reconcileWebpageUsage(webpageId, deps = {}) {
     }
 }
 
-// ── het pad dat de routes gebruiken ───────────────────────────────────
+// ── the path that the routes use ──────────────────────────────────────
 //
-// Gedebounced per pagina, met dezelfde vorm als
-// `datatableStore.notifyDatatableChanged`: de EERSTE aanleiding zet de timer,
-// elke aanleiding daarbinnen valt eronder, en de timer wordt bij het vuren
-// verwijderd — dus een wijziging die daarna binnenkomt zet gewoon een nieuwe.
-// De pass leest de toestand pas op het moment dat hij draait, dus hij ziet de
-// laatste save, niet de eerste.
+// Debounced per page, with the same shape as `datatableStore.notifyDatatableChanged`:
+// the FIRST trigger sets the timer, every trigger within it falls under it, and the timer is
+// removed when it fires — so a change that comes in afterwards simply sets a new one.
+// The pass reads the state only at the moment it runs, so it sees the last save, not the first.
 
 const _pending = new Map();
 
 /**
- * Hoe vaak er voor deze pagina is opgeruimd.
+ * How often this page has been purged.
  *
- * `cancelPendingReconcile` wist alleen een timer die nog niet gevuurd heeft —
- * een pass die al aan het LEZEN is, is daarmee niet meer af te zeggen. Dit
- * getal is dat wel: de pass leest het vóór zijn eerste await en weigert te
- * schrijven als het daarna is opgehoogd. De sleutel blijft na de purge in de
- * map staan (een handvol bytes per verwijderde pagina, en een id komt nooit
- * terug), zodat een pass die er ná de purge nog uit komt hem ook echt ziet.
+ * `cancelPendingReconcile` clears only a timer that has not yet fired — a pass that is
+ * ALREADY READING cannot be cancelled that way. This number can: the pass reads it before
+ * its first await and refuses to write if it has been raised afterwards. The key stays in
+ * the map after the purge (a handful of bytes per deleted page, and an id never returns),
+ * so that a pass which still comes out of it after the purge really sees it.
  */
 const _purgeEpoch = new Map();
 
-/** Een lopende pass afzeggen (de pagina wordt verwijderd). */
+/** Cancel a running pass (the page is being deleted). */
 function cancelPendingReconcile(webpageId) {
     const timer = _pending.get(webpageId);
     if (!timer) return false;
@@ -395,11 +374,11 @@ function cancelPendingReconcile(webpageId) {
 }
 
 /**
- * "Deze pagina is opgeslagen." Nooit awaiten, nooit gooien — een save mag hier
- * niet op wachten en er niet aan kapotgaan.
+ * "This page has been saved." Never await, never throw — a save must not wait for this
+ * and must not break on it.
  *
  * @param {string} webpageId
- * @param {{delayMs?:number}} [deps] verder dezelfde deps als reconcileWebpageUsage
+ * @param {{delayMs?:number}} [deps] otherwise the same deps as reconcileWebpageUsage
  */
 function reconcileWebpageUsageDetached(webpageId, deps = {}) {
     if (!webpageId) return;
@@ -411,32 +390,30 @@ function reconcileWebpageUsageDetached(webpageId, deps = {}) {
             .then(() => reconcileWebpageUsage(webpageId, deps))
             .catch(e => logger.warn(`[${LABEL}] usage reconcile failed for ${webpageId}: ${e.message}`));
     }, delayMs);
-    // Een wachtende pass mag het proces bij afsluiten niet openhouden.
+    // A waiting pass must not keep the process open on shutdown.
     timer.unref?.();
     _pending.set(webpageId, timer);
 }
 
 /**
- * De pagina is verwijderd — haal haar rijen weg.
+ * The page has been deleted — remove its rows.
  *
- * Eerst de wachtende pass afzeggen: die zou de rijen anders opnieuw kunnen
- * schrijven vlak nadat ze zijn opgeruimd. Gooit nooit; een verwijdering mag
- * niet mislukken over een index.
+ * First cancel the waiting pass: otherwise it could write the rows again just after they
+ * have been cleaned up. Never throws; a deletion must not fail over an index.
  */
 async function purgeWebpageUsage(webpageId, deps = {}) {
     if (!webpageId) return 0;
     cancelPendingReconcile(webpageId);
-    // Vóór de purge zelf: een pass die NU aan het lezen is moet bij terugkomst
-    // al een ander getal zien, ook als de purge hieronder even duurt.
+    // Before the purge itself: a pass that is reading RIGHT NOW must, on return, already see
+    // a different number, even if the purge below takes a while.
     _purgeEpoch.set(webpageId, (_purgeEpoch.get(webpageId) || 0) + 1);
     try {
         const usageSync = deps.usageSync || featureModule('automation/datatableUsageSync');
         return await usageSync.purgeUsageFor('webpage', webpageId, { label: LABEL });
     } catch (e) {
-        // De verwijdering zelf is al gebeurd; hier alsnog gooien zou de
-        // gebruiker een 500 geven over een pagina die weg IS. De rijen blijven
-        // dan staan — hinderlijk, maar zichtbaar in het log, en de volgende
-        // reconcile op dat id ruimt ze via het vangnet alsnog op.
+        // The deletion itself has already happened; throwing here would give the
+        // user a 500 about a page that IS gone. The rows then remain — a nuisance, but visible
+        // in the log, and the next reconcile on that id clears them via the safety net.
         (deps.log || console).warn(`[${LABEL}] ${webpageId}: usage purge failed — ${e.message}`);
         return 0;
     }

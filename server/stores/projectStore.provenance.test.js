@@ -1,24 +1,23 @@
 /**
- * O4 deel C — waar een Oplossing vandaan komt, zoals de INSERT hem vastlegt.
+ * O4 part C — where a Solution comes from, as the INSERT records it.
  *
- * Drie kolommen, en alle drie worden bij het aanmaken geschreven en nooit
- * achteraf gepatcht: een tweede statement is een tweede ding dat kan falen en
- * een Oplossing achterlaat die niet kan zeggen waar zij vandaan komt.
+ * Three columns, and all three are written at creation and never patched
+ * afterwards: a second statement is a second thing that can fail, and leaves a
+ * Solution that cannot say where it came from.
  *
- * Wat hier wordt vastgepind:
+ * What is pinned here:
  *
- *   1. DE DRIE WAARDEN KOMEN IN DE INSERT TERECHT. Zonder deze test kan
- *      `createProject` ze stilzwijgend laten vallen — de installer blijft dan
- *      groen, want die controleert alleen wat hij DOORGEEFT, en de telling
- *      staat voorgoed op nul.
- *   2. NULL BLIJFT NULL. "Niet vastgelegd" is iets anders dan versie 1 en iets
- *      anders dan een lege organisatie; een installatie zonder nummer mag nooit
- *      als bijgewerkt lezen.
- *   3. DE HERKOMST BESLIST NIETS. `organization_id` van het project is die van
- *      de aanroeper, en staat los van `installed_from_org_id`.
+ *   1. THE THREE VALUES ARRIVE IN THE INSERT. Without this test `createProject`
+ *      can silently drop them — the installer stays green, because it only checks
+ *      what it PASSES, and the count stays at zero for good.
+ *   2. NULL STAYS NULL. "Not recorded" is something other than version 1 and
+ *      something other than an empty organization; an install without a number
+ *      must never read as updated.
+ *   3. THE PROVENANCE DECIDES NOTHING. The project's `organization_id` is that of
+ *      the caller, and is separate from `installed_from_org_id`.
  *
- * Hermetisch: `../db` is gestubd (het patroon van blueprintStore.releases.test.js),
- * dus er komt geen Postgres aan te pas.
+ * Hermetic: `../db` is stubbed (the pattern of blueprintStore.releases.test.js),
+ * so no Postgres is involved.
  *
  * Run: cd server && node --test stores/projectStore.provenance.test.js
  */
@@ -92,7 +91,7 @@ test('de herkomst wordt bij het aanmaken geschreven, niet achteraf', async () =>
     assert.strictEqual(valueOf('installed_from_org_id'), 'org_source');
     assert.strictEqual(valueOf('installed_version'), 3);
 
-    // Eén statement, geen tweede UPDATE die er nog achteraan moet komen.
+    // One statement, not a second UPDATE that still has to come afterwards.
     assert.strictEqual(calls.run.filter(c => /projects/.test(flat(c.sql))).length, 1);
 
     // En de aanroeper krijgt terug wat er is opgeschreven.
@@ -115,8 +114,8 @@ test('een project dat hier gebouwd is claimt geen herkomst', async () => {
 });
 
 test('een onzinnig versienummer wordt null, nooit 0 of 1', async () => {
-    // 0 en een negatief getal zijn geen versies maar gaten, en een gat dat als
-    // 1 leest maakt van een onbekende installatie een bijgewerkte.
+    // 0 and a negative number are not versions but gaps, and a gap that reads as
+    // 1 turns an unknown install into an updated one.
     for (const bogus of [0, -3, 1.5, '2', null, undefined, NaN]) {
         await reset();
         await store.createProject({ ...BASE, installedVersion: bogus });
@@ -148,9 +147,8 @@ test('een bewering die geen string is komt de database niet in', async () => {
 // ── 3. De herkomst beslist niets ────────────────────────────────────────────
 
 test('de organisatie van het project is die van de aanroeper, niet die van de bron', async () => {
-    // Dit is de kolom die zichtbaarheid bepaalt. Zou de herkomst hem vullen,
-    // dan schreef een bestand zichzelf de leesrechten van een andere
-    // organisatie toe.
+    // This is the column that determines visibility. If provenance filled it,
+    // a file could grant itself read rights to another organization.
     await reset();
     await store.createProject({ ...BASE, installedFromOrgId: 'org_source' });
     const { valueOf } = insert();
@@ -174,8 +172,8 @@ test('een gelezen project draagt zijn herkomst mee', async () => {
 });
 
 test('een project uit een oudere rij leest als onbekend, niet als versie 1', async () => {
-    // Rijen van vóór deze kolommen dragen NULL. Dat moet als "we weten het
-    // niet" lezen — nooit als een nummer dat niemand heeft opgeschreven.
+    // Rows from before these columns carry NULL. That must read as "we don't know" —
+    // never as a number nobody wrote down.
     await reset();
     state.row = {
         id: 'p1', name: 'Onboarding', organization_id: '', owner_id: 'alice',

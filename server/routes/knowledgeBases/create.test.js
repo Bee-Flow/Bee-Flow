@@ -1,23 +1,18 @@
 'use strict';
 
 /**
- * `POST /api/kb/:id/duplicate` — en vooral `?withSources=1`.
+ * `POST /api/kb/:id/duplicate` — and above all `?withSources=1`.
  *
- * ── WAAROM DIT BESTAAT ──────────────────────────────────────────────
- * De duplicaat-route kopieert elke niet-upload bron LETTERLIJK naar een nieuwe
- * kennisbank van de aanroeper — `config` en al. Voor een `text`-bron is die
- * config niet alleen inhoud: `config.metadata.transcriptionId` is een BEWERING
- * dat die regel uit een bepaalde vergadering komt, en die bewering landt op de
- * uitvoerbalk, het Gebruikt-door-tabblad en de verwijderpoort van die
- * vergadering. Het recht dat deze route eist (`manage_knowledge` + leesrecht
- * op de BRON-kennisbank) is voor een org-gepubliceerde KB gewoon
- * org-lidmaatschap, en zegt niets over de vergadering waarnaar de regel wijst.
+ * ── WHY THIS EXISTS ─────────────────────────────────────────────────
+ * The duplicate route copies every non-upload source LITERALLY to a new
+ * knowledge base of the caller — `config` and all. For a `text` source that config is not just content: `config.metadata.transcriptionId` is an ASSERTION
+ * that the line comes from a certain meeting, and that assertion lands on the run bar, the Used-by tab and the delete gate of that meeting.
+ * The right that this route demands (`manage_knowledge` + read access to the SOURCE knowledge base) is, for an org-published KB, simply org membership, and says nothing about the meeting to which the line points.
  *
- * De schrijfpoort in sources.js stond er wél; deze route ging eromheen, in
- * hetzelfde routes/knowledgeBases.js gemount, en geen enkele test raakte
- * `?withSources=1` aan.
+ * The write gate in sources.js was there, but this route went around it, in the same routes/knowledgeBases.js mounted, and no test touched
+ * `?withSources=1`.
  *
- * Draaien: cd server && node --test --test-force-exit routes/knowledgeBases/create.test.js
+ * Run: cd server && node --test --test-force-exit routes/knowledgeBases/create.test.js
  */
 
 const test = require('node:test');
@@ -101,9 +96,9 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
 }
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    // Ook de gedeelde poort en de org-resolutie waarop hij leunt: die draaien
-    // buiten routes/, maar als ze hier met de ECHTE database praten bewijst de
-    // test niets over de scope waarmee ze probben.
+    // Also the shared gate and the org resolution it leans on: those run
+    // outside routes/, but if they talk to the REAL database here, the test proves
+    // nothing about the scope with which they probe.
     if (parent && (/routes[\\/]knowledgeBases[\\/]create\.js$/.test(parent.filename)
                    || /core[\\/]kb[\\/](transcriptOrigin|askerContext)\.js$/.test(parent.filename))
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
@@ -144,11 +139,9 @@ function filedLine(transcriptionId) {
 test.beforeEach(resetFx);
 
 test('een gefileerde transcriptregel kopieert ZONDER de claim op andermans vergadering', async () => {
-    // Collega A filet regel 12 van haar besloten vergadering in de org-brede
-    // KB 'Team notes'. Gebruiker B mag die KB lezen maar heeft M nooit mogen
-    // openen. Zonder de zeef kreeg B een rij met `transcriptionId = M` en
-    // `createdBy = B` — en A kreeg er een regel bij op haar uitvoerbalk plus
-    // een extra 409-reden bij het verwijderen van haar eigen vergadering.
+    // Colleague A files line 12 of her private meeting into the org-wide
+    // KB 'Team notes'. User B may read that KB but has never been allowed to open M. Without the sieve, B got a row with `transcriptionId = M` and
+    // `createdBy = B` — and A got an extra line on her run bar plus an extra 409 reason when deleting her own meeting.
     fx.sources = [filedLine('M-van-collega-a')];
     fx.visibleTranscriptions = [];   // B mag M niet zien
 
@@ -164,8 +157,8 @@ test('een gefileerde transcriptregel kopieert ZONDER de claim op andermans verga
 });
 
 test('dezelfde regel in je EIGEN vergadering houdt de koppeling wél', async () => {
-    // De keerzijde: iemand die zijn eigen kennisbank dupliceert houdt de link
-    // naar zijn eigen vergadering — anders is de zeef een functieverlies.
+    // The flip side: someone who duplicates their own knowledge base keeps the link
+    // to their own meeting — otherwise the sieve would be a loss of function.
     fx.sources = [filedLine('M-van-b-zelf')];
     fx.visibleTranscriptions = ['M-van-b-zelf'];
 

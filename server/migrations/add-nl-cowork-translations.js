@@ -31,8 +31,8 @@ const RETIRED_KEYS = ['sidebar.work', 'studio.tab.cowork'];
 
 async function up() {
     const languageStore = require('../stores/languageStore');
-    // Eén atomaire bewerking (advisory lock over replica's heen): toevoegen én
-    // pensioneren samen, zodat geen tussenstand zichtbaar wordt.
+    // One atomic operation (advisory lock across replicas): adding and retiring
+    // together, so that no intermediate state becomes visible.
     let added = 0;
     let removed = 0;
     await languageStore.mutateGUITranslations('nl', (merged) => {

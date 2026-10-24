@@ -329,16 +329,16 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
  * useTranslation — access translations from any component
  */
 /**
- * `{name}` → de waarde, LETTERLIJK.
+ * `{name}` → the value, LITERALLY.
  *
- * Eén implementatie voor de provider en voor de terugval eronder, en met een
- * vervang-FUNCTIE in plaats van een vervang-STRING. In een vervangingsstring
- * zijn `$&`, `` $` ``, `$'` en `$1`..`$9` speciaal, en de waarden die hier
- * langskomen zijn gebruikersinvoer: een bestandsnaam, een tabelnaam, een pad.
- * `t('Unsupported characters in "{segment}"', { segment: 'a$&b.txt' })` gaf
- * daardoor `Unsupported characters in "a{segment}b.txt"` — precies de melding
- * die bestaat omdat de naam rare tekens bevat, met de naam eruit gesloopt.
- * Een functie als tweede argument van `replace` kent die tekens niet.
+ * One implementation for the provider and for the fallback beneath it, and with a
+ * replacement FUNCTION instead of a replacement STRING. In a replacement string,
+ * `$&`, `` $` ``, `$'` and `$1`..`$9` are special, and the values that come through
+ * here are user input: a file name, a table name, a path.
+ * `t('Unsupported characters in "{segment}"', { segment: 'a$&b.txt' })` thus gave
+ * `Unsupported characters in "a{segment}b.txt"`: precisely the message that exists
+ * because the name contains odd characters, with the name scrubbed out of it.
+ * A function as the second argument of `replace` does not know those characters.
  */
 export function interpolate(value: string, params?: TranslateParams | string | null): string {
     if (!params || typeof params !== 'object') return value;

@@ -132,11 +132,10 @@ router.post('/:id/persona/parse', requirePermission('manage_agents'), parseLimit
     // SUCCESSFUL resolve still means super admin, and stays legal.)
     let orgIds;
     try {
-        // `strict`, anders is deze catch onbereikbaar: zonder die vlag vangt
-        // `resolveUserOrgIds` élke storefout zelf af en geeft een LEGE Set
-        // terug, die één regel verder als "geen workspace" leest — de
-        // globale, niet-EU tiermap, precies wat het commentaar hierboven
-        // uitsluit.
+        // `strict`, otherwise this catch is unreachable: without that flag
+        // `resolveUserOrgIds` catches EVERY store error itself and returns an EMPTY Set,
+        // which one line further is read as "no workspace" — the global, non-EU tier map,
+        // precisely what the comment above excludes.
         orgIds = await resolveUserOrgIds(req, { strict: true });
     } catch (e) {
         log.error('[agents/persona/parse] could not resolve the workspace:', e.message);

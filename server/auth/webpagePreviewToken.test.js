@@ -76,8 +76,8 @@ test('issuePreviewToken/verifyPreviewToken round-trip with a valid secret', () =
         assert.ok(token && typeof token === 'string');
         assert.ok(expiresAt > Date.now());
         const claims = mod.verifyPreviewToken(token);
-        // `viewerUserId` staat er ALTIJD in, ook als hij niet is meegegeven —
-        // null, nooit teruggevallen op `userId`. Zie de W3-tests hieronder.
+        // `viewerUserId` is ALWAYS present, even if it was not passed — null, never a fallback to `userId`.
+    // See the W3 tests below.
         assert.deepStrictEqual(claims, { userId: 'u1', webpageId: 'w1', viewerUserId: null, expiresAt });
     });
 });

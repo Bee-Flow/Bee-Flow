@@ -253,9 +253,9 @@ describe('what the wizard sends', () => {
 });
 
 describe('wat het bestand over zijn eigen herkomst beweert', () => {
-    // Een Blueprint komt van de schijf van de installateur. `source` is dus
-    // invoer van buiten, en dit scherm is de TONENDE helft: het leest de
-    // bewering, normaliseert hem, en gebruikt hem nergens voor.
+    // A Blueprint comes from the installer's disk. `source` is therefore input from
+    // outside, and this screen is the DISPLAYING half: it reads the claim, normalises
+    // it, and uses it for nothing.
 
     it('leest de bewering, met alle vier de velden', () => {
         const read = readBlueprint({
@@ -266,15 +266,15 @@ describe('wat het bestand over zijn eigen herkomst beweert', () => {
     });
 
     it('een bestand zonder herkomstblok beweert niets', () => {
-        // Vier nulls in plaats van een ontbrekend veld: het scherm hoeft dan
-        // nooit te raden tussen "geen bron" en "oud bestand".
+        // Four nulls instead of a missing field: the screen then never has to guess
+        // between “no source” and “old file”.
         expect(readBlueprint(blueprint({})).source)
             .toEqual({ blueprintId: null, orgId: null, orgName: null, version: null });
     });
 
     it('alles wat geen string is wordt niets', () => {
-        // Zoals een handgemaakt bestand het zou kunnen aanleveren. Zonder deze
-        // normalisatie kan een object of een array in de render belanden.
+        // As a hand-made file could deliver it. Without this normalisation, an object or
+        // an array could land in the render.
         const read = readBlueprint({
             ...blueprint({}),
             source: { blueprintId: { $ref: 'aut_1' }, orgId: ['org1'], orgName: { toString: () => 'Acme' }, version: 'drie' },
@@ -283,7 +283,7 @@ describe('wat het bestand over zijn eigen herkomst beweert', () => {
     });
 
     it('een naam uit een bestand is begrensd', () => {
-        // Een naam van tienduizend tekens is geen naam maar een lay-outaanval.
+        // A name of ten thousand characters is not a name but a layout attack.
         const read = readBlueprint({
             ...blueprint({}),
             source: { orgName: 'A'.repeat(5000), orgId: '   ', version: 0 },
@@ -294,8 +294,8 @@ describe('wat het bestand over zijn eigen herkomst beweert', () => {
     });
 
     it('de bewering verandert niets aan wat er geïnstalleerd wordt', () => {
-        // Het herkomstblok is geen entiteit en geen vereiste: het staat naast
-        // de inhoud en mag er niets aan toevoegen of van afhalen.
+        // The provenance block is neither an entity nor a requirement: it stands beside
+        // the content and may neither add to it nor subtract from it.
         const plain = readBlueprint(blueprint({ automations: [automation('aut_1', [])] }));
         const claimed = readBlueprint({
             ...blueprint({ automations: [automation('aut_1', [])] }),

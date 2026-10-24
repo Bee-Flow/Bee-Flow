@@ -7,19 +7,15 @@ import AppRenderer from '../runtime/AppRenderer';
 import { mergeFormValues } from '../runtime/formValues';
 
 /**
- * De brug tussen "wat staat er in het formulier op de canvas" en "wat stuurt de
- * testknop in de inspector mee".
+ * The bridge between "what is in the form on the canvas" and "what the test button in the inspector sends along".
  *
- * Twee dingen kunnen hier stilletjes stukgaan, en allebei zien er op het scherm
- * uit als een automatisering die niets doet:
+ * Two things can silently break here, and both look on screen like an automation that does nothing:
  *
- *   1. de store zelf verwart "dit formulier staat er niet" met "het staat er en
- *      is leeg" — dan verzint de testknop lege waarden in plaats van te melden
- *      dat er niets was;
- *   2. de SLEUTEL loopt uit de pas. AppForm publiceert onder
- *      `props.name || node.id`; leest de inspector onder een andere naam, dan
- *      vindt hij een leeg object bij een formulier dat prima publiceert, en
- *      stuurt hij niets mee zonder dat iemand het merkt.
+ *   1. the store itself confuses "this form is not there" with "it is there and is empty" — then the test
+ *      button invents empty values instead of reporting that there was nothing;
+ *   2. the KEY drifts out of step. AppForm publishes under `props.name || node.id`; if the inspector reads
+ *      under a different name, it finds an empty object for a form that publishes perfectly well, and sends
+ *      nothing along without anyone noticing.
  */
 
 // ── 1. de store ────────────────────────────────────────────────────────────
@@ -37,9 +33,8 @@ describe('useScreenValuesStore', () => {
     });
 
     it('houdt "staat er niet" en "staat er en is leeg" uit elkaar', () => {
-        // Dit verschil is de hele reden dat readForm null kan teruggeven: de
-        // testknop meldt de twee anders, en zonder het verschil zou hij bij een
-        // formulier dat niet op het scherm staat lege waarden verzinnen.
+        // This difference is the whole reason readForm can return null: the test button reports the two
+        // differently, and without the difference it would invent empty values for a form that is not on screen.
         const store = makeStore();
         expect(store.readForm('claim')).toBeNull();
         act(() => store.publish('claim', {}));
@@ -70,9 +65,8 @@ describe('useScreenValuesStore', () => {
     });
 
     it('buiten een provider is er geen store — en dat is null, geen leeg antwoord', () => {
-        // De run-pagina heeft geen inspector. Een lege store zou daar "het
-        // formulier is leeg" beweren; null laat de aanroeper zeggen dat hij het
-        // niet weet.
+        // The run page has no inspector. An empty store would claim there "the form is empty"; null lets the
+        // caller say that it does not know.
         expect(renderHook(() => useScreenValues()).result.current).toBeNull();
     });
 
@@ -152,8 +146,7 @@ describe('formNameOf leest onder dezelfde sleutel waaronder AppForm publiceert',
     }
 
     it('en de waarde die daar staat is wat er getypt is', () => {
-        // Het hele punt: niet de standaardwaarde uit de definitie, maar wat er
-        // op dat moment op het scherm staat.
+        // The whole point: not the default value from the definition, but what is on the screen at that moment.
         const node = formNode('cmp_form01', 'claim');
         const definition = defWithForm(node);
         const published = [];

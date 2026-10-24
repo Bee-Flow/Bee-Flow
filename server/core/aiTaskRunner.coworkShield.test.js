@@ -1,26 +1,26 @@
 /**
- * CW-10 — het privacyschild op het NIET-agent-pad van executeTask.
+ * CW-10: the privacy shield on the NON-agent path of executeTask.
  *
- * De agent-runtime scant elke beurt op PII vóór er iets naar een model gaat;
- * het gewone cowork/automation-pad stuurde task.prompt rechtstreeks de adapter
- * in, terwijl de UI daar een "Privacyschild aan"-pil naast zet. Achter de
- * per-org opt-in-vlag (org_cowork_shield_<orgId>, default UIT — zie
- * core/entitlements/coworkShieldFlag.js) loopt de invoer nu door DEZELFDE
- * schildpassage als chatWithAgent. Hier wordt gepind:
+ * The agent runtime scans every turn for PII before anything goes to a model;
+ * the plain cowork/automation path sent task.prompt straight into the adapter,
+ * while the UI puts a "Privacy shield on" pill next to it. Behind the per-org
+ * opt-in flag (org_cowork_shield_<orgId>, default OFF; see
+ * core/entitlements/coworkShieldFlag.js) the input now runs through the SAME
+ * shield passage as chatWithAgent. Pinned here:
  *
- *   1. vlag uit → de guard wordt NIET aangeroepen en de run is identiek aan
- *      vandaag — ook mét een volledig geconfigureerd org-schild;
- *   2. vlag aan → de guard krijgt de taakprompt te zien;
- *   3. maskeren (tokenize) → de adapter ziet de token, nooit de ruwe waarde;
- *   4. blokkeren → de run faalt vóór enige adapter-call met 'PII Detected';
- *   5. guard stuk → letterlijk de failmode van het agent-pad (BFSF-269):
- *      default fail_closed (privacyUnavailable, geen model-call, geen
- *      usage-regel), fail_open alleen bij expliciete org-keuze.
+ *   1. flag off → the guard is NOT called and the run is identical to today,
+ *      also with a fully configured org shield;
+ *   2. flag on → the guard gets to see the task prompt;
+ *   3. mask (tokenize) → the adapter sees the token, never the raw value;
+ *   4. block → the run fails before any adapter call with 'PII Detected';
+ *   5. guard broken → literally the failure mode of the agent path (BFSF-269):
+ *      default fail_closed (privacyUnavailable, no model call, no
+ *      usage line), fail_open only on an explicit org choice.
  *
- * Echt draaien: coworkShield, coworkShieldFlag, orgShield en de hele
- * piiDetection-keten, met de guard als lokale HTTP-server. Gestubd (het
- * installResolveStub-patroon van de tierContext/usageLog-tests) zijn alleen
- * de DB-laag, providers en bijzaken.
+ * Really run: coworkShield, coworkShieldFlag, orgShield and the whole piiDetection
+ * chain, with the guard as a local HTTP server. Stubbed (the installResolveStub
+ * pattern of the tierContext/usageLog tests) are only the DB layer, providers and
+ * side matters.
  *
  * Run: node --test --test-force-exit core/aiTaskRunner.coworkShield.test.js
  */
@@ -142,9 +142,9 @@ after(() => {
 });
 
 /**
- * Elk scenario krijgt zijn eigen org (omzeilt de 30s-vlagmemo) en een eigen
- * prompttekst (omzeilt de scancache); endpointcache en circuit breaker
- * worden expliciet gereset omdat dat modulestaat is.
+ * Every scenario gets its own org (bypasses the 30s flag memo) and its own
+ * prompt text (bypasses the scan cache); the endpoint cache and circuit breaker
+ * are explicitly reset because that is module state.
  */
 function resetScenario({ orgId, flag, shield, guard }) {
     guardCalls.length = 0; chats.length = 0; usage.length = 0;
@@ -162,8 +162,8 @@ function resetScenario({ orgId, flag, shield, guard }) {
 const run = (task) => executeTask(task, { store: fakeStore });
 
 test('vlag uit → de guard wordt niet aangeroepen en de run is identiek', async () => {
-    // Schild volledig geconfigureerd én guard geïnstalleerd — alleen de vlag
-    // ontbreekt. Dan mag er geen enkele schildaanroep gebeuren.
+    // Shield fully configured AND guard installed, only the flag is
+    // missing. Then no shield call may happen at all.
     resetScenario({
         orgId: 'org-uit',
         flag: undefined,
@@ -236,8 +236,8 @@ test('blokkeren: de run faalt vóór enige model-call met PII Detected', async (
 });
 
 test('guard stuk, default fail_closed → privacyUnavailable, geen model-call', async () => {
-    // Geen piiFailureMode in het schild → de default van het agent-pad:
-    // fail_closed (BFSF-269). Guard geïnstalleerd maar onbereikbaar.
+    // No piiFailureMode in the shield → the default of the agent path:
+    // fail_closed (BFSF-269). Guard installed but unreachable.
     resetScenario({
         orgId: 'org-dicht',
         flag: true,

@@ -65,16 +65,16 @@ function checkStopError(ctx, step, at) {
 function checkReturnToApp(ctx, step, at) {
     const { pushE } = ctx;
     /**
-     * `return_to_app` — het antwoord dat de app krijgt.
+     * `return_to_app` — the answer the app receives.
      *
-     * Elk veld hier reist als DATA naar een app-runtime in de browser
-     * (`_appEffects`), en die runtime kan ouder zijn dan de automation. Een
-     * waarde buiten het vocabulaire is daar geen typefout maar een effect
-     * dat stil verdwijnt — precies wat deze stap moest voorkomen. Vandaar:
-     * het vocabulaire wordt hier GEWEIGERD (integriteit, blokkeert altijd),
-     * en "nog niets ingevuld" is een completeness-code die je laat
-     * doorbouwen. Onbekend versmalt: liever een rode chip in de editor dan
-     * een instructie die de bezoeker nooit ziet.
+     * Every field here travels as DATA to an app runtime in the browser
+     * (`_appEffects`), and that runtime may be older than the automation. A
+     * value outside the vocabulary is there not a typo but an effect that
+     * silently disappears — precisely what this step had to prevent. Hence:
+     * the vocabulary is REFUSED here (integrity, always blocks), and "nothing
+     * filled in yet" is a completeness code that lets you keep building. Unknown
+     * narrows: better a red chip in the editor than an instruction the visitor
+     * never sees.
      */
     if (step.type === 'return_to_app') {
         const nav = step.navigateTo;
@@ -112,9 +112,9 @@ function checkReturnToApp(ctx, step, at) {
         if (step.onError !== undefined && step.onError !== null && !RETURN_TO_APP_ON_ERROR_MODES.has(step.onError)) {
             pushE({ code: 'return_to_app.on_error_invalid', severity: 'error', path: at + '.onError', message: `Step ${step.id}: unknown onError ${JSON.stringify(step.onError)}.`, hint: `Use one of: ${[...RETURN_TO_APP_ON_ERROR_MODES].join(', ')} — what the app does when the return itself cannot be carried out.` });
         }
-        // Een terugkeer die niets zegt is niet fout, maar wel onaf: de run
-        // eindigt en de bezoeker ziet niets veranderen. Completeness-code —
-        // een net gesleepte stap moet blijven opslaan.
+        // A return that says nothing is not wrong, but it is unfinished: the run
+        // ends and the visitor sees nothing change. Completeness code —
+        // a freshly dragged step must be able to save.
         if ((step.navigateTo === undefined || step.navigateTo === null)
             && (step.toast === undefined || step.toast === null)
             && (step.refresh === undefined || step.refresh === null)) {

@@ -30,10 +30,10 @@ export const resolveUrl = <T extends string | null | undefined>(url: T): T => {
 // "Export as PDF" action. Kept verbatim from the original inline template so
 // the exported page renders exactly as before.
 //
-// De titel is het enige stukje tekst hier, en hij komt als ARGUMENT binnen:
-// dit is een pure module zonder t() in scope, en de titel staat in de tab van
-// het printvenster en boven op de afdruk. Zonder titel valt hij terug op het
-// Engels dat hij altijd al had.
+// The title is the only piece of text here, and it arrives as an ARGUMENT:
+// this is a pure module with no t() in scope, and the title appears in the tab
+// of the print window and on top of the printout. Without a title it falls back
+// to the English it always had.
 export const buildPdfExportHtml = (htmlContent: string, title = 'AI Response Export') => `<!DOCTYPE html>
 <html><head>
     <title>${title}</title>

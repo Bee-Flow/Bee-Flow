@@ -154,14 +154,14 @@ const TOOL_REGISTRY = [
  *         'permission'   — the caller is not allowed to use it;
  *         'connection'   — the caller has not connected it (the default, and
  *                          what every TOOL_REGISTRY app means).
- *       Het is een LIJST zodra er meer dan één oorzaak is, en dat is hier de
- *       regel in plaats van de uitzondering: `browse_web` zit achter de
- *       docker-probe ÉN achter `isAppOn('browser-fetch')` (org-entitlement),
- *       de notebooks achter een feature-vlag, een entitlement én de
- *       RBAC-permissie `use_notebooks`. Eén oorzaak noemen terwijl er drie
- *       kunnen zijn, is een bewering die niet uit de meting volgt — de kaart
- *       zei "deze installatie heeft hem niet" tegen een collega die alleen
- *       `use_notebooks` mist. Bij meer dan één noemt de kiezer ze allebei.
+ *       This is a LIST as soon as there is more than one cause, and here that
+ *       is the rule rather than the exception: `browse_web` sits behind the
+ *       docker probe AND behind `isAppOn('browser-fetch')` (org entitlement),
+ *       the notebooks behind a feature flag, an entitlement and the RBAC
+ *       permission `use_notebooks`. Naming one cause when there may be three is
+ *       a claim that does not follow from the measurement — the card said
+ *       "deze installatie heeft hem niet" to a colleague who only lacks
+ *       `use_notebooks`. With more than one, the picker names both.
  */
 const INLINE_TOOL_APPS = [
     // Injected at core/integrations/integrationTools.js — behind dockerAvailable().
@@ -200,23 +200,20 @@ function appEntryFor(appId) {
 /**
  * Load the TOOLS array for an app entry, AND say whether that succeeded.
  *
- * ── WAAROM DIT NAAST `loadTools` STAAT ──────────────────────────────
- * `loadTools` geeft `[]` terug op elke storing en vangt de fout zelf. Dat is
- * goed voor de catalogus-achtige lezers (één app minder in een palet), en het
- * is een STIL FAIL-OPEN voor de rechtenlaag: `core/agentRuntime/toolPolicy.js`
- * bouwt hierop zijn appId↔toolnaam-index en gebruikte "loadTools gooide" als
- * signaal voor een degraded attributie — een signaal dat deze functie nooit
- * afgeeft. Een module die niet laadt leverde dus `byApp.set(app, [])`, de index
- * bleef "gezond", en élke naam van die app werd ONGEATTRIBUEERD: de lezing die
- * voor `set_reminder` bedoeld is, en die elke per-app-grant passeert. Een agent
- * die tot `gmail_search` was versmald kreeg heel Gmail terug op grond van één
- * warn-regel in het log.
+ * ── WHY THIS STANDS BESIDE `loadTools` ──────────────────────────────
+ * `loadTools` returns `[]` on any failure and catches the error itself. That is good for the
+ * catalogue-like readers (one app fewer in a palette), and it is a SILENT FAIL-OPEN for the
+ * permission layer: `core/agentRuntime/toolPolicy.js` builds its appId↔tool-name index on it and
+ * used "loadTools threw" as the signal for a degraded attribution — a signal that this function
+ * never gives. A module that did not load therefore yielded `byApp.set(app, [])`, the index stayed
+ * "healthy", and EVERY name of that app became UNATTRIBUTED: the reading that is meant for
+ * `set_reminder`, and that passes every per-app grant. An agent that had been narrowed down to
+ * `gmail_search` got the whole of Gmail back on the strength of one warn line in the log.
  *
- * Daarom geeft dit de storing terug als WAARDE. "Leeg" en "onleesbaar" zijn
- * verschillende antwoorden:
- *   ok: true   de module laadde en `arrayName` was een array (ook een lege);
- *   ok: false  de require gooide, óf `arrayName` bestaat niet / is geen array
- *              (hernoemde export, circulaire require tijdens boot).
+ * Hence this returns the failure as a VALUE. "Empty" and "unreadable" are different answers:
+ *   ok: true   the module loaded and `arrayName` was an array (even an empty one);
+ *   ok: false  the require threw, OR `arrayName` does not exist / is not an array
+ *              (renamed export, circular require during boot).
  *
  * @returns {{tools: Array, ok: boolean, reason: string|null}}
  */
@@ -242,10 +239,9 @@ function loadToolsResult(entry) {
 /**
  * Load the TOOLS array for an app entry. Returns [] on failure.
  *
- * Bewust ONVERANDERD in gedrag: de bestaande lezers (`toolNamesForApps`,
- * `findOwnerOfTool`, de catalogus) willen één app minder, niet een exception.
- * Wie het VERSCHIL tussen leeg en onleesbaar nodig heeft, neemt
- * `loadToolsResult` hierboven.
+ * Deliberately UNCHANGED in behaviour: the existing readers (`toolNamesForApps`, `findOwnerOfTool`,
+ * the catalogue) want one app fewer, not an exception. Whoever needs the DIFFERENCE between empty and
+ * unreadable takes `loadToolsResult` above.
  */
 function loadTools(entry) {
     return loadToolsResult(entry).tools;

@@ -135,15 +135,14 @@ describe('nothing to draw', () => {
 });
 
 /**
- * DE CACHE STERFT MET DE SESSIE.
+ * THE CACHE DIES WITH THE SESSION.
  *
- * De sleutel is `appId + screenId + nodeId` en noemt de kijker niet, terwijl
- * het antwoord per kijker verschilt: een app die je niet bezit levert
- * `restricted` — geen namen, geen link. Uitloggen herlaadt de pagina niet
- * (AuthedApp's handleLogout rendert het loginscherm in dezelfde JS-context),
- * dus zonder een opruimer leest de VOLGENDE gebruiker op hetzelfde werkstation
- * binnen 60 s de appnaam, schermnaam, knoplabel én `canOpen:true` van de
- * vorige. Dat zijn precies de twee dingen die appRefLookup.js verbiedt.
+ * The key is `appId + screenId + nodeId` and does not name the viewer, while the answer
+ * differs per viewer: an app you do not own yields `restricted`, with no names and no link.
+ * Logging out does not reload the page (AuthedApp's handleLogout renders the login screen
+ * in the same JS context), so without a cleaner the NEXT user on the same workstation reads
+ * within 60 seconds the app name, screen name, button label and `canOpen:true` of the
+ * previous one. Those are exactly the two things that appRefLookup.js forbids.
  */
 describe('uitloggen wist wat deze kijker mocht zien', () => {
     it('clearSessionCaches() laat de volgende lezer opnieuw vragen', async () => {
@@ -153,14 +152,14 @@ describe('uitloggen wist wat deze kijker mocht zien', () => {
         authFetch.mockResolvedValue(ok({ status: 'ok', ...REF, appName: 'Expenses', canOpen: true }));
         expect((await loadAppRef(REF)).appName).toBe('Expenses');
         expect(authFetch).toHaveBeenCalledTimes(1);
-        // Binnen het TTL-venster: geen tweede verzoek, dus dit IS een cache.
+        // Within the TTL window: no second request, so this IS a cache.
         await loadAppRef(REF);
         expect(authFetch).toHaveBeenCalledTimes(1);
 
         clearSessionCaches();
 
-        // De volgende gebruiker op dezelfde browser krijgt het antwoord dat de
-        // server HEM geeft, niet dat van zijn voorganger.
+        // The next user on the same browser gets the answer that the server gives HIM, not that
+        // of his predecessor.
         authFetch.mockResolvedValue(ok({ status: 'restricted', ...REF, canOpen: false }));
         const second = await loadAppRef(REF);
         expect(authFetch).toHaveBeenCalledTimes(2);

@@ -1,22 +1,21 @@
 /**
- * De tool-catalogus als ÉÉN lijst.
+ * The tool catalogue as ONE list.
  *
- * ── WAAROM DIT BESTAAT ──────────────────────────────────────────────
- * `TOOL_REGISTRY` beschrijft de apps die hun tools als TOOLS-array-module
- * leveren. Een handvol integraties doet dat niet: `integrationTools.js` duwt
- * hun tools INLINE op de stapel, achter een eigen poort (een docker-probe voor
- * `browse_web`, een adminvlag voor de regex-tools, een entitlement voor de
- * notitieboeken). Die apps stonden daardoor in geen enkele lijst die de
- * agent-toolkiezer leest — en ze stonden óók niet in de index waaruit
- * `core/agentRuntime/toolPolicy.js` afleidt wélke app een toolnaam bezit.
+ * ── WHY THIS EXISTS ──────────────────────────────────────────────────
+ * `TOOL_REGISTRY` describes the apps that deliver their tools as a TOOLS-array module. A handful of
+ * integrations do not do that: `integrationTools.js` pushes their tools INLINE onto the stack, behind a
+ * gate of their own (a docker probe for `browse_web`, an admin flag for the regex tools, an entitlement
+ * for the notebooks). Those apps were therefore in no list that the agent tool picker reads — and they
+ * were not in the index either from which `core/agentRuntime/toolPolicy.js` derives WHICH app owns a
+ * tool name.
  *
- * Het gevolg was één bevinding, twee helften: de kiezer kon `browse_web` niet
- * TONEN, en de runtime liet hem door als "niemand claimt deze naam" — ook bij
- * een agent die tot één Gmail-actie was versmald.
+ * The consequence was one finding, in two halves: the picker could not SHOW `browse_web`, and the
+ * runtime let it through as "nobody claims this name" — also for an agent that had been narrowed down
+ * to a single Gmail action.
  *
- * `ALL_TOOL_APPS` is de plek waar die twee lezers dezelfde lijst zien. Wat
- * hier gepind wordt is dus niet "de lijst bevat X", maar dat er ÉÉN lijst is:
- * twee handbijgehouden lijsten is precies de fout die dit moest oplossen.
+ * `ALL_TOOL_APPS` is the place where those two readers see the same list. What is pinned here is
+ * therefore not "the list contains X", but that there is ONE list: two hand-maintained lists is
+ * precisely the fault that this was supposed to solve.
  *
  * Run: node --test --test-force-exit automation/toolRegistry.test.js
  */
@@ -39,10 +38,9 @@ test('ALL_TOOL_APPS is de registry PLUS de inline apps — niets minder, niets d
 });
 
 test('TOOL_REGISTRY zelf blijft ongemoeid — hij beantwoordt een ANDERE vraag', () => {
-    // `getUserPermittedApps` en `appStudio/browseStep.js` snijden hun antwoord
-    // op TOOL_REGISTRY. Een inline app daarin schuiven zou hun betekenis
-    // veranderen (zie core/integrations/integrationTools.permittedApps.test.js);
-    // daarom staat de uitbreiding ernaast en niet erin.
+    // `getUserPermittedApps` and `appStudio/browseStep.js` cut their answer on TOOL_REGISTRY. Pushing an
+    // inline app into it would change their meaning (see core/integrations/integrationTools.permittedApps.test.js);
+    // that is why the extension stands beside it and not in it.
     const registryIds = new Set(idsOf(TOOL_REGISTRY));
     for (const entry of INLINE_TOOL_APPS) {
         assert.ok(!registryIds.has(entry.app), `${entry.app} hoort NIET in TOOL_REGISTRY`);
@@ -64,16 +62,14 @@ test('elke inline app laadt echt tools, en zegt hoe een "niet beschikbaar" gelez
         for (const t of tools) {
             assert.strictEqual(typeof t?.function?.name, 'string', `${entry.app}: tool zonder naam`);
         }
-        // Zwijgen over een inline app is geen keuze: de kiezer heeft hem nooit
-        // getoond, dus niemand kan hem hebben laten staan. Zie toolPolicy.js.
+        // Silence about an inline app is not a choice: the picker never showed it, so nobody can have left it
+        // standing. See toolPolicy.js.
         assert.strictEqual(entry.grantsRequireEntry, true,
             `${entry.app}: een inline app moet expliciet gegund worden`);
-        // "Afwezig op deze installatie" is iets anders dan "jij hebt hem niet
-        // verbonden". De kiezer moet dat verschil kunnen zeggen — en waar een
-        // app achter MEERDERE poorten zit (de browser: docker-probe én
-        // org-entitlement; de notebooks: feature-vlag, entitlement én
-        // `use_notebooks`) staan ze er allebei, want één ervan noemen is een
-        // bewering die de meting niet oplevert.
+        // "Afwezig op deze installatie" is something different from "jij hebt hem niet verbonden". The picker must
+        // be able to say that difference — and where an app sits behind SEVERAL gates (the browser: docker probe
+        // AND org entitlement; the notebooks: feature flag, entitlement and `use_notebooks`) they are listed both,
+        // because naming one of them is a claim that the measurement does not yield.
         const kinds = Array.isArray(entry.availability) ? entry.availability : [entry.availability];
         assert.ok(kinds.length > 0, `${entry.app}: availability moet zeggen WAAROM een app kan ontbreken`);
         for (const kind of kinds) {
@@ -84,23 +80,19 @@ test('elke inline app laadt echt tools, en zegt hoe een "niet beschikbaar" gelez
     }
 });
 
-// ── Twee entries, één set toolnamen (A2-4) ──────────────────────────
-// `outlook` en `outlook-readonly` laden dezelfde module: dezelfde namen, op
-// dezelfde credentials, waarvan de tweede een strikte subset levert. De
-// attributie-index van de rechtenlaag kent een naam aan één app toe, dus de
-// andere bezat er nul — en een grant die op die andere was opgeslagen ging
-// nergens over, terwijl de kiezer hem gewoon liet opslaan.
+// ── Two entries, one set of tool names (A2-4) ──────────────────────
+// `outlook` and `outlook-readonly` load the same module: the same names, on the same credentials, of which
+// the second delivers a strict subset. The attribution index of the permission layer assigns a name to ONE
+// app, so the other owned none — and a grant that had been stored on that other one went nowhere, while the
+// picker simply let it be stored.
 //
-// De regel is niet "dit mag niet", want de twee smaken bestaan met een reden
-// (de org-gate kiest welke wordt aangeboden). De regel is dat het GEDECLAREERD
-// moet zijn: `grantsVia` wijst de app aan die de gedeelde namen bezit. De
-// rechtenlaag leest dat — eigendom volgt de declaratie in plaats van de
-// volgorde van deze lijst, en élke claimende app moet een gedeelde naam
-// toestaan (core/agentRuntime/toolPolicy.sharedModule.test.js).
+// The rule is not "this may not be", because the two flavours exist for a reason (the org gate chooses which
+// one is offered). The rule is that it must be DECLARED: `grantsVia` points to the app that owns the shared
+// names. The permission layer reads that — ownership follows the declaration instead of the order of this
+// list, and EVERY claiming app must allow a shared name (core/agentRuntime/toolPolicy.sharedModule.test.js).
 //
-// Deze test is de duurzame helft: wie hier een entry bijzet die namen deelt
-// zonder dat te declareren, krijgt hem rood terug in plaats van een stille
-// dode grant.
+// This test is the lasting half: whoever adds an entry here that shares names without declaring that gets a
+// red result back instead of a silent dead grant.
 
 /** naam → [app-id, …] over de ECHTE lijst. */
 function claimantsByName() {
@@ -153,9 +145,8 @@ test('grantsVia wijst naar een bestaande app, levert een subset, en ketent niet'
         assert.strictEqual(declaredOwnerOf(via), null,
             `${entry.app}: grantsVia mag niet ketenen — "${via}" laat zijn grants zelf elders lopen`);
 
-        // Een subset, niet zomaar "verwant": bezit de alias een naam die de
-        // eigenaar niet levert, dan bezit hij hem in de praktijk zelf en zegt
-        // de declaratie iets onwaars.
+        // A subset, not merely "related": if the alias owns a name that the owner does not deliver, then in practice
+        // it owns that name itself, and the declaration says something untrue.
         const ownerNames = new Set(namesOf(via));
         for (const name of namesOf(entry.app)) {
             assert.ok(ownerNames.has(name),
@@ -167,8 +158,8 @@ test('grantsVia wijst naar een bestaande app, levert een subset, en ketent niet'
 });
 
 test('outlook-readonly is de bekende gedeelde entry, en is als zodanig gedeclareerd', () => {
-    // Geen "de lijst bevat X"-pin: dit is de entry waar de bevinding op zat, en
-    // de declaratie is wat hem uit de stille-dode-grant-toestand haalt.
+    // Not a "the list contains X" pin: this is the entry on which the finding sat, and the declaration is what
+    // takes it out of the silent-dead-grant state.
     const ro = appEntryFor('outlook-readonly');
     assert.ok(ro, 'outlook-readonly hoort in het registry te staan');
     assert.strictEqual(ro.grantsVia, 'outlook');
@@ -182,14 +173,13 @@ test('appEntryFor vindt inline apps net zo goed als registry-apps', () => {
     assert.strictEqual(appEntryFor(null), null);
 });
 
-// ── De anti-drift-pin ───────────────────────────────────────────────
-// Bron-assertions en geen require(): toolCatalog.js trekt een express-router
-// en de halve store-graaf mee. Wat hier gepind wordt is structureel, dus het
-// lezen van de bron is óók het eerlijke antwoord.
+// ── The anti-drift pin ───────────────────────────────────────────────
+// Source assertions and no require(): toolCatalog.js drags in an express router and half the store graph.
+// What is pinned here is structural, so reading the source is itself the honest answer.
 
 test('de KIEZER en de RUNTIME lezen allebei ALL_TOOL_APPS', () => {
-    // De attributie-index van de runtime zit sinds de opsplitsing van toolPolicy.js
-    // in `toolPolicy/appIndex.js` — dat is het bestand dat ALL_TOOL_APPS moet lezen.
+    // Since the split of toolPolicy.js, the runtime's attribution index lives in `toolPolicy/appIndex.js` —
+    // that is the file that must read ALL_TOOL_APPS.
     const policy = fs.readFileSync(require.resolve('../core/agentRuntime/toolPolicy/appIndex'), 'utf8');
     const catalog = fs.readFileSync(require.resolve('../routes/agents/toolCatalog'), 'utf8');
 

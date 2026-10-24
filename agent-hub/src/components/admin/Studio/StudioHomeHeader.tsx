@@ -6,73 +6,69 @@ import { useStudioCounts } from '../../../hooks/useStudioCounts';
 import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
 
 /**
- * De kop van het Startscherm van Studio (Track H3, artboard 1b).
+ * The header of the Studio Start screen (Track H3, artboard 1b).
  *
- * Vier dingen, en drie ervan zijn een belofte die makkelijk te ver gaat.
+ * Four things, and three of them are a promise that easily goes too far.
  *
- * ── "Organisatie X · 12 makers" ─────────────────────────────────────────────
+ * ── “Organisation X · 12 makers” ─────────────────────────────────────────────
  *
- * Het getal komt van GET /api/studio/counts, waar het op de SERVER wordt
- * geteld: één verzameling van alle eigenaren over alle getelde soorten heen.
- * Niet in de client uit de lijsten afgeleid — die zijn gepagineerd en gegate,
- * en dan telt de kop iets anders dan er onder staat.
+ * The number comes from GET /api/studio/counts, where it is counted on the SERVER:
+ * one collection of all owners across all counted kinds. It is not derived in the
+ * client from the lists — those are paginated and gated, and then the header would
+ * count something different from what is listed beneath it.
  *
- * Wat het getal WEL is, staat in de tooltip, want het is smaller dan de kop
- * suggereert: het zijn de eigenaren van alles wat DEZE persoon mag zien
- * (routes/studio/counts.js laat elke sleutel weg die je niet mag zien, en
- * telt per soort met de scoping van de lijst zelf). Een organisatiebreed
- * makersgetal zou een eigen, gegate telling op de server zijn; die bestaat
- * vandaag niet en wordt hier niet nagebootst.
+ * What the number IS is stated in the tooltip, because it is narrower than the
+ * header suggests: it is the owners of everything that THIS person may see
+ * (routes/studio/counts.js omits every key you may not see, and counts per kind with
+ * the scoping of the list itself). An organisation-wide makers count would be its own,
+ * gated count on the server; that does not exist today and is not imitated here.
  *
- * Drie waarden, drie renderingen — het verschil tussen "nul" en "onbekend" is
- * op dit scherm de kern:
- *   onbekend (nog niet geladen, of de fetch viel om) → geen zin. Er wordt
- *      niets beweerd tot het antwoord er is, dezelfde regel als de aantallen
- *      op de rail
- *   0  → "Nothing you can see here yet", niet "0 makers": dat laatste leest
- *      als "hier werkt niemand" terwijl de lezer er zelf bij staat. En de zin
- *      gaat over ZICHT, niet over de plek: 0 is ook wat je krijgt als elke
- *      soort voor deze lezer gegate is. Een 0 die uit een MISLUKTE telling
- *      kwam bestaat niet meer — routes/studio/counts.js laat `makers` weg
- *      zodra het antwoord partial is, precies zoals het een teller weglaat
- *   1+ → het getal, met enkelvoud en meervoud uit elkaar gehouden
+ * Three values, three renderings — the difference between “zero” and “unknown” is
+ * the core of this screen:
+ *   unknown (not yet loaded, or the fetch fell over) → no sentence. Nothing is
+ *      claimed until the answer is there — the same rule as the counts on the rail
+ *   0  → “Nothing you can see here yet”, not “0 makers”: the latter reads as “nobody
+ *      works here”, while the reader is standing there himself. And the sentence
+ *      concerns VISIBILITY, not the place: 0 is also what you get when every kind is
+ *      gated for this reader. A 0 that came from a FAILED count no longer exists —
+ *      routes/studio/counts.js omits `makers` as soon as the answer is partial,
+ *      exactly as it omits a counter
+ *   1+ → the number, with singular and plural kept apart
  *
- * ── Eén verzoek, geen tweede poller ─────────────────────────────────────────
+ * ── One request, no second poller ─────────────────────────────────────────
  *
- * De rail pollt /api/studio/counts al elke 30s. Deze kop leest hetzelfde
- * antwoord ÉÉN keer (useStudioCounts met poll: false) — de server cachet het
- * een minuut per (org, gebruiker), dus meestal heeft de rail er al voor
- * betaald.
+ * The rail already polls /api/studio/counts every 30s. This header reads the same
+ * answer ONCE (useStudioCounts with poll: false) — the server caches it for one
+ * minute per (org, user), so usually the rail has already paid for it.
  *
- * ── "Bouwen met AI" staat hier nu wél ───────────────────────────────────────
+ * ── “Building with AI” is here now ───────────────────────────────────────────
  *
- * Tot H4 stond op deze plek een plaatshouder: een gestippelde kaart die zei
- * wat het zou worden en dat het er nog niet was. De reden daarvoor is niet
- * vervallen maar INGELOST — een knop die niets doet is erger dan geen knop, en
- * een tekstvak waar je niet in kunt typen is een kapot bedieningselement, dus
- * kwam er pas iets klikbaars toen er iets achter zat. Dat is er nu:
- * studioAi/DescribeItPanel (variant 'inline') praat met POST
- * /api/studio/ai/route en brengt de lezer daarna naar de BESTAANDE bouwer van
- * de gekozen soort. Het paneel krijgt dezelfde `sections` als de rest van dit
- * scherm, zodat een soort die deze lezer niet mag maken ook daar een bordje
- * blijft in plaats van een deur te worden.
+ * Until H4, a placeholder stood in this place: a dotted card that said what it would
+ * become and that it was not there yet. The reason for that has not lapsed but was
+ * RESOLVED — a button that does nothing is worse than none, and a text box you cannot
+ * type in is a broken control, so something clickable came only once something stood
+ * behind it. That is now the case: studioAi/DescribeItPanel (variant 'inline') talks to
+ * POST /api/studio/ai/route and then brings the reader to the EXISTING builder of the
+ * chosen kind. The panel receives the same `sections` as the rest of this screen, so a
+ * kind that this reader may not create also remains a sign there rather than becoming
+ * a door.
  *
- * ÉÉN paneel op dit scherm, niet twee. De AI-regel van het "Nieuw"-menu krijgt
- * daarom een eigen `onAi` die naar DIT paneel brengt (in beeld, cursor in het
- * veld) in plaats van een tweede exemplaar in een dialoog te openen. Dat is
- * meteen wat die regel van de Automations-terugval verlost: met een eigen `onAi`
- * volgt hij deze kop en is hij niet langer gelockt precies wanneer Automatiseringen
- * dat zijn (zie AI_FALLBACK_SECTION in NewMenu.jsx).
+ * ONE panel on this screen, not two. The AI line of the “New” menu therefore gets its
+ * own `onAi` that brings the user TO THIS panel (into view, cursor in the field)
+ * instead of opening a second instance in a dialog. That is precisely what releases
+ * that line from the Automations fallback: with its own `onAi` it follows this header,
+ * and is no longer locked precisely when Automations is that (see AI_FALLBACK_SECTION
+ * in NewMenu.jsx).
  *
- * Wat het paneel NIET doet — meerdere soorten in één keer aanmaken — staat in
- * studioAi/DescribeItPanel zelf: dat is H4b en wacht op K8.
+ * What the panel does NOT do — creating several kinds at once — is stated in
+ * studioAi/DescribeItPanel itself: that is H4b and awaits K8.
  *
- * ── Het "Nieuw"-menu ────────────────────────────────────────────────────────
+ * ── The “New” menu ────────────────────────────────────────────────────────
  *
- * De split-knop uit NewMenu.jsx, hier voor het eerst gemonteerd ("Track H
- * places it in the Studio header"). Hij krijgt dezelfde `sections` als de rest
- * van dit scherm — de al gegate rijen — zodat een gelockte soort in het menu
- * staat met de hint die de rail ook toont, in plaats van te verdwijnen.
+ * The split button from NewMenu.jsx, mounted here for the first time (“Track H places
+ * it in the Studio header”). It receives the same `sections` as the rest of this
+ * screen — the already gated rows — so a locked kind stays in the menu with the hint
+ * that the rail also shows, instead of disappearing.
  */
 
 /** De ene regel onder "Start": wie hier bouwt, of anders waar je bent. */
@@ -90,7 +86,7 @@ function MetaLine({ t, orgName, makers }: MetaLineProps) {
             : nOf(t, 'studio.makers', makers, '{count} maker', '{count} makers'));
 
     if (!orgName && !makersPhrase) {
-        // Nog niets te melden: de kop blijft één zin, niet een kaal woord.
+        // Nothing to report yet: the header remains one sentence, not a bare word.
         return (
             <p className="mt-1 text-[13px] text-[var(--text-tertiary)]" data-testid="studio-home-desc">
                 {t('studio.start.desc', 'Everything you build, in one place')}
@@ -104,8 +100,8 @@ function MetaLine({ t, orgName, makers }: MetaLineProps) {
             {makersPhrase && (
                 <span
                     data-testid="studio-home-makers"
-                    // Wat er precies geteld is. De kop zegt "makers"; dit zegt
-                    // welke makers, en dat is smaller dan de hele organisatie.
+                    // Exactly what is counted. The header says “makers”; this says which makers,
+                    // and that is narrower than the whole organisation.
                     title={t('studio.makers_hint', 'Everyone who owns something you can see in Studio.')}
                 >
                     {makersPhrase}
@@ -126,11 +122,11 @@ export default function StudioHomeHeader({
     user = null, sections = null, onNavigate = null, makers: makersProp,
 }: StudioHomeHeaderProps) {
     const { t } = useTranslation();
-    // `undefined` = niemand boven ons bezit het getal, dus lezen we het zelf:
-    // één keer, geen timer (de rail pollt dit endpoint al — zie de hook). Geeft
-    // de ouder het wél mee, dan is er ÉÉN lezing op dit scherm in plaats van
-    // twee die uiteen kunnen lopen; `null` van de ouder is een antwoord
-    // ("onbekend"), en dat is iets anders dan geen prop.
+    // `undefined` = nobody above us owns the number, so we read it ourselves: once,
+    // no timer (the rail already polls this endpoint — see the hook). If the parent DOES
+    // pass it along, there is ONE read on this screen instead of two that can diverge;
+    // `null` from the parent is an answer (“unknown”), and that is something other
+    // than no prop.
     const ownsMakers = makersProp === undefined;
     const { makers: fetched } = useStudioCounts({ enabled: ownsMakers, poll: false });
     const makers = ownsMakers ? fetched : makersProp;
@@ -138,15 +134,15 @@ export default function StudioHomeHeader({
     const rawOrgName = user?.organization?.name;
     const orgName = typeof rawOrgName === 'string' && rawOrgName.trim() ? rawOrgName.trim() : null;
 
-    // De AI-regel van het "Nieuw"-menu landt op het paneel dat hier al staat:
-    // in beeld brengen en de cursor in het veld zetten. Geen tweede exemplaar
-    // van hetzelfde paneel, en dus ook geen tweede antwoord op één scherm.
+    // The AI line of the “New” menu lands on the panel that is already here: bring it
+    // into view and place the cursor in the field. No second instance of the same
+    // panel, and therefore also no second answer on one screen.
     const aiRef = useRef<HTMLDivElement>(null);
     const focusAi = () => {
         const host = aiRef.current;
         if (!host) return;
-        // Niet elke omgeving kent scrollIntoView (jsdom bijvoorbeeld); het is
-        // de begeleiding, niet de handeling, dus het mag ontbreken.
+        // Not every environment knows scrollIntoView (jsdom for example); it is the
+        // guidance, not the action, so it may be absent.
         if (typeof host.scrollIntoView === 'function') host.scrollIntoView({ block: 'nearest' });
         const field = host.querySelector<HTMLElement>('textarea, input');
         if (field && typeof field.focus === 'function') field.focus();

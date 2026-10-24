@@ -33,17 +33,17 @@ import type {
 import type { Persona } from '../role/personaFacts';
 
 /**
- * De vier BESCHRIJVENDE persona-velden van een persona-object, of `null`.
+ * The four DESCRIBING persona fields of a persona object, or `null`.
  *
- * Dit is de vorm die met het plan meereist — heen (zodat een verfijning de rol
- * die er staat kan behouden in plaats van hem opnieuw te verzinnen) en terug
- * (het model vult ze in). `unknown`, `language`, `mode` en `freeText` gaan
- * NOOIT mee: `unknown` heeft gevolgen in de config (strenge kennis, een app,
- * een automation-grant) en `language`/`mode`/`freeText` zijn van de editor, niet
- * van het model. Een plan is een voorstel, geen grant.
+ * This is the shape that has to travel with the plan: outward (so a refinement can keep
+ * the role that is there instead of inventing it anew) and back (the model fills them
+ * in). `unknown`, `language`, `mode` and `freeText` NEVER travel. `unknown` has
+ * consequences in the config (strict knowledge, an app, an automation grant), and
+ * `language`/`mode`/`freeText` belong to the editor, not to the model. A plan is a
+ * proposal, not a grant.
  *
- * `null` betekent "hier staat geen rol" en dat is een echt antwoord: de
- * callers vallen daarop terug op de prozatekst als bron.
+ * `null` means "no role here", and that is a real answer: the callers fall back on the
+ * prose text as the source then.
  */
 export function personaFieldsOf(persona: PersonaLike | null | undefined): PersonaFields | null {
     if (!persona || typeof persona !== 'object' || Array.isArray(persona)) return null;
@@ -62,22 +62,22 @@ export function personaFieldsOf(persona: PersonaLike | null | undefined): Person
 }
 
 /**
- * Heeft deze agent AL een vrije instructie — tekst die iemand zelf schreef en
- * die de bron van zijn gedrag is?
+ * Does this agent ALREADY have a free instruction? That is text that someone wrote
+ * himself and that is the source of its behaviour.
  *
- * De vraag beslist of de wizard de EERSTE versie in de velden mag zetten. Twee
- * bronnen, en de smalle lezing wint:
+ * The question decides whether the wizard may put the FIRST version into the fields.
+ * There are two sources, and the narrow reading wins:
  *
- *   - staat de persona in `fields`-modus, dan is er per definitie geen vrije
- *     instructie (`freeText` wordt in die modus niet bewaard) — het prompt dat
- *     de editor toont is dan de RENDERING van die velden, geen eigen tekst;
- *   - anders telt elke niet-lege `freeText` én elk niet-leeg `systemPrompt`.
+ *   - if the persona is in `fields` mode, there is by definition no free instruction
+ *     (`freeText` is not kept in that mode). The prompt the editor shows is then the
+ *     RENDERING of those fields, not text of its own;
+ *   - otherwise every non-empty `freeText` AND every non-empty `systemPrompt` counts.
  *
- * `systemPrompt` is bewust de doorslaggevende terugval voor een agent van wie
- * we de persona niet kennen (de kolom is niet gelezen, of hij bestond nog niet
- * toen de agent gemaakt werd): `agents.system_prompt` IS de rendering van de
- * persona, dus een agent met een leeg prompt heeft niets te verliezen, en een
- * agent met tekst erin wel — ook als we niet kunnen zien waar die vandaan komt.
+ * `systemPrompt` is deliberately the decisive fallback for an agent whose persona we do
+ * not know (the column was not read, or it did not yet exist when the agent was made):
+ * `agents.system_prompt` IS the rendering of the persona, so an agent with an empty
+ * prompt has nothing to lose, and an agent with text in it does, even if we cannot see
+ * where that text comes from.
  */
 export function hasFreeInstruction(state: { persona?: PersonaLike | null; systemPrompt?: string } = {}): boolean {
     const persona = state.persona;
@@ -101,9 +101,9 @@ export function buildRefineContext(state: RefineState = {}) {
             avatar: avatar || '',
             systemPrompt: systemPrompt || '',
             capabilities: Array.isArray(capabilities) ? capabilities : [],
-            // Alleen meesturen als er echt een rol staat. Een leeg blok zou het
-            // model vertellen dat deze agent er een heeft die leeg is, en dan
-            // is "behouden tenzij gevraagd" een instructie om niets te schrijven.
+            // Only send it along if there really is a role. An empty block would tell the model
+            // that this agent has one that is empty, and then "keep unless asked otherwise" is
+            // an instruction to write nothing.
             ...(personaFields ? { persona: personaFields } : {}),
         },
         current: {
@@ -123,68 +123,62 @@ const uniq = <T,>(arr: T[] | null | undefined): T[] => Array.from(new Set((arr |
 /**
  * The persona (A1c) after a refine.
  *
- * Persona is the SOURCE of the system prompt on the server, so the two may
- * never drift: a refine that rewrites the prompt and leaves the persona
- * untouched leaves the fields describing instructions the agent no longer has,
- * and the next save would render the OLD fields straight back over the new
- * prompt.
+ * Persona is the SOURCE of the system prompt on the server, so the two may never drift:
+ * a refine that rewrites the prompt and leaves the persona untouched leaves the fields
+ * describing instructions the agent no longer has, and the next save would render the
+ * OLD fields straight back over the new prompt.
  *
- * Three cases now, and the golden rule ("absent ⇒ keep") decides the first two:
+ * Three cases now, and the golden rule ("absent means keep") decides the first two:
  *
  *   the prompt did NOT change → keep the current persona verbatim, including
- *   `undefined` (the PUT then omits the field and the server preserves the
- *   column). A tone-only refine must not rewrite a persona the user built by
- *   hand.
+ *   `undefined` (the PUT then omits the field and the server preserves the column).
+ *   A tone-only refine must not rewrite a persona the user built by hand.
  *
- *   the prompt DID change on an agent that ALREADY HAS A FREE INSTRUCTION →
- *   free mode over the refined prompt, exactly as before. This is the guard
- *   that matters: someone who writes their own instructions must never find
- *   them replaced by five fields because a refine ran. Their text stays the
- *   source; the fields keep describing it.
+ *   the prompt DID change on an agent that ALREADY HAS A FREE INSTRUCTION → free mode
+ *   over the refined prompt, exactly as before. This is the guard that matters: someone
+ *   who writes their own instructions must never find them replaced by five fields
+ *   because a refine ran. Their text stays the source; the fields keep describing it.
  *
- *   the prompt DID change on an agent WITHOUT one — the wizard's first version
- *   out of one sentence — → the FIELDS become the source (A3). This is the
- *   whole point of the Role tab: five cards you can edit. An agent born in free
- *   mode opens them read-only, and since the wizard is how nearly every agent
- *   is born, that would make Role a read-only screen for the whole product.
- *   Nothing is thrown away doing it, because the fields are not guessed from
- *   `description` + `capabilities` any more: the plan schema asks the model for
- *   `who`/`tone`/`does`/`doesNot` and this writes what it wrote. When the plan
- *   carries no role (an older server, a model that skipped the block) there is
- *   nothing to be the source, so free mode is what happens.
+ *   the prompt DID change on an agent WITHOUT one (the wizard's first version out of
+ *   one sentence) → the FIELDS become the source (A3). This is the whole point of the
+ *   Role tab: five cards you can edit. An agent born in free mode opens them read-only,
+ *   and since the wizard is how nearly every agent is born, that would make Role a
+ *   read-only screen for the whole product. Nothing is thrown away doing it, because the
+ *   fields are no longer guessed from `description` + `capabilities`: the plan schema
+ *   asks the model for `who`/`tone`/`does`/`doesNot`, and this writes what it wrote.
+ *   When the plan carries no role (an older server, a model that skipped the block)
+ *   there is nothing to be the source, so free mode is what happens.
  *
- * Either way the SETTINGS a refine says nothing about ("when you do not know",
- * language) are carried over rather than reset. The server re-normalises all of
- * it; this only has to be honest.
+ * Either way, the SETTINGS that a refine says nothing about ("when you do not know",
+ * language) are carried over rather than reset. The server re-normalises all of it; this
+ * only has to be honest.
  *
- * ── EEN ONLEESBARE PERSONA SCHRIJFT NIET ───────────────────────────────────
+ * ── AN UNREADABLE PERSONA DOES NOT WRITE ───────────────────────────────────
  *
- * `undefined` in de kolom betekent hier "niet gelezen", niet "leeg": de
- * lijstroute STRIPT `persona` (`agentCrud._stripPersona`), dus alles hangt aan
- * de extra `GET /agents/:id?draft=1`, en die kan 403'en of omvallen. Op zo'n
- * antwoord bouwde deze functie vroeger een VERSE persona in vrije modus — over
- * een agent die in de kolom `{mode:'fields', unknown:{mode:'handoff',
- * automationId:'auto-1'}, language:'nl'}` kan hebben staan. Die twee
- * instellingen heeft deze code nooit gelezen en zou ze dus weggooien, waarna de
- * server ze terugvult op 'honest'/null: de doorgeef-automation en de taalregel
- * stil verdwenen, en de vijf rolkaarten alleen-lezen. Onbekend versmalt naar
- * `undefined` — de PUT laat het veld dan weg en de kolom blijft staan.
+ * `undefined` in the column here means "not read", not "empty": the list route STRIPS
+ * `persona` (`agentCrud._stripPersona`), so everything hangs on the extra
+ * `GET /agents/:id?draft=1`, and that can 403 or fail. On such an answer this function
+ * used to build a FRESH persona in free mode, over an agent that may have
+ * `{mode:'fields', unknown:{mode:'handoff', automationId:'auto-1'}, language:'nl'}` in
+ * the column. This code never read those two settings and would therefore throw them
+ * away; the server would then fill them in with 'honest'/null. The hand-off automation
+ * and the language rule were silently gone, and the five role cards read-only. Unknown
+ * narrows to `undefined`: the PUT then omits the field and the column stays.
  *
- * ── EEN VERFIJNING MAG OOK IETS WEGHALEN ───────────────────────────────────
+ * ── A REFINEMENT MAY ALSO REMOVE SOMETHING ────────────────────────────────
  *
- * "Absent/leeg ⇒ behouden" was ongevaarlijk toen het prompt de bron was. Nu de
- * VELDEN de bron zijn, betekende het dat een verfijning een regel niet meer kon
- * WEGHALEN: het model haalt "nooit geld terug beloven" netjes uit `doesNot` én
- * uit het prompt, de Gedaan-kaart meldt gewijzigde instructies, en de server
- * rendert de regel uit de bewaarde `doesNot` gewoon terug in het prompt. Dus:
- * dráágt het plan een rolblok, dan zijn `does`, `doesNot` en `tone` van dat
- * blok — leeg inbegrepen. Draagt het er geen (een oudere server, een model dat
- * het blok oversloeg), dan geldt "behouden" nog steeds, want dan is er niets
- * gezegd.
+ * "Absent/empty means keep" was harmless when the prompt was the source. Now that the
+ * FIELDS are the source, it meant that a refinement could not REMOVE a rule: the model
+ * neatly removes "never promise a refund" from `doesNot` and from the prompt, the Done
+ * card ("Gedaan") reports changed instructions, and the server renders the rule back
+ * into the prompt from the stored `doesNot`. So: if the plan carries a role block, then
+ * `does`, `doesNot` and `tone` come from that block, empty included. If it carries none
+ * (an older server, a model that skipped the block), "keep" still applies, because then
+ * nothing was said.
  *
- * `who` is de uitzondering en blijft terugvallen: het is één veld, een model
- * dat het leeg laat heeft het vrijwel altijd overgeslagen, en een lege `who`
- * over een gevulde heenschrijven is niet wat "bijstellen" betekent.
+ * `who` is the exception and still falls back. It is one field, a model that leaves it
+ * empty has almost always skipped it, and an empty `who` over a filled one is not what
+ * "adjusting" means.
  */
 function personaAfterRefine(current: RefineSnapshot, { systemPrompt, description, capabilities, planPersona }: {
     systemPrompt: string | undefined;
@@ -195,11 +189,10 @@ function personaAfterRefine(current: RefineSnapshot, { systemPrompt, description
     const cur = current.persona;
     if (systemPrompt === current.systemPrompt) return cur;
     const readable = !!cur && typeof cur === 'object' && !Array.isArray(cur);
-    // ONBEKEND SCHRIJFT NIET, en `noStoredPersona` is de enige uitzondering:
-    // die zegt dat er nog geen RIJ is (de wizard maakt hem pas bij de eerste
-    // opslag aan), dus er is geen kolom om te beschermen en dit IS de eerste
-    // versie. De vlag staat standaard uit: wie hem vergeet krijgt de smalle
-    // uitkomst, niet de destructieve.
+    // UNKNOWN DOES NOT WRITE, and `noStoredPersona` is the only exception.
+    // That flag says there is not yet a ROW (the wizard only creates it on the first save),
+    // so there is no column to protect, and this IS the first version. The flag is off by
+    // default: whoever forgets it gets the narrow outcome, not the destructive one.
     if (!readable && current.noStoredPersona !== true) return undefined;
     const base: PersonaLike = readable ? cur : {};
     const fields = personaFieldsOf(planPersona);
@@ -225,11 +218,10 @@ function personaAfterRefine(current: RefineSnapshot, { systemPrompt, description
 }
 
 /**
- * `current.persona` is wat er in de kolom staat; onleesbaar/afwezig betekent
- * "niet gelezen" en laat de kolom met rust. `noStoredPersona: true` is het
- * enige antwoord dat zegt dat er nog geen rij is — zie personaAfterRefine.
- * `updated` is the normalized AI plan, `preserved` the server's echo of the
- * current curated config.
+ * `current.persona` is what is in the column. Unreadable or absent means "not read" and
+ * leaves the column alone. `noStoredPersona: true` is the only answer that says there is
+ * no row yet; see personaAfterRefine. `updated` is the normalized AI plan, `preserved`
+ * the server's echo of the current curated config.
  */
 export function mergeRefinedPlan(current: FullRefineSnapshot, updated?: RefinePlan, preserved?: RefinePreserved, opts?: MergeOpts): MergedRefinePlan<string>;
 export function mergeRefinedPlan(current?: RefineSnapshot, updated?: RefinePlan, preserved?: RefinePreserved, opts?: MergeOpts): MergedRefinePlan;
@@ -309,23 +301,22 @@ export function mergeRefinedPlan(current: RefineSnapshot = {}, updated: RefinePl
 }
 
 /**
- * De diff tussen de staat VÓÓR de merge en de snapshot die mergeRefinedPlan
- * teruggaf — de "Gedaan: …"-beurt in de verfijn-rail.
+ * The diff between the state BEFORE the merge and the snapshot that mergeRefinedPlan
+ * returned: the "Gedaan: …" turn ("Done: …") in the refine rail.
  *
- * Waarom hier en niet op de server: de server rekent de merge niet uit. Zijn
- * antwoord is een PLAN plus een echo van de bewaarde config; welke velden er
- * daadwerkelijk veranderen beslist `mergeRefinedPlan` hier, met zijn
- * preserve-regels ("leeg ⇒ behouden", "skills alleen unie"). Een changes[]
- * van de server zou dus vertellen wat het model wilde, niet wat er gebeurde —
- * en precies daar zit het verschil dat de gebruiker moet lezen.
+ * Why here and not on the server: the server does not compute the merge. Its answer is a
+ * PLAN plus an echo of the stored config. Which fields actually change is decided here by
+ * `mergeRefinedPlan`, with its preserve rules ("empty means keep", "skills are a union
+ * only"). A changes[] from the server would tell what the model wanted, not what
+ * happened, and precisely that difference is what the user has to read.
  *
- * De vorm is bewust DATA, geen zin: `{ field, direction?, count?, ids? }`. De
- * rail kiest er zijn sleutel bij (enkelvoud/meervoud), zodat de vertaling een
- * sleutelkeuze blijft en geen samengeplakte Engelse grammatica.
+ * The shape is deliberately DATA, not a sentence: `{ field, direction?, count?, ids? }`.
+ * The rail picks its key for it (singular/plural), so the translation stays a choice of
+ * key and not glued-together English grammar.
  *
- * Wat er NIET in staat: `persona` (die volgt per definitie de instructies —
- * hem apart noemen zou dezelfde verandering twee keer melden) en
- * `wizard.capabilities` (intern; de gebruiker ziet er geen veld voor).
+ * What is NOT in it: `persona` (which follows the instructions by definition; naming it
+ * separately would report the same change twice) and `wizard.capabilities` (internal;
+ * the user sees no field for it).
  */
 export function diffRefinedPlan(before: RefineSnapshot = {}, after: RefineSnapshot = {}): RefineChange[] {
     const changes: RefineChange[] = [];

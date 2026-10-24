@@ -1,47 +1,42 @@
 // @typecheck
 /**
- * Het ADRES van een openbare pagina, en welke share dat adres bedient.
+ * The ADDRESS of a public page, and which share serves that address.
  *
- * Twee kolommen op `webpages`, allebei NULL zolang de pagina nooit openbaar is
- * geweest:
+ * Two columns on `webpages`, both NULL for as long as the page has never been public:
  *
- *   slug             /w/<slug> — waar de pagina staat. Uniek per instantie.
- *   public_share_id  WELKE van de shares dat adres bedient — "één share is
- *                    het adres". Het N-share-model blijft gewoon bestaan
- *                    (webpage_public_shares houdt er zoveel als de eigenaar
- *                    maakt, elk met zijn eigen /share/<token>); deze wijzer
- *                    zegt alleen welke daarvan DE canonieke is.
+ *   slug             /w/<slug> — where the page lives. Unique per instance.
+ *   public_share_id  WHICH of the shares serves that address — "one share is the address". The
+ *                    N-share model simply continues to exist (webpage_public_shares holds as many
+ *                    as the owner makes, each with its own /share/<token>); this pointer only says
+ *                    which of them is THE canonical one.
  *
- * ── DE SLUG IS EEN SLEUTEL, GEEN LABEL ──────────────────────────────
+ * ── THE SLUG IS A KEY, NOT A LABEL ──────────────────────────────────
  *
- * Dit is het punt waar deze module het makkelijk had kunnen verpesten. Bij
- * toegangsmodus `unlisted` is het adres het ENIGE dat een bezoeker hoeft te
- * weten: wie de URL heeft, ziet de pagina. Een slug die puur uit de naam komt
- * (`/w/prijslijst`, `/w/offerte`, `/w/personeelshandboek`) is dus geen adres
- * maar een raadbaar wachtwoord, en één scriptje met een woordenlijst somt
- * daarmee elke openbare pagina op de installatie op.
+ * This is the point where this module could easily have ruined things. In access mode `unlisted`
+ * the address is the ONLY thing a visitor needs to know: whoever has the URL sees the page. A slug
+ * that comes purely from the name (`/w/prijslijst`, `/w/offerte`, `/w/personeelshandboek`) is
+ * therefore not an address but a guessable password, and one little script with a word list would
+ * enumerate every public page on the installation.
  *
- * Daarom is een slug hier ALTIJD "leesbaar deel + willekeurig achtervoegsel":
+ * That is why a slug here is ALWAYS "readable part + random suffix":
  *
  *     prijslijst-k3f9x2mq7bd4
  *     ^^^^^^^^^^ ^^^^^^^^^^^^
- *     uit de naam  60 bits uit crypto.randomBytes
+ *     from the name  60 bits from crypto.randomBytes
  *
- * Het leesbare deel is er voor de mens die de link deelt; het achtervoegsel is
- * er zodat de link niet te raden valt. Een leeg leesbaar deel (naam bestaat uit
- * emoji, Chinees, of niets) levert gewoon alléén het achtervoegsel op — nooit
- * een lege of voorspelbare slug.
+ * The readable part is there for the human who shares the link; the suffix is there so that the
+ * link cannot be guessed. An empty readable part (the name consists of emoji, Chinese or nothing)
+ * simply yields the suffix alone — never an empty or predictable slug.
  *
- * ── ALLES VERSMALT ──────────────────────────────────────────────────
+ * ── EVERYTHING NARROWS ──────────────────────────────────────────────
  *
- *   - `resolveSlug` geeft de rij ALLEEN terug op een exacte, genormaliseerde
- *     match. Geen ILIKE, geen prefix, geen "bijna goed".
- *   - `ensureSlug` mint hoogstens `MINT_ATTEMPTS` keer; lukt het dan nog niet,
- *     dan gooit hij. Een pagina zonder adres is beter dan twee pagina's op
- *     hetzelfde adres.
- *   - de wijzer is ZACHT: wijst hij naar een ingetrokken of verdwenen share,
- *     dan is dat een 404 bij de bezoeker, geen databasefout. De liveness-toets
- *     hoort bij de share (webpagePublicShareStore.findLiveShareById), niet hier.
+ *   - `resolveSlug` returns the row ONLY on an exact, normalised match. No ILIKE, no prefix,
+ *     no "almost right".
+ *   - `ensureSlug` mints at most `MINT_ATTEMPTS` times; if that still does not succeed, it throws.
+ *     A page without an address is better than two pages at the same address.
+ *   - the pointer is SOFT: if it points to a withdrawn or vanished share, that is a 404 for the
+ *     visitor, not a database error. The liveness check belongs to the share
+ *     (webpagePublicShareStore.findLiveShareById), not here.
  */
 
 'use strict';
@@ -51,9 +46,8 @@ const { run, getOne } = require('../../db');
 const { initDB } = require('./schema');
 
 /**
- * Alfabet van het willekeurige achtervoegsel: kleine letters en cijfers zonder
- * de paren die in een gedeelde link verkeerd worden overgetypt (l/1, o/0).
- * 32 tekens = precies 5 bits per teken.
+ * Alphabet of the random suffix: lowercase letters and digits, without the pairs that are mistyped
+ * in a shared link (l/1, o/0). 32 characters = exactly 5 bits per character.
  */
 const SUFFIX_ALPHABET = 'abcdefghijkmnpqrstuvwxyz23456789';
 /** 12 tekens × 5 bits = 60 bits. Ruim voorbij raadbaar, kort genoeg om te delen. */
@@ -64,12 +58,11 @@ const MAX_READABLE = 40;
 const MINT_ATTEMPTS = 5;
 
 /**
- * Het leesbare deel: kleine letters, cijfers en koppeltekens, verder niets.
+ * The readable part: lowercase letters, digits and hyphens, nothing else.
  *
- * Bewust ASCII-only. Een slug met accenten of Cyrillisch overleeft het knippen
- * en plakken door een e-mailclient niet ongeschonden, en een adres dat
- * onderweg verandert is geen adres. Levert '' op als er niets bruikbaars
- * overblijft — de aanroeper vult dan alleen het achtervoegsel in.
+ * Deliberately ASCII-only. A slug with accents or Cyrillic does not survive being cut and pasted
+ * through an e-mail client unscathed, and an address that changes on the way is not an address.
+ * Yields '' if nothing usable remains — the caller then fills in only the suffix.
  */
 function slugifyName(name) {
     if (typeof name !== 'string') return '';
@@ -85,8 +78,8 @@ function slugifyName(name) {
 
 /** `SUFFIX_LENGTH` tekens uit crypto.randomBytes, gelijkmatig over het alfabet. */
 function randomSuffix(bytes = null) {
-    // 32 is een deler van 256, dus `% 32` op een willekeurige byte is
-    // gelijkverdeeld — geen modulo-bias, geen verwerpingslus nodig.
+    // 32 is a divisor of 256, so `% 32` on a random byte is evenly distributed — no modulo bias,
+    // no rejection loop needed.
     const buf = bytes || crypto.randomBytes(SUFFIX_LENGTH);
     let out = '';
     for (let i = 0; i < SUFFIX_LENGTH; i += 1) {
@@ -96,9 +89,8 @@ function randomSuffix(bytes = null) {
 }
 
 /**
- * Het volledige adres-deel voor een pagina met deze naam.
- * ALTIJD met achtervoegsel — er bestaat geen aanroep die een kale naam-slug
- * oplevert, want die zou raadbaar zijn.
+ * The full address part for a page with this name.
+ * ALWAYS with a suffix — there is no call that yields a bare name slug, because that would be guessable.
  */
 function mintSlug(name, { bytes = null } = {}) {
     const readable = slugifyName(name);
@@ -107,9 +99,9 @@ function mintSlug(name, { bytes = null } = {}) {
 }
 
 /**
- * Hoe een adres uit een URL wordt gelezen. Zelfde normalisatie als bij het
- * minten, zodat `/w/Prijslijst-K3F9…` dezelfde rij vindt als `/w/prijslijst-k3f9…`
- * en een adres met rommel eromheen niets vindt in plaats van bijna-iets.
+ * How an address is read from a URL. The same normalisation as when minting, so that
+ * `/w/Prijslijst-K3F9…` finds the same row as `/w/prijslijst-k3f9…`, and an address with junk
+ * around it finds nothing instead of almost-something.
  */
 function normalizeSlug(raw) {
     if (typeof raw !== 'string') return '';
@@ -121,17 +113,15 @@ function normalizeSlug(raw) {
 // ── I/O ──────────────────────────────────────────────────────────────
 
 /**
- * Geef deze pagina een adres, of geef het bestaande terug.
+ * Give this page an address, or return the existing one.
  *
- * Idempotent: een pagina die al een slug heeft, houdt hem. Dat is met opzet —
- * openbaar uitzetten en later weer aanzetten mag een gedeelde link niet
- * ongeldig maken, en een adres dat verspringt is precies wat mensen niet
- * verwachten van "het adres".
+ * Idempotent: a page that already has a slug keeps it. That is deliberate — switching public off
+ * and back on later must not invalidate a shared link, and an address that shifts is exactly what
+ * people do not expect from "the address".
  *
- * De UPDATE is eigenaar-gescoped én zet alleen als er nog niets staat
- * (`slug IS NULL`), zodat twee gelijktijdige aanroepen niet elkaars adres
- * overschrijven: de tweede raakt 0 rijen en leest daarna het adres van de
- * eerste.
+ * The UPDATE is owner-scoped AND only sets when there is still nothing there (`slug IS NULL`), so
+ * that two concurrent calls do not overwrite each other's address: the second touches 0 rows and
+ * then reads the address of the first.
  */
 async function ensureSlug(webpageId, ownerId, name) {
     await initDB();
@@ -154,12 +144,12 @@ async function ensureSlug(webpageId, ownerId, name) {
             );
             if (rowCount > 0) return candidate;
         } catch (e) {
-            // 23505 = unieke index. Alles anders is niet van ons: doorgooien,
-            // nooit stil doorlopen alsof het adres gezet is.
+            // 23505 = unique index. Anything else is not ours: pass it on, never silently carry on as if the
+            // address had been set.
             if (e.code !== '23505') throw e;
         }
-        // 0 rijen of een botsing: iemand anders was eerder, of het adres was
-        // al bezet. Opnieuw lezen — misschien staat er nu gewoon een slug.
+        // 0 rows or a collision: someone else was first, or the address was already taken. Read again —
+        // there may now simply be a slug.
         const again = await getOne(
             `SELECT slug FROM webpages WHERE id = $1 AND user_id = $2`,
             [webpageId, ownerId],
@@ -170,8 +160,8 @@ async function ensureSlug(webpageId, ownerId, name) {
 }
 
 /**
- * Het adres → de pagina. Anoniem pad: GEEN gebruikersscope, want de bezoeker
- * heeft er geen. Geeft daarom ook alleen terug wat de viewer nodig heeft.
+ * The address → the page. Anonymous path: NO user scope, because the visitor has none. It therefore
+ * also returns only what the viewer needs.
  */
 async function resolveSlug(rawSlug) {
     await initDB();
@@ -203,8 +193,8 @@ async function getAddress(webpageId, ownerId) {
 }
 
 /**
- * Wijs het adres naar deze share — of naar niets (`null`), wat "niet openbaar"
- * betekent. De slug blijft dan staan; alleen de wijzer gaat weg.
+ * Point the address at this share — or at nothing (`null`), which means "not public". The slug stays;
+ * only the pointer goes away.
  */
 async function setCanonicalShare(webpageId, ownerId, shareId) {
     await initDB();
@@ -218,11 +208,11 @@ async function setCanonicalShare(webpageId, ownerId, shareId) {
 }
 
 /**
- * Trek de wijzer in zodra DEZE share verdwijnt (intrekken, verwijderen).
+ * Withdraw the pointer as soon as THIS share disappears (withdrawn, deleted).
  *
- * Op share-id, niet op pagina-id: een eigenaar die zijn derde losse share
- * intrekt mag het adres niet kwijtraken. Raakt 0 rijen als de wijzer al ergens
- * anders heen wees — dat is de goede uitkomst, geen fout.
+ * On share id, not on page id: an owner who withdraws his third separate share must not lose the
+ * address. Touches 0 rows if the pointer already pointed somewhere else — that is the good outcome,
+ * not an error.
  */
 async function clearCanonicalShare(shareId) {
     await initDB();

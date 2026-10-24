@@ -1,18 +1,17 @@
 /**
- * Wat de tabelbrug `window.beeflowTables` aanneemt, en wat hij zegt als hij
- * weigert (routes/webpagesPreviewTables.js).
+ * What the table bridge `window.beeflowTables` accepts, and what it says when it refuses
+ * (routes/webpagesPreviewTables.js).
  *
- * `beeflowTables.query(id, opts)` stuurt `opts` ongewijzigd als body, dus een
- * sleutel die de route niet las viel weg — en een weggevallen filter is hier
- * geen kleinere vraag maar een BREDER antwoord. `{ filter: [...] }`,
- * `{ search: {...} }` en één filter-object in plaats van een lijst gaven elk
- * alle rijen die de bezoeker mag zien, onder een 200. Wat dit bestand vastlegt:
+ * `beeflowTables.query(id, opts)` sends `opts` unchanged as the body, so a key that the route
+ * did not read fell away — and a dropped filter is here not a smaller question but a WIDER
+ * answer. `{ filter: [...] }`, `{ search: {...} }` and one filter object instead of a list each
+ * gave all rows that the viewer may see, under a 200. What this file records:
  *
- *   - de 400 NOEMT het veld (`body.filters`), niet alleen "invalid request";
- *   - de melding is een zin;
- *   - de tabel wordt niet geopend, dus een geweigerd verzoek leest niets.
+ *   - the 400 NAMES the field (`body.filters`), not just "invalid request";
+ *   - the message is a sentence;
+ *   - the table is not opened, so a refused request reads nothing.
  *
- * Draaien: cd server && node --test routes/webpagesPreviewTables.validation.test.js
+ * Run: cd server && node --test routes/webpagesPreviewTables.validation.test.js
  */
 
 'use strict';
@@ -68,8 +67,8 @@ Module._resolveFilename = function (request, parent, ...rest) {
 const router = require('./webpagesPreviewTables');
 test.after(() => { Module._resolveFilename = originalResolve; });
 
-// Een schemaweigering reist als fout naar de eindhandler, dus het harnas moet
-// die beantwoorden zoals index.js dat doet.
+// A schema refusal travels as an error to the final handler, so the harness must
+// answer it the way index.js does.
 const { terminalErrorHandler } = require('../core/http/terminalErrorHandler');
 
 function dispatch({ url, body }) {

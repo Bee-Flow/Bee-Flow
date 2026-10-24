@@ -87,20 +87,20 @@ async function resolveUserOrgFromReq(req) {
 const VOXTRAL_TIMEOUT_MS = Number(process.env.VOXTRAL_TIMEOUT_MS) || 1_800_000;
 
 /**
- * Resolve the caller's default summary TEMPLATE (personal ▸ group ▸ org) so a
- * saved default also styles the FIRST auto-generated summary of a new meeting,
- * not just Regenerate. Best-effort — returns null (→ the built-in
- * first-generation prompt) on any failure.
+ * Resolve the caller's default summary TEMPLATE (personal ▸ group ▸ org), so that a
+ * saved default also styles the FIRST auto-generated summary of a new meeting, not
+ * just Regenerate. Best-effort — returns null (→ the built-in first-generation
+ * prompt) on any failure.
  *
- * De hele RIJ, niet alleen `prompt`: de notitie wordt met het id én de versie
- * van dit sjabloon gestempeld (M4 stap 3), en uit een promptstring is geen id
- * terug te winnen. Terugvallen op "zoek het sjabloon met dezelfde tekst" zou
- * het verkeerde sjabloon noemen zodra er twee met dezelfde alinea bestaan.
+ * The whole ROW, not just `prompt`: the note is stamped with the id AND the version
+ * of this template (M4 step 3), and no id can be recovered from a prompt string.
+ * Falling back to "find the template with the same text" would name the wrong
+ * template as soon as two with the same paragraph exist.
  *
- * Faalt de lookup, dan is het antwoord null — en null stempelt NIETS. De
- * samenvatting is dan met de ingebouwde eerste-generatieprompt geschreven, en
- * die is geen van de vijf ingebouwde sjablonen: er is dus niets waars te
- * melden, en het scherm zwijgt.
+ * If the lookup fails, the answer is null — and null stamps NOTHING. The summary
+ * was then written with the built-in first-generation prompt, and that is none of
+ * the five built-in templates: there is thus nothing true to report, and the screen
+ * stays silent.
  */
 async function resolveDefaultTemplateForReq(req, userId, userOrgId) {
     try {

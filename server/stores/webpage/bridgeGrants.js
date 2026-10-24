@@ -91,29 +91,28 @@ const DEFAULT_BRIDGE_GRANTS = {
     },
     automations: [],
     integrations: [],
-    // W3: tabelbindingen (window.beeflowTables) en het Agent-blok. Allebei
-    // beginnen op "niets": geen tabel gebonden, geen agent gekozen. Zolang een
-    // sleutel hier NIET staat, gooit normalizeBridgeGrants hem stil weg — de
-    // kolom wordt bij elke lees- en schrijfbeurt uit deze vaste vorm herbouwd.
+    // W3: table bindings (window.beeflowTables) and the Agent block. Both start at "nothing": no table
+    // bound, no agent chosen. As long as a key is NOT listed here, normalizeBridgeGrants silently throws
+    // it away — the column is rebuilt from this fixed shape on every read and write.
     tables: [],
     agent: null,
 };
 
-// ── tabelbindingen ────────────────────────────────────────────────────
+// ── table bindings ────────────────────────────────────────────────────
 //
-// Eén binding = één datatable die de pagina via window.beeflowTables mag lezen
-// (en met mode 'readwrite' mag schrijven). `publicColumns` is een APARTE, altijd
-// smallere poort: de snapshot-writer rendert bf-table server-side uit precies
-// die lijst, dus een kolom die er niet in staat verlaat /w/<slug> nooit.
+// One binding = one datatable that the page may read via window.beeflowTables (and write with
+// mode 'readwrite'). `publicColumns` is a SEPARATE, always narrower gate: the snapshot writer
+// renders bf-table server-side from exactly that list, so a column that is not in it never
+// leaves /w/<slug>.
 //
-// Elke onleesbare waarde VERSMALT, nooit andersom:
-//   - een mode die niet letterlijk 'readwrite' is, wordt 'read';
-//   - onleesbare `columns` worden de LEGE lijst — en leeg betekent hier GEEN
-//     kolom, niet "alle". Er bestaat met opzet geen waarde die "alles" zegt;
-//   - `publicColumns` wordt geknipt tot een deelverzameling van `columns`.
+// Every unreadable value NARROWS, never the other way round:
+//   - a mode that is not literally 'readwrite' becomes 'read';
+//   - unreadable `columns` become the EMPTY list — and empty here means NO column, not "all".
+//     There is deliberately no value that says "everything";
+//   - `publicColumns` is trimmed to a subset of `columns`.
 const TABLE_WRITE_MODE = 'readwrite';
 
-/** Kolomsleutels: alleen niet-lege strings, ontdubbeld, volgorde behouden. */
+/** Column keys: only non-empty strings, de-duplicated, order preserved. */
 function normalizeColumnKeys(raw) {
     if (!Array.isArray(raw)) return [];
     const out = [];
@@ -133,25 +132,23 @@ function normalizeTableGrant(raw) {
     const columns = normalizeColumnKeys(raw.columns);
     return {
         datatableId,
-        // Alleen de letterlijke string 'readwrite' verbreedt: 'write', 'RW',
-        // true, 1, undefined en een ontbrekend veld zijn allemaal 'read'.
+        // Only the literal string 'readwrite' widens: 'write', 'RW', true, 1, undefined and a missing
+        // field are all 'read'.
         mode: raw.mode === TABLE_WRITE_MODE ? TABLE_WRITE_MODE : 'read',
         columns,
-        // Nooit ruimer dan de binding zelf. Een kolom die de pagina intern niet
-        // eens leest kan niet publiek zijn; met `columns` leeg is deze lijst
-        // dus per definitie ook leeg.
+        // Never wider than the binding itself. A column that the page does not even read internally
+        // cannot be public; with `columns` empty this list is by definition empty too.
         publicColumns: normalizeColumnKeys(raw.publicColumns).filter(c => columns.includes(c)),
     };
 }
 
 /**
- * Het Agent-blok: ÉÉN agent, op id, of niets.
+ * The Agent block: ONE agent, by id, or nothing.
  *
- * Bewust ZONDER `public*`-tegenhanger. ai.ask is met opzet uit de anonieme
- * bridge gehouden (services/publicShareBridge.js kent alleen /ai/chat en
- * /ai/stream), dus er hoort hier geen vorm te bestaan waarin een auteur
- * "publieke agent" aan kan zetten. Een publieke agent-bridge vereist eerst het
- * A1-bevestigingsbeleid en krijgt dán zijn eigen expliciete veld.
+ * Deliberately WITHOUT a `public*` counterpart. ai.ask is deliberately kept out of the anonymous
+ * bridge (services/publicShareBridge.js only knows /ai/chat and /ai/stream), so no shape should
+ * exist here in which an author could set "public agent". A public agent bridge first requires
+ * the A1 confirmation policy and then gets its own explicit field.
  */
 function normalizeAgentGrant(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
@@ -196,10 +193,9 @@ function normalizeBridgeGrants(raw) {
                 }));
         }
         if (Array.isArray(raw.tables)) {
-            // Ontdubbeld op datatableId. Twee bindingen voor dezelfde tabel
-            // maken "welke geldt?" afhankelijk van of een lezer .find() of
-            // .filter() gebruikt — en dan wint soms de ruimste van de twee.
-            // De laatste entry wint, net als de atomaire upsert hieronder.
+            // De-duplicated on datatableId. Two bindings for the same table make "which one applies?"
+            // depend on whether a reader uses .find() or .filter() — and then sometimes the broader of
+            // the two wins. The last entry wins, just like the atomic upsert below.
             const byId = new Map();
             for (const e of raw.tables) {
                 const clean = normalizeTableGrant(e);
@@ -219,13 +215,12 @@ async function getBridgeGrants(webpageId) {
 }
 
 /**
- * Owner-only write. `patch` is a partial — any kind (`ai` / `automations` /
- * `integrations` / `tables` / `agent`) you supply replaces the corresponding
- * slice wholesale. To incrementally add/remove a single grant, read first,
- * mutate, write.
+ * Owner-only write. `patch` is a partial — any kind (`ai` / `automations` / `integrations` /
+ * `tables` / `agent`) you supply replaces the corresponding slice wholesale. To incrementally
+ * add/remove a single grant, read first, mutate, write.
  *
- * `agent: null` is een geldige waarde (wis de agent); alleen `undefined` laat
- * de huidige staan. Vandaar overal de !== undefined-toets.
+ * `agent: null` is a valid value (clears the agent); only `undefined` leaves the current one in
+ * place. Hence the !== undefined check everywhere.
  */
 async function updateBridgeGrants(webpageId, userId, patch, opts = {}) {
     await initDB();
@@ -363,23 +358,19 @@ async function checkGrant(webpageId, kind, key) {
 }
 
 /**
- * Welke pagina's zijn aan DEZE tabel gebonden — en houden er een publiek adres
- * op na?
+ * Which pages are bound to THIS table — and keep a public address for it?
  *
- * De omgekeerde weg van alle andere lezingen hier: niet "wat mag deze pagina",
- * maar "wie hangt er aan deze tabel". De W5-reconciler gebruikt hem om na een
- * rij-mutatie elke openbare snapshot te vernieuwen — zie
- * core/webpages/webpageShareReconciler.js voor waarom dat een AVG-pad is.
+ * The reverse direction of all the other reads here: not "what may this page do", but "who hangs
+ * off this table". The W5 reconciler uses it to refresh every public snapshot after a row
+ * mutation — see core/webpages/webpageShareReconciler.js for why that is a GDPR path.
  *
- * Twee dingen die de vorm van deze query bepalen:
+ * Two things determine the shape of this query:
  *
- *  1. `@>` op JSONB, niet een LIKE op de tekst. Een tabel-id komt óók voor in
- *     `columns` of in een label, en een tekstmatch zou pagina's oplepelen die
- *     helemaal niet aan deze tabel gebonden zijn.
- *  2. `public_share_id IS NOT NULL`. Een pagina zonder publiek adres heeft geen
- *     snapshot om te vernieuwen. Dit filter staat in de DATABASE en niet in de
- *     aanroeper, zodat een lus over duizend gebonden pagina's er geen duizend
- *     wordt als er maar drie openbaar zijn.
+ *  1. `@>` on JSONB, not a LIKE on the text. A table id also appears in `columns` or in a label,
+ *     and a text match would pick up pages that are not bound to this table at all.
+ *  2. `public_share_id IS NOT NULL`. A page without a public address has no snapshot to refresh.
+ *     This filter lives in the DATABASE and not in the caller, so that a loop over a thousand
+ *     bound pages does not become a thousand when only three are public.
  */
 async function listPublicWebpagesBoundToDatatable(datatableId) {
     await initDB();

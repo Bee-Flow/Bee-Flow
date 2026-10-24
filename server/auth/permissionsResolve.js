@@ -303,29 +303,27 @@ tagGate(requirePluginAdmin, { axis: 'rbac', anyOf: ['admin_components', 'all'] }
  * Super admins (role=admin) get null → no org filter (see everything).
  * Returns a Set of org IDs the user belongs to, or null.
  *
- * ── "GELEZEN NUL" EN "NIET TE LEZEN" (A2-tegenspraak) ───────────────
- * De catch onderaan slikte ELKE storefout en gaf `myOrgIds` terug — vrijwel
- * altijd een LEGE Set. Iedere aanroeper leest die als "deze gebruiker zit in
- * geen enkele org", en dat is precies de verkeerde kant op: het is de sleutel
- * waarop de EU-modus en de org-eigen tiermap worden opgezocht, dus één
- * haperende userStore-lezing stuurde een volledig systeemprompt naar het
- * globale, niet-EU model. Routes die daarop een 503 wilden geven (persona.js,
- * tests.js) hadden een `catch` om een functie die nooit gooide: een dode poort.
+ * ── "READ ZERO" AND "NOT READABLE" (A2 contradiction) ───────────────
+ * The catch at the bottom swallowed EVERY store error and returned `myOrgIds` — almost always an
+ * EMPTY Set. Every caller reads that as "this user is in no organisation at all", and that is
+ * precisely the wrong way round: it is the key by which the EU mode and the org-specific tier map
+ * are looked up, so one stumbling userStore read sent a complete system prompt to the global,
+ * non-EU model. Routes that wanted to give a 503 on that (persona.js, tests.js) had a `catch`
+ * around a function that never threw: a dead gate.
  *
- * Met `{ strict: true }` GOOIT hij op een onleesbare lezing. Dat is opt-in
- * zodat elke bestaande aanroeper zijn gedrag houdt; wie de uitkomst als
- * beslissleutel gebruikt hoort hem aan te zetten.
+ * With `{ strict: true }` it THROWS on an unreadable read. That is opt-in so that every existing
+ * caller keeps its behaviour; whoever uses the outcome as a decision key should switch it on.
  *
- * De lezing zelf staat in `auth/orgScope.js` — één implementatie voor alle
- * vormen van deze vraag. Deze naam is nog maar de projectie erop.
+ * The read itself lives in `auth/orgScope.js` — one implementation for all forms of this question.
+ * This name is only the projection onto it.
  *
  * @param {import('express').Request} req
  * @param {{strict?: boolean}} [opts]
  */
 const resolveUserOrgIds = async (req, opts) => {
-    // De super-admin kort hier af en niet in orgScope: zijn antwoord (`null`,
-    // geen filter) kost geen lezing, dus een haperende store mag het niet in
-    // een strict-fout veranderen. Wie hém om een órg vraagt leest orgScope.
+    // The super admin short-circuits here and not in orgScope: his answer (`null`, no filter) costs no
+    // read, so a stumbling store must not turn it into a strict-mode error. Whoever asks for an
+    // ORGANISATION for him reads orgScope.
     if (req?.session?.user?.id && (req.session.isAdmin || req.session.user.role === 'admin')) return null;
     return (await orgScope(req, opts)).orgIds;
 };

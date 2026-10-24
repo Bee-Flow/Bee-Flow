@@ -1,39 +1,39 @@
 /**
- * De stand van één vastgehouden call — ÉÉN lezing, voor de kaart én het spoor.
+ * The status of ONE held call: ONE reading, for the card AND the trail.
  *
- * `tool_confirm` zegt dat de agent iets wilde doen en het niet gedaan heeft.
- * Daarna kan er van twee kanten een beslissing bijkomen:
+ * `tool_confirm` says that the agent wanted to do something and did not do it.
+ * Afterwards a decision can come in from two sides:
  *
- *   SERVER   een nieuw `tool_confirm` met `status: 'approved'|'declined'`. De
- *            beurt is dan al langs die call gekomen: approved betekent dat hij
- *            GEDRAAID HEEFT.
- *   SESSIE   de klik van deze gebruiker op de kaart, nog niet verstuurd. De
- *            beslissing reist mee met het VOLGENDE bericht en de call draait
- *            pas als het model hem opnieuw voorstelt. Approved betekent hier
- *            dus "gaat draaien", niet "heeft gedraaid".
+ *   SERVER   a new `tool_confirm` with `status: 'approved'|'declined'`. The
+ *            turn has then already passed that call, so approved means that it
+ *            HAS RUN.
+ *   SESSION  the click of this user on the card, not yet sent. The decision
+ *            travels with the NEXT message, and the call runs only when the
+ *            model proposes it again. Approved here means "will run", not
+ *            "has run".
  *
- * Die twee zijn in de UI door elkaar gelopen: de kaart zei "You approved this —
- * it ran" zodra er geklikt was, terwijl er nog niets gebeurd was. Vandaar dat
- * dit bestand niet alleen de STAND teruggeeft maar ook WIE hem zette. Een
- * paneel dat beweert dat iets gedraaid heeft terwijl het klaarstaat is precies
- * de geruststelling die een testchat hoort te vinden, niet te maken.
+ * Those two were conflated in the UI. The card said "You approved this, it ran"
+ * as soon as one had clicked, while nothing had happened yet. Hence this file
+ * returns not only the STATUS but also WHO set it. A panel that claims something
+ * has run while it is still waiting is exactly the reassurance that a test chat
+ * should find, not produce.
  *
- * ── ONBEKEND VERSMALT, EN VERSMALLEN IS HIER NIET 'PENDING' ────────────────
+ * ── UNKNOWN NARROWS, AND NARROWING HERE IS NOT 'PENDING' ────────────────
  *
- * Een status die we niet kennen mag geen 'pending' worden: 'pending' is zelf
- * een BEWERING ("dit heeft niet gedraaid"), en die kunnen we bij een onbekende
- * stand niet doen. Er is dus een vierde stand, `unknown`, en die zegt precies
- * dat: we weten het niet. Geen knoppen, geen groen, geen "het staat nog open".
+ * A status we do not know may not become 'pending'. 'pending' is itself a CLAIM
+ * ("this has not run"), and we cannot make that claim for an unknown status. So
+ * there is a fourth status, `unknown`, and it says exactly that: we do not know.
+ * No buttons, no green, no "it is still open".
  *
- * Zuiver: geen React, geen t(), geen DOM.
+ * Pure: no React, no t(), no DOM.
  *
- * Draaien: cd agent-hub && ./node_modules/.bin/vitest run src/components/chat/MessageItem/toolConfirmStatus.test.js
+ * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/chat/MessageItem/toolConfirmStatus.test.js
  */
 
 /** De gesloten lijst. Alles daarbuiten is `unknown`, nooit iets geruststellends. */
 export const CONFIRM_STATUSES = Object.freeze(['pending', 'approved', 'declined', 'unknown']);
 
-/** Wie de stand zette: de server (het is gebeurd) of deze sessie (het gaat gebeuren). */
+/** Who set the status: the server (it has happened) or this session (it is going to happen). */
 export const DECISION_SOURCES = Object.freeze(['server', 'session']);
 
 /** A pending tool call, as far as the confirmation status reads it. */
@@ -47,23 +47,23 @@ export interface ConfirmCall {
 export type ConfirmBook = Record<string, string>;
 
 /**
- * Stand + herkomst van één vastgehouden call.
+ * Status and provenance of one held call.
  *
- * ── DE SESSIE-AANTEKENING HANGT AAN DE KAART, NIET AAN DE ACTIE ───────────
+ * ── THE SESSION NOTE HANGS ON THE CARD, NOT ON THE ACTION ───────────
  *
- * `decided` wordt bij voorkeur op `callId` gelezen en pas daarna op `argsKey`.
- * Dat is geen detail: `argsKey` is naam-plus-argumenten en dus voor élke
- * kaart van dezelfde actie hetzelfde, terwijl `callId` per ronde nieuw is.
- * Op argsKey lezen liet een kaart in beurt 5 "You declined this" zeggen op een
- * klik uit beurt 2 — inclusief het weghalen van de knoppen waarmee je dat had
- * kunnen herzien. De klik is een feit over ÉÉN kaart; een nieuwe kaart voor
- * dezelfde actie is een nieuwe vraag.
+ * `decided` is read preferably by `callId`, and only then by `argsKey`.
+ * That is no detail. `argsKey` is name-plus-arguments and therefore the same for
+ * every card of the same action, whereas `callId` is new per round.
+ * Reading by argsKey let a card in turn 5 say "You declined this" on a click from
+ * turn 2, including removing the buttons with which you could have revised it.
+ * The click is a fact about ONE card. A new card for the same action is a new
+ * question.
  *
- * @param {object} call     één regel uit `msg.pendingToolCalls`
- * @param {object} [decided] { [callId of argsKey]: 'approve'|'decline' } — wat
- *                           er in deze sessie geklikt is
- * @returns {{status: string, by: string|null}} `by` is null zolang er niets
- *          beslist is (status 'pending') of niemand het weet ('unknown').
+ * @param {object} call     one row from `msg.pendingToolCalls`
+ * @param {object} [decided] { [callId or argsKey]: 'approve'|'decline' }: what
+ *                           was clicked in this session
+ * @returns {{status: string, by: string|null}} `by` is null as long as nothing
+ *          has been decided (status 'pending') or nobody knows it ('unknown').
  */
 export function confirmDecisionOf(call: ConfirmCall | null | undefined, decided: ConfirmBook | null | undefined = {}) {
     if (!call || typeof call !== 'object') return { status: 'unknown', by: null };
@@ -79,8 +79,8 @@ export function confirmDecisionOf(call: ConfirmCall | null | undefined, decided:
     const book = decided && typeof decided === 'object' ? decided : null;
     const callKey = typeof call.callId === 'string' && call.callId ? call.callId : null;
     const argsKey = typeof call.argsKey === 'string' && call.argsKey ? call.argsKey : null;
-    // callId eerst — zie de kop. argsKey blijft als terugval voor een kaart
-    // zonder callId (en voor de aanroeper die nog op argsKey boekhoudt).
+    // callId first, see the heading. argsKey stays as fallback for a card without a
+    // callId, and for the caller that still keeps accounts by argsKey.
     const mine = book
         ? (callKey && book[callKey] !== undefined ? book[callKey] : (argsKey ? book[argsKey] : null))
         : null;
@@ -89,7 +89,7 @@ export function confirmDecisionOf(call: ConfirmCall | null | undefined, decided:
     return { status: 'pending', by: null };
 }
 
-/** Alleen de stand, voor wie de herkomst niet nodig heeft. */
+/** Only the status, for whoever does not need the provenance. */
 export function confirmStatusOf(call: ConfirmCall | null | undefined, decided: ConfirmBook | null | undefined = {}) {
     return confirmDecisionOf(call, decided).status;
 }

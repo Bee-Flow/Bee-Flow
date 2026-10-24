@@ -1,8 +1,8 @@
 /**
- * Finding — the ONE shape every "this needs your attention" row is drawn from.
+ * Finding: the ONE shape from which every "this needs your attention" row is drawn.
  *
- * Three surfaces draw the same list (Studio Home "Vraagt aandacht", a
- * Solution's "Te controleren", a builder's "Nog niet klaar") and the things
+ * Three surfaces draw the same list (Studio Home "Needs attention", a
+ * Solution's "To check", a builder's "Not ready yet") and the things
  * that produce it are scattered: the App Studio validator, the automation
  * validator with its draft/activate ladder, the Solution dependency graph,
  * the app dry run. Four of them already emit `{ code, severity, path|nodeId,
@@ -13,7 +13,7 @@
  *   Finding = {
  *     code,                    // 'component.control_inert' | 'trigger.missing' | …
  *     severity,                // 'error' | 'warning' | 'info'
- *     blockedAt?,              // 'activate' | 'publish' — the stage this blocks
+ *     blockedAt?,              // 'activate' | 'publish': the stage this blocks
  *     kind,                    // the object kind: drives the tinted glyph
  *     targetRef: {             // where "Show me" goes
  *       kind, id,              // the object (id null when the producer has none)
@@ -23,7 +23,7 @@
  *     remediation?,            // today's `hint`
  *   }
  *
- * `message` and `remediation` ARE the existing `message` and `hint` — nothing
+ * `message` and `remediation` ARE the existing `message` and `hint`: nothing
  * is rephrased. `blockedAt` keeps the automation validator's draft/activate ladder
  * intact (validate/completenessCodes.js): a completeness code at stage 'draft'
  * is a warning tagged `blockedAt: 'activate'`, and flattening that into a
@@ -34,7 +34,7 @@
  * already have and ADD `kind` + `targetRef`; `fromLegacy` turns such a record
  * into a Finding for the consumers that want one shape. `makeFinding`
  * validates, because a Finding with a kind the palette does not know renders
- * grey and a Finding with no message renders nothing — both quietly.
+ * grey and a Finding with no message renders nothing, both quietly.
  *
  * Kinds mirror agent-hub/src/components/shared/kindColors.js KIND_KEYS: the
  * ten things one makes in Studio. Keep the two lists identical.

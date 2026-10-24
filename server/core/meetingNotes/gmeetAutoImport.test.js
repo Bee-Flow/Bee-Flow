@@ -180,10 +180,9 @@ const MOCKS = {
         getUser: async (id) => fx.usersById[id] || null,
         getAllUsers: async () => fx.users,
     },
-    // meeting_prefs (M5) — de per-vergadering keuze. De echte beslislogica
-    // (unie-versmalling, 1-op-1-standaard) ligt vast in
-    // stores/meetingPrefsStore.test.js; hier telt of de poller hem raadpleegt
-    // met de juiste scope en identiteiten, en zijn antwoord respecteert.
+    // meeting_prefs (M5): the per-meeting choice. The real decision logic (union narrowing, 1-on-1
+    // default) is fixed in stores/meetingPrefsStore.test.js; here it matters whether the poller consults
+    // it with the right scope and identities, and respects its answer.
     '../../stores/meetingPrefsStore': {
         gmeetIds: ({ eventId = null, meetingCode = null } = {}) => [
             { kind: 'event', id: eventId }, { kind: 'code', id: meetingCode },
@@ -196,15 +195,13 @@ const MOCKS = {
         },
         loadMeetingPrefs: async ({ provider, userId, orgId }) => {
             fx.prefLoads.push({ provider, userId, orgId });
-            // De echte store schrijft een ORG-brede uitsluiting als rij met
-            // `user_id = ''` en leest die alleen via de org-tak van listPrefs.
-            // Deze dubbel doet hetzelfde: zonder `orgId` is `fx.orgPrefs`
-            // onzichtbaar. Anders zou het weglaten van de org-scope in de
-            // aanroeper nergens rood worden, terwijl juist dán een org-brede
-            // uitsluiting als "geen mening" leest — de FALSE→TRUE die deze
-            // verhuizing niet mag maken.
-            // EEN FALSE WINT, uit welke rij hij ook komt — de user-rij
-            // overschrijft de org-rij niet, zoals `resolvePrefs` het ook niet doet.
+            // The real store writes an ORG-wide exclusion as a row with `user_id = ''` and reads it only via the
+            // org branch of listPrefs. This double does the same: without `orgId`, `fx.orgPrefs` is
+            // invisible. Otherwise leaving out the org scope in the caller would turn nowhere red, while
+            // precisely then an org-wide exclusion would read as "no opinion": the FALSE→TRUE that this
+            // move must not make.
+            // A FALSE wins, from whichever row it comes; the user row does not overwrite the org row, just
+            // as `resolvePrefs` does not do either.
             const scopes = orgId ? [fx.orgPrefs, fx.prefs] : [fx.prefs];
             const opinionFor = (ids) => {
                 const seen = ids.flatMap(({ kind, id }) => scopes.map(m => m[`${kind}:${id}`]));
@@ -304,8 +301,8 @@ function endedMeeting(overrides = {}) {
         eventId: 'ev1', iCalUID: 'ical-ev1', title: 'Weekly sync',
         start: start.toISOString(), end: end.toISOString(),
         organizerEmail: 'tom@beeflow.nl', organizerSelf: true,
-        // Drie deelnemers: onder de 1-op-1-standaard (M5) wordt een gesprek met
-        // ten hoogste twee mensen niet vanzelf geïmporteerd.
+        // Three participants: under the 1-on-1 default (M5) a conversation with at most
+        // two people is not imported automatically.
         attendees: [
             { email: 'sanne@beeflow.nl', displayName: 'Sanne Jansen', self: false },
             { email: 'ines@beeflow.nl', displayName: 'Ines de Vries', self: false },
@@ -334,11 +331,10 @@ function readyArtifacts() {
 // ── Discovery ────────────────────────────────────────────────────────
 
 test('een ORG-brede uitsluiting stopt de discovery — de org-scope reist mee', async () => {
-    // Dit was het gat: `orgId` → `null` op de discovery-lees liet de hele
-    // suite groen. De backfill schrijft een org-brede uitsluiting als rij met
-    // `user_id = ''`, en die is alleen via de org-tak van listPrefs bereikbaar;
-    // valt die weg, dan leest zo'n uitsluiting als "geen mening" en wordt er
-    // geïmporteerd wat een beheerder had uitgezet.
+    // This was the gap: `orgId` → `null` on the discovery read left the whole suite green. The backfill
+    // writes an org-wide exclusion as a row with `user_id = ''`, and that is reachable only via the org
+    // branch of listPrefs; if that falls away, such an exclusion reads as "no opinion" and something
+    // is imported that an administrator had switched off.
     resetFx();
     fx.settingsByUser.u1 = { autoImport: true, importScope: 'organizer' };
     fx.orgPrefs['code:abc-defg-hij'] = false;
@@ -592,9 +588,9 @@ test('exclusion flipped after seeding wins at claim time → skipped', async () 
 
 test('bij het claimen telt alleen de EXPLICIETE mening, niet opnieuw de 1-op-1-standaard', async () => {
     resetFx();
-    // De jobrij draagt geen deelnemerslijst. Zou processClaimedJob de hele
-    // beslissing herhalen, dan las dat als "aantal onbekend" en werd élke job
-    // overgeslagen — de import zou volledig stilvallen.
+    // The job row does not carry a participant list. Were processClaimedJob to repeat the whole
+    // decision, that would read as "number unknown" and EVERY job would be skipped: the import
+    // would stop entirely.
     await seedClaimable({ eventId: 'ev1' });
     fx.settingsByUser.u1 = { autoImport: true };
     readyArtifacts();

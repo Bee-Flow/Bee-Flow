@@ -1,9 +1,9 @@
 /**
- * Een versierij zoals de geschiedenislijst hem mag lezen: met een maker, met
- * de gepubliceerde rij aangewezen, en met de eerlijke mededeling WAT een
- * momentopname op deze pagina wel en niet dekt.
+ * A version listing as the history list may read it: with a maker, with
+ * the published row designated, and with the honest statement of WHAT a snapshot of this
+ * page does and does not cover.
  *
- * De routes (./versions.js) halen de rijen op; het duiden ervan gebeurt hier.
+ * The routes (./versions.js) fetch the rows; interpreting them happens here.
  */
 
 const webpageStore = require('../../stores/webpageStore');
@@ -12,22 +12,20 @@ const versionFacts = require('../../core/webpages/versionFacts');
 const log = require('../../telemetry/log');
 
 /**
- * Namen bij de `actor_user_id`'s van een lijst versierijen (W4).
+ * Names for the `actor_user_id`s of a list of version listings (W4).
  *
- * DE REGEL: een id dat niet te lezen is, is niet "jij" en niet leeg. Wat hier
- * niet opgelost raakt, blijft afwezig in de map, en versionFacts.actorOf maakt
- * daar een maker van die ONBEKEND is.
+ * THE RULE: an id that cannot be read is neither "you" nor empty. What does not get
+ * resolved here stays absent from the map, and versionFacts.actorOf makes a maker of it
+ * that is UNKNOWN.
  *
- * De sessie gaat vóór de store, en dat scheelt in de praktijk élke query: een
- * webpagina is eigenaar-gescoped (elke schrijfweg loopt via getWebpage(id,
- * userId)), dus de maker van vrijwel elke rij ÍS de lezer. Pas als er een
- * ander id in de lijst staat — een pagina waarvan het eigendom ooit is
- * overgedragen — wordt de store één keer gebatcht bevraagd.
+ * The session comes before the store, and in practice that saves EVERY query: a web page is
+ * owner-scoped (every write path runs via getWebpage(id, userId)), so the maker of almost
+ * every row IS the reader. Only when another id appears in the list — a page whose ownership
+ * was once transferred — is the store queried once in a batch.
  *
- * `req.session.user` heeft geen vaste vorm (establishSession bewaart hem
- * verbatim: volledige gebruikersrij, OCS-object of een minimale
- * aanmeldvorm), dus alle drie de gebruikelijke naamvelden worden geprobeerd
- * en anders valt hij door naar de store.
+ * `req.session.user` has no fixed shape (establishSession keeps it verbatim: a full user row,
+ * an OCS object or a minimal sign-in shape), so all three of the usual name fields are tried,
+ * and otherwise it falls through to the store.
  */
 async function versionActorNames(rows, sessionUser) {
     const names = new Map();
@@ -44,8 +42,8 @@ async function versionActorNames(rows, sessionUser) {
             if (label) names.set(u.id, label);
         }
     } catch (e) {
-        // Een mislukte naamopzoeking mag de geschiedenis niet kosten — de
-        // rijen komen dan terug met een onbekende maker, wat waar is.
+        // A failed name lookup must not cost the history — the rows then come back with an
+        // unknown maker, which is true.
         log.warn('[Webpages] Version actor lookup failed:', e.message);
     }
     return names;
@@ -53,34 +51,33 @@ async function versionActorNames(rows, sessionUser) {
 
 /** Eén rij zoals de geschiedenislijst hem mag lezen: id-loos, met een maker. */
 /**
- * WAT een momentopname van deze pagina wél en niet vastlegt.
+ * WHAT a snapshot of this page does and does not capture.
  *
- * Dit is geen sierveld. Een momentopname draagt alleen de drie primaire slots
- * plus de paginadatabank (stores/webpage/shared.js: VERSIONED_SLOTS), en op een
- * react-mui-pagina — het STANDAARDTYPE van elke nieuwe pagina — woont de app in
- * `src/*`, dus in EXTRA bestanden. De systeemprompt verbiedt het model zelfs om
- * de drie slots te schrijven (integrations/webpageFramework.js). Gevolg: op zo'n
- * pagina ontstaat er nooit een 'ai'- of 'manual'-rij, blijft de lijst leeg, en
- * las de auteur daar "je hebt nog niet genoeg bewerkt" — een verklaring die daar
- * niet waar is. Hij hoort te lezen dat de functie deze bestanden niet dekt.
+ * This is not a decorative field. A snapshot carries only the three primary slots
+ * plus the page database (stores/webpage/shared.js: VERSIONED_SLOTS), and on a
+ * react-mui page — the DEFAULT type of every new page — the app lives in
+ * `src/*`, so in EXTRA files. The system prompt even forbids the model to write the
+ * three slots (integrations/webpageFramework.js). Consequence: on such a page no 'ai'
+ * or 'manual' row ever arises, the list stays empty, and the author read there
+ * "you have not edited enough yet" — an explanation that is not true there. It should
+ * say that the feature does not cover these files.
  *
  * @returns {{slots:string[], extraFiles:boolean, framework:string, coversProject:boolean}}
  */
 function versionCoverage(wp) {
-    // Lokaal geladen, net als de andere webpageFramework-lezing in dit bestand:
-    // de module trekt de hele frameworkcatalogus mee en dat hoeft niet op elke
-    // route te drukken.
+    // Loaded locally, just like the other webpageFramework reading in this file:
+    // the module pulls in the whole framework catalogue, and that need not be paid on every route.
     const { resolveFramework } = require('../../integrations/webpageFramework');
     const framework = resolveFramework(wp);
     return {
         // De slots die daadwerkelijk in een momentopname belanden.
         slots: [...webpageStore.VERSIONED_SLOTS],
-        // Extra bestanden zitten in GEEN enkele momentopname — niet op een
-        // vanilla-pagina met `modules/state.js`, en niet op een react-pagina.
+        // Extra files are in NO snapshot — not on a vanilla page with `modules/state.js`,
+        // and not on a react page.
         extraFiles: false,
         framework,
-        // Dekt de geschiedenis het project waar de auteur aan werkt? Op
-        // react-mui is dat NEE: daar staat alles in extra bestanden.
+        // Does the history cover the project the author is working on? On
+        // react-mui that is NO: there everything lives in extra files.
         coversProject: framework !== 'react-mui',
     };
 }
@@ -90,8 +87,8 @@ function decorateVersionRow(row, { viewerId, names, publishedVersionId }) {
     return {
         ...rest,
         actor: versionFacts.actorOf(actorUserId, { viewerId, names }),
-        // De lijst hoeft de wijzer niet zelf te vergelijken; hier staat al vast
-        // welke rij de gepubliceerde is.
+        // The list need not compare the pointer itself; here it is already fixed
+        // which row is the published one.
         isPublished: !!publishedVersionId && row.id === publishedVersionId,
     };
 }

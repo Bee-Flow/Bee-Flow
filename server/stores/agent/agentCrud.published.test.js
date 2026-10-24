@@ -156,10 +156,10 @@ test('unknown id → null', async () => {
     assert.strictEqual(await agentCrud.getForRuntime('nope'), null);
 });
 
-// ── getForRuntime({ useDraft }) — de testchat (A4) ───────────────────
-// Alleen wie er expliciet om vraagt krijgt het concept. Dat is de hele
-// veiligheidsklep: elke bestaande aanroep (chat, embed, support-responder,
-// AI-stap) roept zonder opties aan en blijft dus op de gepubliceerde blob.
+// ── getForRuntime({ useDraft }) — the test chat (A4) ─────────────────
+// Only whoever explicitly asks gets the draft. That is the whole safety valve:
+// every existing call (chat, embed, support responder, AI step)
+// calls without options and therefore stays on the published blob.
 
 test('useDraft serves the CONCEPT even when a published blob exists', async () => {
     seed('a1', {
@@ -172,8 +172,8 @@ test('useDraft serves the CONCEPT even when a published blob exists', async () =
     assert.strictEqual(draft.runtimeSource, 'draft');
     assert.strictEqual(draft.system_prompt, 'live prompt');
     assert.deepStrictEqual(draft.config.knowledge_base_ids, ['kb-live']);
-    // De versiekolommen reizen mee — daar rekent het scherm op om te zeggen
-    // "dit is je concept, live staat v2".
+    // The version columns travel along — the screen relies on them to say
+    // "this is your draft, live is v2".
     assert.strictEqual(draft.published_version, 2);
     assert.strictEqual(draft.published_rev, 4);
     assert.strictEqual(draft.rev, 9);
@@ -195,10 +195,10 @@ test('the same row without the option is still the PUBLISHED projection', async 
 });
 
 test('useDraft on a never-published agent is still marked draft, not live', async () => {
-    // 'live' betekent "er is niets gepubliceerd om van te verschillen" en
-    // 'draft' betekent "je vroeg om je concept". Voor een agent zonder
-    // publicatie is de INHOUD gelijk, maar het scherm moet die twee zinnen
-    // uit elkaar kunnen houden.
+    // 'live' means "there is nothing published to differ from" and
+    // 'draft' means "you asked for your draft". For an agent without
+    // a publication the CONTENT is the same, but the screen must be able to keep
+    // those two sentences apart.
     seed('a1');
     const draft = await agentCrud.getForRuntime('a1', { useDraft: true });
     assert.strictEqual(draft.runtimeSource, 'draft');

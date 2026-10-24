@@ -28,31 +28,31 @@
  * on ("only meetings tagged sales"), and filtering after a fetch would mean
  * every subscriber reading every note to decide it was not interested.
  *
- * ── WAAR EEN ABONNEMENT OP FILTERT ──────────────────────────────────
- * `filter: { tags?: string[]|string, reprocessed?: boolean }`, uitgevoerd door
- * `matchMeetingProcessedFilter` in automation/triggerBus/filters.js. Die
- * matcher hoort bij deze declaratie: zonder hem valt het event terug op de
- * ondiepe `matchFilter`, en dáár matcht een tagfilter nooit (die vergelijkt
- * een gevraagde lijst met de payload-array in plaats van te overlappen).
+ * ── WHERE A SUBSCRIPTION FILTERS ────────────────────────────────────
+ * `filter: { tags?: string[]|string, reprocessed?: boolean }`, executed by
+ * `matchMeetingProcessedFilter` in automation/triggerBus/filters.js. That
+ * matcher belongs to this declaration: without it the event falls back to the
+ * shallow `matchFilter`, and there a tag filter never matches (it compares a
+ * requested list with the payload array instead of checking for overlap).
  *
- * Een LEGE of afwezige `tags` betekent ELKE afgeronde meeting, niet geen
- * enkele — de afweging staat voluit boven die matcher, en de UI
- * (Builder/flow/settings/triggerFilters.jsx) zegt het op het scherm.
+ * An EMPTY or absent `tags` means EVERY completed meeting, not none at all —
+ * the trade-off is stated in full above that matcher, and the UI
+ * (Builder/flow/settings/triggerFilters.jsx) says it on screen.
  *
- * ── WAT DEZE DECLARATIE VANZELF MEELIFT, EN WAT NIET ────────────────
- * Mee, zonder extra code: de variabelenkiezer en trigger.output.*-samples
- * (builderTools/triggerCatalog.js), de bare-name-reparatie van bindings, de
- * prompt van de bouw-agent én daarmee de MCP-toolset (triggerSources/
- * describe.js → builderTools/schemas.js → automation/mcpBuilder.js), de
- * tenancy/fan-out (`scope: 'org'` → triggerBus/dispatch.js) en de
- * registry-regressietests.
- * NIET mee: (a) de provider-dropdown in de builder — `availability.check`
- * wordt pas waar als routes/automation/catalog.js de sleutel `meeting_notes`
- * in `checks` zet; (b) het filterformulier, dat per (provider, event) in de
- * frontend geregistreerd staat; (c) de suggestie-engine, die geen enkele
- * trigger-declaratie leest (automation/suggestions.js kent alleen de grove
- * `triggerKind` en de integratie-ids uit de scan) — een suggestie noemt deze
- * trigger dus alleen als het model haar in de builder-prompt tegenkomt.
+ * ── WHAT THIS DECLARATION CARRIES ALONG BY ITSELF, AND WHAT NOT ─────
+ * Carried along, without extra code: the variable picker and trigger.output.*
+ * samples (builderTools/triggerCatalog.js), the bare-name repair of bindings,
+ * the prompt of the build agent and with it the MCP toolset (triggerSources/
+ * describe.js → builderTools/schemas.js → automation/mcpBuilder.js), the
+ * tenancy/fan-out (`scope: 'org'` → triggerBus/dispatch.js) and the registry
+ * regression tests.
+ * NOT carried along: (a) the provider dropdown in the builder — `availability.check`
+ * only becomes true when routes/automation/catalog.js puts the key `meeting_notes`
+ * in `checks`; (b) the filter form, which is registered per (provider, event) in
+ * the frontend; (c) the suggestion engine, which reads no trigger declaration at
+ * all (automation/suggestions.js knows only the coarse `triggerKind` and the
+ * integration ids from the scan) — so a suggestion names this trigger only if the
+ * model came across it in the builder prompt.
  */
 module.exports = { TRIGGER_SOURCES: [{
     // KEBAB-CASE, like every other provider id — `meeting_notes` was

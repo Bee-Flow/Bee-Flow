@@ -171,11 +171,9 @@ describe('MessageItem, which owns the gate', () => {
 
 describe('BIJT — de chiprij is dezelfde poort onderworpen', () => {
     it('toont geen kennisbankgegevens als de poort dicht is, ook met chips aan', () => {
-        // Er bestond één regel boven de gepoorte weg een tweede, ONGEPOORTE
-        // weg naar exact dezelfde gegevens: documenttitel, paginanummer en via
-        // chipTitle ook de kop van de passage. De invariant van dit bestand —
-        // fail-closed op elke stap — gold daarmee niet meer voor MessageItem
-        // als geheel.
+        // There existed one line above the gated path, a second, UNGATED path to exactly the same data: document title,
+        // page number and, via chipTitle, also the heading of the passage. The invariant of this file (fail-closed at
+        // every step) therefore no longer held for MessageItem as a whole.
         render(<MessageItem idx={0} msg={msg({ modelId: null })} showSources={false} showAnswerChips />);
         expectNoLeak();
     });
@@ -186,9 +184,8 @@ describe('BIJT — de chiprij is dezelfde poort onderworpen', () => {
     });
 
     it('BIJT — en staat er niet terwijl het antwoord nog geschreven wordt', () => {
-        // Citaten landen midden in de beurt, dus de rij "waar dit antwoord
-        // vandaan komt" stond er al vóór het antwoord bestond — groeiend, met
-        // de tekst eronder die meesprong.
+        // Citations land in the middle of the turn, so the row "where this answer comes from" was already there before the
+        // answer existed: growing, with the text beneath it jumping along.
         const { container } = render(
             <MessageItem idx={0} msg={msg({ modelId: null, isStreaming: true })} showAnswerChips />,
         );

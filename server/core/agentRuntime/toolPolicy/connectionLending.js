@@ -36,21 +36,16 @@ function _providerForApp(appId) {
  * `normaliseToolsConfig` treats null as "could not check" and downgrades every
  * `owner`, which is the only safe reading.
  *
- * ── DEZELFDE GRANTS DIE DISPATCH HONOREERT (A2-tegenspraak) ─────────
- * De filtering stond in de SQL (`resourceType: 'agent', resourceId: id`), en
- * dat is een strikte gelijkheid. Dispatch is ruimer: `resolveConnectionForRun`
- * honoreert óók de grant ZONDER resource (`resource_type IS NULL AND
- * resource_id IS NULL`) — de org-brede lening die de API expliciet toestaat.
- * Deze functie las die niet, dus zij antwoordde "er is niets uitgeleend" op een
- * agent die wél op de postbus van de eigenaar draaide: de kaart tekende
- * stilzwijgend "As: the person asking" en `normaliseToolsConfig` draaide de
- * enige keuze die de eigenaar nog kon maken telkens terug.
+ * ── THE SAME GRANTS THAT DISPATCH HONOURS (A2 contradiction) ─────────
+ * The filtering was in the SQL (`resourceType: 'agent', resourceId: id`), and that is a strict equality. Dispatch is broader:
+ * `resolveConnectionForRun` also honours the grant WITHOUT a resource (`resource_type IS NULL AND resource_id IS NULL`) — the
+ * org-wide loan that the API explicitly allows. This function did not read that, so it answered "nothing has been lent" for an
+ * agent that DID run on the owner's mailbox: the card silently drew "As: the person asking" and `normaliseToolsConfig` kept
+ * rolling back the one choice the owner could still make.
  *
- * Andersom net zo streng: `listGrants` filtert alleen op `revoked_at`, niet op
- * `expires_at`. Een VERLOPEN lening las hier als een levende — en omdat
- * `normaliseToolsConfig` het enige is dat `actAs: 'owner'` ooit terugzet, bleef
- * die dode keuze staan en werd hij vanzelf weer echt bij de volgende grant. De
- * vervaldatum wordt daarom hier nagerekend, met dezelfde grens als de SQL van
+ * Equally strict the other way: `listGrants` filters only on `revoked_at`, not on `expires_at`. An EXPIRED loan read here as a
+ * live one — and because `normaliseToolsConfig` is the only thing that ever sets `actAs: 'owner'` back, that dead choice stayed and
+ * became real again on its own at the next grant. The expiry is therefore recalculated here, with the same boundary as the SQL of
  * dispatch (`expires_at IS NULL OR expires_at > NOW()`).
  */
 async function resolveLentProviders({ agentId, ownerId }) {
@@ -59,9 +54,8 @@ async function resolveLentProviders({ agentId, ownerId }) {
         if (!isLendingEnabled()) return null;
         if (!agentId || !ownerId) return null;
         const store = require('../../../stores/integrationConnectionStore');
-        // Eén lezing over de eigen grants van de eigenaar; de twee vormen die
-        // dispatch honoreert worden er hier uit gefilterd. Twee losse queries
-        // zouden twee plekken zijn die uit elkaar kunnen lopen.
+        // One reading of the owner's own grants; the two forms that dispatch honours
+        // are filtered out here. Two loose queries would be two places that can drift apart.
         const grants = await store.listGrants({ grantorUserId: ownerId });
         const now = Date.now();
         const set = new Set();
@@ -71,11 +65,11 @@ async function resolveLentProviders({ agentId, ownerId }) {
             const forEverything = (g.resource_type === null || g.resource_type === undefined)
                 && (g.resource_id === null || g.resource_id === undefined);
             if (!forThisAgent && !forEverything) continue;
-            if (g.revoked_at) continue;          // de store filtert al, maar dit is een grant
+            if (g.revoked_at) continue;          // the store already filters, but this is a grant
             if (g.expires_at) {
                 const until = new Date(g.expires_at).getTime();
-                // Een vervaldatum die niemand kan lezen telt als verlopen:
-                // onbekend versmalt, ook hier.
+                // An expiry date nobody can read counts as expired:
+                // unknown narrows, here too.
                 if (!Number.isFinite(until) || until <= now) continue;
             }
             set.add(g.provider);
@@ -87,28 +81,26 @@ async function resolveLentProviders({ agentId, ownerId }) {
 }
 
 /**
- * Welke APPS kunnen op een geleende verbinding draaien, gegeven de providers
- * die de eigenaar heeft uitgeleend?
+ * Which APPS can run on a borrowed connection, given the providers
+ * the owner has lent out?
  *
- * De vertaalslag hoort HIER, en dat is de hele reden dat deze functie bestaat.
- * `normaliseToolsConfig` beslist verderop met `lent.has(_providerForApp(appId))`
- * of een opgeslagen `actAs: 'owner'` overleeft; een tweede plek die diezelfde
- * vertaling zelf maakt is een tweede plek die er anders over kan denken — en
- * dan biedt het scherm een keuze aan die de runtime weigert. De kiezer leest
- * daarom dit antwoord (routes/agents/toolLending.js) in plaats van zelf
- * providers aan apps te knopen.
+ * The translation step belongs HERE, and that is the whole reason this function exists.
+ * `normaliseToolsConfig` decides further down with `lent.has(_providerForApp(appId))`
+ * whether a stored `actAs: 'owner'` survives; a second place that makes that same
+ * translation itself is a second place that could think differently, and then the
+ * screen offers a choice the runtime refuses. The picker therefore reads this answer
+ * (routes/agents/toolLending.js) instead of attaching providers to apps itself.
  *
- * `null`, niet `[]`, zodra er iets niet te zeggen valt: zonder leesbare
- * providerlijst, of met een degraded index waarin elke app op haar eigen id
- * terugvalt, is elke uitkomst een gok. Een lege lijst zou lezen als "de
- * eigenaar heeft niets uitgeleend", en dat is een bewering — precies het
- * verschil tussen "leeg" en "onleesbaar" dat de rest van deze module
- * overal aanhoudt.
+ * `null`, not `[]`, as soon as something cannot be said: without a readable provider
+ * list, or with a degraded index in which every app falls back to its own id, every
+ * outcome is a guess. An empty list would read as "the owner has lent out nothing",
+ * and that is an assertion: precisely the difference between "empty" and
+ * "unreadable" that the rest of this module keeps everywhere.
  *
- * Wat er NIET in zit: welke verbinding het is. De vraag die de kiezer stelt is
- * "kan deze app als de eigenaar draaien", en het antwoord daarop is ja of nee.
- * Een label of een connection-id zou de bewerker — die de eigenaar niet hoeft
- * te zijn — vertellen welke integraties die eigenaar heeft.
+ * What is NOT in it: which connection it is. The question the picker asks is
+ * "can this app run as the owner", and the answer to that is yes or no.
+ * A label or a connection id would tell the editor, who need not be the owner,
+ * which integrations that owner has.
  */
 function lentAppsFor(lentProviders) {
     if (!(lentProviders instanceof Set)) return null;
@@ -116,12 +108,12 @@ function lentAppsFor(lentProviders) {
     if (!idx.ok) return null;
     const out = [];
     for (const appId of idx.byApp.keys()) {
-        // Een app die zijn grants elders laat lopen (`grantsVia`) hoort hier
-        // NIET in: `normaliseToolsConfig` weigert `actAs: 'owner'` op precies
-        // die app, dus hem meesturen liet de kaart een schakelaar aanbieden die
-        // de opslag een regel later terugdraait — en `ownerRefused` vuurde niet
-        // eens, want de kaart dacht dat het mocht. De identiteitsvraag hoort bij
-        // de app die de namen bezit; die staat hier gewoon zelf in.
+        // An app whose grants run elsewhere (`grantsVia`) does NOT belong here:
+        // `normaliseToolsConfig` refuses `actAs: 'owner'` on exactly that app, so
+        // including it let the card offer a toggle that storage reverts one line
+        // later, and `ownerRefused` never fired because the card thought it was
+        // allowed. The identity question belongs with the app that owns the names;
+        // that app is simply in here itself.
         if (idx.defersGrants instanceof Set && idx.defersGrants.has(appId)) continue;
         const provider = _providerForApp(appId);
         if (provider && lentProviders.has(provider)) out.push(appId);

@@ -74,17 +74,15 @@ function canonicalizeDataModel(model) {
         if (table.icon === undefined) table.icon = null;
 
         /*
-         * Tabelbron (additief — een tabel zonder `source` canonicaliseert
-         * byte-identiek, want de sleutel bestaat dan niet).
+         * Table source (additive — a table without `source` canonicalises byte-identically,
+         * because the key then does not exist).
          *
-         * Alleen de ONTBREKENDE `mode` wordt hier ingevuld, en wel met de
-         * smalste: er is nooit om schrijfrecht gevraagd, dus krijgt niemand het.
-         * Een INGEVULDE mode blijft staan zoals hij is, ook als hij nergens op
-         * slaat — hem naar 'read' duwen zou een typefout ('readWrite',
-         * 'read-write') veranderen in een recht dat er niet is, en de auteur zou
-         * nergens zien dat zijn keuze is overschreven. validateDataModel wijst
-         * hem daarom af in plaats van dat wij hem repareren. Datzelfde geldt voor
-         * een `source` die geen object is.
+         * Only the MISSING `mode` is filled in here, and with the narrowest one: write rights
+         * were never asked for, so nobody gets them. A FILLED-IN mode stays as it is, even when
+         * it means nothing — pushing it to 'read' would change a typo ('readWrite', 'read-write')
+         * into a permission that does not exist, and the author would nowhere see that their
+         * choice had been overwritten. validateDataModel therefore rejects it instead of us
+         * repairing it. The same goes for a `source` that is not an object.
          */
         if (isPlainObject(table.source)) {
             const source = { ...table.source };

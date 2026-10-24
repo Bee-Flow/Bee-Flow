@@ -269,12 +269,12 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
         setErrors(nextErrors);
         if (Object.keys(nextErrors).some((k) => nextErrors[k])) return;
         if (node.onSubmit) {
-            // `formId` blijft het NODE-id (dat lezen bestaande consumenten),
-            // `formName` is de sleutel waaronder deze form zich op de
-            // reset-bus en bij registerFormValue meldt — `props.name || node.id`.
-            // Die twee zijn zelden gelijk (canonicalize vult `props.name`
-            // altijd), en `refresh:'resetForm'` had het node-id, dus de reset
-            // vond nooit een formulier en zei daar ook niets over.
+            // `formId` stays the NODE id (existing consumers read that),
+            // `formName` is the key under which this form registers on the
+            // reset bus and at registerFormValue — `props.name || node.id`.
+            // Those two are rarely equal (canonicalize always fills `props.name`),
+            // and `refresh:'resetForm'` had the node id, so the reset never found
+            // a form and said nothing about it either.
             runAction(node.onSubmit, { formValues: { ...values }, formId: node.id, formName });
         }
     };

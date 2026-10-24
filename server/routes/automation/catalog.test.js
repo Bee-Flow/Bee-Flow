@@ -286,11 +286,9 @@ test('an action reads as what it does, without the app name the card already sho
 
 // ── Meeting Notes (M5) ─────────────────────────────────────────────────
 //
-// De declaratie gaat op `availability: { kind:'check', check:'meeting_notes' }`
-// en providerIsAvailable eist `checks.meeting_notes === true`. Die sleutel werd
-// hier niet gezet, dus de provider was in het dropdown ONZICHTBAAR terwijl de
-// dispatch, de variabelenkiezer en de bouw-agent hem al kenden. De drie tests
-// hieronder pinnen de aanwezigheid, de afwezigheid én het faalgedrag vast.
+// The declaration goes on `availability: { kind:'check', check:'meeting_notes' }` and providerIsAvailable requires `checks.meeting_notes === true`. That key was
+// not set here, so the provider was INVISIBLE in the dropdown while the dispatch, the variable picker and the build agent already knew it. The three tests
+// below pin the presence, the absence AND the failure behaviour.
 
 test('meeting-notes verschijnt alleen met de capability meeting_notes', async () => {
     resetState();
@@ -303,8 +301,8 @@ test('meeting-notes verschijnt alleen met de capability meeting_notes', async ()
     const providers = withoutApprovals(appEventProviders(body));
     assert.deepStrictEqual(providers.map(p => p.id), ['meeting-notes']);
     assert.strictEqual(providers[0].defaultEvent, 'meeting.processed');
-    // De provider hangt NIET aan een geïnstalleerde app: Meeting Notes is een
-    // eigen feature, geen integratie in TOOL_REGISTRY.
+    // The provider does NOT hang off an installed app: Meeting Notes is its own
+    // feature, not an integration in TOOL_REGISTRY.
     assert.deepStrictEqual([...AVAILABLE_APPS], []);
 });
 
@@ -317,9 +315,9 @@ test('een kapotte capability-lookup laat meeting-notes weg (faalt dicht)', async
 });
 
 test('de meeting-notes-velden zitten in triggerOutputs, ook zonder de capability', async () => {
-    // Het uitvoercontract is NIET gegate: een automatisering die al op deze trigger
-    // staat moet zijn trigger.output.*-bindingen blijven kunnen tonen, ook als
-    // de licentie inmiddels weg is. Alleen het KIEZEN is gegate.
+    // The output contract is NOT gated: an automation that is already on this trigger
+    // must keep being able to show its trigger.output.* bindings, even when
+    // the licence has since gone. Only CHOOSING is gated.
     resetState();
     const body = await fetchCatalog();
     const entry = body.triggerOutputs['meeting-notes.meeting.processed'];

@@ -4,16 +4,16 @@
  * The dry-run contract is: READ tools run FOR REAL, side-effect tools are
  * simulated. isSideEffect() is fail-closed (unlisted → side effect), which
  * means a read tool nobody added to READ_ONLY silently gets SIMULATED in
- * dry-runs — the builder then plans against fake sample data. That is how
+ * dry-runs, and the builder then plans against fake sample data. That is how
  * AFAS/NMBRS/n8n/GitHub reads regressed. These tests make the classification
  * exhaustive: every tool in the automation registry must be consciously
  * placed in exactly one of READ_ONLY / SIDE_EFFECTS.
  *
- * De blokken zijn `node:test`-cases en geen kale accolades: sinds deze test
- * over ALL_TOOL_APPS loopt laadt hij ook de inline-apps, en één daarvan
- * (regexGeneratorTools) houdt de event-loop open. `--test-force-exit` ruimt dat
- * op zodra er ECHTE tests in het bestand staan; met alleen top-level code bleef
- * het proces hangen nadat alle asserties waren geslaagd.
+ * The blocks are `node:test` cases and not bare braces: since this test loops over
+ * ALL_TOOL_APPS it also loads the inline apps, and one of those (regexGeneratorTools)
+ * keeps the event loop open. `--test-force-exit` cleans that up as soon as there are
+ * REAL tests in the file; with only top-level code the process kept hanging after
+ * all assertions had passed.
  *
  * Run: node --test core/automationModel/sideEffectMap.test.js
  */
@@ -25,12 +25,12 @@ const { ALL_TOOL_APPS, loadTools } = require('../../automation/toolRegistry');
 
 // ── every registry tool is classified in exactly one set ──
 //
-// Over ALL_TOOL_APPS en niet over TOOL_REGISTRY: sinds A2-1 staan de apps die
-// hun tools INLINE injecteren (browser, notebooks, regex-regels) in dezelfde
-// gedeelde lijst die de kiezer en de rechtenlaag lezen, en hun effect komt op
-// het scherm te staan. Liep deze test alleen over TOOL_REGISTRY, dan vielen
-// juist die negen namen buiten de controle die de modulekop belooft — en
-// vielen ze stilzwijgend op de fail-closed default.
+// Over ALL_TOOL_APPS and not over TOOL_REGISTRY: since A2-1 the apps that inject
+// their tools INLINE (browser, notebooks, regex rules) sit in the same shared list
+// that the picker and the rights layer read, and their effect ends up on screen.
+// If this test ran only over TOOL_REGISTRY, those nine names would fall outside
+// the check that the module header promises, and would silently land on the
+// fail-closed default.
 test('every tool of every app in ALL_TOOL_APPS is classified exactly once', () => {
     const unclassified = [];
     const doubleClassified = [];
@@ -68,8 +68,8 @@ test('the fail-closed default is preserved', () => {
 
 // ── spot checks: the regressions that motivated this test stay fixed ──
 test('the regressions that motivated this test stay fixed', () => {
-    // De inline-apps: één leesactie en één schrijfactie per app, zodat het
-    // uitzetten van de lus hierboven niet ongemerkt kan.
+    // The inline apps: one read action and one write action per app, so that
+    // switching off the loop above cannot go unnoticed.
     for (const read of ['notebook_read', 'regex_list_rules', 'regex_test_pattern']) {
         assert.strictEqual(isSideEffect(read), false, `${read} must be read-only (runs live in dry-run)`);
     }

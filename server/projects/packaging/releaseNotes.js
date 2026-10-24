@@ -1,132 +1,110 @@
 /**
- * Wat er veranderde tussen twee versies van een Blueprint — "What changed".
+ * What changed between two versions of a Blueprint — "What changed".
  *
- * NIET te verwarren met core/releaseNotesDrafter.js en stores/releaseNotesStore.js:
- * die twee gaan over de releases van het PRODUCT (build, git-range, changelog).
- * Dit gaat over de release van één Oplossing: manifest v(n-1) naast manifest v(n).
+ * NOT to be confused with core/releaseNotesDrafter.js and stores/releaseNotesStore.js:
+ * those two are about the releases of the PRODUCT (build, git range, changelog).
+ * This is about the release of one Solution: manifest v(n-1) beside manifest v(n).
  *
- * ── Twee lagen, en het onderscheid ertussen is het hele punt ───────────────
+ * ── Two layers, and the distinction between them is the whole point ───────
  *
- * 1. DE BOOLEAN DIFF is exact en altijd beschikbaar. Per entiteit vergelijkt
- *    `diffEntities` de hash van hetzelfde `hashDefinition` dat de upgrade
- *    gebruikt (appStudio/templateUpgrade.js) — één hasher in dit product, want
- *    jsonb bewaart geen key-volgorde en een tweede hasher zou vroeg of laat een
- *    ongewijzigde entiteit gewijzigd noemen. Deze laag doet GEEN modelaanroep,
- *    raakt het netwerk niet en kan niet omvallen.
+ * 1. THE BOOLEAN DIFF is exact and always available. Per entity `diffEntities` compares the hash of
+ *    the same `hashDefinition` that the upgrade uses (appStudio/templateUpgrade.js) — one hasher in this
+ *    product, because jsonb does not keep key order and a second hasher would sooner or later call an
+ *    unchanged entity changed. This layer makes NO model call, does not touch the network and cannot fall over.
  *
- * 2. DE `text` is een fast-tier één-regel-samenvatting per GEWIJZIGDE entiteit.
- *    Dat is de semantische diff in gewone taal, en het is de enige laag die van
- *    een model afhangt.
+ * 2. THE `text` is a fast-tier one-line summary per CHANGED entity. That is the semantic diff in plain
+ *    language, and it is the only layer that depends on a model.
  *
- * Let op welke vraag laag 1 beantwoordt. De upgrade vergelijkt manifest tegen
- * de LEVENDE entiteit ("heeft de ontvanger dit bewerkt?"). Hier vergelijken we
- * manifest tegen manifest ("wat heeft de MAKER veranderd?"). Zelfde hasher,
- * andere vraag — en daarom werkt deze diff óók voor datatables en kennisbanken,
- * die de upgrade niet kan vergelijken omdat er geen levende payload voor is.
+ * Note which question layer 1 answers. The upgrade compares the manifest against the LIVE entity ("has the
+ * recipient edited this?"). Here we compare manifest against manifest ("what did the MAKER change?").
+ * Same hasher, different question — and that is why this diff ALSO works for datatables and knowledge bases,
+ * which the upgrade cannot compare because there is no live payload for them.
  *
- * ── De modelaanroep mag nooit gooien en nooit de publicatie tegenhouden ────
+ * ── The model call may never throw and never hold up the publication ─────
  *
- * Valt hij om — geen provider, geen model geconfigureerd, een time-out, een
- * weigering, onparseerbare argumenten — dan staat er geen verzonnen zin maar
- * GÉÉN zin: `text` blijft null. Het verschil met "er is niets veranderd" zit in
- * `change`, dat exact is: `change: 'changed'` met `text: null` betekent "we
- * konden het niet opschrijven", `change: 'unchanged'` betekent "geen nieuws".
- * Die twee door elkaar halen is het verschil tussen geen nieuws en geen woorden;
- * `summaryMissing()` is de enige plek waar die vraag beantwoord hoort te worden.
+ * If it falls over — no provider, no model configured, a time-out, a refusal, unparseable arguments — then no
+ * invented sentence appears but NO sentence: `text` stays null. The difference from "nothing has changed" lies
+ * in `change`, which is exact: `change: 'changed'` with `text: null` means "we could not write it down",
+ * `change: 'unchanged'` means "no news". Confusing those two is the difference between no news and no words;
+ * `summaryMissing()` is the only place where that question should be answered.
  *
- * De twee lagen zijn ook apart aan te roepen. `diffEntities` is synchroon en
- * puur: een caller die eerst wil publiceren en pas daarna wil verrijken schrijft
- * die notes weg en draait `describeChanges` erna.
+ * The two layers can also be called separately. `diffEntities` is synchronous and pure: a caller that wants to
+ * publish first and enrich afterwards writes those notes away and runs `describeChanges` afterwards.
  *
- * ── De naad met de release-tabel ──────────────────────────────────────────
+ * ── The seam with the release table ──────────────────────────────────────
  *
- * De echte vorm van een notitie is de LIJST per entiteit. `publishRelease`
- * (stores/blueprintStore.js) neemt echter een plat OBJECT aan — de kolom is
- * `notes JSONB NOT NULL DEFAULT '{}'` en een array wordt geweigerd — en
- * begrenst het geheel op 64 KB. `releaseNotesPayload()` is die ene vertaling,
- * op één plek, inclusief de krimp die voorkomt dat een Oplossing met honderden
- * entiteiten zijn eigen publicatie laat afketsen op een notitie.
+ * The real shape of a note is the LIST per entity. `publishRelease` (stores/blueprintStore.js), however, takes a
+ * flat OBJECT — the column is `notes JSONB NOT NULL DEFAULT '{}'` and an array is refused — and caps the whole
+ * at 64 KB. `releaseNotesPayload()` is that one translation, in one place, including the shrinking that prevents a
+ * Solution with hundreds of entities from having its own publication fail on a note.
  *
- * ── PRIVACY: wat er WEL naar het model gaat ───────────────────────────────
+ * ── PRIVACY: what DOES go to the model ───────────────────────────────────
  *
- * De JSON-diff van een entiteit kan klantgegevens bevatten — een voorbeeld in
- * een prompt, een e-mailadres in een automatiseringsstap, een tabelrij die als
- * standaardwaarde is blijven staan. De hele diff opsturen is dus geen optie.
+ * The JSON diff of an entity may contain customer data — an example in a prompt, an e-mail address in an automation
+ * step, a table row that stayed as a default value. Sending the whole diff is therefore not an option.
  *
- * Wat vertrekt is de VORM van de wijziging, nooit de INHOUD:
+ * What leaves is the SHAPE of the change, never the CONTENT:
  *
- *   • het soort entiteit (`automation`, `app`, …) — productvocabulaire;
- *   • een lijst feiten `{ path, change, count?, value? }`, waarbij `path` een
- *     KEY-PAD is (`definition.steps[]`) en dus schema, geen data;
- *   • een `value` uitsluitend op de paden in VALUE_PATHS, die stuk voor stuk een
- *     GESLOTEN vocabulaire van het product zelf zijn (een staptype, een
- *     kolomtype), en dan nog alleen als de waarde er als token uitziet
- *     (TOKEN_RE) — een tweede slot voor het geval er ooit vrije tekst op zo'n
- *     pad belandt.
+ *   • the kind of entity (`automation`, `app`, …) — product vocabulary;
+ *   • a list of facts `{ path, change, count?, value? }`, where `path` is a KEY PATH
+ *     (`definition.steps[]`) and therefore schema, not data;
+ *   • a `value` exclusively on the paths in VALUE_PATHS, each of which is a CLOSED vocabulary of the product
+ *     itself (a step type, a column type), and then only if the value looks like a token (TOKEN_RE) —
+ *     a second slot in case free text ever lands on such a path.
  *
- * WIENS MODEL. De tier-resolutie krijgt altijd `userId` (en `userOrgId` als het
- * project er een heeft) mee. Zonder `userId` vertrekt er GEEN aanroep: een
- * resolutie zonder context valt terug op de globale fast-tier, en dan zou de
- * vorm van andermans Oplossing naar het model van de instantie gaan in plaats
- * van naar het model dat die werkruimte koos — onbekend hoort te versmallen,
- * niet te verbreden.
+ * WHOSE MODEL. The tier resolution always receives `userId` (and `userOrgId` if the project has one). Without
+ * `userId` NO call departs: a resolution without context falls back to the global fast tier, and then the shape
+ * of someone else's Solution would go to the model of the instance rather than to the model that the workspace
+ * chose — unknown should narrow, not widen.
  *
- * Welke velden überhaupt bekeken worden staat in FIELD_ALLOW: een EXPLICIETE
- * allow-list per soort, geen deny-list. Een veld dat volgend jaar aan het
- * manifest wordt toegevoegd bereikt het model dus niet vanzelf — het telt wél
- * mee in de boolean diff, want die gaat over de hele entiteit.
+ * Which fields are looked at at all is set out in FIELD_ALLOW: an EXPLICIT allow-list per kind, not a deny-list.
+ * A field that is added to the manifest next year therefore does not reach the model by itself — it DOES count
+ * in the boolean diff, because that covers the whole entity.
  *
- * UITGESLOTEN, en waarom:
- *   • ELKE bladwaarde buiten VALUE_PATHS. Daar zit de klanttekst: promptvoorbeelden,
- *     e-mailteksten, kolomnamen, HTML van een pagina, standaardwaarden.
- *   • De NAAM van de entiteit. Die staat al in de note-rij en wordt door het
- *     scherm zelf getoond, dus het model heeft hem niet nodig — en een automatisering
- *     kan naar een klant genoemd zijn ("Herinnering Van Dijk BV").
- *   • `ref` en elk ander intern handvat: nutteloos voor een zin.
- *   • `scheduleCron` als WAARDE. Een cron is geen persoonsgegeven, maar om hem
- *     door te laten zou TOKEN_RE spaties moeten toestaan, en dat maakt het
- *     tweede slot bot voor élk ander toegelaten pad. "Het schema is gewijzigd"
- *     is genoeg.
- *   • Het model-id van een agent. "Er is een ander model gekozen" is het feit;
- *     de merknaam voegt niets toe dat het bekijken waard is.
- *   • Alles voorbij MAX_DEPTH niveaus diep, en objectsleutels die niet als
- *     identifier lezen (KEY_RE) — daar wonen door gebruikers verzonnen sleutels.
- *   • Entiteiten die de nieuwe versie NIET meer bevat. Het notitieblok is de
- *     inhoudsopgave van de nieuwe versie, en de drie toestanden zijn
- *     added/changed/unchanged; een installatie verwijdert bovendien nooit iets
- *     (zie upgrade.js), dus "removed" zou iets beloven wat er niet gebeurt.
+ * EXCLUDED, and why:
+ *   • EVERY leaf value outside VALUE_PATHS. That is where the customer text lives: prompt examples, e-mail texts,
+ *     column names, the HTML of a page, default values.
+ *   • The NAME of the entity. That is already in the note row and is shown by the screen itself, so the model does
+ *     not need it — and an automation may be named after a customer ("Reminder Van Dijk BV").
+ *   • `ref` and every other internal handle: useless for a sentence.
+ *   • `scheduleCron` as a VALUE. A cron is not personal data, but letting it through would require TOKEN_RE to allow
+ *     spaces, and that makes the second slot blunt for every other permitted path. "The schedule has changed" is enough.
+ *   • The model id of an agent. "A different model was chosen" is the fact; the brand name adds nothing worth looking at.
+ *   • Anything beyond MAX_DEPTH levels deep, and object keys that do not read as identifiers (KEY_RE) — that is where
+ *     keys invented by users live.
+ *   • Entities that the new version NO LONGER contains. The notes block is the table of contents of the new version,
+ *     and the three states are added/changed/unchanged; an installation moreover never deletes anything (see upgrade.js),
+ *     so "removed" would promise something that does not happen.
  */
 
 'use strict';
 const log = require('../../telemetry/log');
 
-/** Hoeveel tekens een note-regel maximaal is. Eén regel, geen alinea. */
+/** How many characters a note line may have at most. One line, not a paragraph. */
 const MAX_TEXT_CHARS = 160;
 /** Zoveel entiteiten krijgen hooguit een modelaanroep. De rest houdt text null. */
 const MAX_SUMMARIES = 25;
-/** Eén regel is het wachten niet waard. */
+/** One line is not worth the wait. */
 const TIMEOUT_MS = 15_000;
 /** Totale tijd die het tekstlaagje mag kosten; daarna blijft de rest zonder zin. */
 const DEADLINE_MS = 45_000;
 /** Hoeveel aanroepen tegelijk lopen. */
 const CONCURRENCY = 3;
-/** Zoveel feiten gaan er hooguit mee. Een muur van paden leest geen model. */
+/** This many facts go along at most. A wall of paths is not read by a model. */
 const MAX_FACTS = 24;
-/** Zo diep wordt er in een object gekeken; dieper zitten verzonnen sleutels. */
+/** This deep an object is inspected; deeper down are the invented keys. */
 const MAX_DEPTH = 4;
-/** Harde bovengrens op het JSON dat de gebruikersboodschap wordt. */
+/** Hard upper bound on the JSON that becomes the user message. */
 const MAX_PAYLOAD_CHARS = 4000;
 /** Lengtegrens op de naam die in de note-rij belandt. */
 const MAX_NAME_CHARS = 120;
 /**
- * Waar de envelop onder moet blijven.
+ * What the envelope must stay below.
  *
- * Met de hand gelijkgehouden aan `blueprintStore.MAX_NOTES_BYTES`, want de
- * store aanroepen zou hier bij require een pool openen. Geëxporteerd, zodat de
- * drifttest in stores/blueprintStore.releases.test.js de twee tegen elkaar kan
- * leggen: zakt de grens in de store ooit onder deze waarde, dan zou
- * `normalizeNotes` gooien en werd een PUBLICATIE geweigerd wegens een notitie —
- * precies wat dit onderdeel nooit mag veroorzaken.
+ * Kept in step by hand with `blueprintStore.MAX_NOTES_BYTES`, because calling the store here would open a pool on require.
+ * Exported so that the drift test in stores/blueprintStore.releases.test.js can compare the two: should the limit in the
+ * store ever drop below this value, then `normalizeNotes` would throw and a PUBLICATION would be refused on account of a
+ * note — precisely what this component must never cause.
  */
 const MAX_NOTES_ENVELOPE_BYTES = 64 * 1024;
 
@@ -141,12 +119,11 @@ const KIND_OF = Object.freeze({
 });
 
 /**
- * De velden per soort waarvan een WIJZIGING beschreven mag worden.
+ * The fields per kind of which a CHANGE may be described.
  *
- * Allow-list, geen deny-list: een veld dat volgend jaar aan het manifest wordt
- * toegevoegd bereikt het model niet totdat iemand het hier opschrijft. Dat een
- * veld hier staat betekent overigens niet dat de INHOUD ervan vertrekt — alleen
- * het pad. Waarden vertrekken uitsluitend via VALUE_PATHS.
+ * Allow-list, not deny-list: a field that is added to the manifest next year does not reach the model until someone
+ * writes it down here. That a field appears here does not, incidentally, mean that its CONTENT leaves — only the path.
+ * Values leave exclusively via VALUE_PATHS.
  */
 const FIELD_ALLOW = Object.freeze({
     automation: Object.freeze(['kind', 'title', 'description', 'triggerType', 'scheduleCron', 'scheduleTz', 'definition']),
@@ -158,11 +135,9 @@ const FIELD_ALLOW = Object.freeze({
 });
 
 /**
- * De paden waarvan de WAARDE mee mag. Stuk voor stuk een gesloten vocabulaire
- * van het product zelf: een staptype komt uit de stappencatalogus, een kolomtype
- * uit een vaste lijst, een rowScope is 'own' of 'all'. Vrije tekst staat hier
- * niet, en kan hier ook niet per ongeluk in belanden: TOKEN_RE is het tweede
- * slot op elke waarde die dit passeert.
+ * The paths whose VALUE may go along. Each one a closed vocabulary of the product itself: a step type comes from the
+ * step catalogue, a column type from a fixed list, a rowScope is 'own' or 'all'. Free text does not belong here, and
+ * cannot land here by accident: TOKEN_RE is the second slot on every value that passes this.
  */
 const VALUE_PATHS = Object.freeze([
     'kind',
@@ -178,14 +153,13 @@ const VALUE_PATHS = Object.freeze([
     'columns[].type',
     'usageContexts[]',
 ]);
-/** Dezelfde lijst als Set. Los, omdat een bevroren Set niet bevroren IS: het
- *  freeze-slot zit op de eigen properties, niet op de inhoud van een Set — en
- *  een allow-list die stilletjes aangevuld kan worden is er geen. */
+/** The same list as a Set. Separately, because a frozen Set is not frozen IN ITS CONTENTS: the freeze slot sits on the own
+ *  properties, not on the content of a Set — and an allow-list that can be quietly added to is no allow-list. */
 const VALUE_PATH_SET = new Set(VALUE_PATHS);
 
-/** Een objectsleutel die als schema leest. Al het andere wordt `*` in het pad. */
+/** An object key that reads as schema. Everything else becomes `*` in the path. */
 const KEY_RE = /^[A-Za-z0-9_-]{1,40}$/;
-/** Een waarde die als enum-token leest. Geen spaties: vrije tekst valt af. */
+/** A value that reads as an enum token. No spaces: free text falls away. */
 const TOKEN_RE = /^[A-Za-z0-9_.:/-]{1,40}$/;
 
 const TOOL = Object.freeze({
@@ -216,7 +190,7 @@ function hashOf(payload) {
 
 // ── Laag 1: de boolean diff ────────────────────────────────────────────────
 
-/** De naam die in de note-rij komt. Automations heten `title`, tabellen hebben ook een `key`. */
+/** The name that goes into the note row. Automations are called `title`, tables also have a `key`. */
 function nameOf(entity) {
     const raw = [entity?.name, entity?.title, entity?.key, entity?.ref]
         .find(v => typeof v === 'string' && v.trim());
@@ -229,13 +203,11 @@ function entityList(manifest, pluralKind) {
 }
 
 /**
- * De boolean diff, per entiteit, zonder één modelaanroep.
+ * The boolean diff, per entity, without a single model call.
  *
- * Gematcht op `ref`, want dat is het enige identiteitsbegrip dat een manifest
- * heeft: echte ids reizen bewust niet mee (zie capture.js). Refs zijn
- * POSITIONEEL, dus een maker die entiteiten omgooit ziet een verschuiving als
- * "gewijzigd". Dat is de veilige kant van de fout: deze diff kan iets ten
- * onrechte gewijzigd noemen, maar nooit ten onrechte ONgewijzigd.
+ * Matched on `ref`, because that is the only identity notion a manifest has: real ids deliberately do not travel along
+ * (see capture.js). Refs are POSITIONAL, so a maker who reorders entities sees a shift as "changed". That is the safe side of
+ * the error: this diff may call something changed wrongly, but never call it unchanged wrongly.
  *
  * @returns {Array<{kind:string, entityId:string, name:string, change:'added'|'changed'|'unchanged', text:null}>}
  */
@@ -254,9 +226,9 @@ function diffEntities({ previousManifest = null, manifest } = {}) {
             if (before !== undefined) change = hashOf(before) === hashOf(entity) ? 'unchanged' : 'changed';
             notes.push({
                 kind,
-                // Het bundel-lokale ref, NOOIT een echt id: een manifest draagt
-                // er geen, en dit veld heet `entityId` omdat het de identiteit
-                // van de entiteit BINNEN de release is.
+                // The bundle-local ref, NEVER a real id: a manifest carries none,
+                // and this field is called `entityId` because it is the identity
+                // of the entity WITHIN the release.
                 entityId: ref,
                 name: nameOf(entity),
                 change,
@@ -267,7 +239,7 @@ function diffEntities({ previousManifest = null, manifest } = {}) {
     return notes;
 }
 
-/** Is deze regel een ontbrekende samenvatting, of gewoon geen nieuws? */
+/** Is this line a missing summary, or simply no news? */
 function summaryMissing(note) {
     return !!note && note.change === 'changed' && !note.text;
 }
@@ -278,7 +250,7 @@ function safeKey(key) {
     return KEY_RE.test(key) ? key : '*';
 }
 
-/** Een waarde mag alleen mee op een toegelaten pad, en alleen als token. */
+/** A value may only go along on a permitted path, and only as a token. */
 function safeValue(value, path) {
     if (!VALUE_PATH_SET.has(path)) return undefined;
     if (typeof value === 'boolean') return value;
@@ -313,13 +285,11 @@ function valueCounts(list, key, path) {
 }
 
 /**
- * Arrays worden als MULTISET vergeleken, niet element voor element.
+ * Arrays are compared as a MULTISET, not element by element.
  *
- * Eén stap vooraan invoegen verschuift anders elk volgend element en levert een
- * muur van "gewijzigd" op waar niets gewijzigd is. Een telling plus de
- * toegelaten waarden ("twee stappen erbij: send_email, condition") zegt wat een
- * releasenotitie nodig heeft, en per ongeluk een index-verschuiving als inhoud
- * beschrijven kan zo niet.
+ * Inserting one step at the front would otherwise shift every following element and produce a wall of "changed" where nothing
+ * has changed. A count plus the permitted values ("two steps added: send_email, condition") says what a release note needs, and
+ * cannot describe an index shift as content by mistake.
  */
 function arrayFacts(before, after, path, facts) {
     const arrayPath = `${path}[]`;
@@ -386,11 +356,9 @@ function walk(before, after, path, depth, facts) {
 }
 
 /**
- * Alles wat over één gewijzigde entiteit naar het model mag — of null als er
- * niets beschrijfbaars veranderde.
+ * Everything about one changed entity that may go to the model — or null if nothing describable changed.
  *
- * Gebouwd uit FIELD_ALLOW en niet door sleutels uit de entiteit te verwijderen:
- * een veld dat volgend jaar wordt toegevoegd lekt anders vanzelf mee.
+ * Built from FIELD_ALLOW and not by removing keys from the entity: a field that is added next year would otherwise leak along by itself.
  */
 function modelPayload(kind, before, after) {
     const allowed = FIELD_ALLOW[kind];
@@ -411,17 +379,13 @@ function modelPayload(kind, before, after) {
 // ── Laag 2b: de zin, die nooit gooit ───────────────────────────────────────
 
 /**
- * De enige begrenzing op een aanroep die NOOIT settelt.
+ * The only bound on a call that NEVER settles.
  *
- * Een half-open socket geeft geen antwoord en geen fout; zonder deze race
- * blijft `summariseChange` voor altijd hangen, en daarmee — zodra een route
- * hem await — het publicatieverzoek zelf. De deadline in `describeChanges`
- * redt dat niet: die wordt getoetst VOOR de await, niet tijdens.
+ * A half-open socket gives neither an answer nor an error; without this race `summariseChange` would hang forever, and — once a route awaits it —
+ * the publication request itself. The deadline in `describeChanges` does not rescue that: it is checked BEFORE the await, not during.
  *
- * Geëxporteerd om precies die reden testbaar te zijn: een belofte die nooit
- * settelt hoort hier binnen `ms` als afwijzing uit te komen, en de timer wordt
- * opgeruimd zodra de belofte wél settelt (anders houdt een geslaagde aanroep
- * de event-loop nog `ms` lang open — zichtbaar in een testrun zonder
+ * Exported for precisely that reason, to be testable: a promise that never settles should here come out as a rejection within `ms`, and the timer is
+ * cleared as soon as the promise does settle (otherwise a successful call keeps the event loop open for `ms` — visible in a test run without
  * --test-force-exit).
  */
 function withTimeout(promise, ms, label) {
@@ -432,7 +396,7 @@ function withTimeout(promise, ms, label) {
     return Promise.race([promise.finally(() => clearTimeout(timer)), timeout]);
 }
 
-/** Modeluitvoer is onvertrouwd: type, lengte en leegte worden hier afgedwongen. */
+/** Model output is untrusted: type, length and emptiness are enforced here. */
 function normalise(structured) {
     if (!isObject(structured)) return null;
     const summary = typeof structured.summary === 'string' ? structured.summary.trim() : '';
@@ -453,12 +417,10 @@ function systemPrompt(language) {
 }
 
 /**
- * Eén regel over één gewijzigde entiteit — of null.
+ * One line about one changed entity — or null.
  *
- * GOOIT NOOIT. Geen provider, geen geconfigureerd model, een onleesbare config,
- * een time-out, een geweigerde tool, onparseerbare argumenten: allemaal null.
- * Null is "we konden het niet opschrijven", nooit "er is niets veranderd" —
- * `change` blijft daarvoor de enige bron.
+ * NEVER THROWS. No provider, no configured model, an unreadable config, a time-out, a refused tool, unparseable arguments: all null.
+ * Null means "we could not write it down", never "nothing has changed" — `change` remains the only source for that.
  */
 async function summariseChange({ kind, before, after, language = 'English', userOrgId = null, userId = null, modelId = undefined, timeoutMs = TIMEOUT_MS, deps = {} } = {}) {
     try {
@@ -468,21 +430,16 @@ async function summariseChange({ kind, before, after, language = 'English', user
         const llmClient = deps.llmClient || require('../../core/llm/llmClient');
         let model = modelId;
         if (model === undefined) {
-            // ONBEKEND VERSMALT. Zonder `userId` is er niets op te halen: de
-            // org-override hangt aan `userOrgId` en de EU-modus aan de
-            // Privacy Shield van de gebruiker (modelResolver.isEUModeActive).
-            // Een resolutie zonder allebei valt terug op de GLOBALE fast-tier —
-            // dan zou de vorm van andermans Oplossing naar het model van de
-            // instantie gaan in plaats van naar het model dat die werkruimte
-            // gekozen heeft. Geen context is dus geen zin, nooit een bredere
-            // keuze. (`userOrgId` mag wél null zijn: een persoonlijk project
-            // heeft geen organisatie, en de gebruiker beslist dan zelf.)
+            // UNKNOWN NARROWS. Without `userId` there is nothing to fetch: the org override hangs on `userOrgId` and the EU mode on
+            // the Privacy Shield of the user (modelResolver.isEUModeActive). A resolution lacking both falls back to the GLOBAL fast tier —
+            // then the shape of someone else's Solution would go to the model of the instance rather than to the model that this workspace
+            // chose. No context is therefore no sentence, never a broader choice. (`userOrgId` may well be null: a personal project
+            // has no organisation, and the user then decides.)
             if (!userId) return null;
             const resolve = deps.resolveModelForTierName
                 || require('../../core/llm/modelResolver').resolveModelForTierName;
-            // `fallback` blijft opt-in en wordt hier niet gegeven —
-            // niemand-heeft-er-een-geconfigureerd is een echt antwoord en
-            // betekent: geen zin.
+            // `fallback` remains opt-in and is not given here —
+            // nobody-has-one-configured is a real answer and means: no sentence.
             model = await resolve('fast', { userOrgId, userId });
         }
         if (!model) return null;
@@ -498,8 +455,8 @@ async function summariseChange({ kind, before, after, language = 'English', user
         );
         return normalise(result?.structured);
     } catch (e) {
-        // Stil op warn-niveau: op een installatie zonder provider zou dit
-        // anders bij elke publicatie per entiteit afgaan.
+        // Silent at warn level: on an installation without a provider this would
+        // otherwise fire per entity on every publication.
         log.warn('[Blueprint] change summary unavailable:', e.message);
         return null;
     }
@@ -514,8 +471,8 @@ async function describeChanges(notes, { previousManifest = null, manifest, langu
     const list = Array.isArray(notes) ? notes : [];
     const targets = list.filter(n => n && n.change === 'changed').slice(0, MAX_SUMMARIES);
     if (!targets.length) return list;
-    // Zelfde versmalling als in `summariseChange`, hier vóór de resolutie zodat
-    // er zonder gebruikerscontext geen enkele aanroep vertrekt.
+    // The same narrowing as in `summariseChange`, here before the resolution so that
+    // no call departs without user context.
     if (!userId) return list;
 
     const byRef = new Map();
@@ -524,10 +481,9 @@ async function describeChanges(notes, { previousManifest = null, manifest, langu
         for (const entity of entityList(manifest, plural)) byRef.set(`next:${kind}:${entity.ref}`, entity);
     }
 
-    // Eén modelresolutie voor de hele ronde: hij kost een configlezing en het
-    // antwoord is voor elke entiteit hetzelfde. Gooit hij, dan valt de hele
-    // tekstlaag stil — precies zoals één omgevallen aanroep dat voor één regel
-    // doet, en de notes gaan onveranderd terug.
+    // One model resolution for the whole round: it costs a config read and the answer
+    // is the same for every entity. Should it throw, the whole text layer falls silent — exactly as one failed call does
+    // for a single line — and the notes go back unchanged.
     let modelId = null;
     try {
         const resolve = deps.resolveModelForTierName
@@ -560,25 +516,20 @@ async function describeChanges(notes, { previousManifest = null, manifest, langu
 }
 
 /**
- * De notes zoals `blueprintStore.publishRelease` ze aanneemt.
+ * The notes as `blueprintStore.publishRelease` takes them.
  *
- * Die verlangt een plat OBJECT (`notes JSONB NOT NULL DEFAULT '{}'::jsonb`; een
- * array wordt geweigerd met "Release notes must be an object") en begrenst het
- * geheel op MAX_NOTES_BYTES — 64 KB. De echte vorm van een notitie is de lijst
- * per entiteit, dus die zit hier in een envelop onder `entities`.
+ * That requires a flat OBJECT (`notes JSONB NOT NULL DEFAULT '{}'::jsonb`; an array is refused with "Release notes must be an object") and caps the
+ * whole at MAX_NOTES_BYTES — 64 KB. The real shape of a note is the list per entity, so that sits here in an envelope under `entities`.
  *
- * EN HIJ PAST ALTIJD. Een Oplossing met honderden entiteiten gaat over die 64 KB
- * heen, en dan zou publishRelease gooien — dat is de publicatie tegenhouden
- * vanwege een notitie, precies wat dit onderdeel nooit mag doen. Dus krimpt hij
- * van minst naar meest waardevol:
- *   1. de ZINNEN, want dat is de verrijking; de exacte diff is de kern;
- *   2. de ONGEWIJZIGDE regels, want dat is het minste nieuws;
- *   3. en anders de staart van de lijst.
- * Wat wegviel staat als `omitted` in de envelop, zodat het scherm "n onderdelen
- * staan er niet bij" kan zeggen in plaats van te suggereren dat ze er niet zijn.
+ * AND IT ALWAYS FITS. A Solution with hundreds of entities would exceed those 64 KB, and then publishRelease would throw — that is holding back the
+ * publication on account of a note, precisely what this component must never do. So it shrinks from least to most valuable:
+ *   1. the SENTENCES, because that is the enrichment; the exact diff is the core;
+ *   2. the UNCHANGED lines, because that is the least news;
+ *   3. and otherwise the tail of the list.
+ * What dropped out is recorded as `omitted` in the envelope, so that the screen can say "n parts are not included" instead of suggesting
+ * that they are not there.
  *
- * `maxBytes` heeft dezelfde default als `blueprintStore.MAX_NOTES_BYTES`; de
- * store zelf wordt hier niet aangeroepen, want die opent bij require een pool.
+ * `maxBytes` has the same default as `blueprintStore.MAX_NOTES_BYTES`; the store itself is not called here, because that opens a pool on require.
  */
 function releaseNotesPayload(notes, { maxBytes = MAX_NOTES_ENVELOPE_BYTES } = {}) {
     const rows = (Array.isArray(notes) ? notes : []).filter(n => n && typeof n === 'object');
@@ -600,11 +551,9 @@ function releaseNotesPayload(notes, { maxBytes = MAX_NOTES_ENVELOPE_BYTES } = {}
 }
 
 /**
- * De notes voor één release: de exacte boolean diff, met een zin op de
- * gewijzigde regels waar dat lukte.
+ * The notes for one release: the exact boolean diff, with a sentence on the changed lines where that succeeded.
  *
- * Gooit niet. Valt de tekstlaag in zijn geheel om, dan staan de exacte
- * added/changed/unchanged er nog steeds — publiceren kan altijd doorgaan.
+ * Does not throw. Should the text layer fall over in its entirety, the exact added/changed/unchanged are still there — publishing can always go ahead.
  */
 async function buildReleaseNotes({ previousManifest = null, manifest, language = 'English', userOrgId = null, userId = null, timeoutMs = TIMEOUT_MS, deps = {}, deadlineMs = DEADLINE_MS, now = () => Date.now() } = {}) {
     const notes = diffEntities({ previousManifest, manifest });

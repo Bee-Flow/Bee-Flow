@@ -824,24 +824,22 @@ async function recordFailedDocument({ tenantId, kbId, title, sourceType, sourceU
 }
 
 /**
- * Remove a document's chunks (local kb_chunks + remote search-service) WITHOUT
+ * Remove a document's chunks (local kb_chunks + remote search service) WITHOUT
  * touching the documents row. Refresh-in-place and source-driven cleanups use
  * this; deleteDocumentChunks below adds the row deletion.
  *
- * ── `strict` MAAKT VAN "GEPROBEERD" EEN "GELUKT" ─────────────────────
- * Zonder `strict` werd het antwoord van de search-service nooit gelezen: een
- * 500, een 404 of een time-out kwam als een `console.warn` voorbij en de
- * aanroeper ging vrolijk verder met het weghalen van de documentrij. Voor een
- * herindexering is dat te verdedigen (de chunks worden zo meteen toch
- * vervangen), maar voor een VERWIJDERING is het precies de bug die dit hele
- * pad wil voorkomen: tekst weg van het scherm, embeddings nog doorzoekbaar.
- * `deleteDocumentChunks` zet daarom `strict: true` — dan gooit een niet-ok
- * antwoord, en die fout landt in `errors` van purgeSourceDocuments, wat
- * `complete: false` oplevert en de bronrij laat staan.
+ * ── `strict` TURNS "ATTEMPTED" INTO "SUCCEEDED" ───────────────────
+ * Without `strict` the answer of the search service was never read: a 500, a 404 or a time-out came
+ * past as a `console.warn` and the caller went cheerfully on with removing the document row. For a
+ * re-index that is defensible (the chunks are replaced right afterwards anyway), but for a DELETION
+ * it is precisely the bug that this whole path wants to prevent: text gone from the screen, embeddings
+ * still searchable. `deleteDocumentChunks` therefore sets `strict: true`: then a non-ok answer throws,
+ * and that error lands in `errors` of purgeSourceDocuments, which yields `complete: false` and leaves
+ * the source row in place.
  *
  * @param {object} [opts]
- * @param {boolean} [opts.strict=false] gooi als de remote opruiming niet
- *   aantoonbaar is gelukt, i.p.v. te waarschuwen.
+ * @param {boolean} [opts.strict=false] throw if the remote cleanup is not demonstrably done,
+ *   instead of warning.
  */
 async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false } = {}) {
     // Clean up local kb_chunks (for Azure-path ingested docs)
@@ -866,9 +864,9 @@ async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false } = {
                 headers: getServiceHeaders(),
                 signal: AbortSignal.timeout(10000)
             });
-            // Een 404 is hier "staat er niet meer" en dus klaar; alles daarboven
-            // is een mislukte opruiming. `res` kan bij een oude fetch-double
-            // ontbreken — dan is er niets aantoonbaar en versmalt dat in strict.
+            // A 404 here means "it is no longer there", and so it is done; anything above that
+            // is a failed cleanup. `res` may be missing with an old fetch double. Then nothing is
+            // demonstrable, and that narrows in strict mode.
             if (res && res.ok === false && res.status !== 404) {
                 throw new Error(`search-service returned ${res.status}`);
             }
@@ -1014,9 +1012,9 @@ async function deleteDocumentChunks(kbId, docId, tenantId, { skipSnapshot = fals
     // Refused BEFORE the chunks are purged: the store guard on deleteDocument
     // alone would run after the embeddings are already gone.
     await assertKbDocumentsWrite(kbId, managedWrite);
-    // strict: dit is de verwijdering, niet een herindexering. Lukt de remote
-    // opruiming niet, dan mag de documentrij NIET vallen — anders blijven de
-    // embeddings doorzoekbaar zonder dat er nog een rij is om ze aan te wijzen.
+    // strict: this is the deletion, not a re-index. If the remote cleanup fails, the
+    // document row must NOT fall away, otherwise the embeddings stay searchable without there
+    // being a row left to point them out.
     await purgeDocumentChunks(kbId, docId, tenantId, { strict: true });
     await kbStore.deleteDocument(docId, { skipSnapshot, managedWrite });
     await kbStore.bumpKBVersion(kbId);

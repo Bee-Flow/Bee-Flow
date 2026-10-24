@@ -1,16 +1,16 @@
 /**
- * transcriptionStore — de sjabloonstempel op een notitie.
+ * transcriptionStore — the template stamp on a note.
  *
- * `summary_template_id` + `summary_template_version` zeggen met welk sjabloon
- * en welke versie ervan de samenvatting geschreven is. Wat hier vastligt:
+ * `summary_template_id` + `summary_template_version` say with which template and which
+ * version of it the summary was written. What is fixed here:
  *
- *   1. de twee kolommen komen uit de runDdl-ladder, zonder NOT NULL en zonder
- *      DEFAULT — NULL is de betekenisvolle waarde "niet bekend";
- *   2. ze zijn te schrijven bij INSERT én bij UPDATE, en expliciet te WISSEN
- *      (een eenmalige prompt mag geen oude stempel laten staan);
- *   3. shapeRow geeft ze terug zonder er een versie bij te verzinnen.
+ *   1. the two columns come from the runDdl ladder, without NOT NULL and without
+ *      DEFAULT — NULL is the meaningful value "not known";
+ *   2. they can be written on INSERT and on UPDATE, and explicitly CLEARED (a one-off
+ *      prompt must not leave an old stamp behind);
+ *   3. shapeRow returns them without inventing a version for them.
  *
- * Nep-`db` in require.cache; geen Postgres.
+ * Fake `db` in require.cache; no Postgres.
  *
  * Run: cd server && node --test --test-force-exit stores/transcriptionStore.summaryTemplate.test.js
  */
@@ -18,9 +18,9 @@
 const { test, beforeEach } = require('node:test');
 const assert = require('node:assert');
 
-// `ddl` wordt NOOIT geleegd: de boot-DDL draait bij module-load en zou anders
-// door de eerste beforeEach weggegooid kunnen zijn — een test die dan groen is
-// omdat hij niets vindt, is geen test.
+// `ddl` is NEVER emptied: the boot DDL runs at module load and could otherwise have been
+// thrown away by the first beforeEach — a test that is green because it finds nothing is
+// not a test.
 const state = { calls: [], ddl: [], runResult: { rowCount: 1, rows: [] }, oneRow: null, allRows: [] };
 
 const dbPath = require.resolve('../db');
@@ -102,9 +102,9 @@ test('updateTranscription schrijft de stempel', async () => {
 });
 
 test('updateTranscription WIST de stempel op null — een eenmalige prompt laat geen oude naam staan', async () => {
-    // Dit is het verschil tussen "niet meegestuurd" en "expliciet leeg". Zou
-    // null als "niets doen" gelezen worden, dan bleef er na een eenmalige
-    // prompt een sjabloonnaam staan bij tekst die dat sjabloon nooit maakte.
+    // This is the difference between "not sent" and "explicitly empty". If null were read as
+    // "do nothing", then after a one-off prompt a template name would remain on text that
+    // template never produced.
     await store.updateTranscription('t-1', 'u1', { summaryTemplateId: null, summaryTemplateVersion: null });
     const upd = lastOfKind(/UPDATE transcriptions SET/);
     assert.match(upd.sql, /summary_template_id = \$\d+/, 'de kolom wordt echt geschreven');

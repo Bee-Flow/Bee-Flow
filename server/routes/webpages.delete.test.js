@@ -1,28 +1,24 @@
 /**
- * routes/webpages — de verwijderpoort (W5 deel C).
+ * routes/webpages — the delete gate (W5 part C).
  *
- * Drie uitkomsten, en ze moeten uit elkaar blijven:
+ * Three outcomes, and they must stay apart:
  *
- *   GEBLOKKEERD DOOR GEBRUIK        er is iets gevonden → 409 met de lijst.
- *   GEBLOKKEERD DOOR ONLEESBAARHEID er is NIETS gevonden en ook niets
- *                                   uitgesloten → óók 409, maar met een lege
- *                                   lijst en gevulde `unchecked`. Dit is de
- *                                   stand die het makkelijkst stilletjes
- *                                   verdwijnt: een lege `usage` zonder
- *                                   `unchecked` leest als "niets gebruikt dit"
- *                                   en dat is precies de zin waarop iemand
- *                                   doorklikt.
- *   VRIJ                            gecontroleerd én leeg → de verwijdering
- *                                   loopt door, inclusief de purge van de
- *                                   usage-index.
+ *   BLOCKED BY USE                 something was found → 409 with the list.
+ *   BLOCKED BY UNREADABILITY       nothing was found AND nothing was ruled out → ALSO 409,
+ *                                  but with an empty list and `unchecked` filled. This is
+ *                                  the state that most easily vanishes silently: an empty
+ *                                  `usage` without `unchecked` reads as "nothing uses this",
+ *                                  and that is exactly the sentence someone clicks through.
+ *   FREE                           checked AND empty → the deletion goes ahead, including the
+ *                                  purge of the usage index.
  *
- * Plus de ontsnappingsklep: `?confirm=1` is een BEVESTIGDE tweede aanroep en
- * moet de scan overslaan — niet stilletjes nóg een keer draaien.
+ * Plus the escape hatch: `?confirm=1` is a CONFIRMED second call and must skip the scan —
+ * not silently run it a second time.
  *
- * Geen database: auth is gestubd vóór de router laadt en elke store-aanraking
- * is gemonkeypatcht — hetzelfde patroon als routes/webpages.publish.test.js.
+ * No database: auth is stubbed before the router loads and every store touch is
+ * monkeypatched — the same pattern as routes/webpages.publish.test.js.
  *
- * Draaien: cd server && node --test --test-reporter=tap routes/webpages.delete.test.js
+ * Run: cd server && node --test --test-reporter=tap routes/webpages.delete.test.js
  */
 
 const test = require('node:test');
@@ -74,7 +70,7 @@ async function withServer(t, fn) {
     return fn(`http://127.0.0.1:${server.address().port}`);
 }
 
-/** De stores die het verwijderpad aanraakt, met een boekhouding van wat er gebeurde. */
+/** The stores that the delete path touches, with a ledger of what happened. */
 function storePatches(calls, over = {}) {
     return [
         [webpageStore, 'getWebpage', async (id, userId) => (userId === PAGE.userId ? { ...PAGE } : null)],

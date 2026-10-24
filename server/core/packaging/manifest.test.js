@@ -313,17 +313,16 @@ test('the caller\'s own object is never mutated by the check', () => {
 });
 
 
-// ═══ `source`: waar het bestand zegt vandaan te komen ═════════
+// ═══ `source`: where the file says it comes from ═════════
 //
-// EEN BEWERING, GEEN AUTORISATIE. Dit blok reist in een bestand dat iedereen
-// met een teksteditor kan wijzigen, dus de vraag hier is niet of het klopt maar
-// of het GENORMALISEERD is: elke lezer voorbij `sanitizeManifest` hoort vier
-// velden te zien — string of null — en niet wat het bestand ook maar meestuurde.
-// Wat er met de bewering GEBEURT staat in install.test.js.
+// A CLAIM, NOT AUTHORIZATION. This block travels in a file that anyone
+// with a text editor can change, so the question here is not whether it is true but
+// whether it is NORMALIZED: every reader past `sanitizeManifest` should see four
+// fields — string or null — and not whatever the file also sent. What HAPPENS with the claim is in install.test.js.
 
 test('een manifest draagt altijd een herkomstblok, ook als niemand er een gaf', () => {
-    // Vier velden op null in plaats van een ontbrekende sleutel: een lezer hoeft
-    // dan nooit te raden tussen "geen bron" en "oud bestand".
+    // Four fields on null instead of a missing key: a reader then never has to
+    // guess between "no source" and "old file".
     const m = buildManifest({ project: { id: 'p1' } });
     assert.deepStrictEqual(m.source, { blueprintId: null, orgId: null, orgName: null, version: null });
 });
@@ -337,12 +336,12 @@ test('een gestempeld herkomstblok reist mee', () => {
 });
 
 test('readSource maakt van alles wat geen string is een null', () => {
-    // Zoals een handgemaakt bestand het zou kunnen aanleveren.
+    // As a hand-made file might deliver it.
     assert.deepStrictEqual(
         readSource({ source: { blueprintId: { $ref: 'aut_1' }, orgId: ['org1'], orgName: 42, version: 'drie' } }),
         { blueprintId: null, orgId: null, orgName: null, version: null },
     );
-    // En de randen: geen blok, een array als blok, helemaal geen manifest.
+    // And the edges: no block, an array as block, no manifest at all.
     for (const input of [{}, { source: [] }, { source: 'org1' }, null, 'nope']) {
         assert.deepStrictEqual(readSource(input),
             { blueprintId: null, orgId: null, orgName: null, version: null });
@@ -363,8 +362,8 @@ test('readSource begrenst wat een bestand mag beweren', () => {
 });
 
 test('de check normaliseert het herkomstblok, en weigert er niet op', () => {
-    // Een onzinnige bewering is geen reden om een verder geldige Blueprint niet
-    // te installeren — zij geeft toch geen enkel recht.
+    // A nonsensical claim is no reason not to install an otherwise valid
+    // Blueprint — it grants no right in any case.
     const raw = buildManifest({ project: { id: 'p1' } });
     raw.source = { blueprintId: 'bp_abc', orgName: { toString: () => 'Acme' }, extra: 'smokkelwaar' };
     const checked = sanitizeManifest(raw);
@@ -376,8 +375,8 @@ test('de check normaliseert het herkomstblok, en weigert er niet op', () => {
 });
 
 test('de check laat het herkomstblok van de aanroeper met rust', () => {
-    // Zelfde belofte als bij de gestripte sleutels: wie het bestand ook nog
-    // vasthoudt, houdt wat hij gelezen heeft.
+    // Same promise as with the stripped keys: whoever still holds the file
+    // keeps what he read.
     const original = buildManifest({ project: { id: 'p1' } });
     original.source = { blueprintId: 'bp_abc', orgName: 12345 };
     sanitizeManifest(original);

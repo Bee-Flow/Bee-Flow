@@ -29,18 +29,11 @@ const MonacoEditor = lazy((): Promise<{ default: ComponentType<MonacoProps> }> =
 );
 
 /**
- * Regelmarkeringen aan- en bijzetten.
+ * Apply and re-apply line markers.
  *
- * Geeft de toepasser TERUG in plaats van alleen op een effect te leunen. Monaco
- * wordt lui geladen, dus de decoraties zijn er meestal eerder dan de editor;
- * `onMount` roept deze functie daarom zelf aan zodra de editor bestaat. Dat
- * scheelt een stukje state en daarmee een extra render — en de eerste versie
- * mét die state liep in de test meteen tegen "Maximum update depth exceeded"
- * aan zodra `onMount` vaker dan één keer kwam.
+ * Returns the applier BACK instead of relying only on an effect. Monaco is loaded lazily, so the decorations are usually there earlier than the editor; `onMount` therefore calls this function itself as soon as the editor exists. That saves a bit of state, and with it an extra render — and the first version with that state ran in the test straight into "Maximum update depth exceeded" as soon as `onMount` came more than once.
  *
- * Alles in een try: een Monaco zonder deze API mag hoogstens de markeringen
- * kosten, nooit de editor zelf — de auteur moet kunnen blijven typen, ook als
- * er niets te tinten valt.
+ * All in a try: a Monaco without this API may cost at most the markers, never the editor itself — the author must be able to keep typing, even when there is nothing to shade.
  */
 function useDecorations(
     editorRef: React.RefObject<MonacoNs.IStandaloneCodeEditor | null>,
@@ -52,8 +45,8 @@ function useDecorations(
     const apply = useCallback((fresh = false) => {
         const editor = editorRef.current;
         if (!editor || monacoFailed) return;
-        // Een nieuwe editor betekent een nieuwe verzameling: de oude hoorde bij
-        // een instantie die niet meer bestaat.
+        // A new editor means a new collection: the old one belonged to an instance that
+        // no longer exists.
         if (fresh) collectionRef.current = null;
         const items = Array.isArray(decorations) ? decorations : [];
         try {
@@ -87,15 +80,9 @@ interface WebpageEditorProps {
 }
 
 /**
- * Generic Monaco editor for any text file in the webpage project. Caller
- * resolves the file → value + language; the editor doesn't know about
- * primary slots vs extras.
+ * Generic Monaco editor for any text file in the webpage project. Caller resolves the file → value + language; the editor doesn't know about primary slots vs extras.
  *
- * `decorations` zijn KANT-EN-KLARE Monaco-decoraties (`{ range, options }`).
- * Deze editor weet met opzet niets van `bf-*`: wat er gemarkeerd wordt, komt
- * van de server (`core/webpages/webpageBindings.js`) en wordt door
- * `WebpageCodeStrip.fileDecorations` in deze vorm gebracht. Zo hoeft hier geen
- * tweede lezing van het vocabulaire te bestaan.
+ * `decorations` are READY-MADE Monaco decorations (`{ range, options }`). This editor deliberately knows nothing of `bf-*`: what is marked comes from the server (`core/webpages/webpageBindings.js`) and is brought into this form by `WebpageCodeStrip.fileDecorations`. So there need not be a second reading of the vocabulary here.
  */
 export default function WebpageEditor({
     value = '',

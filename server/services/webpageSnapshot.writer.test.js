@@ -1,29 +1,28 @@
 /**
- * services/webpageSnapshot.writeSnapshot — is de uitklappass ook ECHT AANGESLOTEN?
+ * services/webpageSnapshot.writeSnapshot — is the expansion pass ACTUALLY WIRED IN?
  *
- * ── WAAROM DEZE TEST NAAST webpageSnapshot.bfelements.test.js STAAT ──
+ * ── WHY THIS TEST SITS NEXT TO webpageSnapshot.bfelements.test.js ──
  *
- * Die buurtest bewijst dat de uitklapper werkt: hij roept `expandBfElements` en
- * `sanitizeHtml` met de hand achter elkaar aan. Wat hij NIET kan bewijzen is dat
- * `writeSnapshot` die twee ook werkelijk in die volgorde aanroept — en dat is
- * precies wat er misging: je kon de enige aanroep (`const expanded = await
- * expandBfElements(...)`) vervangen door `const expanded = html;` en alle 15
- * tests bleven groen, plus de reactshare-tests, plus de drifttest. Alles bewees
- * dat de uitklapper werkt; niets bewees dat hij gebruikt wordt.
+ * That neighbour test proves that the expander works: it calls `expandBfElements` and
+ * `sanitizeHtml` by hand, one after the other. What it CANNOT prove is that
+ * `writeSnapshot` actually calls those two in that order — and that is
+ * precisely what went wrong: you could replace the only call (`const expanded = await
+ * expandBfElements(...)`) with `const expanded = html;` and all 15
+ * tests stayed green, plus the reactshare tests, plus the drift test. Everything proved
+ * that the expander works; nothing proved that it is used.
  *
- * Deze test gaat daarom door de ECHTE writer heen en kijkt naar de BYTES die de
- * opslag in gaan — dezelfde bytes die publicViewer.js aan een anonieme bezoeker
- * serveert.
+ * This test therefore goes through the REAL writer and looks at the BYTES that go
+ * into storage — the same bytes that publicViewer.js serves to an anonymous visitor.
  *
- * ── EN OOK DE EXTRA BESTANDEN ───────────────────────────────────────
+ * ── AND THE EXTRA FILES TOO ─────────────────────────────────────────
  *
- * Een multi-file vanilla-pagina bestaat uit meer dan `index.html`. `about.html`
- * ging alleen door DOMPurify, en die pakt een onbekend element ZWIJGEND uit: van
- * `<bf-form automation="a1"><input name="email"></bf-form>` bleef een levend
- * ogend invoerveld over zonder ontvanger. Dat is de AVG-kant hiervan: gegevens
- * vragen op een publieke pagina waar niemand ze ophaalt.
+ * A multi-file vanilla page consists of more than `index.html`. `about.html`
+ * went only through DOMPurify, and that unwraps an unknown element SILENTLY: from
+ * `<bf-form automation="a1"><input name="email"></bf-form>` a live-looking
+ * input field remained, with no recipient. That is the GDPR side of this: asking for data
+ * on a public page where nobody collects it.
  *
- * Draaien: cd server && node --test --test-force-exit services/webpageSnapshot.writer.test.js
+ * Run: cd server && node --test --test-force-exit services/webpageSnapshot.writer.test.js
  */
 
 const test = require('node:test');
@@ -123,9 +122,9 @@ test('het html-slot gaat ECHT door de uitklappass, niet alleen door de sanitizer
 });
 
 test('BIJT — zonder de uitklappass blijft er van dezelfde knop alleen het woord over', async () => {
-    // Negatieve controle op wat de sanitizer alléén doet. Zonder de pass hierboven
-    // is dit wat een bezoeker te zien kreeg: het kale label, geen tag, geen
-    // attributen, geen waarschuwing.
+    // Negative control on what the sanitiser does ALONE. Without the pass above
+    // this is what a visitor got to see: the bare label, no tag, no
+    // attributes, no warning.
     const bare = webpageSnapshot.sanitizeHtml(`<${BUTTON.tag} run="a1">Send</${BUTTON.tag}>`);
     assert.strictEqual(bare.trim(), 'Send');
     assert.ok(!bare.includes(BUTTON.surfaces.vanillaSnapshot.notice));
@@ -158,8 +157,8 @@ test('een extra bestand dat geen HTML is blijft ongemoeid', async () => {
         html: '<html><body></body></html>',
         extras: [{ path: 'notes.md', isText: true, mimeType: 'text/markdown', text: '# hoi\n<bf-table source="x">' }],
     });
-    // Markdown wordt niet gesanitized en dus ook niet uitgeklapt: het wordt
-    // getoond om te LEZEN, niet uitgevoerd. Ongemoeid laten is hier eerlijk.
+    // Markdown is not sanitised and therefore not expanded either: it is
+    // shown to be READ, not executed. Leaving it alone is honest here.
     assert.ok(out.extra('notes.md').includes('<bf-table source="x">'));
 });
 

@@ -237,13 +237,13 @@ export default function RunsStudio({
                 ultrawide screen the heading, the strip and the table line up. */}
             <div className="flex-shrink-0 w-full mx-auto max-w-[110rem] px-4 pt-5 pb-4 space-y-3">
                 <RunsHeader t={t} scope={scope} setScope={setScope} error={facetsError} />
-                {/* Openen alleen in de eigen scope. In de org-scope zijn dit de
-                    automatiseringen van collega's, en GET /api/automation/:id weigert die
-                    met 403 — de strook bood dus een knop aan die de server niet
-                    inwilligt. De facets dragen geen eigendom, dus per rij beslissen
-                    kan hier niet; de scope is het enige eerlijke onderscheid dat
-                    dit scherm heeft. Het staat ook al zo in de scope-uitleg:
-                    alleen wie een run startte kan hem openen. */}
+                {/* Open only in your own scope. In the org scope these are the automations of
+                    colleagues, and GET /api/automation/:id refuses those with 403 — the
+                    strip thus offered a button that the server does not honour. The
+                    facets carry no ownership, so deciding per row is not possible here;
+                    the scope is the only honest distinction this screen has. It is also
+                    already stated that way in the scope explanation: only whoever started
+                    a run can open it. */}
                 <NowRunningStrip
                     facets={facets}
                     loading={facetsLoading}

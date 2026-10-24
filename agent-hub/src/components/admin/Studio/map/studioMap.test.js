@@ -10,25 +10,24 @@ import {
 } from './studioMap';
 
 /**
- * De kaart is HANDGELEGD. Dat is een bewuste keuze (zie de kop van
- * studioMap.js) en ze heeft één prijs: de plaat weet niet dat het product is
- * gegroeid. Deze test is die verdediging. De eerste beschrijving hieronder is
- * de belangrijkste van het hele bestand — zonder haar wordt de kaart op een
- * dag stilletjes onvolledig, en dat is precies de fout die niemand meldt
- * omdat er niets kapot gaat.
+ * The map is HAND-DRAWN. That is a deliberate choice (see the header of studioMap.js)
+ * and it has one price: the plate does not know that the product has grown. This test
+ * is that defence. The first description below is the most important of the whole
+ * file — without it the map becomes incomplete one day without anyone noticing, and
+ * that is precisely the error no one reports because nothing breaks.
  */
 
 describe('de kaart tegen het register', () => {
     it('tekent exact de soorten die kindColors kent — geen meer, geen minder', () => {
-        // Beide richtingen, want ze falen om verschillende redenen:
-        //   ontbreekt  → er is een elfde bouwsteen bij gekomen en die staat
-        //                nergens op de plaat: herleg de kaart (coördinaten in
-        //                MAP_BLOCKS, en kijk of de laanband nog past).
-        //   te veel    → het register kent deze soort niet meer; haal hem van
-        //                de kaart, inclusief zijn randen.
-        // KINDS_OFF_MAP is de enige ontsnapping, en ze is met reden opgeschreven
-        // in studioMap.js. Een soort die daar NIET in staat en hier ontbreekt,
-        // is gewoon vergeten.
+        // Both directions, because they fail for different reasons:
+        //   missing    → an eleventh building block has been added and is nowhere on
+        //                the plate: redraw the map (coordinates in MAP_BLOCKS, and
+        //                check whether the lane band still fits).
+        //   too many   → the register no longer knows this kind; remove it from the
+        //                map, including its edges.
+        // KINDS_OFF_MAP is the only escape, and it is written down with its reason in
+        // studioMap.js. A kind that is NOT in there and is missing here is simply
+        // forgotten.
         const inMap = [...MAP_KINDS].sort();
         const inRegister = [...KIND_KEYS].filter((k) => !KINDS_OFF_MAP.includes(k)).sort();
         const missing = inRegister.filter((k) => !inMap.includes(k));
@@ -40,7 +39,7 @@ describe('de kaart tegen het register', () => {
     it('tekent elke soort precies één keer', () => {
         expect(new Set(MAP_KINDS).size).toBe(MAP_KINDS.length);
         expect(MAP_BLOCKS).toHaveLength(KIND_KEYS.length - KINDS_OFF_MAP.length);
-        // Een vrijstelling die naar niets meer wijst is een vergeten opruiming.
+        // An exemption that points to nothing any more is a forgotten clean-up.
         for (const k of KINDS_OFF_MAP) expect(KIND_KEYS).toContain(k);
     });
 
@@ -54,9 +53,8 @@ describe('de kaart tegen het register', () => {
     });
 
     it('legt elke bouwsteen in de laan waar het register hem onder hangt', () => {
-        // Zo kan een tegel niet onder "Bouwen" blijven liggen nadat de sectie
-        // naar "AI" is verhuisd — de plaat en de rail zouden dan een ander
-        // verhaal vertellen over hetzelfde ding.
+        // So a tile cannot stay under “Build” after the section has moved to “AI” — the
+        // plate and the rail would then tell a different story about the same thing.
         for (const block of MAP_BLOCKS) {
             expect(block.lane, `laan van '${block.kind}'`).toBe(blockMeta(block.kind).category);
         }
@@ -100,11 +98,10 @@ describe('de twaalf randen', () => {
     });
 
     it('dragen hun sleutel in de huisvorm, zodat de i18n-guard ze ziet', () => {
-        // `labelKey` + `labelFallback` is de vorm die src/i18n/i18nGuard.test.js
-        // als DRAGER herkent (CARRIERS). Een eigen naam als `sentenceKey` zou
-        // werken en toch onzichtbaar zijn voor de guard: elf sleutels die
-        // niemand ooit mist. Dat is precies de stille schuld die dat bestand
-        // bestaat om te voorkomen.
+        // `labelKey` + `labelFallback` is the shape that src/i18n/i18nGuard.test.js
+        // recognises as a CARRIER (CARRIERS). An own name such as `sentenceKey` would work
+        // and yet be invisible to the guard: eleven keys that nobody ever misses. That is
+        // precisely the silent debt that this file exists to prevent.
         for (const [verb, label] of Object.entries(VERB_LABEL)) {
             expect(label.labelKey, verb).toBe(`studio.map.verb_${verb}`);
             expect(typeof label.labelFallback, verb).toBe('string');
@@ -162,9 +159,9 @@ describe('de meetkunde', () => {
     });
 
     it('stuurt de app→tabel-rand om de automatisering heen, langs de opgegeven knikken', () => {
-        // De enige rand met een handgelegde omweg: onderlangs, dan door de
-        // gang tussen kolom b en c omhoog. Als een van die knikken wegvalt
-        // loopt de lijn dwars door de automation-tegel.
+        // The only edge with a hand-drawn detour: along the bottom, then up through the
+        // passage between column b and c. If one of those kinks drops out, the line runs
+        // straight through the automation tile.
         const d = edgeGeometry(MAP_EDGES.find((e) => e.id === 'app-uses-datatable')).d;
         expect(d).toContain('224');
         expect(d).toContain('459');
@@ -172,11 +169,10 @@ describe('de meetkunde', () => {
     });
 
     it('laat geen enkele rand dwars door een vreemde doos lopen', () => {
-        // De enige fout die een HANDGELEGDE kaart echt maakt: een lijn die over
-        // een tegel heen loopt. Geen enkele assertie op ids vangt dat, dus dit
-        // rekent het pad na. Bemonsterd, niet exact: een bezier heeft geen
-        // gesloten snijpuntformule tegen een rechthoek, en 60 punten over een
-        // pad van hooguit 400px is elke 7px een controle.
+        // The only error that a HAND-DRAWN map really makes: a line that runs over a tile.
+        // No assertion on ids catches that, so this computes the path. Sampled, not exact:
+        // a bezier has no closed intersection formula against a rectangle, and 60 points
+        // over a path of at most 400px means a check every 7px.
         const samples = (d) => {
             const nums = d.match(/-?\d+(?:\.\d+)?/g).map(Number);
             const pts = [];
@@ -192,8 +188,8 @@ describe('de meetkunde', () => {
                     };
                 });
             }
-            // Een omweg: recht van hoekpunt naar hoekpunt (de afronding ligt
-            // binnen 8px van de hoek, dus dit is de route zelf).
+            // A detour: straight from corner point to corner point (the rounding lies within
+            // 8px of the corner, so this is the route itself).
             const out = [];
             for (let i = 1; i < pts.length; i += 1) {
                 for (let k = 0; k <= 20; k += 1) {

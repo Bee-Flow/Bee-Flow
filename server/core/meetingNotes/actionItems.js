@@ -235,17 +235,16 @@ function shapeActionItem(raw, { strict = false, index = 0 } = {}) {
         done: raw.done === true || raw.done === 'true',
     };
 
-    // Wat het MODEL zelf schreef (M4). Zie de kop boven `hasHumanInput`: dit is
-    // het ijkpunt waartegen "iemand heeft de tekst overgetypt" wordt gemeten.
-    // Het wordt ook bewaard als het gelijk is aan `text` — juist dan, want
-    // anders is er bij de VOLGENDE correctie niets meer om tegen af te zetten
-    // (de webclient stuurt de hele lijst terug bij elke toggle).
+    // What the MODEL itself wrote (M4). See the header above `hasHumanInput`: this is
+    // the reference point against which "someone retyped the text" is measured.
+    // It is also kept when it equals `text`, precisely then, because otherwise there is nothing
+    // left to measure against at the NEXT correction (the web client sends the whole list back
+    // with every toggle).
     const aiText = text(raw.aiText, MAX_TEXT);
     if (aiText) out.aiText = aiText;
-    // Het punt stond in de vorige pass, de nieuwe levert het niet meer op, en
-    // het is bewaard omdat een mens eraan had gezeten. De vlag reist mee zodat
-    // een toggle de melding op het scherm niet wist; de merge zet hem opnieuw
-    // (of laat hem weg zodra het punt wél weer gematcht wordt).
+    // The point stood in the previous pass, the new one does not yield it, and it is kept because
+    // a person had worked on it. The flag travels along so that a toggle does not erase the notice
+    // on screen; the merge sets it again (or drops it as soon as the point is matched again).
     if (raw.orphaned === true || raw.orphaned === 'true') out.orphaned = true;
 
     const assignee = text(raw.assignee, MAX_ASSIGNEE);
@@ -365,139 +364,116 @@ function normalizeNotes(raw, field) {
 /**
  * Re-extraction replaces the AI's items and NOTHING ELSE.
  *
- * `existing` is what the note holds now, `fresh` is what the extractor just
- * produced. Everything a person put there themselves is carried over, in front
- * of the new list, with its done-state, its destination and its due date
- * intact. This is the whole point of M3: a user who adds an action and then
- * presses "Opnieuw" must still have it afterwards.
+ * `existing` is what the note holds now, `fresh` is what the extractor just produced. Everything a
+ * person put there themselves is carried over, in front of the new list, with its done-state, its
+ * destination and its due date intact. This is the whole point of M3: a user who adds an action and
+ * then presses "Regenerate" must still have it afterwards.
  *
  * ── WHAT COUNTS AS "A PERSON PUT IT THERE" ──────────────────────────
  *
- * `source: 'user'` is the obvious half, and on its own it protected almost
- * nothing: nothing in the product CREATES such an item yet (that is M4), while
- * everything a person does today — giving an action a destination — happens on
- * an item the model extracted, which keeps `source: 'ai'`. The rule read well
- * and guarded an empty set, and the one act that leaves a trace outside this
- * note was the act it dropped.
+ * `source: 'user'` is the obvious half, and on its own it protected almost nothing: nothing in the
+ * product CREATES such an item yet (that is M4), while everything a person does today, giving an action
+ * a destination, happens on an item the model extracted, which keeps `source: 'ai'`. The rule read well
+ * and guarded an empty set, and the one act that leaves a trace outside this note was the act it dropped.
  *
- * So a DESTINATION also makes an item a person's. It is not a preference: it
- * is the receipt for something that already happened — an automation that ran, a
- * row that was written, a source that was filed. Re-running the extractor
- * cannot undo any of those, so throwing the reference away does not remove the
+ * So a DESTINATION also makes an item a person's. It is not a preference: it is the receipt for something
+ * that already happened, an automation that ran, a row that was written, a source that was filed.
+ * Re-running the extractor cannot undo any of those, so throwing the reference away does not remove the
  * effect, it only removes the record of it.
  *
- * ── EN WAT `done` EN EEN OVERGETYPTE TEKST TELLEN (M4) ──────────────
- * M3 liet die vraag hier expliciet open. Het antwoord is: allebei zijn ze een
- * handeling van een mens, en menselijke invoer wint van hergeneratie.
- *   - Afvinken kan alleen een mens; de extractor zet altijd `done: false`.
- *     Een punt afvinken is bovendien, net als een bestemming, het verslag van
- *     iets dat AL gebeurd is — nog een keer extraheren maakt het niet ongedaan.
- *   - Een tekst die afwijkt van wat het model schreef (`aiText`) is door een
- *     mens overgetypt. Teruggezet worden naar de AI-versie maakt de correctie
- *     ongedaan, zonder undo en zonder melding.
- * Zie `hasHumanInput` en `anchorKey` hieronder voor het bewijs en de sleutel.
+ * ── AND WHAT `done` AND AN OVERTYPED TEXT COUNT (M4) ────────────────
+ * M3 left that question explicitly open. The answer is: both are acts of a human, and human input beats regeneration.
+ *   - Ticking can only be done by a human; the extractor always sets `done: false`.
+ *     Ticking a point is moreover, just like a destination, the report of something that
+ *     ALREADY happened: extracting again does not undo it.
+ *   - A text that deviates from what the model wrote (`aiText`) has been retyped by a human. Being
+ *     reset to the AI version undoes the correction, without undo and without a notice.
+ * See `hasHumanInput` and `anchorKey` below for the proof and the key.
  *
- * `transcriptChanged` is for /reprocess, which re-transcribes the audio: the
- * surviving items keep their text but lose their anchors into a transcript that
- * no longer exists, because a `segmentIndex` pointing at a line that has moved
- * is worse than none (it would highlight, and seek to, the wrong sentence).
+ * `transcriptChanged` is for /reprocess, which re-transcribes the audio: the surviving items keep their
+ * text but lose their anchors into a transcript that no longer exists, because a `segmentIndex` pointing
+ * at a line that has moved is worse than none (it would highlight, and seek to, the wrong sentence).
  */
 function isPersonsItem(item) {
     return item.source === 'user' || !!item.destination;
 }
 
 /**
- * Heeft een mens de TEKST van dit AI-punt overgetypt?
+ * Has a person retyped the TEXT of this AI point?
  *
- * `aiText` is de tekst die het model zelf schreef (gezet door de extractor en
- * door de merge hieronder). De twee edit-paden in de client raken hem niet
- * aan — de checkbox schrijft `done`, de inline-editor `text` — dus wijkt
- * `text` ervan af, dan is dat een correctie van een mens.
+ * `aiText` is the text that the model itself wrote (set by the extractor and by the merge below).
+ * The two edit paths in the client do not touch it: the checkbox writes `done`, the inline editor
+ * writes `text`. So if `text` deviates from it, that is a correction by a human.
  *
- * GEEN `aiText` is GEEN bewijs, en dan geldt de gewone regel: het punt is van
- * het model en wordt vervangen. Dat is niet "fail open" maar precies de kant
- * die dit bestand al kiest voor rijen zonder `source` ("a legacy AI item is
- * still replaced, not duplicated" — anders groeit de lijst bij elke
- * regeneratie, en een bevroren rij die nooit meer ververst is óók verlies.
- * Zonder aiText is er niets waaraan je "gecorrigeerd" van "het model zei het
- * deze keer anders" kunt onderscheiden). De prijs is scherp begrensd: alleen
- * correcties die zijn gemaakt vóórdat de extractor `aiText` ging stempelen
- * missen dit bewijs; elke correctie daarna draagt het.
+ * NO `aiText` is NO evidence, and then the ordinary rule applies: the point belongs to the model and
+ * is replaced. That is not "fail open" but precisely the side that this file already chooses for rows
+ * without `source` ("a legacy AI item is still replaced, not duplicated": otherwise the list grows with
+ * every regeneration, and a frozen row that is never refreshed again is loss as well). Without aiText
+ * there is nothing by which you can tell "corrected" from "the model phrased it differently this time".
+ * The price is tightly bounded: only corrections that were made before the extractor started stamping
+ * `aiText` lack this evidence; every correction after that carries it.
  */
 function textWasRetyped(item) {
     return typeof item.aiText === 'string' && !!item.aiText && item.aiText !== item.text;
 }
 
-/** Wat een mens aan een AI-punt gedaan heeft, en wat hergeneratie dus niet mag wissen. */
+/** What a person has done to an AI point, and which regeneration must therefore not wipe. */
 function hasHumanInput(item) {
     return item.done === true || textWasRetyped(item);
 }
 
 /**
- * ── DE SLEUTEL: WAARAAN HERKEN JE HETZELFDE PUNT? ───────────────────
+ * ── THE KEY: HOW DO YOU RECOGNISE THE SAME POINT? ───────────────────
  *
- * Een hergeneratie levert een compleet nieuwe lijst op. Om te weten wélk vers
- * punt hetzelfde punt is als een opgeslagen punt, is een sleutel nodig — en
- * de twee voor de hand liggende kandidaten deugen allebei niet:
+ * A regeneration yields a completely new list. To know which fresh point is the same point as a stored
+ * point, a key is needed, and the two obvious candidates are both no good:
  *
- *   NIET DE ID. De extractor munt `ai-<n>` per index, dus de id is de POSITIE
- *   in de uitvoer van déze pass. Laat het model één punt weg en alles schuift
- *   op: `ai-3` is dan een ánder punt dan `ai-3` van de vorige keer. Vergelijken
- *   op id verplaatst een vinkje stilletjes naar een actie die niemand afvinkte.
+ *   NOT THE ID. The extractor mints `ai-<n>` per index, so the id is the POSITION in the output of THIS
+ *   pass. If the model leaves out one point, everything shifts: `ai-3` is then a DIFFERENT point from
+ *   the `ai-3` of last time. Comparing on id moves a tick silently to an action that nobody ticked.
  *
- *   NIET DE TEKST. De tekst is juist het veld dat een mens kan hebben
- *   overgetypt; erop matchen herkent alleen de punten waar niemand aan zat.
+ *   NOT THE TEXT. The text is precisely the field that a person may have retyped; matching on it recognises
+ *   only the points that nobody worked on.
  *
- * Wat beide passes WEL delen is het transcript. `POST /:id/regenerate-summary`
- * hertranscribeert niet — het draait de extractor opnieuw over exact dezelfde
- * `transcription.transcript`. Daarom is het anker in dat transcript de sleutel:
+ * What both passes DO share is the transcript. `POST /:id/regenerate-summary` does not re-transcribe: it runs
+ * the extractor again over exactly the same `transcription.transcript`. That is why the anchor in that
+ * transcript is the key:
  *
- *   timestamp  door het model letterlijk overgenomen van de regel waar het
- *              besproken werd, en daarna geverifieerd tegen de klokjes van het
- *              transcript zelf (`sanitizeTimestamp` / `extractTranscriptClocks`
- *              in summaryHelpers.js). Wat overleeft is dus een échte regel van
- *              deze vergadering, niet een verzinsel van deze pass.
- *   assignee   de verantwoordelijke uit datzelfde gesprek.
+ *   timestamp  taken literally by the model from the line where it was discussed, and then verified against
+ *              the clocks of the transcript itself (`sanitizeTimestamp` / `extractTranscriptClocks` in
+ *              summaryHelpers.js). What survives is therefore a real line of this meeting, not an invention of this pass.
+ *   assignee   the person responsible, from that same conversation.
  *
- * Samen zeggen ze "de actie voor deze persoon, besproken op dit moment" — een
- * eigenschap van de VERGADERING, niet van een extractieronde. En geen van
- * beide is bereikbaar vanuit de twee handelingen die de sleutel moet
- * overleven: afvinken schrijft `done`, de inline-editor schrijft `text`.
+ * Together they say "the action for this person, discussed at this moment": a property of the MEETING, not
+ * of an extraction round. And neither of the two is reachable from the two acts that the key must survive:
+ * ticking writes `done`, the inline editor writes `text`.
  *
- * ── GEEN STEMPEL IS GEEN ANKER ──────────────────────────────────────
- * De stempel is de HELE inhoud van de sleutel; `assignee` valt terug op de
- * CONSTANTE "Niet toegewezen"/"Unassigned" (summaryHelpers.js vraagt er in de
- * prompt zelfs expliciet om) en onderscheidt dus niets zodra niemand genoemd
- * is. En `sanitizeTimestamp` geeft '' terug voor elke stempel die niet te
- * parsen is of voorbij het einde van de vergadering ligt. Zonder deze regel
- * kregen alle punten zonder bruikbare stempel en zonder eigenaar LETTERLIJK
- * DEZELFDE sleutel, viel de hele lijst in één emmer en matchte hij op
- * volgorde — exact de `ai-<n>`-val die de kop hierboven zegt te vermijden.
- * Bewezen: een lijst waarvan de verse pass het eerste punt weglaat verhuisde
- * het vinkje naar de actie eronder, en een overgetypte tekst belandde op een
- * volstrekt andere actie.
+ * ── NO STAMP IS NO ANCHOR ───────────────────────────────────────────
+ * The stamp is the WHOLE content of the key; `assignee` falls back to the CONSTANT "Unassigned" (summaryHelpers.js
+ * even asks for it explicitly in the prompt), so it distinguishes nothing as soon as nobody is named.
+ * And `sanitizeTimestamp` returns '' for every stamp that cannot be parsed or lies beyond the end of the
+ * meeting. Without this rule, all points without a usable stamp and without a named owner got LITERALLY THE
+ * SAME key, the whole list fell into one bucket, and the merge matched on ORDER: exactly the `ai-<n>` trap
+ * that the header above says to avoid. Proven: a list whose fresh pass left out the first point moved the tick
+ * to the action beneath it, and a retyped text landed on a completely different action.
  *
- * Daarom: geen stempel → `null` → geen sleutel → geen match. Zo'n punt wordt
- * een WEES (bewaard, gemarkeerd, zichtbaar) in plaats van stilletjes op een
- * andere actie geplakt.
+ * Hence: no stamp → `null` → no key → no match. Such a point becomes an ORPHAN (kept, marked, visible)
+ * instead of being quietly stuck onto another action.
  *
- * ── EN EEN EMMER MET MEER DAN ÉÉN KANDIDAAT EVENMIN ─────────────────
- * Hier stond dat botsende punten binnen hun emmer op volgorde matchten, "de
- * smalst mogelijke plek waar positie nog meespeelt". Dat hield alleen stand
- * zolang een botsing zeldzaam was — maar transcriptArtifacts.js beschrijft
- * zelf de degradatie waarin een transcript nog maar ÉÉN regelstart heeft (een
- * solo-dictaat, of een run waarin diarisatie naar één label terugvalt), en dan
- * krijgt elk punt dezelfde geverifieerde stempel en is de hele lijst weer één
- * emmer. Een emmer met meer dan één kandidaat — aan verse óf aan bewaarde
- * kant — is geen bewijs, dus wordt er niet gematcht. Onbekend versmalt.
+ * ── AND A BUCKET WITH MORE THAN ONE CANDIDATE IS NOT EVIDENCE EITHER ─
+ * Here it used to say that colliding points matched on order within their bucket, "the narrowest possible
+ * place where position still plays a part". That held only as long as a collision was rare. But
+ * transcriptArtifacts.js itself describes the degradation in which a transcript has only ONE line start
+ * (a solo dictation, or a run in which diarisation falls back to a single label), and then every point gets the
+ * same verified stamp and the whole list is one bucket again. A bucket with more than one candidate, on the
+ * fresh side or on the stored side, is not evidence, so nothing is matched. Unknown narrows.
  *
- * Bij `transcriptChanged` (/reprocess) is er geen gedeeld anker: de audio is
- * opnieuw uitgeschreven en deze functie geeft de ankers om die reden zelf al
- * op. Onbekend versmalt dan — er wordt niets gematcht, en alles waar een mens
- * aan zat blijft staan als wees. Beter een dubbele regel die het scherm
- * benoemt dan een vinkje dat op goed geluk op een andere actie belandt.
+ * For `transcriptChanged` (/reprocess) there is no shared anchor: the audio has been transcribed anew, and this
+ * function itself gives the anchors for that reason. Unknown then narrows: nothing is matched, and everything a
+ * person worked on remains as an orphan. Better a duplicate line that the screen names than a tick that lands
+ * on another action by luck.
  *
- * @returns {string|null} de sleutel, of null als dit punt geen anker heeft
+ * @returns {string|null} the key, or null if this point has no anchor
  */
 function anchorKey(item) {
     const timestamp = String(item?.timestamp || '').trim();
@@ -523,32 +499,29 @@ function withoutStaleAnchors(item) {
 }
 
 function mergeRegeneratedActionItems(existing, fresh, { transcriptChanged = false, keepAiItems = false } = {}) {
-    // Force the source rather than trust it: a caller handing us raw extractor
-    // output is the normal case, and an item that came out of the model is 'ai'
-    // whatever it says. `aiText` volgt dezelfde regel: wat het model zojuist
-    // opleverde IS per definitie de AI-tekst van dit punt, en die stempel is
-    // het ijkpunt voor de volgende correctie.
+    // Force the source rather than trust it: a caller handing us raw extractor output is the normal case,
+    // and an item that came out of the model is 'ai' whatever it says. `aiText` follows the same rule:
+    // what the model just delivered IS by definition the AI text of this point, and that stamp is the
+    // reference point for the next correction.
     const regenerated = normalizeActionItems(fresh).map((item) => ({ ...item, source: 'ai', aiText: item.text }));
 
-    // Drie hoopjes uit wat er NU in de kolom staat:
-    //   survivors  van een mens (of met een bestemming) — ongewijzigd voorop.
-    //   touched    van het model, maar een mens heeft eraan gezeten.
-    //   (de rest)  puur modeluitvoer; die vervangt de nieuwe pass, en dat is
-    //              precies wat "Opnieuw" hoort te doen.
+    // Three heaps from what is NOW in the column:
+    //   survivors  from a person (or with a destination): kept unchanged at the front.
+    //   touched    from the model, but a person has worked on it.
+    //   (the rest) pure model output; that is replaced by the new pass, and that is
+    //              precisely what "Regenerate" should do.
     const survivors = [];
     const touched = [];
     for (const item of normalizeActionItems(existing)) {
-        // `keepAiItems` is voor een MISLUKTE extractiepass: er is dan niets om
-        // de items van het model door te vervangen, dus telt elke opgeslagen
-        // rij als overlevende. Vier lege lijsten van een pass die nooit gedraaid
-        // heeft zijn geen vergadering waarin niets is afgesproken.
+        // `keepAiItems` is for a FAILED extraction pass: there is then nothing with which to replace the model's
+        // items, so every stored row counts as a survivor. Four empty lists from a pass that never ran are not
+        // a meeting in which nothing was agreed.
         if (keepAiItems || isPersonsItem(item)) survivors.push(item);
         else if (hasHumanInput(item)) touched.push(item);
     }
 
-    // Welk vers punt is welk opgeslagen punt? Emmers op anker — en alleen een
-    // emmer met precies ÉÉN kandidaat aan élke kant telt als bewijs. Punten
-    // zonder anker doen niet mee (anchorKey geeft dan null).
+    // Which fresh point is which stored point? Buckets on anchor, and only a bucket with exactly ONE candidate
+    // on EACH side counts as evidence. Points without an anchor take no part (anchorKey then gives null).
     const freshByAnchor = new Map();
     if (!transcriptChanged) {
         regenerated.forEach((item, index) => {
@@ -558,8 +531,8 @@ function mergeRegeneratedActionItems(existing, fresh, { transcriptChanged = fals
             freshByAnchor.get(key).push(index);
         });
     }
-    // Hoeveel BEWAARDE punten dingen naar dezelfde emmer? Bij twee is ook van
-    // deze kant niet te zeggen welke welke is.
+    // How many STORED points fall into the same bucket? With two, it cannot be said from this side either
+    // which is which.
     const touchedPerAnchor = new Map();
     for (const item of touched) {
         const key = anchorKey(item);
@@ -573,16 +546,15 @@ function mergeRegeneratedActionItems(existing, fresh, { transcriptChanged = fals
         const queue = key === null ? null : freshByAnchor.get(key);
         const unambiguous = !!queue && queue.length === 1 && touchedPerAnchor.get(key) === 1;
         const index = unambiguous ? queue.shift() : undefined;
-        // NIET MEER TE HERKENNEN. Verwijderen-en-opnieuw-aanmaken zou de
-        // menselijke invoer alsnog wissen, dus blijft het punt staan zoals het
-        // is — met een vlag, want zwijgend bewaren laat het scherm beweren dat
-        // de AI dit punt zojuist heeft opgeleverd.
+        // NO LONGER RECOGNISABLE. Deleting and re-creating would wipe the human input after all, so the point stays
+        // as it is, with a flag, because silently keeping it would let the screen claim that the AI has just
+        // delivered this point.
         if (index === undefined) orphans.push({ ...item, orphaned: true });
         else carried.set(index, item);
     }
 
-    // Het verse punt is de nieuwe waarheid voor id, tekst, wie en wanneer —
-    // behalve voor de twee velden waar een mens iets aan gedaan heeft.
+    // The fresh point is the new truth for id, text, who and when, except for the two fields on which
+    // a person has done something.
     const rebuilt = regenerated.map((item, index) => {
         const kept = carried.get(index);
         if (!kept) return item;
@@ -597,10 +569,8 @@ function mergeRegeneratedActionItems(existing, fresh, { transcriptChanged = fals
         : [...survivors, ...orphans];
     const takenIds = new Set(rebuilt.map((item) => item.id));
     return [
-        // Een wees draagt nog de `ai-<n>`-id van de vorige pass en die kan
-        // botsen met een vers punt; hij wordt dan hermunt binnen zijn eigen
-        // namespace, zodat `actionItemSource` hem nog steeds als het model's
-        // punt leest.
+        // An orphan still carries the `ai-<n>` id of the previous pass, and that can collide with a fresh point;
+        // it is then re-minted within its own namespace, so that `actionItemSource` still reads it as the model's point.
         ...front.map((item) => (takenIds.has(item.id) ? { ...item, id: mintId(item.source) } : item)),
         ...rebuilt,
     ];
@@ -634,8 +604,8 @@ function isPersonsNote(note) {
 function mergeRegeneratedNotes(existing, fresh, { field = 'decisions', transcriptChanged = false, keepAiNotes = false } = {}) {
     const prefix = field === 'questions' ? 'uq' : 'ud';
     const survivors = normalizeNotes(existing, field)
-        // Zelfde regel als bij de actiepunten: bij een mislukte pass overleeft
-        // elke opgeslagen rij, want er is geen verse lijst om te vervangen.
+        // Same rule as for the action items: on a failed pass every stored row survives,
+        // because there is no fresh list with which to replace it.
         .filter((note) => keepAiNotes || isPersonsNote(note))
         .map((note) => {
             if (!transcriptChanged) return note;

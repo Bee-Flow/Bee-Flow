@@ -9,46 +9,41 @@ import { READ, type ReadState } from '../canUse/canUseFacts';
 import { logger } from '../../../../utils/logger';
 
 /**
- * De lezingen en de acties achter de testset-kaart (A4 deel D).
+ * The reads and the actions behind the test-set card (A4 part D).
  *
- *   GET  /agents/:id/tests          de vragen + de laatste run + de grenzen
- *   GET  /agents/:id/tests/runs     de historie, pas bij het openen van Bekijk
- *   POST /agents/:id/tests/run      de run (SSE)
- *   POST /agents/:id/tests/suggest  het voorstel voor "+ Dit gesprek als test"
- *   POST /agents/:id/tests          de test die daaruit komt
+ *   GET  /agents/:id/tests          the questions, the last run and the limits
+ *   GET  /agents/:id/tests/runs     the history, only when opening View
+ *   POST /agents/:id/tests/run      the run (SSE)
+ *   POST /agents/:id/tests/suggest  the proposal for "+ Dit gesprek als test"
+ *   POST /agents/:id/tests          the test that comes from it
  *
- * ── EEN GEWEIGERDE LEZING IS GEEN MISLUKTE LEZING ───────────────────
- * Elke route hier loopt door `requireEditableAgent`, dus wie deze agent alleen
- * mag BEKIJKEN krijgt 403 `agent_not_editable` op `GET /:id/tests`. Dat is een
- * rechtenbeslissing, geen storing: hij komt terug als `readRefusal` met
- * `retryable: false`, zodat de kaart hem als weigering tekent in plaats van als
- * gele "kon niet laden" met een Opnieuw-knop die eeuwig hetzelfde antwoord
- * geeft.
+ * ── A REFUSED READ IS NOT A FAILED READ ─────────────────────────────
+ * Every route here runs through `requireEditableAgent`, so whoever may only VIEW this agent
+ * gets 403 `agent_not_editable` on `GET /:id/tests`. That is a rights decision, not a fault:
+ * it comes back as `readRefusal` with `retryable: false`, so the card draws it as a refusal
+ * instead of as a yellow "could not load" with a Retry button that gives the same answer forever.
  *
- * ── EEN MISLUKTE LEZING IS NIET "NOG NOOIT GEDRAAID" ────────────────
- * Mislukt de lezing van `GET /:id/tests`, dan zetten we `lastRunUnknown` —
- * óók al staat er dan `lastRun: null` in de state. Zonder dat zou de kaart
- * "nog niet gedraaid" tonen over een agent met twaalf groene tests, en dat is
- * precies de bewering die een fetch-fout niet mag doen. Hetzelfde geldt voor
- * de historie: `runsUnknown`, nooit een lege lijst.
+ * ── A FAILED READ IS NOT "NEVER RUN YET" ───────────────────────────
+ * If the read of `GET /:id/tests` fails, we set `lastRunUnknown`, even when `lastRun: null`
+ * is in the state. Without that, the card would show "not yet run" over an agent with twelve
+ * green tests, and that is precisely the claim a fetch error may not make. The same holds for
+ * the history: `runsUnknown`, never an empty list.
  *
- * ── EEN WEIGERING IS GEEN UITSLAG ───────────────────────────────────
- * `POST /:id/tests/run` weigert vóór de stream begint als er geen beoordelaar
- * is ingericht, als het plafond bereikt is, of als een van de checks niet kon
- * draaien. Zo'n antwoord komt hier binnen als `refusal` en raakt `progress`
- * en `lastRun` NIET aan: er is niets getest, dus er is niets veranderd aan wat
- * we van deze set weten.
+ * ── A REFUSAL IS NOT A RESULT ───────────────────────────────────────
+ * `POST /:id/tests/run` refuses before the stream starts if no judge is set up, if the
+ * ceiling is reached, or if one of the checks could not run. Such an answer arrives here as
+ * `refusal` and does NOT touch `progress` or `lastRun`: nothing was tested, so nothing has
+ * changed in what we know about this set.
  *
- * ── EN EEN STREAM DIE OPHOUDT IS DAT OOK NIET ───────────────────────
- * Alleen het `done`-event maakt van een reeks resultaten een uitslag
- * (`testSetFacts.applyRunEvent`). Houdt de stream daarvóór op — verbinding
- * weg, server gestopt — dan staat er `unfinished` en blijft de vorige laatste
- * run staan. De server bewaart zo'n run trouwens ook niet.
+ * ── AND A STREAM THAT STOPS IS NOT A RESULT EITHER ──────────────────
+ * Only the `done` event turns a sequence of results into a result (`testSetFacts.applyRunEvent`).
+ * If the stream stops before that (connection gone, server stopped), then `unfinished` stands
+ * and the previous last run remains. The server does not store such a run either.
  */
 
 const EMPTY_LIMITS = Object.freeze({ maxTests: 0, maxPerRun: 0 });
 
-/** Lees het (mogelijk lege) JSON-lichaam van een antwoord. Gooit nooit. */
+/** Reads the (possibly empty) JSON body of a response. Never throws. */
 async function bodyOf(res: Response) {
     try { return await res.json(); } catch (_) { return null; }
 }
@@ -64,9 +59,8 @@ export default function useAgentTests({ agentId = null, enabled = true }: UseAge
     const [limits, setLimits] = useState(EMPTY_LIMITS);
     const [lastRun, setLastRun] = useState<TestRun | null>(null);
     const [lastRunUnknown, setLastRunUnknown] = useState(false);
-    // Weigerde de SERVER de lezing, en waarom? Los van `refusal` (die gaat over
-    // een run) omdat de twee tegelijk kunnen bestaan en verschillende dingen
-    // zeggen.
+    // Did the SERVER refuse the read, and why? Kept separate from `refusal` (which concerns a run),
+    // because the two can exist at the same time and say different things.
     const [readRefusal, setReadRefusal] = useState<Refusal | null>(null);
     const [nonce, setNonce] = useState(0);
 
@@ -93,12 +87,10 @@ export default function useAgentTests({ agentId = null, enabled = true }: UseAge
                 const res = await authFetch(`${API_BASE}/agents/${agentId}/tests`, { signal: ctrl.signal });
                 if (!alive || ctrl.signal.aborted) return;
                 if (!res.ok) {
-                    // De STATUSCODE en de code van de server blijven bewaard.
-                    // Zonder dat werd een rechtenbeslissing (403
-                    // `agent_not_editable`, voor iedereen die deze agent alleen
-                    // mag bekijken) getekend als een storing, mét een
-                    // Opnieuw-knop die eeuwig 403 blijft geven. `refusalFor`
-                    // kent die code al en zegt er `retryable: false` bij.
+                    // The STATUS CODE and the server's code are kept. Without that, a rights decision (403
+                    // `agent_not_editable`, for everyone who may only view this agent) was drawn as a fault,
+                    // with a Retry button that kept giving 403 forever. `refusalFor` already knows that code
+                    // and attaches `retryable: false` to it.
                     const body = await bodyOf(res);
                     if (!alive || ctrl.signal.aborted) return;
                     setTests([]);
@@ -120,10 +112,9 @@ export default function useAgentTests({ agentId = null, enabled = true }: UseAge
                 if (!alive || ctrl.signal.aborted) return;
                 setTests([]);
                 setTestsState(READ.ERROR);
-                // Een netwerkfout is geen antwoord van de server: geen code,
-                // dus ook geen weigering om te tonen.
+                // A network error is not an answer from the server: no code, so also no refusal to show.
                 setReadRefusal(null);
-                // We weten niet of er gedraaid is. Dat is iets anders dan nee.
+                // We do not know whether it has been run. That is something other than no.
                 setLastRun(null);
                 setLastRunUnknown(true);
             }
@@ -172,8 +163,7 @@ export default function useAgentTests({ agentId = null, enabled = true }: UseAge
                 }),
             });
             if (!res.ok) {
-                // Geweigerd vóór de eerste beurt. Geen uitslag, geen
-                // voortgang — alleen het bericht dat er niets getest is.
+                // Refused before the first turn. No result, no progress, only the message that nothing was tested.
                 const body = await bodyOf(res);
                 if (!aliveRef.current) return;
                 setProgress(null);
@@ -188,9 +178,8 @@ export default function useAgentTests({ agentId = null, enabled = true }: UseAge
             state = endProgress(state);
             if (!aliveRef.current) return;
             setProgress(state);
-            // Alleen een AFGERONDE, opgeslagen run is de nieuwe laatste run.
-            // Een "Test als"-run wordt bewust niet bewaard (`notStored`), en
-            // een stream die ophield heeft geen uitslag om te bewaren.
+            // Only a COMPLETED, stored run is the new last run. A "Test as" run is deliberately not kept
+            // (`notStored`), and a stream that stopped has no result to keep.
             if (state.status === PROGRESS.COMPLETE && state.run && !state.notStored) {
                 setLastRun(state.run);
                 setLastRunUnknown(false);
@@ -220,8 +209,8 @@ export default function useAgentTests({ agentId = null, enabled = true }: UseAge
             if (!res.ok) return { suggestion: null, refusal: refusalFor({ status: res.status, body }) };
             return { suggestion: body?.suggestion || null, refusal: null };
         } catch (_) {
-            // Een voorstel dat niet kwam is geen leeg voorstel: het formulier
-            // opent leeg en zegt dat er niets voorgesteld is.
+            // A proposal that did not come is not an empty proposal: the form opens empty and says
+            // that nothing was proposed.
             return { suggestion: null, refusal: refusalFor({ status: 0, code: 'suggestion_unreadable' }) };
         }
     }, [agentId]);

@@ -11,17 +11,17 @@ import type { createHandleRefine } from './refineActions';
 import type { ModelTierMap } from '../../../../hooks/useModelTierSelection';
 import type { AgentPlan } from '../PlanCard';
 
-// De verfijn-rail ("refine this agent") van de builder-split. Sinds A2 stap 1
-// staat hij RECHTS in plaats van links: vandaar de linkerrand en de
-// ondergrens van 300px (zie useChatPanelResize). De terugpijl is uit deze
-// kop verdwenen — die zit nu in de gedeelde AgentEditorHeader, waar hij ook
-// staat als de rail verborgen is (alleen-lezen).
-// Alle state blijft op de BuilderSplit-fiber en komt via props binnen.
+// The refine rail ("refine this agent") of the builder split. Since A2 step 1
+// it sits on the RIGHT instead of the left: hence the left edge and the minimum
+// width of 300px (see useChatPanelResize). The back arrow has disappeared from
+// this heading. It now sits in the shared AgentEditorHeader, where it also
+// appears when the rail is hidden (read-only).
+// All state remains on the BuilderSplit fiber and comes in through props.
 //
-// A2 stap 5: een geslaagde verfijning voegt een beurt met `role: 'done'` toe
-// (de diff, plus het undo-punt). Alleen de NIEUWSTE daarvan kan ongedaan
-// gemaakt worden — undo is één niveau diep — dus de oudere krijgen dezelfde
-// knop met de reden erin, niet géén knop.
+// A2 step 5: a successful refinement adds a turn with `role: 'done'` (the diff,
+// plus the undo point). Only the NEWEST of these can be undone, because undo is
+// one level deep. So the older ones get the same button with the reason in it,
+// not NO button.
 interface BuilderChatPanelProps {
     chatWidth: number;
     t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;

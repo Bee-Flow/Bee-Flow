@@ -11,25 +11,24 @@ import { authFetch } from '../../../../utils/helpers';
 const render = (ui, options) => rtlRender(ui, { wrapper: queryWrapper(), ...options });
 
 /**
- * S2 deel D — de 280px-lijst links, en de tab "Gebruikt door".
+ * S2 part D — the 280px list on the left, and the tab “Used by”.
  *
- * Beide schermen bestaan om ÉÉN vraag te beantwoorden: gebruikt iets deze
- * skill? De interessante gevallen zijn daarom niet de gelukte lezingen maar
- * de mislukte, want daar lijkt "ik weet het niet" precies op "nee":
+ * Both screens exist to answer ONE question: does anything use this skill?
+ * The interesting cases are therefore not the successful reads but the failed
+ * ones, because there “I don't know” looks exactly like “no”:
  *
- *   - een skill-lijst die niet gelezen kon worden ziet er identiek uit aan
- *     een lege organisatie ("Nog geen skills — maak er een"), en de toast
- *     die het uitlegt is na vijf seconden weg;
- *   - een filter dat niets vindt zei hetzelfde, terwijl er wél skills zijn;
- *   - een gebruiks-telling die niet gelezen kon worden is geen 0, dus de
- *     regel eronder blijft leeg — niet "nog niet gekoppeld";
- *   - en op de tab "Gebruikt door" mogen "niets gebruikt dit" en het
- *     streepjes-pilletje "not used by anything" alleen op het scherm staan
- *     als er echt GEKEKEN is.
+ *   - a skill list that could not be read looks identical to an empty
+ *     organisation (“No skills yet — make one”), and the toast that explains it
+ *     is gone after five seconds;
+ *   - a filter that finds nothing said the same, while skills DO exist;
+ *   - a usage count that could not be read is not 0, so the line below stays
+ *     empty — not “not linked yet”;
+ *   - and on the tab “Used by”, “nothing uses this” and the dash pill “not used
+ *     by anything” may only appear on screen if we ACTUALLY looked.
  *
- * De gebruiksregel zelf telt over soorten heen ("3 agents · 1 automation")
- * en gebruikt het sleutelpaar met de ternary om de SLEUTEL — één agent is
- * "1 agent", nooit "1 agent(s)".
+ * The usage rule itself counts across kinds (“3 agents · 1 automation”) and uses
+ * the key pair with the ternary to choose the KEY — one agent is “1 agent”, never
+ * “1 agent(s)”.
  */
 
 const GROUPS = [{ id: 'g1', name: 'Sales' }];
@@ -37,9 +36,9 @@ const AUTOMATIONS = { automations: [{ id: 'a1', title: 'Look up quote status', t
 const KBS = [{ id: 'k1', name: 'Quote terms' }];
 const TABLES = { datatables: [{ id: 't1', name: 'Pricelist' }] };
 
-// Wat `GET /api/skills/:id/usage` deze test teruggeeft. Per test te zetten:
-// `{ ok, body }` — zo kan één mock zowel een geslaagde lezing als een 500 en
-// een gedeeltelijk antwoord (`unchecked`) spelen.
+// What `GET /api/skills/:id/usage` returns in this test. Set per test:
+// `{ ok, body }` — this way one mock can play both a successful read and a 500,
+// and a partial answer (`unchecked`).
 let usageReply = { ok: true, body: { usage: [] } };
 
 vi.mock('../../../../utils/helpers', () => ({
@@ -59,8 +58,8 @@ vi.mock('../../../../utils/helpers', () => ({
     }),
 }));
 
-// Zoals in SkillsStudio.test.jsx: de AI-stap-editor sleept de hele
-// builder-instellingenketen mee; alleen zijn rij-contract wordt hier gebruikt.
+// As in SkillsStudio.test.jsx: the AI step editor drags the whole
+// builder settings chain along; only its row contract is used here.
 vi.mock('../../../automation/Builder/flow/settings/aiStepEditors', () => ({
     StructuredOutputFields: ({ fields, onChange }) => (
         <button type="button" data-testid="stub-output-rows" onClick={() => onChange([...fields, { key: 'total', type: 'number' }])}>
@@ -84,7 +83,7 @@ const SKILL = {
     name: 'Explain a quote to a customer',
     description: 'Explains a quote line by line.',
     instructions: 'When someone asks what something means.',
-    // De emoji leeft nog in de kolom — hij hoort alleen niet in Studio.
+    // The emoji still lives in the column — it just does not belong in Studio.
     icon: '🎯',
     canEdit: true,
     isShared: false,
@@ -164,9 +163,8 @@ describe('de lijst zelf', () => {
     it('draagt het merk van de soort, niet de emoji van de skill', async () => {
         renderStudio();
         await screen.findAllByTestId('skill-row');
-        // De kolom `icon` blijft bestaan (chat-oppervlakken lezen hem), maar
-        // twaalf emoji onder elkaar zeggen niet "skill" — Studio tekent één
-        // merk voor de hele soort.
+        // The `icon` column remains (chat surfaces read it), but twelve emoji in a row
+        // do not say “skill” — Studio draws one brand for the whole kind.
         expect(rowOf('s1').textContent).not.toContain('🎯');
         expect(rowOf('s2').textContent).not.toContain('💸');
         expect(rowOf('s1').querySelector('svg')).toBeTruthy();
@@ -199,18 +197,18 @@ describe('de lijst zelf', () => {
         expect(screen.queryByTestId('skill-row')).toBeNull();
         expect(screen.getByTestId('skills-list-nomatch')).toBeTruthy();
         expect(screen.queryByText(/No skills yet/)).toBeNull();
-        // …en dat wordt óók gemeld. Deze zin verschijnt als reactie op typen —
-        // het moment waarop een schermlezer verder niets te horen krijgt en de
-        // rijen gewoon verdwijnen. De foutzin ernaast had role="status", deze
-        // niet, en het is dezelfde tak in hetzelfde nieuwe scherm.
+        // …and that is reported too. This sentence appears in reaction to typing — the
+        // moment at which a screen reader hears nothing further and the rows simply
+        // disappear. The error sentence next to it had role="status", this one did
+        // not, and it is the same branch in the same new screen.
         expect(screen.getByTestId('skills-list-nomatch').getAttribute('role')).toBe('status');
     });
 
     /**
-     * Tijdens de lezing is `rows.length` 0 omdat er nog niets binnen is, niet
-     * omdat er niets is. De eigen regel in dit bestand ("alleen een telling die
-     * GETELD is") geldt ook vóór het antwoord: met een `list()` die nooit
-     * resolvet stond er letterlijk "Skills 0 · Loading skills…".
+     * While loading, `rows.length` is 0 because nothing has arrived yet, not because
+     * there is nothing. The own rule in this file (“only a count that has been
+     * COUNTED”) also applies before the answer: with a `list()` that never resolved,
+     * it literally said “Skills 0 · Loading skills…”.
      */
     it('zet geen 0 naast de titel zolang de lijst nog onderweg is', async () => {
         skillsApi.list.mockReturnValue(new Promise(() => {}));
@@ -219,17 +217,17 @@ describe('de lijst zelf', () => {
         // Twee keer: de lijst links en de landing rechts zeggen het allebei.
         expect((await screen.findAllByText('Loading skills…')).length).toBeGreaterThan(0);
         expect(screen.queryByTestId('skills-list-count')).toBeNull();
-        // …en ook op de landing staat geen 0 naast "All skills".
+        // …and on the landing page there is no 0 next to “All skills”, either.
         expect(screen.getByTestId('skills-overview').textContent).not.toMatch(/All skills\s*0/);
     });
 
     /**
-     * De foutzin komt uit `t()`, en zonder TranslationProvider geeft
-     * `useTranslation` bij ELKE render een nieuwe `t` terug (embeds,
-     * geïsoleerde tests). Een `useCallback` die daarvan afhangt en vanuit een
-     * mount-effect wordt aangeroepen, haalt de lijst dus eindeloos opnieuw op
-     * — met een spinner die nooit weggaat. De zin wordt daarom tijdens de
-     * render opgelost; deze test is wat die keuze vasthoudt.
+     * The error sentence comes from `t()`, and without a TranslationProvider
+     * `useTranslation` returns a new `t` on EVERY render (embeds, isolated tests).
+     * A `useCallback` that depends on that and is called from a mount effect would
+     * therefore fetch the list endlessly — with a spinner that never goes away.
+     * The sentence is therefore resolved during the render; this test is what keeps
+     * that choice in place.
      */
     it('haalt de lijst één keer op, niet bij elke render', async () => {
         renderStudio();
@@ -264,12 +262,11 @@ describe('de landing zonder selectie', () => {
     });
 
     /**
-     * De grootste versie van dezelfde leugen. De linkerlijst zei correct "No
-     * skill matches “zzzz”", en op het grootste vlak van hetzelfde scherm
-     * stond tegelijk "Create your first skill" — een uitnodiging om werk over
-     * te doen dat één backspace verderop staat. De landing kreeg de
-     * GEFILTERDE lijst maar niet het filter, en kon de twee dus niet
-     * onderscheiden.
+     * The biggest version of the same lie. The left list correctly said “No skill
+     * matches “zzzz””, while on the largest surface of the same screen “Create your
+     * first skill” stood at the same time — an invitation to redo work that sits one
+     * backspace away. The landing page received the FILTERED list but not the filter,
+     * and so could not tell the two apart.
      */
     it('nodigt ook niet uit als het filter niets vindt — er zijn wél skills', async () => {
         renderStudio();
@@ -281,8 +278,7 @@ describe('de landing zonder selectie', () => {
         const note = screen.getByTestId('skills-overview-nomatch');
         expect(note.textContent).toContain('zzzz');
         expect(note.getAttribute('role')).toBe('status');
-        // De lijst links zegt hetzelfde, dus het scherm spreekt zichzelf niet
-        // meer tegen.
+        // The list on the left says the same, so the screen no longer contradicts itself.
         expect(screen.getByTestId('skills-list-nomatch')).toBeTruthy();
     });
 
@@ -360,16 +356,16 @@ describe('de tab "Gebruikt door"', () => {
 });
 
 /**
- * S3 — het overzicht mag niets aanbieden dat de server weigert.
+ * S3 — the overview may not offer anything that the server refuses.
  *
- * "Let AI fill it in" roept `POST /:id/ai/improve` aan, en dat endpoint
- * antwoordt 403 `not_editable` op een skill die dit account wel mag ZIEN maar
- * niet mag BEWERKEN (een via groepen gedeelde skill van een andere org). Een
- * knop die gegarandeerd op een weigering uitloopt is geen aanbod.
+ * “Let AI fill it in” calls `POST /:id/ai/improve`, and that endpoint answers
+ * 403 `not_editable` for a skill that this account may SEE but not EDIT (a skill
+ * of another org shared via groups). A button that is guaranteed to end in a
+ * refusal is not an offer.
  *
- * De grens is `canEdit !== false`, niet `=== true`: een rij uit een ouder
- * leespad draagt helemaal geen `canEdit`, en die mag niet stilletjes het
- * aanbod verliezen — alleen een expliciet "nee" van de server telt.
+ * The boundary is `canEdit !== false`, not `=== true`: a row from an older read
+ * path carries no `canEdit` at all, and must not silently lose the offer — only
+ * an explicit “no” from the server counts.
  */
 describe('het aanbod op een lege rij in het overzicht', () => {
     const EMPTY = {
@@ -410,6 +406,6 @@ describe('het aanbod op een lege rij in het overzicht', () => {
     });
 });
 
-// De mock hierboven is bewust globaal: als een test hem niet zet, blijft de
-// vorige stand staan en zou een groene test iets anders bewijzen dan hij zegt.
+// The mock above is deliberately global: if a test does not set it, the previous
+// state remains, and a green test would prove something other than what it says.
 afterEach(() => { authFetch.mockClear(); });

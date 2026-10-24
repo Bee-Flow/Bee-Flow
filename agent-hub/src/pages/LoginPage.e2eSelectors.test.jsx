@@ -7,34 +7,34 @@ import { authFetch } from '../utils/helpers';
 /**
  * E2E SELECTOR CONTRACT for the sign-in screen (L0).
  *
- * The Playwright suite logs in through this screen ONCE, in global-setup, and
- * saves the session for every other spec. A renamed test id there is not a test
- * failure — `runner/smoke.mjs` reports it as an INFRA error (exit 3), which
- * reads as "the stack is broken" and costs an afternoon before anyone looks at
- * a frontend diff. This file turns that into a red vitest instead.
+ * The Playwright suite logs in through this screen ONCE, in global-setup, and saves
+ * the session for every other spec. A renamed test id there is not a test failure.
+ * `runner/smoke.mjs` reports it as an INFRA error (exit 3), which reads as "the stack
+ * is broken" and costs an afternoon before anyone looks at a frontend diff. This file
+ * turns that into a red vitest instead.
  *
  * Consumers of these ids, all of which must keep working:
  *   - e2e/tests/global-setup.ts               username, password, login-submit-button
  *   - e2e/tests/generated/login-navigation.spec.ts   the same three
  *   - e2e/context/app-map.md                  documents PART of the list
  *
- * Let op de laatste: app-map.md noemt vandaag alleen username, password,
- * login-submit-button, de drie sso-*-knoppen en create-account-button, en zegt
- * er bovendien bij dat de SSO-ids "on the full form only" staan — terwijl deze
- * karakterisatie ze óók op de ingeklapte weergave pint. De overige ids die dit
- * bestand vastlegt (login-other-methods, root-password, confirm-password, de
- * mfa-* en recovery-* ids) staan NERGENS in e2e/. Dit
- * bestand is dus de bredere waarheid; app-map.md loopt achter en ligt buiten
- * het schrijfgebied van de karakterisatie.
+ * Note the last one. app-map.md today names only username, password,
+ * login-submit-button, the three sso-*-buttons and create-account-button. It adds
+ * that the SSO ids are "on the full form only", while this characterisation pins them
+ * on the collapsed view as well. The other ids that this file records
+ * (login-other-methods, root-password, confirm-password, the mfa-* and recovery-*
+ * ids) appear NOWHERE in e2e/. This file is therefore the broader truth. app-map.md
+ * lags behind, and it lies outside the write area of the characterisation.
  *
- * If a redesign has to rename one, rename it HERE en in de bestanden hierboven
- * die hem echt gebruiken — en werk app-map.md bij in diezelfde wijziging.
+ * If a redesign has to rename one, rename it HERE and in the files above that really
+ * use it, and update app-map.md in that same change.
  * Do not delete an assertion to make this file pass.
  *
  * The one-time gates that stand AFTER submit are pinned where they live:
  * `encryption-recovery-key` / `encryption-recovery-saved` in
  * EncryptionSetup.test.jsx (the "I've saved my recovery key" gate that
- * global-setup's DISMISS_BUTTONS clicks through), and the enrollment gate in login/MfaSetupGate.test.jsx.
+ * global-setup's DISMISS_BUTTONS clicks through), and the enrollment gate in
+ * login/MfaSetupGate.test.jsx.
  */
 vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn(), setSessionToken: vi.fn() }));
 vi.mock('../hooks/useTranslation', () => import('@/test/useTranslationMock'));

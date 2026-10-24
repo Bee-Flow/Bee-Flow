@@ -191,19 +191,19 @@ function sanitizeExtra(content, mime) {
 }
 
 /**
- * Een EXTRA tekstbestand, met dezelfde uitklappass als het html-slot.
+ * An EXTRA text file, with the same expansion pass as the html slot.
  *
- * Een multi-file vanilla-project bestaat uit meer dan `index.html`; `about.html`
- * wordt door publicViewer.js net zo hard geserveerd (er staat zelfs een
- * `<base href>` naar de extras). Zonder deze pass gingen die bestanden alleen
- * door DOMPurify, en die pakt een onbekend element ZWIJGEND uit: van
- * `<bf-form automation="a1"><input name="email"></bf-form>` bleef een levend
- * ogend invoerveld over zonder ontvanger — een formulier dat gegevens vraagt die
- * nergens aankomen. De parser telde die elementen intussen wél mee
- * (core/webpages/webpageBindings.js leest de extra's), dus de Code-tab beweerde
- * dat de pagina die tabel gebruikt terwijl de gepubliceerde kopie hem niet toont.
+ * A multi-file vanilla project consists of more than `index.html`; `about.html`
+ * is served by publicViewer.js just as firmly (there is even a
+ * `<base href>` pointing to the extras). Without this pass those files went only through
+ * DOMPurify, and that unwraps an unknown element SILENTLY: from
+ * `<bf-form automation="a1"><input name="email"></bf-form>` a live-looking
+ * input field remained, with no recipient — a form that asks for data that
+ * goes nowhere. The parser did count those elements in the meantime
+ * (core/webpages/webpageBindings.js reads the extras), so the Code tab claimed
+ * that the page used that table while the published copy did not show it.
  *
- * Alleen HTML: css en svg kennen geen `bf-*`-elementen.
+ * HTML only: css and svg know no `bf-*` elements.
  */
 async function expandAndSanitizeExtra(content, mime, { webpageId, ownerId }) {
     if (typeof mime === 'string' && mime.startsWith('text/html')) {
@@ -251,27 +251,26 @@ async function writeSnapshot({ shareId, webpageId, ownerId, includeExtraFiles = 
 
     const { html, css /* js omitted by design */ } = await webpageStore.readAllSlots(ownerId, webpageId);
 
-    // VÓÓR DOMPurify. Het hele `bf-*`-vocabulaire wordt hier tot gewone HTML
-    // uitgeklapt; erna zouden het onbekende elementen zijn die DOMPurify
-    // ZWIJGEND uitpakt (`KEEP_CONTENT: true`, `ADD_TAGS` kent alleen `iframe`),
-    // dus van `<bf-button run="a1">Send</bf-button>` bleef letterlijk `Send`
-    // over — tag weg, attributen weg, geen spoor. Twee soorten:
+    // BEFORE DOMPurify. The whole `bf-*` vocabulary is expanded here into plain HTML;
+    // afterwards they would be unknown elements that DOMPurify unwraps
+    // SILENTLY (`KEEP_CONTENT: true`, `ADD_TAGS` knows only `iframe`), so from
+    // `<bf-button run="a1">Send</bf-button>` literally `Send` remained — tag gone, attributes gone, no trace. Two kinds:
     //
-    //   • `bf-table` / `bf-stat` lezen data en worden gerenderd uit
-    //     `bridge_grants.tables[].publicColumns`. Dat is de poort en de ENIGE
-    //     poort: leeg betekent GEEN kolom, en alles wat misgaat rendert een leeg
-    //     blok — nooit een breder antwoord dan gevraagd;
-    //   • `bf-button` / `bf-form` / `bf-agent` hebben JS nodig, en dit pad laat
-    //     het js-slot met opzet weg (zie de kop hierboven). Ze worden uitgeklapt
-    //     tot een zichtbaar uitgeschakeld blok met een melding erbij, zodat de
-    //     lezer ziet dát dit onderdeel in de gepubliceerde kopie niet werkt.
-    //     Dood mag, stil niet.
+    //   • `bf-table` / `bf-stat` read data and are rendered from
+    //     `bridge_grants.tables[].publicColumns`. That is the gate and the ONLY
+    //     gate: empty means NO column, and anything that goes wrong renders an empty
+    //     block — never a broader answer than asked;
+    //   • `bf-button` / `bf-form` / `bf-agent` need JS, and this path deliberately omits
+    //     the js slot (see the header above). They are expanded
+    //     into a visibly disabled block with a notice beside it, so that the
+    //     reader sees THAT this component does not work in the published copy.
+    //     Dead is allowed, silent is not.
     //
-    // Welke elementen er bestaan, wat ze kennen en wat er hier van elk overblijft
-    // staat in core/webpages/bfElements.js — één lijst voor deze snapshot, de
-    // publieke brug en de client. webpageBfTable.js spreekt zich in
-    // `VANILLA_HANDLING` uit over elk element en waarschuwt over elk element dat
-    // het vocabulaire niet kent.
+    // Which elements exist, what they know and what remains of each here
+    // is stated in core/webpages/bfElements.js — one list for this snapshot, the
+    // public bridge and the client. webpageBfTable.js speaks in
+    // `VANILLA_HANDLING` about every element and warns about every element that
+    // the vocabulary does not know.
     const expanded = await expandBfElements(html, { webpageId, ownerId });
 
     const cleanHtml = sanitizeHtml(expanded);
@@ -328,11 +327,11 @@ async function writeSnapshot({ shareId, webpageId, ownerId, includeExtraFiles = 
  */
 async function writeReactSnapshot({ shareId, webpageId, ownerId }) {
     const { files, assetMap } = await loadReactFiles(webpageId, ownerId);
-    // De PLEK meegeven, niet de standaard laten staan: dezelfde stub bedient ook
-    // het plaatje van de eigen pagina van de auteur, en daar zou "op een gedeelde
-    // link" liegen over een pagina die ingelogd gewoon werkt. De stub bakt hieruit
-    // de melding die elk bf-element hier toont — onvoorwaardelijk, ook als de
-    // auteur publieke AI heeft uitgelaten (dat is de default).
+    // PASS the PLACE, do not leave the default: the same stub also serves the
+    // picture of the author's own page, and there "on a shared
+    // link" would be untrue about a page that works normally when logged in. The stub builds
+    // from this the notice that every bf element shows here — unconditionally, even if the
+    // author left public AI off (that is the default).
     const composed = await composeReactDoc({ files, assetMap, surface: 'reactShare' });
     if (composed.buildError) {
         throw new Error('React bundle failed: ' + composed.buildError);

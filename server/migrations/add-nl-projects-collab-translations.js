@@ -20,9 +20,9 @@ const NL_TRANSLATIONS = {
     'projects.shared_badge': 'Gedeeld met het project',
     'projects.shared_threads': 'Gedeelde gesprekken',
     'projects.no_shared_threads': 'Nog geen gedeelde gesprekken. Deel er een om samen verder te werken.',
-    // De encryptie-waarschuwing bij het delen. Bewust expliciet: op de
-    // zero-knowledge-tier is dit een echte, opzettelijke verzwakking, en die
-    // hoort te staan op het moment dat de gebruiker de keuze maakt.
+    // The encryption warning when sharing. Deliberately explicit: on the
+    // zero-knowledge tier this is a real, deliberate weakening, and it has to appear at the
+    // moment the user makes the choice.
     'projects.share_encryption_warning':
         'Gedeelde gesprekken worden versleuteld met een sleutel van de organisatie, zodat elk projectlid '
         + 'en achtergrondtaken ze kunnen lezen. Je privégesprekken blijven ongewijzigd.',

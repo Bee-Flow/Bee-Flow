@@ -6,10 +6,11 @@
  * The design for this round was written IN DUTCH (the `Bee Flow Builder` and
  * `Editor` artboards); the English catalogue is itself a translation of it. So
  * where the artboard has a word, that word is the source of truth here and the
- * English is the paraphrase — "Komt binnen", "Gaat verder", "hele groep
- * gebruiken", "Alles achter elkaar, elk op een nieuwe regel", "Rij 1 · stap
- * 1–5", "→ rij 2 · stap 6", "1 van 4", "draait 4× · één per bank", "1 veld nog
- * leeg", "Formulier openen".
+ * English is the paraphrase — "Komt binnen" (comes in), "Gaat verder" (continues),
+ * "hele groep gebruiken" (use the whole group), "Alles achter elkaar, elk op een nieuwe regel"
+ * (all one after another, each on a new line), "Rij 1 · stap 1–5", "→ rij 2 · stap 6", "1 van 4",
+ * "draait 4× · één per bank" (runs 4× · one per bank), "1 veld nog leeg" (1 field still empty),
+ * "Formulier openen" (open form).
  *
  * WHY THIS MATTERS MORE THAN MOST UI COPY: these strings are how the builder
  * explains what a value IS and what it will do with it. "is a list of 3, this
@@ -18,10 +19,10 @@
  * question is the one thing on the screen a Dutch author skips.
  *
  * TWO PLACES THE ARTBOARD WORDS ARE DELIBERATELY GENERALISED:
- *   - "Voor elk item een eigen vraag" (2a) is written for the approval step it
+ *   - "Voor elk item een eigen vraag" (a separate question for each item) (2a) is written for the approval step it
  *     was drawn on. The key it maps to is used by every step type, so the
- *     Dutch is "Voor elk item een aparte run".
- *   - "Cijfers inlezen (3)" style step kickers are per-routine content, not
+ *     Dutch is "Voor elk item een aparte run" (a separate run for each item).
+ *   - "Cijfers inlezen (3)" (read in figures (3)) style step kickers are per-routine content, not
  *     copy, and have no key.
  *
  * `automations.kind.choice` is NOT here: the `choice` kind arrived with the
@@ -42,9 +43,9 @@ const NL_TRANSLATIONS = {
     'automations.picker.all_steps': 'Alle stappen',
     'automations.picker.search_in': 'Zoek in {step}…',
 
-    // ── Wat een veld IS, in gewone woorden (artboard 2c) ────────────────────
-    // Nooit "string", "array" of "object": de hele tabel van 2c bestaat omdat
-    // die woorden niets zeggen tegen wie geen programmeur is.
+    // ── What a field IS, in plain words (artboard 2c) ───────────────────────
+    // Never "string", "array" or "object": the whole table of 2c exists because
+    // those words say nothing to someone who is not a programmer.
     'automations.kind.text': 'tekst',
     'automations.kind.number': 'getal',
     'automations.kind.yesno': 'ja/nee',
@@ -86,8 +87,8 @@ const NL_TRANSLATIONS = {
     'automations.mapping.no_upstream': 'Nog geen gegevens uit eerdere stappen. Verbind deze stap met een vorige om de uitvoer hier te zien.',
     'automations.mapping.hint_top': 'Sleep een veld naar een instelling, of klik ‹kies› ernaast. Voorbeeldwaarden komen uit de laatste run.',
     'automations.mapping.hint_bottom': 'Open Tabel om een hele kolom of één cel te koppelen. Een lijst op een plek waar één waarde past, vraagt wat je bedoelt in plaats van te weigeren.',
-    // Zoeken, de tabelweergave en de lege staat van de kolom. "Koppelen" is
-    // het werkwoord van deze kolom (zie hint_top/hint_bottom) — nooit "mappen".
+    // Search, the table view and the empty state of the column. "Koppelen" (link) is
+    // the verb of this column (see hint_top/hint_bottom) — never "mappen" (map).
     'automations.mapping.iteration_of_capped': '{n} van {total} · {skipped} niet verwerkt',
     'automations.mapping.search_fields': 'Zoek in invoervelden',
     'automations.mapping.clear_search': 'Zoekopdracht wissen',
@@ -102,7 +103,7 @@ const NL_TRANSLATIONS = {
     'automations.mapping.fields': 'Velden',
     'automations.mapping.no_data_yet': 'Nog geen gegevens — draai de stap ervoor om ze vast te leggen.',
 
-    // ── "Het past niet één-op-één" (artboard 2a/2c) ─────────────────────────
+    // ── "It does not fit one-to-one" (artboard 2a/2c) ─────────────────────
     'automations.mismatch.title': 'Dit veld en de waarde die je koos passen niet één-op-één',
     'automations.mismatch.more': 'meer',
     'automations.mismatch.list_into_one': 'is een {actual}, hier past één {expected}. Wat wil je?',
@@ -171,10 +172,9 @@ const NL_TRANSLATIONS = {
 
     // ── De zuidbalk: run, selectie, hint (artboard 1a/1d) ───────────────────
     ...require('./data/builder-redesign-zuidbalk-nl.json'),
-    // De bouwbanner en het lege canvas tijdens een bouw (het bouwen als
-    // film, 2026-09): wat de assistent zojuist DEED, hoe lang het al duurt,
-    // en het einde. Het geestkaartje op het canvas draagt de gedachten; de
-    // banner dus niet.
+    // The build banner and the empty canvas during a build (building as
+    // a film, 2026-09): what the assistant has JUST DONE, how long it has been going on,
+    // and the end. The ghost card on the canvas carries the thoughts; the banner therefore not.
     'automations.canvas.build_live': 'Bezig met bouwen',
     'automations.canvas.build_skipped': 'Overgeslagen: {reason}',
     'automations.canvas.build_plan': 'stap {n} van {total}',
@@ -202,9 +202,9 @@ const NL_TRANSLATIONS = {
     'automations.canvas.loop_body_step_plural': '{n} stappen',
     'automations.canvas.loop_each_item': 'Elk item',
     'automations.canvas.loop_each_batch': 'Elke groep van {n}',
-    // De luskaart zelf: poorten, de samenvattingsregel en uit-/invouwen.
-    // `loop.{item}` is het pad waar de stappen erin tegen binden en blijft
-    // dus letterlijk staan; alleen de woorden eromheen zijn Nederlands.
+    // The loop card itself: ports, the summary line and expand/collapse.
+    // `loop.{item}` is the path against which the steps inside bind and so stays
+    // literally as it is; only the words around it are Dutch.
     'automations.canvas.loop_port_done': 'Klaar',
     'automations.canvas.loop_port_on_error': 'Bij fout',
     'automations.canvas.loop_over': 'over: {list} · als loop.{item}',
@@ -222,14 +222,14 @@ const NL_TRANSLATIONS = {
     'automations.canvas.loop_not_recorded_title': 'Stappen in een lus worden niet één voor één vastgelegd — de lus zelf draagt de runstatus.',
     'automations.canvas.editing_chip': 'Stap {n} van {total} · Esc sluit · Alt+←/→ vorige/volgende',
 
-    // ── Het bouwen als film, deel 2 (2026-09-11) ───────────────────────────
-    // De wachtkaart in de chatkolom tijdens de lange stilte voordat een lokaal
-    // model iets zegt; het geestkaartje dat de stap toont die het model op dat
-    // moment TYPT; de motorregel in de zuidbalk ("op deze machine, leest 148
-    // tok/s"); de resultaatchips als de testrun wordt afgespeeld; en de
-    // presentatiemodus voor een beamer. "Onthouden" is hier het woord voor de
-    // prompt-cache: wat het model van de vorige beurt niet opnieuw hoeft te
-    // lezen — dat is precies wat de zaal moet zien.
+    // ── Building as a film, part 2 (2026-09-11) ────────────────────────────
+    // The waiting card in the chat column during the long silence before a local
+    // model says anything; the ghost card that shows the step the model is TYPING at that moment;
+    // the engine line in the south bar ("on this machine, reads 148
+    // tok/s"); the result chips when the test run is played back; and the
+    // presentation mode for a projector. "Onthouden" (remember) is here the word for the
+    // prompt cache: what the model does not need to re-read from the previous turn — precisely
+    // what the room must see.
     'automations.builder.act.add_steps': '{n} stappen toegevoegd',
     'automations.builder.act.add_step_one': '1 stap toegevoegd',
     'automations.builder.thinking': 'Aan het denken…',
@@ -276,10 +276,10 @@ const NL_TRANSLATIONS = {
     'automations.canvas.present.on': 'Presentatiemodus',
     'automations.canvas.present.off': 'Presentatiemodus verlaten',
     'automations.canvas.present.hint': 'Grotere kaarten en tekst voor een beamer — Shift+P',
-    // ── Gegevens uitlezen + de rij-editor voor Nextcloud Tables (2026-09-12) ──
-    // Het instellingenpaneel van het nieuwe steptype `data_extraction`, en de
-    // kolombewuste editor die een Tables-rij per kolom laat invullen in plaats
-    // van als kale JSON. `automations.ndv.` is van deze migratie, dus hier.
+    // ── Extracting data + the row editor for Nextcloud Tables (2026-09-12) ──
+    // The settings panel of the new step type `data_extraction`, and the column-aware
+    // editor that lets a Tables row be filled in per column instead of as bare JSON.
+    // `automations.ndv.` comes from this migration, hence it is here.
     'automations.ndv.extraction.source': 'Tekst om te lezen',
     'automations.ndv.extraction.fields': 'Velden om uit te lezen',
     'automations.ndv.extraction.add_field': 'Veld toevoegen',
@@ -338,9 +338,9 @@ const NL_TRANSLATIONS = {
     'automations.ndv.not_run_yet': 'nog niet gedraaid',
     'automations.ndv.runs_n_times': 'draait {n}×',
     'automations.ndv.runs_n_times_per': 'draait {n}× · één per {list}',
-    // De werkbalk van de lade en de uitvoer-editor. "Vastzetten" volgt de
-    // kaartbadge ('vastgezet'); "stap" waar het Engels "node" zegt, omdat de
-    // rest van dit canvas nooit "node" tegen de gebruiker zegt.
+    // The toolbar of the drawer and the output editor. "Vastzetten" (pin) follows the
+    // card badge ('vastgezet' = pinned); "stap" (step) where English says "node", because the
+    // rest of this canvas never says "node" to the user.
     'automations.ndv.output': 'Uitvoer',
     'automations.ndv.output_json': 'Uitvoer-JSON',
     'automations.ndv.show_input': 'Invoer tonen',
@@ -378,8 +378,8 @@ const NL_TRANSLATIONS = {
     'automations.ndv.drawer_columns': 'Kolommen van de lade',
     'automations.ndv.resize_column': 'Kolombreedte aanpassen',
     'automations.ndv.resize_editor': 'Grootte van de stapeditor aanpassen',
-    // Uitvoer met de hand schrijven: een vervanger voor echte gegevens, zodat
-    // de stappen erna gebouwd en getest kunnen worden vóór de eerste run.
+    // Writing output by hand: a stand-in for real data, so that the steps after it can be built
+    // and tested before the first run.
     'automations.ndv.edit_output_hint': 'Schrijf de uitvoer van deze stap met de hand, zodat de stappen erna gebouwd en getest kunnen worden voordat deze ooit heeft gedraaid',
     'automations.ndv.output_editor_hint': 'Wat de stappen na deze moeten zien. Wordt met de automatisering opgeslagen en afgespeeld in plaats van deze stap te draaien — een vervanger voor echte gegevens dus, geen notitie.',
     'automations.ndv.save_output': 'Uitvoer opslaan',
@@ -396,8 +396,8 @@ const NL_TRANSLATIONS = {
     // ── De voettekst van het instellingenformulier (artboard 2b) ────────────
     'automations.builder.one_field_empty': '1 veld nog leeg',
     'automations.builder.n_fields_empty': '{n} velden nog leeg',
-    // Als de toolgegevens van een stap niet laden kan de voettekst de velden
-    // niet tellen; dat zegt hij dan, in plaats van "0 velden nog leeg".
+    // If a step's tool data does not load, the footer cannot count the fields;
+    // it says so, instead of "0 fields still empty".
     'automations.builder.fields_unknown': 'De velden kunnen niet worden gecontroleerd',
     'automations.builder.fields_unknown_hint': 'De toolgegevens van deze stap konden niet worden geladen, dus de verplichte velden zijn niet te controleren. Laad de pagina opnieuw om het nog eens te proberen.',
 
@@ -443,9 +443,8 @@ const SAME_AS_ENGLISH = [
     'automations.ndv.in',
     'automations.ribbon.ai',
     'automations.ribbon.trigger',
-    // "Apps" — het lintkopje naast Vaak gebruikt. Nederlands gebruikt
-    // hetzelfde woord, dus een seed hier is niet van onvertaald te
-    // onderscheiden.
+    // "Apps" — the ribbon heading next to Vaak gebruikt (often used). Dutch uses
+    // the same word, so a seed here cannot be told apart from an untranslated one.
     'automations.ribbon.apps',
     // "Google Workspace" and "Microsoft 365", the ribbon tabs of those two
     // suites: product names, written exactly the same in Dutch.

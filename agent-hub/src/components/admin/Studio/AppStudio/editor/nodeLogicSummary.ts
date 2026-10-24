@@ -90,10 +90,8 @@ export function eventText(t: TranslateFn, event: string): string {
         case 'onRowSelect': return t('app_studio.inspector.when_row_selected', 'When a row is selected');
         case 'onCardMove': return t('app_studio.inspector.when_card_moved', 'When a card is moved');
         case 'onChange': return t('app_studio.inspector.when_changed', 'When it changes');
-        // Het slot van approval_list. De sleutel stond al in beide
-        // woordenboeken en werd alleen door ActionsSection gelezen; zonder deze
-        // arm zette de `default` hieronder de rauwe identifier "onDecided" in
-        // een zin die een bouwer leest.
+        // The slot of approval_list. The key already stood in both dictionaries and was read only by ActionsSection;
+        // without this arm the `default` below put the raw identifier "onDecided" into a sentence that a builder reads.
         case 'onDecided': return t('app_studio.inspector.when_decided', 'When a decision is made');
         // A slot added to NODE_EVENTS and not to this switch. The raw name is
         // wrong but it is at least the truth; silence would hide the wiring.
@@ -213,17 +211,14 @@ export function subtreeHasLogic(node: AppNode | null | undefined, definition: Ap
 }
 
 /**
- * How many pieces of logic an app carries, over every screen: every event slot
- * that points at an action, on every node of every screen (containers
- * included). Rules that only shape a component (visibility, validation,
+ * How many pieces of logic an app carries, over every screen: every event slot that points at an action, on
+ * every node of every screen (containers included). Rules that only shape a component (visibility, validation,
  * computed) are not "logic you wired", so they do not count.
  *
- * NIET LANGER de badge van het "Logic n"-segment. Dat getal komt sinds de
- * Logica-tab uit `editor/logicRows.countWiredLogic`, dat dezelfde rijen telt
- * als de tabel eronder — inclusief de zes actie-oppervlakken die deze functie
- * niet kent. Twee tellers voor hetzelfde segment is precies de drift die dat
- * getal onbetrouwbaar maakte; wat hier overblijft is de eventtelling, en die
- * heet ook zo.
+ * NO LONGER the badge of the "Logic n" segment. That number has come from `editor/logicRows.countWiredLogic`
+ * since the Logic tab, which counts the same rows as the table below it — including the six action surfaces
+ * that this function does not know. Two counters for the same segment is exactly the drift that made that
+ * number unreliable; what remains here is the event count, and it is also called that.
  */
 export function countLogicMarks(definition: AppDefinition | null | undefined): number {
     let n = 0;
@@ -244,11 +239,10 @@ export function countLogicMarks(definition: AppDefinition | null | undefined): n
  * Every logic mark in the app with the screen and component it sits on.
  * → [{ screenId, screenName, nodeId, nodeType, mark }]
  *
- * Was de bron van de Logica-weergave; die rol is naar editor/logicRows.js
- * gegaan, dat óók de onbedrade slots en de zes actie-oppervlakken telt. Wat
- * hier staat is de gelokaliseerde variant van nodeLogicSummary — dezelfde
- * marks, met scherm en component erbij — en het blijft de vorm die een lezer
- * wil die alleen de BEDRADE logica hoeft te weten.
+ * Was the source of the Logic view; that role has moved to editor/logicRows.js, which ALSO counts the unwired
+ * slots and the six action surfaces. What is here is the localised variant of nodeLogicSummary — the same marks,
+ * with screen and component added — and it remains the shape a reader wants who needs to know only the WIRED
+ * logic.
  */
 export function collectLogicMarks(definition: AppDefinition | null | undefined, titleFor: TitleFor | null = null, t: TranslateFn = EN_ONLY): LocatedLogicMark[] {
     const rows: LocatedLogicMark[] = [];

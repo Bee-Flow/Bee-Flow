@@ -5,13 +5,13 @@ import { getToolLabel, getToolIcon, toolNameToCatalogId } from '../../../utils/h
 import AppEmoji from '../../icons/AppEmoji';
 
 /**
- * Tools Used — vertical timeline inside "How I got this answer".
+ * Tools Used: vertical timeline inside "How I got this answer".
  * Lifted verbatim out of MessageItem/index.jsx; the caller still owns the
  * `visibleTools.length > 0` gate.
  *
- * Het bolletje, de verbindingslijn en de duurpil staan sinds A4 in
- * `timelineParts.jsx`: het spoorpaneel toont dezelfde soort lijst en moet er
- * dezelfde bolletjes en dezelfde afronding op de duur bij krijgen.
+ * The dot, the connecting line and the duration pill have since A4 lived in
+ * `timelineParts.jsx`. The trail panel shows the same kind of list and must get
+ * the same dots and the same rounding on the duration.
  */
 interface ToolsUsedTimelineProps {
     visibleTools: ToolEntry[];

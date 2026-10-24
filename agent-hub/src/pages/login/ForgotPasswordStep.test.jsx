@@ -41,21 +41,21 @@ describe('asking where to send the link', () => {
         expect(send).not.toBeDisabled();
     });
 
-    // wrat: de bron doet `if (email.trim()) onSubmit(email.trim())`, maar het
-    // veld is type="email" en dat saneert zijn eigen waarde — jsdom net zo goed
-    // als een echte browser strippen omringende spaties vóór `setEmail`. Die
-    // twee `.trim()`-aanroepen zijn achter dit veldtype dus dode code: haal ze
-    // weg en er verandert niets. Ze bewaken niets, ze suggereren alleen dat de
-    // component zelf saneert. Hoort in stage L16 te veranderen (of de trim
-    // verdwijnt, of het veld wordt type="text" en de trim gaat écht werken).
-    // De twee tests hieronder pinnen daarom wat er wél gebeurt: het INVOERVELD
-    // saneert, en pas dáárna kijkt de component ernaar.
+    // Issue: the source does `if (email.trim()) onSubmit(email.trim())`, but the field is
+    // type="email", and that sanitises its own value. jsdom just as well as a real
+    // browser strips surrounding spaces before `setEmail`. Those two `.trim()` calls
+    // are therefore dead code behind this field type: remove them and nothing changes.
+    // They guard nothing. They only suggest that the component sanitises itself. To be
+    // changed in stage L16 (either the trim goes, or the field becomes type="text" and
+    // the trim really works).
+    // The two tests below therefore pin what does happen: the INPUT FIELD sanitises,
+    // and only afterwards does the component look at it.
     it('never sees the padding around an address — the email field strips it first', () => {
         const { container, p } = renderStep();
         const input = screen.getByTestId('forgot-email-input');
         fireEvent.change(input, { target: { value: '  ada@example.com  ' } });
-        // Dit is de assertie die het mechanisme vasthoudt: de waarde is al
-        // schoon in het veld, niet pas in de submit-handler.
+        // This is the assertion that holds the mechanism: the value is already clean in the
+        // field, not only in the submit handler.
         expect(input).toHaveValue('ada@example.com');
         fireEvent.submit(container.querySelector('form'));
         expect(p.onSubmit).toHaveBeenCalledWith('ada@example.com');
@@ -65,10 +65,10 @@ describe('asking where to send the link', () => {
         const { container, p } = renderStep();
         const input = screen.getByTestId('forgot-email-input');
         fireEvent.change(input, { target: { value: '   ' } });
-        // Zelfde sanitisatie: het veld is leeg, dus de knop wordt niet wakker …
+        // Same sanitising: the field is empty, so the button does not wake up …
         expect(input).toHaveValue('');
         expect(screen.getByText('Send reset link').closest('button')).toBeDisabled();
-        // … en een submit die er langs geforceerd wordt, geeft niets door.
+        // … and a submit that is forced past it passes nothing on.
         fireEvent.submit(container.querySelector('form'));
         expect(p.onSubmit).not.toHaveBeenCalled();
     });
@@ -86,11 +86,10 @@ describe('after the address has been submitted', () => {
         expect(screen.getByText("If an account exists for that email, we've sent a password reset link. Check your inbox.")).toBeInTheDocument();
     });
 
-    // wrat: `sent` is the ONLY thing that decides this screen, and LoginPage
-    // flips it in the catch branch too — so a request that never left the
-    // browser looks exactly like a delivered mail. Deliberate for account
-    // enumeration, misleading for an offline user. Hoort in stage L16 te
-    // veranderen (een aparte netwerkfout, zonder het bestaan te verklappen).
+    // Issue: `sent` is the ONLY thing that decides this screen, and LoginPage flips it in
+    // the catch branch too. So a request that never left the browser looks exactly like a
+    // delivered mail. Deliberate for account enumeration, misleading for an offline user.
+    // To be changed in stage L16 (a separate network error, without revealing existence).
     it('offers no retry and no error state at all once sent', () => {
         renderStep({ sent: true });
         expect(screen.queryByTestId('forgot-email-input')).toBeNull();

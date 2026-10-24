@@ -1,18 +1,16 @@
 /**
- * "What changed" tussen twee versies van een Blueprint.
+ * "What changed" between two versions of a Blueprint.
  *
- * Twee lagen, en de tests gaan vooral over het onderscheid ertussen:
+ * Two layers, and the tests chiefly concern the distinction between them:
  *
- *   1. de BOOLEAN DIFF (added/changed/unchanged) is exact, komt uit dezelfde
- *      hashDefinition als de upgrade, en is er altijd — ook als er geen model,
- *      geen provider en geen netwerk is;
- *   2. de `text` is een fast-tier zin over de VORM van de wijziging, en mag
- *      omvallen. Valt hij om, dan staat er geen verzonnen zin maar géén zin,
- *      en het verschil met "er is niets veranderd" moet leesbaar blijven.
+ *   1. the BOOLEAN DIFF (added/changed/unchanged) is exact, comes from the same
+ *      hashDefinition as the upgrade, and is always there — also when there is no model,
+ *      no provider and no network;
+ *   2. the `text` is a fast-tier sentence about the SHAPE of the change, and may fall over. Should it do so, then there is no
+ *      invented sentence but NO sentence, and the difference from "nothing has changed" must remain legible.
  *
- * En de derde as: PRIVACY. De JSON-diff van een entiteit kan klantgegevens
- * bevatten. Wat naar het model gaat is een allow-list van velden en van
- * waardepaden — nooit de diff zelf.
+ * And the third axis: PRIVACY. The JSON diff of an entity may contain customer data. What goes to the model is an allow-list of fields and of
+ * value paths — never the diff itself.
  *
  * Run: cd server && node --test projects/packaging/releaseNotes.test.js
  */
@@ -40,7 +38,7 @@ function manifestOf(entities, version = 1) {
     };
 }
 
-/** Een automatisering zoals capture hem oplevert: `title`, niet `name`. */
+/** An automation as capture delivers it: `title`, not `name`. */
 function automation(overrides = {}) {
     return {
         ref: 'aut_1',
@@ -88,7 +86,7 @@ function llm({ summary = 'Een stap erbij die een e-mail verstuurt.', chat, model
     };
 }
 
-/** Alles wat naar het model ging, als één doorzoekbare string. */
+/** Everything that went to the model, as one searchable string. */
 function wireText(sent) {
     return sent
         .filter(s => Array.isArray(s.messages))
@@ -123,8 +121,8 @@ test('toegevoegd, gewijzigd en ongewijzigd — alle drie exact, zonder één mod
 });
 
 test('een sleutel in een andere volgorde is geen wijziging — jsonb bewaart geen key-volgorde', () => {
-    // Dit is de reden dat er precies één hasher in dit product is. Een gewone
-    // JSON.stringify zou byte-identieke inhoud hier verschillend hashen.
+    // This is the reason that there is exactly one hasher in this product. A plain
+    // JSON.stringify would hash byte-identical content differently.
     const a = manifestOf({ apps: [{ ref: 'app_1', name: 'Orders', description: 'x', icon: 'box' }] });
     const b = manifestOf({ apps: [{ ref: 'app_1', icon: 'box', description: 'x', name: 'Orders' }] });
     assert.strictEqual(diffEntities({ previousManifest: a, manifest: b })[0].change, 'unchanged');
@@ -136,9 +134,8 @@ test('de eerste versie heeft geen voorganger: alles is toegevoegd', () => {
 });
 
 test('alle zes soorten krijgen een exacte diff — ook tabellen en kennisbanken', () => {
-    // De upgrade KAN die twee niet vergelijken (er is geen levende payload om
-    // tegen te hashen). Deze diff vergelijkt manifest tegen manifest, dus hier
-    // kan het wel — en dat is precies het verschil in vraagstelling.
+    // The upgrade CANNOT compare those two (there is no live payload to hash against). This diff compares manifest
+    // against manifest, so here it can — and that is precisely the difference in the question asked.
     const before = manifestOf({
         automations: [{ ref: 'aut_1', title: 'A' }],
         apps: [{ ref: 'app_1', name: 'A' }],
@@ -165,10 +162,8 @@ test('alle zes soorten krijgen een exacte diff — ook tabellen en kennisbanken'
 });
 
 test('de boolean diff kijkt naar de HELE entiteit, ook naar een veld dat het model nooit ziet', () => {
-    // De twee lagen hebben verschillende reikwijdtes, met opzet: de diff is
-    // exact over alles, de allow-list bepaalt alleen wat er beschreven mag
-    // worden. Een wijziging in een niet-beschrijfbaar veld is dus wél een
-    // wijziging — er is alleen niemand die er een zin over schrijft.
+    // The two layers have different scopes, on purpose: the diff is exact over everything, the allow-list determines only what may be
+    // described. A change in a non-describable field is therefore still a change — there is simply nobody who writes a sentence about it.
     const before = manifestOf({ apps: [{ ref: 'app_1', name: 'Orders', somethingNextYear: { a: 1 } }] });
     const after = manifestOf({ apps: [{ ref: 'app_1', name: 'Orders', somethingNextYear: { a: 2 } }] });
 
@@ -181,9 +176,8 @@ test('de boolean diff kijkt naar de HELE entiteit, ook naar een veld dat het mod
 });
 
 test('een entiteit die de nieuwe versie niet meer bevat krijgt geen regel', () => {
-    // Het notitieblok is de inhoudsopgave van de NIEUWE versie, en de drie
-    // toestanden zijn added/changed/unchanged. Een installatie verwijdert
-    // bovendien nooit iets, dus "removed" zou iets beloven wat niet gebeurt.
+    // The notes block is the table of contents of the NEW version, and the three
+    // states are added/changed/unchanged. An installation moreover never deletes anything, so "removed" would promise something that does not happen.
     const before = manifestOf({ automations: [automation(), automation({ ref: 'aut_2', title: 'Weg' })] });
     const after = manifestOf({ automations: [automation()] }, 2);
     assert.deepStrictEqual(
@@ -233,15 +227,15 @@ test('een omgevallen modelaanroep laat GEEN verzonnen zin achter, en houdt de pu
     });
 
     const notes = await buildReleaseNotes({ previousManifest: before, manifest: after, userId: 'u_1', deps });
-    // De exacte diff staat er nog — dat is de laag die niet kan omvallen.
+    // The exact diff is still there — that is the layer that cannot fall over.
     assert.deepStrictEqual(notes.map(n => n.change), ['changed', 'changed']);
     assert.strictEqual(notes[0].text, null, 'geen zin, geen verzinsel');
     assert.strictEqual(notes[1].text, 'De omschrijving is bijgewerkt.', 'één omgevallen aanroep bevriest de rest niet');
 });
 
 test('null bij "changed" is een ONTBREKENDE samenvatting; null bij "unchanged" is geen nieuws', () => {
-    // Die twee door elkaar halen is het verschil tussen "geen nieuws" en "we
-    // konden het niet opschrijven". Er is één plek waar die vraag hoort.
+    // Confusing those two is the difference between "no news" and "we
+    // could not write it down". There is one place where that question belongs.
     assert.strictEqual(summaryMissing({ change: 'changed', text: null }), true);
     assert.strictEqual(summaryMissing({ change: 'changed', text: '' }), true);
     assert.strictEqual(summaryMissing({ change: 'unchanged', text: null }), false);
@@ -251,9 +245,9 @@ test('null bij "changed" is een ONTBREKENDE samenvatting; null bij "unchanged" i
 });
 
 test('geen geconfigureerd model = geen zin, geen fout', async () => {
-    // resolveModelForTierName geeft null als niemand er een geconfigureerd
-    // heeft. Dat is een echt antwoord, geen storing — en geen reden om terug te
-    // vallen op een model dat deze werkruimte nooit gekozen heeft.
+    // resolveModelForTierName returns null if nobody has configured one.
+    // That is a real answer, not a fault — and no reason to fall back on a model that this workspace
+    // never chose.
     const before = manifestOf({ automations: [automation()] });
     const after = manifestOf({ automations: [automation({ description: 'anders' })] }, 2);
     const { deps, sent } = llm({ model: null });
@@ -273,8 +267,8 @@ test('een onleesbare modelconfig gooit niet — de notes komen gewoon terug', as
 });
 
 test('de tier-resolutie krijgt org-context mee', async () => {
-    // Zonder org negeert de resolutie de org-overrides en de EU-modus, en dan
-    // ziet een ander model de tekst dan de werkruimte gekozen heeft.
+    // Without an org the resolution ignores the org overrides and the EU mode, and then
+    // a different model sees the text than the one the workspace chose.
     const before = manifestOf({ automations: [automation()] });
     const after = manifestOf({ automations: [automation({ description: 'anders' })] }, 2);
     const { deps, sent } = llm();
@@ -345,9 +339,8 @@ test('de envelop is wat publishRelease aanneemt: een plat object, geen array', (
 });
 
 test('een notitie die niet past laat de publicatie niet afketsen — hij krimpt', () => {
-    // Over MAX_NOTES_BYTES gooit publishRelease, en dan houdt een NOTITIE een
-    // publicatie tegen. Krimpen in de goede volgorde: eerst de zinnen (de
-    // verrijking), dan de ongewijzigde regels (het minste nieuws).
+    // Over MAX_NOTES_BYTES publishRelease throws, and then a NOTE holds back a
+    // publication. Shrink in the right order: first the sentences (the enrichment), then the unchanged lines (the least news).
     const rows = [];
     for (let i = 0; i < 400; i++) {
         rows.push({
@@ -378,9 +371,9 @@ test('zelfs een absurd kleine grens levert een geldig object op', () => {
 // ── Privacy: de allow-list ─────────────────────────────────────────────────
 
 test('GEEN klantgegeven uit de diff verlaat het systeem', async () => {
-    // Dit is de test die de kaart bedoelt: de JSON-diff van een entiteit kan
-    // een klantnaam, een e-mailadres en een factuurnummer bevatten. Wat naar
-    // het model gaat is de VORM van de wijziging, nooit de inhoud.
+    // This is the test that the card means: the JSON diff of an entity can
+    // contain a customer name, an e-mail address and an invoice number. What goes to the
+    // model is the SHAPE of the change, never the content.
     const before = manifestOf({ automations: [automation()] });
     const after = manifestOf({
         automations: [automation({
@@ -408,8 +401,8 @@ test('GEEN klantgegeven uit de diff verlaat het systeem', async () => {
 });
 
 test('de NAAM van de entiteit gaat niet mee — het scherm toont hem zelf', async () => {
-    // Een automatisering kan naar een klant genoemd zijn. De note-rij draagt de naam
-    // al, dus het model heeft hem niet nodig om een zin te schrijven.
+    // An automation may be named after a customer. The note row already carries the name,
+    // so the model does not need it to write a sentence.
     const before = manifestOf({ automations: [automation({ title: 'Oude naam' })] });
     const after = manifestOf({ automations: [automation({ title: 'Herinnering Van Dijk BV' })] }, 2);
 
@@ -431,8 +424,8 @@ test('de NAAM van de entiteit gaat niet mee — het scherm toont hem zelf', asyn
 });
 
 test('een veld dat volgend jaar wordt toegevoegd bereikt het model niet vanzelf', () => {
-    // Allow-list, geen deny-list. Dit is de CLAUDE.md-regel: bouw de payload
-    // uit een expliciete lijst, verwijder nooit sleutels uit een object.
+    // Allow-list, not deny-list. This is the CLAUDE.md rule: build the payload
+    // from an explicit list, never remove keys from an object.
     const before = { ref: 'agt_1', name: 'Helper', notebookIds: ['nb_klantdossier_van_dijk'] };
     const after = { ref: 'agt_1', name: 'Helper', notebookIds: ['nb_klantdossier_van_dijk', 'nb_2'] };
     assert.strictEqual(modelPayload('agent', before, after), null);
@@ -454,7 +447,7 @@ test('alleen paden uit een GESLOTEN vocabulaire dragen hun waarde mee', () => {
     const payload = modelPayload('datatable', before, after);
     const json = JSON.stringify(payload);
 
-    // rowScope en het kolomTYPE komen uit een vaste lijst en mogen mee.
+    // rowScope and the column TYPE come from a fixed list and may go along.
     assert.ok(payload.changes.some(c => c.path === 'rowScope' && c.value === 'own'));
     assert.ok(payload.changes.some(c => c.path === 'columns[].type' && c.value === 'number' && c.change === 'added'));
     // De kolomNAAM is door iemand ingetypt en gaat nooit mee.
@@ -463,10 +456,10 @@ test('alleen paden uit een GESLOTEN vocabulaire dragen hun waarde mee', () => {
 });
 
 test('een waarde die WEL als token leest maar op geen toegelaten pad staat, reist niet mee', () => {
-    // Het eerste slot, apart getoetst. Niet elk persoonsgegeven bevat een spatie
-    // of een apenstaartje: een telefoonnummer, een klantnummer en een URL met
-    // een bedrijfsnaam erin lezen alle drie als keurig token. Ze mogen niet mee
-    // omdat hun PAD er niet bij staat — niet omdat hun vorm ze verraadt.
+    // The first slot, tested separately. Not every item of personal data contains a space
+    // or an at-sign: a telephone number, a customer number and a URL with a company name in it all read
+    // as a neat token. They may not go along because their PATH is not there — not because their
+    // shape gives them away.
     const before = {
         ref: 'aut_1',
         definition: { trigger: { type: 'webhook', url: 'https://oud.example.nl/hook', phone: '0611111111' } },
@@ -483,8 +476,8 @@ test('een waarde die WEL als token leest maar op geen toegelaten pad staat, reis
     assert.match(json, /definition\.trigger\.url/);
     assert.match(json, /definition\.trigger\.phone/);
 
-    // Hetzelfde voor twee velden die WEL in FIELD_ALLOW staan: het pad mag
-    // beschreven worden, de waarde reist niet mee.
+    // The same for two fields that ARE in FIELD_ALLOW: the path may
+    // be described, the value does not travel along.
     const agent = modelPayload('agent',
         { ref: 'agt_1', model: 'claude-opus-5' },
         { ref: 'agt_1', model: 'mistral-small-latest' });
@@ -497,8 +490,8 @@ test('een waarde die WEL als token leest maar op geen toegelaten pad staat, reis
 });
 
 test('een enorme wijziging levert een begrensd aantal feiten op', () => {
-    // Een muur van paden leest geen model, en elk pad is een stukje
-    // sleutelvocabulaire dat het huis verlaat. Begrensd, dus.
+    // A wall of paths is not read by a model, and each path is a piece of key vocabulary
+    // that leaves the house. Bounded, therefore.
     const wide = (n, offset) => {
         const definition = {};
         for (let i = 0; i < n; i++) definition[`veld_${i}`] = i + offset;
@@ -507,17 +500,16 @@ test('een enorme wijziging levert een begrensd aantal feiten op', () => {
     const payload = modelPayload('app', wide(200, 0), wide(200, 1));
     assert.ok(payload.changes.length <= MAX_FACTS, `${payload.changes.length} feiten`);
 
-    // Ook langs de array-kant, waar de feiten in één ronde worden opgestapeld
-    // in plaats van per sleutel opnieuw langs de grens te komen.
+    // Also on the array side, where the facts are piled up in one round
+    // rather than passing the bound again per key.
     const steps = (n) => ({ ref: 'aut_1', definition: { steps: Array.from({ length: n }, (_, i) => ({ id: `s${i}`, type: `type_${i}` })) } });
     const many = modelPayload('automation', steps(1), steps(60));
     assert.ok(many.changes.length <= MAX_FACTS, `${many.changes.length} feiten uit een array`);
 });
 
 test('vrije tekst op een toegelaten waardepad valt alsnog af', () => {
-    // Het tweede slot. Mocht er ooit vrije tekst op een pad uit VALUE_PATHS
-    // belanden, dan reist de waarde niet mee — het feit dat het veld wijzigde
-    // wel.
+    // The second slot. Should free text ever land on a path from VALUE_PATHS,
+    // then the value does not travel along — the fact that the field changed still does.
     const before = { ref: 'aut_1', triggerType: 'manual' };
     const after = { ref: 'aut_1', triggerType: 'mail van jan@vandijk.nl' };
     const payload = modelPayload('automation', before, after);
@@ -526,8 +518,8 @@ test('vrije tekst op een toegelaten waardepad valt alsnog af', () => {
 });
 
 test('een objectsleutel die geen schema is, wordt geen pad', () => {
-    // Sleutels zijn normaal schema (`steps`, `config`), maar een formulier kan
-    // op een e-mailadres gesleuteld zijn. Dan is de sleutel data.
+    // Keys are normally schema (`steps`, `config`), but a form may be
+    // keyed on an e-mail address. Then the key is data.
     const before = { ref: 'app_1', definition: { responses: { 'jan@vandijk.nl': { seen: false } } } };
     const after = { ref: 'app_1', definition: { responses: { 'jan@vandijk.nl': { seen: true } } } };
     const json = JSON.stringify(modelPayload('app', before, after));
@@ -558,9 +550,9 @@ test('de payload is precies { kind, changes } — geen rij, geen entiteit', asyn
 });
 
 test('het model wordt verteld dat het niets mag verzinnen wat het niet ziet', async () => {
-    // Het krijgt alleen paden. Zonder deze instructie vult een model de
-    // ontbrekende waarden zelf in, en dan staat er een verzonnen e-mailadres in
-    // de releasenotitie.
+    // It receives only paths. Without this instruction a model fills in the
+    // missing values itself, and then an invented e-mail address ends up in
+    // the release note.
     const before = manifestOf({ automations: [automation()] });
     const after = manifestOf({ automations: [automation({ description: 'anders' })] }, 2);
     const { deps, sent } = llm();
@@ -595,11 +587,11 @@ test('een wijziging binnen een stap is een feit zonder inhoud', () => {
 });
 
 test('VALUE_PATHS en FIELD_ALLOW zijn bevroren lijsten, geen berekende', () => {
-    // Een allow-list die ergens wordt aangevuld is geen allow-list meer.
+    // An allow-list that is topped up somewhere is no longer an allow-list.
     assert.ok(Object.isFrozen(FIELD_ALLOW));
     for (const list of Object.values(FIELD_ALLOW)) assert.ok(Object.isFrozen(list));
-    // Een Set is met Object.freeze NIET bevroren (het slot zit op de eigen
-    // properties, niet op de inhoud), dus de lijst is een bevroren array.
+    // A Set is NOT frozen by Object.freeze (the lock sits on the own
+    // properties, not on the content), so the list is a frozen array.
     assert.ok(Object.isFrozen(VALUE_PATHS));
     assert.ok(Array.isArray(VALUE_PATHS));
     assert.throws(() => VALUE_PATHS.push('systemPrompt'), 'de lijst kan niet elders aangevuld worden');
@@ -616,7 +608,7 @@ test('summariseChange gooit nooit — ook niet zonder deps of met een kapotte cl
     const nonsense = { llmClient: { chatForcedTool: async () => ({ structured: { summary: {} } }) }, resolveModelForTierName: async () => 'm' };
     assert.strictEqual(await summariseChange({ kind: 'automation', before: entity, after: changed, deps: nonsense }), null);
 
-    // Een onbekend soort heeft geen allow-list en dus geen payload.
+    // An unknown kind has no allow-list and therefore no payload.
     assert.strictEqual(await summariseChange({ kind: 'notebook', before: entity, after: changed, deps: nonsense }), null);
 });
 
@@ -634,11 +626,11 @@ test('buildReleaseNotes gooit niet als de hele tekstlaag omvalt', async () => {
 // ── De begrenzing op een aanroep die nooit settelt ─────────────────────────
 
 test('withTimeout laat een belofte die NOOIT settelt niet eeuwig hangen', async () => {
-    // Dit is het enige dat een half-open socket begrenst: geen antwoord, geen
-    // fout. De deadline in describeChanges redt het niet — die wordt getoetst
-    // VOOR de await, niet tijdens. Haalt iemand de race weg, dan hangt de
-    // aanroeper voor altijd, en zodra een route hem await hangt daarmee het
-    // publicatieverzoek zelf.
+    // This is the only thing that bounds a half-open socket: no answer, no
+    // error. The deadline in describeChanges does not rescue it — that is checked
+    // BEFORE the await, not during. Should someone remove the race, then the
+    // caller hangs forever, and as soon as a route awaits it, the publication
+    // request itself hangs with it.
     const never = new Promise(() => {});
     await assert.rejects(() => withTimeout(never, 10, 'release note'), /release note timed out after 10ms/);
 });
@@ -673,11 +665,10 @@ test('een aanroep die blijft hangen levert GEEN zin, en houdt niets tegen', asyn
 // ── Wiens model: onbekend versmalt ─────────────────────────────────────────
 
 test('zonder gebruiker vertrekt er GEEN modelaanroep', async () => {
-    // Een tier-resolutie zonder gebruiker negeert de org-override én de EU-modus
-    // (modelResolver.applyEUOverrides/isEUModeActive) en valt terug op de
-    // GLOBALE fast-tier. Dan zou de vorm van andermans Oplossing naar het model
-    // van de instantie gaan in plaats van naar het model dat die werkruimte
-    // koos. Onbekend hoort te versmallen, niet te verbreden.
+    // A tier resolution without a user ignores the org override AND the EU mode
+    // (modelResolver.applyEUOverrides/isEUModeActive) and falls back to the
+    // GLOBAL fast tier. Then the shape of someone else's Solution would go to the model
+    // of the instance rather than to the model that this workspace chose. Unknown should narrow, not widen.
     const before = manifestOf({ automations: [automation()] });
     const after = manifestOf({ automations: [automation({ description: 'anders' })] }, 2);
 
@@ -689,8 +680,8 @@ test('zonder gebruiker vertrekt er GEEN modelaanroep', async () => {
 });
 
 test('een persoonlijk project zonder organisatie mag wél — de gebruiker beslist', async () => {
-    // `userOrgId` mag null zijn: een project zonder organisatie heeft er geen.
-    // De gebruiker is de context die de EU-modus en de Privacy Shield draagt.
+    // `userOrgId` may be null: a project without an organisation has none.
+    // The user is the context that carries the EU mode and the Privacy Shield.
     const before = manifestOf({ automations: [automation()] });
     const after = manifestOf({ automations: [automation({ description: 'anders' })] }, 2);
 
@@ -714,11 +705,10 @@ test('summariseChange zonder gebruiker resolveert niets en roept niets aan', asy
 // ── De middelste krimpstap ────────────────────────────────────────────────
 
 test('de tweede krimpstap houdt ALLE regels en haalt alleen de zinnen weg', async () => {
-    // De bestaande krimptest raakt alleen de derde tak (de halveringslus). Deze
-    // raakt de tweede, en die tak draagt het enige signaal dat "we konden het
-    // niet opschrijven" van "de zinnen zijn eruit gehaald om te passen"
-    // scheidt: `textsDropped`. Staat die vlag verkeerd, dan leest elke
-    // gewijzigde regel op het scherm als een mislukte samenvatting.
+    // The existing shrink test touches only the third branch (the halving loop). This
+    // one touches the second, and that branch carries the only signal that separates "we could not
+    // write it down" from "the sentences were removed to make it fit": `textsDropped`. If that flag is
+    // wrong, every changed line on the screen reads as a failed summary.
     const rows = Array.from({ length: 40 }, (_, i) => ({
         kind: 'automation', entityId: `aut_${i}`, name: `Automation ${i}`,
         change: 'changed', text: 'T'.repeat(150),
@@ -734,15 +724,14 @@ test('de tweede krimpstap houdt ALLE regels en haalt alleen de zinnen weg', asyn
     assert.ok(payload.entities.every(n => n.text === null));
     assert.ok(Buffer.byteLength(JSON.stringify(payload), 'utf8') <= budget);
 
-    // En de valkuil die deze vlag afdekt: zonder hem is elke rij hier
-    // "we konden het niet opschrijven", terwijl de zin er WEL was.
+    // And the pitfall that this flag covers: without it every row here is
+    // "we could not write it down", even though the sentence WAS there.
     assert.strictEqual(summaryMissing(payload.entities[0]), true);
 });
 
 test('een grens die kleiner is dan de lege envelop levert die lege envelop', () => {
-    // Geen oneindige lus en geen null: kleiner dan `{"entities":[],...}` kan
-    // niet, en dan is de eerlijke uitkomst de kleinste geldige envelop mét de
-    // telling van wat er niet in past.
+    // No infinite loop and no null: smaller than `{"entities":[],...}` is not possible, and then the honest
+    // outcome is the smallest valid envelope with the count of what does not fit.
     const rows = [
         { kind: 'app', entityId: 'app_1', name: 'x', change: 'changed', text: 'y' },
         { kind: 'app', entityId: 'app_2', name: 'x', change: 'unchanged', text: null },
@@ -761,11 +750,10 @@ test('de enveloppegrens is een geëxporteerde constante, geen los getal', () => 
 });
 
 test('de standaardgrenzen zijn wachttijden, geen eeuwigheden', () => {
-    // De race hierboven kapt af op `timeoutMs`, en die valt zonder opgave terug
-    // op TIMEOUT_MS. Een grens die groot genoeg is om nooit te bijten is
-    // hetzelfde als geen grens — en dan hangt de aanroeper alsnog. Beide
-    // waarden staan hier dus met een bovengrens vast; de publicatieroute zet er
-    // bovendien nog kleinere overheen (packaging.js, NOTE_CALL_TIMEOUT_MS).
+    // The race above times out at `timeoutMs`, and that falls back without a value to
+    // TIMEOUT_MS. A bound large enough never to bite is the same as no bound — and then the caller
+    // hangs regardless. Both values are therefore pinned here with an upper bound; the publication route
+    // moreover places still smaller limits on top (packaging.js, NOTE_CALL_TIMEOUT_MS).
     assert.ok(TIMEOUT_MS > 0 && TIMEOUT_MS <= 30_000, `één regel is geen ${TIMEOUT_MS}ms wachten waard`);
     assert.ok(DEADLINE_MS > 0 && DEADLINE_MS <= 60_000, `de hele tekstlaag mag geen ${DEADLINE_MS}ms duren`);
 });

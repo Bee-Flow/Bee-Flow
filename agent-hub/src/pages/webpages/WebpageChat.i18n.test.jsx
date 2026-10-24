@@ -2,13 +2,9 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 
 /**
- * WebpageChat — het paneel had al drie t()-aanroepen en zestien letterlijke
- * strings ernaast. De vier VOORBEELDPROMPTS zijn de interessante: ze zijn
- * tegelijk tekst voor de lezer én het bericht dat verstuurd wordt. Ze stonden
- * in een module-constante, waar t() nooit bij kan.
+ * WebpageChat — the panel already had three t() calls and sixteen literal strings beside them. The four EXAMPLE PROMPTS are the interesting ones: they are at once text for the reader AND the message that gets sent. They stood in a module constant, where t() could never reach them.
  *
- * t() is een MARKEERDER (`⟦sleutel⟧`); de zware kinderen zijn gemockt zodat dit
- * over dit paneel gaat en niet over de chat-invoer.
+ * t() is a MARKER (`⟦key⟧`); the heavy children are mocked so that this is about this panel and not about the chat input.
  */
 
 const t = (key, fallback, params) => {
@@ -74,7 +70,7 @@ describe('WebpageChat — i18n', () => {
             .toBe('⟦webpages.chat.placeholder⟧');
         unmount();
 
-        // Een aanroeper die zelf een placeholder meegeeft, wint nog steeds.
+        // A caller that supplies its own placeholder still wins.
         renderChat({ placeholder: 'Van de aanroeper' });
         expect(screen.getByTestId('input-area').getAttribute('data-placeholder')).toBe('Van de aanroeper');
     });
@@ -86,8 +82,8 @@ describe('WebpageChat — i18n', () => {
         expect(screen.getByText('⟦webpages.chat.empty_title⟧')).toBeInTheDocument();
         expect(screen.getByText('⟦webpages.chat.empty_body⟧')).toBeInTheDocument();
         expect(screen.getByText('⟦webpages.chat.new⟧')).toBeInTheDocument();
-        // Zonder gesprek staat er een ANDERE tooltip dan met — twee sleutels,
-        // geen samengeplakte zin.
+        // Without a conversation there is a DIFFERENT tooltip than with one — two keys,
+        // not a pasted-together sentence.
         expect(screen.getByTitle('⟦webpages.chat.new_none⟧')).toBeInTheDocument();
     });
 
@@ -98,7 +94,7 @@ describe('WebpageChat — i18n', () => {
         });
 
         expect(screen.getByText(/⟦webpages\.chat\.selection_from_preview⟧/)).toBeInTheDocument();
-        // De tag komt uit de pagina zelf; die hoort niet in het woordenboek.
+        // The tag comes from the page itself; it does not belong in the dictionary.
         expect(screen.getByText(/· <h2>/)).toBeInTheDocument();
         expect(screen.getByTitle('⟦webpages.chat.selection_remove⟧')).toBeInTheDocument();
     });

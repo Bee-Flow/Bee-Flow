@@ -1,46 +1,44 @@
 /**
- * De bestandenstrip van de Code-tab: welke bestanden HEEFT deze pagina, en hoe
- * groot zijn ze?
+ * The file strip of the Code tab: which files does this page HAVE, and how
+ * large are they?
  *
- * ── WAAROM DIT GEEN DRIE VAKJES IS ──────────────────────────────────
+ * ── WHY THIS IS NOT THREE BOXES ─────────────────────────────────────
  *
- * De drie slots heten `index.html`, `style.css` en `script.js`. Dat is een
- * bewuste afwijking van de gewoonte (`styles.css` / `app.js`) en die namen
- * liggen vast: de opslag, de bestandsverkenner, de ZIP-export en de
- * snapshot-renderer schrijven ze alle vier zo op.
+ * The three slots are called `index.html`, `style.css` and `script.js`. That is a
+ * deliberate deviation from the habit (`styles.css` / `app.js`), and those names
+ * are fixed: the storage, the file explorer, the ZIP export and the snapshot
+ * renderer all write them in exactly this way.
  *
- * Maar drie slots zijn niet het hele project, en voor de meeste pagina's niet
- * eens de hoofdmoot:
+ * But three slots are not the whole project, and for most pages not even the
+ * main part:
  *
- *   - een REACT-MUI-project (sinds `integrations/webpageFramework.js` de
- *     standaard voor élke nieuwe pagina) schrijft zijn app als extra bestanden
- *     onder `src/`; de html wordt bij het renderen gegenereerd en het css- en
- *     js-slot blijven leeg. Drie vakjes tekenen waarvan er twee leeg blijven,
- *     vertelt de auteur iets dat niet waar is;
- *   - een VANILLA-project mag `modules/state.js` of `about.html` naast de
- *     slots zetten. Die verzwijgen is net zo fout de andere kant op.
+ *   - a REACT-MUI project (since `integrations/webpageFramework.js` the default
+ *     for EVERY new page) writes its app as extra files under `src/`; the html is
+ *     generated during rendering and the css and js slots stay empty. Drawing three
+ *     boxes of which two stay empty tells the author something that is not true;
+ *   - a VANILLA project may place `modules/state.js` or `about.html` next to the
+ *     slots. Leaving those out is just as wrong, the other way round.
  *
- * Vandaar de regel hieronder: een slot komt in de strip als het inhoud heeft,
- * of als het project vanilla is (daar ZIJN de drie slots het project, ook een
- * lege). Elk extra bestand komt er altijd in, tekst of binair. En een bestand
- * dat alleen de SERVER kent — de scan vond er markeringen in, maar de editor
- * heeft het (nog) niet geladen — komt er ook in, met een onbekende grootte in
- * plaats van stilte.
+ * Hence the rule below: a slot goes into the strip if it has content, or if the
+ * project is vanilla (there the three slots ARE the project, an empty one too).
+ * Every extra file always goes in, text or binary. And a file that only the
+ * SERVER knows — the scan found marks in it, but the editor has not (yet) loaded
+ * it — goes in as well, with an unknown size instead of silence.
  *
- * ── "0 B" IS EEN BEWERING ───────────────────────────────────────────
+ * ── "0 B" IS A CLAIM ───────────────────────────────────────────────
  *
- * Een bestand waarvan we de bytes niet kennen krijgt `bytes: null`, niet 0.
- * De strip zegt daar "size unknown"; het totaal onderaan zegt erbij dat het
- * onvolledig is. Anders leest een niet-geladen bestand als een leeg bestand.
+ * A file whose bytes we do not know gets `bytes: null`, not 0.
+ * The strip says "size unknown" there; the total at the bottom says that it is
+ * incomplete. Otherwise an unloaded file would read as an empty file.
  */
 
-/** Een markering zoals de server hem teruggeeft; de strip leest alleen waar hij staat. */
+/** A mark as the server returns it; the strip only reads where it sits. */
 export interface CodeMark {
     slot?: string;
     source?: string;
 }
 
-/** Een extra bestand zoals de server het beschrijft: `{ path, size, isText, mimeType }`. */
+/** An extra file as the server describes it: `{ path, size, isText, mimeType }`. */
 export interface CodeExtraFile {
     path: string;
     size?: number;
@@ -48,7 +46,7 @@ export interface CodeExtraFile {
     mimeType?: string;
 }
 
-/** Een extra bestand zoals de editor het houdt: `{ isText, content }`. */
+/** An extra file as the editor holds it: `{ isText, content }`. */
 export interface CodeExtraContent {
     isText?: boolean;
     content?: string;
@@ -94,29 +92,29 @@ export const PRIMARY_SLOTS = Object.freeze([
 export const PRIMARY_SLOT_NAMES = Object.freeze(PRIMARY_SLOTS.map(s => s.name));
 
 /**
- * De Monaco-taal per slot. Hoort hier, bij de slotnamen zelf.
+ * The Monaco language per slot. It belongs here, next to the slot names themselves.
  *
- * Deze tabel stond teken-voor-teken twee keer in dezelfde map: in
- * WebpageIDE.jsx (de Code-tab) en in WebpageHistoryTab.jsx (het alleen-lezen
- * "Bekijk"). Niets verbond ze, dus wie de taal van een slot veranderde — 'js'
- * naar 'typescript' voor JSX — kreeg dezelfde versie in twee schermen anders
- * gekleurd.
+ * This table stood twice, character for character, in the same folder: in
+ * WebpageIDE.jsx (the Code tab) and in WebpageHistoryTab.jsx (the read-only
+ * "View"). Nothing linked them, so whoever changed the language of a slot — 'js'
+ * to 'typescript' for JSX — got the same version coloured differently in two
+ * screens.
  */
 export const SLOT_LANGUAGE = Object.freeze({ html: 'html', css: 'css', js: 'javascript' });
 
 /**
- * Bytes van een tekst in UTF-8, of `null` als we het niet kunnen weten.
+ * Bytes of a text in UTF-8, or `null` if we cannot know it.
  *
- * `String.length` telt UTF-16-eenheden en zou een é of een emoji te klein
- * maken; dit is dezelfde maat als de server op schijf zet.
+ * `String.length` counts UTF-16 units and would make an é or an emoji too small;
+ * this is the same measure the server writes to disk.
  */
 export function utf8Bytes(text: unknown): number | null {
     if (typeof text !== 'string') return null;
     try {
         return new TextEncoder().encode(text).length;
     } catch {
-        // Geen TextEncoder → onbekend, niet "ongeveer". Een fout getal is
-        // erger dan geen getal.
+        // No TextEncoder → unknown, not "roughly". A wrong number is
+        // worse than no number.
         return null;
     }
 }
@@ -130,10 +128,10 @@ export function formatBytes(bytes: unknown): string | null {
 }
 
 /**
- * De editor-sleutel van een markering: hetzelfde adres als een tab.
+ * The editor key of a mark: the same address as a tab.
  *
- * Op `slot` en niet op de bestandsnaam, want dan zou de client een tweede
- * naamlijst bijhouden naast die van de server.
+ * On `slot` and not on the file name, because otherwise the client would keep a
+ * second list of names next to the server's.
  */
 export function markFileKey(mark?: CodeMark | null): string | null {
     if (!mark) return null;
@@ -177,11 +175,11 @@ function extraEntry(meta: CodeExtraFile, extraContents: Record<string, CodeExtra
 }
 
 /**
- * De slots die deze pagina echt heeft.
+ * The slots this page really has.
  *
- * Een leeg slot van een react-mui-project is geen bestand: de html wordt
- * gegenereerd, css en js worden niet gebruikt. Bij vanilla ZIJN de drie slots
- * het project, ook een lege — daar hoort een leeg `script.js` gewoon in beeld.
+ * An empty slot of a react-mui project is not a file: the html is generated, css
+ * and js are not used. For vanilla the three slots ARE the project, an empty one
+ * too — there an empty `script.js` belongs in view.
  */
 function slotEntries({ framework, text, byFile }: {
     framework: string;
@@ -225,10 +223,9 @@ function extraEntries(
 }
 
 /**
- * Bestanden die de scan wél zag en de editor niet heeft — bijvoorbeeld eentje
- * dat de AI zojuist heeft aangemaakt. Ze horen in de strip: een markering in
- * een bestand dat er niet lijkt te zijn, is precies de stilte die deze tab
- * moet vermijden.
+ * Files that the scan DID see and the editor does not have — for example one
+ * that the AI has just created. They belong in the strip: a mark in a file that
+ * does not seem to exist is exactly the silence this tab must avoid.
  */
 function serverOnlyEntries(byFile: Map<string, CodeMark[]>, seen: Set<string>): CodeFileEntry[] {
     const out: CodeFileEntry[] = [];
@@ -250,10 +247,10 @@ function serverOnlyEntries(byFile: Map<string, CodeMark[]>, seen: Set<string>): 
 }
 
 /**
- * De strip.
+ * The strip.
  *
- * `framework` is 'vanilla' | 'react-mui' | …; `extraContents` gaat van pad naar
- * de inhoud zoals de editor het houdt; `marks` komt uit GET /:id/bindings.
+ * `framework` is 'vanilla' | 'react-mui' | …; `extraContents` goes from path to
+ * the content as the editor holds it; `marks` comes from GET /:id/bindings.
  */
 export function buildCodeFiles({
     framework = 'vanilla',

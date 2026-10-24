@@ -3,19 +3,17 @@ import { describe, it, expect } from 'vitest';
 import { dispatchSSEEvent } from '../dispatch';
 
 /**
- * De twee events van de testchat (A4 deel A) op de chatkant.
+ * The two events of the test chat (A4 part A) on the chat side.
  *
- *   `tool_confirm`  een call die de agent NIET heeft gedraaid omdat er een
- *                   mens ja moet zeggen. Dit event bestond al maanden zonder
- *                   client — het werd alleen gepersisteerd en door niemand
- *                   gelezen.
- *   `test_chat`     welke config deze beurt draaide: het concept of de
- *                   gepubliceerde blob.
+ *   `tool_confirm`  a call that the agent did NOT run because a human has to say yes.
+ *                   This event existed for months without a client. It was only
+ *                   persisted and read by nobody.
+ *   `test_chat`     which config ran this turn: the draft or the published blob.
  *
- * Wat hier getest wordt is niet "komt het aan" maar de twee manieren waarop
- * het stil fout gaat: op de VERKEERDE SLEUTEL bijhouden (dan krijgt één actie
- * twee kaarten, of erger: twee acties één kaart), en de bewering over de
- * versie uit het VERZOEK afleiden in plaats van uit het antwoord.
+ * What is tested here is not "does it arrive" but the two ways in which it goes
+ * silently wrong: by keeping track on the WRONG KEY (then one action gets two cards,
+ * or worse, two actions share one card), and by deriving the claim about the version
+ * from the REQUEST instead of from the answer.
  */
 
 const ID = 'assistant-1';
@@ -46,9 +44,9 @@ describe('tool_confirm', () => {
     });
 
     it('BIJT — dezelfde ACTIE in een nieuwe ronde is één kaart, geen tweede', () => {
-        // `callId` is elke ronde nieuw. Wie daarop bijhoudt krijgt twee kaarten
-        // voor één ding, en de tweede klik keurt dan een actie goed die de
-        // eerste al afhandelde.
+        // `callId` is new every round. Whoever keeps track on that gets two cards for one
+        // thing, and the second click then approves an action that the first already
+        // handled.
         const h = harness('tool_confirm');
         h.send(card({ callId: 'call_1' }));
         h.send(card({ callId: 'call_2', status: 'approved' }));
@@ -67,8 +65,8 @@ describe('tool_confirm', () => {
     });
 
     it('een payload zonder sleutel wordt niet als kaart aangenomen', () => {
-        // Zonder argsKey valt er niets over te beslissen: een kaart met twee
-        // knoppen die naar niets verwijzen is erger dan geen kaart.
+        // Without argsKey there is nothing to decide. A card with two buttons that point to
+        // nothing is worse than no card.
         const h = harness('tool_confirm');
         for (const data of [null, {}, { toolName: 'gmail_compose' }, { argsKey: '' }]) h.send(data);
         expect(h.msg.pendingToolCalls).toBeUndefined();
@@ -94,7 +92,7 @@ describe('test_chat', () => {
     });
 
     it('BIJT — een bron die de server niet kon vaststellen wordt niet opgepoetst', () => {
-        // De client mag "je concept" niet uit zijn eigen verzoek afleiden.
+        // The client may not derive "your draft" from its own request.
         const h = harness('test_chat');
         h.send({ active: true, source: 'unknown', runsDraft: false });
         expect(h.msg.testChat.source).toBe('unknown');

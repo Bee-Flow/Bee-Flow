@@ -69,9 +69,8 @@ const ALLOWED_PER_FILE = new Map([
         ['./routes/dingen', 'synthetic fixture source for the sweep proof'],
         ['./routes/beveiligd', 'synthetic fixture source for the sweep proof'],
         ['./routes/leeg', 'synthetic fixture source for the sweep proof'],
-        // Tweede fixture-app: de over een map gesplitste router (het
-        // routes/webpages|datatables|playbooks-idioom). Ook puur brontekst —
-        // de paden zijn geschreven vanuit routes/gesplitst/, niet vanuit auth/.
+        // Second fixture app: the router split over a folder (the routes/webpages|datatables|playbooks
+        // idiom). Also pure source text — the paths were written from routes/gesplitst/, not from auth/.
         ['./routes/gesplitst', 'synthetic fixture source: split-router proof'],
         ['../../auth/permissions', 'synthetic fixture source: split-router proof'],
         ['./vroeg', 'synthetic fixture source: split-router proof'],

@@ -206,8 +206,8 @@ describe('the server tree', () => {
 
 describe('cowork payloads (server/stores/coworkStore.js)', () => {
     // Mirrored by CoworkSchedule in src/features/cowork/model/types.ts. The plan for
-    // this store is explicitly additive ("Alleen velden toevoegen, niets
-    // hernoemen — mobile leest deze payload"); this is that promise, enforced.
+    // this store is explicitly additive ("Only add fields, rename nothing —
+    // mobile reads this payload"); this is that promise, enforced.
     const source = read('stores/coworkStore.js');
 
     it('rowToSchedule still maps every field the phone renders', () => {

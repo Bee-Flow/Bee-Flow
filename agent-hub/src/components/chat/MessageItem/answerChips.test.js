@@ -4,14 +4,14 @@ import { describe, it, expect } from 'vitest';
 import { answerChipsFor, citationChipsOf, ruleChipsOf, skillChipsOf, MAX_JUDGED_CHIPS, MAX_RECORDED_CHIPS } from './answerChips';
 
 /**
- * Welke chips onder een antwoord mogen staan, en van welke soort bewering.
+ * Which chips may appear under an answer, and of what kind of claim.
  *
- * De harde regels:
- *   • een skill die alleen AANSTOND heeft niets gedaan en krijgt geen chip;
- *   • een skill die we niet bij naam kennen ook niet — een id is geen bewering;
- *   • zonder attributie-event is er geen geoordeelde chip, in geen enkele vorm;
- *   • opgetekend en geoordeeld zitten in aparte lijsten, zodat de render ze
- *     nooit per ongeluk door elkaar kan zetten.
+ * The hard rules:
+ *   • a skill that was merely AVAILABLE gets no chip;
+ *   • a skill we do not know by name does not either. An id is not a claim;
+ *   • without an attribution event there is no judged chip, in no form at all;
+ *   • recorded and judged live in separate lists, so the render can never
+ *     mix them up by accident.
  */
 
 const SKILLS = [
@@ -46,8 +46,7 @@ describe('skills', () => {
     });
 
     it('BIJT — een skill die alleen aanstond is geen herkomst', () => {
-        // "Actief" betekent beschikbaar. Alleen wat afliep heeft aan dit
-        // antwoord meegewerkt.
+        // "Active" means available. Only what ran to completion contributed to this answer.
         const out = skillChipsOf(msg({ sessionSkillsSnapshot: { activatedSkillIds: ['s1', 's2'], completedSkillIds: [] } }), SKILLS);
         expect(out).toEqual([]);
     });
@@ -76,7 +75,7 @@ describe('de geoordeelde chip', () => {
     });
 
     it('BIJT — zonder event is er geen chip, in geen enkele vorm', () => {
-        // Niet "geen regel gevolgd", niet een lege pil: niets.
+        // Not "no rule followed", not an empty pill: nothing.
         for (const over of [{}, { ruleAttribution: null }, { ruleAttribution: {} },
             { ruleAttribution: { rules: [] } }, { ruleAttribution: { rules: 'ja' } },
             { ruleAttribution: { rules: [null, { rule: '   ' }, { rule: 42 }] } }]) {
@@ -126,9 +125,9 @@ describe('BIJT — de opgetekende helft is óók begrensd', () => {
     const citation = (i) => ({ kind: 'datatable_row', title: `Rij ${i}`, content: 'x' });
 
     it('vijftig tabelrijen worden geen muur van vijftig pillen', () => {
-        // `kbSources` stapelt over alle toolrondes van één beurt, en één
-        // `datatable_query` levert tot MAX_ROW_LIMIT = 50 citaten. De
-        // geoordeelde helft stond al op zes; deze niet.
+        // `kbSources` stacks across all tool rounds of one turn, and one
+        // `datatable_query` yields up to MAX_ROW_LIMIT = 50 citations. The
+        // judged half was already at six; this one was not.
         const out = answerChipsFor({ kbSources: Array.from({ length: 50 }, (_, i) => citation(i)) }, { showSources: true });
         expect(out.citations).toHaveLength(MAX_RECORDED_CHIPS);
         expect(out.citationsHidden).toBe(50 - MAX_RECORDED_CHIPS);

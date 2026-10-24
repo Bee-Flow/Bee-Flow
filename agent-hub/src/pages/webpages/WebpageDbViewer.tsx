@@ -121,11 +121,10 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                 {busy ? (
                     <div className="flex items-center justify-center py-6"><Loader2 size={14} className="animate-spin" /></div>
                 ) : tables.length === 0 ? (
-                    // Een MISLUKTE scan is geen lege database. "No tables yet —
-                    // click + to create one" nodigt uit een tabel te maken die
-                    // misschien al bestaat: de CREATE botst op de naam, of erger,
-                    // de auteur kiest een andere naam en heeft er twee voor
-                    // hetzelfde. Onbekend versmalt naar "ik weet het niet".
+                    // A FAILED scan is not an empty database. "No tables yet —
+                    // click + to create one" invites making a table that may already exist:
+                    // the CREATE collides with the name, or worse, the author picks another
+                    // name and has two for the same thing. Unknown narrows to "I do not know".
                     <div className="px-3 py-6 text-[11px]" style={{ color: unreadable ? 'var(--warning)' : 'var(--vsc-fg-muted)' }} data-testid="db-tables-empty">
                         {unreadable
                             ? t('webpages.db.tables_unknown', 'The tables could not be read, so this list is not “no tables”. Try refreshing before you create one.')
@@ -267,9 +266,9 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
 function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
-    // t via een ref in de lader: t is zonder TranslationProvider bij elke
-    // render een nieuwe functie, en in de deps van load() zou dat het
-    // laad-effect eindeloos opnieuw laten vuren.
+    // t via a ref in the loader: without a TranslationProvider, t is a new function
+    // on every render, and in the deps of load() that would fire the load effect
+    // endlessly.
     const tRef = useRef(t);
     tRef.current = t;
     const tables = useMemo(() => schema?.tables || [], [schema?.tables]);
@@ -649,10 +648,10 @@ function SqlTab({ webpageId, onError, onSchemaChanged }: SqlTabProps) {
                     <div className="text-[12px]">
                         <div className="px-3 py-1.5 text-[11px] text-[var(--vsc-fg-muted)]">
                             {result.truncated
-                                /* pluralKey i.p.v. nOf: de Engelse tekst bevat zelf haakjes, en de
-                                   i18n-guard leest een helper-aanroep met /nOf\(([^()]*)\)/ — met
-                                   haakjes in het argument ziet hij de sleutel niet, en dan reist
-                                   `…_plural` ongecontroleerd. */
+                                /* pluralKey instead of nOf: the English text itself contains brackets, and the
+                                   i18n guard reads a helper call with /nOf\(([^()]*)\)/ — with brackets in
+                                   the argument it does not see the key, and then `…_plural` travels
+                                   unchecked. */
                                 ? t(pluralKey('webpages.db.rows_truncated', (result.rows as DbRow[]).length),
                                     (result.rows as DbRow[]).length === 1
                                         ? '{count} row (truncated at 10000)'
@@ -715,7 +714,7 @@ export default function WebpageDbViewer({ webpageId }: Props) {
     tRef.current = t;
     const [tab, setTab] = useState('schema'); // 'schema' | 'browse' | 'sql'
     const [schema, setSchema] = useState<DbSchema | null>(null);
-    // "De scan is omgevallen" — een andere stand dan "er zijn geen tabellen".
+    // "The scan has failed" — a different state from "there are no tables".
     const [unreadable, setUnreadable] = useState(false);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null | undefined>(null);
@@ -729,9 +728,9 @@ export default function WebpageDbViewer({ webpageId }: Props) {
             const data = await r.json();
             if (!r.ok) {
                 setError(data.error || tRef.current('webpages.db.err_schema', 'Schema lookup failed'));
-                // BEWUST geen `setSchema({ tables: [] })`: dat maakte van "ik kon
-                // niet kijken" een lege lijst, en de lege lijst draagt een zin
-                // die een bewering is. `unreadable` houdt de twee uit elkaar.
+                // DELIBERATELY no `setSchema({ tables: [] })`: that turned "I could not look"
+                // into an empty list, and the empty list carries a sentence that is a claim.
+                // `unreadable` keeps the two apart.
                 setUnreadable(true);
             } else {
                 setSchema(data);
@@ -755,8 +754,8 @@ export default function WebpageDbViewer({ webpageId }: Props) {
         return () => window.removeEventListener('webpage_db_update', onAiDbUpdate);
     }, [loadSchema]);
 
-    // Geen { key, en }-tabel: de sleutels staan hier als letterlijke t()-aanroep,
-    // zodat de i18n-guard ze ziet zonder dat dit bestand op KEY_TABLE_FILES moet.
+    // Not a { key, en } table: the keys stand here as literal t() calls, so that the
+    // i18n guard sees them without this file having to be on KEY_TABLE_FILES.
     const TABS: TabDef[] = [
         { id: 'schema', label: t('webpages.db.tab_schema', 'Schema'), Icon: Database },
         { id: 'browse', label: t('webpages.db.tab_browse', 'Browse'), Icon: Table2 },

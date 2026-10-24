@@ -19,10 +19,9 @@ const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { whole, NO_QUERY } = require('./schemas');
 
-// De bladwijzer van de lijst, en niets anders. `.strict()`, want elke andere
-// parameter die iemand hier verwacht — een filter op tag, op status, op
-// periode — kwam terug als "de laatste 50 van alles", en dat is een ANDER
-// antwoord dan de vraag.
+// The bookmark of the list, and nothing else. `.strict()`, because every other
+// parameter one would expect here — a filter on tag, on status, on period — came
+// back as "the last 50 of everything", and that is a DIFFERENT answer to the question.
 const ListQuery = z.object({ limit: whole('limit'), offset: whole('offset') }).strict();
 
 // ── List transcriptions ──────────────────────────────────

@@ -116,16 +116,12 @@ function KbList({ kbs, linkedIds, onToggle, onCreate, t }: {
 }
 
 /**
- * ── TWEE AGENT-INSTELLINGEN ZIJN HIER WEG (A2 stap 2) ───────────────
- * `strictKnowledge` en `includeSourceReferences` stonden bovenaan deze modal,
- * als twee vinkjes boven een bestandenlijst. Ze gaan niet over BESTANDEN maar
- * over het ANTWOORD van de agent, en ze stonden op de enige plek waar je ze
- * pas ziet nadat je op "Bestanden uploaden" hebt geklikt. Sinds A2 stap 2
- * staan ze waar de vraag gesteld wordt: `strictKnowledge` op Rol, onder "Als
- * het niet weet", en `includeSourceReferences` in het ⋯-menu van de
- * Kennis-kaart op "Kan gebruiken". De props zijn hier verdwenen in plaats van
- * genegeerd — een prop die niets doet is de volgende die per ongeluk weer
- * gebruikt wordt.
+ * ── TWO AGENT SETTINGS ARE GONE FROM HERE (A2 step 2) ───────────────
+ * `strictKnowledge` and `includeSourceReferences` stood at the top of this modal, as two checkboxes above a file list. They
+ * are not about FILES but about the ANSWER of the agent, and they stood in the only place where you saw them after clicking
+ * "Upload files". Since A2 step 2 they stand where the question is asked: `strictKnowledge` on Role, under "If it does not
+ * know", and `includeSourceReferences` in the ⋯ menu of the Knowledge card on "Can use". The props have disappeared here
+ * instead of being ignored, because a prop that does nothing is the next one that is accidentally used again.
  */
 export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds, onKnowledgeBaseIdsChange, allKbs, onToggleKbLink, onCreateKb, onDocCountChange, onKbsChange, onClose }: {
     t: TranslateFn;

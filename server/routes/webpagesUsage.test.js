@@ -1,35 +1,29 @@
 /**
- * routes/webpagesUsage — "wie gebruikt deze pagina", en wie dat mag vragen.
+ * routes/webpagesUsage — "who uses this page", and who may ask that.
  *
- * Geen database: auth is gestubd met een vaste sessie, `webpageStore.getWebpage`
- * en de scan zijn gemonkeypatcht, en de router draait op een wegwerp-express-app
- * op 127.0.0.1:0. Zelfde patroon als routes/webpagesGrants.test.js.
+ * No database: auth is stubbed with a fixed session, `webpageStore.getWebpage` and the scan are
+ * monkeypatched, and the router runs on a throwaway express app on 127.0.0.1:0. Same pattern as
+ * routes/webpagesGrants.test.js.
  *
- * Twee dingen staan hier op het spel, en ze zijn allebei stil als ze fout gaan:
+ * Two things are at stake here, and both are silent when they go wrong:
  *
- *   1. De POORT. De route is eigenaar-gescoopt. Een org-lezer die de pagina
- *      wél mag openen mag hier niets leren — anders vertelt een gepubliceerde
- *      pagina in welke Oplossing van een collega zij ligt en dat er een gesprek
- *      aan hangt.
- *   2. Het VERSCHIL tussen "niets" en "niet gekeken". `unchecked` moet
- *      onverkort door naar de client; valt de hele opzoeking om, dan is het
- *      antwoord een 500 en nooit een leeg `usage` — dat is de ene zin waarop
- *      iemand op Verwijderen drukt.
- *   3. De MONTAGE. De tests hieronder draaien de SUB-router rechtstreeks, en
- *      dat is precies hoe `routes/transcriptions/tags.js` ooit "written,
- *      tested and never mounted" bleef met 39 groene tests. Vandaar het blok
- *      onderaan, dat de samengestelde router uit routes/webpages.js aanroept:
- *      valt `router.use(require('./webpagesUsage'))` weg, dan wordt dit rood
- *      in plaats van dat het tabblad stilletjes op zijn lege staat valt
- *      (`hooks/useUsage.js` maakt van een 404 een `usage: []`).
- *   4. WAT er de scan in gaat. De stub hieronder maakt het makkelijk om alleen
- *      de uitgang te toetsen; de ingang telt net zo goed. `usageForWebpage`
- *      leest `projectId` van de PAGINARIJ, dus een route die alleen het id
- *      doorgeeft laat scanSolution "gecontroleerd, nul rijen" melden over een
- *      pagina die wél in een Oplossing ligt — een echte afhankelijkheid die
- *      als bevestigde nul verdwijnt in plaats van als gat.
+ *   1. The GATE. The route is owner-scoped. An org reader who may open the page must learn
+ *      nothing here — otherwise a published page would tell in which Solution of a colleague it
+ *      lies and that a conversation hangs on it.
+ *   2. The DIFFERENCE between "nothing" and "not checked". `unchecked` must go to the client
+ *      unchanged; if the whole lookup falls over, the answer is a 500 and never an empty `usage` —
+ *      that is the one sentence someone clicks on Delete on.
+ *   3. The MOUNTING. The tests below run the SUB-router directly, and that is exactly how
+ *      `routes/transcriptions/tags.js` once stayed "written, tested and never mounted" with 39 green
+ *      tests. Hence the block at the bottom, which calls the composed router from routes/webpages.js:
+ *      if `router.use(require('./webpagesUsage'))` goes missing, this turns red instead of the tab
+ *      quietly falling back to its empty state (`hooks/useUsage.js` turns a 404 into `usage: []`).
+ *   4. WHAT goes into the scan. The stub below makes it easy to test only the output; the input
+ *      counts just as much. `usageForWebpage` reads `projectId` from the PAGE ROW, so a route that
+ *      only passes the id lets scanSolution report "checked, zero rows" about a page that DOES lie in
+ *      a Solution — a real dependency that disappears as a confirmed zero instead of as a gap.
  *
- * Draaien: cd server && node --test --test-reporter=tap routes/webpagesUsage.test.js
+ * Run: cd server && node --test --test-reporter=tap routes/webpagesUsage.test.js
  */
 
 const test = require('node:test');
@@ -181,11 +175,10 @@ test('GET /:id/usage geeft de PAGINARIJ door aan de scan, niet alleen het id', a
     }));
 });
 
-// ── de montage ──────────────────────────────────────────────────────
+// ── the mounting ────────────────────────────────────────────────────
 //
-// Alles hierboven draait de sub-router los. Dit blok draait de router die de
-// app echt mount, zodat een weggevallen `router.use(...)` hier faalt en niet
-// pas in het scherm.
+// Everything above runs the sub-router on its own. This block runs the router that the app
+// actually mounts, so that a missing `router.use(...)` fails here and not only on the screen.
 
 const webpagesRouter = require('./webpages');
 
@@ -221,9 +214,9 @@ test('montage: /:id/usage is bereikbaar via de samengestelde webpages-router', a
 });
 
 test('montage: /usage wordt niet door GET /:id opgeslokt', async () => {
-    // De sub-router hoort VÓÓR `GET /:id` te staan. Staat hij erachter, dan
-    // leest die handler "wp1" als id en "usage" als niets, of erger: hij
-    // antwoordt met de pagina zelf op een pad dat een usage-lijst moet geven.
+    // The sub-router must stand BEFORE `GET /:id`. If it stands behind it, that handler reads "wp1" as
+    // the id and "usage" as nothing, or worse: it answers with the page itself on a path that should
+    // give a usage list.
     let usageScanned = false;
     await withPatches([
         [webpageStore, 'getWebpage', async () => ({ ...PAGE })],

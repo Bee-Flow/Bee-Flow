@@ -31,15 +31,14 @@
  * answered with, and the flag is set in exactly one place (./readError.js), so
  * an internal message cannot ride out on it by accident.
  *
- * TWEE TABELSOORTEN. Een modeltabel bezit haar rijen zelf (de soort die er
- * altijd was: de per-app database, `ctx.ownerScope` + `ctx.app.id`) of ze haalt
- * ze uit een STUDIO-DATATABEL (`table.source = {kind:'datatable', …}`). Dat
- * verschil wordt op ÉÉN plek gemaakt — `readPlan` hieronder — en verder in dit
- * bestand nergens meer: elke lezing compileert daarna met dezelfde
- * access-filter, dezelfde compiler en dezelfde cursorbehandeling. De
- * rechtenbeslissing voor de tweede soort staat in ./datatableSource.js; die is
- * wezenlijk anders (de datatabel heeft zijn eigen ladder, buiten de app om) en
- * hoort daarom niet hier.
+ * TWO KINDS OF TABLE. A model table either owns its rows itself (the kind that
+ * always existed: the per-app database, `ctx.ownerScope` + `ctx.app.id`), or it
+ * fetches them from a STUDIO DATATABLE (`table.source = {kind:'datatable', …}`).
+ * That difference is made in ONE place — `readPlan` below — and nowhere else in
+ * this file: every read after that compiles with the same access filter, the same
+ * compiler and the same cursor handling. The permission decision for the second
+ * kind is in ./datatableSource.js; that one is fundamentally different (the
+ * datatable has its own ladder, outside the app) and therefore does not belong here.
  */
 
 const queryCompiler = require('./queryCompiler');
@@ -75,26 +74,24 @@ function requireReadableTable(ctx, ref) {
 }
 
 /**
- * WAAR de rijen van deze tabel staan, en met welke rechten ze gelezen worden —
- * de enige plek in dit bestand waar de twee tabelsoorten uit elkaar gaan.
+ * WHERE the rows of this table are stored, and with which rights they are read —
+ * the only place in this file where the two kinds of table part ways.
  *
- * Levert voor allebei dezelfde vier dingen, zodat alles ná deze functie één
- * implementatie blijft: de tabelbeschrijving voor de compiler, de rol waarmee de
- * access-filter wordt gecompileerd, de viewer waar die filter tegen bindt, en de
- * dialect. De opslag zelf zit in `query`.
+ * Delivers the same four things for both, so that everything AFTER this function stays
+ * one implementation: the table description for the compiler, the role with which the
+ * access filter is compiled, the viewer that filter binds against, and the dialect. The
+ * storage itself sits in `query`.
  *
- * De EIGEN opslag van de app houdt exact het gedrag dat het had: `dialect:
- * undefined` laat resolveDialect bij de procesbrede STUDIO_APP_ENGINE uitkomen,
- * precies zoals het weglaten van de optie dat deed.
+ * The app's OWN storage keeps exactly the behaviour it had: `dialect: undefined` lets
+ * resolveDialect fall through to the process-wide STUDIO_APP_ENGINE, exactly as leaving
+ * out the option did.
  *
- * GEMEMOÏSEERD PER CONTEXT, niet langer. Een batch leest tot 25 descriptors met
- * één ctx en zou anders per descriptor opnieuw de tabel, de grants en twee
- * principalen uit de database halen. Een ctx leeft één request, dus dit is
- * dezelfde houdbaarheid als `req._dtPrincipal` in auth/datatableAccess — en
- * nadrukkelijk NIET een graad die een volgende lezing overleeft
- * (core/automationRunner/datatableResolve.js, weigering 2). De belofte wordt
- * bewaard, niet het resultaat: een weigering geldt dan voor alle 25, precies
- * zoals hij voor de eerste gold.
+ * MEMOISED PER CONTEXT, no longer. A batch reads up to 25 descriptors with one ctx and
+ * would otherwise fetch the table, the grants and two principals from the database again
+ * per descriptor. A ctx lives for one request, so this has the same lifetime as
+ * `req._dtPrincipal` in auth/datatableAccess — and explicitly NOT a grade that a next read
+ * survives (core/automationRunner/datatableResolve.js, refusal 2). What is kept is the
+ * PROMISE, not the result: a refusal then holds for all 25, exactly as it held for the first.
  */
 function readPlan(ctx, table) {
     if (!datatableSource.isDatatableBacked(table)) {
@@ -110,27 +107,26 @@ function readPlan(ctx, table) {
     const key = table.id || table.key;
     if (!ctx._datatablePlans.has(key)) {
         ctx._datatablePlans.set(key, datatableSource.resolveDatatableRead(ctx, table).then((resolved) => {
-            // Een gekoppelde tabel die een EXTERNE BRON spiegelt: iemand
-            // kijkt ernaar, dus ververs de kopie op de achtergrond als hij
-            // ouder is dan zijn schema (stale-while-serve). Eén keer per
-            // request — dit plan is per ctx gememoiseerd — en nooit van
-            // invloed op het antwoord. Het register antwoordt `false` voor
-            // een gewone tabel, dus de vraag hoeft hier niet gesteld.
+            // A linked table that MIRRORS an EXTERNAL SOURCE: someone looks at it, so refresh
+            // the copy in the background if it is older than its schema (stale-while-serve).
+            // Once per request — this plan is memoised per ctx — and never affecting the
+            // answer. The register answers `false` for an ordinary table, so the question
+            // need not be asked here.
             try {
                 require('../core/dataEngine/sources').kickStale(resolved.datatable, { reason: 'view' });
             } catch (err) { log.debug('a background refresh is never a reason to fail a read', err); }
             return resolved;
         }).then((resolved) => ({
             tableMeta: resolved.tableMeta,
-            // De GRAAD is hier de rol: het access-blok komt van de datatabel
-            // (synthesizeAccess), niet van de app.
+            // The GRADE is the role here: the access block comes from the datatable
+            // (synthesizeAccess), not from the app.
             role: resolved.grade,
             viewer: resolved.viewer,
             dialect: resolved.dialect,
             query: (sql, params) => {
                 const datatableDbStore = require('../stores/datatableDbStore');
-                // ownerId én entityId zijn allebei de SCOPE-sleutel — de eenheid
-                // van opslag is de scope, niet één tabel (stores/datatableDbStore.js).
+                // ownerId and entityId are BOTH the SCOPE key — the unit of storage is the scope,
+                // not one table (stores/datatableDbStore.js).
                 return datatableDbStore.query(resolved.scopeKey, resolved.scopeKey, sql, params);
             },
         })));
@@ -190,12 +186,11 @@ async function runSavedDataset(ctx, datasetId, { refresh = false } = {}) {
         : null;
     if (!dataset) throw readError(404, 'Dataset not found');
     const table = requireReadableTable(ctx, dataset.tableId);
-    // Een opgeslagen dataset draait door datasetCache, en die praat rechtstreeks
-    // met de app-eigen database (studioAppDbStore). Een tabel die haar rijen uit
-    // een Studio-datatabel haalt, bestaat daar niet — de lezing zou geen rijen
-    // maar een SQL-fout opleveren, en in een batch een status 500 die als
-    // "kapotte server" leest in plaats van als "dit kan nog niet". Dus zegt hij
-    // hier wat er aan de hand is, tot de datasetcache dezelfde splitsing kent.
+    // A saved dataset runs through datasetCache, and that talks directly to the app's own
+    // database (studioAppDbStore). A table that fetches its rows from a Studio datatable does
+    // not exist there — the read would give not rows but an SQL error, and in a batch a
+    // status 500 that reads as "broken server" instead of "this cannot be done yet". So it
+    // says here what is going on, until the dataset cache knows the same split.
     if (datatableSource.isDatatableBacked(table)) {
         throw readError(501, 'A saved dataset cannot read a linked Studio table yet.');
     }

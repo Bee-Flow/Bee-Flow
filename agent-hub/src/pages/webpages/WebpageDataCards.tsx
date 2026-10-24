@@ -98,7 +98,7 @@ function TableCard({ t, table }: TableCardProps) {
                         : t('webpages.data.mode_read', 'Read only')}
                     tone="muted"
                 />
-                {/* Alleen als we het echt hebben kunnen vaststellen. */}
+                {/* Only if we really were able to establish it. */}
                 {table.usedInCode === false && (
                     <Chip label={t('webpages.data.not_used', 'Not used on this page')} tone="muted" dashed />
                 )}
@@ -152,12 +152,9 @@ function AutomationCard({ t, automation }: AutomationCardProps) {
 }
 
 /**
- * De deeplink naar de Delen-tab van een tabel.
+ * The deeplink to the Sharing tab of a table.
  *
- * `?tab=sharing` wordt vandaag door de Studio-router nog niet gelezen (die
- * kent alleen view/run/step), dus de knop landt op het juiste tabelscherm en
- * niet op het juiste tabblad. Bewust wél meegestuurd: de bedoeling staat er nu
- * in, en de Studio-kant hoeft er straks alleen naar te luisteren.
+ * `?tab=sharing` is not yet read by the Studio router today (it knows only view/run/step), so the button lands on the right table screen and not on the right tab. Deliberately sent along anyway: the intention is now in it, and the Studio side only has to listen for it later.
  */
 export function sharingDeepLink(datatableId: string | number | boolean) {
     return `studio/datatables/${encodeURIComponent(datatableId)}?tab=sharing`;
@@ -184,9 +181,8 @@ function WarningCard({ t, warning, onNavigate }: WarningCardProps) {
                             'Changes made there show up on this page without anyone editing it.')}
                     </p>
                 </div>
-                {/* Met een in-app navigator zacht navigeren; zonder alsnog een
-                    echte link, want een knop die nergens heen gaat is erger dan
-                    een volledige paginalading. */}
+                {/* With an in-app navigator, navigate softly; without one, still a real link,
+                    because a button that goes nowhere is worse than a full page load. */}
                 {typeof onNavigate === 'function' ? (
                     <button type="button" className="text-[11px] underline shrink-0" onClick={() => onNavigate(path)}>
                         {label}
@@ -229,8 +225,8 @@ export default function WebpageDataCards({ webpageId, sources = [], onNavigate =
             if (!res.ok) throw new Error((body && body.error) || `HTTP ${res.status}`);
             setState({ loading: false, error: null, data: body });
         } catch (e) {
-            // Een mislukte lezing is NIET "er hangt niets aan deze pagina": dan
-            // zou de auteur denken dat zijn bindingen weg zijn.
+            // A failed read is NOT "nothing hangs on this page": then the author would
+            // think that his bindings are gone.
             setState({ loading: false, error: (e as Error).message || 'failed', data: null });
         }
     }, [webpageId]);
@@ -289,14 +285,9 @@ export default function WebpageDataCards({ webpageId, sources = [], onNavigate =
 }
 
 /**
- * Wat de tab-badge telt: tabellen + voedende automatiseringen + de ene
- * Kennisbronnen-kaart. Geëxporteerd zodat de tab dezelfde som maakt als het
- * scherm, in plaats van hem een tweede keer op te schrijven.
+ * What the tab badge counts: tables + feeding automations + the one Knowledge sources card. Exported so that the tab makes the same sum as the screen, instead of writing it down a second time.
  *
- * De KB-kaart telt ALTIJD mee, ook bij nul bronnen: hij staat er dan ook, en
- * "nul bronnen" is zelf informatie. Zonder data (nog aan het laden, of de
- * lezing mislukte) is het antwoord 0 en niet 1 — een badge hoort niets te
- * beloven wat het scherm nog niet kan laten zien.
+ * The KB card ALWAYS counts, even with zero sources: it is then there too, and "zero sources" is itself information. Without data (still loading, or the read failed) the answer is 0 and not 1 — a badge should not promise anything that the screen cannot yet show.
  */
 export function countDataCards(data: DataCardsPayload | null | undefined) {
     if (!data) return 0;

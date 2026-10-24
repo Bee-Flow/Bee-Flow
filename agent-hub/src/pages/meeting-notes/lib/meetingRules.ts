@@ -2,32 +2,16 @@ import { segmentForSection } from '../../../components/admin/Studio/studioRoutes
 import type { RuleRow, RunFacets } from '../library/RulesPanel.types';
 
 /**
- * Wat een REGEL op een vergadernotitie is, afgelezen van de automation zelf
- * (M5, deel D). De prose staat in RulesPanel.jsx; hier staat alleen wat waar
- * is, zodat de kaart geen enkele bewering hoeft te verzinnen.
+ * What a RULE on a meeting note is, read from the automation itself (M5, part D). The prose lives in RulesPanel.jsx; here only what is true is stated, so that the card does not have to invent any claim.
  *
- * Een regel is een automation met een `app_event`-trigger op provider
- * `meeting-notes` — de declaratie in server/automation/triggerSources/declared/
- * meeting-notes.js. De lijst komt van `GET /api/automation?triggerProvider=…`
- * en bevat per contract alleen de eigen automatiseringen van de lezer
- * (`getAutomationsForUser` is `WHERE user_id = $1`).
+ * A rule is an automation with an `app_event` trigger on provider `meeting-notes` — the declaration in server/automation/triggerSources/declared/meeting-notes.js. The list comes from `GET /api/automation?triggerProvider=…` and by contract contains only the reader's own automations (`getAutomationsForUser` is `WHERE user_id = $1`).
  *
- * ── HET ONBEKENDE VALT NIET WEG ──────────────────────────────────────
- * Twee plekken beslissen wat een kaart mag zeggen, en allebei werken ze met
- * een ALLOW-list zodat het onbekende opvalt in plaats van te verdwijnen:
+ * ── THE UNKNOWN DOES NOT DISAPPEAR ──────────────────────────────────────
+ * Two places decide what a card may say, and both work with an ALLOW-list so that the unknown stands out instead of vanishing:
  *
- *   consequencesOf   drie stapsoorten worden benoemd (`knowledge_write`,
- *                    `notification`, een `datatable` die SCHRIJFT); een
- *                    expliciete lijst stapsoorten verandert niets buiten de
- *                    run; al het overige wordt GETELD, zodat de zin kan zeggen
- *                    dat er meer gebeurt dan er staat. Een stapsoort die er
- *                    volgend jaar bij komt valt vanzelf in die laatste bak.
+ *   consequencesOf   three step types are named (`knowledge_write`, `notification`, a `datatable` that WRITES); an explicit list of step types changes nothing outside the run; everything else is COUNTED, so the sentence can say that more happens than is stated. A step type that is added next year falls into that last bucket automatically.
  *
- *   triggerConditionOf  leest `tags` en `reprocessed`; élke andere sleutel in
- *                    het filter — de DSL-combinatoren any/none/expr/age uit
- *                    triggers/dslFilters.js, en wat er later bij komt — zet
- *                    `extra`, want die versmalt de regel op een manier die
- *                    deze zin niet draagt.
+ *   triggerConditionOf  reads `tags` and `reprocessed`; EVERY other key in the filter — the DSL combinators any/none/expr/age from triggers/dslFilters.js, and whatever is added later — sets `extra`, because it narrows the rule in a way this sentence does not carry.
  */
 
 export const RULE_TRIGGER_PROVIDER = 'meeting-notes';
@@ -65,11 +49,9 @@ type OwnedRow = RuleRow & { userId?: string; ownerId?: string };
 /* ── de trigger ──────────────────────────────────────────────────────── */
 
 /**
- * De meeting-notes-triggers van een definitie.
+ * The meeting-notes triggers of a definition.
  *
- * Spiegelt `appEventTriggersOf` in routes/automation/crud.js: de primaire
- * trigger PLUS de extra entry-points in `triggers[]`, want een app_event mag
- * daar ook staan en zo'n tweede trigger laat de regel evengoed vuren.
+ * Mirrors `appEventTriggersOf` in routes/automation/crud.js: the primary trigger PLUS the extra entry points in `triggers[]`, because an app_event may also stand there, and such a second trigger fires the rule just the same.
  */
 export function meetingTriggersOf(definition: unknown) {
     const all = [(definition as RuleDefinition | null | undefined)?.trigger, ...list<RuleTrigger | undefined>((definition as RuleDefinition | null | undefined)?.triggers)];
@@ -82,18 +64,14 @@ function asTagList(v: unknown) {
     return raw.map(x => (typeof x === 'string' ? x.trim() : '')).filter(Boolean);
 }
 
-// Wat deze kaart uit een trigger-filter kan lezen. Een ALLOW-list, geen
-// deny-list: een nieuwe sleutel is dan vanzelf "er is meer aan de hand".
+// What this card may read from a trigger filter. An ALLOW-list, not a
+// deny-list: a new key then automatically means "there is more going on".
 const FILTER_KNOWN_KEYS = new Set(['tags', 'reprocessed']);
 
 /**
- * De voorwaarde van een regel, of NULL als dit geen meeting-notes-regel is.
+ * The condition of a rule, or NULL if this is not a meeting-notes rule.
  *
- * `tags` is een VERENIGING over de triggers, want de matcher matcht op ANY of
- * them en meerdere triggers vuren elk apart. `extra` betekent "smaller dan
- * deze zin zegt" en staat aan zodra een filter iets bevat wat we niet lezen,
- * óf zodra twee triggers een verschillende `reprocessed`-stand hebben (dan is
- * er geen enkele stand die voor de hele regel waar is).
+ * `tags` is a UNION over the triggers, because the matcher matches on ANY of them and multiple triggers each fire separately. `extra` means "narrower than this sentence says" and is set as soon as a filter contains something we do not read, or as soon as two triggers have a different `reprocessed` setting (then there is no single setting that is true for the whole rule).
  */
 export function triggerConditionOf(definition: unknown) {
     const triggers = meetingTriggersOf(definition);
@@ -121,36 +99,22 @@ export function triggerConditionOf(definition: unknown) {
 
     if (reprocessedSeen.size > 1) extra = true;
     const reprocessed = reprocessedSeen.size === 1 ? [...reprocessedSeen][0] : undefined;
-    // Het EVENT reist mee. `meetingTriggersOf` filtert bewust alleen op de
-    // PROVIDER, zodat een later `meeting.scheduled` vanzelf in deze lijst komt
-    // — maar dan mag de zin niet onvoorwaardelijk "… is finished" zeggen. Die
-    // zin schaalde niet mee en vertelde over elk toekomstig event het verhaal
-    // van `meeting.processed`. Vandaag al bereikbaar: validate/graph.js maakt
-    // van een onbekend app_event-event een WARNING, geen error, dus een
-    // geïmporteerde definitie met een verzonnen event landt in deze lijst.
+    // The EVENT travels along. `meetingTriggersOf` deliberately filters only on the PROVIDER, so that a later `meeting.scheduled` automatically lands in this list — but then the sentence may not unconditionally say "… is finished". That sentence did not scale and told the story of `meeting.processed` about every future event. Already reachable today: validate/graph.js turns an unknown app_event event into a WARNING, not an error, so an imported definition with an invented event lands in this list.
     const onlyProcessed = events.size === 1 && events.has(RULE_TRIGGER_EVENT);
     return { tags, reprocessed, extra, events: [...events], onlyProcessed };
 }
 
 /* ── de consequenties ────────────────────────────────────────────────── */
 
-// Schrijf-ops van een datatable-stap (validate/constants.js
-// DATATABLE_WRITE_OPS). Met de hand overgenomen, net als daar: een nieuwe
-// LEES-op mag niet stilletjes een schrijver worden. Een stap zónder `op`, of
-// met een op die we niet kennen, telt daarom als onbekend en niet als lezer.
+// Write ops of a datatable step (validate/constants.js
+// DATATABLE_WRITE_OPS). Copied by hand, just as there: a new READ op must not quietly become a writer. A step WITHOUT an `op`, or with an op we do not know, therefore counts as unknown and not as a reader.
 const DATATABLE_WRITE_OPS = new Set(['add_row', 'save_row', 'update_rows', 'delete_rows']);
 const DATATABLE_READ_OPS = new Set(['find_rows', 'count_rows']);
 
 /**
- * Stapsoorten die niets buiten de run veranderen: rekenen, vertakken,
- * omzetten, wachten. Ze horen niet in de consequentie-zin en ze zijn ook geen
- * "er gebeurt meer" — daarom staan ze hier met naam en toenaam. Alles wat noch
- * hier noch in de drie benoemde soorten staat, wordt geteld en gemeld.
+ * Step types that change nothing outside the run: calculating, branching, converting, waiting. They do not belong in the consequence sentence, and they are also not "more happens" — which is why they are listed here by name. Everything that is neither here nor in the three named types is counted and reported.
  *
- * `call_layer` staat erbij omdat de inhoud van die layer apart wordt gelopen
- * (definition.layers) — anders zou hij dubbel tellen. `call_block` staat er
- * NIET bij: een Reusable Step woont in een ander document en wat hij doet is
- * van hieruit onbekend.
+ * `call_layer` is included because the content of that layer is walked separately (definition.layers) — otherwise it would count twice. `call_block` is NOT included: a Reusable Step lives in another document, and what it does is unknown from here.
  */
 const NO_OUTWARD_EFFECT = new Set([
     'trigger', 'note',
@@ -158,42 +122,28 @@ const NO_OUTWARD_EFFECT = new Set([
     'set', 'datetime', 'parse_json', 'wait',
     'tokenize', 'untokenize',
     'loop', 'parallel', 'call_layer', 'layer_output',
-    // `ai_step` staat hier ALLEEN voor de tool-loze variant: `reachesOutward`
-    // hieronder wordt eerst gevraagd en haalt de bewapende eruit. `code` staat
-    // er bewust NIET bij — die krijgt onvoorwaardelijk een HTTP-brug.
+    // `ai_step` is listed here ONLY for the tool-less variant: `reachesOutward` below is asked first and takes out the armed one. `code` is deliberately NOT included — it unconditionally gets an HTTP bridge.
     'ai_step',
 ]);
 
 /**
- * `ai_step` en `code` stonden hierboven, en dat was fail-open: allebei kunnen
- * ze de INTEGRATIETOOLS van de gebruiker echt uitvoeren.
- *   - execAi.js opent de toolcatalogus zodra `step.allowTools` waar is en
- *     draait daarna een tool-loop met `executeTool`. Zonder die vlag is het
- *     een kale modelaanroep en verandert er buiten de run niets.
- *   - execOutbound.js geeft een code-stap ALTIJD een HTTP-brug (`fetchHttp`),
- *     los van `step.allowedTools`. Een code-stap reikt dus altijd naar buiten.
- * Een regel met één `ai_step {allowTools:true, tools:['gmail_send_email']}`
- * mailde de klant de besluiten uit de notitie terwijl de kaart letterlijk
- * "nothing yet — this rule has no steps" toonde.
+ * `ai_step` and `code` were listed above, and that was fail-open: both can actually execute the user's INTEGRATION tools.
+ *   - execAi.js opens the tool catalogue as soon as `step.allowTools` is true, and then runs a tool loop with `executeTool`. Without that flag it is a bare model call and nothing outside the run changes.
+ *   - execOutbound.js ALWAYS gives a code step an HTTP bridge (`fetchHttp`), regardless of `step.allowedTools`. A code step therefore always reaches outward.
+ * A rule with a single `ai_step {allowTools:true, tools:['gmail_send_email']}` mailed the customer the decisions from the note, while the card literally showed "nothing yet — this rule has no steps".
  */
 function reachesOutward(step: RuleStep) {
     if (step.type === 'code') return true;
     if (step.type !== 'ai_step') return false;
-    // Een expliciete allowlist telt ook mee: vandaag doet hij zonder
-    // `allowTools` niets, maar de bedoeling is duidelijk en onbekend versmalt.
+    // An explicit allowlist also counts: today it does nothing without
+    // `allowTools`, but the intention is clear, and unknown narrows.
     return !!step.allowTools || (Array.isArray(step.tools) && step.tools.length > 0);
 }
 
 /**
- * Elke stap van elke graaf: top-level, loop-body, parallelle tak.
+ * Every step of every graph: top-level, loop body, parallel branch.
  *
- * GEEN `step.cases`. Zo ziet een switch er in dit product niet uit: de
- * validator documenteert `cases: [{ name, value }]` — een ARRAY van
- * BESCHRIJVINGEN — en de takken zelf lopen via EDGE-labels, niet via nesting.
- * De canonieke nested-walker (validate/graph.js) kent dan ook maar twee
- * containers: `loop.body` en `parallel.branches`. Een tak die `cases` als map
- * behandelde vuurde nooit op een echte switch en wekte alleen de indruk dat
- * switch-nesting gedekt was.
+ * NO `step.cases`. A switch does not look like this in this product: the validator documents `cases: [{ name, value }]` — an ARRAY of DESCRIPTIONS — and the branches themselves run via EDGE labels, not via nesting. The canonical nested walker (validate/graph.js) therefore knows only two containers: `loop.body` and `parallel.branches`. A branch that treated `cases` as a map never fired on a real switch and only created the impression that switch nesting was covered.
  */
 function walkSteps(steps: unknown, visit: (step: RuleStep) => void) {
     for (const step of list(steps)) {
@@ -205,21 +155,18 @@ function walkSteps(steps: unknown, visit: (step: RuleStep) => void) {
 }
 
 /**
- * Wat er met de notitie gebeurt, afgeleid uit de stapsoorten.
+ * What happens to the note, derived from the step types.
  *
- * `readable: false` betekent dat er geen stappenlijst IN de definitie zat —
- * dat is iets anders dan een regel zonder stappen, en de kaart zegt het
- * anders. (`definition_json` wordt server-side met een fallback geparsed, dus
- * een onleesbare definitie komt hier aan als een object zonder `steps`.)
+ * `readable: false` means that there was no step list IN the definition — that is something other than a rule without steps, and the card says so differently. (`definition_json` is parsed server-side with a fallback, so an unreadable definition arrives here as an object without `steps`.)
  */
 export function consequencesOf(definition: unknown) {
     if (!isObject(definition) || !Array.isArray(definition.steps)) {
         return { readable: false, kb: false, notify: false, table: false, other: 0, steps: 0 };
     }
-    // `steps` telt ELKE stap, ook de inerte. "Geen stappen" en "alleen stappen
-    // die deze kaart als inert bestempelt" zijn verschillende antwoorden, en de
-    // kaart maakte er één zin van: een regel met set + condition + parse_json
-    // kreeg "this rule has no steps" terwijl er drie stappen stonden.
+    // `steps` counts EVERY step, including the inert ones. "No steps" and
+    // "only steps that this card marks as inert" are different answers, and the card
+    // made one sentence of them: a rule with set + condition + parse_json got
+    // "this rule has no steps" while three steps were there.
     const out = { readable: true, kb: false, notify: false, table: false, other: 0, steps: 0 };
 
     const visit = (step: RuleStep) => {
@@ -246,17 +193,11 @@ export function consequencesOf(definition: unknown) {
 /* ── openen en tellen ────────────────────────────────────────────────── */
 
 /**
- * Mag de lezer deze regel openen? 'ok' | 'foreign' | 'unknown'.
+ * May the reader open this rule? 'ok' | 'foreign' | 'unknown'.
  *
- * `GET /api/automation/:id` is een harde eigendomscheck (403 zodra
- * `a.userId !== req.session.user.id`), dus alleen een POSITIEVE match geeft
- * een link. Geen eigenaar in de rij, of geen bekende lezer, is 'unknown': dan
- * is er geen link én geen bewering over wiens regel het is.
+ * `GET /api/automation/:id` is a hard ownership check (403 as soon as `a.userId !== req.session.user.id`), so only a POSITIVE match gives a link. No owner in the row, or no known reader, is 'unknown': then there is no link AND no claim about whose rule it is.
  *
- * Bewust STRENGER dan `isForeignRow` van UsedByTab, dat "geen eigenaar
- * bekend" als "niet van iemand anders" leest: daar is de rij org-breed en
- * klopt die kant op, hier is het doelwit een route die op precies dat
- * verschil 403 geeft.
+ * Deliberately STRICTER than `isForeignRow` of UsedByTab, which reads "no known owner" as "not someone else's": there the row is org-wide and that direction is correct; here the target is a route that returns 403 on exactly that difference.
  */
 export function openability(row: OwnedRow, currentUserId: string | null | undefined) {
     const owner = row?.userId ?? row?.ownerId ?? null;
@@ -271,27 +212,21 @@ export function ruleHref(automationId: string) {
 }
 
 /**
- * De telling voor één automatisering, of NULL als die er niet is.
+ * The count for one automation, or NULL if it is not there.
  *
- * `/_runs/facets` telt `r.user_id = <ik>` (stores/automationStore/runs.js
- * buildRunFilterWhere) — MIJN runs, niet die van de organisatie; de org-variant
- * is een ander endpoint met een eigen permissiecheck. Elke zin die dit getal
- * gebruikt moet dus zeggen wiens runs het zijn.
+ * `/_runs/facets` counts `r.user_id = <me>` (stores/automationStore/runs.js buildRunFilterWhere) — MY runs, not those of the organisation; the org variant is a different endpoint with its own permission check. Every sentence that uses this number must therefore say whose runs they are.
  */
 export function runCountOf(facets: RunFacets, automationId: string | undefined) {
     const byId = facets?.automationId;
     if (!isObject(byId)) return null;          // onleesbaar — zie facetsReadable
     const n = byId[automationId as string];
-    return typeof n === 'number' && Number.isFinite(n) ? n : 0;         // gelezen en niet gevonden = een echte nul
+    return typeof n === 'number' && Number.isFinite(n) ? n : 0;         // read and not found = a real zero
 }
 
 /**
- * Is dit facetten-antwoord te lezen?
+ * Is this facets answer readable?
  *
- * Een 200 met een body zonder `automationId`-map is GEEN nul: dan heeft niemand
- * geteld. `runCountOf` gaf voor beide `null` en de kaart maakte er "no runs of
- * yours" van — een bewering over runs die niet geteld zijn. Het paneel gebruikt
- * dit om dezelfde banner te tonen als bij een mislukte lees.
+ * A 200 with a body without an `automationId` map is NOT a zero: then nobody has counted. `runCountOf` gave `null` for both, and the card made "no runs of yours" of it — a claim about runs that were not counted. The panel uses this to show the same banner as for a failed read.
  */
 export function facetsReadable(facets: RunFacets | null) {
     return isObject(facets) && isObject(facets.automationId);
@@ -300,12 +235,9 @@ export function facetsReadable(facets: RunFacets | null) {
 /* ── nieuwe regel ────────────────────────────────────────────────────── */
 
 /**
- * Het concept dat "+ Rule" aanmaakt: de trigger staat al goed, de rest niet.
+ * The draft that "+ Rule" creates: the trigger is already right, the rest is not.
  *
- * Een LEEG filter, met opzet: dat betekent élke afgeronde vergadernotitie, en
- * het filterformulier in de builder zegt dat met zoveel woorden zodra je er
- * bent (triggerFilters.jsx). Een verzonnen tagfilter zou een regel maken die
- * stilletjes minder doet dan de auteur denkt.
+ * An EMPTY filter, deliberately: that means EVERY completed meeting note, and the filter form in the builder says so in so many words as soon as you are there (triggerFilters.jsx). An invented tag filter would make a rule that quietly does less than its author thinks.
  */
 export function newRuleDefinition() {
     return {
@@ -326,11 +258,9 @@ export function newRuleDefinition() {
 /* ── de AI-composer ──────────────────────────────────────────────────── */
 
 /**
- * De seed die de suggestie-scan binnen dit onderwerp houdt.
+ * The seed that the suggestion scan keeps within this topic.
  *
- * De server knipt `focus` af op 280 tekens (routes/ai/automationBuilder/
- * suggestions.js), dus de seed staat VOORAAN: wat de gebruiker erbij typt mag
- * wegvallen, de scope niet.
+ * The server truncates `focus` to 280 characters (routes/ai/automationBuilder/suggestions.js), so the seed goes at the FRONT: whatever the user types after it may drop away, the scope may not.
  */
 export const COMPOSER_SEED = 'Rules that run on a finished Bee Flow meeting note (trigger: Meeting Notes, meeting.processed). Prefer steps that file the note in a knowledge base, send a notification, or write a datatable row.';
 

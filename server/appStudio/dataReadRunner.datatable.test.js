@@ -1,17 +1,16 @@
 /**
- * De leesrunner kiest het juiste PAD — app-eigen opslag of Studio-datatabel.
+ * The read runner chooses the right PATH — app-owned storage or Studio datatable.
  *
- * De rechtenbeslissing zelf staat in datatableSource.test.js. Hier gaat het om
- * de splitsing eromheen: dat de bestaande soort niets merkt, dat de tweede
- * soort in de datatabel-opslag terechtkomt (met haar eigen tabelnaam, haar
- * eigen access-blok en de Postgres-dialect), dat een batch de opzoeking niet
- * per descriptor overdoet, en dat een weigering als weigering aankomt en niet
- * als lege lijst.
+ * The permission decision itself lives in datatableSource.test.js. Here it is about the
+ * split around it: that the existing kind notices nothing, that the second kind ends up in
+ * the datatable storage (with its own table name, its own access block and the Postgres
+ * dialect), that a batch does not repeat the lookup per descriptor, and that a refusal
+ * arrives as a refusal and not as an empty list.
  *
- * De grade-logica draait ONVERVANGEN mee: alleen de randen die een database
- * aanraken zijn gestubd, en de kijker krijgt zijn graad uit een echte grant.
+ * The grade logic runs UNREPLACED along: only the edges that touch a database are stubbed,
+ * and the viewer gets his grade from a real grant.
  *
- * Draai: cd server && node --test --test-reporter=tap appStudio/dataReadRunner.datatable.test.js
+ * Run: cd server && node --test --test-reporter=tap appStudio/dataReadRunner.datatable.test.js
  */
 
 const test = require('node:test');
@@ -70,8 +69,8 @@ stub('../stores/datatableStore', {
     },
     getTableMeta: async () => {
         storeCalls.getTableMeta += 1;
-        // De FYSIEKE naam van de datatabel is een andere dan de modeltabelnaam —
-        // dat is wat bewijst uit welke tabel er gelezen wordt.
+        // The PHYSICAL name of the datatable is a different one from the model table name —
+        // that is what proves which table is read from.
         return { id: DT_ID, key: 'dt_klanten', fields: [{ key: 'naam', type: 'text' }] };
     },
 });
@@ -90,9 +89,9 @@ const dataReadRunner = require('./dataReadRunner');
 
 // ── De app en haar model ────────────────────────────────────────────
 
-// De eerste soort: de app bezit haar eigen rijen. `public` heeft hier
-// uitdrukkelijk leesrecht, zodat de publieke test kan laten zien dat zo'n tabel
-// blijft werken terwijl de GEKOPPELDE ernaast geweigerd wordt.
+// The first kind: the app owns its own rows. `public` has explicit read rights here,
+// so that the public test can show that such a table keeps working while the LINKED one
+// next to it is refused.
 const APP_TABLE = {
     id: 'tbl_app01',
     key: 'notities',
@@ -109,10 +108,10 @@ const LINKED_TABLE = {
 };
 
 /**
- * Dezelfde koppeling, maar met de gereserveerde rol `public` UITDRUKKELIJK
- * leesrecht op de modeltabel. Zo komt de lezing voorbij de RLS-poort van de app
- * (rlsGateway.canRead) en moet de weigering wel uit het datatabel-pad komen —
- * anders zou de test bewijzen dat de poort ervoor dicht zat, niet deze.
+ * The same link, but with the reserved role `public` EXPLICITLY given read rights on the
+ * model table. That way the read gets past the app's RLS gate (rlsGateway.canRead), and the
+ * refusal must come from the datatable path — otherwise the test would prove that the gate
+ * in front of it was closed, not this one.
  */
 const LINKED_PUBLIC_TABLE = {
     id: 'tbl_model02',
@@ -161,7 +160,7 @@ test('een tabel met EIGEN opslag verandert niet: app-database, app-dialect', asy
     assert.equal(datatableDbCalls.length, 0, 'de datatabel-opslag mag niet aangeraakt worden');
     assert.equal(storeCalls.getDatatable, 0);
     assert.equal(appDbCalls.length, 1);
-    // Het handvat is nog steeds (eigenaar, app) en de tabelnaam die van het model.
+    // The handle is still (owner, app) and the table name that of the model.
     assert.equal(appDbCalls[0].ownerId, OWNER);
     assert.equal(appDbCalls[0].entityId, 'app_1');
     assert.match(appDbCalls[0].sql, /FROM "notities"/);
@@ -220,11 +219,11 @@ test('PUBLIEKE route: de weigering komt als weigering aan, niet als lege lijst',
         // De auteur heeft de rol `public` op deze tabel leesrecht gegeven; de
         // koppeling weigert alsnog.
         { id: 'a', kind: 'records', tableId: 'tbl_model02' },
-        // Een gekoppelde tabel ZONDER dat leesrecht wordt al door de RLS-poort
-        // van de app tegengehouden — twee sloten, allebei dicht.
+        // A linked table WITHOUT that read right is already stopped by the app's RLS gate —
+        // two locks, both closed.
         { id: 'b', kind: 'records', tableId: 'tbl_model01' },
-        // De app-eigen tabel op hetzelfde scherm blijft gewoon werken: één
-        // geweigerde lezing mag de rest van het scherm niet blanco maken.
+        // The app-owned table on the same screen keeps working: one refused read must not blank
+        // the rest of the screen.
         { id: 'c', kind: 'records', tableId: 'tbl_app01' },
     ]);
 

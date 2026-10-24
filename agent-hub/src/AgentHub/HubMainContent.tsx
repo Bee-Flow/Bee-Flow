@@ -139,13 +139,10 @@ function agentWizardSlot(props: HubMainContentProps) {
        keeps that promise since the studio's idle state became the
        card grid (A5); without it this link would land on the
        overview and the deep link would silently mean something else. */
-    /* DEZELFDE POORT als de deur hierboven (BFSF-181). Hij
-       ontbrak hier, en sinds A5 heeft het overzicht een "Back
-       to Agents"-knop: een gebruiker zonder manage_agents kwam
-       daarmee schermvullend op een raster te staan waarvan
-       /agents/all 403't — alleen een foutbanner, geen enkele
-       actie. Geen datalek (de server weigert), wel precies de
-       kapotte staat die BFSF-181 aan de andere deur dichtzette. */
+    /* SAME GATE as the door above (BFSF-181). It was missing here, and since A5 the overview has a "Back
+       to Agents" button: a user without manage_agents landed full-screen on a grid whose /agents/all
+       returns 403 — only an error banner, no action at all. Not a data leak (the server refuses), but
+       precisely the broken state that BFSF-181 closed at the other door. */
     return canManageAgentsOf(user) ? (
         <AgentStudio
             user={user}

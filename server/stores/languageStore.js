@@ -168,16 +168,16 @@ async function setGUITranslations(locale, translations) {
 /**
  * Add-only-missing merge of GUI translations, atomic ACROSS replicas.
  *
- * De vertaalcatalogi (migrations/add-nl-*) deden elk get → merge → set. Binnen
- * één proces is dat sinds de sequentiële ladder (boot/bootMigrations.js)
- * veilig, maar twee REPLICA's die tegelijk booten lazen nog steeds dezelfde
- * snapshot en de laatste schrijver wiste de sleutels van de eerste — precies
- * de wond uit de add-nl-cowork-header, één laag hoger. mutateConfig
- * serialiseert schrijvers van deze ene key met een Postgres advisory lock.
+ * The translation catalogues (migrations/add-nl-*) each did get → merge → set. Within
+ * one process that has been safe since the sequential ladder (boot/bootMigrations.js),
+ * but two REPLICAS booting at the same time still read the same
+ * snapshot and the last writer wiped the keys of the first — precisely
+ * the wound from add-nl-cowork-header, one layer higher. mutateConfig
+ * serialises writers of this one key with a Postgres advisory lock.
  *
- * Bestaande waarden winnen ALTIJD (alleen ontbrekende sleutels komen erbij),
- * dus een workspace die zijn eigen wording curateerde houdt die — dezelfde
- * belofte die elke catalogus al maakte, nu ook onder gelijktijdigheid.
+ * Existing values ALWAYS win (only missing keys are added),
+ * so a workspace that curated its own wording keeps it — the same promise
+ * that every catalogue already made, now also under concurrency.
  */
 async function addMissingGUITranslations(locale, translations) {
     let added = 0;
@@ -195,11 +195,10 @@ async function addMissingGUITranslations(locale, translations) {
 }
 
 /**
- * Generieke atomaire bewerking van één taalblob, voor de paar catalogi die
- * meer doen dan alleen-ontbrekende-toevoegen (gepensioneerde sleutels
- * verwijderen, een bewuste herformulering doordrukken). Zelfde advisory lock
- * als addMissingGUITranslations; de mutator krijgt een eigen kopie, mag die
- * muteren, en kan opnieuw draaien — dus geen side effects erin.
+ * Generic atomic operation on one language blob, for the few catalogues that do
+ * more than add-only-missing (removing retired keys, forcing through a deliberate
+ * rewording). Same advisory lock as addMissingGUITranslations; the mutator gets its own copy,
+ * may mutate it, and may run again — so no side effects in it.
  */
 async function mutateGUITranslations(locale, mutatorFn) {
     return configStore.mutateConfig(`i18n_gui_${locale}`, (current) => mutatorFn({ ...(current || {}) }));

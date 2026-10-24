@@ -206,22 +206,21 @@ async function resolveDatatablePrincipal(req) {
     const userId = req?.session?.user?.id || null;
     const audience = await resolveAudienceContext(req);
 
-    // Een MISLUKTE lezing wordt gemeld, niet alleen verdragen.
+    // A FAILED read is reported, not just tolerated.
     //
-    // Verdragen blijft het gedrag: `user` blijft null, de principal degradeert
-    // naar "geen org, niet in een groep, geen orgRole" en dat VERSMALT — de
-    // goede richting. Maar het is als BOODSCHAP fout. Elke degradatie wijst
-    // dezelfde kant op ("je hoort er niet bij"), dus de weigering die erop volgt
-    // ziet eruit als een beleidskeuze terwijl in werkelijkheid niemand het kon
-    // nagaan. Dezelfde redenering als `ctx.identityError` in
-    // core/automationRunner/datatableResolve.js, waar het een aparte foutklasse
-    // krijgt in plaats van `datatable_forbidden`.
+    // Tolerating stays the behaviour: `user` stays null, the principal degrades
+    // to "no org, in no group, no orgRole" and that NARROWS access, which is the
+    // right direction. But it is wrong as a MESSAGE. Every degradation points
+    // the same way ("you do not belong"), so the refusal that follows looks like
+    // a policy decision while in reality nobody could check. Same reasoning as
+    // `ctx.identityError` in core/automationRunner/datatableResolve.js, where it
+    // gets its own error class instead of `datatable_forbidden`.
     //
-    // ADDITIEF: alleen een extra veld op de principal. `gradeForPrincipal` leest
-    // het niet, en de routers die de principal gebruiken evenmin — die houden
-    // exact het gedrag dat ze hadden. De ene lezer is
-    // appStudio/datatableSource.js, waar een app die een Studio-tabel toont er
-    // een 503 van maakt in plaats van een 403.
+    // ADDITIVE: only an extra field on the principal. `gradeForPrincipal` does
+    // not read it, and neither do the routers that use the principal; they keep
+    // exactly the behaviour they had. The one reader is
+    // appStudio/datatableSource.js, where an app that shows a Studio table
+    // turns it into a 503 instead of a 403.
     let user = null;
     let identityError = null;
     try {
@@ -249,9 +248,9 @@ async function resolveDatatablePrincipal(req) {
                 const g = (allGroups || []).find(x => x && groups.includes(x.id) && x.organizationId);
                 orgId = g?.organizationId || null;
             } catch (e) {
-                // Ook hier: verdragen én melden. Deze tak is de enige manier
-                // waarop een org-loos account zijn organisatie vindt, dus een
-                // storing hier laat hem als tenantloos gelden.
+                // Here too: tolerate and report. This branch is the only way
+                // an org-less account finds its organisation, so a failure
+                // here makes it count as tenantless.
                 identityError = identityError || `the groups could not be read (${e && e.message})`;
             }
         }
@@ -266,9 +265,9 @@ async function resolveDatatablePrincipal(req) {
         // Every org the caller can reach (null = super-admin, audience.js's
         // bypass). Not used for tenancy here — kept so the org picker has it.
         orgIds: audience.orgIds,
-        // null = alles is echt gelezen. Een string zegt WAT er niet gelezen kon
-        // worden, zodat een aanroeper "ik weet het niet" kan onderscheiden van
-        // "je mag het niet". Zie de catch-takken hierboven.
+        // null = everything was really read. A string says WHAT could not be
+        // read, so a caller can tell "I do not know" from "you are not
+        // allowed". See the catch branches above.
         identityError,
     };
     // Memoised per request: a route chain resolves the principal in the gate and
@@ -278,20 +277,18 @@ async function resolveDatatablePrincipal(req) {
 }
 
 /**
- * Dezelfde principal, maar voor een consument die GEEN sessie heeft.
+ * The same principal, but for a consumer that has NO session.
  *
- * De webpagina-brug draait in een sandbox-iframe zonder cookie: wie er kijkt
- * staat in de `v`-claim van het preview-token, niet in `req.session`. Alles
- * wat `resolveDatatablePrincipal` uitrekent komt sowieso uit een VERSE
- * databaselezing (home-org, orgRole, groepen) — de sessie levert alleen het
- * gebruikers-id — dus dit is geen tweede implementatie maar dezelfde, met een
- * minimale drager voor dat ene id.
+ * The web page bridge runs in a sandbox iframe without a cookie: whoever is looking is in the
+ * `v` claim of the preview token, not in `req.session`. Everything that
+ * `resolveDatatablePrincipal` works out comes in any case from a FRESH database read (home
+ * organisation, orgRole, groups) — the session supplies only the user id — so this is not a
+ * second implementation but the same one, with a minimal carrier for that one id.
  *
- * Bewust ZONDER de super-admin-vlaggen (`session.isAdmin` /
- * `session.user.role`): die zetten `orgIds` op null (de bypass van audience.js).
- * Zonder sessie is die claim niet te controleren, en onbekend moet versmallen —
- * een super-admin krijgt hier dus gewoon zijn eigen organisaties. `orgIds`
- * speelt in `gradeForPrincipal` geen rol, dus de graad blijft identiek.
+ * Deliberately WITHOUT the super-admin flags (`session.isAdmin` / `session.user.role`): those
+ * set `orgIds` to null (the bypass in audience.js). Without a session that claim cannot be
+ * checked, and unknown must narrow — so a super admin here simply gets his own organisations.
+ * `orgIds` plays no role in `gradeForPrincipal`, so the grade is identical.
  */
 async function resolveDatatablePrincipalForUser(userId) {
     if (typeof userId !== 'string' || !userId) {
@@ -335,30 +332,26 @@ function defaultCreateScope(principal) {
 }
 
 /**
- * DE graadrekenkunde: twee graden versmallen tot één. Het MINIMUM, nooit de unie.
+ * THE grade arithmetic: two grades narrow to one. The MINIMUM, never the union.
  *
- * Eén implementatie, want dit is de regel die stilletjes uit elkaar loopt. Een
- * unie zou twee graden OPTELLEN: mag de één lezen en de ander schrijven, dan
- * levert de unie schrijfrecht op dat geen van beiden alleen had — precies het
- * lek dat de moduledoc bovenaan noemt ("an automation could write rows its author
- * cannot see").
+ * One implementation, because this is the rule that quietly drifts apart. A union would ADD two
+ * grades: if the one may read and the other may write, the union yields write rights that neither
+ * had alone — precisely the leak that the module doc at the top names ("an automation could write
+ * rows its author cannot see").
  *
- * De null-tak is strenger dan het minimum alleen. `rank` geeft -1 voor alles wat
- * geen graad is en dat zou hier ook al het kleinste zijn, maar het ANTWOORD moet
- * `null` blijven en niet een graadnaam: "geen graad" en "de laagste graad" zijn
- * verschillende waarden, en alleen de eerste is een weigering. De test loopt op
- * `rank(...) < 0` en niet op `!a || !b`, zodat een naam die geen graad IS
- * ('admin', 'member') ook versmalt in plaats van zichzelf terug te geven —
- * `gradeForPrincipal` levert die nooit, maar de app-kant rekent zijn plafond
- * zelf uit en dan moet "onbekend versmalt" letterlijk waar zijn.
+ * The null branch is stricter than the minimum alone. `rank` gives -1 for everything that is not a
+ * grade and that would also be the smallest here, but the ANSWER must remain `null` and not become
+ * a grade name: "no grade" and "the lowest grade" are different values, and only the first is a
+ * refusal. The test runs on `rank(...) < 0` and not on `!a || !b`, so that a name that is NOT a
+ * grade ('admin', 'member') also narrows instead of returning itself — `gradeForPrincipal` never
+ * yields those, but the app side computes its ceiling itself and then "unknown narrows" must be
+ * literally true.
  *
- * Twee aanroepers, en het is opzet dat het er één functie voor is:
- *   effectiveGradeForRun   — een run namens iemand anders (de runner × de
- *                            opdrachtgever).
- *   appStudio/datatableSource — een app die een Studio-tabel toont: de graad
- *                            van de KIJKER × die van de app-eigenaar, daarna
- *                            versmald met de app-rol en met de mode van de
- *                            koppeling. Lezen en schrijven delen die ene body.
+ * Two callers, and it is deliberate that there is one function for it:
+ *   effectiveGradeForRun   — a run on behalf of someone else (the runner × the person commissioning it).
+ *   appStudio/datatableSource — an app that shows a Studio table: the grade of the VIEWER × that of
+ *                            the app owner, then narrowed with the ceiling of the viewer's app role
+ *                            and with the mode of the link. Reading and writing share that one body.
  */
 function narrowGrade(a, b) {
     if (rank(a) < 0 || rank(b) < 0) return null;

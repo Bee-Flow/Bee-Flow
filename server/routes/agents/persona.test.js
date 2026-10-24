@@ -203,12 +203,11 @@ test('the text handed to the model is bounded', async () => {
     assert.ok(sent.length <= LIMITS.freeText + 100, `a paste may not become an unbounded prompt (${sent.length})`);
 });
 
-// ── Welk model leest deze instructietekst? ────────────────────────────
-// Deze route stuurde de agent-instructies naar `resolveModelForTierName` met
-// een hardgecodeerde `fallback: 'gemini-2.0-flash-lite'`. Een workspace die dat
-// Google-model nooit koos — of die in EU-mode staat — kreeg het toch, zonder
-// dat er iets van te zien was. Geen beoordelaar/lezer ingericht is een
-// weigering, geen stille keuze.
+// ── Which model reads this instruction text? ─────────────────────────
+// This route sent the agent instructions to `resolveModelForTierName` with a hard-coded
+// `fallback: 'gemini-2.0-flash-lite'`. A workspace that never chose that Google model — or that
+// is in EU mode — received it anyway, without anything of that being visible. No reviewer/reader configured is
+// a refusal, not a silent choice.
 
 test('geen model ingericht → weigeren, en de instructietekst gaat nergens heen', async () => {
     fx.modelId = null;
@@ -231,9 +230,9 @@ test('een model dat niet GELEZEN kon worden is een ander antwoord dan geen model
 });
 
 test('een workspace die niet te bepalen was weigert, in plaats van als "geen workspace" te lezen', async () => {
-    // userOrgId stuurt de EU-override en de org-tier. Een mislukte resolve als
-    // `null` lezen betekent: de globale (niet-EU) tiermap, en dus mogelijk een
-    // ander model dan deze organisatie koos.
+    // userOrgId governs the EU override and the org tier. A failed resolve read as
+    // `null` means: the global (non-EU) tier map, and therefore possibly a different model than
+    // this organisation chose.
     fx.orgThrows = true;
     const res = await dispatch({ text: 'You help with invoices.' });
     assert.strictEqual(res.statusCode, 503);

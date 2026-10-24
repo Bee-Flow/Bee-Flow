@@ -1,56 +1,47 @@
 /**
- * "Welke knop van deze app draait welke automation" — puur.
+ * "Which button of this app runs which automation": pure.
  *
- * Dit is de LEESKANT van de nieuwe index `automation_usage` (P4 deel C). Hij
- * beantwoordt precies één vraag over één app-definitie: welke automatiseringen noemt
- * zij, vanaf welke knop, op welk scherm. De schrijfkant staat in
- * `appStudio/automationUsageSync.js`, de tabel in
+ * This is the READ side of the new index `automation_usage` (P4 part C). It answers exactly one
+ * question about one app definition: which automations does it name, from which button, on which
+ * screen. The write side is in `appStudio/automationUsageSync.js`, the table in
  * `stores/automationUsageStore.js`.
  *
- * ── WAAROM DIT GEEN VELD IN `automation_datatable_usage` IS ──────────
+ * ── WHY THIS IS NOT A FIELD IN `automation_datatable_usage` ──────────
  *
- * Die index is per TABEL-DOEL gekeyd, en dat is een FK, geen conventie:
+ * That index is keyed per TABLE TARGET, and that is a FK, not a convention:
  * `datatable_id TEXT NOT NULL REFERENCES datatables(id) ON DELETE CASCADE`
- * (stores/datatableStore.js). Een app→automation-rij heeft geen datatable, dus er
- * is geen waarde die daar in mag; `reconcileUsageFor` schrijft via
- * `INSERT … SELECT … FROM datatables d WHERE d.id = $6`, dus zonder tabelrij
- * schrijft hij NUL rijen en noemt zichzelf geslaagd. Dat is precies de stille
- * poort die deze hele familie moet voorkomen. Vandaar een eigen tabel.
+ * (stores/datatableStore.js). An app→automation row has no datatable, so there is no value that
+ * may go in there. `reconcileUsageFor` writes via `INSERT … SELECT … FROM datatables d WHERE
+ * d.id = $6`, so without a table row it writes ZERO rows and reports itself successful. That is
+ * exactly the silent gate this whole family must prevent. Hence a table of its own.
  *
- * ── DE SLEUTEL IS DE ACTIE, NIET DE STAP ─────────────────────────────
+ * ── THE KEY IS THE ACTION, NOT THE STEP ─────────────────────────────
  *
- * Een sequence-stap heeft GEEN id — `containsStepKind` (validate/actions.js)
- * loopt hem op positie af. Een positie als halve primaire sleutel is precies
- * wat W5 verbiedt: bij elke bewerking schuift hij op, schrijft de reconcile een
- * nieuwe rij en groeit de index tot hij niets meer betekent. De ACTIE heeft wél
- * een stabiel id (`act_xxxx`, afgedwongen door validate.js' checkId), dus de
- * rij is er één per (app, actie, automation). Twee `run_automation`-stappen in
- * dezelfde sequence die dezelfde automatisering draaien zijn één rij; draaien ze
- * verschillende automatiseringen, dan zijn het er twee — het automation_id zit in de
- * sleutel.
+ * A sequence step has NO id: `containsStepKind` (validate/actions.js) walks it by position. A
+ * position as half a primary key is exactly what W5 forbids: with every edit it shifts, the
+ * reconcile writes a new row, and the index grows until it means nothing. The ACTION does have a
+ * stable id (`act_xxxx`, enforced by validate.js' checkId), so the row is one per
+ * (app, action, automation). Two `run_automation` steps in the same sequence that run the same
+ * automation are one row; if they run different automations, there are two, because the
+ * automation_id is part of the key.
  *
- * ── EEN ONBEDRAADE ACTIE TELT WEL MEE ────────────────────────────────
+ * ── AN UNWIRED ACTION STILL COUNTS ──────────────────────────────────
  *
- * Een actie die aan een automatisering hangt maar aan geen enkele knop
- * (`action.unreachable` in de validator) levert een rij MET een leeg
- * knop-adres. De verleiding is hem over te slaan — er kan immers niemand op
- * drukken — maar de index is wat een verwijdering luidruchtig maakt, en daar
- * geldt dezelfde richting als bij W5: een rij te veel maakt een verwijdering
- * luidruchtiger, een rij te weinig maakt hem stil. `wired:false` zegt het
- * verschil, zodat het scherm "nog niet aan een knop gekoppeld" kan tonen in
- * plaats van een verzonnen knopnaam.
+ * An action that hangs on an automation but on no button at all (`action.unreachable` in the
+ * validator) yields a row WITH an empty button address. The temptation is to skip it, since
+ * nobody can press it, but the index is what makes a deletion loud, and the same direction applies
+ * as with W5: one row too many makes a deletion louder, one row too few makes it silent.
+ * `wired:false` marks the difference, so that the screen can show "not yet wired to a button"
+ * instead of an invented button name.
  *
- * ── ÉÉN VOCABULAIRE, TWEE LOPEN ──────────────────────────────────────
+ * ── ONE VOCABULARY, TWO WALKS ──────────────────────────────────────
  *
- * `collectReferencedActions` (validate/nodes.js) weet welke acties bereikbaar
- * zijn, maar geeft alleen de ids terug — niet de knop. Deze module loopt
- * dezelfde boom nóg een keer om de KNOP erbij te zoeken, met dezelfde
- * gebeurtenisnamen (`EVENT_NAMES`, geïmporteerd) en dezelfde vier
- * actielijst-props (gespiegeld, want die zijn daar niet geëxporteerd — zelfde
- * afweging als `NAMING_PROPS` in appRefLookup.js). Dat de twee lopen niet uit
- * elkaar lopen is geen belofte maar een test: automationUsageSync.test.js
- * vergelijkt de sleutelverzameling met `collectReferencedActions` over een
- * fixture die élke bedradingsvorm bevat.
+ * `collectReferencedActions` (validate/nodes.js) knows which actions are reachable, but it returns
+ * only the ids, not the button. This module walks the same tree ONCE MORE to find the BUTTON, with
+ * the same event names (`EVENT_NAMES`, imported) and the same four action-list props (mirrored,
+ * because those are not exported there; same consideration as `NAMING_PROPS` in appRefLookup.js).
+ * That the two walks do not drift apart is not a promise but a test: automationUsageSync.test.js
+ * compares the key set with `collectReferencedActions` over a fixture that contains every wiring form.
  */
 
 'use strict';
@@ -59,9 +50,8 @@ const { EVENT_NAMES } = require('./componentSpecs');
 const { nodeOwnText } = require('./appRefLookup');
 
 /**
- * De props waarin een component een actie bij ID noemt in plaats van via een
- * gebeurtenis. Gespiegeld uit validate/nodes.js#collectReferencedActions; zie
- * de kop voor waarom dat een spiegel is en niet een import.
+ * The props in which a component names an action by ID instead of via an event. Mirrored from
+ * validate/nodes.js#collectReferencedActions; see the header for why that is a mirror and not an import.
  */
 const ACTION_LIST_PROPS = Object.freeze(['itemActions', 'rowActions', 'bulkActions', 'toolbarActions']);
 
@@ -73,19 +63,16 @@ function isObject(v) {
 }
 
 /**
- * De automatiseringen die één actie draait, in volgorde van eerste voorkomen.
+ * The automations that one action runs, in order of first occurrence.
  *
- * Zowel de v1-vorm (`kind:'run_automation'` op de actie zelf) als de
- * sequence-stap. De recursie is exact die van `containsStepKind`
- * (validate/actions.js): `steps`, `then`, `else`, `cases[].steps` en
- * `default` — de VIJF plekken waar een stap een stap kan bevatten. Dat "exact"
- * is geen belofte maar een test: automationUsageSync.test.js vergelijkt de
- * twee recursies veld voor veld.
+ * Both the v1 form (`kind:'run_automation'` on the action itself) and the sequence step. The
+ * recursion is exactly that of `containsStepKind` (validate/actions.js): `steps`, `then`, `else`,
+ * `cases[].steps` and `default`, the FIVE places where a step can contain a step. That "exactly" is
+ * not a promise but a test: automationUsageSync.test.js compares the two recursions field by field.
  *
- * @returns {{ids: string[], unset: number}} `unset` telt de
- *   `run_automation`-plekken zónder automatisering (`automationId: null`, de stand
- *   waarin elk sjabloon wordt uitgeleverd). Die zijn GEEN gebruik, maar ze
- *   horen wel in de logregel.
+ * @returns {{ids: string[], unset: number}} `unset` counts the
+ *   `run_automation` places WITHOUT an automation (`automationId: null`, the state in which every
+ *   template is shipped). Those are NOT usage, but they do belong in the log line.
  */
 function automationsInAction(action) {
     const ids = [];
@@ -101,9 +88,8 @@ function automationsInAction(action) {
     };
 
     const walkSteps = (steps, depth) => {
-        // Dezelfde diepterem als de validator (MAX_ACTION_STEP_DEPTH is daar
-        // een fout, hier alleen een stop): een handgeschreven definitie mag
-        // deze scan niet in een cyclus trekken.
+        // The same depth limit as the validator (MAX_ACTION_STEP_DEPTH is an error there,
+        // here only a stop): a hand-written definition must not be able to drive this scan into a cycle.
         if (!Array.isArray(steps) || depth > 12) return;
         for (const step of steps) {
             if (!isObject(step)) continue;
@@ -114,13 +100,13 @@ function automationsInAction(action) {
             for (const c of (Array.isArray(step.cases) ? step.cases : [])) {
                 if (isObject(c)) walkSteps(c.steps, depth + 1);
             }
-            // `default` — de VIJFDE ingang, en degene die hier ontbrak. Zowel
-            // de browser (runtime/useActionRunner: `execSteps(hit ? hit.steps
-            // : step.default)`) als de server (appStudio/actionSequence.js)
-            // voert die tak echt uit, dus een automatisering die er alleen daar in
-            // staat, draaide wel en stond niet in de index — en dan zegt de
-            // capsule "No app button runs this automation yet" op het scherm
-            // waarop iemand besluit hem te verwijderen.
+            // `default` — the FIFTH entry, and the one that was missing here. Both
+            // the browser (runtime/useActionRunner: `execSteps(hit ? hit.steps
+            // : step.default)`) and the server (appStudio/actionSequence.js)
+            // really run that branch, so an automation that existed only there
+            // ran fine and was not in the index — and then the capsule says
+            // "No app button runs this automation yet" on screen, and someone
+            // decides to delete it.
             walkSteps(step.default, depth + 1);
         }
     };
@@ -132,12 +118,12 @@ function automationsInAction(action) {
 }
 
 /**
- * Welke KNOP elke actie aanzet: actie-id → { screenId, nodeId, label }.
+ * Which BUTTON switches on each action: action id → { screenId, nodeId, label }.
  *
- * De EERSTE vindplaats in documentvolgorde wint. Twee knoppen op dezelfde
- * actie is één plek in de app die de automatisering draait — de rij noemt de eerste,
- * en dat is eerlijker dan een tweede rij die net doet alsof het twee
- * verschillende koppelingen zijn.
+ * The FIRST location in document order wins. Two buttons on the same action is
+ * one place in the app that runs the automation — the row names the first one,
+ * and that is more honest than a second row that pretends they are two
+ * different links.
  */
 function collectActionSites(screens) {
     const sites = new Map();
@@ -181,12 +167,12 @@ function collectActionSites(screens) {
 }
 
 /**
- * Elke (actie, automatisering) die deze definitie noemt.
+ * Every (action, automation) pair that this definition names.
  *
- * Puur en defensief: een misvormde actie wordt overgeslagen, nooit op gegooid.
- * Een definitie die geen object is levert een LEGE lijst — en de aanroeper
- * mag dat NIET als "deze app gebruikt niets" lezen zonder eerst te weten dat
- * de definitie echt gelezen is. Zie regel 1 in automationUsageSync.js.
+ * Pure and defensive: a malformed action is skipped, never thrown. A definition
+ * that is not an object yields an EMPTY list — and the caller may NOT read that as
+ * "this app uses nothing" without first knowing that the definition was really read.
+ * See line 1 in automationUsageSync.js.
  *
  * @returns {{entries: Array<{automationId:string, refId:string, actionId:string,
  *            screenId:string|null, nodeId:string|null, label:string|null,
@@ -212,7 +198,7 @@ function collectAutomationRefs(definition) {
                 screenId: site ? site.screenId : null,
                 nodeId: site ? site.nodeId : null,
                 label: site ? site.label : null,
-                // Zie de kop: een onbedrade actie telt mee, maar zegt dat ook.
+                // See the heading: an unwired action counts, but says so too.
                 wired: !!site,
             });
         }

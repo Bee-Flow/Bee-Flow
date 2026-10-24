@@ -54,11 +54,11 @@ function shippedDdl() {
     // initSchema.js is a facade (LF-S3): the DDL lives in the sibling parts.
     const src = ['initSchema.base.js', 'initSchema.agents.js']
         .map((f) => fs.readFileSync(path.join(__dirname, f), 'utf8')).join('\n');
-    // De ALTERs horen erbij: `written_by` / `suggested_by` zijn kolommen die
-    // `createTest` bij naam noemt, en `seq` op `agent_test_runs` is de
-    // tiebreaker die `listTestRuns`/`getLastTestRun`/de prune gebruiken — een
-    // suite die ze niet aanmaakt bewijst precies het tegenovergestelde van
-    // waar hij voor bestaat.
+    // The ALTERs belong here: `written_by` / `suggested_by` are columns that
+    // `createTest` names by name, and `seq` on `agent_test_runs` is the
+    // tiebreaker that `listTestRuns`/`getLastTestRun`/the prune use — a
+    // suite that does not create them proves exactly the opposite of
+    // what it exists for.
     const found = [...src.matchAll(/`((?:CREATE TABLE IF NOT EXISTS agent_test|CREATE INDEX IF NOT EXISTS idx_agent_test|ALTER TABLE agent_test(?:s|_runs) )[\s\S]*?)`/g)]
         .map(m => m[1]);
     assert.ok(found.length >= 6, `expected the two tables, their indexes and the column ladder in initSchema.base.js/initSchema.agents.js, found ${found.length}`);
@@ -205,9 +205,9 @@ test('the run history is newest first, never longer than what is kept', async ()
     assert.ok(all.every(r => r.agentId === AGENT), "another agent's runs stay out");
 
     assert.strictEqual((await store.listTestRuns(AGENT, { ...opts, limit: 2 })).length, 2);
-    // Meer dan er bewaard wordt kan niet gevraagd worden: de prune gooit de
-    // rest weg, dus een grotere limit zou een lijst beloven die per definitie
-    // korter uitvalt.
+    // More than is kept cannot be asked for: the prune throws the
+    // rest away, so a larger limit would promise a list that by definition
+    // comes back shorter.
     for (const silly of [0, -1, 'veel', null, 9999]) {
         const rows = await store.listTestRuns(AGENT, { ...opts, limit: silly });
         assert.strictEqual(rows.length, 4, String(silly));
@@ -216,10 +216,10 @@ test('the run history is newest first, never longer than what is kept', async ()
 });
 
 test('BIJT — gelijke ran_at volgt de invoegvolgorde, niet de willekeurige id', async () => {
-    // `id` is een uuidv4 — willekeurig, dus geen geldige tiebreaker. Deze ids
-    // zijn met opzet zo gekozen dat ORDER BY id DESC precies de OMGEKEERDE
-    // volgorde geeft van de invoegvolgorde: de rij die als eerste binnenkwam
-    // krijgt de hoogste id, de laatst ingevoegde de laagste.
+    // `id` is a uuidv4 — random, therefore not a valid tiebreaker. These ids
+    // are chosen deliberately so that ORDER BY id DESC gives precisely the REVERSE
+    // order of insertion: the row that came in first gets the highest
+    // id, the last one inserted the lowest.
     await q(`DELETE FROM agent_test_runs`);
     const sameRanAt = new Date().toISOString();
     const n = 3;
@@ -268,12 +268,12 @@ test('BIJT — de prune bewaart de laatst ingevoegde rijen, niet de rijen met de
 });
 
 test('BIJT — de limit wordt geklemd, ook als er méér rijen staan dan er bewaard worden', async () => {
-    // De assertie hierboven kan de klem per constructie niet zien: met vier
-    // rijen geeft een ONgeklemde `LIMIT 9999` net zo goed vier rijen. En de
-    // klem is geen dode code — `recordTestRun` slikt zijn eigen prune-fout, en
-    // de route geeft de `?limit=` van de client rechtstreeks door. Dus zetten
-    // we hier meer rijen neer dan er bewaard worden, buiten `recordTestRun` om
-    // (die zou meteen prunen), en vragen we er te veel op.
+    // The assertion above cannot see the clamp by construction: with four
+    // rows an UNclamped `LIMIT 9999` gives four rows just as well. And the
+    // clamp is not dead code — `recordTestRun` swallows its own prune error, and
+    // the route passes the client's `?limit=` straight through. So we put more
+    // rows here than are kept, outside `recordTestRun` (which would prune
+    // immediately), and ask for too many.
     await q(`DELETE FROM agent_test_runs`);
     const extra = store.TEST_RUNS_KEEP + 7;
     for (let i = 0; i < extra; i++) {
@@ -297,9 +297,9 @@ test('BIJT — de limit wordt geklemd, ook als er méér rijen staan dan er bewa
 });
 
 test('de herkomst van een voorgestelde verwachting overleeft het opslaan', async () => {
-    // Zonder deze twee kolommen is een regel die een model schreef na het
-    // opslaan niet te onderscheiden van een die iemand zelf tikte — terwijl
-    // elke run-uitslag die eruit volgt erop leunt.
+    // Without these two columns a row that a model wrote after
+    // saving is indistinguishable from one that someone typed themselves — while
+    // every run result that follows from it relies on that.
     const proposed = await store.createTest(AGENT, {
         name: 'Voorgesteld', question: 'Wanneer zijn jullie open?',
         expect: { mustMention: ['negen uur'] },
@@ -310,8 +310,8 @@ test('de herkomst van een voorgestelde verwachting overleeft het opslaan', async
     assert.strictEqual(proposed.suggestedBy, 'fast-model-1');
     assert.deepStrictEqual((await store.getTest(AGENT, proposed.id, opts)).writtenBy, proposed.writtenBy);
 
-    // En een test die een mens zelf tikte draagt GEEN herkomst. Null is hier
-    // het eerlijke antwoord: geen etiket is beter dan een verkeerd etiket.
+    // And a test that a human typed themselves carries NO provenance. Null is here
+    // the honest answer: no label is better than a wrong label.
     const typed = await store.createTest(AGENT, { name: 'Zelf', question: 'q' }, opts);
     assert.strictEqual(typed.writtenBy, null);
     assert.strictEqual(typed.suggestedBy, null);

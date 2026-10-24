@@ -469,10 +469,9 @@ const InputArea = ({
                         </div>
                     </div>
                 )}
-                {/* C9 — dezelfde leeskolom als de berichtenlijst (760px, de maat
-                    uit het artboard). Stond op `max-w-3xl` (768px), waardoor
-                    het gesprek 8px breder liep dan zijn eigen invoerveld. De
-                    andere helft is COLUMN_MAX_W in MessageItem/index.tsx. */}
+                {/* C9: the same reading column as the message list (760px, the measure from the artboard). It was on
+                    `max-w-3xl` (768px), so the conversation ran 8px wider than its own input field. The other half
+                    is COLUMN_MAX_W in MessageItem/index.tsx. */}
                 <div className={compact ? 'w-full' : 'max-w-[760px] mx-auto'} data-testid="composer-column">
                     {/* Thread Banner */}
                     {activeThreadParent && (

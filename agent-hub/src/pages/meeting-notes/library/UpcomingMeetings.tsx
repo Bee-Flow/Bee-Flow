@@ -13,42 +13,20 @@ import { messageOf, errorCode, errorMessage } from '../../../utils/caughtError';
 import { logger } from '../../../utils/logger';
 
 /**
- * "Upcoming" (Gepland): the calendar meetings with a Talk room or a Meet
- * link, each with a record/skip toggle. Colours are theme tokens only — the
- * Nextcloud blue and Meet green that used to be hard-coded here are gone
- * (repo-wide token hygiene): a provider tile is the meeting kind's tint, a
- * live toggle is the accent, and the status chips read --success / --warning
- * with their -ink twins for text.
+ * "Upcoming" (Scheduled): the calendar meetings with a Talk room or a Meet link, each with a record/skip toggle. Colours are theme tokens only — the Nextcloud blue and Meet green that used to be hard-coded here are gone (repo-wide token hygiene): a provider tile is the meeting kind's tint, a live toggle is the accent, and the status chips read --success / --warning with their -ink twins for text.
  *
- * `onRowsChange(count)` reports how many meetings are listed, so the rail's
- * "Upcoming n" segment can carry the count while this panel is not the one
- * on screen (the page keeps it mounted, hidden, once a source is connected).
+ * `onRowsChange(count)` reports how many meetings are listed, so the rail's "Upcoming n" segment can carry the count while this panel is not the one on screen (the page keeps it mounted, hidden, once a source is connected).
  *
- * ── DE RIJ (M5) ───────────────────────────────────────────────────────
- * Datumblok links, dan titel + statuschip, dan de metaregel
- * `tijd · duur · deelnemers · provider`, en daaronder de tags van deze
- * vergadering. De toggle rechts is de EFFECTIEVE opnamestand die de server
- * uit `meeting_prefs` afleidt (`excluded` + `recordReason`) — deze component
- * beslist niets zelf, hij toont die stand en schrijft de keuze terug.
+ * ── THE ROW (M5) ─────────────────────────────────────────────────────
+ * Date block on the left, then title + status chip, then the meta line `time · duration · participants · provider`, and beneath that the tags of this meeting. The toggle on the right is the EFFECTIVE recording state that the server derives from `meeting_prefs` (`excluded` + `recordReason`) — this component decides nothing itself; it shows that state and writes the choice back.
  *
- * ── WAT WE NIET WETEN, ZEGGEN WE NIET ─────────────────────────────────
- * Duur, deelnemers en de voetregel zitten in `../lib/upcomingMeta.js`, met de
- * bronverwijzingen erbij. Kort: geen provider levert een duur (die wordt uit
- * `end - start` afgeleid en is bij een ontbrekend einde of een hele dag
- * ONBEKEND — dan staat er niets, geen "0 min"), en een lege deelnemerslijst
- * betekent "de agenda vertelde ons niets", niet "nul mensen": die wordt
- * "participants unknown" en nooit "0 participants". Een nul die eigenlijk
- * onbekend is, was in dit programma al drie keer een bevinding.
+ * ── WHAT WE DO NOT KNOW, WE DO NOT SAY ───────────────────────────────
+ * Duration, participants and the footer line are in `../lib/upcomingMeta.js`, with the source references. In brief: no provider supplies a duration (it is derived from `end - start` and is UNKNOWN when an end is missing or the day is whole — then nothing is shown, not "0 min"), and an empty participant list means "the calendar told us nothing", not "zero people": it becomes "participants unknown" and never "0 participants". A zero that is actually unknown has been a finding in this program three times already.
  *
- * De voetregel belooft alleen wat de bot echt doet, per provider — en zwijgt
- * over wat de payload niet zegt (`attendeeNotices`).
+ * The footer line promises only what the bot really does, per provider, and stays silent about what the payload does not say (`attendeeNotices`).
  *
- * ── TEAMS ─────────────────────────────────────────────────────────────
- * Teams rows come from the Outlook calendar (routes/transcriptions/teams.js)
- * and are harvested after the meeting: Bee Flow downloads the Teams recording
- * and transcribes it itself. Graph only gives recordings to the ORGANIZER, so
- * a meeting someone else organises shows "Organizer only" with the toggle
- * disabled instead of a switch that cannot do anything.
+ * ── TEAMS ────────────────────────────────────────────────────────────
+ * Teams rows come from the Outlook calendar (routes/transcriptions/teams.js) and are harvested after the meeting: Bee Flow downloads the Teams recording and transcribes it itself. Graph only gives recordings to the ORGANIZER, so a meeting someone else organises shows "Organizer only" with the toggle disabled, instead of a switch that cannot do anything.
  */
 
 const Toggle = ({ on, onClick, disabled, label, title }: ToggleProps) => (
@@ -78,9 +56,9 @@ function StatusChip({ status, onOpenNote, t }: StatusChipProps) {
                 </button>
             );
         case 'decides_at_start':
-            // Niet "Upcoming": de server gaat bij de start van het gesprek nog
-            // tellen wie er echt in zit. Een kale "Upcoming" leest als "er
-            // gebeurt niets", en dat is precies wat er dan wél kan gebeuren.
+            // Not "Upcoming": the server will still count, at the start of the call, who
+            // is really in it. A bare "Upcoming" reads as "nothing happens", and that is
+            // precisely what can then happen.
             return (
                 <span className={base} style={muted} title={t('meetings.upcoming_decides_hint', 'Bee Flow counts who is in the call when it starts; the calendar invite does not say.')}>
                     {t('meetings.upcoming_decides', 'Decides at start')}
@@ -109,9 +87,7 @@ function StatusChip({ status, onOpenNote, t }: StatusChipProps) {
 }
 
 /**
- * De providerchip sluit de metaregel af. Het glyph is de opnamevorm die deze
- * provider gebruikt (Talk: audio of video, uit `recordingMode`; Meet: video),
- * zodat die informatie niet wegvalt nu het datumblok de tegel links inneemt.
+ * The provider chip closes off the meta line. The glyph is the recording form that this provider uses (Talk: audio or video, from `recordingMode`; Meet: video), so that this information does not drop out now that the date block takes the tile on the left.
  */
 function ProviderChip({ provider, icon: Icon }: ProviderChipProps) {
     return (
@@ -144,8 +120,7 @@ function teamsChipStatus(m: TeamsMeeting, autoImport: boolean, autoRecordArmed: 
 }
 
 /**
- * Het datumblok. Zonder begintijd (talkCalendar geeft `start: ev.dtstart || null`)
- * staat er een agendaglyph met uitleg, geen verzonnen datum.
+ * The date block. Without a start time (talkCalendar gives `start: ev.dtstart || null`) there is a calendar glyph with an explanation, not an invented date.
  */
 function DateBlock({ start, t }: DateBlockProps) {
     const parts = dateBlockParts(start);
@@ -237,9 +212,9 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }: UpcomingM
     const [busyKey, setBusyKey] = useState<string | null>(null);
     const [gmeetRowErrors, setGmeetRowErrors] = useState<Record<string, string>>({}); // eventId → message
     const [teamsRowErrors, setTeamsRowErrors] = useState<Record<string, string>>({}); // eventId → message
-    // rowKey → true zodra de server meldde dat een BREDERE regel de keuze van
-    // deze gebruiker overruled (org-breed, of de hele serie). Alleen dán krijgt
-    // `opted_out` een uitleg: bij een eigen klik is die overbodig.
+    // rowKey → true as soon as the server reported that a BROADER rule overrides
+    // this user's choice (organisation-wide, or the whole series). Only then does
+    // `opted_out` get an explanation: with the user's own click that is superfluous.
     const [overridden, setOverridden] = useState<Record<string, boolean>>({});
     const [reconnecting, setReconnecting] = useState(false);
     const [reconnectingMs, setReconnectingMs] = useState(false);
@@ -273,8 +248,8 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }: UpcomingM
     const teamsScopesGranted = teamsConnection?.teamsScopesGranted === true;
     const teamsAutoImport = !!teams.data?.autoImport;
     const teamsAutoRecordArmed = teams.data?.autoRecordConfig === true && teamsConnection?.hasMeetingWriteScope === true;
-    // Bewust NIET met `!!`: `undefined` (het veld ontbreekt in de payload) is
-    // hier "onbekend" en moet iets anders opleveren dan een expliciete `false`.
+    // Deliberately NOT with `!!`: `undefined` (the field is missing from the payload)
+    // is "unknown" here and must yield something different from an explicit `false`.
     const postSummaryBack = talk.data ? talk.data.postSummaryBack : undefined;
 
     const talkMeetings = (!talk.loading && !talk.error && talk.data?.meetings) || [];
@@ -291,10 +266,10 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }: UpcomingM
 
     // Report the count once both sources have answered; while loading the
     // segment shows no number rather than a 0 that would read as "none".
-    // FAALDEN BEIDE bronnen, dan is het aantal ONBEKEND en niet nul: "Upcoming
-    // 0" leest als "je hebt geen vergaderingen", terwijl het "we konden ze
-    // niet ophalen" is. Eén werkende bron is wél een antwoord (de andere toont
-    // zijn eigen foutbanner in het paneel).
+    // IF BOTH SOURCES FAILED, the count is UNKNOWN and not zero: "Upcoming
+    // 0" reads as "you have no meetings", whereas it means "we could not
+    // fetch them". One working source is an answer (the other shows its own
+    // error banner in the panel).
     const allFailed = !!talk.error && !!gmeet.error && !!teams.error;
     const rowCount = (loading || allFailed) ? null : rows.length;
     useEffect(() => { onRowsChange?.(rowCount); }, [rowCount, onRowsChange]);
@@ -302,21 +277,21 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }: UpcomingM
     const notices = attendeeNotices({
         rows,
         postSummaryBack,
-        // Kan DEZE knop Meets eigen auto-opname aanzetten? Alleen dan mag de
-        // zin over de opnamemelding er staan (server: settings.autoRecordConfig
+        // Can THIS button switch on Meet's own auto-recording? Only then may the
+        // sentence about the recording notice appear (server: settings.autoRecordConfig
         // + connection.hasSettingsScope + organizerSelf).
         meetAutoRecordArmed: gmeet.data?.autoRecordConfig === true && connection?.hasSettingsScope === true,
         teamsAutoRecordArmed,
     });
 
     /**
-     * De PATCH ANTWOORDT met de stand die ná de schrijf geldt (`effectiveRecord`
-     * + `overridden`), niet met een echo van de vraag. Eén FALSE wint — de
-     * org-brede rij, of de rij op de andere id-ruimte — en die kon de gebruiker
-     * dus niet aanzetten. Vroeger sprong de rij dan optimistisch op "Record",
-     * stond hij bij de volgende load weer op "Skip", en had het scherm nergens
-     * gezegd waarom. Nu neemt de rij het antwoord van de server over en krijgt
-     * de toggle een uitleg (`overridden` → recordReasonHint).
+     * The PATCH ANSWERS with the state that applies AFTER the write (`effectiveRecord`
+     * + `overridden`), not with an echo of the question. One FALSE wins — the
+     * organisation-wide row, or the row in the other id space — and that could not be
+     * switched on by the user. Previously the row jumped optimistically to "Record",
+     * stood on "Skip" again at the next load, and the screen nowhere said why. Now the
+     * row takes over the server's answer, and the toggle gets an explanation
+     * (`overridden` → recordReasonHint).
      */
     const toggleTalk = async (m: TalkMeeting) => {
         const nextRecord = m.excluded; // excluded → turning ON; else turning OFF

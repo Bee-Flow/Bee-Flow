@@ -25,13 +25,11 @@ const INTEGRATION_PREFIXES = {
     calendar_:      { integration: 'google_calendar', label: 'Google Calendar',     server: 'www.googleapis.com/calendar' },
     drive_:         { integration: 'google_drive',    label: 'Google Drive',        server: 'www.googleapis.com/drive' },
     docs_:          { integration: 'google_docs',     label: 'Google Docs',         server: 'docs.googleapis.com' },
-    // sheets_ en slides_ ontbraken hier, en dat had twee gevolgen die allebei
-    // de verkeerde kant op wezen: `providerForTool` gaf `null`, waarna de
-    // Tools-kaart "Als: Bee Flow — deze app gebruikt geen persoonlijke
-    // verbinding" tekende op twee apps die uitsluitend op het Google-token van
-    // de draaiende gebruiker werken; en het egress-grootboek sloeg die calls
-    // over ("internal tool — nothing left the platform") terwijl er wel degelijk
-    // verkeer naar sheets/slides.googleapis.com gaat.
+    // sheets_ and slides_ were missing here, with two consequences that both pointed the wrong way:
+    // `providerForTool` gave `null`, so the Tools card drew "Als: Bee Flow, deze app gebruikt geen persoonlijke
+    // verbinding" on two apps that work exclusively on the Google token of the running user; and the
+    // egress ledger skipped those calls ("internal tool, nothing left the platform") while traffic
+    // does indeed go to sheets/slides.googleapis.com.
     sheets_:        { integration: 'google_sheets',   label: 'Google Sheets',       server: 'sheets.googleapis.com' },
     slides_:        { integration: 'google_slides',   label: 'Google Slides',       server: 'slides.googleapis.com' },
     contacts_:      { integration: 'google_contacts', label: 'Google Contacts',     server: 'people.googleapis.com' },

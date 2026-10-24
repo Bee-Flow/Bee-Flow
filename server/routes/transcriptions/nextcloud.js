@@ -66,17 +66,14 @@ const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded, bodyOf, bool, NO_QUERY } = require('./schemas');
 
-// ── Wat de Nextcloud-routes mogen dragen ────────────────────────────
+// ── What the Nextcloud routes may carry ────────────────────────────
 //
-// `record` is een ECHTE boolean, en dat is de reden dat dit bestand een
-// schema kreeg. De opnamevoorkeur werd geschreven als `record: !!record`:
+// `record` is a REAL boolean, and that is the reason this file got a schema. The recording preference was written as `record: !!record`:
 //
-//   • `{"record": "false"}` is waar — de opname ging AAN voor een vergadering
-//     waarvan iemand hem net had uitgezet, en het antwoord bevestigde dat.
-//   • `{"recrod": false}` viel weg — de opname ging UIT voor een vergadering
-//     waarvan iemand hem net had aangezet.
+//   • `{"record": "false"}` is true — recording was switched ON for a meeting that someone had just switched it OFF for, and the answer confirmed it.
+//   • `{"recrod": false}` was dropped — recording was switched OFF for a meeting that someone had just switched ON.
 //
-// In een product dat vergaderingen opneemt is dat geen vormkwestie.
+// In a product that records meetings, that is not a question of form.
 const FOLDER_TEXT = 'folder is een pad in Nextcloud.';
 const FolderQuery = z.object({
     folder: worded(FOLDER_TEXT).trim().min(1, FOLDER_TEXT).optional(),
@@ -85,9 +82,7 @@ const FolderQuery = z.object({
 const PATH_TEXT = 'nextcloud_path is required';
 const FromNextcloudBody = bodyOf({
     nextcloud_path: worded(PATH_TEXT).trim().min(1, PATH_TEXT),
-    // De taal waarin het transcript wordt gemaakt. Stond er met een stille
-    // standaard: `{"languge":"en"}` liet een Engelse opname in het Nederlands
-    // transcriberen, en het resultaat is niet aan het antwoord te zien.
+    // The language in which the transcript is made. It had a silent default: `{"languge":"en"}` let an English recording be transcribed in Dutch, and the result cannot be seen from the answer.
     language: worded('language is een taalcode.').trim().min(1).optional(),
     provider: worded('provider is de naam van een transcriptiedienst.').trim().min(1).optional(),
     title: worded('Een titel is tekst.').optional(),
@@ -458,22 +453,22 @@ router.get('/talk-meetings', requireAuth, validate({ query: NO_QUERY }), async (
             if (roomsRes && Array.isArray(roomsRes.rooms)) for (const r of roomsRes.rooms) roomsByToken[r.token] = r;
         } catch (err) { log.debug('best-effort enrichment', err); }
 
-        // De per-vergadering keuze komt uit meeting_prefs (M5). `excluded` is
-        // hier de EFFECTIEVE stand van de schakelaar die de Gepland-lijst toont
-        // — dus inclusief de 1-op-1-standaard, want een gesprek dat niet wordt
-        // opgenomen moet ook niet als "aan" in de lijst staan. De globale
-        // autoRecord-schakelaar telt daar bewust niet in mee (fallback: true):
-        // die is een aparte instelling en staat al in de statuschip.
+        // The per-meeting choice comes from meeting_prefs (M5). `excluded` is
+        // here the EFFECTIVE state of the switch that the Scheduled list shows
+        // — so including the 1-on-1 default, because a conversation that is not
+        // recorded must not show as "on" in the list either. The global
+        // autoRecord switch deliberately does not count in there (fallback: true):
+        // that is a separate setting and is already in the status chip.
         //
-        // ── DEZELFDE GEGEVENS ALS DE ENGINE, EN ANDERS ZEGGEN WE HET ─────
-        // Het deelnemersaantal komt uit `knownParticipantCount` — precies de
-        // stappen die talkAutoRecord óók heeft (agenda + conversatietype), en
-        // in scope 'all' óók zonder agenda, want daar kijkt de engine er niet
-        // naar. Wat de engine daarnaast doet en deze route niet kan (een LIVE
-        // telling bij Talk op het moment dat het gesprek loopt) maakt de
-        // uitkomst hier niet "uit" maar ONBESLIST: dat reist mee als
-        // `recordDecided: false`, zodat het scherm niet het tegenovergestelde
-        // beweert van wat er straks gebeurt.
+        // ── THE SAME DATA AS THE ENGINE, AND HOW WE SAY SO ───────────────
+        // The participant count comes from `knownParticipantCount` — exactly the
+        // steps that talkAutoRecord also has (calendar + conversation type), and
+        // in scope 'all' also without a calendar, because the engine does not look
+        // at it there. What the engine additionally does and this route cannot do
+        // (a LIVE count with Talk at the moment the conversation runs) does not
+        // make the outcome here "out" but UNDECIDED: that travels along as
+        // `recordDecided: false`, so that the screen does not claim the opposite
+        // of what will happen later.
         const meetingPrefs = require('../../stores/meetingPrefsStore');
         const { knownParticipantCount } = require('../../core/meetingNotes/talkParticipants');
         const prefs = await meetingPrefs.loadMeetingPrefs({ provider: 'talk', userId, orgId: userOrgId });
@@ -489,17 +484,17 @@ router.get('/talk-meetings', requireAuth, validate({ query: NO_QUERY }), async (
                 participantCount: knownParticipantCount({ room, meeting: m, autoRecordScope: settings.autoRecordScope }),
                 fallback: true,
             });
-            // De tags die op de AFSPRAAK staan (meeting_prefs) — iets anders dan
-            // de tags op een bestaande notitie. De Gepland-rij toont ze
-            // read-only; zonder deze regel had die rij een bron die er niet was
-            // en kon hij dus nooit iets tonen.
+            // The tags that are on the APPOINTMENT (meeting_prefs) — something other than
+            // the tags on an existing note. The Scheduled row shows them read-only;
+            // without this line that row had a source that did not exist and could
+            // therefore never show anything.
             const tags = prefs.tagsFor(ids);
             const excluded = !decision.record;
-            // Onbeslist = de uitkomst hangt aan een telling die pas bij de
-            // start van het gesprek te maken is. Alleen zinnig zolang de engine
-            // dat werkelijk gaat doen: staat auto-record uit, ontbreekt de
-            // opnameback-end of modereert de gebruiker niet, dan gebeurt er
-            // hoe dan ook niets en is "onbeslist" zelf de leugen.
+            // Undecided = the outcome hangs on a count that can only be made at the
+            // start of the conversation. Only meaningful as long as the engine actually
+            // does that: if auto-record is off, or the recording back-end is missing,
+            // or the user does not moderate, then nothing happens in any case and
+            // "undecided" itself is the lie.
             const engineWillLook = settings.autoRecord && cap.recordingEnabled && isModerator === true;
             const recordDecided = decision.reason !== 'unknown_size' || !engineWillLook;
             let recordedNoteId = null;
@@ -528,10 +523,10 @@ router.get('/talk-meetings', requireAuth, validate({ query: NO_QUERY }), async (
             autoRecord: settings.autoRecord,
             autoRecordScope: settings.autoRecordScope,
             recordingMode: settings.recordingMode,
-            // De voetregel over wat er met de ANDERE deelnemers gebeurt hangt
-            // hieraan: alleen bij `true` post Bee Flow de samenvatting terug in
-            // het gesprek. Zonder dit veld moest het scherm zwijgen — en dat
-            // deed het ook, wat de zin onbereikbaar maakte.
+            // The footer line about what happens to the OTHER participants hangs on
+            // this: only with `true` does Bee Flow post the summary back into the
+            // conversation. Without this field the screen had to stay silent — and it
+            // did, which made the sentence unreachable.
             postSummaryBack: settings.postSummaryBack,
             count: out.length,
             meetings: out,
@@ -548,34 +543,32 @@ router.patch('/talk-meetings/:token', requireAuth, validate({ body: TalkPrefBody
     const userId = req.session.user.id;
     const token = req.params.token;
     const { record, eventUid } = req.body;
-    // Schrijft de voorkeur van DEZE gebruiker (meeting_prefs), niet die van
-    // de org: een tweede deelnemer aan dezelfde vergadering houdt zijn eigen
-    // rij. Zowel de ruimte als de occurrence krijgen de waarde — hetzelfde
-    // bereik als de oude exclusielijsten hadden.
+    // Writes the preference of THIS user (meeting_prefs), not that of the org: a
+    // second participant in the same meeting keeps their own row. Both the space
+    // and the occurrence get the value — the same scope the old exclusion lists had.
     const meetingPrefs = require('../../stores/meetingPrefsStore');
     const ids = meetingPrefs.talkIds({ eventUid: eventUid || null, roomToken: token });
     await meetingPrefs.setRecord({ provider: 'talk', ids, userId, record });
 
-    // ── WAT ER NA DE SCHRIJF ECHT STAAT ─────────────────────────────
-    // Niet de vraag terugkaatsen. `resolvePrefs` laat één FALSE altijd
-    // winnen — óók een ORG-brede rij, en óók een rij op de ruimte terwijl
-    // je de occurrence aanzette. Antwoordde deze route `record: true`
-    // omdat er `true` in het verzoek stond, dan sprong de rij optimistisch
-    // op "Record", stond hij bij de volgende load weer op "Skip", en had
-    // het scherm nergens gezegd waarom. Nu leest de route terug wat er
-    // staat en zegt hij dát.
+    // ── WHAT ACTUALLY APPLIES AFTER THE WRITE ───────────────────────
+    // Do not echo the question back. `resolvePrefs` always lets one FALSE win —
+    // also an ORG-wide row, and also a row on the space while you switched the
+    // occurrence on. If this route answered `record: true` because `true` was in
+    // the request, the row would optimistically jump to "Record", stand on "Skip"
+    // again at the next load, and the screen would have said nowhere why. Now the
+    // route reads back what is stored and says that.
     const userOrgId = await resolveUserOrgFromReq(req);
     const after = await meetingPrefs.loadMeetingPrefs({ provider: 'talk', userId, orgId: userOrgId });
     const opinion = after.opinionFor(ids);
     res.json({
         ok: true, token,
         record,
-        // De stand die daadwerkelijk geldt. NULL kan hier niet: er is net
-        // een expliciete rij geschreven, dus er is altijd een mening.
+        // The state that actually applies. NULL cannot happen here: an explicit row
+        // was just written, so there is always an opinion.
         effectiveRecord: opinion === true,
-        // Waarom hij afwijkt, als hij afwijkt. Alleen deze twee gevallen
-        // bestaan: een org-brede uitsluiting of een uitsluiting op de
-        // andere id-ruimte (de ruimte naast de occurrence).
+        // Why it deviates, if it does. Only these two cases exist: an org-wide
+        // exclusion, or an exclusion on the other id space (the space next to the
+        // occurrence).
         overridden: opinion !== record,
     });
 });

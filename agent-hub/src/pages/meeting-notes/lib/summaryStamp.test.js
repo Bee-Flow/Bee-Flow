@@ -1,7 +1,6 @@
 // @vitest-environment node
 /**
- * buildSummaryStamp — met welk sjabloon (en welke versie) is deze notitie
- * geschreven, en wanneer zeggen we niets.
+ * buildSummaryStamp — with which template (and which version) this note was written, and when we say nothing.
  *
  * Run: cd agent-hub && npx vitest run src/pages/meeting-notes/lib/summaryStamp.test.js
  */
@@ -43,8 +42,8 @@ describe('geen stempel = geen bewering', () => {
 
 describe('de sjabloonlijst is er nog niet', () => {
     it('een stempel zonder lijst is LOADING, niet GONE', () => {
-        // "Bestaat niet meer" zeggen over een sjabloon dat er gewoon is, is
-        // erger dan even niets zeggen.
+        // Saying "no longer exists" about a template that is simply there is
+        // worse than saying nothing for a moment.
         const stamp = buildSummaryStamp({ summaryTemplateId: 'tpl-9', summaryTemplateVersion: 2 }, null);
         expect(stamp.state).toBe(SUMMARY_STAMP.LOADING);
     });
@@ -81,8 +80,8 @@ describe('ingebouwde sjablonen', () => {
 
 describe('opgeslagen sjablonen', () => {
     it('leveren de naam van nu en de versie van toen', () => {
-        // Dit is de hele reden dat de versie op de notitie staat: het sjabloon
-        // is inmiddels v9, deze samenvatting is met v2 geschreven.
+        // This is the whole reason the version is on the note: the template is now
+        // v9, and this summary was written with v2.
         const stamp = buildSummaryStamp({ summaryTemplateId: 'tpl-9', summaryTemplateVersion: 2 }, TEMPLATES);
         expect(stamp.state).toBe(SUMMARY_STAMP.CUSTOM);
         expect(stamp.name).toBe('Board summary');

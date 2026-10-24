@@ -5,14 +5,14 @@ import {
 } from './webpageCodeFiles';
 
 /**
- * De bestandenstrip van de Code-tab.
+ * The file strip of the Code tab.
  *
- * Wat hier vastligt is niet "de strip telt bytes", maar wat hij mag BEWEREN:
- * de drie slots zijn niet altijd het project, elk extra bestand telt mee, en
- * een grootte die we niet kennen is `null` — nooit 0, want "0 B" is een
- * uitspraak over een bestand dat we niet hebben gelezen.
+ * What is fixed here is not "the strip counts bytes", but what it may CLAIM:
+ * the three slots are not always the project, every extra file counts, and a
+ * size we do not know is `null` — never 0, because "0 B" is a statement about a
+ * file we have not read.
  *
- * Draaien: cd agent-hub && ./node_modules/.bin/vitest run src/pages/webpages/webpageCodeFiles.test.js
+ * Run: cd agent-hub && ./node_modules/.bin/vitest run src/pages/webpages/webpageCodeFiles.test.js
  */
 
 const mark = (over = {}) => ({
@@ -30,8 +30,8 @@ describe('de drie namen liggen vast', () => {
 
 describe('utf8Bytes / formatBytes', () => {
     it('telt echte bytes, niet tekens', () => {
-        // 'é' is één teken en twee bytes; String.length zou hier 1 zeggen en
-        // de strip een te kleine grootte geven.
+        // 'é' is one character and two bytes; String.length would say 1 here and
+        // give the strip too small a size.
         expect(utf8Bytes('é')).toBe(2);
         expect(utf8Bytes('')).toBe(0);
     });
@@ -74,8 +74,8 @@ describe('buildCodeFiles — toon wat er IS', () => {
                 { path: 'src/App.jsx', size: 900, isText: true },
             ],
         });
-        // De slots bestaan daar niet als bestand: de html wordt gegenereerd en
-        // css/js worden niet gebruikt. Ze tekenen zou de auteur voorliegen.
+        // The slots do not exist there as a file: the html is generated and
+        // css/js are not used. Drawing them would lie to the author.
         expect(files.map(f => f.name)).toEqual(['src/main.jsx', 'src/App.jsx']);
     });
 
@@ -96,8 +96,8 @@ describe('buildCodeFiles — toon wat er IS', () => {
         expect(files.map(f => f.name)).toEqual([
             'index.html', 'style.css', 'script.js', 'modules/state.js', 'assets/logo.png',
         ]);
-        // Een plaatje is geen tekst, maar het is er wel — en zijn bytes tellen
-        // gewoon mee in wat deze pagina groot is.
+        // An image is not text, but it is there — and its bytes count
+        // towards how large this page is.
         expect(files.find(f => f.name === 'assets/logo.png')).toMatchObject({ isText: false, bytes: 2048 });
     });
 
@@ -130,9 +130,9 @@ describe('buildCodeFiles — toon wat er IS', () => {
     });
 
     it('BIJT — een bestand dat alleen de server kent, verschijnt tóch in de strip', () => {
-        // De AI heeft net een bestand aangemaakt: de scan zag het, de editor
-        // heeft het nog niet. Zwijgen zou een markering opleveren in een
-        // bestand dat er niet lijkt te zijn.
+        // The AI has just created a file: the scan saw it, the editor
+        // does not have it yet. Staying silent would produce a mark in a
+        // file that does not seem to exist.
         const { files, bytesComplete } = buildCodeFiles({
             framework: 'vanilla',
             html: 'x', css: '', js: '',

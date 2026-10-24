@@ -1,16 +1,13 @@
 /**
- * De kop van de agent-editor (A2 stap 1).
+ * The header of the agent editor (A2 step 1).
  *
- * Wat hier vastgepind wordt, is precies wat een volgende stage per ongeluk
- * kan omdraaien:
- *   - de BEWUSTE AFWIJKING: in de kindtegel staat het AVATAR van de agent,
- *     niet de lucide-bot van het artboard — en zonder avatar valt hij wél
- *     terug op die bot;
- *   - LIVE vs CONCEPT hangt aan `published_version`, niet aan `is_published`
- *     (dat is het andere publiceer-werkwoord, de capsule ernaast);
- *   - een teller die niet gelezen kon worden toont GEEN 0;
- *   - alleen-lezen haalt de bewerkende affordances weg maar laat terug en
- *     de tabs staan.
+ * What is pinned here is precisely what a following stage could turn over by accident:
+ *   - the DELIBERATE DEVIATION: in the child tile stands the AVATAR of the agent, not the
+ *     lucide-bot of the artboard — and without an avatar it does fall back on that bot;
+ *   - LIVE vs DRAFT hangs on `published_version`, not on `is_published` (that is the other
+ *     publish verb, the capsule next to it);
+ *   - a counter that could not be read shows NO 0;
+ *   - read-only removes the editing affordances but leaves back and the tabs in place.
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/builderSplit/AgentEditorHeader.test.jsx
  */
@@ -71,7 +68,7 @@ describe('AgentEditorHeader — LIVE / CONCEPT hangt aan published_version', () 
         expect(pill.getAttribute('data-status')).toBe('draft');
         expect(within(pill).getByRole('button').textContent).toContain('Publish');
         expect(within(pill).getByRole('button').textContent).not.toContain('new version');
-        // Geen versie ⇒ geen versiechip; "v0" zou een versie verzinnen.
+        // No version ⇒ no version chip; "v0" would invent a version.
         expect(screen.queryByTestId('agent-version-chip')).toBeNull();
     });
 
@@ -84,8 +81,7 @@ describe('AgentEditorHeader — LIVE / CONCEPT hangt aan published_version', () 
     });
 
     it('leest de publiek-vlag NIET als een gepubliceerde versie', () => {
-        // is_published = het andere werkwoord (wie mag dit zien). Een agent die
-        // gedeeld is maar nooit gepubliceerd, draait nog het concept.
+        // is_published = the other verb (who may see this). An agent that is shared but never published still runs the draft.
         render(<AgentEditorHeader {...baseProps} agent={{ id: 'a1', is_published: 1 }} publishedVersion={publishedVersionOf({ id: 'a1', is_published: 1 })} />);
         expect(screen.getByTestId('agent-publish-pill').getAttribute('data-status')).toBe('draft');
     });
@@ -96,7 +92,7 @@ describe('AgentEditorHeader — alleen-lezen', () => {
         render(<AgentEditorHeader {...baseProps} ro publishedVersion={3} />);
         expect(screen.queryByTestId('agent-publish-pill')).toBeNull();
         expect(screen.queryByTestId('agent-save-draft')).toBeNull();
-        // De naam is een kop, geen hernoemknop.
+        // The name is a heading, not a rename button.
         expect(screen.getByTestId('studio-section-title').tagName).toBe('H1');
         // Terug en de tabstrip blijven bedienbaar.
         expect(screen.getByTestId('studio-section-back')).toBeTruthy();

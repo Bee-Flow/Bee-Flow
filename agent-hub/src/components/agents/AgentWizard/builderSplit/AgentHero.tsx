@@ -12,52 +12,50 @@ import AvatarPicker from '../pickers/AvatarPicker';
 import { logger } from '../../../../utils/logger';
 
 /**
- * AgentHero — de identiteitsRIJ van de agent-editor, direct onder de gedeelde
- * kop en BOVEN de kaarten van de Rol-tab (Bee Flow Builder herontwerp, sep
- * 2026; Agents-artboard 1b/1c, A2 stap 1 + A3 deel B).
+ * AgentHero: the identity ROW of the agent editor, directly under the shared
+ * heading and ABOVE the cards of the Role tab (Bee Flow Builder redesign, Sep
+ * 2026; Agents artboard 1b/1c, A2 step 1 + A3 part B).
  *
- * Wat er staat, altijd zichtbaar:
- *   56px tegel   het avatar (AvatarPicker, size="hero") met een pencil-badge,
- *                zodat "hier valt te klikken" niet iets is dat je moet raden
- *   naam         hetzelfde invoerveld als voorheen
- *   categorie    `CategoryField variant="tag"` — dezelfde component als de
- *                oude Rol-tab gebruikte, op chipformaat naast de chips
- *   omschrijving NIET achter een "Add description"-knop. Een agent zonder
- *                omschrijving is een agent waarvan niemand weet waarvoor hij
- *                is; de plek waar dat te repareren valt mag niet zelf
- *                verstopt zitten. Leeg toont een placeholder.
- *   chips        de tier (gauge + TIER_META-label) en de taal uit
+ * What is shown, always visible:
+ *   56px tile    the avatar (AvatarPicker, size="hero") with a pencil badge,
+ *                so that "you can click here" is not something you have to guess
+ *   name         the same input field as before
+ *   category     `CategoryField variant="tag"`: the same component the old
+ *                Role tab used, in chip format next to the chips
+ *   description  NOT behind an "Add description" button. An agent without a
+ *                description is an agent that nobody knows the purpose of, and the
+ *                place to fix that must not itself be hidden. Empty shows a placeholder.
+ *   chips        the tier (gauge + TIER_META label) and the language from
  *                `persona.language`
  *
- * De chips zijn LEZERS, geen bedieningselementen: de tier verander je met
- * de ModelTierSelector in de Rol-tab, de taal met de persona. Ze staan hier
- * omdat ze samen met naam en omschrijving beantwoorden "wie is dit" — en
- * omdat een agent die stilletjes in het Frans antwoordt anders pas opvalt
- * als een klant het meldt. De categorietag is wél bediening: hij staat hier
- * omdat hij bij de identiteit hoort ("Sales ▾"), en hij stond op de Rol-tab
- * in de weg van de vijf rolkaarten.
+ * The chips are READERS, not controls: you change the tier with the
+ * ModelTierSelector in the Role tab, and the language with the persona. They
+ * are here because, together with name and description, they answer "who is
+ * this", and because an agent that quietly answers in French would otherwise
+ * only be noticed when a customer reports it. The category tag IS a control: it
+ * is here because it belongs to the identity ("Sales ▾"), and it stood on the
+ * Role tab in the way of the five role cards.
  *
- * Een chip die we niet kunnen onderbouwen, tonen we niet: geen tier in de
- * lijst ⇒ geen tierchip, geen (benoembare) taalcode ⇒ geen taalchip. Zie
- * `languageChipLabel`.
+ * A chip we cannot substantiate is not shown: no tier in the list means no tier
+ * chip, and no nameable language code means no language chip. See `languageChipLabel`.
  *
- * DE TELLER ONDER DE OMSCHRIJVING ZEGT WAAR DE TEKST TERECHTKOMT, en dat is
- * nagegaan: `AgentMarketplace`'s kaart tekent `description` onder de naam van
- * de agent (components/agents/AgentMarketplace.jsx, AgentCard), en die lijst is
- * wat mensen openen om een agent te kiezen. De lijst bevat de eigen agents én
- * de gepubliceerde (AgentHub/useAgentHubData.refreshAgents), dus de zin geldt
- * ook vóór publicatie. Op Android geldt hij ook: `mobile/.../AgentRow.tsx` zet
- * `agent.description` als subtitel van elke rij. Zou dat ooit niet meer
- * kloppen, dan moet deze zin weg — een uitleg die niet waar is, is erger dan
- * geen uitleg.
+ * THE COUNTER UNDER THE DESCRIPTION SAYS WHERE THE TEXT ENDS UP, and that has been
+ * checked: `AgentMarketplace`'s card draws `description` under the agent's name
+ * (components/agents/AgentMarketplace.jsx, AgentCard), and that list is what people
+ * open to choose an agent. The list contains the own agents AND the published ones
+ * (AgentHub/useAgentHubData.refreshAgents), so the sentence also holds before
+ * publication. On Android it holds too: `mobile/.../AgentRow.tsx` sets
+ * `agent.description` as the subtitle of every row. Should that ever stop being
+ * true, this sentence must go. An explanation that is not true is worse than no
+ * explanation.
  */
 
 /**
- * De i18n-sleutel per ingebouwde tier. TIER_META draagt Engelse constanten
- * (het is ook de bron voor de dropdown en de chatbadge); hier krijgen ze hun
- * vertaling. Eén LITERALE t()-aanroep per tier, want een sleutel die uit een
- * variabele wordt samengesteld is voor de i18n-guard niet te controleren —
- * en een tierchip die "tier.fast" toont is erger dan een Engelse "Fast".
+ * The i18n key per built-in tier. TIER_META carries English constants (it is
+ * also the source for the dropdown and the chat badge); here they get their
+ * translation. One LITERAL t() call per tier, because a key that is composed
+ * from a variable cannot be checked by the i18n guard, and a tier chip that
+ * shows "tier.fast" is worse than an English "Fast".
  */
 function tierLabelOf(t: TranslateFn, key: string, tiers?: ModelTierMap | null) {
     switch (key) {
@@ -76,21 +74,20 @@ function tierLabelOf(t: TranslateFn, key: string, tiers?: ModelTierMap | null) {
         case 'pro':
             return t('tier.deep_thinking', TIER_META.deep_thinking.label);
         default:
-            // Een custom tier draagt de naam die de beheerder zelf typte —
-            // gebruikersdata, geen productcopy, dus niet door t() heen.
+            // A custom tier carries the name the administrator typed themselves.
+            // That is user data, not product copy, so it does not go through t().
             return key && key.startsWith('custom:') ? customTierMeta(key, tiers?.[key]).label : null;
     }
 }
 
 /**
- * De naam van een taalcode, of null.
+ * The name of a language code, or null.
  *
- * Spiegelt `server/core/agentRuntime/personaPrompt.js:languageNameOf`: wat we
- * niet kunnen benoemen, benoemen we niet. De server slaat alleen codes op die
- * hij kón benoemen, dus in de praktijk kost weigeren niets — en een chip met
- * een rauwe code erin ("xx-YZ") is geen taal maar een lek uit de database.
- * `Intl.DisplayNames` bestaat niet in elke omgeving, dus alles zit in een
- * try/catch: geen naam ⇒ geen chip.
+ * Mirrors `server/core/agentRuntime/personaPrompt.js:languageNameOf`: what we
+ * cannot name, we do not name. The server only stores codes it could name, so in
+ * practice refusing costs nothing. A chip with a raw code in it ("xx-YZ") is not
+ * a language but a leak from the database. `Intl.DisplayNames` does not exist in
+ * every environment, so everything sits in a try/catch: no name, no chip.
  */
 export function languageChipLabel(code: unknown, locale = 'en') {
     if (typeof code !== 'string' || !code.trim()) return null;
@@ -152,35 +149,35 @@ export default function AgentHero({
 }: AgentHeroProps) {
     const tierLabel = tierLabelOf(t, selectedTier, tiers);
     const languageLabel = languageChipLabel(language, locale);
-    // Wanneer de categorietag verschijnt.
+    // When the category tag appears.
     //
-    // LEEG EN ONLEESBAAR ZIJN TWEE DINGEN, en ze vielen hier samen: een 403 of
-    // een netwerkfout op /agents/categories landde op `[]`, precies zoals "deze
-    // org heeft geen categorieën". Gevolg 1: de tag van een agent DIE er een
-    // heeft verdween zonder melding, en sinds A3 is dit de enige plek in de
-    // editor waar de categorie te zien of te zetten is. Gevolg 2: een agent
-    // zonder categorie kreeg een gezaghebbend ogende keuzelijst met alleen "No
-    // category", waarna de enige mogelijke actie "+" is en de eigenaar een
-    // duplicaat aanmaakt van een categorie die gewoon bestaat.
+    // EMPTY AND UNREADABLE ARE TWO THINGS, and here they coincided: a 403 or a
+    // network error on /agents/categories landed on `[]`, exactly like "this
+    // org has no categories". Consequence 1: the tag of an agent THAT has one
+    // disappeared without a message, and since A3 this is the only place in the
+    // editor where the category can be seen or set. Consequence 2: an agent
+    // without a category got an authoritative-looking dropdown with only "No
+    // category", after which the only possible action is "+", and the owner
+    // creates a duplicate of a category that does exist.
     //
-    // Dus: alleen een GELEZEN lijst tekent de kiezer. Kon hij niet gelezen
-    // worden, dan zegt de tag dat — en alleen als deze agent er een draagt,
-    // want over een agent zonder categorie valt dan niets te melden.
+    // So: only a READ list draws the picker. If it could not be read, the tag says
+    // so, and only if this agent carries one, because about an agent without a
+    // category there is nothing to report.
     const readCategories = categoriesState === READ.OK && Array.isArray(categories);
     const showCategory = readCategories && typeof updateCategory === 'function';
     const categoryUnreadable = categoriesState === READ.ERROR && !!categoryId;
 
     return (
-        // `inert` (React 19 native) blokkeert muis én toetsenbord voor de hele
-        // subtree zonder de layout aan te raken — anders dan fieldset[disabled],
-        // waarvan display:contents door geen browser wordt gehonoreerd.
+        // `inert` (React 19 native) blocks mouse AND keyboard for the entire
+        // subtree without touching the layout. Unlike fieldset[disabled], whose
+        // display:contents no browser honours.
         <div className="max-w-4xl mx-auto px-10 pt-8" inert={ro || undefined} data-testid="agent-hero">
             <div className="flex items-start gap-4">
-                {/* De pencil-badge is DECORATIE op een knop die er al was: hij
-                    vangt zelf geen klikken (`pointer-events-none`), zodat de
-                    hele tegel één trefvlak blijft. Bij alleen-lezen verdwijnt
-                    hij — de tegel is dan `inert`, en een potlood tekenen boven
-                    iets wat niet te bewerken is, is een belofte die breekt. */}
+                {/* The pencil badge is DECORATION on a button that was already there. It
+                    catches no clicks itself (`pointer-events-none`), so the whole
+                    tile remains one hit area. In read-only mode it disappears: the
+                    tile is then `inert`, and drawing a pencil above something that
+                    cannot be edited is a promise that breaks. */}
                 <div className="relative shrink-0">
                     <AvatarPicker t={t} avatar={avatar} onChange={updateAvatar} size="hero" />
                     {!ro && (
@@ -256,9 +253,9 @@ export default function AgentHero({
                     data-testid="agent-hero-description"
                     className="w-full bg-transparent border-none outline-none rounded-xl px-4 py-3 pb-6 -mx-4 text-[15px] leading-6 text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/40 focus:bg-[var(--bg-secondary)]/40 transition resize-none overflow-hidden"
                 />
-                {/* Teller én bestemming in één regel: het getal zegt hoeveel er
-                    nog kan, de zin zegt waarom het ertoe doet. Zie de docblock
-                    voor waar die zin op gebaseerd is. */}
+                {/* Counter and destination in one line: the number says how much still fits,
+                    the sentence says why it matters. See the docblock for what that
+                    sentence is based on. */}
                 <span
                     data-testid="agent-hero-description-counter"
                     className="absolute bottom-1.5 right-3 text-[10px] text-[var(--text-tertiary)] pointer-events-none"

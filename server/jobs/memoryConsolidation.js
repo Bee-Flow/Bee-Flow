@@ -13,8 +13,8 @@
  *                the same scope are archived (restorable from the panel)
  *   4. review    inferred rows never judged before (reviewed_at IS NULL) go, <= 25 at a
  *                time, to the fast/extraction model, which says KEEP or ARCHIVE per id.
- *                The regexes cannot see "Hier wordt een datatable gemaakt" or an
- *                assistant sentence stored as a preference; a model can. Ids only come
+ *                The regexes cannot see "Hier wordt een datatable gemaakt" ("A datatable is being created here")
+ *                or an assistant sentence stored as a preference; a model can. Ids only come
  *                back, a failed or partial answer leaves rows unreviewed (retried next
  *                run), archived rows stay restorable, counts are logged, never text.
  *

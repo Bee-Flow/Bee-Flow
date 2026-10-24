@@ -6,18 +6,16 @@ import AnswerChips from './AnswerChips';
 import MessageItem from './index';
 
 /**
- * De chiprij onder een antwoord, en het enige dat er echt toe doet: dat een
- * GEOORDEELDE chip er niet uitziet als een OPGETEKENDE.
+ * The chip row under an answer, and the one thing that really matters: that a JUDGED chip does not look
+ * like a RECORDED one.
  *
- * Een kennisbankchip, een tabelrijchip en een skillchip komen van events die
- * de server schreef terwijl het antwoord gemaakt werd. "Regel gevolgd: …" komt
- * van een attributie-pass die achteraf de rol naast het antwoord legde. Als
- * die twee dezelfde pil dragen, leest iemand de mening met het gezag van de
- * notulen — en dan is de hele rij minder waard dan de sterkste chip erin.
+ * A knowledge-base chip, a table-row chip and a skill chip come from events that the server wrote while the
+ * answer was being made. "Regel gevolgd: …" comes from an attribution pass that afterwards placed the role next
+ * to the answer. If those two wear the same pill, one reads the opinion with the authority of the minutes, and
+ * then the whole row is worth less than the strongest chip in it.
  *
- * Dus wordt hier op de DRAGERS getest, niet op de kleur: de vorm (gestippeld),
- * de plaats (altijd achteraan), het kopje met de uitleg als toegankelijke
- * naam, en het feit dat er niets te klikken valt.
+ * So it is tested here on the CARRIERS, not on the colour: the shape (dotted), the place (always at the end),
+ * the heading with the explanation as the accessible name, and the fact that there is nothing to click.
  */
 
 const KB = { title: 'Personeelshandboek', kind: 'kb_chunk', page: 12, section: 'Verlof', content: 'Twee dagen vrij.' };
@@ -54,8 +52,8 @@ describe('de opgetekende helft', () => {
     });
 
     it('BIJT — de tabelnaam wordt niet achter elke gewone passage geplakt', () => {
-        // Alleen het paar datatableId+rowId maakt een chip een live rij. Op de
-        // bronnaam afgaan zou "Nextcloud · /Sales" achter elke kb-chip zetten.
+        // Only the pair datatableId+rowId makes a chip a live row. Going by the source name would put
+        // "Nextcloud · /Sales" behind every kb chip.
         render(<AnswerChips showSources msg={msg({ kbSources: [{ ...KB, sourceName: 'Nextcloud · /Sales' }] })} />);
         expect(screen.getByTestId('citation-chip').textContent).toBe('Personeelshandboek · p. 12');
     });
@@ -120,7 +118,7 @@ describe('de geoordeelde helft', () => {
     it('zegt in woorden wie het beweert — ook tegen een schermlezer', () => {
         render(<AnswerChips showSources msg={judged} />);
         expect(screen.getByTestId('judged-label').textContent).toBe('Judged');
-        // De toegankelijke naam van de rij is de UITLEG, niet het kopje.
+        // The accessible name of the row is the EXPLANATION, not the heading.
         const row = screen.getByRole('list', { name: /opinion, not something the run recorded/i });
         expect(row).toBeTruthy();
         expect(row.contains(screen.getByTestId('rule-chip'))).toBe(true);
@@ -147,10 +145,9 @@ describe('de poort in MessageItem', () => {
     const withChips = msg({ kbSources: [KB], ruleAttribution: { rules: [{ rule: 'Nooit een prijs noemen' }] } });
 
     it('BIJT — de gewone chat krijgt de VERANTWOORDING niet ongevraagd', () => {
-        // Sinds C6 staat de bronchip wél in de gewone chat: die hoort bij het
-        // antwoord. Wat hier gepind blijft is de andere helft — de skills die
-        // afliepen en de geoordeelde regel zijn de bouwersweergave, en die
-        // hoort niet per ongeluk in een gewoon gesprek te verschijnen.
+        // Since C6 the source chip does appear in the ordinary chat: that belongs to the answer. What stays pinned
+        // here is the other half. The skills that ran out and the judged rule are the builder view, and they
+        // should not appear by accident in an ordinary conversation.
         render(<MessageItem idx={0} msg={withChips} allMessages={[withChips]} />);
         expect(screen.queryByTestId('rule-chip')).toBeNull();
         expect(screen.queryByTestId('judged-label')).toBeNull();

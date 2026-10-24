@@ -11,10 +11,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
 
 /*
- * Het soort-label reist als SLEUTEL (`labelKey`), met het Engels ernaast als
- * fallback: de tabel wordt op één plek gerenderd, maar de waarde is tekst voor
- * de lezer en moet dus in het Talen-paneel te vinden zijn. De i18n-guard
- * controleert `labelKey` als drager — zie i18nGuard.test.js (CARRIERS).
+ * The kind label travels as a KEY (`labelKey`), with the English beside it as fallback: the table is rendered in one place, but the value is text for the reader and must therefore be findable in the Languages panel. The i18n guard checks `labelKey` as a carrier — see i18nGuard.test.js (CARRIERS).
  */
 const SOURCE_META: Record<string, { color: string; bg: string; labelKey: string; label: string; Icon: LucideIcon; }> = {
     pdf: { color: '#ef4444', bg: 'rgba(239,68,68,0.1)', labelKey: 'webpages.knowledge.type_pdf', label: 'PDF', Icon: FileText },

@@ -6,16 +6,14 @@ import { BF_FAMILIES, buildBfDecorations, familyClass, familyOf, groupMarksByLin
 import { BF_ELEMENTS } from '../../utils/bfElements';
 
 /**
- * De markeringen: van een markering van de server naar een Monaco-decoratie.
+ * The markers: from a marker of the server to a Monaco decoration.
  *
- * Wat hier vastligt:
- *   - de families komen uit het VOCABULAIRE, niet uit een lijst in de
- *     frontend, dus een nieuw element krijgt vanzelf een familie;
- *   - een onbekend element wordt nooit als een gewoon element getekend;
- *   - elke familie die dit bestand kan opleveren HEEFT een tint in
- *     vscode-theme.css — anders is een nieuwe familie stilzwijgend kleurloos.
+ * What is fixed here:
+ *   - the families come from the VOCABULARY, not from a list in the frontend, so a new element automatically gets a family;
+ *   - an unknown element is never drawn as an ordinary element;
+ *   - every family that this file can yield HAS a shade in vscode-theme.css — otherwise a new family is silently colourless.
  *
- * Draaien: cd agent-hub && ./node_modules/.bin/vitest run src/pages/webpages/bfDecorations.test.js
+ * Run: cd agent-hub && ./node_modules/.bin/vitest run src/pages/webpages/bfDecorations.test.js
  */
 
 const THEME = path.join(path.dirname(fileURLToPath(import.meta.url)), 'vscode-theme.css');
@@ -40,16 +38,16 @@ describe('BF_FAMILIES', () => {
 
 describe('familyOf', () => {
     it('BIJT — een onbekend element is nooit een gewoon element', () => {
-        // Ook als de server om wat voor reden ook een familie meestuurt: eerst
-        // "kennen we dit?", dan pas "waar hangt het aan".
+        // Even if the server for whatever reason sends along a family: first "do we know
+        // this?", and only then "what does it hang on".
         expect(familyOf(mark({ known: false, family: 'datatable' }))).toBe('unknown');
         expect(familyOf(null)).toBe('unknown');
     });
 
     it('een bekend element zonder zijn verplichte attribuut is "nog niet gekoppeld", niet "onbekend"', () => {
-        // De server houdt de familie van het SOORT element, ook zonder adres;
-        // wat het onderscheid draagt is `missing`. Wie hier op `family` zou
-        // lezen, tekent een half geschreven element als een werkende koppeling.
+        // The server keeps the family of the KIND of element, even without an address;
+        // what distinguishes is `missing`. Whoever reads `family` here would draw a
+        // half-written element as a working binding.
         expect(familyOf(mark({ targetId: null, missing: ['source'] }))).toBe('incomplete');
     });
 
@@ -105,8 +103,8 @@ describe('buildBfDecorations', () => {
 describe('de tinten', () => {
     it('BIJT — elke familie heeft een kleur in vscode-theme.css', () => {
         const css = fs.readFileSync(THEME, 'utf8');
-        // Zonder deze sanity zou een verkeerd pad of een leeggelopen bestand
-        // een groene test opleveren die niets heeft gelezen.
+        // Without this sanity check, a wrong path or an emptied file
+        // would produce a green test that read nothing.
         expect(css).toContain('.bf-mark {');
         for (const family of BF_FAMILIES) {
             expect(css, `familie "${family}" heeft geen tint: zijn markering zou kleurloos zijn`)

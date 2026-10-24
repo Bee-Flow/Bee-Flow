@@ -13,66 +13,64 @@ import { studioSectionLabel } from '../studioNav';
 import type { EdgeGeometry, MapNode, LaneBandsProps, EdgeProps, MapTileProps, CountLineProps, DetailPanelProps, EdgeSentencesProps, StudioMapProps } from './studioMap.types';
 
 /**
- * "Hoe de stukken in elkaar passen" — de kaart onder aan het Startscherm.
+ * “How the pieces fit together” — the card at the bottom of the Start screen.
  *
- * Het WAAROM (en waarom dit géén levende org-brede graph is) staat in
- * studioMap.js. Dit bestand tekent alleen, en houdt zich aan drie regels.
+ * The WHY (and why this is NOT a live org-wide graph) is in studioMap.js. This file
+ * only draws, and keeps to three rules.
  *
- * ── 1. De plaat is niet de informatie ──────────────────────────────────────
+ * ── 1. The plate is not the information ──────────────────────────────────
  *
- * De SVG is `aria-hidden` en vangt geen muis: ze tekent de lanen, de randen en
- * de werkwoorden, en verder niets. Alles wat ze zegt staat er óók als tekst:
- * de tegels zijn echte <button>s (met hun teller erin), de elf verbindingen
- * staan als elf zinnen in een lijst eronder, en de uitleg bij een selectie is
- * gewone alinea-tekst. Wie de plaat niet ziet — met een schermlezer, met CSS
- * uit, of op een telefoon waar hij horizontaal weg scrollt — mist dus geen
- * enkel feit. Dat is de reden dat de tegels HTML zijn en geen <rect>: een
- * knop in een plaatje is geen knop.
+ * The SVG is `aria-hidden` and catches no mouse: it draws the lanes, the edges and
+ * the verbs, and nothing else. Everything it says is also present as text: the tiles
+ * are real <button>s (with their counter inside), the eleven connections stand as
+ * eleven sentences in a list beneath it, and the explanation for a selection is
+ * ordinary paragraph text. Whoever does not see the plate — with a screen reader,
+ * with CSS off, or on a phone where it scrolls away horizontally — therefore misses
+ * no single fact. That is why the tiles are HTML and not <rect>: a button inside a
+ * picture is not a button.
  *
- * ── 2. Een teller die niet gelezen kon worden toont geen 0 ─────────────────
+ * ── 2. A counter that could not be read shows no 0 ─────────────────────────
  *
- * De getallen komen uit GET /api/studio/counts, met de sleutel die het
- * register aan de sectie hangt (`countKey || id`) — dezelfde sleutel als de
- * rij op de rail, dus de kaart en de rail kunnen niet twee getallen voor
- * hetzelfde ding tonen. De vier toestanden en waaróm ze vier zijn staan bij
- * `countState` in studioMap.js; hier staat hoe ze eruitzien:
+ * The numbers come from GET /api/studio/counts, with the key that the register
+ * attaches to the section (`countKey || id`) — the same key as the row on the rail,
+ * so the card and the rail cannot show two numbers for the same thing. The four
+ * states, and why they are four, are at `countState` in studioMap.js; here is how
+ * they look:
  *
- *   nog geen antwoord   niets op de tegel; "het getal is er nog niet"
- *   getal               het getal
- *   niet gelezen        een streepje, en in woorden dat dit GEEN nul is —
- *                       óók als de lezing MISLUKTE, want die komt niet meer
- *                       terug (de kaart draait zonder poller) en "nog niet
- *                       binnen" zou dan een belofte zijn die niemand inlost
- *   niet telbaar        een goedkeuring maakt niemand; er valt niets te tellen
+ *   no answer yet       nothing on the tile; “the number is not there yet”
+ *   number              the number
+ *   could not be read   a dash, and in words that this is NOT a zero — also when the
+ *                       read FAILED, because that does not come back (the card runs
+ *                       without a poller) and “not in yet” would then be a promise
+ *                       nobody keeps
+ *   not countable       an approval is nobody's; there is nothing to count
  *
- * Nul is een geldig antwoord en ziet er dus uit als een 0. "Ik weet het niet"
- * mag daar nooit op lijken — dat is dezelfde regel die de rail bewaakt
- * (StudioRail.jsx:37-42).
+ * Zero is a valid answer and therefore looks like a 0. “I don't know” must never look
+ * like that — it is the same rule that the rail guards (StudioRail.jsx:37-42).
  *
- * ── 3. De scope-strip bezit de scope, deze kaart volgt hem ─────────────────
+ * ── 3. The scope strip owns the scope, this card follows it ───────────────
  *
- * `counts` als prop = de ouder (de strip) bezit de getallen: hij herlaadt bij
- * elke scope-wissel en geeft nieuwe door, en deze kaart haalt zelf niets op.
- * Zonder die prop leest ze het endpoint zelf, via de HUISHOOK met
- * `poll: false` (useStudioCounts) — één keer bij openen, geen tweede poller
- * naast die van de rail. Niet een eigen fetch ernaast: dan zou dit scherm twee
- * plekken hebben die hetzelfde antwoord anders lezen.
+ * `counts` as a prop = the parent (the strip) owns the numbers: it reloads at every
+ * scope switch and passes new ones on, and this card fetches nothing itself. Without
+ * that prop it reads the endpoint itself, via the HOUSE HOOK with `poll: false`
+ * (useStudioCounts) — once on opening, with no second poller next to that of the
+ * rail. Not a separate fetch alongside: then this screen would have two places
+ * reading the same answer differently.
  *
- * Wat de kaart NIET doet is een scope de leiding op sturen die het endpoint
- * niet kent: GET /api/studio/counts neemt vandaag geen scope-parameter en
- * cachet per (org, gebruiker) — een `?scope=`-parameter erbij verzinnen zou
- * die cache vergiftigen én een belofte doen die de server niet nakomt. `scope`
- * bepaalt hier dus alleen WELKE ZIN onder het getal staat, en een waarde die
- * we niet kennen versmalt naar de voorzichtigste zin, nooit naar "de hele
- * organisatie" (scopeSentence).
+ * What the card does NOT do is steer a scope value that the endpoint does not know:
+ * GET /api/studio/counts today takes no scope parameter and caches per (org, user) —
+ * inventing a `?scope=` parameter would poison that cache and make a promise that the
+ * server does not keep. `scope` therefore determines here only WHICH SENTENCE stands
+ * under the number, and a value that we do not know narrows to the most cautious
+ * sentence, never to “the whole organisation” (scopeSentence).
  */
 
 const LABEL_STYLE: React.CSSProperties = {
     fontSize: 9.5,
     fill: 'var(--text-tertiary)',
-    // De halo: de tekst krijgt eerst een dikke streek in de achtergrondkleur,
-    // daarna de vulling. Zo blijft een werkwoord leesbaar waar het over een
-    // rand heen valt, zonder een rechthoekje eronder te tekenen.
+    // The halo: the text first gets a thick stroke in the background colour, then the
+    // fill. This keeps a verb legible where it falls over an edge, without drawing a
+    // little box beneath it.
     stroke: 'var(--bg-card)',
     strokeWidth: 3,
     paintOrder: 'stroke',
@@ -168,9 +166,9 @@ function MapTile({ node, label, count, selected, dimmed, onToggle, Icon, t }: Ma
                     title={t('studio.map.count_unknown', 'No number for this one: either it is not yours to see, or it could not be read. That is not the same as none.')}
                 >
                     <span aria-hidden="true">—</span>
-                    {/* Het streepje is het enige verschil tussen "geen getal" en
-                        "nog geen getal", en een `title` spreekt niet elke
-                        schermlezer uit. De zin staat er dus echt, onzichtbaar. */}
+                    {/* The dash is the only difference between “no number” and “no number yet”, and a
+                        `title` is not spoken by every screen reader. So the sentence is really
+                        there, invisibly. */}
                     <span className="sr-only">
                         {t('studio.map.count_unknown', 'No number for this one: either it is not yours to see, or it could not be read. That is not the same as none.')}
                     </span>
@@ -233,9 +231,8 @@ function DetailPanel({ node, label, count, countKey, scope, edgeCount, t }: Deta
                 {edgeCount > 0
                     ? nOf(t, 'studio.map.edges', edgeCount, '{count} connection', '{count} connections')
                     : (node.id === NO_EDGE_NODE_ID
-                        // Deze zin is voor ÉÉN doos geschreven en hangt dus aan
-                        // die doos. Een elfde soort zonder randen zou anders te
-                        // horen krijgen dat hij een oplossing is.
+                        // This sentence was written for ONE box and therefore hangs on that box. An eleventh
+                        // kind without edges would otherwise be told that it is a solution.
                         ? t('studio.map.no_edges', 'Nothing points at this one and it points at nothing: a solution is the box the others travel in.')
                         : t('studio.map.no_edges_generic', 'Nothing on this map points at this one, and it points at nothing.'))}
             </p>
@@ -262,9 +259,8 @@ function EdgeSentences({ selected, t }: EdgeSentencesProps) {
                         />
                         <span className={on ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}>
                             {t(edge.labelKey, edge.labelFallback)}
-                            {/* Eén rand bestaat als SOORT maar wordt nergens
-                                vastgelegd; wie haar in het Flow-tabblad gaat
-                                terugzoeken vindt niets. Dat staat erbij. */}
+                            {/* One edge exists as a KIND but is nowhere recorded; whoever goes looking for it
+                                in the Flow tab finds nothing. That is stated here. */}
                             {edge.noteKey && (
                                 <span className="ml-1.5 text-[var(--text-tertiary)]" data-testid={`studio-map-note-${edge.id}`}>
                                     {t(edge.noteKey, edge.noteFallback)}
@@ -282,14 +278,13 @@ export default function StudioMap({ counts: countsProp, countsFailed = false, sc
     const { t, locale: uiLocale } = useTranslation();
     const [selected, setSelected] = useState<string | null>(null);
 
-    // `undefined` = de ouder bezit de getallen niet; `null` van de ouder is een
-    // antwoord ("ik heb ze niet"), en dat is iets anders dan geen prop.
+    // `undefined` = the parent does not own the numbers; `null` from the parent is an
+    // answer (“I do not have them”), and that is something other than no prop.
     const ownsCounts = countsProp === undefined;
-    // Uitgeschakeld levert de hook EMPTY (counts: null, failed: false) —
-    // precies de toestand "nog geen antwoord", en dus tekent er niets een
-    // getal. Een MISLUKTE lezing eindigt op dezelfde null maar met `failed`
-    // true, en dat verschil moet het scherm halen: zonder poller komt dat
-    // getal niet meer, dus "nog niet binnen" zou een belofte zijn.
+    // Disabled, the hook returns EMPTY (counts: null, failed: false) — precisely the
+    // state “no answer yet”, so nothing draws a number. A FAILED read ends at the same
+    // null but with `failed` true, and the screen must catch that difference: without
+    // a poller that number does not come back, so “not in yet” would be a promise.
     const { counts: fetched, failed: fetchFailed } = useStudioCounts({ enabled: ownsCounts, poll: false });
 
     const counts = ownsCounts ? fetched : countsProp;
@@ -299,9 +294,9 @@ export default function StudioMap({ counts: countsProp, countsFailed = false, sc
     const selectedEdges = selected ? edgesOf(selected) : [];
     const selectedMeta = selectedNode ? blockMeta(selectedNode.kind) : null;
 
-    // De naam van een sectie komt uit studioNav.js, niet uit een vierde kopie
-    // van dezelfde drie regels — die miste de runtime-module-tak, en dan heet
-    // een tegel iets anders dan dezelfde sectie op de rail.
+    // The name of a section comes from studioNav.js, not from a fourth copy of the same
+    // three lines — that copy lacked the runtime-module branch, and then a tile was
+    // named differently from the same section on the rail.
     const labelOf = (node: MapNode | null) => {
         if (!node) return '';
         if (node.synthetic) return t(node.labelKey, node.labelFallback);

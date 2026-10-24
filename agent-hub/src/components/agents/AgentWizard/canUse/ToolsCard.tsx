@@ -12,52 +12,40 @@ import SegmentedControl from '../../../shared/SegmentedControl';
 import { SECTION_LBL } from '../../../shell/sidebar/sidebarTokens';
 import type { AutomationCardRow, ToolApp, ToolCardRow, ToolRowProps, ToolsCardProps, TranslateFn } from './ToolsCard.types';
 /**
- * De Tools-kaart van de tab "Kan gebruiken" — wat de agent in ándere systemen
- * mag doen (Agents-artboard 1a, A2 stap 3).
+ * The Tools card of the "Can use" tab: what the agent may do in OTHER systems (Agents artboard 1a, A2 step 3).
  *
- * Eén rij per app: hoeveel van zijn acties aanstaan, welke werkwoorden dat
- * zijn, in wiens naam de app draait, en of een mens eerst ja moet zeggen. De ↗
- * opent de kiezer op díé app.
+ * One row per app: how many of its actions are switched on, which verbs those are, in whose name the app runs,
+ * and whether a human must first say yes. The ↗ opens the picker on THAT app.
  *
- * ── DRIE VERSMALLINGEN, ALLE DRIE VAN DE RUNTIME OVERGENOMEN ────────
- * De feiten komen uit `toolGrants.js`, dat `server/core/agentRuntime/
- * toolPolicy.js` regel voor regel spiegelt. Deze kaart tekent ze, en tekent
- * daarbij drie dingen die eruitzien als strengheid maar eerlijkheid zijn:
+ * ── THREE NARROWINGS, ALL THREE TAKEN OVER FROM THE RUNTIME ─────────
+ * The facts come from `toolGrants.js`, which mirrors `server/core/agentRuntime/toolPolicy.js` line by line.
+ * This card draws them, and in doing so draws three things that look like strictness but are honesty:
  *
- *   1. VERSTUURT ⇒ VERGRENDELD. Een app die kan mailen, posten of uitnodigen
- *      staat op "eerst bevestigen" en de schakelaar zit vast. Dat is geen
- *      keuze die de kaart afneemt: `confirmForTool` beslist bij dispatch op
- *      het effect en zegt daar altijd `ask`. Een schakelaar die "direct" toont
- *      zou een belofte tonen die niemand nakomt.
- *   2. ONBEKEND EFFECT ⇒ OOK VERGRENDELD. Zonder catalogus weten we niet wat
- *      een actie doet. Dan telt onbekend als "het verstuurt" — precies wat
- *      `normaliseToolsConfig` doet als de attributie stuk is.
- *   3. GEEN LEEN-GRANT ⇒ GEEN EIGENAAR-OPTIE. En "ik kon de grants niet lezen"
- *      valt aan dezelfde kant: dat is geen ja.
+ *   1. SENDS ⇒ LOCKED. An app that can mail, post or invite is on "confirm first", and the switch is locked.
+ *      That is not a choice the card makes: `confirmForTool` decides at dispatch based on the effect, and there
+ *      it always says `ask`. A switch that shows "direct" would show a promise that nobody keeps.
+ *   2. UNKNOWN EFFECT ⇒ ALSO LOCKED. Without a catalogue we do not know what an action does. Then unknown
+ *      counts as "it sends", exactly what `normaliseToolsConfig` does when the attribution is broken.
+ *   3. NO LENT GRANT ⇒ NO OWNER OPTION. And "I could not read the grants" falls on the same side: that is not a yes.
  *
- * ── EN ÉÉN PLEK WAAR DE KAART GELIJK KREEG (A2-2) ───────────────────
- * De capsule tekent "As: the person asking" zodra er geen `actAs` is
- * opgeslagen. Dat was tot A2-2 een belofte die de runtime niet nakwam:
- * `mayLendOwnerConnection` gaf voor een app zónder entry `true` en de verbinding
- * van de EIGENAAR ging alsnog de deur uit. De runtime is nu de kaart gevolgd —
- * alleen een opgeslagen ja leent — en dat is een gedragswijziging voor
- * bestaande agents. Die hoort niet stil te gebeuren, dus de rij zegt het:
- *   `ownerLendingUnset`     de agent is gecureerd, hier staat niets, en de
- *                           geleende verbinding wordt daarom NIET meer gebruikt;
- *   `ownerLendsUncurated`   niemand cureerde deze agent, dus de runtime leent
- *                           hier nog wél — de opt-in-grens, hardop.
+ * ── AND ONE PLACE WHERE THE CARD BECAME EQUAL TO THE RUNTIME (A2-2) ─
+ * The capsule draws "As: the person asking" as soon as no `actAs` has been saved. Until A2-2 that was a promise
+ * the runtime did not keep: `mayLendOwnerConnection` gave `true` for an app WITHOUT an entry, and the OWNER's
+ * connection went out the door anyway. The runtime now follows the card: only a saved yes lends. That is a
+ * change of behaviour for existing agents, and it should not happen silently, so the row says so:
+ *   `ownerLendingUnset`     the agent is curated, nothing is stored here, and the lent connection is therefore
+ *                           NO LONGER used;
+ *   `ownerLendsUncurated`   nobody curated this agent, so the runtime still lends here. That is the opt-in
+ *                           boundary, out loud.
  *
- * ── EEN MISLUKTE CATALOGUS IS GEEN LEGE KAART ───────────────────────
- * De GRANTS staan in de agentconfig en die hebben we altijd. Valt de catalogus
- * weg, dan blijven de rijen staan — zonder tellingen, zonder werkwoorden, met
- * een regel erboven die zegt wat er ontbreekt. Wegfilteren zou beweren dat de
- * agent die apps niet heeft, en dat is de enige van de drie antwoorden die
- * onwaar is.
+ * ── A FAILED CATALOGUE IS NOT AN EMPTY CARD ────────────────────────
+ * The GRANTS are in the agent config, and we always have those. If the catalogue drops away, the rows stay:
+ * without counts, without verbs, with a line above that says what is missing. Filtering them out would claim
+ * that the agent does not have those apps, and that is the only one of the three answers that is untrue.
  *
- * ── WAT HET ONTWERP NIET KRIJGT ─────────────────────────────────────
- * Geen "mag naar scherm sturen"-rij: agent-naar-app-navigatie bestaat niet in
- * dit product, en een rij die een vermogen suggereert dat er niet is, is
- * erger dan een ontbrekende rij.
+ * ── WHAT THE DESIGN DOES NOT GET ────────────────────────────────────
+ * No "may send to screen" row. Agent-to-app navigation does not exist in this product, and a row that suggests
+ * a capability that is not there is worse than a missing row.
  */
 
 /** Waarschuwingstekst onder een rij — één regel, altijd in de waarschuwkleur. */
@@ -66,21 +54,18 @@ function RowWarning({ children, testId }: { children?: ReactNode; testId?: strin
 }
 
 /**
- * De leen-melding onder een rij (A2-2).
+ * The lending notice under a row (A2-2).
  *
- * De capsule zegt "As: the person asking" zodra er niets is opgeslagen, en tot
- * A2-2 leende de runtime daar tóch de verbinding van de eigenaar uit. Die poort
- * is dicht, maar dat is een gedragswijziging voor bestaande agents — dus staat
- * hier wat er met díé rij gebeurd is. De twee gevallen sluiten elkaar uit: de
- * opt-in-grens (`curated`) scheidt ze.
+ * The capsule says "As: the person asking" as soon as nothing has been stored, and until A2-2 the runtime
+ * nevertheless lent the owner's connection there. That gate is closed now, but it is a change of behaviour for
+ * existing agents, so what happened to THIS row is stated here. The two cases exclude each other: the opt-in
+ * boundary (`curated`) separates them.
  *
- * De REMEDIE staat er alleen als hij bestaat: een app die verstuurt krijgt
- * nooit "As: you", en een uitweg noemen die de kiezer weigert is dezelfde
- * belofte-zonder-dekking als het gat zelf. Dat gold voor de ene tak wél en voor
- * de andere niet: de uncurated-zin had de uitweg IN de zin gebakken, zonder de
- * `canActAsOwner`-poort — dus op elke verzendende app (Gmail, Outlook, LinkedIn,
- * SignRequest) noemde de kaart een menu-item dat er niet is en dat normalisatie
- * sowieso terugdraait.
+ * The REMEDY is only there if it exists. An app that sends never gets "As: you", and naming a way out that the
+ * picker refuses is the same promise-without-cover as the gap itself. That held for one branch and not for the
+ * other: the uncurated sentence had the way out BAKED INTO the sentence, without the `canActAsOwner` gate. So on
+ * every sending app (Gmail, Outlook, LinkedIn, SignRequest) the card named a menu item that does not exist and
+ * that normalisation rolls back anyway.
  */
 function LendingNotice({ t, row }: { t: TranslateFn; row: ToolCardRow }) {
     if (row.ownerLendingUnset) {
@@ -109,12 +94,11 @@ function LendingNotice({ t, row }: { t: TranslateFn; row: ToolCardRow }) {
 const MAX_VERBS = 4;
 
 /**
- * De werkwoorden van een rij: "Search · Compose · Create draft".
+ * The verbs of a row: "Search · Compose · Create draft".
  *
- * `actionLabelMap` (de builder-ribbon) haalt het app-woord voor de naam
- * weg — "gmail search" wordt "Search" — want de app staat al in kolom één.
- * Diezelfde functie hergebruiken in plaats van hier opnieuw te knippen is de
- * hele reden dat die module bestaat.
+ * `actionLabelMap` (the builder ribbon) strips the app word from the name, so "gmail search" becomes "Search",
+ * because the app is already in column one. Reusing that same function instead of cutting it again here is the
+ * whole reason that module exists.
  */
 function useVerbs(row: ToolCardRow, app: ToolApp | null) {
     return useMemo(() => {
@@ -125,12 +109,11 @@ function useVerbs(row: ToolCardRow, app: ToolApp | null) {
 }
 
 /**
- * De "Als:"-capsule.
+ * The "As:" capsule.
  *
- * Een app zonder gebruikersverbinding (websearch, ingebouwde tools,
- * platformdiensten) krijgt een STATISCHE capsule zonder dropdown, en er wordt
- * geen `actAs` opgeslagen: een keuze die niets stuurt is precies de opgeslagen
- * belofte zonder handhaving die toolPolicy.js verbiedt.
+ * An app without a user connection (websearch, built-in tools, platform services) gets a STATIC capsule with no
+ * dropdown, and no `actAs` is stored. A choice that steers nothing is exactly the stored promise without
+ * enforcement that toolPolicy.js forbids.
  */
 function ActAsCapsule({ t, row, ro, onChange }: { t: TranslateFn; row: ToolCardRow; ro?: boolean; onChange?: (next: string) => void }) {
     const [open, setOpen] = useState(false);
@@ -148,9 +131,8 @@ function ActAsCapsule({ t, row, ro, onChange }: { t: TranslateFn; row: ToolCardR
         );
     }
 
-    // Onbekend is niet "Bee Flow" — dat zou een app die wél credentials leent
-    // als platformdienst tekenen. Het is ook geen keuze, want we weten niet
-    // waartussen. Dus: de standaard die de runtime hanteert, plus uitleg.
+    // Unknown is not "Bee Flow". That would draw an app that DOES borrow credentials as a platform service.
+    // It is also not a choice, because we do not know between what. So: the default that the runtime applies, plus an explanation.
     if (row.actAsKind === ACT_AS_KIND.UNKNOWN) {
         return (
             <span
@@ -234,8 +216,8 @@ function ToolRow({ t, ro, row, app, onChangeConfirm, onChangeActAs, onOpenChoose
             className="grid items-start gap-3 px-4 py-3 [grid-template-columns:1fr_1fr_220px_32px]"
         >
             <div className="min-w-0 flex items-start gap-2.5">
-                {/* `getIntegrationIcon` geeft een ELEMENT terug, geen
-                    component — zelfde gebruik als shared/AppActionPicker. */}
+                {/* `getIntegrationIcon` returns an ELEMENT, not a component. Same usage as
+                    shared/AppActionPicker. */}
                 <span className="mt-0.5 w-4 h-4 flex-shrink-0 flex items-center justify-center" aria-hidden="true">
                     {getIntegrationIcon(row.appId)}
                 </span>
@@ -252,13 +234,11 @@ function ToolRow({ t, ro, row, app, onChangeConfirm, onChangeActAs, onOpenChoose
                     </span>
                     {row.available === false && (
                         <RowWarning>
-                            {/* Verschillende feiten, verschillende zinnen. Maar
-                                alleen als de MEETING er één aanwijst: `browse_web`
-                                zit achter een docker-probe ÉN achter het
-                                org-entitlement, dus "deze installatie heeft hem
-                                niet" zou daar een bewering zijn die nergens uit
-                                volgt. Bij meer dan één mogelijke oorzaak noemt de
-                                kaart ze allebei in plaats van er één te kiezen. */}
+                            {/* Different facts, different sentences. But only if the MEETING points to one of
+                                them. `browse_web` sits behind a docker probe AND behind the org entitlement, so
+                                "this installation does not have it" would be an assertion that does not follow
+                                from anything there. With more than one possible cause, the card names both
+                                instead of choosing one. */}
                             {row.availabilityKinds && row.availabilityKinds.length > 1
                                 ? t('agent_studio.can_use.app_unavailable_mixed', 'Not available here — this installation may not have it, or your account may not use it. The agent gets nothing from this app.')
                                 : row.availabilityKind === 'installation'
@@ -270,10 +250,9 @@ function ToolRow({ t, ro, row, app, onChangeConfirm, onChangeActAs, onOpenChoose
                     )}
                     {row.narrowedBy && row.narrowedBy.length > 0 && (
                         <RowWarning testId="agent-tool-narrowed-by">
-                            {/* Twee rijen over dezelfde tools: de runtime laat
-                                ELKE app die de naam levert meebeslissen, dus de
-                                strengste wint. Zonder deze zin ziet de eigenaar
-                                alleen een lager getal en niet waarom. */}
+                            {/* Two rows about the same tools: the runtime lets EVERY app that supplies the name
+                                take part in the decision, so the strictest wins. Without this sentence the owner
+                                sees only a lower number, and not why. */}
                             {t('agent_studio.can_use.app_narrowed_by',
                                 'Another app with the same tools limits this one further.')}
                         </RowWarning>
@@ -341,11 +320,11 @@ function ToolRow({ t, ro, row, app, onChangeConfirm, onChangeActAs, onOpenChoose
 }
 
 /**
- * De band "Automations als tool" — automatiseringen die de agent zelf mag starten.
+ * The band "Automations as tool": automations that the agent itself may start.
  *
- * De parampillen komen uit `trigger.parametersSchema`, hetzelfde schema
- * waaruit `automationToTool` de tool-signatuur rendert. Wat hier staat is dus
- * letterlijk wat het model moet invullen, niet een parafrase ervan.
+ * The parameter pills come from `trigger.parametersSchema`, the same schema from which `automationToTool`
+ * renders the tool signature. What is shown here is therefore literally what the model has to fill in, not a
+ * paraphrase of it.
  */
 function AutomationRow({ t, row }: { t: TranslateFn; row: AutomationCardRow }) {
     return (
@@ -426,15 +405,12 @@ export default function ToolsCard({
         return map;
     }, [apps]);
 
-    // "Deze agent heeft geen apps" is een CONFIG-vraag: de rijen komen uit
-    // `enabledIntegrations` en `config.tools`, en die hebben we altijd. Zo mag
-    // die zin er staan zonder op de catalogus te wachten — en andersom hoort
-    // de waarschuwing alleen te staan als er iets IS dat we niet konden
-    // beschrijven.
+    // "This agent has no apps" is a CONFIG question. The rows come from `enabledIntegrations` and `config.tools`,
+    // which we always have. So that sentence may stand there without waiting for the catalogue. And the other way
+    // round: the warning should only appear if there is something that we could not describe.
     const nothingOn = rows.length === 0 && autoRows.length === 0;
-    // De leen-lezing is alleen nieuws voor een rij die een gebruikersverbinding
-    // gebruikt; bij een agent met alleen platformtools zou de waarschuwing over
-    // iets gaan wat er niet is.
+    // The lending reading is only news for a row that uses a user connection. For an agent with platform tools
+    // only, the warning would be about something that is not there.
     const anyUserConnection = rows.some(r => r.actAsKind === ACT_AS_KIND.USER);
 
     return (

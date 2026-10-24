@@ -40,12 +40,11 @@ async function _initDB() {
             conversation_id TEXT
         )
     `);
-    // Kolom- en indexmigraties via runDdl (stores/lib/_ddl.js): fouten worden
-    // per statement verzameld en luid gelogd in plaats van stil ingeslikt —
-    // een timeout of lock-wait las hier voorheen als "column already exists".
-    // NB (runbookregel in _ddl.js): ai_usage_log is een volumetabel zonder
-    // retentie — NIEUWE indexen komen er alleen handmatig met CREATE INDEX
-    // CONCURRENTLY bij, nooit via deze bootlijst.
+    // Column and index migrations via runDdl (stores/lib/_ddl.js): errors are collected per
+    // statement and logged loudly instead of being swallowed silently — a timeout or lock-wait
+    // used to read here as "column already exists".
+    // NB (runbook rule in _ddl.js): ai_usage_log is a volume table without retention — NEW
+    // indexes are added only manually with CREATE INDEX CONCURRENTLY, never via this boot list.
     await runDdl('usageStore', [
         // Add cached_tokens column if table already exists (safe for existing installs)
         `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS cached_tokens INTEGER DEFAULT 0`,

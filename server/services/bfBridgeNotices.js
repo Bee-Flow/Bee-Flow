@@ -1,49 +1,42 @@
 /**
- * EERLIJK FALEN op elke plek waar een BRUG draait — één mechanisme, twee bruggen.
+ * FAIR FAILURE at every place where a BRIDGE runs — one mechanism, two bridges.
  *
- * ── HET GAT DAT DEZE MODULE DICHT ───────────────────────────────────
+ * ── THE GAP THIS MODULE CLOSES ──────────────────────────────────────
  *
- * Op een react-pagina draait JS, maar de bruggen die de elementen nodig hebben
- * zijn er niet: `beeflowTables` weigert en `beeflowAutomations` deed tot voor
- * kort een no-op die RESOLVET. Een `bf-*`-element dat daarvan afhangt kan daar
- * dus niets — en zonder hulp is dat ONZICHTBAAR: een niet-gedefinieerd custom
- * element is `display:inline` zonder kinderen, oftewel een leeg vak. Een lezer
- * ziet een lege tabel (die leest als "er zijn geen rijen") of een knop die niets
- * doet zonder te zeggen waarom.
+ * On a react page JS runs, but the bridges that the elements need are not there:
+ * `beeflowTables` refuses, and `beeflowAutomations` until recently was a no-op that RESOLVED.
+ * A `bf-*` element that depends on that can therefore do nothing there — and without help that
+ * is INVISIBLE: an undefined custom element is `display:inline` with no children, in other words
+ * an empty box. A reader sees an empty table (which reads as "there are no rows") or a button that
+ * does nothing without saying why.
  *
- * Dit mechanisme stond eerst alleen in services/publicBridgeScript.js, en die
- * brug wordt UITSLUITEND geïnjecteerd als de auteur publieke AI heeft
- * aangezet — een instelling die default UIT staat (stores/webpage/bridgeGrants.js).
- * Op de standaard publieke react-share draaide dus alleen de ingebakken stub uit
- * reactBundleServer.js, en die kende het mechanisme niet: alle vijf de elementen
- * waren daar stil dood. Precies wat W4 bestaat om uit te roeien, en dan op het
- * STANDAARDPAD. Daarom staat het mechanisme nu hier, en bakken beide bruggen het
- * onvoorwaardelijk in.
+ * This mechanism stood at first only in services/publicBridgeScript.js, and that bridge is
+ * injected ONLY when the author has switched on public AI — a setting that is OFF by default
+ * (stores/webpage/bridgeGrants.js). On the default public react share, therefore, only the baked-in
+ * stub from reactBundleServer.js ran, and that stub did not know the mechanism: all five elements
+ * were silently dead there. Exactly what W4 exists to eliminate, and then on the DEFAULT PATH.
+ * That is why the mechanism now lives here, and both bridges bake it in unconditionally.
  *
- * ── WAT HIER NIET STAAT ─────────────────────────────────────────────
+ * ── WHAT IS NOT HERE ────────────────────────────────────────────────
  *
- * Geen enkele tagnaam, geen enkele zin die de lezer te zien krijgt. Alles komt
- * uit `bridgeVocabulary(surface)` in core/webpages/bfElements.js; hier staat
- * alleen het mechanisme. core/webpages/bfElements.drift.test.js verbiedt een
- * met de hand geschreven tagnaam in dit bestand.
+ * Not a single tag name, not a single sentence that the reader sees. Everything comes from
+ * `bridgeVocabulary(surface)` in core/webpages/bfElements.js; only the mechanism is here.
+ * core/webpages/bfElements.drift.test.js forbids a hand-written tag name in this file.
  *
- * ── DE PLEK IS EEN PARAMETER, GEEN AANNAME ──────────────────────────
+ * ── THE PLACE IS A PARAMETER, NOT AN ASSUMPTION ─────────────────────
  *
- * Dezelfde stub bedient TWEE plekken: de publieke share (`reactShare`) en het
- * plaatje dat de bouwer-AI van de pagina van de auteur te zien krijgt
- * (`headlessRender`, services/webpageRender.js). Daar zou "op een gedeelde link"
- * liegen over een pagina die ingelogd gewoon werkt, dus elke plek draagt in de
- * registry zijn eigen zin. Wie hier een plek toevoegt, voegt hem in
- * BRIDGE_SURFACES toe en de registry dwingt de teksten af.
+ * The same stub serves TWO places: the public share (`reactShare`) and the picture that the builder AI
+ * gets of the author's page (`headlessRender`, services/webpageRender.js). There, "on a shared link"
+ * would lie about a page that works normally when logged in, so each place carries its own sentence in
+ * the registry. Whoever adds a place here adds it to BRIDGE_SURFACES, and the registry enforces the texts.
  *
- * ── WELKE ELEMENTEN WORDEN GEMARKEERD ───────────────────────────────
+ * ── WHICH ELEMENTS ARE MARKED ───────────────────────────────────────
  *
- * Alles wat op deze plek NIET zelf werkt: elke toestand behalve `live` (het
- * element doet het hier) en `static` (de snapshot-writer heeft het element al
- * vóór DOMPurify door gewone HTML vervangen, dus het staat niet meer in de DOM).
- * Dus ook `inert`, en ook een `bf-*`-element dat het vocabulaire NIET kent — die
- * laatste zou anders het enige element zijn dat hier nog stil verdwijnt, terwijl
- * de client-kant er wel een melding voor tekent.
+ * Everything that does NOT work itself in this place: every state except `live` (the element does it
+ * here) and `static` (the snapshot writer has already replaced the element with plain HTML before
+ * DOMPurify, so it is no longer in the DOM). So also `inert`, and also a `bf-*` element that the
+ * vocabulary does NOT know — that last one would otherwise be the only element that still disappears
+ * silently here, while the client side draws a notice for it.
  */
 
 'use strict';
@@ -51,13 +44,11 @@
 const { bridgeVocabulary } = require('../core/webpages/bfElements');
 
 /**
- * JSON dat veilig binnen een inline `<script>` staat.
+ * JSON that is safe to sit inside an inline `<script>`.
  *
- * `</script>` in een tekst uit het vocabulaire zou de brug anders in tweeën
- * knippen en alles erna laten verdwijnen. De client-tweeling
- * (agent-hub/src/utils/bfElementsRuntime.js) ontsnapt met dezelfde drie regels;
- * twee verschillende afspraken over ontsnappen zijn net zo goed drift als twee
- * lijsten.
+ * Otherwise a `</script>` in a text from the vocabulary would cut the bridge in two and let everything
+ * after it disappear. The client twin (agent-hub/src/utils/bfElementsRuntime.js) escapes with the same
+ * three lines; two different conventions for escaping are just as much drift as two lists.
  */
 function jsonLiteral(value) {
     return JSON.stringify(value)
@@ -67,21 +58,21 @@ function jsonLiteral(value) {
 }
 
 /**
- * Het blok dat `window.beeflowBf` neerzet en elk element dat hier niets kan een
- * zichtbare melding geeft.
+ * The block that sets `window.beeflowBf` and gives every element that cannot do anything here a visible
+ * notice.
  *
- * Levert een FRAGMENT, geen `<script>`: beide bruggen hebben al een eigen IIFE
- * en één script-blok per brug is wat hun tests vastleggen.
+ * Yields a FRAGMENT, not a `<script>`: both bridges already have their own IIFE, and one script block per
+ * bridge is what their tests pin down.
  *
- * @param {string} surface  een van bfElements.BRIDGE_SURFACES
- * @returns {string} JavaScript-brontekst
+ * @param {string} surface  one of bfElements.BRIDGE_SURFACES
+ * @returns {string} JavaScript source text
  */
 function buildBfNoticeScript(surface) {
     const literal = jsonLiteral(bridgeVocabulary(surface));
     return `
-  // Het elementvocabulaire zoals het HIER geldt, afgeleid uit
-  // core/webpages/bfElements.js. Een element dat deze lijst niet kent is
-  // "unknown" — herkenbaar onbekend, nooit stilzwijgend in orde.
+  // The element vocabulary as it applies HERE, derived from
+  // core/webpages/bfElements.js. An element this list does not know is
+  // "unknown": recognisably unknown, never silently fine.
   var BF_MARK = "data-bf-state";
   var BF_PREFIX = "bf-";
   window.beeflowBf = {
@@ -93,24 +84,24 @@ function buildBfNoticeScript(surface) {
       if (e) return e.message || null;
       return "Unknown Bee Flow element " + String(tag || "");
     },
-    // Wat de LEZER te zien krijgt. Valt terug op de ontwikkelaarstekst, en
-    // daarna op een zin die tenminste nog zegt dát het hier niet kan: stilte is
-    // het enige antwoord dat we niet mogen geven.
+    // What the READER gets to see. Falls back to the developer text, and
+    // then to a sentence that at least says it cannot work here: silence is
+    // the one answer we must never give.
     notice: function(tag){
       var e = this.lookup(tag);
       if (e && e.notice) return e.notice;
       if (e && e.message) return e.message;
       return "This Bee Flow element is not available here.";
     },
-    // Opnieuw langslopen. Zelfde naam en zelfde bedoeling als aan de
-    // client-kant, zodat paginacode op beide plekken dezelfde vraag kan
-    // stellen; hier is het bovendien de uitweg voor code die knopen invoegt
-    // op een manier waarbij de custom-element-hook niet vuurt.
+    // Walk the tree again. Same name and same intent as on the client
+    // side, so page code can ask the same question in both places; here it
+    // is also the way out for code that inserts nodes in a way that does
+    // not trigger the custom-element hook.
     refresh: function(root){ return bfSweep(root); }
   };
-  // Werkt dit element hier zelf? "live" wel, "static" staat er niet meer (de
-  // snapshot-writer heeft hem vervangen). Al het andere — inert, refused, en een
-  // element dat we niet kennen — krijgt een melding.
+  // Does this element work here itself? "live" does; "static" is no longer
+  // there (the snapshot writer replaced it). Everything else (inert, refused,
+  // and an element we do not know) gets a notice.
   function bfSilentHere(state){ return state !== "live" && state !== "static"; }
   function bfIsOurs(tag){ return String(tag || "").toLowerCase().indexOf(BF_PREFIX) === 0; }
   function bfDecorate(el){
@@ -123,30 +114,30 @@ function buildBfNoticeScript(surface) {
     var box = document.createElement("div");
     box.setAttribute("data-bf-notice", tag);
     box.setAttribute("role", "note");
-    // currentColor + opacity, zodat de melding leesbaar blijft op elke
-    // achtergrond die de auteur heeft gekozen. De pagina draagt zijn eigen
-    // stijlblad; wij weten er niets van.
+    // currentColor + opacity, so the notice stays readable on any
+    // background the author chose. The page carries its own stylesheet;
+    // we know nothing about it.
     box.setAttribute("style", "display:block;margin:.25em 0;padding:.5em .75em;border:1px dashed currentColor;border-radius:4px;opacity:.7;font:inherit;font-size:.9em");
-    // textContent, nooit innerHTML: dit is onze eigen tekst en dat moet zo
-    // blijven, ook als er ooit een variabel deel bij komt.
+    // textContent, never innerHTML: this is our own text and it has to stay
+    // that way, even if a variable part is ever added.
     box.textContent = window.beeflowBf.notice(tag);
-    // Toevoegen, niet vervangen: wat de auteur zelf in het element schreef (een
-    // label, een terugvaltekst) is van hem en blijft staan.
+    // Append, do not replace: what the author wrote in the element
+    // (a label, a fallback text) is theirs and stays.
     el.appendChild(box);
     return true;
   }
-  // De tags waarvoor we een custom element mogen definiëren: alles wat we KENNEN
-  // en dat hier niets kan. Een onbekende tag staat hier per definitie niet bij —
-  // die wordt door de veeg gevonden.
+  // The tags we may define a custom element for: everything we KNOW
+  // that can do nothing here. An unknown tag is by definition not in this
+  // list; the sweep finds it.
   function bfSilentTags(){
     var vocab = window.beeflowBf.elements;
     return Object.keys(vocab).filter(function(tag){ return bfSilentHere(vocab[tag].state); });
   }
-  // De custom-element-hook hieronder dekt alles wat de app later invoegt (React
-  // doet precies dat). Deze veeg dekt wat er al stond, elk element met ons
-  // voorvoegsel dat we NIET kennen, en is de uitweg voor code die knopen op een
-  // manier invoegt waarbij die hook niet vuurt. Daarom scant hij op "*" en niet
-  // op de lijst met tags.
+  // The custom-element hook below covers everything the app inserts later
+  // (React does exactly that). This sweep covers what was already there,
+  // every element with our prefix that we do NOT know, and is the way out
+  // for code that inserts nodes in a way that does not trigger that hook.
+  // That is why it scans on "*" and not on the list of tags.
   function bfSweep(root){
     var scope = root || document;
     var done = 0;

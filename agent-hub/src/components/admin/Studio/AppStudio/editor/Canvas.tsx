@@ -261,15 +261,11 @@ function CanvasBody({
                             runAction={editRunAction}
                             previewRole={previewRole}
                             currentUser={previewUser}
-                            // De inspector — en dus "Test with what is on
-                            // screen" — bestaat ALLEEN in bewerk-modus
-                            // (AppEditorShell: mode === 'edit' && editorView
-                            // === 'edit'). Zonder deze prop publiceert
-                            // AppForm hier niets, kreeg de ScreenValues-store
-                            // in precies die modus nooit iets binnen, en viel
-                            // élke {kind:'field'}-parameter weg met de reden
-                            // "dat formulier staat niet op de canvas" — over
-                            // een formulier dat er zichtbaar wél stond.
+                            // The inspector — and therefore "Test with what is on
+                            // screen" — exists ONLY in edit mode (AppEditorShell: mode === 'edit' && editorView
+                            // === 'edit'). Without this prop AppForm publishes nothing here, the ScreenValues store
+                            // received nothing in precisely that mode, and EVERY {kind:'field'} parameter dropped out
+                            // with the reason "that form is not on the canvas" — about a form that was visibly there.
                             registerFormValue={registerFormValue}
                         />
                     </SortableContext>

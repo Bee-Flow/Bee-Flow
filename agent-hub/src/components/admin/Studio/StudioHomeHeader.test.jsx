@@ -3,28 +3,27 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
- * De kop van Studio's Startscherm. Vijf dingen liggen hier vast:
+ * The header of Studio's start screen. Five things are pinned down here:
  *
- *   1. het makersgetal komt van de SERVER (één telling), en de kop toont
- *      niets zolang het onbekend is;
- *   2. nul makers is een andere zin dan twaalf makers, en allebei iets anders
- *      dan "we weten het nog niet";
- *   3. "Bouwen met AI" is er echt: de kop draagt het beschrijf-paneel met
- *      dezelfde gegate secties, en de AI-regel van het "Nieuw"-menu landt
- *      daarop in plaats van op de Automations-terugval;
- *   4. de split-knop "Nieuw" staat in de kop en opent het menu uit het
- *      registry;
- *   5. de kop vraagt de aantallen één keer, zonder poller.
+ *   1. the makers number comes from the SERVER (one count), and the header shows
+ *      nothing while it is unknown;
+ *   2. zero makers is a different sentence from twelve makers, and both are
+ *      different from “we do not know yet”;
+ *   3. “Building with AI” really exists: the header carries the describe panel with
+ *      the same gated sections, and the AI line of the “New” menu lands on it
+ *      instead of on the Automations fallback;
+ *   4. the split button “New” is in the header and opens the menu from the registry;
+ *   5. the header asks for the numbers once, without a poller.
  */
 
 const { fetchMock, countsSpy, aiPanelSpy } = vi.hoisted(() => ({
     fetchMock: vi.fn(), countsSpy: vi.fn(), aiPanelSpy: vi.fn(),
 }));
 
-// Het paneel zelf komt uit H4-P2 en heeft zijn eigen test; hier ligt alleen
-// het CONTRACT vast — welke props deze kop eraan geeft, en dat de AI-regel van
-// het menu erop landt. Gemockt, zodat die twee dingen bewezen blijven ook als
-// het paneel eronder verandert (en zonder dat deze test het netwerk opgaat).
+// The panel itself comes from H4-P2 and has its own test; here only the CONTRACT
+// is pinned — which props this header gives it, and that the AI line of the menu
+// lands on it. Mocked, so that those two things remain proven even if the panel
+// underneath changes (and without this test going out to the network).
 vi.mock('./studioAi/DescribeItPanel', async () => {
     const { createElement } = await import('react');
     return {
@@ -41,8 +40,8 @@ vi.mock('./studioAi/DescribeItPanel', async () => {
 
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: (...args) => fetchMock(...args) }));
 
-// De echte hook, met een spion op de opties: het "één keer, geen poller"-punt
-// hoort bij deze kop en wordt in useStudioCounts.test.js zelf uitgevoerd.
+// The real hook, with a spy on the options: the “once, no poller” point belongs
+// to this header and is run in useStudioCounts.test.js itself.
 vi.mock('../../../hooks/useStudioCounts', async (importOriginal) => {
     const actual = await importOriginal();
     return {
@@ -101,7 +100,7 @@ describe('StudioHomeHeader', () => {
         expect(await screen.findByTestId('studio-home-makers')).toBeTruthy();
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock.mock.calls[0][0]).toBe('/api/studio/counts');
-        // Geen tweede poller op een scherm waarvan de rail al pollt.
+        // No second poller on a screen whose rail already polls.
         expect(countsSpy).toHaveBeenCalledWith({ enabled: true, poll: false });
     });
 
@@ -131,7 +130,7 @@ describe('StudioHomeHeader', () => {
     it('onbekend belooft niets: geen getal en geen nul zolang het antwoord er niet is', async () => {
         fetchMock.mockResolvedValue({ ok: false, status: 500 });
         renderHeader();
-        // De organisatienaam kent de client zelf; het getal niet.
+        // The organisation name the client knows itself; the number it does not.
         expect(await screen.findByTestId('studio-home-org')).toBeTruthy();
         expect(screen.queryByTestId('studio-home-makers')).toBeNull();
     });
@@ -147,15 +146,14 @@ describe('StudioHomeHeader', () => {
         const sections = allOpen();
         const onNavigate = vi.fn();
         renderHeader({ sections, onNavigate });
-        // De gestippelde "nog niet"-kaart is weg, badge en al: er staat iets
-        // dat werkt, dus er valt niets meer te beloven.
+        // The dotted “not yet” card is gone, badge and all: there is something that
+        // works, so there is nothing left to promise.
         expect(screen.queryByTestId('studio-home-ai')).toBeNull();
         expect(screen.queryByTestId('studio-home-ai-badge')).toBeNull();
         expect(screen.queryByTestId('studio-home-ai-note')).toBeNull();
         expect(screen.getByTestId('studio-ai-panel').getAttribute('data-variant')).toBe('inline');
-        // Dezelfde gegate secties en dezelfde navigatie als het "Nieuw"-menu
-        // ernaast — anders kan het paneel een soort aanbieden die deze lezer
-        // op de rail juist gelockt ziet.
+        // The same gated sections and the same navigation as the “New” menu next to it —
+        // otherwise the panel could offer a kind that this reader sees locked on the rail.
         const props = aiPanelSpy.mock.calls.at(-1)[0];
         expect(props.sections).toBe(sections);
         expect(props.onNavigate).toBe(onNavigate);
@@ -163,10 +161,10 @@ describe('StudioHomeHeader', () => {
     });
 
     it('de AI-regel van het "Nieuw"-menu landt op dat paneel, niet op de Automations-terugval', () => {
-        // Zonder Automations-sectie zou de regel zonder eigen `onAi` GELOCKT zijn
-        // (dat is de terugval in NewMenu.jsx). Dat hij hier open staat, niets
-        // navigeert en de cursor in het paneel zet, bewijst dat de kop hem een
-        // eigen bestemming geeft.
+        // Without an Automations section the line would be LOCKED without its own `onAi`
+        // (that is the fallback in NewMenu.jsx). That it is open here, that nothing
+        // navigates and that the cursor is placed in the panel, proves that the header
+        // gives it its own destination.
         const onNavigate = vi.fn();
         renderHeader({ sections: allOpen().filter((a) => a.id !== 'aiTasks'), onNavigate });
         fireEvent.click(screen.getByTestId('new-menu-chevron'));
@@ -175,7 +173,7 @@ describe('StudioHomeHeader', () => {
         fireEvent.click(ai);
         expect(onNavigate).not.toHaveBeenCalled();
         expect(document.activeElement).toBe(screen.getByTestId('studio-ai-input'));
-        // Eén paneel op dit scherm, niet ook nog een dialoog ernaast.
+        // One panel on this screen, not also another dialog next to it.
         expect(screen.getAllByTestId('studio-ai-panel')).toHaveLength(1);
     });
 

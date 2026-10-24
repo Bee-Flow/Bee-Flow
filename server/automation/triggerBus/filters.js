@@ -411,62 +411,49 @@ function matchSupportTicketResolvedFilter(payload, filter) {
 }
 
 /**
- * meeting-notes.meeting.processed — vuurt zodra een vergadernotitie te lezen is
- * (ingest, herverwerking of een opnieuw gegenereerde samenvatting).
- * Filter: { tags?: string[]|string, reprocessed?: boolean }.
+ * meeting-notes.meeting.processed — fires as soon as a meeting note is readable (ingest, reprocessing or a
+ * regenerated summary). Filter: { tags?: string[]|string, reprocessed?: boolean }.
  *
- * ── WAAROM DIT EEN EIGEN MATCHER IS ──────────────────────────────────
- * Zonder deze regel viel het event terug op de ondiepe `matchFilter`, en die
- * doet voor een array-wens `want.includes(got)`. `got` is hier zélf een array
- * (`payload.tags`), dus `['sales'].includes(['sales','klant'])` is false: een
- * tagfilter matchte NOOIT. De trigger stond in de lijst, de subscription stond
- * in de database, en er gebeurde niets — precies de stille variant die alleen
- * als "filter rejected" in een serverlog te zien is.
+ * ── WHY THIS IS ITS OWN MATCHER ──────────────────────────────────────
+ * Without this rule the event fell back to the shallow `matchFilter`, and that does, for a wish that is an
+ * array, `want.includes(got)`. `got` is itself an array here (`payload.tags`), so
+ * `['sales'].includes(['sales','klant'])` is false: a tag filter NEVER matched. The trigger was in the list,
+ * the subscription was in the database, and nothing happened — precisely the silent variant that only shows up
+ * as "filter rejected" in a server log.
  *
- * ── DE LEGE TAGFILTER: ELKE afgeronde meeting, niet geen enkele ──────
- * `tags` afwezig, geen array, of een lege lijst = GEEN beperking, dus elke
- * afgeronde vergadernotitie. Vier redenen, in volgorde van gewicht:
- *   1. Zo werkt élk ander filter in dit bestand al: `filter.labelIds`,
- *      `filter.excludeLabelIds` en de DSL-sleutels `any`/`none` kijken
- *      allemaal eerst naar `.length > 0`. Eén filter dat andersom leest,
- *      leert de gebruiker de verkeerde regel voor alle andere.
- *   2. "Ik heb nog geen tag gekozen" en "ik wil er geen enkele" zijn in de
- *      opslag dezelfde waarde, en het tweede vraagt niemand aan een trigger:
- *      wie niets wil, zet de regel uit.
- *   3. Foutsymmetrie. Te breed is luidruchtig (er verschijnen runs, de auteur
- *      versmalt) — te smal is stil (de regel is actief, vuurt nooit, en het
- *      enige spoor is een logregel). Stil verliezen is hier de duurdere fout.
- *   4. Dit is GEEN autorisatiebeslissing, dus "onbekend versmalt" geldt niet:
- *      wie het event mag zien is al beslist door de org-scope van de provider
- *      en door een payload die alleen een id draagt. Dit filter kiest enkel
- *      wélke van de meetings die de abonnee tóch al mag zien een run starten.
- * De UI zegt het met zoveel woorden (triggerFilters.jsx) — de keuze mag geen
- * verborgen aanname zijn.
+ * ── THE EMPTY TAG FILTER: EVERY completed meeting, not none at all ──
+ * `tags` absent, not an array, or an empty list = NO restriction, so every completed meeting note. Four reasons,
+ * in order of weight:
+ *   1. That is how every other filter in this file already works: `filter.labelIds`, `filter.excludeLabelIds`
+ *      and the DSL keys `any`/`none` all look first at `.length > 0`. A filter that reads the other way round
+ *      teaches the user the wrong rule for all the others.
+ *   2. "I have not chosen a tag yet" and "I want none at all" are the same value in storage, and the second is
+ *      something nobody asks of a trigger: whoever wants nothing switches the rule off.
+ *   3. Error symmetry. Too broad is loud (runs appear, the author narrows) — too narrow is silent (the rule is
+ *      active, never fires, and the only trace is a log line). Silently losing is the more expensive mistake here.
+ *   4. This is NOT an authorisation decision, so "unknown narrows" does not apply: who may see the event is already
+ *      decided by the org scope of the provider and by a payload that carries only an id. This filter merely
+ *      chooses WHICH of the meetings that the subscriber may already see starts a run.
+ * The UI says so explicitly (triggerFilters.jsx) — the choice must not be a hidden assumption.
  *
- * ONLEESBAAR IS IETS ANDERS DAN LEEG. Een payload zonder array in `tags` is
- * een onbekende tagverzameling; daar versmalt het wél, want dan is niet vast
- * te stellen dat er een gevraagde tag bij zit. `emitMeetingProcessed` stuurt
- * altijd een array mee, dus dit raakt alleen een vervormde of oude payload.
+ * UNREADABLE IS SOMETHING OTHER THAN EMPTY. A payload without an array in `tags` is an unknown tag set; there
+ * narrowing does apply, because it cannot be established that a requested tag is among them. `emitMeetingProcessed`
+ * always sends an array along, so this only touches a distorted or old payload.
  *
- * Vergelijken gaat EXACT en hoofdlettergevoelig — dezelfde regel als de
- * meeting_tag-kennisbron (`kbSources.armMeetingSources`: `config->>'tag' =
- * ANY(...)`). Twee verschillende antwoorden op "heeft deze meeting tag X" is
- * erger dan één streng antwoord. De tags UIT DE PAYLOAD worden daarom NIET
- * genormaliseerd — ook niet getrimd: ' sales' is voor de kennisbron een
- * andere tag dan 'sales' (meetingUsage.js legt vast dat daar nergens
- * genormaliseerd mag worden), en een matcher die hem wél trimt zou de trigger
- * laten vuren op een notitie die de kennisbron niet arm. Alleen wat de AUTEUR
- * in het FILTER typte wordt getrimd — daar is de witruimte een typefout in
- * een formulier, geen gegeven uit een ander systeem.
+ * Comparison is EXACT and case-sensitive — the same rule as the meeting_tag knowledge source
+ * (`kbSources.armMeetingSources`: `config->>'tag' = ANY(...)`). Two different answers to "does this meeting have
+ * tag X" is worse than one strict answer. The tags FROM THE PAYLOAD are therefore NOT normalised — not trimmed
+ * either: ' sales' is for the knowledge source a different tag from 'sales' (meetingUsage.js records that nothing
+ * there may be normalised), and a matcher that did trim it would let the trigger fire on a note that the
+ * knowledge source does not tag. Only what the AUTHOR typed in the FILTER is trimmed — there the whitespace is a
+ * typo in a form, not data from another system.
  *
- * `reprocessed` is DRIEWAARDIG en kan niet aan de ondiepe matcher worden
- * overgelaten: de payload láát de sleutel weg bij een eerste ingest, dus
- * `{reprocessed:false}` betekende daar `undefined !== false` → nooit. Hier:
- * weglaten = alle drie de aanleidingen, `false` = alleen een eerste ingest,
- * `true` = alleen een herverwerking of nieuwe samenvatting.
+ * `reprocessed` is THREE-VALUED and cannot be left to the shallow matcher: the payload omits the key on a first
+ * ingest, so `{reprocessed:false}` there meant `undefined !== false` → never. Here: omitted = all three triggers,
+ * `false` = only a first ingest, `true` = only a reprocessing or a new summary.
  *
- * Uitsluiten hoeft geen eigen sleutel: de DSL doet dat al met
- * `none: [{ tags: ['vertrouwelijk'] }]` bovenop deze matcher.
+ * Excluding needs no key of its own: the DSL already does that with `none: [{ tags: ['vertrouwelijk'] }]` on top
+ * of this matcher.
  */
 function asTagList(v) {
     const raw = Array.isArray(v) ? v : (typeof v === 'string' ? [v] : []);
@@ -474,10 +461,9 @@ function asTagList(v) {
 }
 
 /**
- * Een sleutel telt alleen als "door mij beantwoord" wanneer de WAARDE een vorm
- * heeft die deze matcher kan lezen. `tags: {any:[…]}` is geen lege tagwens,
- * het is een ONLEESBARE — die hoort niet stilzwijgend te verdwijnen maar door
- * te lopen naar `matchFilter`, waar hij versmalt.
+ * A key counts as "answered by me" only when the VALUE has a shape that this matcher can read. `tags: {any:[…]}`
+ * is not an empty tag wish, it is an UNREADABLE one — that should not silently disappear but should pass through
+ * to `matchFilter`, where it narrows.
  */
 function meetingKeyIsReadable(key, value) {
     if (key === 'tags') return Array.isArray(value) || typeof value === 'string';
@@ -501,16 +487,14 @@ function matchMeetingProcessedFilter(payload, filter) {
     if (f.reprocessed === true && payload.reprocessed !== true) return false;
     if (f.reprocessed === false && payload.reprocessed === true) return false;
 
-    // ── ONBEKEND VERSMALT, OOK HIER ──────────────────────────────────
-    // Een sleutel die deze matcher niet kent is GEEN vrijbrief. Zonder deze
-    // laatste stap betekende `{tagIncludes:'sales'}` — een vorm die in het
-    // wild voorkomt (core/meetingNotes/meetingUsage.js noemt hem met naam) —
-    // "elke afgeronde vergadernotitie": leeg-is-alles plus genegeerde
-    // sleutels is samen fail-open. Vóór deze matcher deed de ondiepe
-    // `matchFilter` het omgekeerde (zulke filters vuurden nooit), dus zonder
-    // dit klapt een al opgeslagen automatisering stil van "nooit" naar "altijd".
-    // Ook de spiegelkant telt: in `none: [{ tagIncludes: 'geheim' }]` moet de
-    // submatcher NEE kunnen zeggen, anders sluit die clausule alles uit.
+    // ── UNKNOWN NARROWS, HERE TOO ──────────────────────────────────
+    // A key that this matcher does not know is NO blank cheque. Without this last step, `{tagIncludes:'sales'}` —
+    // a shape that occurs in the wild (core/meetingNotes/meetingUsage.js names it explicitly) — would mean "every
+    // completed meeting note": empty-means-everything plus ignored keys is together fail-open. Before this matcher
+    // the shallow `matchFilter` did the opposite (such filters never fired), so without this an automation that
+    // has already been stored would silently flip from "never" to "always".
+    // The mirror side counts too: in `none: [{ tagIncludes: 'geheim' }]` the submatcher must be able to say NO,
+    // otherwise that clause excludes everything.
     const rest = {};
     let hasRest = false;
     for (const key of Object.keys(f)) {

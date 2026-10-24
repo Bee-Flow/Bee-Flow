@@ -144,14 +144,12 @@ test('an uncurated agent gets its whole stack, in order, with nothing held back'
         assert.strictEqual(v.enforceNames, false, `${label}: the name gate is not armed either`);
         assert.deepStrictEqual(v.offeredByGrant, NAMES.map(n => [n, true]),
             `${label}: and no per-action grant subtracts anything on the way in`);
-        // Lenen blijft precies zoals het was — met ÉÉN bodem eronder, en die
-        // is geen curatie-vraag: een tool die VERSTUURT leent nooit de
-        // verbinding van de eigenaar. Dat verbod stond al in
+        // Borrowing stays exactly as it was — with ONE floor under it, and that floor is not a curation question:
+        // a tool that SENDS never borrows the connection of the owner. That prohibition already stood in
         // `normaliseToolsConfig` ("a borrowed connection never sends without
-        // its owner present") en op de Tools-kaart, maar gold alleen op de
-        // gecureerde tak — terwijl juist hier, op de agent die niemand
-        // cureerde, de mail van de eigenaar de deur uit kon gaan onder zijn
-        // naam, gestuurd door een ander. Niemand kan dat aanvinken.
+        // its owner present") and on the Tools card, but applied only to the curated branch — while precisely
+        // here, on the agent that nobody curated, the owner's mail could go out under his name, sent by someone
+        // else. Nobody can tick that off.
         assert.deepStrictEqual(v.lending, NAMES.map(n => [n, effectOf(n) !== 'sends']),
             `${label}: lending is exactly as it was, behalve dat een verzendende tool nooit leent`);
         assert.deepStrictEqual(v.lending.filter(([, ok]) => !ok), [['gmail_compose', false]],

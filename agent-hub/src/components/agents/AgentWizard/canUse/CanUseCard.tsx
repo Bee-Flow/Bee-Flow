@@ -5,23 +5,22 @@ import AnchoredMenu from '../../../shared/AnchoredMenu';
 import { kindIcon, kindTileStyle } from '../../../shared/kindColors';
 
 /**
- * De kaartvorm van de tab "Kan gebruiken" (Agents-artboard 1a, A2 stap 2).
+ * The card shape of the "Can use" tab (Agents artboard 1a, A2 step 2).
  *
- * Eén schil voor Kennis, Skills en straks Tools: kindtegel, titel, ondertitel,
- * "+ Koppelen" en een ⋯-menu; daaronder rijen. De schil tekent geen gedrag —
- * hij weet niet wat een kennisbank is — zodat de drie kaarten niet uit elkaar
- * kunnen groeien in vorm terwijl ze naast elkaar staan.
+ * One shell for Knowledge, Skills and later Tools: kind tile, title, subtitle,
+ * "+ Link" and a ⋯ menu, with rows below. The shell draws no behaviour. It does not
+ * know what a knowledge base is, so that the three cards cannot grow apart in shape
+ * while they stand next to each other.
  *
- * De tegel komt uit `shared/kindColors`, dezelfde legenda als de Studio-rail:
- * een kennisbank is hier dezelfde kleur en hetzelfde glyph als in Studio, en
- * een skill ook. Dat is de hele reden dat die module bestaat.
+ * The tile comes from `shared/kindColors`, the same legend as the Studio rail. A
+ * knowledge base is the same colour and the same glyph here as in Studio, and a
+ * skill is too. That is the whole reason that module exists.
  */
 /**
- * Het glyph van de kindtegel. Losse functie om dezelfde reden als
- * `shared/StudioSectionHeader.renderGlyph`: `kindIcon()` geeft een STABIELE
- * module-referentie terug, maar de react-hooks-regel ziet een hoofdletter-
- * variabele die tijdens de render ontstaat en leest dat als een component die
- * per render opnieuw gemaakt wordt.
+ * The glyph of the kind tile. A separate function for the same reason as
+ * `shared/StudioSectionHeader.renderGlyph`: `kindIcon()` returns a STABLE module
+ * reference, but the react-hooks rule sees a capitalised variable that arises during
+ * the render and reads it as a component that is created anew on every render.
  */
 function renderKindGlyph(Glyph: ComponentType<{ style?: CSSProperties; 'aria-hidden'?: boolean | 'true' }> | null | undefined, style: CSSProperties) {
     if (!Glyph) return null;
@@ -79,11 +78,11 @@ export function LinkButton({ label, onClick, disabled = false, testId }: { label
 }
 
 /**
- * Het ⋯-menu van een kaart: een knop met een AnchoredMenu eraan.
+ * The ⋯ menu of a card: a button with an AnchoredMenu attached.
  *
- * `AnchoredMenu` en niet een `absolute` paneeltje, om dezelfde reden als
- * BFSF-328: de tab scrollt in een eigen kolom, en een absoluut paneel wordt
- * daar afgeknipt zodra de kaart onderaan staat.
+ * `AnchoredMenu` and not an `absolute` panel, for the same reason as BFSF-328: the
+ * tab scrolls in its own column, and an absolute panel is clipped there as soon as
+ * the card is at the bottom.
  */
 export function CardMenu({ label, open, onToggle, onClose, children, testId }: { label: string; open: boolean; onToggle: () => void; onClose: () => void; children?: ReactNode; testId?: string }) {
     const anchorRef = useRef<HTMLButtonElement>(null);
@@ -110,13 +109,13 @@ export function CardMenu({ label, open, onToggle, onClose, children, testId }: {
 }
 
 /**
- * Eén rij: glyph, titel, en een ondertitel van losse feiten.
+ * One row: glyph, title, and a subtitle of loose facts.
  *
- * `parts` is een LIJST, geen zin. Elk deel is op zichzelf vertaalbaar en de
- * scheiding is typografie ("·"), niet grammatica — een halve zin aan elkaar
- * plakken zou precies de grammatica-in-code opleveren die de i18n-conventies
- * verbieden. Een deel dat niemand kon meten staat er niet: de rij zwijgt
- * liever over een teller dan dat hij er een verzint.
+ * `parts` is a LIST, not a sentence. Each part is translatable on its own, and the
+ * separation is typography ("·"), not grammar. Gluing a half sentence together
+ * would produce exactly the grammar-in-code that the i18n conventions forbid. A part
+ * that nobody could measure does not appear: the row prefers to say nothing about a
+ * counter rather than invent one.
  */
 export function CanUseRow({ icon, title, parts = [], note = null, muted = false, testId }: { icon?: ReactNode; title: ReactNode; parts?: unknown[]; note?: ReactNode; muted?: boolean; testId?: string }) {
     const shown = parts.filter(p => typeof p === 'string' && p);
@@ -137,12 +136,11 @@ export function CanUseRow({ icon, title, parts = [], note = null, muted = false,
 }
 
 /**
- * "Dit kon ik niet lezen" — nooit stilte, nooit een lege lijst.
+ * "I could not read this": never silence, never an empty list.
  *
- * Staat BOVEN de rijen en niet in de plaats ervan: wat we wél weten (dat er
- * drie kennisbanken gekoppeld zijn) blijft staan, en deze regel zegt welk deel
- * ontbreekt. `role="status"` want het is een mededeling over de toestand van
- * het scherm, niet over de inhoud van de agent.
+ * Placed ABOVE the rows and not in their place. What we DO know (that three knowledge bases are
+ * linked) stays, and this line says which part is missing. `role="status"` because it is a
+ * message about the state of the screen, not about the content of the agent.
  */
 export function UnreadableNotice({ message, retryLabel, onRetry, testId }: { message: ReactNode; retryLabel?: ReactNode; onRetry?: (() => void) | null; testId?: string }) {
     return (

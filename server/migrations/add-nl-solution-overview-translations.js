@@ -32,9 +32,9 @@ const NL_TRANSLATIONS = {
     'solutions.section_installed_versions': 'welke versie geïnstalleerd is',
     'solutions.section_blueprints': 'de Blueprints die hier bewaard zijn',
 
-    // ── Het overzicht: tabs, meldingen, lege toestanden ────────
-    // Deze stond er al in het Engels maar had nog geen Nederlands, en de
-    // Catalogus-kaart is de eerste plek die hem toont.
+    // ── The overview: tabs, notices, empty states ────────
+    // This already stood in English but did not yet have a Dutch version, and the
+    // Catalogus card is the first place that shows it.
     'solutions.blueprint_version': 'Blueprint v{version}',
     'solutions.tab_ours': 'Van ons',
     'solutions.tab_installed': 'Geïnstalleerd',

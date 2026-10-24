@@ -1,38 +1,31 @@
 /**
- * DE TERMINALE STAPSOORTEN — de canvas-spiegel van één serverlijst.
+ * THE TERMINAL STEP TYPES: the canvas mirror of one server list.
  *
- * Step types after which NOTHING runs. The canvas has to know this in five
- * separate gestures, and each of them USED to know it as a hand-written
- * `type === 'stop_error'`:
+ * Step types after which NOTHING runs. The canvas has to know this in five separate gestures,
+ * and each of them USED to know it as a hand-written `type === 'stop_error'`:
  *
- *   1. mapping/upstream.js          geen variabelengroep — niets kan aan de
- *                                   uitvoer van een terminal binden
- *   2. flow/useStepDrop.js          een stap erachter droppen wordt geweigerd
- *   3. flow/nodeDropTarget.js       een stap ernaast slepen ketent er niet aan
- *   4. flow/useEdgeEditCallbacks.js met de hand een rand tekenen wordt geweigerd
- *   5. flow/nodes/<X>Node.jsx       geen "+"-knop en `sourceConnectable={false}`
+ *   1. mapping/upstream.js          no variable group: nothing can bind to the output of a terminal
+ *   2. flow/useStepDrop.js          dropping a step after it is refused
+ *   3. flow/nodeDropTarget.js       dragging a step next to it does not chain onto it
+ *   4. flow/useEdgeEditCallbacks.js drawing an edge by hand is refused
+ *   5. flow/nodes/<X>Node.jsx       no "+" button and `sourceConnectable={false}`
  *
- * Vijf literals betekent vijf plekken die uit elkaar kunnen lopen, en de zesde
- * (de validator, aan de serverkant) staat in een andere taal in een andere map.
- * Precies daar zit het risico: kent de canvas een soort niet als terminaal,
- * dan nodigt hij uit om stappen achter de eindstap te plakken die nooit
- * draaien — en de validator zegt er niets over, of andersom, en dan weigert de
- * validator een graaf die de editor zojuist heeft laten tekenen.
+ * Five literals means five places that can drift apart, and the sixth (the validator, on the
+ * server side) lives in another language in another directory. That is precisely where the risk
+ * lies: if the canvas does not know a type as terminal, it invites you to stick steps after the
+ * end step, which never run, and the validator says nothing about it. Or the other way round: the
+ * validator refuses a graph that the editor has just let it draw.
  *
- * DE BRON IS DE SERVER. `TERMINAL_STEP_TYPES` in
- * `server/automation/validate/constants.js` is de canonieke lijst; dit is de
- * kopie die de browser kan lezen (geen enkele module kruist de
- * server/agent-hub-grens). De drifttest ernaast — `terminalSteps.test.js` —
- * leest de serverlijst uit de bron en faalt zodra de twee uit elkaar lopen,
- * én zodra er een stapsoort met familie `end` bijkomt die in geen van beide
- * lijsten staat en ook geen expliciete uitzondering heeft.
+ * THE SOURCE IS THE SERVER. `TERMINAL_STEP_TYPES` in `server/automation/validate/constants.js` is
+ * the canonical list. This is the copy that the browser can read (no module crosses the
+ * server/agent-hub boundary). The drift test beside it, `terminalSteps.test.js`, reads the server
+ * list from the source and fails as soon as the two diverge, AND as soon as a step type with
+ * family `end` arrives that is in neither list and has no explicit exception either.
  *
- * DIT IS GEEN PRESENTATIE. Daarom staat het hier en niet in nodeDefs.js: dat
- * bestand zegt zelf "als de runner of de validator het moet lezen, hoort het
- * hier niet". De VISUELE familie (`end`) en de terminale REGEL zijn twee
- * verschillende dingen, en `layer_output` is het levende bewijs: familie `end`,
- * maar wél connecteerbaar, want een flowlet keert terug naar zijn aanroeper en
- * die loopt door.
+ * THIS IS NOT PRESENTATION. That is why it lives here and not in nodeDefs.js, which says itself:
+ * "if the runner or the validator must read it, it does not belong here". The VISUAL family (`end`)
+ * and the terminal RULE are two different things, and `layer_output` is the living proof: family
+ * `end`, but connectable, because a flowlet returns to its caller, and that one carries on.
  */
 
 export const TERMINAL_STEP_TYPES: ReadonlySet<string> = new Set([

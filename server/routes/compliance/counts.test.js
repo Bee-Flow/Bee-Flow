@@ -274,12 +274,11 @@ test('the runner is never required and never called — tripwire, injected doubl
 });
 
 test('counts.js does not require the runner at all — the dependency is absent, not merely unused', () => {
-    // Bewust brontekst, en dat is de bedoeling: dit pint een eigenschap van de
-    // STATISCHE require-graaf ('geen enkele require-specifier noemt de
-    // runner'), niet van uitvoering. De tripwire-test hierboven bewijst al dat
-    // niets de runner AANROEPT tijdens een echte request; deze test is de
-    // sterkere garantie dat de import ook niet in een dode tak bestaat om
-    // later per ongeluk bereikbaar te worden.
+    // Deliberately source text, and that is the intention: this pins a property of the
+    // STATIC require graph ("no single require specifier names the
+    // runner"), not of execution. The tripwire test above already proves that
+    // nothing CALLS the runner during a real request; this test is the
+    // stronger guarantee that the import does not even exist in a dead branch where it could later become reachable by accident.
     const src = require('node:fs').readFileSync(path.join(__dirname, 'counts.js'), 'utf8');
     const live = src
         .replace(/\/\*[\s\S]*?\*\//g, '')       // block comments (the module docstring talks about the runner)

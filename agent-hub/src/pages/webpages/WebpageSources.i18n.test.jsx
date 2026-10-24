@@ -2,11 +2,9 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
- * WebpageSources (het Kennis-paneel) — elke zichtbare letter uit het woordenboek.
+ * WebpageSources (the Knowledge panel) — every visible letter from the dictionary.
  *
- * t() is een MARKEERDER: `⟦sleutel⟧` in plaats van de Engelse fallback. Een
- * string die weer letterlijk in de bron staat leest op het scherm nog steeds
- * goed, dus alleen zo is de retrofit te bewijzen.
+ * t() is a MARKER: `⟦key⟧` instead of the English fallback. A string that again stands literally in the source still reads well on screen, so only this way can the retrofit be proven.
  */
 
 const t = (key, fallback, params) => {
@@ -44,7 +42,7 @@ describe('WebpageSources — i18n', () => {
             { id: 's1', type: 'pdf', name: 'Handboek.pdf', status: 'ready', wordCount: 4200 },
         ]);
 
-        // SOURCE_META draagt de sleutel; `label:` is er alleen nog als fallback.
+        // SOURCE_META carries the key; `label:` remains only as fallback.
         expect(screen.getByText('⟦webpages.knowledge.type_pdf⟧')).toBeInTheDocument();
     });
 
@@ -55,14 +53,13 @@ describe('WebpageSources — i18n', () => {
         ]);
 
         expect(screen.getByText('⟦webpages.knowledge.words⟧(count=1)')).toBeInTheDocument();
-        // Het getal blijft door toLocaleString heen gaan: de opmaak van het
-        // aantal is van de browser, de vorm van de zin van de sleutel.
-        // De scheidingstekens staan als ESCAPE in de karakterklasse, niet als
-        // letterlijk teken: een smalle spatie (U+202F) en een harde spatie
-        // (U+00A0) zijn in de bron niet van een gewone spatie te onderscheiden,
-        // en wie de regex ooit herschrijft haalt ze er stilzwijgend uit —
-        // waarna deze assertie faalt op elke locale die ze als
-        // duizendtalscheider gebruikt.
+        // The number still passes through toLocaleString: the formatting of the count
+        // belongs to the browser, the shape of the sentence to the key. The separators
+        // stand as an ESCAPE in the character class, not as a literal character: a
+        // narrow no-break space (U+202F) and a no-break space (U+00A0) cannot be told
+        // apart from an ordinary space in the source, and whoever ever rewrites the
+        // regex silently drops them — after which this assertion fails on every locale
+        // that uses them as a thousands separator.
         expect(screen.getByText(/⟦webpages\.knowledge\.words_plural⟧\(count=4[,.\u202f\u00a0]?200\)/)).toBeInTheDocument();
     });
 
@@ -73,10 +70,10 @@ describe('WebpageSources — i18n', () => {
         ]);
 
         expect(screen.getByText('⟦webpages.knowledge.processing⟧')).toBeInTheDocument();
-        // Deze drie wijzen bewust naar common.*: hun tekst bestond daar al, en een
-        // tweede sleutel met dezelfde tekst is precies wat I18N-CONVENTIES 1.3 verbiedt.
-        // Wat deze test bewaakt blijft hetzelfde — de tekst gaat door een SLEUTEL heen,
-        // niet als letterlijke string.
+        // These three deliberately point to common.*: their text already existed there,
+        // and a second key with the same text is precisely what I18N-CONVENTIES 1.3
+        // forbids. What this test guards remains the same — the text goes through a
+        // KEY, not as a literal string.
         expect(screen.getByText('⟦common.error⟧')).toBeInTheDocument();
         expect(screen.getByTitle('⟦webpages.knowledge.retry⟧')).toBeInTheDocument();
         expect(screen.getByTitle('⟦common.cancel⟧')).toBeInTheDocument();

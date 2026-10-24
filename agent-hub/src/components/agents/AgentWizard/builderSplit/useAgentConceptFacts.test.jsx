@@ -1,9 +1,9 @@
 /**
- * useAgentConceptFacts — de conceptlezing achter de taalchip en de rolkaarten.
+ * useAgentConceptFacts: the draft reading behind the language chip and the role cards.
  *
- * De hele hook bestaat om de persona van het CONCEPT te halen, en dat kan
- * alleen met `?draft=1`: zonder die parameter antwoordt `GET /agents/:id` met
- * de runtime-projectie, en daar is de persona-kolom juist uit gestript.
+ * The whole hook exists to fetch the persona of the DRAFT, and that is only
+ * possible with `?draft=1`. Without that parameter, `GET /agents/:id` answers with
+ * the runtime projection, and there the persona column has been stripped out.
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/builderSplit/useAgentConceptFacts.test.jsx
  */

@@ -1,69 +1,69 @@
 /**
- * Het SPOOR van het laatste antwoord — welke regels er mogen staan, en welke
- * er ontbreken omdat niemand ze gemeten heeft.
+ * The TRAIL of the last answer: which rules may stand there, and which are
+ * missing because nobody measured them.
  *
- * ── HET ONTWERP VROEG VIJF REGELS. VIER ZIJN ER TE METEN ───────────────────
+ * ── THE DESIGN ASKED FOR FIVE RULES. FOUR CAN BE MEASURED ───────────────────
  *
- * Het paneel toont vijf stappen: de vraag gelezen, een bron geraadpleegd, een
- * regel toegepast, een actie aangeboden-maar-niet-gestart, en het antwoord
- * geschreven. Elke regel moest hier tegen de EVENTS gelegd worden die de
- * server echt zendt, en dat liep niet overal goed af. Wat er wél is:
+ * The panel shows five steps: the question read, a source consulted, a rule
+ * applied, an action offered but not started, and the answer written. Each rule
+ * had to be set here against the EVENTS the server actually sends, and that did
+ * not work out everywhere. What is there:
  *
- *   1 vraag        `phase processed_history` + `phase building_prompt`
- *                  (chatStream.js). Meet dat de beurt de vraag heeft ingelezen
- *                  en er een prompt van bouwde — NIET dat hij hem begrepen
- *                  heeft. Vandaar dat deze regel "gelezen" heet en niet
- *                  "begrepen": begrip meet niets in dit product, en een spoor
- *                  dat begrip claimt is precies de geruststelling die dit
- *                  paneel hoort te bestrijden.
- *   2 bron         `phase kb_search` (de auto-injectie) en/of een `kb_search`-
- *                  toolcall in `toolHistory`, plus de passages uit `kb_sources`.
- *   3 regel        de attributie-pass (`rule_attribution`). GEOORDEELD, geen
- *                  notulen — zie hieronder.
- *   4 actie        `tool_confirm` met de stand uit `toolConfirmStatus.js`.
- *   5 antwoord     `phase streaming_start` (met het model als detail) en het
- *                  antwoord zelf.
+ *   1 question     `phase processed_history` + `phase building_prompt`
+ *                  (chatStream.js). Measures that the turn read the question and
+ *                  built a prompt from it, NOT that it understood it. That is why
+ *                  this rule is called "read" and not "understood": understanding
+ *                  measures nothing in this product, and a trail that claims
+ *                  understanding is exactly the reassurance this panel should
+ *                  combat.
+ *   2 source       `phase kb_search` (the auto-injection) and/or a `kb_search`
+ *                  tool call in `toolHistory`, plus the passages from `kb_sources`.
+ *   3 rule         the attribution pass (`rule_attribution`). JUDGED, not minutes.
+ *                  See below.
+ *   4 action       `tool_confirm` with the status from `toolConfirmStatus.js`.
+ *   5 answer       `phase streaming_start` (with the model as detail) and the
+ *                  answer itself.
  *
- * ── EN WAT ER NIET IS, MET DE REDEN ────────────────────────────────────────
+ * ── AND WHAT IS NOT THERE, WITH THE REASON ─────────────────────────────────
  *
- * TOON en TAAL. Het ontwerp wilde ze bij regel 5. `persona.tone.chips` en
- * `persona.language` bestaan wel degelijk (personaPrompt.js), maar dat is wat
- * er GEVRAAGD is — de rol die de bouwer typte. Niemand meet of het antwoord
- * die toon ook trof, en niets in de eventstroom draagt de taal van het
- * antwoord. Ze naast de gemeten regels zetten zou van een wens een uitslag
- * maken. Dus staan ze in `omitted`, met een reden, en nooit als feit.
+ * TONE and LANGUAGE. The design wanted them at rule 5. `persona.tone.chips` and
+ * `persona.language` do exist (personaPrompt.js), but that is what was REQUESTED,
+ * the role the builder typed. Nobody measures whether the answer hit that tone,
+ * and nothing in the event stream carries the language of the answer. Putting them
+ * beside the measured rules would turn a wish into a result. So they stand in
+ * `omitted`, with a reason, and never as fact.
  *
- * HET AANTAL RESULTATEN, soms. `kb_sources` gaat alleen over de lijn als de
- * agent `includeSourceReferences` aan heeft (knowledgeSearch.js), en de
- * project-KB-injectie zendt het nooit (contextEnrichment.js) — die persisteert
- * alleen. Een zoekstap zonder passages betekent dus "we weten het niet", niet
- * "nul gevonden". Daarom is het aantal dan `null` met reden `not_reported`;
- * er staat nooit een 0 waar niemand geteld heeft.
+ * THE NUMBER OF RESULTS, sometimes. `kb_sources` only goes over the line if the
+ * agent has `includeSourceReferences` on (knowledgeSearch.js), and the project-KB
+ * injection never sends it (contextEnrichment.js), which only persists. A search
+ * step without passages therefore means "we do not know", not "zero found". That
+ * is why the count is then `null` with reason `not_reported`. A 0 is never shown
+ * where nobody has counted.
  *
- * DE ZOEKTERMEN, op het automatische pad. De auto-injectie zoekt zonder ook
- * maar iets over zijn zoekvraag te zenden; alleen de kb_search-TOOL draagt
- * `args.query`. Geen query in het spoor ⇒ `omitted`, geen gok.
+ * THE SEARCH TERMS, on the automatic path. The auto-injection searches without
+ * sending anything of its search query. Only the kb_search TOOL carries
+ * `args.query`. No query in the trail means `omitted`, no guess.
  *
- * ── OPGETEKEND EN GEOORDEELD BLIJVEN GESCHEIDEN ────────────────────────────
+ * ── RECORDED AND JUDGED STAY SEPARATE ─────────────────────────────────────
  *
- * Regel 3 komt van een tweede model dat ná afloop de rol naast het antwoord
- * legde. Dat is een MENING. `answerChips.js` maakte daar al twee soorten
- * bewering van ('recorded' / 'judged') en die woordenlijst geldt hier
- * onverkort: de regelrij draagt `state: 'judged'` en de render moet hem in
- * vorm én plaats apart houden. Ze door elkaar zetten geeft de zwakste bewering
- * in het paneel het gezag van de sterkste.
+ * Rule 3 comes from a second model that afterwards laid the role next to the
+ * answer. That is an OPINION. `answerChips.js` already made two kinds of claim out
+ * of that ('recorded' / 'judged'), and that vocabulary applies here unchanged. The
+ * rule row carries `state: 'judged'`, and the render must keep it apart in form
+ * and place. Mixing them gives the weakest claim in the panel the authority of the
+ * strongest.
  *
- * ── EEN ONTBREKENDE REGEL BEWEERT NIETS OVER DE AGENT ──────────────────────
+ * ── A MISSING RULE CLAIMS NOTHING ABOUT THE AGENT ──────────────────────────
  *
- * "Geen kennisstap opgetekend" is een uitspraak over de METING, niet over wat
- * de agent deed. Dat verschil zit in de woorden van elke reden hieronder, en
- * het is de reden dat er geen enkele reden bestaat die "de agent heeft niet
- * gezocht" zegt — dat weten we niet.
+ * "No knowledge step recorded" is a statement about the MEASUREMENT, not about what
+ * the agent did. That difference is in the words of every reason below, and it is
+ * the reason that no reason exists which says "the agent did not search". We do
+ * not know that.
  *
- * Zuiver: geen React, geen t(), geen DOM. Zodat "welke regel mag hier staan"
- * met platte objecten te testen is.
+ * Pure: no React, no t(), no DOM. So that "which rule may appear here" can be
+ * tested with plain objects.
  *
- * Draaien: cd agent-hub && ./node_modules/.bin/vitest run src/components/chat/answerTrace.test.js
+ * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/chat/answerTrace.test.js
  */
 
 import { ruleChipsOf } from './MessageItem/answerChips';
@@ -82,17 +82,17 @@ export const TRACE_STATES = Object.freeze(['recorded', 'judged', 'missing']);
  * UI, en elke zin gaat over de meting, nooit over de agent.
  */
 export const MISSING_REASONS = Object.freeze([
-    /** Er is voor deze beurt niets opgetekend (bv. een herladen gesprek). */
+    /** Nothing has been recorded for this turn (e.g. a reloaded conversation). */
     'no_trace',
-    /** Er is wél opgetekend, maar zo'n stap zat er niet bij. */
+    /** Something has been recorded, but a step like that was not among it. */
     'not_recorded',
-    /** De stap liep, maar dit getal is nooit over de lijn gekomen. */
+    /** The step ran, but this number never came over the line. */
     'not_reported',
     /** De extra regelcontrole draaide niet, of vond niets om te melden. */
     'no_attribution',
     /** Niets in dit product meet dit. */
     'not_measured',
-    /** Er was geen proza om op te meten (bv. een antwoord dat alleen code is). */
+    /** There was no prose to measure (e.g. an answer that is only code). */
     'no_prose',
 ]);
 
@@ -101,16 +101,16 @@ export const OMITTED_FACTS = Object.freeze([
     'query', 'results', 'model', 'tone', 'language', 'sentences',
 ]);
 
-/** Citaten van een LIVE tabelrij. Geen document, geen passage — zie sourcesRow. */
+/** Citations from a LIVE table row. No document, no passage. See sourcesRow. */
 const TABLE_ROW_KIND = 'datatable_row';
 
 /** De fases die samen "de vraag is ingelezen" opleveren. */
 const QUESTION_STAGES = Object.freeze(['processed_history', 'building_prompt']);
 
-/** De toolnaam waarmee een agent zelf zijn kennisbank doorzoekt. */
+/** The tool name with which an agent searches its own knowledge base. */
 const KB_TOOL = 'kb_search';
 
-/** Zoals `HowIGotThisAnswer` telt: de denkstappen zijn geen tool. */
+/** As `HowIGotThisAnswer` counts: the thinking steps are not a tool. */
 const HIDDEN_TOOL = 'sequentialthinking';
 
 /** A table with neither a name nor a heading still counts as one table. */
@@ -129,11 +129,11 @@ function missing(id: string, reason: string): MissingRow {
 }
 
 /**
- * De duren van een reeks stappen bij elkaar.
+ * The durations of a series of steps added together.
  *
- * Alleen te gebruiken op stappen die ELKAAR OPVOLGEN. Fases die over elkaar
- * heen schuiven (guardrails om privacy_scan) zou dit dubbel tellen — daarvoor
- * is `traceSpanMs`.
+ * Only to be used on steps that FOLLOW EACH OTHER. Phases that slide over each
+ * other (guardrails around privacy_scan) would be counted twice by this. For that
+ * there is `traceSpanMs`.
  */
 function sumDurations(steps: Array<{ durationMs?: number | null } | null | undefined>) {
     let total = null;
@@ -150,7 +150,7 @@ export function toolStepsOf(msg: TraceMessage | null | undefined): ToolEntry[] {
     return history.filter((t: ToolEntry | null) => t && t.name !== HIDDEN_TOOL);
 }
 
-/** De duur van een toolcall uit zijn eigen kloktikken. */
+/** The duration of a tool call, from its own clock ticks. */
 function toolDurationMs(tool: ToolEntry | null | undefined) {
     return Number.isFinite(tool?.endTime) && Number.isFinite(tool?.startTime)
         ? (tool as ToolTimes).endTime - (tool as ToolTimes).startTime
@@ -159,14 +159,14 @@ function toolDurationMs(tool: ToolEntry | null | undefined) {
 
 // ── De vijf regels ───────────────────────────────────────────────────
 
-/** 1 — de vraag is ingelezen en tot een prompt gemaakt. Niet: begrepen. */
+/** 1: the question was read and turned into a prompt. Not: understood. */
 function questionRow(trail: PhaseTrailEntry[], hasTrail: boolean): QuestionRow | MissingRow {
     const steps = trail.filter((r: PhaseTrailEntry) => QUESTION_STAGES.includes(r.stage));
     if (steps.length === 0) return missing('question', hasTrail ? 'not_recorded' : 'no_trace');
     return {
         id: 'question',
         state: 'recorded',
-        // De stages staan erbij zodat de lezer ziet WAAROP deze regel rust.
+        // The stages are listed so that the reader sees WHAT this rule rests on.
         stages: steps.map((s: PhaseTrailEntry) => s.stage),
         ms: sumDurations(steps),
         omitted: [],
@@ -174,19 +174,18 @@ function questionRow(trail: PhaseTrailEntry[], hasTrail: boolean): QuestionRow |
 }
 
 /**
- * 2 — er is in de kennis gezocht: waarmee, en hoeveel het opleverde.
+ * 2: the knowledge base was searched, with what, and how much it yielded.
  *
- * ── EEN TABELRIJ IS GEEN DOCUMENT ─────────────────────────────────────────
+ * ── A TABLE ROW IS NOT A DOCUMENT ─────────────────────────────────────────
  *
- * `msg.kbSources` draagt TWEE soorten citaat door hetzelfde event. Een
- * `kb_chunk` is een passage uit een document; een `datatable_row` is één rij
- * die op het moment van de vraag uit een tabel is gelezen — met de RIJNAAM als
- * titel. Ze samen tellen als "passages uit documenten" gaf bij drie
- * tabelrijen letterlijk "3 passages from 3 documents": er is één tabel
- * gelezen, geen drie documenten, en er is geen kennisbank geraadpleegd.
- * `answerChips.js` maakt dat onderscheid al expliciet; hier gold het niet, en
- * dan zeggen twee panelen op hetzelfde bericht iets anders over hetzelfde
- * event.
+ * `msg.kbSources` carries TWO kinds of citation through the same event. A
+ * `kb_chunk` is a passage from a document. A `datatable_row` is one row that was
+ * read from a table at the moment of the question, with the ROW NAME as its title.
+ * Counting them together as "passages from documents" gave, for three table rows,
+ * literally "3 passages from 3 documents". One table was read, not three documents,
+ * and no knowledge base was consulted. `answerChips.js` already makes that
+ * distinction explicit. Here it did not apply, and then two panels on the same
+ * message say something different about the same event.
  */
 function sourcesRow(trail: PhaseTrailEntry[], msg: TraceMessage | null | undefined, hasTrail: boolean): SourcesRow | MissingRow {
     const phases = trail.filter((r: PhaseTrailEntry) => r.stage === KB_TOOL);
@@ -200,14 +199,14 @@ function sourcesRow(trail: PhaseTrailEntry[], msg: TraceMessage | null | undefin
         return missing('sources', knowsSomething ? 'not_recorded' : 'no_trace');
     }
 
-    // Alleen de tool draagt zijn zoekvraag; de auto-injectie zendt er geen.
-    // ALLE termen, niet de eerste: meerdere kb_search-calls in één beurt zijn
-    // op het agentpad de normale gang van zaken, en de tweede term liet zich
-    // eerst zonder een woord weglaten — terwijl de passages van beide
-    // zoekopdrachten wél onder die ene term geteld werden.
+    // Only the tool carries its search query. The auto-injection sends none.
+    // ALL terms, not just the first: several kb_search calls in one turn are the
+    // normal course of events on the agent path, and the second term used to be
+    // left out without a word, while the passages of both searches were counted
+    // under that one term.
     const queries = [...new Set(toolCalls.map((t: ToolEntry) => text(t.args?.query)).filter(Boolean))];
     const query = queries[0] || null;
-    // Nul passages is hier GEEN nul resultaten — zie de kop.
+    // Zero passages here is NOT zero results. See the heading.
     const results = passages.length > 0 ? passages.length : null;
     // Counted the way the sources panel and the chip row group them
     // (citationGroups.ts), so the three never disagree (BFSF-352).
@@ -221,9 +220,9 @@ function sourcesRow(trail: PhaseTrailEntry[], msg: TraceMessage | null | undefin
         ? sumDurations(phases)
         : sumDurations(toolCalls.map((t: ToolEntry) => ({ durationMs: toolDurationMs(t) })));
 
-    // Er is alleen iets over de KENNISBANK te melden als er ook een
-    // kennisbankstap was. Een beurt die alleen een tabel las, laat geen
-    // passages weg — die heeft er geen.
+    // Something about the KNOWLEDGE BASE is only to be reported if there was also a
+    // knowledge-base step. A turn that only read a table leaves no passages out.
+    // It has none.
     const hadKbStep = phases.length > 0 || toolCalls.length > 0 || passages.length > 0;
     const omitted = [];
     if (hadKbStep && queries.length === 0) omitted.push({ fact: 'query', reason: 'not_recorded' });
@@ -235,7 +234,7 @@ function sourcesRow(trail: PhaseTrailEntry[], msg: TraceMessage | null | undefin
     };
 }
 
-/** 3 — welke regel van de rol dit antwoord volgde. GEOORDEELD, geen notulen. */
+/** 3: which rule of the role this answer followed. JUDGED, not minutes. */
 function ruleRow(msg: TraceMessage | null | undefined): RuleRow | MissingRow {
     const rules = ruleChipsOf(msg);
     if (rules.length === 0) return missing('rule', 'no_attribution');
@@ -247,8 +246,8 @@ function heldActionRow(msg: TraceMessage | null | undefined, decided: ConfirmBoo
     const calls = Array.isArray(msg?.pendingToolCalls)
         ? msg.pendingToolCalls.filter((c: ToolConfirmCall | null) => c && typeof c === 'object')
         : [];
-    // Géén `no_trace` hier: vastgehouden calls hangen niet aan het fase-spoor,
-    // dus de afwezigheid zegt hetzelfde of er nu een spoor is of niet.
+    // No `no_trace` here: held calls do not hang on the phase trail, so the absence
+    // says the same whether or not there is a trail.
     if (calls.length === 0) return missing('held_action', 'not_recorded');
 
     const actions = calls.map((call: ToolConfirmCall, i: number): HeldAction => {
@@ -283,11 +282,11 @@ function answerRow(trail: PhaseTrailEntry[], msg: TraceMessage | null | undefine
     omitted.push({ fact: 'tone', reason: 'not_measured' });
     omitted.push({ fact: 'language', reason: 'not_measured' });
 
-    // De bewaker hoort op de PROZA te staan, niet op de content. `content` kan
-    // gevuld zijn met louter een codeblok; `countSentences` knipt dat er eerst
-    // uit en gaf dan 0 terug — en dan stond er "Written by … · 0 sentences"
-    // onder een antwoord dat wel degelijk tekst bevat. Dat is precies de 0
-    // waar "niet geteld" hoort, die de kop van dit bestand verbiedt.
+    // The guard belongs on the PROSE, not on the content. `content` may be filled with
+    // nothing but a code block. `countSentences` cut that out first and then returned
+    // 0, and then "Written by … · 0 sentences" stood under an answer that does contain
+    // text. That is precisely the 0 where "not counted" belongs, which the heading of
+    // this file forbids.
     const sentenceCount = content ? countSentences(content) : 0;
     const sentences = sentenceCount > 0 ? sentenceCount : null;
     if (sentences === null) omitted.push({ fact: 'sentences', reason: 'no_prose' });
@@ -304,18 +303,18 @@ function answerRow(trail: PhaseTrailEntry[], msg: TraceMessage | null | undefine
 // ── Metingen op het antwoord zelf ────────────────────────────────────
 
 /**
- * Hoeveel zinnen het antwoord telt.
+ * How many sentences the answer counts.
  *
- * Rekenwerk op de tekst die geleverd is, geen uitspraak over de tekst. De
- * regel: een zin eindigt op `. ! ? …` gevolgd door witruimte of het einde.
- * Daardoor telt `3.5 procent` niet als twee zinnen (de punt wordt gevolgd door
- * een cijfer) en `foo.bar()` ook niet.
+ * Arithmetic on the text that is delivered, not a statement about the text. The
+ * rule: a sentence ends in `. ! ? …` followed by whitespace or the end. Thus
+ * `3.5 percent` does not count as two sentences (the full stop is followed by a
+ * digit), and neither does `foo.bar()`.
  *
- * Codeblokken gaan er eerst uit: een blok JavaScript staat vol punten en zou
- * het getal wild opblazen — en een codeblok is sowieso geen proza.
+ * Code blocks come out first. A block of JavaScript is full of full stops and would
+ * blow the number up wildly, and a code block is in any case not prose.
  *
- * Blijft benaderend voor afkortingen ("bijv.", "dhr.") en voor een beletselteken
- * midden in een zin. Het is een telling van de levering, niet van de betekenis.
+ * It stays approximate for abbreviations ("e.g.", "Mr.") and for an ellipsis in the
+ * middle of a sentence. It is a count of the delivery, not of the meaning.
  */
 export function countSentences(text_?: unknown) {
     const raw = typeof text_ === 'string' ? text_ : '';
@@ -331,18 +330,17 @@ export function countSentences(text_?: unknown) {
 const OPEN_ENDED_STAGE = 'streaming_start';
 
 /**
- * Stopt de klok van dit spoor bij het BEGIN van het antwoord?
+ * Does the clock of this trail stop at the START of the answer?
  *
- * `streaming_start` krijgt nergens een tegenhanger: elke emitter is een kale
- * `emitPhase(...)` en de `emitPhaseEnd`-lijst kent die stage niet. De laatste
- * tik in het spoor is dus altijd het begin van het streamen, en de spanwijdte
- * stopt precies waar het antwoord begint — een beurt van twintig seconden kan
- * zo een pil van 300ms tonen boven vijf regels die wél over het antwoord gaan.
+ * `streaming_start` has no counterpart anywhere. Every emitter is a bare
+ * `emitPhase(...)`, and the `emitPhaseEnd` list does not know that stage. The last
+ * tick in the trail is therefore always the start of streaming, and the span stops
+ * exactly where the answer begins. A turn of twenty seconds can thus show a pill of
+ * 300 ms above five rows that DO concern the answer.
  *
- * Dat getal blijft staan (het is een echte meting van echte stappen), maar het
- * paneel moet er andere WOORDEN bij zetten: "tot het antwoord begon", niet
- * "tot de laatste stap". Vandaar deze aparte vraag in plaats van een
- * verzonnen eindtijd.
+ * That number stays, because it is a real measurement of real steps, but the panel
+ * must put other WORDS next to it: "until the answer began", not "until the last
+ * step". Hence this separate question instead of an invented end time.
  */
 export function traceSpanOpen(trail: unknown) {
     const rows = Array.isArray(trail) ? trail : [];
@@ -362,13 +360,13 @@ export function traceSpanOpen(trail: unknown) {
 }
 
 /**
- * De spanwijdte van het spoor: van de eerste start tot de laatste tik.
+ * The span of the trail: from the first start to the last tick.
  *
- * NIET de som van de duren — fases schuiven over elkaar heen (guardrails om
- * privacy_scan) en optellen telt de scan dan twee keer. Dit is ook niet "zo
- * lang duurde het antwoord": het is de tijd tussen de eerste en de laatste
- * opgetekende stap, en de UI moet dat zo benoemen — zie `traceSpanOpen` voor
- * het geval waarin die laatste stap het BEGIN van het antwoord is.
+ * NOT the sum of the durations. Phases slide over each other (guardrails around
+ * privacy_scan), and adding them would count the scan twice. Nor is this "how long
+ * the answer took". It is the time between the first and the last recorded step,
+ * and the UI must name it that way. See `traceSpanOpen` for the case in which that
+ * last step is the START of the answer.
  */
 export function traceSpanMs(trail: unknown) {
     const rows = Array.isArray(trail) ? trail : [];
@@ -387,12 +385,12 @@ export function traceSpanMs(trail: unknown) {
 }
 
 /**
- * Het hele spoor van één beurt.
+ * The whole trail of one turn.
  *
- * @param {object} msg  het assistent-bericht
- * @param {object} [opts.toolDecisions] { [argsKey]: 'approve'|'decline' } — wat
- *   er in deze sessie op een kaart geklikt is. Hierdoor werkt het spoor BIJ
- *   zodra een openstaande beslissing alsnog valt, zonder een nieuwe beurt.
+ * @param {object} msg  the assistant message
+ * @param {object} [opts.toolDecisions] { [argsKey]: 'approve'|'decline' }: what
+ *   has been clicked on a card in this session. Thereby the trail updates WHEN an
+ *   open decision falls, without a new turn.
  */
 export function answerTraceFor(msg: TraceMessage | null | undefined, { toolDecisions = {} }: { toolDecisions?: ConfirmBook } = {}) {
     const trail: PhaseTrailEntry[] = Array.isArray(msg?.phaseTrail)

@@ -1,19 +1,19 @@
 /**
- * Upload-route — POST /api/transcriptions (async-202 + achtergrondpijplijn).
+ * Upload route — POST /api/transcriptions (async-202 + background pipeline).
  *
- * ── WAAROM DIT BESTAND BESTAAT ──────────────────────────────────────
- * Dit is de schrijver waar bij een mislukte artefactpass daadwerkelijk iets te
- * WISSEN valt: de notitie bestaat al (status 'processing'), is zichtbaar en
- * bewerkbaar, en de pijplijn landt er minuten later bovenop. Toch had de hele
- * upload-helft van de poort — `artifactsUsable` rond actionItems/decisions/
- * questions/tagsIfEmpty, plus de notitieregel — geen enkele test: de poort kon
- * terug naar de oude rauwe schrijfactie zonder dat één transcriptie-suite piepte.
+ * ── WHY THIS FILE EXISTS ────────────────────────────────────────────
+ * This is the writer where, on a failed artifact pass, there is actually something
+ * to ERASE: the note already exists (status 'processing'), is visible and editable,
+ * and the pipeline lands on top of it minutes later. Yet the whole upload half of
+ * the gate — `artifactsUsable` around actionItems/decisions/questions/tagsIfEmpty,
+ * plus the note line — had no single test: the gate could revert to the old raw
+ * write without one transcription suite squeaking.
  *
- * De multer-middleware is vervangen door een doorlaat (er is geen echte
- * multipart-stream in dit harnas); `req.file` wordt door de dispatch gezet,
- * precies zoals multer dat zou doen.
+ * The multer middleware is replaced by a pass-through (there is no real multipart
+ * stream in this harness); `req.file` is set by the dispatch, exactly as multer
+ * would do it.
  *
- * Draaien: cd server && node --test --test-force-exit routes/transcriptions/upload.test.js
+ * Run: cd server && node --test --test-force-exit routes/transcriptions/upload.test.js
  */
 
 const test = require('node:test');
@@ -27,11 +27,11 @@ function stub(p, exports) {
     require.cache[filename] = { id: filename, filename, loaded: true, exports };
 }
 
-// ── Een echt bestand op schijf: de route kopieert het naar saved-recordings ──
+// ── A real file on disk: the route copies it to saved-recordings ──
 const AUDIO_PATH = path.join(os.tmpdir(), `upload-test-${Date.now()}.webm`);
 fs.writeFileSync(AUDIO_PATH, 'fake-audio-bytes');
-// De route bewaart de audio echt op schijf (saved-recordings); ruim op wat
-// dit harnas daar heeft achtergelaten.
+// The route really stores the audio on disk (saved-recordings); clean up what
+// this harness left behind there.
 const savedCopies = new Set();
 test.after(() => {
     try { fs.unlinkSync(AUDIO_PATH); } catch (_) {}
@@ -84,9 +84,9 @@ stub('../../core/meetingNotes/savedAudioStore', {
     persistSavedAudioToStorage: async () => ({ ok: false, reason: 'not_configured' }),
 });
 
-// De PURE helpers echt, de LLM-helpers gestubd. `artifactsUsable` en
-// `buildPipelineNotices` zijn met opzet de echte: welke uitkomst deze route
-// mag wegschrijven en of hij het meldt, is precies wat hier op het spel staat.
+// The PURE helpers for real, the LLM helpers stubbed. `artifactsUsable` and
+// `buildPipelineNotices` are deliberately the real ones: which outcome this route
+// may write, and whether it reports that, is exactly what is at stake here.
 const pure = require('../../core/meetingNotes/transcriptArtifacts');
 let artifactsResult = null;   // wat extractMeetingArtifacts teruggeeft (per test)
 stub('../../core/meetingNotes/summaryHelpers', {
@@ -218,15 +218,14 @@ test('een GESLAAGDE pass schrijft de drie lijsten en de tags weg', async () => {
     assert.deepStrictEqual(p.decisions, artifactsResult.decisions);
     assert.deepStrictEqual(p.questions, artifactsResult.questions);
     assert.deepStrictEqual(p.tagsIfEmpty, ['planning'], 'auto-tags vullen alleen een lege kolom');
-    // Geen notitieregel op een geslaagde pass.
+    // No notes line on a successful pass.
     assert.strictEqual(p.summary, 'Samenvatting van de meeting.');
 });
 
 test('een MISLUKTE pass laat de drie kolommen ONAANGERAAKT en zegt het op de notitie', async () => {
-    // De notitie staat op 'processing' maar is al open en bewerkbaar: wie in
-    // dat venster een besluit vastlegt, moet het niet door een pass verliezen
-    // die nooit gedraaid heeft. `undefined` betekent bij updateTranscription
-    // "raak deze kolom niet aan" — een LEGE lijst zou hem juist wissen.
+    // The note is set to 'processing' but is already open and editable: whoever records a decision in
+    // that window must not lose it through a pass that never ran. `undefined` means in updateTranscription
+    // "do not touch this column" — an EMPTY list would wipe it instead.
     artifactsResult = pure.ARTIFACTS_FAILED;
     await dispatch();
     await waitFor(() => !!completion());
@@ -236,15 +235,14 @@ test('een MISLUKTE pass laat de drie kolommen ONAANGERAAKT en zegt het op de not
     assert.strictEqual('decisions' in p, false, 'decisions wordt niet geschreven');
     assert.strictEqual('questions' in p, false, 'questions wordt niet geschreven');
     assert.strictEqual('tagsIfEmpty' in p, false, 'geen tags uit een pass die niet gedraaid heeft');
-    // En het scherm KAN het zeggen: de notitieregel is het enige kanaal dat na
-    // de 202 nog over is.
+    // And the screen CAN say so: the note line is the only channel left after the 202.
     assert.match(p.summary, /actiepunten/i, 'de notitie meldt de mislukte pass');
     assert.ok(p.summary.includes('Samenvatting van de meeting.'), 'de samenvatting zelf blijft staan');
 });
 
 test('een antwoord ZONDER lijsten telt niet als geslaagde pass', async () => {
-    // De oude poort was `ok !== false`; een vorm die de vlag niet zet kwam er
-    // dan doorheen en `artifacts.actionItems` (undefined) wiste de kolom leeg.
+    // The old gate was `ok !== false`; a shape that did not set the flag got through, and
+    // `artifacts.actionItems` (undefined) emptied the column.
     artifactsResult = {};
     await dispatch();
     await waitFor(() => !!completion());
@@ -257,9 +255,8 @@ test('een antwoord ZONDER lijsten telt niet als geslaagde pass', async () => {
 });
 
 test('een GESLAAGDE LEGE pass ruimt de kolommen wél op', async () => {
-    // De keerzijde, zodat "versmallen" niet stiekem "nooit meer vervangen"
-    // wordt: een vergadering waarin niets is afgesproken hoort verouderde
-    // AI-rijen op te ruimen.
+    // The flip side, so that "narrowing" does not secretly become "never replace again":
+    // a meeting in which nothing was agreed should clean up outdated AI rows.
     artifactsResult = { actionItems: [], decisions: [], questions: [], tags: [], ok: true };
     await dispatch();
     await waitFor(() => !!completion());

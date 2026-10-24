@@ -35,11 +35,11 @@ test('spend cap is clamped to the platform max and rejects junk', () => {
     assert.ok(Number.isFinite(d));
 });
 
-// ── W3: tabelbindingen + Agent-blok ──────────────────────────────────
+// ── W3: table bindings + Agent block ──────────────────────────────────
 //
-// De kolom wordt bij ELKE lees- en schrijfbeurt uit een vaste sleutelset
-// herbouwd, dus een sleutel die de normalizer niet kent bestaat simpelweg
-// niet. Deze tests bewaken die set én de richting: onbekend versmalt.
+// The column is rebuilt from a fixed key set on EVERY read and write, so a key that the
+// normaliser does not know simply does not exist. These tests guard that set AND the
+// direction: unknown narrows.
 
 test('the rebuilt column has exactly the five known kinds', () => {
     assert.deepStrictEqual(
@@ -78,7 +78,7 @@ test('BITE 1 — an unreadable mode is read, never readwrite', () => {
     }
     // Precies één waarde verbreedt.
     assert.strictEqual(modeOf('readwrite'), 'readwrite');
-    // En een ontbrekend mode-veld ook.
+    // And a missing mode field too.
     assert.strictEqual(normalizeBridgeGrants({ tables: [{ datatableId: 't' }] }).tables[0].mode, 'read');
 });
 
@@ -87,7 +87,7 @@ test('BITE 2 — unreadable columns are the EMPTY list, never "all"', () => {
     for (const junk of [undefined, null, '', '*', 'all', 'email,name', true, 1, {}, { email: true }]) {
         assert.deepStrictEqual(colsOf(junk), [], `columns ${JSON.stringify(junk)} must narrow to []`);
     }
-    // Binnen een echte lijst overleeft alleen bruikbare kolomtekst, ontdubbeld.
+    // Within a real list, only usable column text survives, de-duplicated.
     assert.deepStrictEqual(colsOf(['email', 'email', ' name ', '', '   ', null, 7, {}, ['x']]),
         ['email', 'name']);
 });
@@ -96,9 +96,9 @@ test('BITE 3 — publicColumns can never be wider than columns', () => {
     const pub = (columns, publicColumns) =>
         normalizeBridgeGrants({ tables: [{ datatableId: 't', columns, publicColumns }] }).tables[0].publicColumns;
 
-    // Een publieke kolom die de binding zelf niet leest, bestaat niet.
+    // A public column that the binding itself does not read does not exist.
     assert.deepStrictEqual(pub(['email'], ['email', 'bsn', 'salary']), ['email']);
-    // Geen columns => geen publicColumns, hoe hard het bestand ook aandringt.
+    // No columns => no publicColumns, no matter how hard the file insists.
     assert.deepStrictEqual(pub([], ['email', 'bsn']), []);
     assert.deepStrictEqual(pub(undefined, ['email']), []);
     assert.deepStrictEqual(pub('*', ['email']), []);
@@ -131,8 +131,8 @@ test('the agent grant is one id or nothing', () => {
 });
 
 test('the agent grant has no public twin to switch on', () => {
-    // ai.ask staat bewust niet in de anonieme bridge. Zolang dat zo is, mag er
-    // geen opgeslagen vorm bestaan waarin "publieke agent" aan kan staan.
+    // ai.ask is deliberately NOT in the anonymous bridge. As long as that stays so, no stored
+    // shape may exist in which "public agent" could be set.
     const g = normalizeBridgeGrants({
         agent: { agentId: 'agt_1', publicEnabled: true, publicAgentId: 'agt_2', enabled: true },
     });

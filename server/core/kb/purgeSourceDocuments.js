@@ -2,46 +2,41 @@
 'use strict';
 
 /**
- * ── ALLE DOCUMENTEN VAN ÉÉN BRON WEG, CHUNKS EERST ──────────────────
+ * ── ALL DOCUMENTS OF ONE SOURCE AWAY, CHUNKS FIRST ──────────────────
  *
- * `documents.source_id` verwijst met `ON DELETE CASCADE` naar `kb_sources`
- * (stores/knowledgeBases.js). Zodra de bronrij valt veegt Postgres élke
- * documentrij mee — óók de rijen waar `deleteDocumentChunks` nooit langs is
- * geweest. Alleen die functie ruimt de vectoren op (lokale `kb_chunks` én
- * `DELETE /kb/documents/{id}` op de search-service), dus een overgeslagen rij
- * laat zijn embeddings voorgoed staan: de tekst is weg van het scherm en nog
- * steeds vindbaar in het zoeken. In een privacyproduct is dat DE bug.
+ * `documents.source_id` references `kb_sources` with `ON DELETE CASCADE` (stores/knowledgeBases.js).
+ * As soon as the source row falls, Postgres sweeps every document row along, including the rows that
+ * `deleteDocumentChunks` never went past. Only that function cleans up the vectors (local `kb_chunks`
+ * AND `DELETE /kb/documents/{id}` on the search service), so a skipped row leaves its embeddings behind
+ * for good: the text is gone from the screen and still findable in search. In a privacy product that IS the bug.
  *
- * Eén pagina van 200 is daar niet genoeg voor: bij 201 documenten blijft er
- * één achter, zonder dat er iets misgaat om te melden. Vandaar de RONDEN-lus.
- * Er wordt na elke ronde opnieuw gelist vanaf het begin — niet met een
- * oplopende offset — want de vorige ronde heeft zijn eigen rijen al uit de
- * resultaatverzameling gehaald; een oplopende offset zou juist gaan overslaan.
+ * One page of 200 is not enough for that: at 201 documents one stays behind, without anything going wrong
+ * that could be reported. Hence the ROUNDS loop. After every round the list is taken again from the start,
+ * not with a rising offset, because the previous round has already removed its own rows from the result set;
+ * a rising offset would skip rows.
  *
- * ── WAAROM DIT EEN EIGEN MODULE IS ──────────────────────────────────
- * Deze opruiming stond twee keer los: mét lus in
- * routes/knowledgeBases/sources.js, en ZONDER lus in
- * routes/transcriptions/usage.js — waar het commentaar bovendien claimde
- * hetzelfde te doen als de KB-route. Twee paden die hetzelfde moeten doen
- * horen dezelfde code te delen; dit is die code.
+ * ── WHY THIS IS ITS OWN MODULE ──────────────────────────────────────
+ * This cleanup stood twice separately: once WITH a loop in
+ * routes/knowledgeBases/sources.js, and once WITHOUT a loop in
+ * routes/transcriptions/usage.js, where the comment moreover claimed to do the same as the KB route.
+ * Two paths that must do the same thing should share the same code; this is that code.
  *
- * ── DE STORES KOMEN BINNEN, ZE WORDEN NIET GEREQUIRED ───────────────
- * `kbStore` en `deleteDocumentChunks` zijn parameters. Twee redenen:
- * stores/knowledgeBases.js start bij module-load zijn eigen `initDB()`, en
- * routes/transcriptions/usage.js requiret zijn stores juist daarom pas in de
- * handler — een require hier zou die zorgvuldigheid via de achterdeur alsnog
- * omzeilen. En het houdt deze lus toetsbaar zonder database: beide aanroepers
- * hebben de twee al in de hand op het moment dat ze hem nodig hebben.
+ * ── THE STORES COME IN, THEY ARE NOT REQUIRED ───────────────────────
+ * `kbStore` and `deleteDocumentChunks` are parameters. Two reasons:
+ * stores/knowledgeBases.js starts its own `initDB()` at module load, and
+ * routes/transcriptions/usage.js requires its stores precisely in the handler, so a require here
+ * would bypass that care through the back door. And it keeps this loop testable without a database:
+ * both callers already have the two in hand at the moment they need it.
  *
- * ── "KLAAR" IS EEN ANTWOORD, GEEN AANNAME ───────────────────────────
- * De lus stopt om drie redenen en maar één daarvan betekent "leeg":
- *   - een ronde kwam leeg terug           → `complete: true`
- *   - een volle ronde haalde niets weg    → `complete: false` (stoppen in
- *     plaats van rondjes draaien op documenten die niet weg willen)
- *   - de rondenlimiet is op               → `complete: false`
- * De aanroeper MOET `complete` lezen voordat hij de bronrij weghaalt: doet hij
- * dat niet, dan cascadeert de FK precies de rijen weg die zijn blijven staan.
- * `errors` leeg is niet hetzelfde als klaar — de rondenlimiet gooit niets.
+ * ── "DONE" IS AN ANSWER, NOT AN ASSUMPTION ─────────────────────────
+ * The loop stops for three reasons, and only one of them means "empty":
+ *   - a round came back empty             → `complete: true`
+ *   - a full round removed nothing        → `complete: false` (stop instead of looping
+ *     over documents that refuse to go)
+ *   - the round limit is reached          → `complete: false`
+ * The caller MUST read `complete` before it removes the source row: if it does not, the FK cascades
+ * away exactly the rows that were left behind. `errors` being empty is not the same as done: the
+ * round limit throws nothing.
  */
 
 /** Zoveel documenten per ronde opvragen, en zoveel ronden maximaal. */
@@ -49,42 +44,39 @@ const PAGE = 200;
 const MAX_ROUNDS = 200;
 
 /**
- * Haal de chunks + documentrijen van één kennisbank-bron weg.
+ * Remove the chunks and document rows of one knowledge-base source.
  *
- * Verwijdert de BRON zelf NIET — dat is een besluit van de aanroeper, en hij
- * hoort het pas te nemen als `complete` waar is.
+ * Does NOT remove the SOURCE itself: that is a decision of the caller, and it should only be taken
+ * once `complete` is true.
  *
  * @param {object} p
- * @param {any} p.kbStore                stores/knowledgeBases (of een double)
+ * @param {any} p.kbStore                stores/knowledgeBases (or a double)
  * @param {Function} p.deleteDocumentChunks core/kb/kbIngestionHelpers.deleteDocumentChunks
- * @param {string} p.kbId                   kennisbank waar de bron in zit
+ * @param {string} p.kbId                   knowledge base in which the source sits
  * @param {string} p.sourceId               `kb_sources.id`
- * @param {string} p.tenantId               eigenaar van de kennisbank (`knowledge_bases.tenant_id`)
- * @param {number} [p.pageSize=200]         documenten per ronde
- * @param {number} [p.maxRounds=200]        harde bovengrens op het aantal ronden
+ * @param {string} p.tenantId               owner of the knowledge base (`knowledge_bases.tenant_id`)
+ * @param {number} [p.pageSize=200]         documents per round
+ * @param {number} [p.maxRounds=200]        hard upper bound on the number of rounds
  * @returns {Promise<{deleted: number, errors: Array<{documentId: string, error: string}>, complete: boolean}>}
  */
 async function purgeSourceDocuments({
     kbStore, deleteDocumentChunks, kbId, sourceId, tenantId,
     pageSize = PAGE, maxRounds = MAX_ROUNDS,
 } = /** @type {any} */ ({})) {
-    // Zonder de twee kan er niets worden opgeruimd. Gooien in plaats van een
-    // leeg-en-klaar antwoord: dat laatste zou de aanroeper de bron laten
-    // weghalen terwijl er nog geen enkele chunk weg is.
+    // Without the two, nothing can be cleaned up. Throw instead of an empty-and-done answer:
+    // the latter would let the caller remove the source while not a single chunk has gone yet.
     if (!kbStore || typeof kbStore.listDocuments !== 'function') {
         throw new Error('purgeSourceDocuments: kbStore.listDocuments is required');
     }
     if (typeof deleteDocumentChunks !== 'function') {
         throw new Error('purgeSourceDocuments: deleteDocumentChunks is required');
     }
-    // Een LEGE bron-id is geen "alle bronnen", het is een programmeerfout.
-    // `buildDocumentFilters` (stores/knowledgeBases.js:79) hangt de clausule
-    // `source_id = ?` er alleen aan als `filters.sourceId` truthy is — het
-    // commentaar daaronder legt die val zelf uit: null "is falsy and would
-    // silently match EVERY document". Zonder deze twee regels zou een derde
-    // aanroeper met een ontbrekende id de HELE kennisbank leegvegen en daarna
-    // "klaar" te horen krijgen. Hetzelfde voor `kbId`: zonder kennisbank is er
-    // geen begrenzing om binnen te blijven.
+    // An EMPTY source id is not "all sources", it is a programming error.
+    // `buildDocumentFilters` (stores/knowledgeBases.js:79) adds the clause `source_id = ?` only if
+    // `filters.sourceId` is truthy; the comment beneath it explains that trap itself: null "is falsy
+    // and would silently match EVERY document". Without these two lines a third caller with a missing id
+    // would sweep the WHOLE knowledge base empty and then be told "done". The same goes for `kbId`:
+    // without a knowledge base there is no bound to stay within.
     if (typeof kbId !== 'string' || !kbId.trim()) {
         throw new Error('purgeSourceDocuments: kbId is required — an empty one is not "every knowledge base"');
     }
@@ -105,23 +97,20 @@ async function purgeSourceDocuments({
         let removedThisRound = 0;
         for (const doc of docs) {
             try {
-                // skipSnapshot: dit is een BRON-gedreven verwijdering. Een kopie
-                // per opruiming in kb_document_versions vult een audittabel die
-                // geen wispad heeft — precies het tegendeel van wat hier moet.
+                // skipSnapshot: this is a SOURCE-driven deletion. A copy per cleanup in kb_document_versions fills an
+                // audit table that has no wipe path: precisely the opposite of what is needed here.
                 await deleteDocumentChunks(kbId, doc.id, tenantId, { skipSnapshot: true });
                 deleted++;
                 removedThisRound++;
             } catch (err) {
-                // Eén rij per document: een document dat elke ronde opnieuw
-                // weigert hoort niet zes keer in de lijst te staan. De EERSTE
-                // fout blijft staan — dat is degene die het dichtst bij de
-                // oorzaak zit.
+                // One row per document: a document that refuses again every round should not appear six times in
+                // the list. The FIRST error stays: that is the one closest to the cause.
                 if (!errors.some(e => e.documentId === doc.id)) {
                     errors.push({ documentId: doc.id, error: err.message });
                 }
             }
         }
-        // Niets kwam eraf in een volle ronde: stoppen, en NIET als klaar melden.
+        // Nothing came off in a full round: stop, and do NOT report done.
         if (removedThisRound === 0) break;
     }
 

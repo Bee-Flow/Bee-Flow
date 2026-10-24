@@ -1,45 +1,45 @@
 /**
- * De chiprij onder één antwoord — wélke chips, en van welke SOORT bewering.
+ * The chip row under one answer: WHICH chips, and of what KIND of claim.
  *
- * ── EEN CHIP IS EEN BEWERING, EN ZE ZIJN NIET ALLEMAAL EVEN STERK ──────────
+ * ── A CHIP IS A CLAIM, AND THEY ARE NOT ALL EQUALLY STRONG ──────────
  *
- * Een chip zegt: dit antwoord komt hiervandaan. Drie van de vier soorten hier
- * zijn OPGETEKEND — de server schreef een event terwijl het antwoord gemaakt
- * werd, en er zit iets achter dat je terug kunt lezen:
+ * A chip says: this answer comes from here. Three of the four kinds here
+ * are RECORDED. The server wrote an event while the answer was being made,
+ * and there is something behind it that you can read back:
  *
- *   kennisbank   `kb_sources` → `msg.kbSources`, de passage zit erin
- *   tabelrij     hetzelfde event, `kind: 'datatable_row'` — een rij die op het
- *                moment van de vraag uit de tabel is gelezen
- *   skill        `session_skill_completed` → de snapshot op het bericht
+ *   knowledge base   `kb_sources` → `msg.kbSources`, the passage is in it
+ *   table row        same event, `kind: 'datatable_row'`: a row that was
+ *                    read from the table at the moment of the question
+ *   skill            `session_skill_completed` → the snapshot on the message
  *
- * De vierde niet. "Regel gevolgd: …" komt uit een attributie-pass
- * (`server/core/agentRuntime/ruleAttribution.js`): een tweede model heeft ná
- * afloop de rol naast het antwoord gelegd en er iets van gevonden. Dat is een
- * MENING over dezelfde vraag, en ze mag niet als notulen op het scherm komen.
+ * The fourth is not. "Rule followed: …" comes from an attribution pass
+ * (`server/core/agentRuntime/ruleAttribution.js`): a second model, afterwards,
+ * laid the role next to the answer and concluded something about it. That is an
+ * OPINION about the same question, and it may not appear on screen as minutes.
  *
- * Dus krijgt elke chip hier een `grade`, en houdt `AnswerChips.jsx` die twee
- * uit elkaar in vorm, in volgorde en in woorden:
+ * So every chip here gets a `grade`, and `AnswerChips.jsx` keeps the two apart
+ * in form, in order and in wording:
  *
- *   'recorded'  de beurt heeft dit opgeschreven
- *   'judged'    iemand heeft dit achteraf beweerd
+ *   'recorded'  the turn wrote this down
+ *   'judged'    someone claimed this afterwards
  *
- * Ze door elkaar in één uniforme pil gooien zou het zwakste bewijs in de rij
- * het gewicht van het sterkste geven — en dat is precies de verkeerde kant op:
- * wie een chip ziet, gelooft de rij, niet de chip.
+ * Throwing them into one uniform pill would give the weakest evidence in the row
+ * the weight of the strongest. That is exactly the wrong direction: whoever sees
+ * a chip believes the row, not the chip.
  *
- * ── WAT ER NIET IN KOMT ────────────────────────────────────────────────────
+ * ── WHAT DOES NOT GO IN ────────────────────────────────────────────────────
  *
- *   • Een skill die alleen AANSTOND. Actief betekent "was beschikbaar", en dat
- *     is geen herkomst. Alleen wat afliep (`completedSkillIds`) heeft aan dit
- *     antwoord meegewerkt.
- *   • Een skill die we niet bij naam kennen. Een chip met een id erin is geen
- *     bewering die iemand kan lezen; onbekend versmalt.
- *   • Wat dan ook als de attributie-pass niets stuurde. Geen chip is geen
- *     bewering — een chip die "geen regel gevolgd" zou zeggen is er wél een,
- *     en juist uit de bron die zojuist bewees niets te kunnen zeggen.
+ *   • A skill that was merely AVAILABLE. Available means "was on offer", and that
+ *     is not provenance. Only what ran to completion (`completedSkillIds`)
+ *     contributed to this answer.
+ *   • A skill we do not know by name. A chip with an id in it is not a claim
+ *     anyone can read, so unknown narrows.
+ *   • Anything at all when the attribution pass sent nothing. No chip is not a
+ *     claim. A chip saying "no rule followed" would be one, and it would come
+ *     precisely from the source that just proved it could not say anything.
  *
- * Zuiver: geen React, geen t(), geen DOM. Zodat "welke chip mag hier staan"
- * met platte objecten te testen is.
+ * Pure: no React, no t(), no DOM. So that "which chip may appear here" can be
+ * tested with plain objects.
  */
 
 import { groupByDocument, type CitedSource } from './citationGroups';
@@ -54,20 +54,20 @@ export const CHIP_GRADES = Object.freeze([GRADE_RECORDED, GRADE_JUDGED]);
 /** Hoeveel geoordeelde chips er hoogstens onder één antwoord passen. */
 export const MAX_JUDGED_CHIPS = 6;
 /**
- * Hoeveel OPGETEKENDE chips er hoogstens onder één antwoord staan.
+ * How many RECORDED chips at most may stand under one answer.
  *
- * Dezelfde maat als hierboven, en om dezelfde reden. Die helft was ongegrensd
- * terwijl de geoordeelde helft op zes stond, en dat pakt precies verkeerd uit:
- * `kbSources` STAPELT over alle toolrondes van één beurt (sseEvents merget in
- * plaats van te vervangen) en één `datatable_query` levert tot MAX_ROW_LIMIT =
- * 50 citaten. Eén tabelvraag maakte de rij die als bewijs bedoeld is dus een
- * muur van vijftig altijd-uitgeklapte pillen, met de geoordeelde chip die je
- * juist apart wilde zien eronder weggeschoven.
+ * The same measure as above, and for the same reason. That half was unbounded
+ * while the judged half was capped at six, and that turns out badly:
+ * `kbSources` STACKS across all tool rounds of one turn (sseEvents merges instead
+ * of replacing), and one `datatable_query` yields up to MAX_ROW_LIMIT = 50
+ * citations. One table query thus turned the row meant as evidence into a wall of
+ * fifty always-expanded pills, with the judged chip you actually wanted to see
+ * pushed away underneath.
  *
- * De rest verdwijnt niet: er komt een telpil "+N more" achter, net zoals
- * `HowIGotThisAnswer` de volledige lijst achter een dichtgeklapte `<details>`
- * met een telpil zet. Weglaten zonder het te zeggen zou van een begrenzing een
- * onwaarheid maken.
+ * The rest does not vanish: a count pill "+N more" comes after it, just as
+ * `HowIGotThisAnswer` puts the full list behind a collapsed `<details>` with a
+ * count pill. Leaving things out without saying so would turn a limit into a
+ * falsehood.
  */
 export const MAX_RECORDED_CHIPS = 6;
 
@@ -104,7 +104,7 @@ interface AnswerChipsOptions {
     showProcess?: boolean;
 }
 
-/** Een niet-lege, getrimde string, of null. */
+/** A non-empty trimmed string, or null. */
 function text(value: unknown): string | null {
     if (typeof value !== 'string') return null;
     const trimmed = value.trim();
@@ -112,12 +112,12 @@ function text(value: unknown): string | null {
 }
 
 /**
- * De citaten van deze beurt: kennisbankpassages én live tabelrijen.
+ * The citations of this turn: knowledge-base passages and live table rows.
  *
- * Ze reizen door hetzelfde event en dragen dezelfde vorm
- * (`server/core/kb/citation.js`), dus ze blijven hier ook samen — `CitationChips`
- * maakt van de soort een glyph. Alles zonder titel én zonder inhoud valt weg:
- * dat is geen citaat maar een lege plek met een randje.
+ * They travel through the same event and carry the same shape
+ * (`server/core/kb/citation.js`), so they stay together here too. `CitationChips`
+ * turns the kind into a glyph. Anything without a title AND without content
+ * drops out: that is not a citation but an empty spot with a border.
  */
 export function citationChipsOf(msg: ChipMessage | null | undefined): CitationChip[] {
     const sources = Array.isArray(msg?.kbSources) ? msg.kbSources : [];
@@ -132,35 +132,34 @@ export function citationChipsOf(msg: ChipMessage | null | undefined): CitationCh
 }
 
 /**
- * Valt er achter deze chip iets OPEN te doen? (C13)
+ * Is there anything to OPEN behind this chip? (C13)
  *
- * Een citaatchip opent `CitationOverlay`, en die overlay toont precies één
- * ding: `source.content`, de passage zelf. Ontbreekt die, dan opent de chip
- * een paneel dat "No content preview available" zegt — een klik die belooft
- * dat je het na kunt lezen en dan niets laat zien.
+ * A citation chip opens `CitationOverlay`, and that overlay shows exactly one
+ * thing: `source.content`, the passage itself. If that is missing, the chip opens
+ * a panel that says "No content preview available", a click that promises you can
+ * read it and then shows nothing.
  *
- * En ontbreken gebeurt écht: niet elke emitter stuurt de passage mee
- * (`routes/ai/webpageChat.js` stuurt alleen `preview`), en een server kan hem
- * hebben weggelaten omdat déze lezer de bron niet mag lezen. Die twee zijn
- * van deze kant NIET uit elkaar te houden — en juist daarom is dit de veilige
- * kant op: onbekende leesbaarheid versmalt naar NIET-klikbaar. De chip zelf
- * blijft staan (het antwoord heeft die bron gebruikt, dat verzwijgen we niet),
- * hij is alleen geen knop.
+ * And missing really happens. Not every emitter sends the passage
+ * (`routes/ai/webpageChat.js` sends only `preview`), and a server may have left it
+ * out because THIS reader may not read the source. From this side those two cases
+ * cannot be told apart, and that is precisely why this is the safe direction:
+ * unknown readability narrows to NOT clickable. The chip itself stays (the answer
+ * used that source, and we do not hide that). It is just not a button.
  *
- * `preview` telt bewust NIET mee. Dat is de alias van één release
- * (`core/kb/citation.js`) en de overlay leest hem niet; hem hier goedkeuren
- * zou precies de lege overlay opleveren die deze functie voorkomt.
+ * `preview` deliberately does NOT count. It is the alias of one release
+ * (`core/kb/citation.js`) and the overlay does not read it. Approving it here
+ * would produce exactly the empty overlay that this function prevents.
  */
 export function citationIsOpenable(source: CitationChip | null | undefined): boolean {
     return text(source?.content) !== null;
 }
 
 /**
- * De skills die tijdens deze beurt zijn AFGELOPEN, met hun naam.
+ * The skills that have FINISHED during this turn, with their name.
  *
- * De catalogus (`sessionSkills`) levert de naam; een voltooid id dat er niet
- * in staat valt weg. Ontdubbeld, in de volgorde van de catalogus, zodat twee
- * beurten met dezelfde skills dezelfde rij tonen.
+ * The catalogue (`sessionSkills`) supplies the name. A completed id that is not
+ * in it drops out. Duplicates are removed, in catalogue order, so that two turns
+ * with the same skills show the same row.
  */
 export function skillChipsOf(msg: ChipMessage | null | undefined, sessionSkills: ChipSkill[] | null | undefined): SkillChip[] {
     const catalogue = Array.isArray(sessionSkills) ? sessionSkills : [];
@@ -180,12 +179,12 @@ export function skillChipsOf(msg: ChipMessage | null | undefined, sessionSkills:
 }
 
 /**
- * De regels die de attributie-pass als gevolgd aanwees.
+ * The rules that the attribution pass named as followed.
  *
- * De server stuurt alleen `followed` (zie `ruleAttribution.js`), maar deze
- * kant leest dat niet op goed vertrouwen: alles wat geen bruikbare regeltekst
- * is, valt weg, en zonder event is de lijst leeg. Geen event, geen chip, geen
- * uitspraak over het ontbreken ervan.
+ * The server sends only `followed` (see `ruleAttribution.js`), but this side does
+ * not read that on good faith: anything that is not usable rule text drops out,
+ * and without an event the list is empty. No event, no chip, and no statement
+ * about its absence.
  */
 export function ruleChipsOf(msg: ChipMessage | null | undefined): RuleChip[] {
     const rules = msg?.ruleAttribution?.rules;
@@ -203,35 +202,34 @@ export function ruleChipsOf(msg: ChipMessage | null | undefined): RuleChip[] {
 }
 
 /**
- * Alles bij elkaar, in rendervolgorde: eerst wat opgetekend is, dan wat
- * beweerd wordt. Nooit door elkaar — de volgorde is een van de dragers van
- * het verschil.
+ * Everything together, in render order: first what is recorded, then what is
+ * claimed. Never mixed. The order is one of the carriers of the difference.
  *
- * `showSources` is FAIL-CLOSED: weglaten betekent hier `false`, niet `true`.
- * Een toekomstige aanroeper die de prop vergeet hoort niets te tonen in plaats
- * van alles — dezelfde invariant die `HowIGotThisAnswer` in zijn kop vastlegt.
- * De productdefault ("binnen het product is die transparantie juist het punt")
- * hoort thuis op `MessageItem`, dat de prop expliciet doorgeeft.
+ * `showSources` is FAIL-CLOSED: omitting it here means `false`, not `true`.
+ * A future caller who forgets the prop should show nothing instead of
+ * everything. This is the same invariant that `HowIGotThisAnswer` records in its
+ * heading. The product default ("within the product that transparency is
+ * exactly the point") belongs on `MessageItem`, which passes the prop explicitly.
  *
- * `showProcess` is een andere soort schakelaar, en daarom géén poort: hij
- * zegt niet wie iets mag zien maar WELKE HELFT van de rij dit scherm toont.
- * De gewone chat toont sinds C6 de bronchips — dáár gaat het antwoord over —
- * en laat de verantwoording over hoe de beurt liep (welke skills afliepen,
- * welke regel een tweede model achteraf herkende) aan de testchat in de
- * bouwer, die er expliciet om vraagt. Vandaar de default `true`: deze functie
- * rapporteert wat er IS; het versmallen gebeurt op de aanroepplek, en
- * `MessageItem` geeft hem door als `showAnswerChips`.
+ * `showProcess` is a different kind of switch, and therefore NOT a gate. It does
+ * not say who may see something, but WHICH HALF of the row this screen shows.
+ * Since C6 the normal chat shows the source chips, because that is what the answer
+ * is about. It leaves the account of how the turn ran (which skills completed,
+ * which rule a second model recognised afterwards) to the test chat in the
+ * builder, which asks for it explicitly. Hence the default `true`: this function
+ * reports what IS, and the narrowing happens at the call site. `MessageItem`
+ * passes it on as `showAnswerChips`.
  *
- * `showSources: false` haalt de CITATEN eruit en laat de rest staan. Dat is
- * dezelfde schakelaar die `HowIGotThisAnswer` al krijgt, en hij hoort hier ook
- * te gelden: een citaatchip draagt een documenttitel, een paginanummer en via
- * `chipTitle` ook de kop van de passage — iemands handboek op het scherm van
- * een vreemde. De skill- en regelchips dragen dat niet en blijven. Onbekend
- * versmalt: alles wat niet letterlijk `true` is, is geen toestemming.
+ * `showSources: false` removes the CITATIONS and leaves the rest. That is the
+ * same switch that `HowIGotThisAnswer` already gets, and it applies here too: a
+ * citation chip carries a document title, a page number and, via `chipTitle`,
+ * the heading of the passage. That is someone's handbook on a stranger's screen.
+ * The skill and rule chips do not carry that and stay. Unknown narrows: anything
+ * that is not literally `true` is no permission.
  *
- * @param {Array}  [opts.sessionSkills] de skillcatalogus van deze sessie
- * @param {boolean} [opts.showSources] mogen kennisbankgegevens op dit scherm?
- * @param {boolean} [opts.showProcess] toont dit scherm ook hoe de beurt liep?
+ * @param {Array}  [opts.sessionSkills] the skill catalogue of this session
+ * @param {boolean} [opts.showSources] may knowledge-base data be shown on this screen?
+ * @param {boolean} [opts.showProcess] does this screen also show how the turn ran?
  */
 export function answerChipsFor(msg: ChipMessage | null | undefined, { sessionSkills, showSources = false, showProcess = true }: AnswerChipsOptions = {}) {
     const allCitations = showSources === true ? citationChipsOf(msg) : [];

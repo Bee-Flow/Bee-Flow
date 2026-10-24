@@ -45,11 +45,11 @@ const mockId = 'mock:datatableProject:db';
 require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: mockDb };
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    // De naad zit op '../db' in de FACADE (stores/datatableStore.js) én op
-    // '../../db' in elk onderdeel (stores/datatableStore/*.js) — na de
-    // opsplitsing doet het tweede het echte werk. Matcht het patroon niet
-    // meer, dan laadt de echte db-module en sterft deze test op een live
-    // Postgres-verbinding, ver van de oorzaak.
+    // The seam sits on '../db' in the FACADE (stores/datatableStore.js) and on
+    // '../../db' in every part (stores/datatableStore/*.js) — after the
+    // split the second does the real work. If the pattern no longer matches,
+    // then the real db module loads and this test dies on a live
+    // Postgres connection, far from the cause.
     if (parent && /datatableStore([\\/][^\\/]+)?\.js$/.test(parent.filename)
         && (request === '../db' || request === '../../db')) return mockId;
     return originalResolve.call(this, request, parent, ...rest);

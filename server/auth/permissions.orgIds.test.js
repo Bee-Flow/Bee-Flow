@@ -1,13 +1,11 @@
 /**
- * `resolveUserOrgIds` — "gelezen nul" en "niet te lezen" zijn niet hetzelfde.
+ * `resolveUserOrgIds` — "read zero" and "not readable" are not the same.
  *
- * De uitkomst is de sleutel waarop de EU-modus en de org-eigen tiermap worden
- * opgezocht (core/llm/modelResolver.js, routes/agents/persona.js,
- * routes/agents/tests.js). De catch onderaan de functie slikte élke storefout
- * en gaf een LEGE Set terug — die elke aanroeper leest als "deze gebruiker zit
- * in geen enkele org", oftewel de GLOBALE, niet-EU tiermap. De routes die
- * daarvoor een 503 hadden staan, hingen hun `catch` om een functie die nooit
- * gooide: een dode poort.
+ * The outcome is the key by which the EU mode and the org-specific tier map are looked up
+ * (core/llm/modelResolver.js, routes/agents/persona.js, routes/agents/tests.js). The catch at the
+ * bottom of the function swallowed EVERY store error and gave an EMPTY Set back — which every caller
+ * reads as "this user is in no organisation whatsoever", i.e. the GLOBAL, non-EU tier map. The routes
+ * that had a 503 for that hung their `catch` around a function that never threw: a dead gate.
  *
  * Run: cd server && node --test --test-force-exit auth/permissions.orgIds.test.js
  */

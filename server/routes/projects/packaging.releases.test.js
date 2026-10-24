@@ -1,23 +1,20 @@
 /**
- * O4 deel D — GET /:id/package/releases.
+ * O4 part D — GET /:id/package/releases.
  *
- * De route die de Versies-tab voedt. Wat hier wordt vastgepind:
+ * The route that feeds the Versions tab. What is pinned here:
  *
- *   1. EIGENAAR, EN NIET LAGER. `listReleases` autoriseert zelf niets (dat zegt
- *      zijn eigen kop), dus deze route IS de autorisatie. Een lezer zonder de
- *      eigenaarsrol op dit project krijgt geen geschiedenis — en dan wordt de
- *      store ook niet aangeroepen.
- *   2. HET ANTWOORD IS EEN ALLOW-LIST van vier velden. Geen manifest, geen
- *      `blueprintId`, geen `publishedBy`, en niets wat de store er volgend jaar
- *      bij levert.
- *   3. DE SCOPE IS HET PROJECT UIT DE URL. Nooit een id uit de body — dat is de
- *      enige manier waarop een geautoriseerd verzoek een ándere geschiedenis
- *      zou kunnen lezen.
- *   4. EEN MISLUKTE LEES IS GEEN LEGE GESCHIEDENIS. `{ releases: [] }` betekent
- *      "nooit gepubliceerd"; een store die omvalt geeft 500.
+ *   1. OWNER, AND NOT LOWER. `listReleases` authorises nothing itself (that is what its
+ *      own header says), so this route IS the authorisation. A reader without the
+ *      owner role on this project gets no history — and then the store is not called either.
+ *   2. THE ANSWER IS AN ALLOW-LIST of four fields. No manifest, no `blueprintId`, no `publishedBy`, and nothing
+ *      that the store adds next year.
+ *   3. THE SCOPE IS THE PROJECT FROM THE URL. Never an id from the body — that is the
+ *      only way in which an authorised request could read a DIFFERENT history.
+ *   4. A FAILED READ IS NOT AN EMPTY HISTORY. `{ releases: [] }` means
+ *      "never published"; a store that falls over gives a 500.
  *
- * Hermetisch: de stores en de gates zijn via require.cache vervangen — geen
- * database. Zelfde harnas als packaging.installs.test.js hiernaast.
+ * Hermetic: the stores and the gates are replaced via require.cache — no
+ * database. Same harness as packaging.installs.test.js next to it.
  *
  * Run: cd server && node --test routes/projects/packaging.releases.test.js
  */
@@ -37,8 +34,8 @@ stub('../../license/middleware', {
     featureAllowedForRequest: async () => ({ allowed: true }),
 });
 
-// De rolgate, als schakelaar. DAT hij op deze route staat pint
-// routes/projects.routetable.test.js; hier gaat het om wat er ná de gate gebeurt.
+// The role gate, as a switch. THAT it sits on this route is pinned by
+// routes/projects.routetable.test.js; here it is about what happens AFTER the gate.
 const gate = { role: 'owner' };
 stub('../../auth/projectAccess', {
     requireProjectRole: (minRole) => function requireProjectRoleMw(req, res, next) {
@@ -120,7 +117,7 @@ async function releases(projectId, user) {
         }).on('error', reject);
     });
     let json = null;
-    try { json = JSON.parse(res.body); } catch { /* niet-JSON is zelf het antwoord */ }
+    try { json = JSON.parse(res.body); } catch { /* non-JSON is itself the answer */ }
     return { status: res.status, json };
 }
 
@@ -170,13 +167,12 @@ test('zonder sessie gebeurt er niets', async () => {
     assert.deepStrictEqual(fx.calls, []);
 });
 
-// ── 2. Een allow-list, geen doorgegeven rij ─────────────────────────────────
+// ── 2. An allow-list, not a passed-through row ─────────────────────────────
 
 test('HET ANTWOORD DRAAGT VIER VELDEN — geen manifest, geen publishedBy', async () => {
     reset();
-    // De store levert hier bewust een RIJKERE rij dan de route nodig heeft. Een
-    // payload uit een allow-list trekt zich daar niets van aan; een payload waar
-    // sleutels van zijn afgehaald wel.
+    // The store deliberately delivers a RICHER row here than the route needs. A
+    // payload from an allow-list takes no notice of that; a payload from which keys were removed does.
     fx.rows = [{
         id: 'rel_1', version: 3, notes: { entities: [] }, publishedAt: '2026-09-05T09:00:00Z',
         projectId: 'p1', blueprintId: 'bp_geheim', publishedBy: 'u_alice',
@@ -196,8 +192,8 @@ test('de notitie reist WEL mee — dat is de hele inhoud van de Versies-tab', as
     const res = await releases('p1');
     const note = res.json.releases[0].notes;
     assert.strictEqual(note.entities[0].change, 'changed');
-    // `text: null` op een gewijzigde rij betekent "geen woorden", niet "geen
-    // nieuws". De route mag die null niet wegpoetsen.
+    // `text: null` on a changed row means "no words", not "no news". The route
+    // may not tidy that null away.
     assert.strictEqual(note.entities[0].text, null);
 });
 
@@ -209,7 +205,7 @@ test('de geschiedenis wordt op het project uit de URL opgevraagd', async () => {
     assert.strictEqual(fx.calls[0].projectId, 'p_uit_de_url');
 });
 
-// ── 4. Een mislukte lees is geen lege geschiedenis ──────────────────────────
+// ── 4. A failed read is not an empty history ───────────────────────────────
 
 test('EEN OMGEVALLEN STORE GEEFT 500, NOOIT EEN LEGE LIJST', async () => {
     reset();

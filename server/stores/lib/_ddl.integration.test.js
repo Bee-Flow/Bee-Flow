@@ -1,22 +1,22 @@
 'use strict';
 
 /**
- * stores/lib/_ddl.js tegen echte Postgres (pglite), achter de pool van de
- * echte db.js (testUtils/pglitePool) — geen fakeDb-stringmock.
+ * stores/lib/_ddl.js against real Postgres (pglite), behind the pool of the
+ * real db.js (testUtils/pglitePool) — not a fakeDb string mock.
  *
- * Bewezen wordt: (1) een falend statement komt in de failures-lijst én de
- * rest van de reeks draait door en commit; (2) een verwachte SQLSTATE
- * (`tolerate`) komt in `tolerated` zonder logregel; (3) twee gelijktijdige
- * aanroepen met dezelfde tag draaien strikt na elkaar; (4) een
- * verbindingsfout (geen SQLSTATE) rejict de hele aanroep en rolt de
- * transactie terug.
+ * Proven: (1) a failing statement lands in the failures list AND the
+ * rest of the series runs on and commits; (2) an expected SQLSTATE
+ * (`tolerate`) lands in `tolerated` without a log line; (3) two simultaneous
+ * calls with the same tag run strictly one after the other; (4) a
+ * connection error (no SQLSTATE) rejects the whole call and rolls the
+ * transaction back.
  *
- * Eerlijk over de grens (PLAN-APP-UPGRADE.md kritiek-2 punt 9): pglite heeft
- * één WASM-verbinding, dus wederzijdse uitsluiting TUSSEN verbindingen — het
- * werk van pg_advisory_xact_lock — is hier niet te bewijzen. Test 3 bewijst
- * de in-proces wachtrij; de advisory lock is hetzelfde idioom dat
- * configStore.mutateConfig al productie-draait en dat test 3 van
- * migrateDb.integration.test.js onder pglite aantoonbaar uitvoert.
+ * Honest about the boundary (PLAN-APP-UPGRADE.md critical-2 point 9): pglite has
+ * ONE WASM connection, so mutual exclusion BETWEEN connections — the
+ * work of pg_advisory_xact_lock — cannot be proven here. Test 3 proves
+ * the in-process queue; the advisory lock is the same idiom that
+ * configStore.mutateConfig already runs in production and that test 3 of
+ * migrateDb.integration.test.js demonstrably executes under pglite.
  *
  * Run: cd server && node --test stores/lib/_ddl.integration.test.js
  */
@@ -86,8 +86,8 @@ test('een falend statement komt in failures én de rest draait door (en commit)'
 test('tolerate: verwachte SQLSTATE komt stil in tolerated, onverwachte blijft luid', async () => {
     await runDdl('ddltest-tolerate', [`CREATE TABLE IF NOT EXISTS ddl_c (x INT)`]);
 
-    // Het mcpStore-patroon: ADD COLUMN zonder IF NOT EXISTS, de verwachte
-    // duplicate_column is het idempotentie-mechanisme en hoort stil te zijn.
+    // The mcpStore pattern: ADD COLUMN without IF NOT EXISTS; the expected
+    // duplicate_column is the idempotency mechanism and should be silent.
     const eerste = await captureErrors(() => runDdl('ddltest-tolerate', [
         { sql: `ALTER TABLE ddl_c ADD COLUMN x INT`, tolerate: CODES.DUPLICATE_COLUMN, reden: 'kolom bestaat al — verwacht' },
     ]));
@@ -97,8 +97,8 @@ test('tolerate: verwachte SQLSTATE komt stil in tolerated, onverwachte blijft lu
     assert.strictEqual(eerste.out.tolerated[0].reden, 'kolom bestaat al — verwacht');
     assert.deepStrictEqual(eerste.lines, [], 'een getolereerde fout hoort géén logregel te geven');
 
-    // Maar een ANDERE fout op zo'n statement blijft een luide failure —
-    // tolerate is een verwachte code, geen catch {}.
+    // But ANOTHER error on such a statement remains a loud failure —
+    // tolerate is an expected code, not a catch {}.
     const tweede = await captureErrors(() => runDdl('ddltest-tolerate', [
         { sql: `ALTER TABLE ddl_bestaat_niet ADD COLUMN x INT`, tolerate: CODES.DUPLICATE_COLUMN },
     ]));
@@ -141,10 +141,10 @@ test('verbindingsfout (geen SQLSTATE) rejict de hele aanroep en rolt terug', asy
         ]),
         /Connection terminated/,
         'zonder serverantwoord hoort runDdl hard te falen, niet te verzamelen');
-    // De transactie is teruggerold: ook het statement vóór de klap is weg.
+    // The transaction has been rolled back: the statement before the crash is gone too.
     assert.strictEqual(await tableExists('ddl_weg'), false, 'ROLLBACK hoort het eerdere statement mee te nemen');
     assert.strictEqual(await tableExists('ddl_nooit'), false);
-    // En de wachtrij is niet vergiftigd: een volgende aanroep draait gewoon.
+    // And the queue is not poisoned: a next call simply runs.
     const na = await runDdl('ddltest-verbinding', [`CREATE TABLE IF NOT EXISTS ddl_daarna (id INT)`]);
     assert.deepStrictEqual(na.failures, []);
     assert.ok(await tableExists('ddl_daarna'));

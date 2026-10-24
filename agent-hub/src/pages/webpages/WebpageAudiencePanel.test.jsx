@@ -2,21 +2,16 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
- * WebpageAudiencePanel — "Wie ziet de pagina, en het adres".
+ * WebpageAudiencePanel — "Who sees the page, and the address".
  *
- * `authFetch` levert het contract van GET /api/webpages/:id/audience (server:
- * core/webpages/webpagePublicAudience.js). `AudienceRows` is gemockt: dat
- * component heeft zijn eigen test in components/shared, en hier telt alleen
- * DAT de drie interne rijen dezelfde handlers krijgen als de capsule.
+ * `authFetch` supplies the contract of GET /api/webpages/:id/audience (server: core/webpages/webpagePublicAudience.js). `AudienceRows` is mocked: that component has its own test in components/shared, and here only THAT the three internal rows get the same handlers as the capsule counts.
  *
- * Wat hier vastligt is wat het scherm mag beweren en wat het mag DOEN:
+ * What is fixed here is what the screen may claim and what it may DO:
  *
- *   - de kolomkeuze wordt GEVRAAGD, begint LEEG op een pagina die nog nooit
- *     openbaar was, en wat niet is aangevinkt gaat niet mee in het verzoek;
- *   - "Openbaar" is een schakelaar naast de drie rijen, geen vierde rondje;
- *   - het scherm zegt zelf dat tabellen daar alleen-lezen zijn en dat het
- *     Agent-blok er niet draait;
- *   - het adres blijft staan als openbaar uit gaat.
+ *   - the column choice is ASKED FOR, starts EMPTY on a page that was never public, and whatever is not ticked does not go along in the request;
+ *   - "Public" is a switch beside the three rows, not a fourth round;
+ *   - the screen itself says that tables there are read-only and that the Agent block does not run there;
+ *   - the address stays shown when public is switched off.
  */
 
 const authFetch = vi.fn();
@@ -100,11 +95,11 @@ describe('WebpageAudiencePanel', () => {
     });
 
     it('says that anonymous readers spend the AI budget when public AI is ON', async () => {
-        // De schakelaar die geld kost: bridge_grants.ai.publicEnabled zet een
-        // ECHTE beeflowAI-brug in het publieke document (server:
-        // routes/publicViewer.js → publicShareBridge.js). Er is nergens anders
-        // in de editor een scherm dat hem toont, dus zwijgen hier laat de
-        // eigenaar concluderen dat er publiek geen AI draait.
+        // The switch that costs money: bridge_grants.ai.publicEnabled places a REAL
+        // beeflowAI bridge in the public document (server: routes/publicViewer.js →
+        // publicShareBridge.js). There is no other screen in the editor that shows
+        // it, so staying silent here would let the owner conclude that no AI runs
+        // publicly.
         authFetch.mockResolvedValue(response(model({
             public: { ...MODEL.public, on: true, aiRuns: true, aiGroundsOnPage: true },
         })));
@@ -114,8 +109,8 @@ describe('WebpageAudiencePanel', () => {
             .toHaveTextContent(/charged to your AI budget/);
         expect(screen.getByTestId('public-ai-grounded'))
             .toHaveTextContent(/sources can reach outside readers/);
-        // Een waarschuwing die je niet kunt opvolgen is een halve waarschuwing:
-        // zetten kan alleen de AI-chat van de pagina zelf.
+        // A warning you cannot act on is a half warning: changing it is possible only
+        // from the page's own AI chat.
         expect(screen.getByTestId('public-ai-change')).toHaveTextContent(/AI chat/);
         // En de staart van de Agent-zin ("blijft leeg") is dan ONWAAR.
         expect(screen.queryByText(/stays blank for outside readers/)).not.toBeInTheDocument();
@@ -123,8 +118,8 @@ describe('WebpageAudiencePanel', () => {
     });
 
     it('claims nothing about public AI when the switch could not be read', async () => {
-        // Een oudere server (of een mislukte lezing) stuurt de drie ai-velden
-        // helemaal niet mee. Dat is "niet gelezen", niet "uit".
+        // An older server (or a failed read) does not send the three ai fields at all.
+        // That is "not read", not "off".
         const zonderAi = { ...MODEL.public };
         delete zonderAi.aiKnown;
         delete zonderAi.aiRuns;
@@ -148,7 +143,7 @@ describe('WebpageAudiencePanel', () => {
             expect(screen.getByLabelText(key).checked).toBe(false);
         }
         expect(screen.getByText('Nothing from your tables goes out.')).toBeInTheDocument();
-        // Nog niets gepubliceerd: alleen de GET is gedaan.
+        // Nothing published yet: only the GET has been done.
         expect(authFetch).toHaveBeenCalledTimes(1);
     });
 
@@ -200,10 +195,9 @@ describe('WebpageAudiencePanel', () => {
     });
 
     it('"Apply" under All options keeps the column choice instead of wiping it', async () => {
-        // De valkuil: `publicColumns` gaat ALTIJD mee in het verzoek, en de
-        // server leest een ontbrekende tabel als nul kolommen. Wie alleen de
-        // vervaldatum aanpast mag daarmee niet ongemerkt de publieke tabel
-        // leeghalen.
+        // The pitfall: `publicColumns` ALWAYS goes along in the request, and the server
+        // reads a missing table as zero columns. Whoever only adjusts the expiry date
+        // must not, unnoticed, empty the public table with it.
         authFetch.mockResolvedValueOnce(response(model({
             public: { ...MODEL.public, on: true },
             columnGate: {
@@ -231,8 +225,8 @@ describe('WebpageAudiencePanel', () => {
         expect((await screen.findByTestId('address-value')).textContent)
             .toBe('https://beeflow.example/w/prijzen-k3f9x2mq7bd4');
         expect(screen.getByText(/The address stays reserved while Public is off/)).toBeInTheDocument();
-        // Het adres is geen label maar een sleutel; het scherm zegt waar het
-        // vandaan komt en dat hernoemen het niet verplaatst.
+        // The address is not a label but a key; the screen says where it comes from and
+        // that renaming does not move it.
         expect(screen.getByText(/the rest is random so the address cannot be guessed/)).toBeInTheDocument();
         expect(screen.getByText(/Renaming the page does not move it/)).toBeInTheDocument();
     });
@@ -310,9 +304,9 @@ describe('WebpageAudiencePanel', () => {
     });
 
     it('mentions the other share links without calling them the address', async () => {
-        // Openbaar AAN: dan is één van de drie het adres en staan de andere
-        // twee ernaast. Met openbaar UIT is geen van de drie nog het adres —
-        // die stand krijgt een eigen zin, hieronder.
+        // Public ON: then one of the three is the address, and the other two stand
+        // beside it. With public OFF none of the three is the address any longer — that
+        // state gets its own sentence, below.
         authFetch.mockResolvedValue(response(model({
             public: { ...MODEL.public, on: true }, shareCount: 3,
         })));
@@ -351,9 +345,9 @@ describe('WebpageAudiencePanel', () => {
     });
 
     it('says out loud that a leftover share link keeps serving after Public goes off', async () => {
-        // Pagina met twee levende shares: de canonieke en een losse. De server
-        // trekt bij on:false alleen de canonieke in, dus shareCount valt van 2
-        // naar 1 — precies de drempel waarop de oude zin verdween.
+        // Page with two live shares: the canonical one and a loose one. On on:false the
+        // server withdraws only the canonical one, so shareCount drops from 2 to 1 —
+        // precisely the threshold at which the old sentence disappeared.
         authFetch.mockResolvedValueOnce(response(model({
             public: { ...MODEL.public, on: true }, shareCount: 2, shareCountKnown: true,
             address: { slug: 'p-k3f9x2mq7bd4', path: '/w/p-k3f9x2mq7bd4', url: null },

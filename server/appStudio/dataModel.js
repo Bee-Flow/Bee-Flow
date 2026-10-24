@@ -25,12 +25,12 @@
  * (sibling wave). We define and canonicalize it here but do NOT enforce it —
  * enforcement is the gateway's job.
  *
- * TABLE SOURCE (`source`) — de tweede tabelsoort
- *   Zonder `source` bezit de app haar eigen opslag: de soort die hieronder
- *   onder PHYSICAL SCHEMA staat beschreven, en de enige die er tot nu toe was.
- *   Met `source = {kind:'datatable', datatableId, mode}` staan de rijen in een
- *   Studio-datatabel, buiten de app. Deze laag legt alleen de VORM vast —
- *   dezelfde afspraak als bij `access`, waar de RLS-gateway het afdwingen doet.
+ * TABLE SOURCE (`source`) — the second kind of table
+ *   Without `source` the app owns its own storage: the kind described under PHYSICAL
+ *   SCHEMA below, and the only one there was until now. With
+ *   `source = {kind:'datatable', datatableId, mode}` the rows live in a Studio
+ *   datatable, outside the app. This layer only fixes the SHAPE — the same arrangement
+ *   as with `access`, where the RLS gateway does the enforcing.
  *
  * PHYSICAL SCHEMA
  *   Every table is a SQLite table named by its (mutable) `key`; every field is

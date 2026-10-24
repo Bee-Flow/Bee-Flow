@@ -1,60 +1,52 @@
 /**
- * toolChooserModel — de gefaseerde selectie van de tool-kiezer, puur (A2 stap 4).
+ * toolChooserModel: the staged selection of the tool picker, pure (A2 step 4).
  *
- * `toolGrants.js` bezit de REGEL (uitvinken schrijft `{actions: []}`, de sleutel
- * weglaten geeft de app terug). Dit bestand bezit wat de KIEZER daar bovenop
- * nodig heeft: hoe de vinkjes eruitzien als je hem opent, wat er verandert
- * terwijl je klikt, en wat er bij "toepassen" precies wordt weggeschreven.
+ * `toolGrants.js` owns the RULE (unticking writes `{actions: []}`, omitting the key gives the app back).
+ * This file owns what the PICKER needs on top of that: what the ticks look like when you open it, what changes
+ * while you click, and what exactly is written away on "apply".
  *
- * ── TWEE POORTEN, NIET ÉÉN ──────────────────────────────────────────
- * Een agent mag een tool pas als hij dóór twee poorten komt:
+ * ── TWO GATES, NOT ONE ──────────────────────────────────────────────
+ * An agent may use a tool only if it passes two gates:
  *
- *   `config.enabledIntegrations`  staat deze APP aan?      (app-niveau)
- *   `config.tools[app].actions`   welke ACTIES ervan?      (actie-niveau)
+ *   `config.enabledIntegrations`  is this APP switched on?      (app level)
+ *   `config.tools[app].actions`   which ACTIONS of it?         (action level)
  *
- * De kiezer toont één vinkje per actie, dus hij moet ze allebei bedienen.
- * Anders kan hij liegen in beide richtingen: een uitgezette app zou met álle
- * vinkjes aan opengaan (want zonder tools-entry betekent "alles"), en een
- * aangevinkte actie op een uitgezette app zou niets doen.
+ * The picker shows one tick per action, so it must serve both. Otherwise it can lie in both directions: an app
+ * that is switched off would open with ALL ticks on (because without a tools entry "everything" applies), and a
+ * ticked action on a switched-off app would do nothing.
  *
- *   openen   een app die UIT staat opent met nul vinkjes, ongeacht zijn grants;
- *   ≥1 vink  de app gaat AAN en zijn acties worden weggeschreven;
- *   0 vinken de app gaat UIT én krijgt `{actions: []}` — allebei weigeren, want
- *            allebei versmallen, en de tweede blijft staan als iemand later
- *            alleen de app-lijst aanzet.
+ *   opening    an app that is OFF opens with zero ticks, regardless of its grants;
+ *   ≥1 tick    the app goes ON and its actions are written;
+ *   0 ticks    the app goes OFF AND gets `{actions: []}`. Both refuse, because both narrow. The second one
+ *              stays in place if someone later only switches the app list on again.
  *
- * `enabledIntegrations === null` is de LEGACY-betekenis "alles wat beschikbaar
- * is staat aan". Die lijst materialiseren zou een migratie zijn die niemand
- * vroeg — dus dan blijft de app-poort onaangeraakt en doet alleen de
- * actie-poort zijn werk. Weigeren doet die net zo goed.
+ * `enabledIntegrations === null` is the LEGACY meaning "everything that is available is on". Materialising that
+ * list would be a migration that nobody asked for, so then the app gate stays untouched and only the action gate
+ * does its work. Refusing does just as well.
  *
- * ── ALLEEN WAT VERANDERDE WORDT GESCHREVEN ──────────────────────────
- * `applyAppSelection` schrijft ELKE app die je hem geeft — daar is hij voor.
- * Wat de kiezer hem geeft, zijn de apps waarvan de selectie ECHT anders is dan
- * bij het openen. Een app waar de eigenaar niets aan deed, blijft dus
- * ongenoemd, en dat is het verschil tussen "hij liet Drive met rust" en "hij
- * bevestigde Drive" — en daarmee ook het verschil tussen wél en niet in het
- * bevestigingsregime belanden (`hasCuratedGrants` in toolPolicy.js wordt waar
- * zodra er één entry staat). Een kiezer die bij openen-en-sluiten alles
- * wegschrijft, zet die schakelaar om zonder dat iemand iets koos.
+ * ── ONLY WHAT CHANGED IS WRITTEN ────────────────────────────────────
+ * `applyAppSelection` writes EVERY app you hand it; that is what it is for. What the picker hands it are the apps
+ * whose selection REALLY differs from when it was opened. An app that the owner did nothing to stays unnamed. That
+ * is the difference between "he left Drive alone" and "he confirmed Drive", and therefore also the difference
+ * between getting into the confirmation regime or not (`hasCuratedGrants` in toolPolicy.js becomes true as soon as
+ * one entry exists). A picker that writes everything on opening-and-closing flips that switch without anyone
+ * choosing.
  */
 
 import { applyAppSelection, hasCuratedGrants, initialSelection, isAppKey, setAppActions, type SelectionMap, type ToolsConfig } from './toolGrants';
 import type { ToolApp } from './toolCatalogTypes';
 
 /**
- * Eén rij per GRANT-SUBJECT: twee entries over dezelfde module worden er één.
+ * One row per GRANT SUBJECT: two entries over the same module become one.
  *
- * `outlook` en `outlook-readonly` leveren dezelfde tools op dezelfde
- * credentials, en de runtime laat ze allebei meebeslissen (de smalste wint).
- * Toonde de kiezer ze als twee losse rijen, dan kon één vinkje ERBIJ er stil
- * twee AF nemen op de rij ernaast — de eigenaar voegde één leesactie toe, raakte
- * twee andere kwijt en hield de verzendactie, op een rij die hij niet aanraakte.
+ * `outlook` and `outlook-readonly` deliver the same tools on the same credentials, and the runtime lets both
+ * decide (the strictest wins). If the picker showed them as two separate rows, one tick ADDED could silently
+ * remove two from the row next to it: the owner added one read action, lost two other ones, and kept the send
+ * action, on a row he did not touch.
  *
- * Welke rij het subject is, volgt de BESCHIKBAARHEID: normaal de app die de
- * namen bezit, maar staat die aantoonbaar niet aan terwijl de smalle variant
- * dat wel doet, dan is de smalle het subject — anders schrijft de kiezer grants
- * (en een app-niveau vinkje) op een app die deze gebruiker niet heeft.
+ * Which row is the subject follows AVAILABILITY: normally the app that owns the names, but if that one is
+ * demonstrably switched off while the narrower variant is on, then the narrower one is the subject. Otherwise
+ * the picker would write grants (and an app-level tick) to an app that this user does not have.
  */
 export function foldSharedApps(apps: ToolApp[]) {
     const list = (Array.isArray(apps) ? apps : []).filter(a => a && isAppKey(a.id));
@@ -64,7 +56,7 @@ export function foldSharedApps(apps: ToolApp[]) {
         const via = typeof app.grantsVia === 'string' && app.grantsVia ? app.grantsVia : null;
         if (!via) continue;
         const owner = byId.get(via);
-        if (!owner) continue;                     // de eigenaar wordt hier niet getoond
+        if (!owner) continue;                     // the owner is not shown here
         const narrowWins = owner.available === false && app.available === true;
         superseded.add(narrowWins ? owner.id : app.id);
     }
@@ -81,7 +73,7 @@ function asSet(value: null): null;
 function asSet(value: Set<string> | string[] | undefined): Set<string>;
 function asSet(value: Set<string> | string[] | null | undefined): Set<string> | null;
 function asSet(value: Set<string> | string[] | null | undefined): Set<string> | null {
-    // `null` blijft `null` (onbekend); alles wat er niet is, is een lege keuze.
+    // `null` stays `null` (unknown); everything that is not there is an empty choice.
     if (value === null) return null;
     if (value === undefined) return new Set();
     return value instanceof Set ? new Set(value) : new Set(Array.isArray(value) ? value : []);
@@ -95,12 +87,11 @@ function sameSet(a: Set<string> | null, b: Set<string> | null) {
 }
 
 /**
- * De vinkjes waarmee de kiezer OPENGAAT.
+ * The ticks with which the picker OPENS.
  *
- * Bovenop `initialSelection` (die een ontbrekende entry uitklapt naar álle
- * acties — de "geen migratie"-regel) komt hier de app-poort: staat de app uit,
- * dan staat er niets aan. Onbekende acties blijven `null`; daar valt niets te
- * kiezen en dus ook niets weg te schrijven.
+ * On top of `initialSelection` (which expands a missing entry to ALL actions, the "no migration" rule) comes
+ * the app gate here: if the app is off, nothing is ticked. Unknown actions stay `null`. There is nothing to
+ * choose there, and so nothing to write away either.
  */
 interface ChooserInitialSelectionArgs {
     toolsConfig?: ToolsConfig | null;
@@ -112,9 +103,8 @@ interface ChooserInitialSelectionArgs {
 export function chooserInitialSelection({
     toolsConfig = null, enabledIntegrations = null, apps = [], catalog = null,
 }: ChooserInitialSelectionArgs = {}) {
-    // `apps` = de rijen die de kiezer TOONT (gevouwen); `catalog` = alles wat
-    // de server kent. Dat tweede is nodig om de gedeelde namen te kunnen
-    // doorsnijden: een app die niet getoond wordt kan ze nog steeds versmallen.
+    // `apps` = the rows that the picker SHOWS (folded); `catalog` = everything the server knows. The second is
+    // needed to be able to cut through the shared names: an app that is not shown can still narrow them.
     const expanded = initialSelection(toolsConfig, apps, { catalog });
     const out: SelectionMap = new Map();
     for (const [appId, picked] of expanded) {
@@ -141,10 +131,10 @@ export function changedAppIds(initial: SelectionMap | null | undefined, current:
 }
 
 /**
- * Hoeveel acties erbij komen en hoeveel eraf gaan — de tekst op de knop.
+ * How many actions come in and how many go out: the text on the button.
  *
- * Twee getallen, geen saldo: "3 erbij, 1 eraf" is iets anders dan "2 erbij", en
- * een kiezer die alleen het saldo toont verzwijgt de helft van wat hij doet.
+ * Two numbers, not a balance: "3 in, 1 out" is something other than "2 in", and a picker that shows only the
+ * balance conceals half of what it is doing.
  */
 export function selectionDelta(initial: SelectionMap | null | undefined, current: SelectionMap | null | undefined) {
     let added = 0;
@@ -163,12 +153,11 @@ export function selectionDelta(initial: SelectionMap | null | undefined, current
 }
 
 /**
- * De app-niveau lijst na de kiezer: ≥1 vinkje zet de app aan, nul zet hem uit.
+ * The app-level list after the picker: ≥1 tick turns the app on, zero turns it off.
  *
- * Alleen de apps die VERANDERDEN doen mee. Over de rest zei niemand iets, en
- * een lijst herschrijven op grond van een selectie die je niet toonde is
- * hetzelfde soort stilzwijgende migratie als een grants-map die je uit de
- * aangevinkte apps opbouwt.
+ * Only the apps that CHANGED take part. About the rest nobody said anything, and rewriting a list based on a
+ * selection that you did not show is the same kind of silent migration as a grants map that you build from the
+ * ticked apps.
  */
 function nextEnabledList(enabledIntegrations: string[], changed: string[], selection: SelectionMap | null | undefined) {
     const list = enabledIntegrations.filter(id => typeof id === 'string' && id);
@@ -185,19 +174,16 @@ function nextEnabledList(enabledIntegrations: string[], changed: string[], selec
 }
 
 /**
- * De EERSTE curatie verandert de betekenis van zwijgen — leg vast wat er stond.
+ * The FIRST curation changes the meaning of silence. Record what was there before.
  *
- * Een app die de kiezer nooit kon tonen (`requiresGrant`: de browser, de
- * notebooks, de regex-regels) houdt alles zolang niemand de agent cureerde, en
- * krijgt NIETS zodra er één entry staat. Vinkte de eigenaar alleen Gmail
- * smaller, dan schreef de kiezer alleen Gmail weg — en verloor de agent
- * stilzwijgend zijn browser, terwijl het scherm het vinkje aan liet staan en de
- * knop zei dat er niets werd weggenomen.
+ * An app that the picker could never show (`requiresGrant`: the browser, the notebooks, the regex rules) keeps
+ * its whole toolbelt for as long as nobody has curated the agent, and gets NOTHING as soon as there is one entry.
+ * If the owner narrowed only Gmail, the picker wrote only Gmail, and the agent silently lost its browser, while
+ * the screen left the tick on and the button said that nothing was being removed.
  *
- * Daarom: gaat de map van niet-gecureerd naar gecureerd, dan krijgt elke
- * `requiresGrant`-app die de kiezer TOONDE en die de eigenaar NIET aanraakte
- * zijn toestand uitgeschreven. Dat neemt niets af en voegt niets toe; het legt
- * vast wat er stond.
+ * Therefore: when the map goes from uncurated to curated, every `requiresGrant` app that the picker SHOWED and
+ * that the owner did NOT touch gets its current state written out. That removes nothing and adds nothing. It
+ * records what was there.
  */
 interface _keepRequiresGrantAppsArgs {
     before?: ToolsConfig | null;
@@ -223,11 +209,10 @@ function _keepRequiresGrantApps({ before, after, catalog, initial }: _keepRequir
 }
 
 /**
- * Wat er bij "toepassen" wordt weggeschreven.
+ * What is written on "apply".
  *
- * Levert een NIEUWE config-fragment: de grants-map en (als hij een lijst is) de
- * app-niveau lijst. De aanroeper schrijft ze in één patch weg — één opslag per
- * kiezersessie, niet één per vinkje.
+ * Yields a NEW config fragment: the grants map and (if it is a list) the app-level list. The caller writes them
+ * away in one patch: one save per picker session, not one per tick.
  *
  * @returns {{tools: object, enabledIntegrations: string[]|null, changed: string[],
  *            enabledChanged: boolean}}

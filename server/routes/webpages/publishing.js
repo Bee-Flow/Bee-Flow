@@ -1,6 +1,6 @@
 /**
- * Publiceren en wat het publiek te zien krijgt: de thumbnail en de
- * org/groep-zichtbaarheid met de versie die eraan vastgepind wordt.
+ * Publishing and what the public gets to see: the thumbnail and the
+ * org/group visibility, with the version that is pinned to it.
  *
  * GET /:id/thumbnail  ·  PATCH /:id/publish
  */
@@ -18,31 +18,28 @@ const { bodyOf, idList, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 
-// ── Wat een publicatie mag dragen ───────────────────────────────────
+// ── What a publication may carry ────────────────────────────────────
 //
-// `isPublished` is VERPLICHT en een échte boolean, en dat is de reden dat dit
-// bestand een schema kreeg. De store schrijft `!!isPublished` — hij schrijft
-// die kolom ALTIJD — dus:
+// `isPublished` is REQUIRED and a real boolean, and that is the reason this file got
+// a schema. The store writes `!!isPublished` — it ALWAYS writes that column — so:
 //
-//   • `{"isPublished": "false"}` was waar. De pagina werd GEPUBLICEERD, een
-//     momentopname vastgepind, en het antwoord zei `isPublished: "false"`.
-//     Iemand die dacht een pagina van de organisatie af te halen zette hem er
-//     juist op.
-//   • `{}` of een verkeerd gespelde sleutel was onwaar. De pagina werd
-//     DEPUBLICEERD en haar gepinde wijzer gewist, onder `{success:true}`.
+//   • `{"isPublished": "false"}` was true. The page was PUBLISHED, a snapshot pinned,
+//     and the answer said `isPublished: "false"`. Someone who thought they were taking
+//     a page off the organisation had actually put it there.
+//   • `{}` or a misspelled key was false. The page was UNPUBLISHED and its pinned pointer
+//     cleared, under `{success:true}`.
 //
-// Geen van beide is een vorm die een client hoort te kunnen versturen zonder
-// het te horen, dus draagt de body nu precies vier sleutels.
+// Neither is a shape that a client should be able to send without noticing, so the
+// body now carries exactly four keys.
 const PUBLISHED_TEXT = 'Zeg of de pagina gepubliceerd moet zijn: isPublished is true of false.';
 const GROUP_TEXT = 'sharedGroups is een lijst met groep-id\'s.';
 const PublishBody = bodyOf({
     isPublished: z.boolean({ error: PUBLISHED_TEXT }),
-    // Weggelaten betekent "laat staan" — dat onderscheid moet blijven, dus
-    // `.optional()` en niet een lege lijst als standaard.
+    // Omitted means "leave as is" — that distinction must stay, so
+    // `.optional()` and not an empty list as the default.
     sharedGroups: idList(GROUP_TEXT).optional(),
-    // De expliciete actie uit de kop: bevries wat er NU staat. Een groepje
-    // aanvinken is dat niet, en mag de nieuwste onuitgegeven staat van de
-    // eigenaar niet live duwen.
+    // The explicit action from the header: freeze what stands NOW. Ticking a group is not that,
+    // and must not push the owner's newest unpublished state live.
     republish: z.boolean({ error: typeError({ invalid: 'republish is true of false.' }) }).optional(),
 });
 
@@ -252,13 +249,11 @@ function register(router) {
             }
         }
 
-        // Publiceren schrijft `organization_id` — de enige plek waar dat
-        // gebeurt. De index leest die kolom niet (hij gaat langs de EIGENAAR,
-        // zie de kop van core/webpages/webpageUsageSync.js), maar dit is wel
-        // het moment waarop een pagina die nog nooit is gereconcilieerd — een
-        // pagina die na haar laatste save alleen nog gepubliceerd wordt — voor
-        // het eerst zichtbaar hoort te zijn in de Wordt-gebruikt-door-lijst van
-        // de tabellen eronder. Gedebouncet en detached, net als elke save.
+        // Publishing writes `organization_id` — the only place where that happens. The index does
+        // not read that column (it goes via the OWNER, see the header of core/webpages/webpageUsageSync.js),
+        // but this is the moment at which a page that has never been reconciled — a page that after its
+        // last save is only published — should for the first time appear in the Used-by list of the
+        // tables below. Debounced and detached, like every save.
         webpageUsageSync.reconcileWebpageUsageDetached(req.params.id);
 
         res.json({ success: true, isPublished, sharedGroups: cleanedGroups, publishedVersionId });

@@ -1,13 +1,12 @@
 /**
- * core/webpages/webpageDataCards — het kaartenmodel van de Data-tab.
+ * core/webpages/webpageDataCards — the card model of the Data tab.
  *
- * Geen databank: grants, principal, runner, usage-index en de slot-lezer worden
- * gemonkeypatcht. Getoetst wordt wat het model BEWEERT: dat "niet gebruikt"
- * alleen wordt gezegd als het te controleren viel, dat een tabel die de
- * eigenaar niet mag lezen zichtbaar blijft als `missing`, en dat een
- * schrijvende automatisering een waarschuwing oplevert.
+ * No database: grants, principal, runner, usage index and the slot reader are
+ * monkey-patched. What is tested is what the model ASSERTS: that "not used"
+ * is only said if it could be checked, that a table that the owner may not
+ * read remains visible as `missing`, and that a writing automation yields a warning.
  *
- * Draaien: cd server && node --test --test-force-exit core/webpages/webpageDataCards.test.js
+ * Run: cd server && node --test --test-force-exit core/webpages/webpageDataCards.test.js
  */
 
 const test = require('node:test');
@@ -48,17 +47,17 @@ function stubs({
     usage = [], resolveThrow = null, storageAvailable = true,
 } = {}) {
     return [
-        // De code van de pagina wordt via webpageBindings.readPageCode gelezen,
-        // en die vraagt eerst of de opslag er is — zonder deze stub zou elke
-        // test in een omgeving zonder RustFS 'onleesbaar' meten.
+        // The code of the page is read via webpageBindings.readPageCode,
+        // and that first asks whether the storage is there — without this stub every
+        // test in an environment without RustFS would measure 'unreadable'.
         [storageStore, 'isAvailable', () => storageAvailable],
         [bridgeGrants, 'getBridgeGrants', async () => ({ ai: {}, automations: [], integrations: [], tables, agent: null })],
         [datatableAccess, 'resolveDatatablePrincipalForUser', async (id) => ({ userId: id, orgId: 'org-1', organizationId: 'org-1', orgRole: null, groupIds: [] })],
         [datatableRuntime, 'resolveForPrincipal', async () => { if (resolveThrow) throw resolveThrow; return RESOLVED; }],
         [datatableStore, 'listUsage', async () => usage],
         [webpageStore, 'readAllSlots', async () => { if (slotsThrow) throw new Error('rustfs down'); return slots; }],
-        // De extra bestanden horen bij "de eigen code" van de pagina: een
-        // react-mui-project heeft daar zijn hele app staan.
+        // The extra files belong to the "own code" of the page: a
+        // react-mui project has its whole app standing there.
         [webpageStore, 'listExtraFiles', async () => {
             if (extrasThrow) throw new Error('db down');
             return extras.map(e => ({ path: e.path, isText: true, mimeType: 'text/jsx' }));
@@ -94,8 +93,8 @@ test('BITE — an unreadable code slot makes usedInCode null, never false', asyn
 });
 
 test('BITE — storage being down makes usedInCode null, not false', async () => {
-    // readAllSlots geeft dan lege strings terug; die zijn niet te onderscheiden
-    // van een pagina zonder script, dus de bewering mag niet gedaan worden.
+    // readAllSlots then gives empty strings back; those cannot be told apart
+    // from a page without script, so the assertion may not be made.
     await withPatches(stubs({ storageAvailable: false }), async () => {
         const out = await cards.buildDataCards({ webpageId: 'wp1', userId: OWNER });
         assert.strictEqual(out.tables[0].usedInCode, null);
@@ -103,10 +102,10 @@ test('BITE — storage being down makes usedInCode null, not false', async () =>
 });
 
 test('BITE — a react-mui page that uses the table from src/ is usedInCode:true, not "unused"', async () => {
-    // De slots zijn leeg: react-mui zet de hele app in extra bestanden. Zonder
-    // die bestanden krijgt een intensief gebruikte tabel de gestippelde pil
-    // "niet gebruikt" — en dat is `false`, dus het driewaardige mechanisme
-    // vangt het niet op.
+    // The slots are empty: react-mui puts the whole app in extra files. Without
+    // those files an intensively used table gets the dotted pill
+    // "not used" — and that is `false`, so the three-valued mechanism
+    // does not catch it.
     await withPatches(stubs({
         slots: { html: '', js: '' },
         extras: [{ path: 'src/App.jsx', text: 'const rows = await beeflowTables.query("tbl_1");' }],
@@ -156,7 +155,7 @@ test('feeding automations are folded per automation, widest mode wins, and a wri
         { consumerKind: 'automation', automationId: 'auto_1', automationTitle: 'Tarieven beheren', mode: 'read', columns: ['name'], lastRunAt: null },
         { consumerKind: 'automation', automationId: 'auto_1', automationTitle: 'Tarieven beheren', mode: 'write', columns: ['price'], lastRunAt: '2026-09-01T10:00:00.000Z' },
         { consumerKind: 'automation', automationId: 'auto_2', automationTitle: 'Alleen lezen', mode: 'read', columns: ['name'], lastRunAt: null },
-        // Andere consumenten (apps, KB's, andere pagina's) horen niet op deze kaart.
+        // Other consumers (apps, KBs, other pages) do not belong on this card.
         { consumerKind: 'app', automationId: 'app_1', automationTitle: 'Some app', mode: 'readwrite', columns: [], lastRunAt: null },
     ];
     await withPatches(stubs({ usage }), async () => {

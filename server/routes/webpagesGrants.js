@@ -166,10 +166,10 @@ router.delete('/:id/grants/automations/:automationId', requireAuth, async (req, 
 });
 
 /**
- * Het kaartenmodel van de Data-tab.
+ * The card model of the Data tab.
  *
- * Eigenaar-only, net als alles hierboven en om dezelfde reden: dit vertelt wat
- * er aan de pagina hangt, inclusief de kolomnamen van andermans tabellen.
+ * Owner-only, like everything above and for the same reason: this says what hangs
+ * on the page, including the column names of other people's tables.
  */
 router.get('/:id/data-cards', requireAuth, async (req, res) => {
     try {
@@ -183,11 +183,11 @@ router.get('/:id/data-cards', requireAuth, async (req, res) => {
 });
 
 /**
- * Wat de pagina zelf doet — de kolom "Laat gebeuren".
+ * What the page itself does — the column "Laat gebeuren" ("Lets happen").
  *
- * Eigenaar-only, en hier weegt dat zwaarder dan bij de kaarten hiernaast: het
- * antwoord is afgeleid uit de INHOUD van `script.js` en `index.html`, tot en
- * met de URL's die erin staan. Dat is auteurscode, geen leesoppervlak.
+ * Owner-only, and here that weighs more than for the cards beside it: the answer is
+ * derived from the CONTENT of `script.js` and `index.html`, down to the URLs written in
+ * them. That is author code, not a reading surface.
  */
 router.get('/:id/bindings', requireAuth, async (req, res) => {
     try {

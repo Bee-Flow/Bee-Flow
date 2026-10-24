@@ -24,47 +24,45 @@ export interface AgentCardProps<T extends AgentListRow> {
 }
 
 /**
- * Eén agent in het overzicht (Bee Flow Builder-herontwerp, sep 2026;
- * Agents-artboard 1a, A5 deel C).
+ * One agent in the overview (Bee Flow Builder redesign, Sept 2026;
+ * Agents artboard 1a, A5 part C).
  *
- * Een kaart en geen tekstregel, omdat er vier vragen aan deze lijst gesteld
- * worden en er drie van open moesten worden geklikt: hoe heet hij, draait hij
- * al, wie mag hem zien, en waar praat hij eigenlijk uit. De kaart beantwoordt
- * ze in die volgorde — naam, statuspil, metaregel, drie pillen.
+ * A card and not a text line, because four questions are put to this list and three
+ * of them would have to be clicked open: what is he called, is he already running,
+ * who may see him, and where does he actually talk from. The card answers them in
+ * that order — name, status pill, meta line, three pills.
  *
- * ── TWEE PUBLICATIE-WERKWOORDEN ─────────────────────────────────────
- * De statuspil zegt LIVE/DRAFT op `published_version` (welke config de
- * runtime serveert). De metaregel zegt met wie hij gedeeld is op
- * `is_published` + `shared_groups` (het publiek). Dat zijn twee verschillende
- * vragen die allebei "publiceren" heten; ze staan naast elkaar om precies die
- * reden, met hun eigen woorden — `shared/VisibilityCapsule.audienceLabel` voor
- * het publiek, `StatusActionPill` voor de status.
+ * ── TWO PUBLICATION VERBS ──────────────────────────────────────────
+ * The status pill says LIVE/DRAFT on `published_version` (which config the runtime
+ * serves). The meta line says with whom he is shared on `is_published` +
+ * `shared_groups` (the audience). Those are two different questions that both
+ * get called "publishing"; they stand next to each other for exactly that reason,
+ * with their own words — `shared/VisibilityCapsule.audienceLabel` for the audience,
+ * `StatusActionPill` for the status.
  *
- * ── ÉÉN WAARSCHUWING PER KAART, EN DIE KOMT VAN DE SERVER ───────────
- * Hier stond een gestippelde `--error`-rij "No knowledge base", uitgerekend uit
- * de eigen kennis-nul. Dat was een tweede lezing van een regel die op de server
- * staat (core/agentRuntime/agentGrounding.js), en hij sprak hem tegen: een
- * config die de server als ONLEESBAAR boekt — bewust geen beschuldiging —
- * kreeg hier rood alarm. Bovendien stond hij op dezelfde kaart als de voetregel
- * die hetzelfde zegt, dus een nieuwe agent kreeg twee waarschuwingen voor iets
- * wat nog gebouwd wordt.
+ * ── ONE WARNING PER CARD, AND THAT COMES FROM THE SERVER ─────────────
+ * There used to be a dotted `--error` row "No knowledge base", worked out from the
+ * card's own knowledge count of zero. That was a second reading of a rule that lives
+ * on the server (core/agentRuntime/agentGrounding.js), and it contradicted it: a
+ * config that the server books as UNREADABLE — deliberately not an accusation — got a
+ * red alarm here. On top of that it sat on the same card as the footer line that says
+ * the same thing, so a new agent got two warnings for something that is still being
+ * built.
  *
- * Nu: de kennis-PIL toont de gemeten nul (een telling, geen bewering), en de
- * voetregel (`AgentCardFooter`) doet de bewering — uitsluitend op het woord dat
- * de server stuurde, en alleen binnen de afbakening die `cardFooter.ts`
- * opschrijft.
+ * Now: the knowledge PILL shows the measured zero (a count, not a claim), and the
+ * footer line (`AgentCardFooter`) makes the claim — solely on the word the server sent,
+ * and only within the boundary that `cardFooter.ts` describes.
  *
- * ── DE TOOLS-PIL IS EEN ONDERGRENS, EN ZEGT DAT ─────────────────────
- * Een agent zonder `config.tools.automations` is NIET gecureerd, en de runtime
- * biedt hem élke agent-callable automatisering van de vrager aan plus elke in de chat
- * gepubliceerde Step (core/integrations/integrationTools.js). "0 tools" was
- * daar het omgekeerde van de waarheid; `counts.toolsAtLeast` maakt er "at least
- * n tools" van.
+ * ── THE TOOLS PILL IS A LOWER BOUND, AND SAYS SO ─────────────────────
+ * An agent without `config.tools.automations` is NOT curated, and the runtime offers
+ * it EVERY agent-callable automation of the asker plus every Step published in the
+ * chat (core/integrations/integrationTools.js). "0 tools" was the opposite of the
+ * truth there; `counts.toolsAtLeast` turns it into "at least n tools".
  *
- * ── ÉÉN KAART, TWEE KNOPPEN, GEEN GENESTE KNOP ──────────────────────
- * De kaart zelf is één `<button>` (openen). De prullenbak is een BROERTJE dat
- * er absoluut overheen ligt: een knop in een knop is een toetsenbordval en
- * een raadsel voor de schermlezer.
+ * ── ONE CARD, TWO BUTTONS, NO NESTED BUTTON ──────────────────────────
+ * The card itself is one `<button>` (open). The bin is a SIBLING that lies absolutely
+ * over it: a button inside a button is a keyboard trap and a riddle for the screen
+ * reader.
  */
 export default function AgentCard<T extends AgentListRow>({
     t,
@@ -83,19 +81,19 @@ export default function AgentCard<T extends AgentListRow>({
     const version = publishedVersionOf(agent);
     const live = version > 0;
     const { tile, glyph } = kindTileStyle('agent', { size: 36, pct: 16 });
-    // Alleen een EXPLICIETE `can_edit: true` geeft een prullenbak — zie EditBadge.
+    // Only an EXPLICIT `can_edit: true` gives a bin — see EditBadge.
     const showDelete = !!onDelete && verdict === EDIT.YES;
     const avatar = pickAgentAvatar(agent) || DEFAULT_AGENT_EMOJI;
 
-    // Het publiek in de woorden die de capsule ook in de editor gebruikt.
+    // The audience in the words the capsule also uses in the editor.
     const mode = audienceModeOf({ isPublished: !!agent?.is_published, sharedGroups: agent?.shared_groups });
     const audience = audienceLabel(t, mode, agent?.shared_groups, makeGroupNamer({ orgGroups }));
 
-    // De metaregel, als lijst — een ontbrekend deel laat de scheidingstekens
-    // niet achter ("Sales ·  · organisation").
+    // The meta line, as a list — a missing part does not leave the separators behind
+    // ("Sales ·  · organisation").
     const meta: string[] = [];
     if (cat.state === CATEGORY.NAMED) meta.push(cat.name);
-    // Een categorie die we niet konden thuisbrengen is niet "geen categorie".
+    // A category we could not place is not "no category".
     else if (cat.state === CATEGORY.UNKNOWN) meta.push(t('agent_studio.card.category_unknown', 'Category unavailable'));
     if (live) meta.push(tx(t, 'agent_studio.card.version', 'v{version}', { version }));
     meta.push(audience);
@@ -151,16 +149,16 @@ export default function AgentCard<T extends AgentListRow>({
                         <CountPill n={counts.knowledge} label={knowledgeLabel(tf, counts.knowledge)} />
                         <CountPill n={counts.skills} label={skillsLabel(tf, counts.skills)} />
                         {counts.tools === null ? (
-                            // De sectie `config.tools` staat er wél maar is niet
-                            // te lezen. Geen getal dus, en geen nul.
+                            // The `config.tools` section IS there but cannot be read.
+                            // No number then, and no zero.
                             <CountPill n={null} label={t('agent_studio.card.tools_unreadable', 'Tools could not be read')} />
                         ) : (
                             <CountPill n={counts.tools} label={toolsLabel(tf, counts.tools, counts.toolsAtLeast)} />
                         )}
                     </span>
                 ) : (
-                    // Geen drie nullen: nul is een bewering, en die is hier niet
-                    // gedaan — de config kon niet gelezen worden.
+                    // Not three zeros: zero is a claim, and that has not been made here —
+                    // the config could not be read.
                     <span className="text-xs text-[var(--text-tertiary)]" data-testid="agent-card-counts-unreadable">
                         {t('agent_studio.card.counts_unreadable', 'Configuration could not be read')}
                     </span>
@@ -169,8 +167,8 @@ export default function AgentCard<T extends AgentListRow>({
                 <AgentCardFooter agent={agent} viewerId={viewerId} />
             </button>
 
-            {/* `can_edit !== false` was fail-open: `/agents/system` zet het veld
-                niet, en zo'n rij hield de knop. Onbekend versmalt. */}
+            {/* `can_edit !== false` was fail-open: `/agents/system` does not set the field,
+                and such a row kept the button. Unknown narrows. */}
             {showDelete && (
                 <button
                     type="button"
@@ -187,10 +185,10 @@ export default function AgentCard<T extends AgentListRow>({
 }
 
 /**
- * t() met de placeholders er ALTIJD ingevuld. Dezelfde reden en dezelfde vorm
- * als `tx` in shared/VisibilityCapsule.jsx en builderSplit/AgentEditorHeader.jsx:
- * de echte vertaler interpoleert zelf, een meegegeven `t` (tests, embeds) niet,
- * en een pil die letterlijk "{count} tools" zegt is erger dan geen pil.
+ * t() with the placeholders ALWAYS filled in. The same reason and the same shape as
+ * `tx` in shared/VisibilityCapsule.jsx and builderSplit/AgentEditorHeader.jsx:
+ * the real translator interpolates by itself, a passed-in `t` (tests, embeds) does
+ * not, and a pill that literally says "{count} tools" is worse than no pill.
  */
 function tx(t: TranslateFn, key: string, fallback: string, params?: Record<string, unknown>) {
     let value = t(key, fallback, params);
@@ -202,25 +200,23 @@ function tx(t: TranslateFn, key: string, fallback: string, params?: Record<strin
 }
 
 /**
- * "1 knowledge base" / "3 knowledge bases" — enkelvoud en meervoud zijn twee
- * SLEUTELS, nooit een "(s)" achter een woord.
+ * "1 knowledge base" / "3 knowledge bases" — singular and plural are two KEYS,
+ * never a "(s)" after a word.
  *
- * DRIE FUNCTIES MET LETTERLIJKE SLEUTELS, geen `{key, one, many}`-tabel. Die
- * tabel bereikte `t()` als `pluralKey(spec.key, count)` — een variabele — en
- * dat is precies de klasse "sleutel reist als data" waar de i18n-guard blind
- * voor is: hij meldde uit dit bestand alleen `agent_studio.card.version`, dus
- * de zes plural-sleutels konden voor altijd Engels blijven zonder dat er een
- * test rood werd. Het buurbestand AgentCardFooter.jsx roept `nOf` met literals
- * aan en wordt daar wél volledig voor gemeld.
+ * THREE FUNCTIONS WITH LITERAL KEYS, not a `{key, one, many}` table. That table reached
+ * `t()` as `pluralKey(spec.key, count)` — a variable — and that is precisely the class
+ * "a key travels as data" that the i18n guard is blind to: from this file it reported
+ * only `agent_studio.card.version`, so the six plural keys could stay English forever
+ * without any test turning red. The neighbouring file AgentCardFooter.jsx calls `nOf`
+ * with literals and is fully reported there.
  */
 /**
- * `t` met de placeholders er ALTIJD ingevuld, in de vorm die `nOf` verwacht.
+ * `t` with the placeholders ALWAYS filled in, in the shape that `nOf` expects.
  *
- * Hij wordt HIER gemaakt en niet in de aanroep: de i18n-guard leest een
- * helper-aanroep met `\\b(nOf|tx|…)\\(([^()]*)\\)`, en dat patroon breekt op de
- * eerste haak binnen de aanroep. Een `nOf(filling(t), …)` of een
- * `nOf(t, 'key', Number(n) || 0, …)` zou de hele aanroep onzichtbaar maken —
- * precies het gat dat de `{key, one, many}`-tabel hiervoor ook had.
+ * It is made HERE and not at the call site: the i18n guard reads a helper call with
+ * `\\b(nOf|tx|…)\\(([^()]*)\\)`, and that pattern breaks at the first bracket inside
+ * the call. An `nOf(filling(t), …)` or an `nOf(t, 'key', Number(n) || 0, …)` would make
+ * the whole call invisible — precisely the gap that the `{key, one, many}` table had too.
  */
 function filling(t: TranslateFn) {
     return (key: string, fallback: string, params?: Record<string, unknown>) => tx(t, key, fallback, params);
@@ -237,9 +233,7 @@ function skillsLabel(tf: TranslateFn, n: number | null) {
 }
 
 /**
- * De tools-pil. `atLeast` betekent dat het getal een ONDERGRENS is: deze agent
- * heeft geen automation-curatie, dus de runtime legt er élke agent-callable
- * automatisering van de vrager bovenop plus elke gepubliceerde Step.
+ * The tools pill. `atLeast` means that the number is a LOWER BOUND: this agent has no automation curation, so the runtime lays every agent-callable automation of the asker on top of it, plus every published Step.
  */
 function toolsLabel(tf: TranslateFn, n: number | null, atLeast: boolean) {
     const count = Number(n) || 0;
@@ -248,7 +242,7 @@ function toolsLabel(tf: TranslateFn, n: number | null, atLeast: boolean) {
         : nOf(tf, 'agent_studio.card.n_tools', count, '{count} tool', '{count} tools');
 }
 
-/** Eén telpil. Nul blijft staan — dat is een gemeten nul, geen ontbrekende. */
+/** One count pill. Zero stays — that is a measured zero, not a missing one. */
 function CountPill({ n, label }: { n: number | null; label: string }) {
     const empty = Number(n) === 0;
     return (
@@ -268,10 +262,8 @@ function CountPill({ n, label }: { n: number | null; label: string }) {
 }
 
 /**
- * BFSF-271. `can_edit === false` als enige test was fail-open: `/agents/system`
- * zet het veld niet, en zo'n rij hield stilzwijgend zijn bewerk-affordances.
- * Onbekend versmalt én zegt dat het onbekend is — een "View only" over een rij
- * waarvan we het antwoord niet hebben zou een bewering zijn.
+ * BFSF-271. `can_edit === false` as the only test was fail-open: `/agents/system` does not set the field, and such a row silently kept its edit affordances.
+ * Unknown narrows AND says that it is unknown — a "View only" over a row whose answer we do not have would be a claim.
  */
 function EditBadge({ t, verdict }: { t: TranslateFn; verdict: string }) {
     if (verdict === EDIT.YES) return null;

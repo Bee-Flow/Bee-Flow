@@ -5,12 +5,11 @@ import { INTEGRATION_CATALOG } from './integrations';
 import { INTEGRATION_CATALOG as CANONICAL } from '../../../config/integrationCatalog';
 
 /**
- * De app-catalogus van de agent-oppervlakken is AFGELEID.
+ * The app catalogue of the agent surfaces is DERIVED.
  *
- * Deze suite bestaat om de vork niet terug te laten komen: hij faalt zodra
- * iemand hier weer een eigen lijst begint, en hij faalt op de manier waarop de
- * vorige vork stil bleef — een app die aan de ene kant bestaat en aan de
- * andere niet.
+ * This suite exists to keep the fork from coming back: it fails as soon as someone
+ * starts a separate list here again, and it fails in the way the previous fork
+ * stayed silent — an app that exists on one side and not on the other.
  */
 
 describe('de agent-catalogus is de canonieke catalogus', () => {

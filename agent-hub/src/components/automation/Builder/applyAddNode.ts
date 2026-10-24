@@ -245,15 +245,13 @@ export function buildStepFromPayload(payload: import('./applyAddNode.types').Add
         baseStep.message = 'Halted';
         baseStep.label = payload.label || 'Stop and error';
     } else if (payload.kind === 'return_to_app') {
-        // Dezelfde C20-regel als de tabel- en KB-stappen: NIETS gokken. Er is
-        // geen eerlijke default voor "welk scherm", en een gegokt scherm stuurt
-        // een bezoeker straks ergens heen waar hij niet hoort te zijn. Alleen
-        // de terugvalkeuze wordt gezet, want die HEEFT een eerlijke default:
-        // 'stay' laat de bezoeker staan waar hij staat.
+        // The same C20 rule as the table and KB steps: guess NOTHING. There is no honest default for
+        // "which screen", and a guessed screen sends a visitor somewhere he has no business being.
+        // Only the fallback choice is set, because THAT has an honest default: 'stay' leaves the
+        // visitor where he is.
         //
-        // Een verse drop draagt dus `return_to_app.empty` — een
-        // completeness-code, dus hij slaat amber op en blokkeert pas bij
-        // activeren.
+        // A fresh drop therefore carries `return_to_app.empty`, a completeness code, so it saves
+        // as amber and blocks only at activation.
         baseStep.navigateTo = null;
         baseStep.toast = null;
         baseStep.refresh = null;

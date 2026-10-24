@@ -3,48 +3,40 @@
 const log = require('../../telemetry/log');
 
 /**
- * ── HET ID IS EEN BEWERING OVER EEN VERGADERING (M4) ────────────────
+ * ── THE ID IS A CLAIM ABOUT A MEETING (M4) ──────────────────────────
  *
- * `config.metadata.transcriptionId` op een `text`-bron laat die regel LANDEN
- * op de tijdlijn van die vergadering: de balk onder de tagrij, het
- * Gebruikt-door-tabblad en "Uit dit transcript gehaald" lezen hem alle drie
- * terug, en de verwijderpoort van de notitie telt hem mee
- * (core/meetingNotes/meetingUsage.js `scanKb`).
+ * `config.metadata.transcriptionId` on a `text` source makes that line LAND on the timeline of that meeting:
+ * the bar below the tag row, the Used-by tab and "Extracted from this transcript" all three read it back,
+ * and the delete gate of the note counts it (core/meetingNotes/meetingUsage.js `scanKb`).
  *
- * Beheerdersrecht op de KENNISBANK is daar geen antwoord op — op je eigen
- * kennisbank ben je altijd beheerder. Zonder deze poort kan dus iedereen een
- * id verzinnen (of meekopiëren) en een onware, niet te weerleggen en niet te
- * verwijderen regel op de vergadering van een ander plakken.
+ * Administrator rights on the KNOWLEDGE BASE are no answer to that: on your own knowledge base you are
+ * always an administrator. Without this gate anyone can invent an id (or copy one) and paste an untrue,
+ * irrefutable and undeletable line onto someone else's meeting.
  *
- * ── ÉÉN POORT, TWEE SCHRIJVERS ──────────────────────────────────────
- * De poort stond in `POST /api/kb/:id/sources`, en dat was precies één van de
- * twee wegen waarlangs zo'n bewering ontstaat: `POST /api/kb/:id/duplicate
- * ?withSources=1` kopieert elke niet-upload bron letterlijk — inclusief de
- * metadata — naar een nieuwe kennisbank van de aanroeper, en kwam er niet
- * langs. Vandaar dit bestand: de vraag hoort één keer te bestaan, buiten de
- * routes, zodat een derde schrijver hem niet opnieuw hoeft te bedenken.
+ * ── ONE GATE, TWO WRITERS ───────────────────────────────────────────
+ * The gate stood in `POST /api/kb/:id/sources`, and that was precisely one of the two ways in which such a
+ * claim comes about: `POST /api/kb/:id/duplicate?withSources=1` copies every non-upload source literally,
+ * including the metadata, to a new knowledge base of the caller, and did not pass it. Hence this file: the
+ * question should exist once, outside the routes, so that a third writer does not have to think it up again.
  *
- * ── HIJ DRAAIT ALS DE SCHRIJVER, EN ONBEKEND VERSMALT ───────────────
- * De context komt van `askerContext` (de MAKER), niet van de eigenaar van de
- * kennisbank, en BEWUST zonder `isSuperAdmin`: die vlag laat
- * `canReadTranscription` elk id doorlaten, en dan controleert de poort niets
- * meer. Een vergadering die de schrijver niet mag zien geeft exact hetzelfde
- * antwoord als een vergadering die niet bestaat — anders is deze route een
- * orakel voor welke vergadering-ids bestaan. Een probe die omvalt is GEEN
- * toestemming.
+ * ── IT RUNS AS THE WRITER, AND UNKNOWN NARROWS ──────────────────────
+ * The context comes from `askerContext` (the MAKER), not from the owner of the knowledge base, and
+ * DELIBERATELY without `isSuperAdmin`: that flag lets `canReadTranscription` pass any id, and then the gate
+ * checks nothing any more. A meeting that the writer may not see gives exactly the same answer as a meeting
+ * that does not exist, otherwise this route is an oracle for which meeting ids exist. A probe that fails is
+ * NOT permission.
  */
 
 /**
- * Mag `userId` een regel op de tijdlijn van deze vergadering plakken?
+ * May `userId` paste a line onto the timeline of this meeting?
  *
- * @param {string} transcriptionId  het id uit `config.metadata`
- * @param {string} userId           de SCHRIJVER, niet de eigenaar van de KB
+ * @param {string} transcriptionId  the id from `config.metadata`
+ * @param {string} userId           the WRITER, not the owner of the KB
  * @returns {Promise<{ok: true} | {ok: false, status: number, code: string, error: string}>}
- *   `ok:false` met status 400 (`transcription_not_visible`) als hij hem niet
- *   mag zien, of 502 (`transcription_probe_failed`) als we het niet kónden
- *   vaststellen. Twee codes, want "nee" en "ik weet het niet" zijn twee
- *   verschillende zinnen — alleen bij de eerste weet de schrijver dat hij het
- *   niet mag, bij de tweede kan hij het straks opnieuw proberen.
+ *   `ok:false` with status 400 (`transcription_not_visible`) if he may not see it, or 502
+ *   (`transcription_probe_failed`) if we could NOT establish it. Two codes, because "no" and
+ *   "I don't know" are two different sentences: only with the first does the writer know that he
+ *   may not, and with the second he can try again later.
  */
 async function checkTranscriptOriginVisible(transcriptionId, userId) {
     if (!transcriptionId) return { ok: true };   // geen bewering, niets te controleren
@@ -77,18 +69,17 @@ async function checkTranscriptOriginVisible(transcriptionId, userId) {
 }
 
 /**
- * Dezelfde vraag, voor een pad dat niet mag falen: geef de config terug
- * ZONDER de bewering zodra die niet houdbaar is.
+ * The same question, for a path that must not fail: return the config WITHOUT the claim as soon as that
+ * is not tenable.
  *
- * Het duplicaat-pad is per bron best-effort — de kopie bestaat al tegen de
- * tijd dat dit draait — dus daar is 'weigeren' geen optie en 'de bewering
- * laten vallen' het juiste antwoord: de bron zelf is gewone inhoud van een
- * kennisbank die de aanroeper mag lezen, alleen de claim op andermans
- * vergadering is dat niet. Een probe die omvalt laat de claim óók vallen.
+ * The duplicate path is best-effort per source (the copy already exists by the time this runs), so there
+ * 'refuse' is no option, and 'drop the claim' is the right answer: the source itself is ordinary content
+ * of a knowledge base that the caller may read; only the claim on someone else's meeting is not. A probe
+ * that fails drops the claim too.
  *
- * @param {any|null|undefined} config  de config van de bron die gekopieerd wordt
- * @param {string} userId                 de SCHRIJVER van de kopie
- * @returns {Promise<any>} een config die veilig geschreven kan worden
+ * @param {any|null|undefined} config  the config of the source being copied
+ * @param {string} userId                 the WRITER of the copy
+ * @returns {Promise<any>} a config that can safely be written
  */
 async function stripUnauthorizedTranscriptOrigin(config, userId) {
     const cfg = config && typeof config === 'object' && !Array.isArray(config) ? config : {};
@@ -99,9 +90,9 @@ async function stripUnauthorizedTranscriptOrigin(config, userId) {
 
     const verdict = await checkTranscriptOriginVisible(claimed.trim(), userId);
     if (verdict.ok) return cfg;
-    // Allow-list, geen delete-keys: bouw de kopie op uit wat er mag blijven.
-    // Zo rijdt een veld dat volgend jaar aan `metadata` wordt toegevoegd niet
-    // vanzelf mee als deze regel ooit uitsluitend een sleutel zou verwijderen.
+    // Allow-list, not delete-keys: build the copy from what may remain.
+    // That way a field that is added to `metadata` next year does not travel along by itself, as it would
+    // if this rule ever only removed a key.
     const { metadata, ...rest } = cfg;
     log.warn(`[KB] Duplicate: transcript origin ${claimed} dropped — the copier may not see that meeting (${/** @type {{code: string}} */ (verdict).code})`);
     return rest;

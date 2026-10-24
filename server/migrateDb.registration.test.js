@@ -1,19 +1,17 @@
 'use strict';
 
 /**
- * Elke store die DDL bezit, staat in de migratieladder — afgedwongen.
+ * Every store that owns DDL is in the migration ladder — enforced.
  *
- * De sweep die deze test institutionaliseert vond 34 stores met CREATE TABLE
- * die `npm run db:migrate` nooit heeft gekend: de hele RAG-familie
- * (knowledge_bases, kb_sources), skills, webpagina's, uitnodigingen, de
- * complete compliance-hub. Niemand zag het, want de oude runner meldde
- * hoe dan ook succes. Vanaf nu is een nieuwe store met een CREATE TABLE die
- * niet in STORE_MODULES staat een RODE TEST met een aanwijzing, geen stil
- * ontbrekende tabel op de eerstvolgende verse installatie.
+ * The sweep that this test institutionalises found 34 stores with CREATE TABLE that
+ * `npm run db:migrate` had never known: the whole RAG family (knowledge_bases, kb_sources), skills,
+ * webpages, invitations, the complete compliance hub. Nobody saw it, because the old runner reported
+ * success regardless. From now on a new store with a CREATE TABLE that is not in STORE_MODULES is a
+ * RED TEST with a hint, not a silently missing table on the next fresh installation.
  *
- * Statisch en DB-vrij met opzet: registratie is een tekstueel feit (staat de
- * naam in de lijst), en de gedragskant — draait de ladder echt, is hij
- * idempotent — bewijst migrateDb.integration.test.js tegen echte Postgres.
+ * Static and DB-free on purpose: registration is a textual fact (is the name in the list), and the
+ * behavioural side — does the ladder really run, is it idempotent — is proven by
+ * migrateDb.integration.test.js against real Postgres.
  *
  * Run: cd server && node --test --test-force-exit migrateDb.registration.test.js
  */
@@ -24,13 +22,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 /**
- * Bewuste uitzonderingen, elk met de reden. Een entry hier is een claim die
- * een reviewer kan controleren — geen ontsnappingsluik zonder verhaal.
+ * Deliberate exceptions, each with the reason. An entry here is a claim that a
+ * reviewer can check — not an escape hatch without a story.
  */
 const EXEMPT = new Map([
-    // Per-tenant engines: hun CREATE TABLE draait per app/tenant op het moment
-    // dat die tenant ontstaat, in een eigen schema — er bestaat geen globale
-    // boot-DDL om hier af te wachten.
+    // Per-tenant engines: their CREATE TABLE runs per app/tenant at the moment that
+    // tenant comes into being, in a schema of its own — there is no global boot DDL to await here.
     ['stores/lib/pgAppEngine.js', 'per-tenant engine — DDL per app-schema, niet bij boot'],
     ['stores/lib/pgAppEnginePartsTx.js', 'per-tenant engine (migration part) — DDL per app-schema, niet bij boot'],
     // Het schema van projectChatStore, eruit gesplitst; de store zelf staat in de ladder en draait het bij boot.
@@ -55,25 +52,24 @@ const EXEMPT = new Map([
     // initDB, en de integratietest bewijst dat automations/automation_runs
     // na de ladder bestaan.
     ['stores/automationStore/core.js', 'gedekt via de automationStore-facade'],
-    // Zelfde vorm: supportStore.js is sinds de opsplitsing een facade die
-    // schema.js' initDB doorgeeft, en STORE_MODULES noemt die facade — de
-    // ladder draait dit schema dus wel degelijk.
+    // Same form: supportStore.js has, since the split, been a facade that passes on
+    // schema.js' initDB, and STORE_MODULES names that facade — so the ladder does run
+    // this schema.
     ['stores/supportStore/schema.js', 'gedekt via de supportStore-facade'],
-    // Idem: datatableStore.js is sinds de opsplitsing een facade die schema.js'
-    // initDB doorgeeft, en STORE_MODULES noemt die facade — de ladder draait
-    // dus wel degelijk de vier tabellen die dit bestand bezit.
+    // Idem: datatableStore.js has, since the split, been a facade that passes on schema.js'
+    // initDB, and STORE_MODULES names that facade — so the ladder does run
+    // the four tables that this file owns.
     ['stores/datatableStore/schema.js', 'gedekt via de datatableStore-facade'],
     // Idem: blueprintStore.js is sinds de opsplitsing (golf 1) een facade die
     // blueprint/schema.js' initDB doorgeeft.
     ['stores/blueprint/schema.js', 'gedekt via de blueprintStore-facade'],
     // Same for the skill store: skillStore.js re-exports stores/skill/schema.js's initDB.
     ['stores/skill/schema.js', 'covered via the skillStore facade'],
-    // Idem voor de stores die in de tweede splitsgolf een facade werden: elke
-    // facade hieronder staat in STORE_MODULES en exporteert de initDB van zijn
-    // schema-module (makeStoreInit of rechtstreeks doorgegeven), dus de ladder
-    // draait deze DDL nog steeds via die facade, in dezelfde volgorde.
+    // Idem for the stores that became a facade in the second split wave: every
+    // facade below is in STORE_MODULES and exports the initDB of its schema module (makeStoreInit or
+    // passed on directly), so the ladder still runs this DDL via that facade, in the same order.
     ['stores/compliance/schema.js', 'gedekt via de complianceStore-facade'],
-    // FINDING_DDL wordt door compliance/schema.js uitgevoerd (createSchema), niet hier.
+    // FINDING_DDL is executed by compliance/schema.js (createSchema), not here.
     ['stores/compliance/findings.js', 'bezit FINDING_DDL, uitgevoerd door compliance/schema.js — gedekt via de complianceStore-facade'],
     ['stores/compliance/settingsFields.js', 'noemt CREATE TABLE alleen in commentaar — het schema staat in compliance/schema.js'],
     ['stores/kb/schema.js', 'gedekt via de knowledgeBases-facade'],
@@ -82,22 +78,22 @@ const EXEMPT = new Map([
     ['stores/project/schema.js', 'gedekt via de projectStore-facade'],
     ['stores/studioApp/schema.js', 'gedekt via de studioAppStore-facade'],
     ['stores/studioAppData/schema.js', 'gedekt via de studioAppDataStore-facade'],
-    // Classificeert dataModel-migratiestatements: "CREATE TABLE" staat hier in
-    // een regex en in commentaar, niet in een eigen schema.
+    // Classifies dataModel migration statements: "CREATE TABLE" appears here in
+    // a regex and in comments, not in a schema of its own.
     ['stores/studioAppData/dataModel.js', 'herkent CREATE TABLE alleen in een regex — het schema staat in studioAppData/schema.js'],
     ['stores/transcription/schema.js', 'gedekt via de transcriptionStore-facade'],
     ['stores/usage/schema.js', 'gedekt via de usageStore-facade'],
-    // Zelfde module, geen eigen schema: "CREATE TABLE" staat hier alleen in de
-    // documentatie van createDatatable/deleteDatatable (de fysieke DDL wordt
-    // door de aanroeper geïnjecteerd); de vier tabellen zelf staan in
-    // datatableStore/schema.js hierboven.
+    // Same module, no schema of its own: "CREATE TABLE" appears here only in the
+    // documentation of createDatatable/deleteDatatable (the physical DDL is
+    // injected by the caller); the four tables themselves are in
+    // datatableStore/schema.js above.
     ['stores/datatableStore/datatables.js', 'noemt CREATE TABLE alleen in commentaar — het schema staat in datatableStore/schema.js'],
-    // DDL-helper (U5): bezit zelf geen schema — de statements komen van de
-    // aanroepende store, die zelf geregistreerd is; "CREATE TABLE" staat er
-    // alleen in de documentatie van db.exec' substring-queue.
+    // DDL helper (U5): owns no schema itself — the statements come from the calling
+    // store, which is itself registered; "CREATE TABLE" appears there only in the
+    // documentation of db.exec's substring queue.
     ['stores/lib/_ddl.js', 'helper zonder eigen schema — draait DDL namens geregistreerde stores'],
-    // Idem: de init-memo bezit geen tabel; "CREATE TABLE" staat alleen in de
-    // uitleg van wat de schemaFn van een geregistreerde store doet.
+    // Idem: the init memo owns no table; "CREATE TABLE" appears only in the
+    // explanation of what the schemaFn of a registered store does.
     ['stores/lib/storeInit.js', 'memo zonder eigen schema — memoïseert de init van geregistreerde stores'],
 ]);
 
@@ -139,9 +135,9 @@ test('elke vrijstelling wijst nog naar een bestaand bestand', () => {
 });
 
 test('elke geregistreerde store bestaat en exporteert een awaitbare initDB', () => {
-    // Statisch (geen require — dat zou heel de fleet laden): het bestand
-    // bestaat, en het noemt initDB in zijn exports of definieert hem via
-    // makeStoreInit. De echte await-garantie levert de integratietest.
+    // Static (no require — that would load the whole fleet): the file
+    // exists, and it names initDB in its exports or defines it via
+    // makeStoreInit. The real await guarantee is supplied by the integration test.
     const src = fs.readFileSync(path.join(__dirname, 'storeModules.js'), 'utf8');
     const files = [...src.matchAll(/file:\s*'\.\/(stores\/[^']+)'/g)].map((m) => `${m[1]}.js`);
     for (const f of files) {

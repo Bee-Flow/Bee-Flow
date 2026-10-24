@@ -1,21 +1,21 @@
 /**
- * De zod-woordenschat waaruit de verzoekschema's van deze router zijn gebouwd.
+ * The zod vocabulary from which the request schemas of this router are built.
  *
- * Elke body hieronder is `.strict()`. Op een router die vergaderingen OPNEEMT
- * is dat geen vormkwestie: twee van de stille terugvallen die hij bevatte
- * zetten een opname AAN die iemand net had uitgezet, en één publiceerde een
- * notitie aan de hele organisatie terwijl er één groep gekozen was.
+ * Every body below is `.strict()`. On a router that RECORDS meetings that is not a
+ * question of form: two of the silent fallbacks it contained switched a recording
+ * ON that someone had just switched off, and one published a note to the whole
+ * organisation while only one group had been chosen.
  *
- * Drie vallen zitten hier één keer dicht zodat geen enkele route ze heropent:
+ * Three traps are closed here once, so that no single route reopens them:
  *
- *   • `worded()` — zonder `required_error` antwoordt zod op een ontbrekend
- *     veld met het kale woord "Required", en dat mag een beller nooit lezen.
- *   • enums — `invalid_type_error` dekt alleen een verkeerd TYPE, nooit een
- *     verkeerde WAARDE. Elke enum hier draagt daarom een `errorMap`; zie de
- *     kop van core/http/validate.js.
- *   • `flag()` — het "ja" op de query string. Een URL draagt geen booleans,
- *     dus beide spellingen die een client echt verstuurt tellen, en al het
- *     andere is een 400 in plaats van stilzwijgend "nee".
+ *   • `worded()` — without `required_error` zod answers a missing field with the
+ *     bare word "Required", and a caller must never read that.
+ *   • enums — `invalid_type_error` only covers a wrong TYPE, never a wrong VALUE.
+ *     Every enum here therefore carries an `errorMap`; see the header of
+ *     core/http/validate.js.
+ *   • `flag()` — the "yes" in the query string. A URL carries no booleans, so both
+ *     spellings that a client really sends count, and everything else is a 400
+ *     instead of silently "no".
  */
 
 'use strict';
@@ -23,7 +23,7 @@
 const { z, typeError } = require('../../utils/zod');
 const { worded, choice } = require('../../core/http/schemaParts');
 
-/** Een body die óók geen body accepteert: Express 5 laat `req.body` dan undefined. */
+/** A body that also accepts no body: Express 5 then leaves `req.body` undefined. */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape).strict(),
@@ -43,13 +43,12 @@ const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} i
 const idList = (message) => z.array(worded(message).trim().min(1, message), { error: message });
 
 /**
- * Een échte boolean, nooit een string.
+ * A real boolean, never a string.
  *
- * Twee routes schreven `record: !!record` rechtstreeks in de opnamevoorkeur
- * van een vergadering. `"false"` is waar, dus wie de opname UIT zette met een
- * tekst in plaats van een boolean zette hem AAN — en `{}` of een typefout
- * zette hem uit. Op deze router is dat het verschil tussen een vergadering
- * die wel of niet wordt opgenomen.
+ * Two routes wrote `record: !!record` directly into the recording preference of a
+ * meeting. `"false"` is true, so whoever switched recording OFF with a text instead
+ * of a boolean switched it ON — and `{}` or a typo switched it off. On this router
+ * that is the difference between a meeting that is recorded and one that is not.
  */
 const bool = (message) => z.boolean({ error: message });
 

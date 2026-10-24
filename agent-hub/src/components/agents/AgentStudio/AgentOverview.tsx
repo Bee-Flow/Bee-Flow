@@ -23,32 +23,19 @@ export interface AgentOverviewProps<T extends AgentListRow> {
     viewerId?: string | null;
 }
 
-/** Eén gedeelde lege lijst, zodat een ontbrekende bron geen nieuwe identiteit per render is. */
+/** One shared empty list, so that a missing source is not a new identity on every render. */
 const EMPTY = Object.freeze([]);
 
 /**
- * Het agentoverzicht: kop met teller, categoriechips, zoekveld, "New agent"
- * en een kaartraster van drie kolommen (Bee Flow Builder-herontwerp, sep 2026;
- * Agents-artboard 1a, A5 deel C).
+ * The agent overview: heading with count, category chips, search field, "New agent" and a card grid of three columns (Bee Flow Builder redesign, Sept 2026; Agents artboard 1a, A5 part C).
  *
- * Dit verving de 264px zijbalk met tekstregels. Een agent is geen regel in een
- * lijst maar een ding met een status, een publiek en een uitrusting, en die
- * vier vragen pasten er niet naast elkaar in.
+ * This replaced the 264px sidebar with text lines. An agent is not a line in a list but a thing with a status, an audience and an equipment, and those four questions did not fit beside each other.
  *
- * ── DE VIER TAKKEN STAAN IN ÉÉN aria-live-BLOK ──────────────────────
- * Het patroon van Studio/Datatables/DatatablesStudio.jsx:177-198: één
- * `<div aria-live="polite">` om het HELE wisselende blok, met daarbinnen
- * laden → fout → leeg → rijen als één ternary-ketting. De spinner is
- * `aria-hidden` met een `sr-only` label ernaast. En de "leeg"-zin wordt NIET
- * getekend als er een fout was: "geladen maar leeg" en "de lezing faalde"
- * mogen elkaar niet op het scherm tegenspreken.
+ * ── THE FOUR BRANCHES ARE IN ONE aria-live BLOCK ──────────────────
+ * The pattern of Studio/Datatables/DatatablesStudio.jsx:177-198: one `<div aria-live="polite">` around the WHOLE changing block, with loading → error → empty → rows inside it as one ternary chain. The spinner is `aria-hidden` with an `sr-only` label next to it. And the "empty" sentence is NOT drawn when there was an error: "loaded but empty" and "the read failed" must not contradict each other on screen.
  *
- * ── DE CHIPS FILTEREN, ZE BEWEREN NIETS ─────────────────────────────
- * Alleen categorieën die ook echt een agent hebben krijgen een chip, plus
- * "No category" als er een agent zonder is (categoryChipsOf). Een agent
- * waarvan de categorie niet gelezen kon worden komt in GEEN chip terecht —
- * hij hoort niet bij "no category" — en blijft zichtbaar zolang er geen chip
- * actief is; zijn kaart zegt zelf dat de categorie onbekend is.
+ * ── THE CHIPS FILTER, THEY CLAIM NOTHING ──────────────────────────
+ * Only categories that also actually have an agent get a chip, plus "No category" if there is an agent without one (categoryChipsOf). An agent whose category could not be read ends up in NO chip — it does not belong under "no category" — and stays visible as long as no chip is active; its card itself says that the category is unknown.
  */
 export default function AgentOverview<T extends AgentListRow>({
     t,
@@ -64,8 +51,7 @@ export default function AgentOverview<T extends AgentListRow>({
     viewerId = null,
 }: AgentOverviewProps<T>) {
     const bootstrap = useAgentEditorBootstrap();
-    // useMemo, niet een ternary in de body: een verse `[]` per render maakt elke
-    // memo hieronder elke render opnieuw ongeldig.
+    // useMemo, not a ternary in the body: a fresh `[]` per render would invalidate every memo below on each render.
     const categories = useMemo<readonly CategoryLike[]>(
         () => (Array.isArray(bootstrap?.categories) ? bootstrap.categories : EMPTY),
         [bootstrap?.categories],
@@ -78,10 +64,7 @@ export default function AgentOverview<T extends AgentListRow>({
     const rows = useMemo<readonly T[]>(() => (Array.isArray(agents) ? agents : EMPTY), [agents]);
     const chips = useMemo(() => categoryChipsOf(rows, categories), [rows, categories]);
 
-    // Een chip die uit de lijst verdwijnt (de laatste agent eruit gehaald, de
-    // categorielijst kwam pas later binnen) mag niet als onzichtbaar filter
-    // blijven hangen — dan staat er een leeg raster met geen enkele manier om
-    // te zien waarom.
+    // A chip that disappears from the list (the last agent of it removed, or the category list arriving later) may not linger as an invisible filter — then there is an empty grid with no way to see why.
     const effectiveCategoryId = categoryId && chips.some(c => c.id === categoryId) ? categoryId : null;
     const visible = useMemo(
         () => filterAgents(rows, { query, categoryId: effectiveCategoryId, categories }),
@@ -142,13 +125,7 @@ export default function AgentOverview<T extends AgentListRow>({
                         </div>
                     )}
 
-                    {/* ÉÉN live region, met rolloze kinderen. `role="status"` op de
-                        spinner en `role="alert"` op de fout waren twee live
-                        regions genest in deze: de schermlezer kondigde de fout
-                        dan twee keer aan (assertief én polite) en las bij elke
-                        aanslag in het zoekveld de hele gewijzigde inhoud
-                        opnieuw voor. Zelfde vorm als
-                        components/admin/Studio/Datatables/DatatablesStudio.jsx. */}
+                    {/* ONE live region, with roleless children. `role="status"` on the spinner and `role="alert"` on the error were two live regions nested in this: the screen reader then announced the error twice (assertive AND polite), and with every keystroke in the search field read the whole changed content out again. Same shape as components/admin/Studio/Datatables/DatatablesStudio.jsx. */}
                     <div aria-live="polite">
                         {loading ? (
                             <div className="flex items-center justify-center py-12 text-[var(--text-tertiary)]" aria-busy="true">
@@ -226,7 +203,7 @@ function SearchBox({ t, value, onChange }: { t: TranslateFn; value: string; onCh
     );
 }
 
-/** Eén filterchip. `aria-pressed` omdat het een schakelaar is, geen navigatie. */
+/** One filter chip. `aria-pressed` because it is a toggle, not navigation. */
 function Chip({ label, count, active, onClick }: { label: string | null | undefined; count: number | undefined; active: boolean; onClick: () => void }) {
     return (
         <button

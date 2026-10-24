@@ -1,34 +1,40 @@
 /**
- * App Studio action executor — RECORD WRITES (extracted verbatim from
- * actionExecutor.js): the writeRecord / writeRecordBatch choke point, the create_record / update_record /
- * delete_record steps and the best-effort data-version + row-count bookkeeping that follows every write.
+ * App Studio action executor: RECORD WRITES (extracted verbatim from
+ * actionExecutor.js). The writeRecord / writeRecordBatch choke point, the create_record /
+ * update_record / delete_record steps, and the best-effort data-version + row-count
+ * bookkeeping that follows every write.
  *
- * ── TWEE TABELSOORTEN, TWEE OPSLAGEN ────────────────────────────────
+ * ── TWO TABLE KINDS, TWO STORAGES ────────────────────────────────────
  *
- * Een modeltabel ZONDER `source` bezit haar eigen opslag: dat is `writeRecord` hieronder, met `studioAppDbStore`
- * (de eigenaar-gescoopte per-app-engine) en de per-app quota. Een modeltabel MÉT `source = {kind:'datatable',
- * datatableId, mode}` haalt haar rijen uit een Studio-datatabel, buiten de app: dan gaat het naar het
- * datatabel-pad onderaan dit bestand — `datatableDbStore` op de scope-sleutel en de datatabel-quota.
+ * A model table WITHOUT a `source` owns its own storage: that is `writeRecord` below, with
+ * `studioAppDbStore` (the owner-scoped per-app engine) and the per-app quota. A model table
+ * WITH `source = {kind:'datatable', datatableId, mode}` takes its rows from a Studio
+ * datatable outside the app: then it goes to the datatable path at the bottom of this file,
+ * `datatableDbStore` on the scope key and the datatable quota.
  *
- * DE SPLITSING STAAT OP HET KNOOPPUNT ZELF, niet alleen in de drie stap-handlers. Dat was hier eerst wél zo, en
- * het maakte van het knooppunt het tweede schrijfpad dat de kop hieronder juist uitsluit: `writeRecord` en
- * `writeRecordBatch` schreven een gekoppelde tabel onvoorwaardelijk naar de app-eigen opslag. Alles wat NIET via
- * create_record/update_record/delete_record binnenkomt liep daar langs — de record-API (POST/PATCH/DELETE
- * /:id/data/tables/:tableId/records), ai_extract writeTo, file_intake, dataset_query, de send_email-logrij, de
- * goedkeuringshaak, connectorSync en templateInstall — met drie gevolgen tegelijk: een `mode:'read'`-koppeling was
- * beschrijfbaar, de graad van de kijker werd nooit opgezocht, en de rij landde in een schaduwtabel die het LEESpad
- * (dataReadRunner.readPlan → de datatabel) nooit bevraagt. `success:true`, en de rij daarna nergens te zien.
+ * THE SPLIT SITS ON THE NODE ITSELF, not only in the three step handlers. That used to be
+ * the case here too, and it made the node the second write path that the header below
+ * precisely excludes: `writeRecord` and `writeRecordBatch` wrote a linked table
+ * unconditionally to the app's own storage. Everything that did NOT come in via
+ * create_record/update_record/delete_record went through there: the record API
+ * (POST/PATCH/DELETE /:id/data/tables/:tableId/records), ai_extract writeTo, file_intake,
+ * dataset_query, the send_email log row, the approval hook, connectorSync and
+ * templateInstall. With three consequences at once: a `mode:'read'` link was writable, the
+ * viewer's grade was never looked up, and the row landed in a shadow table that the READ path
+ * (dataReadRunner.readPlan → the datatable) never queries. `success:true`, and the row
+ * afterwards visible nowhere.
  *
- * Vandaar: `writeRecord`, `writeRecordBatch` en `eraseRecord` vertakken zelf, en de stap-handlers zijn niets meer
- * dan de bindingen eromheen. Eén tak per knooppunt, geen enkele aanroeper met een eigen kopie.
+ * Hence `writeRecord`, `writeRecordBatch` and `eraseRecord` branch themselves, and the step
+ * handlers are nothing more than the bindings around them. One branch per node, no single
+ * caller with its own copy.
  *
- * WIE ER MAG SCHRIJVEN wordt hier niet beslist. Die vraag staat in `appStudio/datatableSource.js`, samen met het
- * antwoord voor het LEESpad (dataReadRunner): één body, twee ingangen. Twee implementaties van "welke graad geldt
- * door deze deur" lopen uit elkaar, en de kopie die drift is altijd de kopie waar niemand naar kijkt. Wat hier
- * overblijft is compileren en uitvoeren.
+ * WHO MAY WRITE is not decided here. That question lives in `appStudio/datatableSource.js`,
+ * together with the answer for the READ path (dataReadRunner): one body, two entries. Two
+ * implementations of "which grade applies through this door" drift apart, and the copy that
+ * drifts is always the one nobody looks at. What remains here is compiling and executing.
  *
- * De twee opslagen delen niets en mogen dus nooit in elkaars pad vallen: een `source` die niet gelezen kan worden
- * is een FOUT en geen terugval op de eigen opslag van de app.
+ * The two storages share nothing and must therefore never fall into each other's path: a
+ * `source` that cannot be read is an ERROR, not a fallback to the app's own storage.
 
  */
 'use strict';
@@ -49,8 +55,8 @@ const log = require('../../telemetry/log');
 
 /**
  * THE record-write choke point. Every server-side create/update of an app
- * record — the data route (POST/PATCH records), the create_record /
- * update_record sequence steps, AI seeding, template install — funnels through
+ * record (the data route POST/PATCH records, the create_record /
+ * update_record sequence steps, AI seeding, template install) funnels through
  * here so RLS and storage quotas can never be bypassed by a second write path.
  *
  *   writeRecord(app, model, table, values, { viewer, recordId })
@@ -60,19 +66,18 @@ const log = require('../../telemetry/log');
  *                UPDATE of that record (byte quota only; 0 changes means the
  *                row is missing OR outside the viewer's scope).
  *
- * `values` are RESOLVED column values ({ [col]: value }) — the compiler drops
+ * `values` are RESOLVED column values ({ [col]: value }). The compiler drops
  * system columns, rejects unknown fields (422) and coerces per type. Quota
  * failures propagate as studioAppQuota errors { status:409,
  * code:'quota_exceeded', limit, used }. Deletes deliberately do NOT come
- * through here — they stay quota-free so a full app can shrink.
+ * through here; they stay quota-free so a full app can shrink.
  *
  * Returns { id, created:true } or { id, updated, changes }.
  *
- * EEN GEKOPPELDE TABEL GAAT HIER NIET DOOR. `table.source` wordt als EERSTE
- * gelezen: de rijen van zo'n tabel staan in een Studio-datatabel en de rechten
- * erop zijn niet die van de app. De weigering die dan valt is een `readError`
- * (status + `safe:true`) en wordt door de routers letterlijk doorgegeven; hij
- * is nooit een terugval op `studioAppDbStore`.
+ * A LINKED TABLE DOES NOT GO THROUGH HERE. `table.source` is read FIRST: the rows of such a
+ * table are in a Studio datatable, and the rights to it are not those of the app. The refusal
+ * that then falls is a `readError` (status + `safe:true`) and is passed on literally by the
+ * routers; it is never a fallback to `studioAppDbStore`.
  * @param {any} app
  * @param {any} model
  * @param {any} table
@@ -118,18 +123,17 @@ async function writeRecord(app, model, table, values, { viewer, recordId, expect
 /**
  * The BATCH sibling of writeRecord: N creates in ONE store transaction, so a
  * failure part-way through leaves NOTHING behind (an ai_extract writes its whole
- * extraction or none of it). The same create-path gates apply — assertCanWrite,
- * then the row and byte quotas — asserted once for the batch, before anything is
+ * extraction or none of it). The same create-path gates apply (assertCanWrite,
+ * then the row and byte quotas), asserted once for the batch before anything is
  * compiled. Returns the created ids.
  *
- * Dezelfde eerste vraag als in `writeRecord`: een gekoppelde tabel gaat naar de
- * datatabel of nergens heen.
+ * The same first question as in `writeRecord`: a linked table goes to the datatable or nowhere.
  */
 async function writeRecordBatch(app, model, table, rows, { viewer } = {}) {
     if (datatableSource.isDatatableBacked(table)) {
-        // De toestemming wordt óók voor een lege batch gevraagd, precies zoals
-        // de eigen-opslag-tak hieronder: "je mocht dit niet" en "er was niets"
-        // zijn verschillende antwoorden, en alleen het eerste is een weigering.
+        // The permission is ALSO asked for an empty batch, exactly like
+        // the own-storage branch below: "you were not allowed to do this" and "there was
+        // nothing" are different answers, and only the first is a refusal.
         const bound = await resolveWrite(app, table, viewer, 'create');
         return datatableInsert(bound, Array.isArray(rows) ? rows : []);
     }
@@ -158,19 +162,17 @@ async function writeRecordBatch(app, model, table, rows, { viewer } = {}) {
 }
 
 /**
- * THE record-DELETE choke point — de derde ingang naast writeRecord/Batch.
+ * THE record-DELETE choke point: the third entry next to writeRecord/Batch.
  *
- * Verwijderen ging niet door writeRecord (deletes blijven quotavrij: dat is hoe
- * een volle app kan krimpen), en daardoor stond dezelfde compile-en-exec twee
- * keer geschreven: één keer in de delete_record-stap en één keer in de
- * DELETE-route. De route was de kopie die de tweede tabelsoort niet kende —
- * `DELETE FROM "klanten"` op de app-opslag, 404 op een rij die in de datatabel
- * gewoon bestaat, en op een tabel die ooit eigen opslag WAS de stille wis van de
- * oude schaduwrijen met alleen de app-rol als poort.
+ * Deleting did not go through writeRecord (deletes stay quota-free: that is how a full app
+ * can shrink). As a result, the same compile-and-exec was written twice: once in the
+ * delete_record step and once in the DELETE route. The route was the copy that did not know
+ * the second table kind: `DELETE FROM "klanten"` on the app storage, a 404 on a row that does
+ * exist in the datatable, and on a table that once WAS its own storage, the silent wipe of the
+ * old shadow rows with only the app role as gate.
  *
- * Levert `{ id, deleted, changes }`; 0 rijen betekent "weg OF buiten de scope
- * van de kijker" en de aanroeper maakt daar één uniform "niet gevonden" van, zodat
- * het bestaan van een rij nooit uitlekt.
+ * Yields `{ id, deleted, changes }`. 0 rows means "gone OR outside the viewer's scope", and the
+ * caller makes one uniform "not found" of that, so the existence of a row never leaks.
  */
 async function eraseRecord(app, model, table, recordId, { viewer } = {}) {
     if (datatableSource.isDatatableBacked(table)) {
@@ -180,7 +182,7 @@ async function eraseRecord(app, model, table, recordId, { viewer } = {}) {
     }
     const v = (viewer && typeof viewer === 'object') ? viewer : {};
     const role = v.role ?? null;
-    rlsGateway.assertCanWrite(table, role, 'delete'); // 403 als deze rol niet mag
+    rlsGateway.assertCanWrite(table, role, 'delete'); // 403 if this role may not
     const accessFilter = rlsGateway.compileAccessFilter(table, role, v, 'delete');
     const { sql, params } = queryCompiler.compileDelete(table, recordId, accessFilter);
     const res = await studioAppDbStore.exec(app.userId, app.id, sql, params);
@@ -252,33 +254,31 @@ async function deleteRecord(app, model, step, ctx) {
 
 // ── Record writes on a DATATABLE-backed table ───────────────────────
 //
-// Dezelfde drie stappen als hierboven, maar op een andere opslag. Wat verschilt:
+// The same three steps as above, but on a different storage. What differs:
 //
-//   DE RECHTEN zijn al beslist. `datatableSource.resolveDatatableWrite` levert
-//   de graad (MIN van de kijker, de app-eigenaar, de app-rol en de mode), heeft
-//   `mode:'read'` al geweigerd en heeft beide `access`-blokken voor déze actie
-//   al bevraagd. Hier valt geen enkele rechtenbeslissing meer — dat is precies
-//   waarom hij daar staat en niet hier.
+//   THE RIGHTS are already decided. `datatableSource.resolveDatatableWrite` supplies
+//   the grade (MIN of the viewer, the app owner, the app role and the mode), has already
+//   refused `mode:'read'`, and has already queried both `access` blocks for THIS
+//   action. No permission decision falls here any more; that is precisely why it
+//   stands there and not here.
 //
-//   DE OPSLAG is `datatableDbStore` op de scope-sleutel, nooit
-//   `studioAppDbStore`: die laatste is per app en per eigenaar en kent deze
-//   rijen niet. De quota zijn die van de datatabel-TENANT
-//   (`assertDatatableQuota`), niet de per-app quota — de rijen tellen mee in de
-//   organisatie waar ze staan, niet in de app die ze toont.
+//   THE STORAGE is `datatableDbStore` on the scope key, never `studioAppDbStore`: the
+//   latter is per app and per owner and does not know these rows. The quotas are those of
+//   the datatable TENANT (`assertDatatableQuota`), not the per-app quota. The rows count
+//   towards the organisation in which they live, not towards the app that shows them.
 //
-//   DE DIALECT komt uit de resolutie (`pg`) en wordt overal uitgesproken. De
-//   App Studio-engine-vlag kan op dezelfde server 'sqlite' zeggen; een compile
-//   onder de verkeerde dialect is geen crash maar stilzwijgend andere SQL.
+//   THE DIALECT comes from the resolution (`pg`) and is used everywhere. The App Studio
+//   engine flag may say 'sqlite' on the same server; a compile under the wrong dialect is
+//   not a crash but silently different SQL.
 
 /**
- * Elke weigering van de rechtenlaag draagt `safe:true` — dezelfde vlag die het
- * leespad gebruikt (`appStudio/readError.js`) — en komt terug als een stapfout
- * MET de boodschap erin. Zonder die vertaling zou de dispatcher een 422 of een
- * 503 tot "Step failed" samenvouwen, en dan staat er "er ging iets mis" waar
- * "deze tabel is alleen-lezen gekoppeld" hoort te staan.
+ * Every refusal of the rights layer carries `safe:true`, the same flag the read path
+ * uses (`appStudio/readError.js`), and comes back as a step error WITH the message in it.
+ * Without that translation the dispatcher would collapse a 422 or a 503 into "Step failed",
+ * and then it would say "something went wrong" where "this table is linked read-only" belongs.
  *
- * Alles zonder de vlag gaat ONGEMOEID door naar de dispatcher: die kent
- * AccessError (403), CompileError (422) en de quota-vorm (409) al.
+ * Everything without the flag passes UNTOUCHED to the dispatcher, which already knows
+ * AccessError (403), CompileError (422) and the quota form (409).
  */
 function sourceRefusal(e) {
     if (!e || e.safe !== true) return null;
@@ -299,9 +299,9 @@ function managedRefusal(e) {
 }
 
 /**
- * De context waarin `datatableSource` een kijker verwacht — dezelfde vorm die
- * dataReadRunner meegeeft, zodat lezen en schrijven één beslissing delen.
- * `writeViewer` vult de rol aan wanneer de route alleen `{id}` stuurde.
+ * The context in which `datatableSource` expects a viewer: the same shape that
+ * dataReadRunner passes along, so that reading and writing share one decision.
+ * `writeViewer` fills in the role when the route only sent `{id}`.
  */
 function sourceCtx(app, ctx) {
     return { app, viewerId: ctx.viewerId ?? null, role: ctx.role ?? null, viewer: writeViewer(ctx) };
@@ -313,10 +313,9 @@ function dtStore() {
 }
 
 /**
- * De rechtenbeslissing, uit een `viewer` alleen — de vorm die de knooppunten
- * krijgen. `sourceCtx` hierboven doet hetzelfde vanuit een stap-ctx; allebei
- * eindigen ze in dezelfde `resolveDatatableWrite`, zodat de route en de stap
- * niet ieder hun eigen antwoord kunnen krijgen.
+ * The rights decision, from a `viewer` alone: the shape the nodes receive. `sourceCtx` above
+ * does the same from a step ctx; both end in the same `resolveDatatableWrite`, so that the route
+ * and the step cannot each come up with their own answer.
  */
 function resolveWrite(app, table, viewer, action) {
     const v = (viewer && typeof viewer === 'object') ? viewer : {};
@@ -326,13 +325,13 @@ function resolveWrite(app, table, viewer, action) {
 }
 
 /**
- * N rijen in de datatabel zetten. Eén rij gaat door `exec`, meer door `batch` —
- * dezelfde alles-of-niets-belofte als `writeRecordBatch` op de eigen opslag.
+ * Put N rows into the datatable. One row goes through `exec`, more through `batch`:
+ * the same all-or-nothing promise as `writeRecordBatch` on the own storage.
  *
- * De quota is die van de TENANT (`assertDatatableQuota`), niet de per-app quota:
- * de rijen tellen mee in de organisatie waar ze staan. Dat is dezelfde controle
- * die routes/datatables.js en de automation-runner draaien, zodat een app niet het
- * ene pad is waarlangs een volle organisatie toch verder groeit.
+ * The quota is that of the TENANT (`assertDatatableQuota`), not the per-app quota:
+ * the rows count towards the organisation in which they live. That is the same check that
+ * routes/datatables.js and the automation runner run, so that an app is not the one path
+ * along which a full organisation nevertheless keeps growing.
  */
 async function datatableInsert(bound, rows) {
     const list = Array.isArray(rows) ? rows : [];
@@ -343,12 +342,11 @@ async function datatableInsert(bound, rows) {
     const { assertDatatableQuota } = require('../../core/dataEngine/datatableLimits');
     await assertDatatableQuota(bound.scope, { table: bound.datatable, addRows: list.length });
 
-    // Een datatabel die een EXTERNE BRON spiegelt (core/dataEngine/sources):
-    // elke rij gaat éérst naar de bron, de kopie volgt uit het antwoord. In
-    // één schrijfactie waar de bron een batch kent (een bestand dat één keer
-    // herschreven wordt), rij voor rij waar niet — en een weigering is
-    // `safe`, dus sourceRefusal geeft status/code/zin door zoals bij elke
-    // andere bron-weigering.
+    // A datatable that mirrors an EXTERNAL SOURCE (core/dataEngine/sources):
+    // every row goes FIRST to the source, and the copy follows from the answer. In one write
+    // action where the source knows a batch (a file rewritten once), row by row where it does
+    // not. A refusal is `safe`, so sourceRefusal passes status/code/sentence through as with
+    // any other source refusal.
     if (isSourceMirror(bound)) {
         const out = await mirrorWrites(bound).insertRows(mirrorCtx(bound), list);
         return out.inserted.map(r => r.id);
@@ -358,14 +356,14 @@ async function datatableInsert(bound, rows) {
     const ids = [];
     for (const values of list) {
         const ins = queryCompiler.compileInsert(bound.tableMeta, values, {
-            // Wie de rij maakte is de KIJKER, niet de app-eigenaar: dat is het
-            // eerlijke auditveld, en het is de kolom waarop `row_scope:'own'`
-            // filtert — stempelden we de eigenaar, dan zou een lid zijn eigen rij
-            // meteen niet meer terugzien.
+            // The one who made the row is the VIEWER, not the app owner: that is the
+            // honest audit field, and it is the column that `row_scope:'own'`
+            // filters on. If we stamped the owner, a member would immediately no longer
+            // see their own row.
             createdBy: bound.viewer.id ?? null,
-            // De org van de TABEL, nooit die van de app: een persoonlijke tabel
-            // heeft er geen, en de org van de app op zijn rijen stempelen is een
-            // leugen waar de access-filter mee moet leven.
+            // The org of the TABLE, never that of the app: a personal table
+            // has none, and stamping the app's org onto its rows is a lie the access filter
+            // has to live with.
             orgId: bound.datatable.organizationId || null,
             dialect: bound.dialect,
         });
@@ -410,8 +408,8 @@ async function datatableUpdate(bound, recordId, values, expectedUpdatedAt = null
     });
     const res = await dtStore().exec(bound.scopeKey, bound.scopeKey, sql, params);
     const changes = Number(res && res.changes) || 0;
-    // Delta 0: een update verandert het rijaantal niet, maar wel de data-versie
-    // waar de cache en een live kennisbron op kijken.
+    // Delta 0: an update does not change the row count, but it does change the data version
+    // that the cache and a live knowledge source watch.
     if (changes) await bumpDatatable(bound, 0);
     return changes;
 }
@@ -435,9 +433,9 @@ async function datatableDelete(bound, recordId) {
 }
 
 /**
- * De datatabel-tak van `writeRecord` — create bij een lege recordId, anders een
- * update. Antwoordt in exact dezelfde vorm als de eigen-opslag-tak, zodat geen
- * enkele aanroeper weet welke van de twee hij raakte.
+ * The datatable branch of `writeRecord`: create when recordId is empty, otherwise an
+ * update. Answers in exactly the same shape as the own-storage branch, so that no single
+ * caller knows which of the two it hit.
  */
 async function writeDatatableRecord(app, table, values, { viewer, recordId, expectedUpdatedAt = null } = {}) {
     const creating = recordId === undefined || recordId === null;
@@ -490,8 +488,8 @@ async function updateDatatableRecord(app, table, step, ctx) {
         if (expectedUpdatedAt) {
             return { ok: false, error: 'This record was changed by someone else — refresh and try again.', code: 'record_conflict' };
         }
-        // 0 rijen = de rij bestaat niet OF valt buiten de scope van de kijker;
-        // één uniform antwoord, zodat het bestaan van een rij nooit uitlekt.
+        // 0 rows = the row does not exist OR falls outside the viewer's scope;
+        // one uniform answer, so the existence of a row never leaks.
         return { ok: false, error: 'Record not found' };
     }
     return { ok: true, result: { id: recordId, updated: true, changes } };
@@ -516,11 +514,11 @@ async function deleteDatatableRecord(app, table, step, ctx) {
 }
 
 /**
- * Rijteller + data-versie van de datatabel bijwerken.
+ * Update the row count + data version of the datatable.
  *
- * Best-effort, met dezelfde motivering als `bumpVersion` hieronder: de rij is
- * al gecommit, dus een mislukte boekhouding mag de stap niet alsnog rood maken.
- * `jobs/datatableRetention` hertelt `row_count` autoritatief.
+ * Best-effort, with the same rationale as `bumpVersion` below: the row is already committed,
+ * so failed bookkeeping must not turn the step red after all.
+ * `jobs/datatableRetention` recounts `row_count` authoritatively.
  */
 async function bumpDatatable(bound, delta) {
     try {

@@ -23,17 +23,17 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 
-// datatableStore.js is sinds de opsplitsing een FACADE: de implementatie staat
-// in stores/datatableStore/*. Het is nog steeds ÉÉN module, dus lees hem als
-// één tekst — in de volgorde waarin de facade zijn onderdelen bedraadt, want
-// verderop letten beweringen op de VOLGORDE van twee functies. Alleen de
-// facade lezen zou elke slice hieronder leeg maken en stil groen laten worden.
+// datatableStore.js since the split is a FACADE: the implementation lives
+// in stores/datatableStore/*. It is still ONE module, so read it as a
+// single text — in the order in which the facade wires its parts, because further on
+// assertions depend on the ORDER of two functions. Reading only the
+// facade would empty every slice below and let it go silently green.
 const PART_DIR = path.join(__dirname, 'datatableStore');
 const FACADE = fs.readFileSync(path.join(__dirname, 'datatableStore.js'), 'utf8');
 const WIRED = [...new Set([...FACADE.matchAll(/\.\/datatableStore\/(\w+)/g)].map(m => `${m[1]}.js`))];
 const ON_DISK = fs.readdirSync(PART_DIR).filter(f => f.endsWith('.js') && !f.endsWith('.test.js'));
-// Bedrade volgorde eerst, en wat daar (nog) niet in staat erachter: een nieuw
-// onderdeel mag nooit stilletjes buiten deze scan vallen.
+// Wired order first, and what is (still) not in it after that: a new
+// part may never silently fall outside this scan.
 const PART_FILES = [...WIRED.filter(f => ON_DISK.includes(f)), ...ON_DISK.filter(f => !WIRED.includes(f))];
 const RAW = PART_FILES.map(f => fs.readFileSync(path.join(PART_DIR, f), 'utf8')).join('\n') + '\n' + FACADE;
 const SRC = RAW.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');

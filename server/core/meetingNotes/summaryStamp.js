@@ -2,47 +2,40 @@
 'use strict';
 
 /**
- * Welk sjabloon heeft DEZE notitie geschreven — en welke versie ervan.
+ * Which template wrote THIS note, and which version of it.
  *
- * Twee kolommen dragen dat feit: `transcriptions.summary_template_id` en
- * `transcriptions.summary_template_version`. Dit bestand is de enige plek waar
- * de vorm van die twee waarden wordt bepaald; routes en de ingest roepen hem
- * aan, niemand bouwt het paar met de hand.
+ * Two columns carry that fact: `transcriptions.summary_template_id` and
+ * `transcriptions.summary_template_version`. This file is the only place where the shape of those two
+ * values is determined; routes and the ingest call it, and nobody builds the pair by hand.
  *
- * ── WAAROM DE VERSIE MEE OPGESLAGEN WORDT ────────────────────────────────
- * Alleen het id opslaan zou lijken te volstaan: de versie is immers op te
- * zoeken bij het sjabloon. Maar dat is een uitspraak over het VERLEDEN,
- * afgelezen aan het HEDEN — een sjabloon dat na de samenvatting is bijgewerkt
- * staat vandaag op v5 terwijl de notitie met v2 geschreven is. Het scherm zou
- * dan "gemaakt met v5" zeggen over tekst die v5 nooit heeft gezien. De versie
- * hoort dus bij de notitie, gestempeld op het moment van schrijven.
+ * ── WHY THE VERSION IS STORED ALONG ─────────────────────────────────
+ * Storing only the id would seem to suffice: the version is after all looked up from the template. But that
+ * is an assertion about the PAST, read off the PRESENT: a template that was updated after the summary is at
+ * v5 today while the note was written with v2. The screen would then say "made with v5" about text that v5
+ * never saw. The version therefore belongs to the note, stamped at the moment of writing.
  *
- * ── WAAROM EEN PREFIX VOOR DE INGEBOUWDE SJABLONEN ───────────────────────
- * Een opgeslagen sjabloon heeft een UUID, een ingebouwde een leesbare sleutel
- * ('general', 'standup', …). Zonder markering moet de lezer aan de VORM van
- * het id raden welke van de twee het is — een UUID-regex als semantiek. Met
- * `builtin:` staat het er gewoon, en `parseStamp` geeft het antwoord terug in
- * plaats van een gok. Onbekend blijft onbekend: een id dat geen van beide
- * vormen heeft levert null op, niet "dan maar ingebouwd".
+ * ── WHY A PREFIX FOR THE BUILT-IN TEMPLATES ─────────────────────────
+ * A stored template has a UUID, a built-in one a readable key ('general', 'standup', …). Without a marker the
+ * reader must guess from the FORM of the id which of the two it is: a UUID regex as semantics. With
+ * `builtin:` it is simply there, and `parseStamp` returns the answer instead of a guess. Unknown stays unknown:
+ * an id that has neither form yields null, not "then built-in after all".
  *
- * ── NIETS IS OOK EEN ANTWOORD ────────────────────────────────────────────
- * Een eenmalige prompt ("probeer dit eens", niet opgeslagen) hoort GEEN
- * stempel te krijgen — en moet een oude stempel juist WISSEN: de samenvatting
- * die er nu staat is niet meer die van het vorige sjabloon. Daarvoor is
- * `EMPTY_STAMP`; het is een expliciete waarde, niet "de velden weglaten".
+ * ── NOTHING IS ALSO AN ANSWER ───────────────────────────────────────
+ * A one-off prompt ("try this", not saved) must NOT get a stamp, and it must precisely ERASE an old stamp: the
+ * summary that is there now is not that of the previous template any more. `EMPTY_STAMP` is for that; it is an
+ * explicit value, not "leave the fields out".
  */
 
 const { BUILTIN_BY_ID } = require('./summaryTemplates');
 
 const BUILTIN_STAMP_PREFIX = 'builtin:';
 
-/** Geen sjabloon (eenmalige prompt). WIST een eerdere stempel — zie de kop. */
+/** No template (one-off prompt). ERASES an earlier stamp: see the header. */
 const EMPTY_STAMP = Object.freeze({ summaryTemplateId: null, summaryTemplateVersion: null });
 
 /**
- * Stempel voor een ingebouwd sjabloon. Een onbekende sleutel valt — net als
- * `builtinPrompt` — terug op 'general', en de stempel noemt dan óók 'general':
- * de notitie is met die prompt geschreven, dus dat is wat er staat.
+ * Stamp for a built-in template. An unknown key falls back, just like `builtinPrompt`, to 'general', and
+ * the stamp then names 'general' too: the note was written with that prompt, so that is what it says.
  */
 function stampForBuiltin(templateId) {
     const resolved = BUILTIN_BY_ID[templateId] ? templateId : 'general';
@@ -50,10 +43,9 @@ function stampForBuiltin(templateId) {
 }
 
 /**
- * Stempel voor een opgeslagen sjabloon (rij uit summaryTemplateStore).
- * Een rij zonder bruikbare `version` (een oude installatie waar de kolom nog
- * leeg was) levert `null` op — geen verzonnen 1: dan weten we het id wél en de
- * versie niet, en dat verschil moet het scherm kunnen tonen.
+ * Stamp for a stored template (row from summaryTemplateStore).
+ * A row without a usable `version` (an old installation where the column was still empty) gives `null`:
+ * not an invented 1. Then we know the id but not the version, and that difference must be visible on the screen.
  */
 function stampForTemplate(template) {
     if (!template || typeof template.id !== 'string' || !template.id) return { ...EMPTY_STAMP };

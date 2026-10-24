@@ -29,8 +29,8 @@ async function _initDB() {
             updated_at TEXT
         );
     `);
-    // Add updated_at if missing (older deployments). Via runDdl: een échte
-    // fout wordt luid gerapporteerd i.p.v. stil ingeslikt.
+    // Add updated_at if missing (older deployments). Via runDdl: a real
+    // error is reported loudly instead of being silently swallowed.
     await runDdl('iconStore', [
         `ALTER TABLE icon_packs ADD COLUMN IF NOT EXISTS updated_at TEXT`,
     ]);

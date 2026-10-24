@@ -118,10 +118,9 @@ test('a published agent with no knowledge base is a warning; one with a base is 
 });
 
 test('de camelCase-spelling grondt hem NIET — knowledgeSearch leest die sleutel niet', () => {
-    // core/agentRuntime/knowledgeSearch.js doet `agent.config?.knowledge_base_ids
-    // || []`. Een rij die alleen `knowledgeBaseIds` draagt doorzoekt dus elke
-    // beurt nul kennisbanken; hem hier als gegrond boeken zou die agent uit de
-    // lijst houden terwijl hij precies het probleem heeft dat de lijst meldt.
+    // core/agentRuntime/knowledgeSearch.js does `agent.config?.knowledge_base_ids
+    // || []`. A row that carries only `knowledgeBaseIds` therefore searches zero knowledge bases every turn; booking it here as grounded would keep that agent off
+    // the list while it has precisely the problem that the list reports.
     const { findings, gaps } = evaluateAgentNoKb({
         agents: [{ id: 'ag3', name: 'CamelCase', config: { knowledgeBaseIds: ['kb2'] } }],
         gaps: [],
@@ -145,10 +144,9 @@ test('an agent with no agents at all is checked-and-empty', () => {
 });
 
 test('a table grant grounds an agent too — the rule is not KB-only', () => {
-    // Deze agent kon ECHT ergens in kijken en werd hier tot A5 gemeld als
-    // "antwoordt uit het model alleen". Het criterium staat nu in
-    // core/agentRuntime/agentGrounding.js, dat de kaartvoet van het overzicht
-    // óók leest — dus deze lijst en die kaart kunnen niet uiteenlopen.
+    // This agent really could look something up, and was reported here until A5 as
+    // "answers from the model alone". The criterion now lives in
+    // core/agentRuntime/agentGrounding.js, which the overview's card footer also reads — so this list and that card cannot diverge.
     const { findings, gaps } = evaluateAgentNoKb({
         agents: [{ id: 'ag4', name: 'Tables', config: JSON.stringify({ tools: { datatables: { t1: {} } } }) }],
         gaps: [],
@@ -158,12 +156,10 @@ test('a table grant grounds an agent too — the rule is not KB-only', () => {
 });
 
 test('websearch aan is GEEN grond — het veld stuurt niets aan in het chatpad', () => {
-    // `config.enabledIntegrations` wordt door niets in het chatpad gelezen, en
-    // de R4-backfill (stores/agent/initSchema.js) heeft 'agent-search' in élke
-    // oudere rij gezet. Zou dat als grond gelden, dan verdween deze melding
-    // voor bijna elke bestaande agent zonder dat er iets aan hem veranderd was
-    // — en op een self-host zonder zoekprofiel antwoordt hij aantoonbaar uit
-    // het model alleen.
+    // `config.enabledIntegrations` is read by nothing in the chat path, and
+    // the R4 backfill (stores/agent/initSchema.js) has set 'agent-search' in EVERY
+    // older row. If that counted as grounding, this notice would disappear for almost every existing agent without anything about it having changed —
+    // and on a self-host without a search profile it demonstrably answers from the model alone.
     const { findings, gaps } = evaluateAgentNoKb({
         agents: [{ id: 'ag5', name: 'Web', config: JSON.stringify({ enabledIntegrations: ['agent-search'] }) }],
         gaps: [],
@@ -174,8 +170,8 @@ test('websearch aan is GEEN grond — het veld stuurt niets aan in het chatpad',
 });
 
 test('an agent whose knowledge_base_ids is not a list is a GAP, not an ungrounded agent', () => {
-    // `asArray` maakte hier stilletjes `[]` van, en dus een beschuldiging over
-    // een agent waarvan niemand de bedrading kon lezen.
+    // `asArray` silently made `[]` here, and therefore an accusation about
+    // an agent whose wiring nobody could read.
     const { findings, gaps } = evaluateAgentNoKb({
         agents: [{ id: 'ag6', name: 'Odd', config: JSON.stringify({ knowledge_base_ids: 'kb1' }) }],
         gaps: [],

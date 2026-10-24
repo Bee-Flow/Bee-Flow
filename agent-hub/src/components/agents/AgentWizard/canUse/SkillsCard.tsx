@@ -22,26 +22,22 @@ export interface SkillsCardProps {
 }
 
 /**
- * De Skills-kaart van de tab "Kan gebruiken" — de werkwijzen die de agent
- * volgt (Agents-artboard 1a, A2 stap 2).
+ * The Skills card of the "Can use" tab: the working methods that the agent follows (Agents artboard 1a,
+ * A2 step 2).
  *
- * Eén rij per gekoppelde skill: "5 stappen · 3 regels · ook gebruikt door 2
- * andere agents". De eerste twee komen uit de skill zelf, de derde uit
- * `GET /api/skills/usage-summary`.
+ * One row per linked skill: "5 steps · 3 rules · also used by 2 other agents". The first two come from the
+ * skill itself, the third from `GET /api/skills/usage-summary`.
  *
- * ── "ANDERE" IS EEN AFTREKSOM, EN DIE MOET KLOPPEN ──────────────────
- * De samenvatting telt élke agent die de skill koppelt, deze erbij. Er gaat
- * dus één af — maar alleen als deze agent er ook echt in zit, en dat is een
- * vraag over de OPGESLAGEN config: een skill die je zojuist aanvinkte staat
- * nog nergens op de server. `canUseFacts.skillRows` maakt die aftreksom, deze
- * kaart tekent hem alleen. Onbekend blijft onbekend: dan valt de hele
- * bijzin weg en zegt de kaart onderaan waarom.
+ * ── "OTHERS" IS A SUBTRACTION, AND IT MUST BE CORRECT ──────────────
+ * The summary counts EVERY agent that links the skill, this one included. So one is subtracted, but only if
+ * this agent really is in that count. That is a question about the SAVED config: a skill that you just ticked
+ * is not yet anywhere on the server. `canUseFacts.skillRows` makes that subtraction, and this card only draws
+ * it. Unknown stays unknown: then the whole clause drops and the card says at the bottom why.
  *
- * ── TWEE LEZINGEN, TWEE UITKOMSTEN ──────────────────────────────────
- * De skills en hun gebruikstelling zijn LOSSE lezingen. De tweede mag
- * mislukken zonder de eerste mee te trekken: dan staan de stappen en regels er
- * gewoon, en ontbreekt alleen de bijzin. Eén gedeelde "er ging iets mis" zou
- * feiten weggooien die we wél hebben.
+ * ── TWO READS, TWO OUTCOMES ─────────────────────────────────────────
+ * The skills and their usage count are SEPARATE reads. The second may fail without taking the first along:
+ * then the steps and rules are still there, and only the clause is missing. One shared "something went
+ * wrong" would throw away facts that we DO have.
  */
 export default function SkillsCard({
     t, ro = false,
@@ -49,8 +45,8 @@ export default function SkillsCard({
     usageState = READ.OK,
     onOpenChooser,
 }: SkillsCardProps) {
-    // "Nog niet gelezen" is geen "niet te lezen": tijdens het laden staat er
-    // geen waarschuwing bij een rij waarvan de naam simpelweg nog onderweg is.
+    // "Not read yet" is not "cannot be read": while loading, no warning appears next to
+    // a row whose name is simply still on its way.
     const pending = state === READ.LOADING;
     const anyUnreadableRow = rows.some(r => !r.readable);
     return (
@@ -105,9 +101,9 @@ export default function SkillsCard({
                 />
             ))}
 
-            {/* De gebruikstelling is een APARTE lezing. Mislukt alleen die, dan
-                staan de stappen en regels er gewoon en ontbreekt de bijzin —
-                en dan hoort er te staan dat hij ontbreekt, niet niets. */}
+            {/* The usage count is a SEPARATE read. If only that one fails, the steps and rules are
+                still there and the clause is missing, and then it should say that it is missing,
+                not say nothing. */}
             {usageState === READ.ERROR && rows.length > 0 && (
                 <UnreadableNotice
                     testId="agent-skills-usage-unreadable"
@@ -122,10 +118,9 @@ export default function SkillsCard({
                 />
             )}
 
-            {/* Een rij zonder naam is al gemeld op de rij zelf; deze regel is
-                voor het GEVAL dat de lijst wél gelezen is maar de skill er niet
-                in stond — dan is er geen kaartbrede fout om het aan op te
-                hangen. */}
+            {/* A row without a name is already reported on the row itself. This line is for the CASE that
+                the list was read but the skill was not in it. Then there is no card-wide error to
+                attach it to. */}
             {state === READ.OK && anyUnreadableRow && (
                 <UnreadableNotice
                     testId="agent-skills-partial"

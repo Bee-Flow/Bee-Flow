@@ -11,13 +11,13 @@ interface RulesEditorProps {
 }
 
 /**
- * "Rules" — what holds regardless of the question (Skills artboard 1a,
+ * “Rules” — what holds regardless of the question (Skills artboard 1a,
  * right column).
  *
  * ── POLARITY IS A CONTROL, NOT A WORD IN THE SENTENCE ───────────────
- * A rule used to be a line in a free-text box, and whether it was a "do" or
- * a "never" lived in the phrasing ("do not mention…"). The model had to
- * infer it, the UI could not colour it, and a negation written as "avoid"
+ * A rule used to be a line in a free-text box, and whether it was a “do” or
+ * a “never” lived in the phrasing (“do not mention…”). The model had to
+ * infer it, the UI could not colour it, and a negation written as “avoid”
  * read as a suggestion. `polarity` is now a field with two values, so the
  * check/ban mark and the prompt say the same thing, and S3 can grade a
  * `never` differently from a `must`.
@@ -28,8 +28,8 @@ interface RulesEditorProps {
  *
  * ── COLOURS COME FROM THE STATUS TOKENS ─────────────────────────────
  * `--success` / `--error`, never a hex. The artboard's `--status-success`
- * is this repo's `--success` (recorded deviation, plan "Waar ik het ontwerp
- * niet volg").
+ * is this repo's `--success` (recorded deviation, plan “Where I don't follow
+ * the design”).
  */
 export default function RulesEditor({ rules, onChange, readOnly = false }: RulesEditorProps) {
     const { t } = useTranslation();

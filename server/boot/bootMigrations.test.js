@@ -1,40 +1,38 @@
 'use strict';
 
 /**
- * Elk bestand in server/migrations/ is verantwoord — afgedwongen.
+ * Every file in server/migrations/ is accounted for — enforced.
  *
- * De wond die deze test dichthoudt: elf van de vijfentwintig add-nl-catalogi
- * stonden jarenlang op de plank. Geen fout, geen rode test — een catalogus die
- * nergens geregistreerd staat draait nergens, en het symptoom (een stil Engels
- * scherm) is onzichtbaar voor wie de feature bouwde. Zes ervan waren bovendien
- * alleen als handmatig script te draaien (ze draaiden bij require en riepen
- * process.exit — dodelijk in een boot-ladder).
+ * The wound this test keeps closed: eleven of the twenty-five add-nl catalogues sat
+ * on the shelf for years. No error, no red test — a catalogue that is registered
+ * nowhere runs nowhere, and the symptom (a silently English screen) is invisible to
+ * whoever built the feature. Six of them were moreover runnable only as a manual
+ * script (they ran on require and called process.exit — fatal in a boot ladder).
  *
- * Vanaf nu is elk migratiebestand precies één van deze dingen:
- *   1. geregistreerd in bootMigrations (LOOSE_MIGRATIONS of NL_TRANSLATIONS),
- *   2. expliciet handmatig (MANUAL_MIGRATIONS, met reden),
- *   3. aangeroepen door runtime-code (een store-ladder zoals
- *      automationStore/core.js, of een route/seed die hem draait of citeert),
- *   4. opgenomen: zijn DDL is sindsdien in het schema van een store gevouwen
- *      (ABSORBED hieronder, met een controleerbare claim).
- * Een nieuw bestand dat nergens in past is een RODE TEST met een aanwijzing,
- * geen vergeten bestand.
+ * From now on every migration file is exactly one of these things:
+ *   1. registered in bootMigrations (LOOSE_MIGRATIONS or NL_TRANSLATIONS),
+ *   2. explicitly manual (MANUAL_MIGRATIONS, with a reason),
+ *   3. called by runtime code (a store ladder such as
+ *      automationStore/core.js, or a route/seed that runs or cites it),
+ *   4. absorbed: its DDL has since been folded into the schema of a store
+ *      (ABSORBED below, with a verifiable claim).
+ * A new file that fits nowhere is a RED TEST with a hint, not a forgotten file.
  *
- * ── En de andere kant op: NIEUWE kolommen ────────────────────────────────
+ * ── And the other way round: NEW columns ────────────────────────────────
  *
- * De `schema_migrations`-ledger van bootMigrations.js registreert alleen de
- * twee lijsten hierboven; store-DDL staat er niet in. Een nieuwe kolom hoort
- * in de idempotente boot-DDL van zijn eigen store, en dan via `runDdl`
- * (stores/lib/_ddl.js) —
- * niet in een los migratiebestand, en niet in een `DO $$ … EXCEPTION WHEN
- * OTHERS THEN NULL`-blok, want dat slikt een statement-timeout net zo hard in
- * als "kolom bestaat al" en de store meldt zich gezond op een half schema.
- * COLUMN_LADDERS hieronder is de controleerbare claim per kolom: het genoemde
- * bestand bestaat, noemt de kolom, en noemt hem in zijn runDdl-lijst.
+ * The `schema_migrations` ledger of bootMigrations.js records only the two lists
+ * above; store DDL is not in it. A new column belongs in the idempotent boot DDL of
+ * its own store, and then via `runDdl` (stores/lib/_ddl.js) —
+ * not in a loose migration file, and not in a `DO $$ … EXCEPTION WHEN
+ * OTHERS THEN NULL` block, because that swallows a statement timeout just as hard
+ * as "column already exists", and the store then reports itself healthy on a
+ * half-built schema.
+ * COLUMN_LADDERS below is the verifiable claim per column: the named file exists,
+ * names the column, and names it in its runDdl list.
  *
- * Statisch en DB-vrij met opzet, net als migrateDb.registration.test.js:
- * registratie is een tekstueel feit; dat de ladder echt draait en idempotent
- * is bewijst migrateDb.integration.test.js tegen echte Postgres.
+ * Static and DB-free by design, just like migrateDb.registration.test.js:
+ * registration is a textual fact; that the ladder really runs and is idempotent is
+ * proven by migrateDb.integration.test.js against a real Postgres.
  *
  * Run: cd server && node --test --test-force-exit boot/bootMigrations.test.js
  */
@@ -48,10 +46,10 @@ const SERVER = path.join(__dirname, '..');
 const { LOOSE_MIGRATIONS, NL_TRANSLATIONS, MANUAL_MIGRATIONS } = require('./bootMigrations');
 
 /**
- * Migratiebestanden waarvan de DDL sindsdien in de eigen schema-ladder van een
- * store is gevouwen. Elke entry is een claim die deze test zelf controleert:
- * het opnemende bestand bestaat én bevat de genoemde marker nog. Verdwijnt de
- * marker daar, dan is de claim vals en hoort de migratie alsnog in een lijst.
+ * Migration files whose DDL has since been folded into the own schema ladder of a
+ * store. Each entry is a claim that this test checks itself: the file that names it
+ * exists AND still contains the stated marker. If that marker disappears there, the
+ * claim is false and the migration belongs in a list again.
  */
 const ABSORBED = new Map([
     ['nc-pending-bindings-2026-05', { into: 'stores/user/schemaMigrations.js', marker: 'CREATE TABLE IF NOT EXISTS pending_nc_bindings' }],
@@ -60,34 +58,33 @@ const ABSORBED = new Map([
 ]);
 
 /**
- * Kolommen die via de store-ladder komen in plaats van via een migratiebestand.
- * Elke entry is een claim die deze test narekent: het bestand bestaat, de kolom
- * staat erin, en hij staat in een `runDdl(...)`-aanroep — niet in een stil
- * `DO $$ … EXCEPTION`-blok ernaast.
+ * Columns that come through the store ladder instead of through a migration file.
+ * Each entry is a claim that this test recalculates: the file exists, the column is
+ * in it, and it sits in a `runDdl(...)` call — not in a silent
+ * `DO $$ … EXCEPTION` block next to it.
  *
- * `table` is optioneel en hoort erbij zodra de kolomnaam GEWOON is. `version`
- * bestaat op summary_templates én (via een migratiebestand) op skills; zonder
- * tabelnaam zou de "geen eigen migratiebestand"-test die twee als dezelfde
- * kolom lezen en rood gaan op een migratie die met deze store niets te maken
- * heeft. De tabelnaam maakt van de claim een claim over één kolom van één
- * tabel — wat hij altijd al was, en sinds de A1c-ronde ook wat de matcher
- * narekent: het statement dat de kolom toevoegt moet díé tabel noemen.
+ * `table` is optional and belongs in whenever the column name is COMMON. `version`
+ * exists on summary_templates AND (via a migration file) on skills; without a table
+ * name the "no own migration file" test would read those two as the same column and
+ * go red on a migration that has nothing to do with this store. The table name turns
+ * the claim into a claim about one column of one table — which it always was, and
+ * since the A1c round also what the matcher recalculates: the statement that adds the
+ * column must name THAT table.
  *
- * `kind: 'table'` is de tweede vorm: dan gaat de claim over een TABEL die de
- * ladder maakt (`CREATE TABLE IF NOT EXISTS <table>`) en hoort er geen `column`
- * bij. Elke andere `kind` is een bezwaar — een claim die je niet kunt
- * opschrijven faalt niet, hij zwijgt.
+ * `kind: 'table'` is the second form: then the claim is about a TABLE that the ladder
+ * creates (`CREATE TABLE IF NOT EXISTS <table>`) and no `column` belongs with it.
+ * Any other `kind` is an objection — a claim that you cannot write down fails not,
+ * it stays silent.
  */
 const COLUMN_LADDERS = [
-    // O3: waar een Oplossing vandaan komt. Zachte verwijzing, geen FK — een
-    // verwijderde Blueprint mag het project niet meenemen.
+    // O3: where a Solution comes from. Soft reference, no FK — a deleted
+    // Blueprint must not take the project with it.
     { column: 'installed_from_blueprint_id', into: 'stores/project/schema.js', tag: 'projectStore' },
-    // O4: en wat die herkomst er verder over zegt. `installed_from_org_id` is
-    // de bron-organisatie (vastgesteld bij een galerij-installatie, beweerd bij
-    // een bestandsinstallatie) en beslist NOOIT iets — toegang komt van
-    // blueprintStore.canRead over de echte galerijrij. `installed_version`
-    // krijgt zijn tabelnaam mee omdat die kolomnaam GEWOON is: hij bestaat ook
-    // op project_solution_entities.
+    // O4: and what that origin further says. `installed_from_org_id` is
+    // the source organisation (established on a gallery install, claimed on a file
+    // install) and NEVER decides anything — access comes from blueprintStore.canRead
+    // over the real gallery row. `installed_version` gets its table name because that
+    // column name is COMMON: it also exists on project_solution_entities.
     { column: 'installed_from_org_id', table: 'projects', into: 'stores/project/schema.js', tag: 'projectStore' },
     { column: 'installed_version', table: 'projects', into: 'stores/project/schema.js', tag: 'projectStore' },
     // The collaborative project workspace: `kind` tells a project from a
@@ -101,16 +98,15 @@ const COLUMN_LADDERS = [
     { column: 'project_id', table: 'studio_documents', into: 'stores/documentStore.js', tag: 'documentStore' },
     { column: 'project_id', table: 'transcriptions', into: 'stores/transcription/schema.js', tag: 'transcriptionStore' },
 
-    // O4: de publicatiegeschiedenis zelf. `kind: 'table'`, want de claim gaat over
-    // een TABEL die de ladder maakt en niet over een kolom. De galerijrij
-    // (project_blueprints) wordt bij elke publicatie overschreven en is dus een
-    // uitspraak over het heden; project_releases is wat er ooit is uitgegeven,
-    // één onveranderlijke rij per publicatie met het manifest zoals gepubliceerd.
+    // O4: the publication history itself. `kind: 'table'`, because the claim is about
+    // a TABLE that the ladder creates and not about a column. The gallery row
+    // (project_blueprints) is overwritten on every publication and is therefore a
+    // statement about the present; project_releases is what was ever issued, one
+    // immutable row per publication with the manifest as published.
     { table: 'project_releases', kind: 'table', into: 'stores/blueprint/schema.js', tag: 'blueprintStore' },
-    // M4 stap 3: met welk sjabloon (en welke versie ervan) een notitie
-    // geschreven is. De versie staat bij de NOTITIE en niet alleen bij het
-    // sjabloon, anders leest het scherm een uitspraak over het verleden af aan
-    // het heden.
+    // M4 step 3: with which template (and which version of it) a note was
+    // written. The version belongs to the NOTE and not only to the template, otherwise
+    // the screen reads a statement about the past off the present.
     { column: 'version', table: 'summary_templates', into: 'stores/summaryTemplateStore.js', tag: 'summaryTemplateStore' },
     { column: 'summary_template_id', table: 'transcriptions', into: 'stores/transcription/schema.js', tag: 'transcriptionStore' },
     { column: 'summary_template_version', table: 'transcriptions', into: 'stores/transcription/schema.js', tag: 'transcriptionStore' },
@@ -119,12 +115,12 @@ const COLUMN_LADDERS = [
     { column: 'persona', table: 'agents', into: 'stores/agent/initSchema.agents.js', tag: 'agentSchema' },
     { table: 'agent_tests', kind: 'table', into: 'stores/agent/initSchema.agents.js', tag: 'agentSchema' },
     { table: 'agent_test_runs', kind: 'table', into: 'stores/agent/initSchema.agents.js', tag: 'agentSchema' },
-    // A4 deel D: WIE de verwachting van een test schreef. `written_by` is de
-    // per-veld herkomst uit core/agentRuntime/testSuggest.js, `suggested_by`
-    // het model dat het voorstel deed. Allebei NULL voor een test die iemand
-    // zelf tikte — en dat onderscheid is precies waarom ze een kolom zijn en
-    // geen sleutel in `expect`: `expect` is wat de grader leest, en een
-    // herkomstveld dat daarin meereist zou een verwachting worden.
+    // A4 part D: WHO wrote the expectation of a test. `written_by` is the
+    // per-field provenance from core/agentRuntime/testSuggest.js, `suggested_by`
+    // the model that made the suggestion. Both NULL for a test that someone typed
+    // themselves — and that distinction is exactly why they are a column and not a
+    // key in `expect`: `expect` is what the grader reads, and a provenance field that
+    // travelled along in it would become an expectation.
     { column: 'written_by', table: 'agent_tests', into: 'stores/agent/initSchema.agents.js', tag: 'agentSchema' },
     { column: 'suggested_by', table: 'agent_tests', into: 'stores/agent/initSchema.agents.js', tag: 'agentSchema' },
     // BIJT: de invoegvolgorde-teller die `ran_at DESC` als tiebreaker
@@ -132,11 +128,11 @@ const COLUMN_LADDERS = [
     // kwamen anders terug in id-volgorde, willekeurig en soms exact omgekeerd.
     { column: 'seq', table: 'agent_test_runs', into: 'stores/agent/initSchema.agents.js', tag: 'agentSchema' },
 
-    // W4: de versielijst als leesbare geschiedenis. `seq` is het nummer dat de
-    // lezer ziet (v14) — created_at kan dat niet zijn, want dat is transactietijd.
-    // `actor_user_id` is een ZACHTE verwijzing: een verwijderd account mag de
-    // geschiedenis van de pagina niet meenemen. `line_delta` is NULL wanneer er
-    // niets is gemeten, en dat is iets anders dan 0 regels.
+    // W4: the version list as readable history. `seq` is the number the reader sees
+    // (v14) — created_at cannot be that, since that is transaction time.
+    // `actor_user_id` is a SOFT reference: a deleted account must not take the page's
+    // history with it. `line_delta` is NULL when nothing was measured, and that is
+    // something other than 0 lines.
     { column: 'seq', table: 'webpage_versions', into: 'stores/webpage/schema.js', tag: 'webpageSchema' },
     { column: 'actor_user_id', table: 'webpage_versions', into: 'stores/webpage/schema.js', tag: 'webpageSchema' },
     { column: 'line_delta', table: 'webpage_versions', into: 'stores/webpage/schema.js', tag: 'webpageSchema' },
@@ -145,19 +141,17 @@ const COLUMN_LADDERS = [
     // geen migratiebestand.
     { table: 'meeting_prefs', kind: 'table', into: 'stores/meetingPrefsStore.js', tag: 'meetingPrefsStore' },
 
-    // P4 deel C: "welke knop draait deze automation". De spiegel van
-    // automation_datatable_usage, en met opzet een EIGEN tabel: die index is
-    // per tabel-doel gekeyd (`datatable_id … REFERENCES datatables(id)`), dus
-    // een app→automation-rij heeft er geen waarde voor en de INSERT zou nul rijen
-    // schrijven en zichzelf geslaagd noemen. Eigen store, eigen ladder, geen
-    // migratiebestand.
+    // P4 part C: "which button runs this automation". The mirror of
+    // automation_datatable_usage, and deliberately its OWN table: that index is keyed
+    // per table target (`datatable_id … REFERENCES datatables(id)`), so an app→automation
+    // row has no value for it and the INSERT would write zero rows and call itself
+    // successful. Own store, own ladder, no migration file.
     { table: 'automation_usage', kind: 'table', into: 'stores/automationUsageStore.js', tag: 'automationUsageStore' },
-    // Het DERDE antwoord van diezelfde index: "deze app is nog nooit
-    // geindexeerd". `automation_usage` kan alleen rijen tonen, en nul rijen
-    // betekent daar zowel "geen enkele knop" als "nog nooit gekeken" — op de
-    // dag van uitrol is dat tweede waar voor élke bestaande app. Deze
-    // bijhoudtabel maakt de twee scheidbaar en is tegelijk de werklijst van de
-    // backfill. Zelfde store, zelfde ladder, zelfde tag: één runDdl-blok.
+    // The THIRD answer of that same index: "this app has never been indexed".
+    // `automation_usage` can only show rows, and zero rows there means both "no button
+    // at all" and "never looked" — on the day of rollout the second is true for EVERY
+    // existing app. This tracking table makes the two separable and is at the same time
+    // the work list of the backfill. Same store, same ladder, same tag: one runDdl block.
     { table: 'automation_usage_indexed', kind: 'table', into: 'stores/automationUsageStore.js', tag: 'automationUsageStore' },
 ];
 
@@ -169,11 +163,11 @@ function migrationNames() {
 }
 
 /**
- * Alle niet-test runtimebron buiten migrations/ en de ladder zelf: daar staat
- * de bedrading van store-ladders (automationStore/core.js MIGRATIONS,
- * studioAppStore, knowledgeBases) en van seeds/routes. bootMigrations.js en
- * migrateDb.js tellen bewust niet mee — anders zou "staat in de lijst" en
- * "wordt door code gedraaid" hetzelfde feit zijn.
+ * All non-test runtime source outside migrations/ and the ladder itself: that is where
+ * the wiring of store ladders (automationStore/core.js MIGRATIONS, studioAppStore,
+ * knowledgeBases) and of seeds/routes lives. bootMigrations.js and migrateDb.js
+ * deliberately do not count here — otherwise "is in the list" and "is run by code"
+ * would be the same fact.
  */
 function runtimeSources() {
     const out = [];
@@ -216,8 +210,8 @@ test('elk migratiebestand is geregistreerd, handmatig, opgenomen, of door runtim
 });
 
 test('geen naam staat in twee categorieën tegelijk', () => {
-    // Twee lijsten die dezelfde migratie draaien is dubbel werk; een naam die
-    // én handmatig én automatisch is, is een tegenspraak in het contract.
+    // Two lists that run the same migration is duplicate work; a name that is
+    // both manual AND automatic is a contradiction in the contract.
     const lists = { LOOSE_MIGRATIONS, NL_TRANSLATIONS, MANUAL_MIGRATIONS, ABSORBED: [...ABSORBED.keys()] };
     const seen = new Map();
     const dupes = [];
@@ -237,17 +231,16 @@ test('elke geregistreerde of handmatige naam bestaat op schijf', () => {
 });
 
 test('elke entry die de ladder draait exporteert up() en draait niets bij require', () => {
-    // runList doet `require(naam).up()`. Een bestand zonder up-export crasht de
-    // ladder; een bestand dat bij require zelf gaat draaien (het oude
-    // `run().catch(...)` mét process.exit) legt de BOOT plat.
+    // runList does `require(name).up()`. A file without an up export crashes the
+    // ladder; a file that starts running on require itself (the old
+    // `run().catch(...)` with process.exit) knocks the BOOT flat.
     //
-    // Genuinely textual, met opzet: de enige manier om "draait niets bij
-    // require" ECHT te proberen is het bestand vereisen — en precies dát is
-    // onveilig als de eigenschap kapot is (een `process.exit()` bij require
-    // beëindigt dan dit testproces zelf, in plaats van één rode assertie te
-    // geven). Hetzelfde geldt voor de up()-export: eerst moet vaststaan dat
-    // require veilig is voordat "vereis het en kijk of up() een functie is"
-    // een zinnig behavioural alternatief zou zijn.
+    // Genuinely textual, deliberately: the only way to ACTUALLY try "runs nothing on
+    // require" is to require the file — and precisely that is unsafe if the property is
+    // broken (a `process.exit()` on require would then end this test process itself,
+    // instead of giving one red assertion). The same holds for the up() export: first it
+    // must be certain that require is safe before "require it and see whether up() is a
+    // function" would be a meaningful behavioural alternative.
     for (const n of [...LOOSE_MIGRATIONS, ...NL_TRANSLATIONS]) {
         const src = fs.readFileSync(path.join(SERVER, 'migrations', `${n}.js`), 'utf8');
         assert.match(src, /module\.exports\s*=\s*\{\s*up\b|module\.exports\.up\s*=/,
@@ -270,31 +263,30 @@ test('elke ABSORBED-claim klopt nog', () => {
 });
 
 /**
- * ── De matcher achter COLUMN_LADDERS ──────────────────────────────────────
+ * ── The matcher behind COLUMN_LADDERS ─────────────────────────────────────
  *
- * Losgetrokken uit de test omdat een matcher die een claim niet KAN uitdrukken
- * niet faalt — hij zwijgt, en dan bewaakt de lijst precies die toevoegingen
- * niet die nieuw genoeg zijn om bewaking te verdienen. Hij is nu zelf getoetst
- * (zie de matcher-tests onderaan dit bestand).
+ * Pulled out of the test because a matcher that cannot EXPRESS a claim does not
+ * fail — it stays silent, and then the list guards exactly those additions not
+ * that are new enough to deserve guarding. It is now itself tested
+ * (see the matcher tests at the bottom of this file).
  *
- * Een entry claimt ÉÉN schema-toevoeging:
+ * An entry claims ONE schema addition:
  *
- *   { column, table?, into, tag }            — een KOLOM in de ladder
- *   { table, kind: 'table', into, tag }      — een TABEL die de ladder maakt
+ *   { column, table?, into, tag }            — a COLUMN in the ladder
+ *   { table, kind: 'table', into, tag }      — a TABLE that the ladder creates
  *
- * `kind: 'table'` bestaat omdat `agent_tests` en `agent_test_runs` geen
- * kolommen zijn: hun toevoeging is een CREATE TABLE, en "de naam staat in het
- * blok" zou daar ook waar zijn van een index of een FK die de tabel alleen
- * NOEMT. De claim is dat de ladder hem MAAKT.
+ * `kind: 'table'` exists because `agent_tests` and `agent_test_runs` are not columns:
+ * their addition is a CREATE TABLE, and "the name is in the block" would also be true of
+ * an index or an FK that merely NAMES the table. The claim is that the ladder CREATES it.
  */
 
 /**
- * Index van het sluitteken dat hoort bij het openteken op `open`, of -1.
+ * Index of the closing character that belongs to the opening character at `open`, or -1.
  *
- * Strings (', " en `) en commentaar tellen niet mee: de SQL in deze bestanden
- * zit vol haakjes (`agent_conversations(user_id)`) en de Nederlandse
- * commentaarregels vol apostroffen. Zonder dat onderscheid telt de scanner de
- * inhoud van een statement mee als code.
+ * Strings (', " and `) and comments do not count: the SQL in these files is full of
+ * brackets (`agent_conversations(user_id)`) and the Dutch comment lines are full of
+ * apostrophes. Without that distinction the scanner would count the contents of a
+ * statement as code.
  */
 function matchDelimiter(src, open) {
     const OPEN = src[open];
@@ -327,22 +319,20 @@ function matchDelimiter(src, open) {
 }
 
 /**
- * ELKE `runDdl('<tag>', …)`-aanroep in een bron, als tekst.
+ * EVERY `runDdl('<tag>', …)` call in a source, as text.
  *
- * Twee dingen zaten hier fout, en samen maakten ze de A1c-claims
- * onopschrijfbaar:
+ * Two things were wrong here, and together they made the A1c claims impossible to write
+ * down:
  *
- *   1. Er werd alleen naar de EERSTE aanroep gekeken (`indexOf`). Een tag is
- *      per store, niet per aanroep — stores/agent/initSchema.js heeft er tien
- *      onder 'agentSchema' — dus alles voorbij de eerste las als "staat buiten
- *      de ladder".
- *   2. Het blok werd afgekapt op de eerste `]);`. Dat is niet het einde van de
- *      aanroep: het flatMap-blok sluit met `]));` en liep daardoor dóór tot in
- *      het volgende blok, terwijl een blok dat ermee eindigt precies één regel
- *      te vroeg stopte.
+ *   1. Only the FIRST call was looked at (`indexOf`). A tag is per store, not per call —
+ *      stores/agent/initSchema.js has ten of them under 'agentSchema' — so everything past
+ *      the first was read as "stands outside the ladder".
+ *   2. The block was cut off at the first `]);`. That is not the end of the call: the
+ *      flatMap block closes with `]));` and therefore ran on into the next block, while a
+ *      block that ends that way stopped exactly one line too early.
  *
- * Daarom nu de CALL zelf, van `(` tot het bijbehorende `)` — dat is per
- * definitie alles wat aan runDdl wordt meegegeven, hoe het ook is opgebouwd.
+ * Therefore it is now the CALL itself, from `(` to the matching `)` — that is by definition
+ * everything that is handed to runDdl, however it is built up.
  */
 function runDdlCalls(src, tag) {
     const needle = `runDdl('${tag}'`;
@@ -356,12 +346,12 @@ function runDdlCalls(src, tag) {
 }
 
 /**
- * De bron zonder commentaar.
+ * The source without comments.
  *
- * Een NOEMING in een `//`- of `/* *\/`-commentaar telde als bewijs dat de
- * ladder de kolom maakt: `knowledge_base_ids` staat in een toelichting BINNEN
- * hetzelfde runDdl-blok, dus wis je de echte ALTER, dan bleef de claim groen op
- * het commentaar dat erover ging. Commentaar maakt geen kolom.
+ * A MENTION in a `//` or `/* *\/` comment counted as proof that the ladder makes the
+ * column: `knowledge_base_ids` appears in a note INSIDE the same runDdl block, so if you
+ * deleted the real ALTER, the claim stayed green on the comment that was about it.
+ * A comment does not create a column.
  */
 function stripComments(src) {
     return String(src)
@@ -393,12 +383,11 @@ function claimLabel({ column, table, kind }) {
 }
 
 /**
- * De bezwaren tegen één ladderclaim. Leeg = de claim klopt.
+ * The objections to one ladder claim. Empty = the claim holds.
  *
- * Alles wat niet na te rekenen is, is een BEZWAAR — nooit stilte. Een entry
- * die niets noemt, een `into` dat niet te lezen is en een tag zonder aanroep
- * verschillen in melding maar niet in uitkomst: geen van drieën is een groene
- * claim.
+ * Everything that cannot be checked is an OBJECTION — never silence. An entry that
+ * names nothing, an `into` that cannot be read and a tag without a call differ in
+ * message but not in outcome: none of the three is a green claim.
  */
 function ladderProblems(entry) {
     const { column, table, into, tag, kind } = entry || {};
@@ -414,11 +403,11 @@ function ladderProblems(entry) {
     try {
         raw = fs.readFileSync(path.join(SERVER, into), 'utf8');
     } catch (e) {
-        // Ontbrekend en onleesbaar zijn verschillende waarden — vandaar de code
-        // in de melding — maar geen van beide betekent "klopt".
+        // Missing and unreadable are different values — hence the code in the
+        // message — but neither of them means "holds".
         return [`${label}: ${into} is niet te lezen (${e.code || e.message})`];
     }
-    // Commentaar telt niet mee: een noeming in een toelichting is geen DDL.
+    // A comment does not count: a mention in an explanatory note is not DDL.
     const src = stripComments(raw);
 
     const problems = [];
@@ -428,16 +417,15 @@ function ladderProblems(entry) {
         problems.push(`${into}: importeert stores/lib/_ddl.js niet meer`);
     }
 
-    // De toevoeging moet BINNEN een runDdl-aanroep met deze tag staan. Een
-    // ADD COLUMN die naar een `DO $$ … EXCEPTION WHEN OTHERS THEN NULL`
-    // terugverhuist leest als "bestond al" bij élke fout — precies de stilte
-    // die U5 heeft afgeschaft.
+    // The addition MUST be INSIDE a runDdl call with this tag. An
+    // ADD COLUMN that moves back into a `DO $$ … EXCEPTION WHEN OTHERS THEN NULL`
+    // reads as "already existed" on every error — precisely the silence that U5 abolished.
     const blocks = runDdlCalls(src, tag);
     if (!blocks.length) return [...problems, `${into}: geen runDdl('${tag}', …)-aanroep meer`];
-    // En in HETZELFDE statement als de tabel. Een kolomclaim zonder die eis
-    // zegt niets over WELKE tabel de kolom krijgt: `agents.persona` bleef groen
-    // toen de ALTER naar `agent_conversations` verhuisde, want die tabel staat
-    // in hetzelfde blok. De kop van COLUMN_LADDERS belooft het tegenovergestelde.
+    // And in the SAME statement as the table. A column claim without that requirement
+    // says nothing about WHICH table gets the column: `agents.persona` stayed green when the
+    // ALTER moved to `agent_conversations`, because that table is in the same block.
+    // The header of COLUMN_LADDERS promises the opposite.
     const statements = blocks.flatMap(ddlStatements);
     const fits = (st) => needle.test(st) && (kind === 'table' || !table || st.includes(table));
     if (!statements.some(fits)) {
@@ -449,11 +437,11 @@ function ladderProblems(entry) {
 }
 
 /**
- * Migratiebestanden die dezelfde toevoeging ÓÓK doen. Twee plekken die dezelfde
- * kolom toevoegen is twee plekken die uit elkaar lopen.
+ * Migration files that ALSO do the same addition. Two places that add the same
+ * column are two places that drift apart.
  *
- * Staat er een `table` bij een kolomclaim, dan telt een migratie pas mee als
- * hij ook díé tabel noemt — twee tabellen mogen dezelfde kolomnaam hebben.
+ * If a column claim has a `table`, a migration only counts once it also names THAT
+ * table — two tables may have the same column name.
  */
 function migrationsClaiming(entry) {
     const { table, kind } = entry;
@@ -474,95 +462,94 @@ test('elke nieuwe kolom staat in de runDdl-ladder van zijn eigen store', () => {
 });
 
 test('een kolom uit COLUMN_LADDERS krijgt géén eigen migratiebestand', () => {
-    // Twee plekken die dezelfde kolom toevoegen is twee plekken die uit elkaar
-    // lopen, en de migratieladder is precies wat hier niet bij hoort te groeien.
+    // Two places that add the same column are two places that drift apart,
+    // and the migration ladder is precisely what must not grow here.
     //
-    // De vergelijking is op WOORD, niet op substring: `version` zou anders
-    // matchen op `published_version`, en dan meldt de test een botsing die er
-    // niet is. Staat er een `table` bij, dan telt een migratie pas mee als hij
-    // ook díé tabel noemt — twee tabellen mogen dezelfde kolomnaam hebben.
+    // The comparison is on WORD, not on substring: `version` would otherwise match on
+    // `published_version`, and then the test reports a collision that is not there.
+    // If a `table` is included, a migration only counts once it also names THAT table —
+    // two tables may have the same column name.
     for (const entry of COLUMN_LADDERS) {
         assert.deepStrictEqual(migrationsClaiming(entry), [],
             `${claimLabel(entry)}: hoort in de store-ladder, niet ook in een migratiebestand`);
     }
 });
 
-// ── A1c: de drie schema-toevoegingen die nog GEEN claim hebben ──────────────
+// ── A1c: the three schema additions that do NOT YET have a claim ──────────────
 //
-// `agents.persona` en de twee testset-tabellen komen alle drie uit
-// stores/agent/initSchema.js en staan in geen enkele lijst. Ze horen in
-// COLUMN_LADDERS hierboven; die lijst wordt door de hoofdsessie geplaatst.
-// Wat híér staat is de VORM, want dat is wat kapot was: de matcher kon deze
-// drie claims niet uitdrukken, en een claim die je niet kunt opschrijven
-// faalt niet — hij zwijgt. Zodra de drie regels in COLUMN_LADDERS staan dekt
-// de laddertest ze inhoudelijk en pint deze fixture alleen nog de vorm.
+// `agents.persona` and the two testset tables all three come from
+// stores/agent/initSchema.js and are on no list at all. They belong in
+// COLUMN_LADDERS above; that list is being placed by the main session.
+// What stands HERE is the SHAPE, because that is what was broken: the matcher could not
+// express these three claims, and a claim that you cannot write down does not fail — it
+// stays silent. Once the three lines are in COLUMN_LADDERS, the ladder test covers them
+// substantively and this fixture pins only the shape.
 // initSchema.js is a facade since LF-S3: the DDL lives in .base.js + .agents.js,
 // run in the same order. The agent_* / persona claims are all in .agents.js.
 const INIT_SCHEMA = 'stores/agent/initSchema.agents.js';
 const INIT_SCHEMA_BASE = 'stores/agent/initSchema.base.js'; // conversation columns, agents CREATE TABLE
 const INIT_SCHEMA_PARTS = [INIT_SCHEMA_BASE, INIT_SCHEMA];
 
-// GEEN tweede kopie: een filter OVER de bewaakte lijst. Als losse fixture was
-// dit een tweede lijst met dezelfde drie claims, en dan verandert er niets aan
-// de uitslag wanneer ze uit COLUMN_LADDERS verdwijnen — de matchertests hier
-// bleven groen op hun eigen kopie terwijl de bewaakte lijst leegliep.
+// NOT a second copy: a filter OVER the guarded list. As a separate fixture this would be
+// a second list with the same three claims, and then nothing changes in the outcome when
+// they disappear from COLUMN_LADDERS — the matcher tests here would stay green on their
+// own copy while the guarded list emptied.
 const A1C_LADDERS = COLUMN_LADDERS.filter((e) => e.into === INIT_SCHEMA);
 // The whole DDL module set as one unit, in ladder order (base first, then agents).
 const readInitSchema = () => INIT_SCHEMA_PARTS.map((f) => fs.readFileSync(path.join(SERVER, f), 'utf8')).join('\n');
 
 test('de matcher vindt een kolom in een LATER runDdl-blok met dezelfde tag', () => {
-    // De wond: het blok werd afgebakend op de EERSTE `runDdl('<tag>'` in het
-    // bestand, en die tag is niet uniek — stores/agent/initSchema.js heeft er
-    // tien onder 'agentSchema'. `persona` staat in het zevende. De matcher las
-    // hem dus als "staat buiten de ladder" en de claim was niet op te
-    // schrijven: een kolom die er juist wél goed in staat kon niet groen.
+    // The wound: the block was delimited at the FIRST `runDdl('<tag>'` in the file, and that
+    // tag is not unique — stores/agent/initSchema.js has ten of them under 'agentSchema'.
+    // `persona` is in the seventh. The matcher therefore read it as "stands outside the
+    // ladder", and the claim was not writable: a column that actually stood there correctly
+    // could not come out green.
     const src = readInitSchema();
 
-    // Genuinely textual, met opzet: dit is geen claim over gedrag, maar de
-    // PREMISSE die de behavioural assertie hieronder pas zinnig maakt — dat de
-    // echte, groeiende bron nog steeds de tag twee keer bevat en `persona` nog
-    // steeds voorbij het eerste blok staat. Verdwijnt die premisse (iemand
-    // herschikt initSchema.js), dan moet DEZE regel rood gaan — anders wordt
-    // de matcher-test hieronder stilletjes vacuous op een fixture die niet
-    // meer bestaat.
+    // Genuinely textual, deliberately: this is not a claim about behaviour but the
+    // PREMISE that makes the behavioural assertion below meaningful — that the real,
+    // growing source still contains the tag twice and `persona` still stands beyond the
+    // first block. If that premise disappears (someone rearranges initSchema.js), then
+    // THIS rule must go red — otherwise the matcher test below silently becomes vacuous
+    // on a fixture that no longer exists.
     const tagAt = [...src.matchAll(/runDdl\('agentSchema'/g)].map((m) => m.index);
     assert.ok(tagAt.length > 1, 'premisse: de tag agentSchema komt meer dan één keer voor');
     assert.ok(src.indexOf('persona JSONB') > tagAt[1],
         'premisse: persona staat voorbij het eerste runDdl-blok');
 
-    // En dit is wat de matcher moet kunnen uitdrukken.
+    // And this is what the matcher must be able to express.
     assert.deepStrictEqual(ladderProblems(A1C_LADDERS[0]), []);
 });
 
 test('de matcher bakent élk runDdl-blok van een gedeelde tag af', () => {
     const src = readInitSchema();
     const blocks = runDdlCalls(src, 'agentSchema');
-    // Genuinely textual: dit rekent runDdlCalls() (de matcher) na tegen een
-    // onafhankelijke telling van dezelfde bron, niet tegen wat de matcher zelf
-    // beweert — vandaar de rechtstreekse regex op `src` naast de aanroep.
+    // Genuinely textual: this recalculates runDdlCalls() (the matcher) against an independent
+    // count of the same source, not against what the matcher itself claims — hence the direct
+    // regex on `src` next to the call.
     assert.strictEqual(blocks.length, (src.match(/runDdl\('agentSchema'/g) || []).length,
         'elk voorkomen van de tag hoort één blok op te leveren');
 
-    // Het flatMap-blok is de tweede reden dat afbakenen op ']);' niet volstaat:
-    // dat blok sluit met ']));' en liep daardoor door tot ver in het VOLGENDE
-    // blok — een kolom uit blok 7 las dan als een kolom uit blok 6.
+    // The flatMap block is the second reason that delimiting on ']);' does not suffice:
+    // that block closes with ']));' and therefore ran on far into the NEXT block — a column
+    // from block 7 then read as a column from block 6.
     assert.ok(blocks.some((b) => b.includes('flatMap') && b.includes('shared_scope')),
         'het flatMap-blok hoort compleet te zijn, niet afgekapt op zijn eerste ]');
 });
 
 test('de matcher kan een CREATE TABLE in de ladder uitdrukken', () => {
-    // agent_tests en agent_test_runs zijn TABELLEN. De oude recordvorm kende
-    // alleen `column` + `src.includes(column)`; daarmee is "deze ladder maakt
-    // deze tabel" niet te zeggen.
+    // agent_tests and agent_test_runs are TABLES. The old record form knew only
+    // `column` + `src.includes(column)`; with that, "this ladder makes this table"
+    // cannot be expressed.
     for (const entry of A1C_LADDERS.filter((e) => e.kind === 'table')) {
         assert.deepStrictEqual(ladderProblems(entry), [], `${entry.table}: claim klopt niet`);
     }
 });
 
 test('de drie A1c-claims botsen met geen enkel migratiebestand', () => {
-    // De andere kant van dezelfde claim: als deze drie straks in COLUMN_LADDERS
-    // staan, moet ook de "géén eigen migratiebestand"-test groen blijven. Voor
-    // een tabelclaim is dat een CREATE TABLE elders, niet een ADD COLUMN.
+    // The other side of the same claim: if these three are later in COLUMN_LADDERS, the
+    // "no own migration file" test must also stay green. For a table claim that is a CREATE
+    // TABLE elsewhere, not an ADD COLUMN.
     for (const entry of A1C_LADDERS) {
         assert.deepStrictEqual(migrationsClaiming(entry), [],
             `${claimLabel(entry)}: hoort in de store-ladder, niet ook in een migratiebestand`);
@@ -570,11 +557,11 @@ test('de drie A1c-claims botsen met geen enkel migratiebestand', () => {
 });
 
 test('elke claim op de agent-ladder staat in de BEWAAKTE lijst, niet alleen in deze fixture', () => {
-    // De bevinding zelf: zolang ze alleen hier stonden, bewaakte niets
-    // `agents.persona`, `agent_tests` en `agent_test_runs`. Deze assertie is
-    // wat "vergeten te plakken" rood maakt — en ze telt óók, zodat een NIEUWE
-    // kolom op deze ladder hier zichtbaar moet worden in plaats van stil mee
-    // te liften op de drie die er al stonden.
+    // The finding itself: as long as they stood only here, nothing guarded
+    // `agents.persona`, `agent_tests` and `agent_test_runs`. This assertion is
+    // what makes "forgot to paste" red — and it ALSO counts, so that a NEW column on this
+    // ladder must become visible here instead of quietly riding along on the three that
+    // were already there.
     const want = [
         { column: 'persona', table: 'agents', into: INIT_SCHEMA, tag: 'agentSchema' },
         { table: 'agent_tests', kind: 'table', into: INIT_SCHEMA, tag: 'agentSchema' },
@@ -597,16 +584,14 @@ test('elke claim op de agent-ladder staat in de BEWAAKTE lijst, niet alleen in d
 });
 
 test('een noeming in COMMENTAAR is geen kolom', () => {
-    // De verbreding van "eerste blok" naar "elk blok" maakte dit bereikbaar:
-    // `knowledge_base_ids` staat óók in een toelichting binnen hetzelfde
-    // runDdl-blok, dus wis je de ALTER, dan bleef de claim groen op het
-    // commentaar dat erover ging.
+    // The widening from "first block" to "every block" made this reachable:
+    // `knowledge_base_ids` also appears in a note inside the same runDdl block, so if you
+    // deleted the ALTER, the claim stayed green on the comment that was about it.
     const src = readInitSchema();
-    // Genuinely textual, zelfde reden als de twee tests hierboven: dit is de
-    // premisse die stripComments() hieronder zinnig test, niet een claim over
-    // productiegedrag — als `knowledge_base_ids` ooit uit het commentaar van
-    // initSchema.js verdwijnt, moet DEZE regel het melden in plaats van de
-    // stripComments-test stilletjes te laten leeglopen.
+    // Genuinely textual, same reason as the two tests above: this is the
+    // premise that stripComments() below tests meaningfully, not a claim about production
+    // behaviour — if `knowledge_base_ids` ever disappears from the comment in initSchema.js,
+    // THIS rule must report it instead of letting the stripComments test quietly run empty.
     assert.ok(/\/\/[^\n]*knowledge_base_ids/.test(src),
         'premisse: de kolom wordt in dit bestand ook in commentaar genoemd');
     const stripped = stripComments(src);
@@ -616,9 +601,9 @@ test('een noeming in COMMENTAAR is geen kolom', () => {
 });
 
 test('een kolomclaim gaat over ÉÉN tabel — een andere tabel in hetzelfde blok telt niet', () => {
-    // `pinned` staat in hetzelfde runDdl-blok als `knowledge_base_ids`, maar op
-    // twee ANDERE tabellen. Een claim die `pinned` op `agents` legt hoort dus
-    // rood te zijn, ook al staat het woord in de ladder.
+    // `pinned` is in the same runDdl block as `knowledge_base_ids`, but on two OTHER
+    // tables. A claim that puts `pinned` on `agents` should therefore be red, even though the
+    // word stands in the ladder.
     const out = ladderProblems({
         column: 'pinned', table: 'agents', into: INIT_SCHEMA_BASE, tag: 'agentSchema',
     });
@@ -631,9 +616,9 @@ test('een kolomclaim gaat over ÉÉN tabel — een andere tabel in hetzelfde blo
 });
 
 test('de matcher blijft rood op een kolom buiten elke runDdl-ladder', () => {
-    // starter_prompts staat in het CREATE TABLE dat via exec() draait — precies
-    // wat deze claim NIET mag dekken. Verbreden van "eerste blok" naar "elk
-    // blok" mag niet doorschieten in "staat ergens in het bestand".
+    // starter_prompts is in the CREATE TABLE that runs via exec() — precisely what this claim
+    // must NOT cover. Widening "first block" to "every block" must not overshoot into "stands
+    // somewhere in the file".
     const out = ladderProblems({
         column: 'starter_prompts', table: 'agents', into: INIT_SCHEMA_BASE, tag: 'agentSchema',
     });
@@ -642,25 +627,24 @@ test('de matcher blijft rood op een kolom buiten elke runDdl-ladder', () => {
 });
 
 test('de matcher blijft rood op een tabel die de ladder alleen NOEMT', () => {
-    // agent_favorites wordt met exec() gemaakt; het runDdl-blok eronder legt er
-    // alleen een index op. "Wordt genoemd" is geen "wordt gemaakt" — anders
-    // dekt de claim een tabel waarvan de creatie nog steeds stil kan falen.
+    // agent_favorites is created with exec(); the runDdl block beneath it only places an
+    // index on it. "Is mentioned" is not "is created" — otherwise the claim covers a table whose
+    // creation could still fail silently.
     const out = ladderProblems({ table: 'agent_favorites', kind: 'table', into: INIT_SCHEMA, tag: 'agentSchema' });
     assert.ok(out.length > 0, 'een genoemde-maar-niet-gemaakte tabel hoort een bezwaar te geven');
 });
 
 test('onbekend versmalt: een onleesbaar doel of een lege claim is een bezwaar', () => {
-    // Geen enkele van deze mag als "klopt" wegvallen. Een claim die niets zegt
-    // is geen groene claim.
+    // None of these may drop out as "holds". A claim that says nothing
+    // is not a green claim.
     const cases = [
         ['bestand weg', { column: 'persona', into: 'stores/agent/bestaat-niet.js', tag: 'agentSchema' }, 'niet te lezen'],
         ['kolom weg', { column: 'nooit_bestaan_hebbende_kolom', into: INIT_SCHEMA, tag: 'agentSchema' }, 'staat niet meer in'],
         ['tag weg', { column: 'persona', into: INIT_SCHEMA, tag: 'geenEnkeleTag' }, 'geen runDdl'],
-        // De drie die hun eigen poort NIET dekten: elk van deze kwam alleen
-        // rood uit omdat `claimNeedle({})` toevallig op `/\bundefined\b/`
-        // landde en dat woord nergens in de ladder staat. Zet iemand `undefined`
-        // in een commentaarregel, dan las een claim die NIETS noemt als groen.
-        // Daarom nu op de MELDING, niet op "er was er een".
+        // The three that did NOT cover their own gate: each of these came out red only
+        // because `claimNeedle({})` happened to land on `/\bundefined\b/`, and that word
+        // appears nowhere in the ladder. Put `undefined` in a comment line and a claim that
+        // names NOTHING would read as green. Therefore now on the MESSAGE, not on "there was one".
         ['noemt niets', { into: INIT_SCHEMA, tag: 'agentSchema' }, 'noemt geen kolom'],
         ['tabel zonder kind', { table: 'agent_tests', into: INIT_SCHEMA, tag: 'agentSchema' }, 'noemt geen kolom'],
         ['onbekende kind', { column: 'persona', kind: 'index', into: INIT_SCHEMA, tag: 'agentSchema' }, 'onbekende kind'],
@@ -675,8 +659,8 @@ test('onbekend versmalt: een onleesbaar doel of een lege claim is een bezwaar', 
             `${label}: het bezwaar hoort "${want}" te noemen, kreeg: ${JSON.stringify(out)}`);
     }
 
-    // De woordgrens is dragend: zonder hem matcht een claim op een STUK van een
-    // kolomnaam, en dan dekt "persona" ook "geen_persona_hier".
+    // The word boundary is load-bearing: without it a claim would match on a PART of a
+    // column name, and then "persona" would also cover "geen_persona_hier".
     assert.ok(ladderProblems({ column: 'ersona', table: 'agents', into: INIT_SCHEMA, tag: 'agentSchema' })
         .some((m) => m.includes('staat niet meer in')),
         'een halve kolomnaam hoort geen claim te zijn');

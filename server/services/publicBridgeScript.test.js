@@ -1,45 +1,37 @@
 /**
- * publicBridgeScript — de servertweeling voor react-mui publieke shares.
+ * publicBridgeScript — the server twin for react-mui public shares.
  *
- * ── WAAROM HIER EEN DRIFTTEST STAAT ─────────────────────────────────
+ * ── WHY A DRIFT TEST IS HERE ────────────────────────────────────────
  *
- * Dit bestand is een HANDBIJGEHOUDEN tweeling van de client-brug in
- * agent-hub/src/utils/composeWebpageDocument.js. Zijn buurman
- * services/reactBundleServer.js draagt al jaren dezelfde afspraak in
- * commentaar — "⚠️ KEEP IN SYNC met buildWebpagePreview.js … byte-identiek" —
- * en juist daar staat het bewijs dat een commentaarregel niets tegenhoudt:
- * `window.beeflowAI` heeft er de namen `complete`/`ground`/`generate`, die in
- * geen van de twee andere brugbestanden bestaan, en mist de vier namen die er
- * wél zijn. Een pagina die `beeflowAI.chat(...)` aanroept, krijgt daar een
- * TypeError.
+ * This file is a HAND-MAINTAINED twin of the client bridge in agent-hub/src/utils/composeWebpageDocument.js.
+ * Its neighbour services/reactBundleServer.js has carried the same agreement in its comments for years —
+ * "⚠️ KEEP IN SYNC with buildWebpagePreview.js … byte-identical" — and it is right there that the proof
+ * lies that a comment line holds nothing back: `window.beeflowAI` there has the names `complete`/`ground`/`generate`,
+ * which exist in neither of the other two bridge files, and it lacks the four names that ARE there. A page
+ * that calls `beeflowAI.chat(...)` gets a TypeError there.
  *
- * De tests hieronder maken die afspraak mechanisch, op twee niveaus:
+ * The tests below make that agreement mechanical, at two levels:
  *
- *   1. het bf-ELEMENTVOCABULAIRE — de brug zendt uit wat
- *      core/webpages/bfElements.js zegt, VELD VOOR VELD. Niet een telling: een
- *      test die alleen kijkt hoevéél elementen er zijn, blijft groen als iemand
- *      een attribuut toevoegt en de projectie vergeet;
- *   2. het BRUGOPPERVLAK — welke `window.beeflow*`-namen elke helft draagt.
- *      Elk verschil staat in één tabel, met de reden erbij, en die tabel wordt
- *      uit BEIDE bronnen gecontroleerd.
+ *   1. the bf ELEMENT VOCABULARY — the bridge emits what core/webpages/bfElements.js says, FIELD BY FIELD. Not a
+ *      count: a test that only checks HOW MANY elements there are stays green when someone adds an attribute and
+ *      forgets the projection;
+ *   2. the BRIDGE SURFACE — which `window.beeflow*` names each half carries. Every difference is in one table,
+ *      with the reason next to it, and that table is checked against BOTH sources.
  *
- * ── WAT DIT KAN BEWIJZEN ────────────────────────────────────────────
+ * ── WHAT THIS CAN PROVE ─────────────────────────────────────────────
  *
- * Dat de uitgezonden brug dezelfde elementen, dezelfde attributen en dezelfde
- * oordelen draagt als de registry; dat elk geweigerd element in een echt
- * document ZICHTBAAR meldt wat er niet kan; en dat geen van beide helften van
- * de tweeling stilzwijgend een naam kan krijgen of verliezen.
+ * That the emitted bridge carries the same elements, the same attributes and the same judgements as the registry;
+ * that every refused element in a real document visibly reports what cannot be done; and that neither half of the
+ * twin can silently gain or lose a name.
  *
- * ── WAT DIT NIET KAN BEWIJZEN ───────────────────────────────────────
+ * ── WHAT THIS CANNOT PROVE ──────────────────────────────────────────
  *
- * Dat de twee helften zich hetzelfde GEDRAGEN. Dezelfde naam kan aan beide
- * kanten iets anders doen; deze tests vergelijken vormen en, waar het om de
- * weigering gaat, wat er in de DOM belandt. Ze zeggen niets over de route
- * erachter. En ze zeggen niets over een share waar publieke AI UIT staat: dan
- * wordt deze brug helemaal niet geïnjecteerd en draait alleen de ingebakken
- * stub van reactBundleServer.js (zie het rapport bij deze stap).
+ * That the two halves BEHAVE the same. The same name can do something different on each side; these tests compare
+ * shapes and, where it concerns the refusal, what lands in the DOM. They say nothing about the route behind it.
+ * And they say nothing about a share where public AI is OFF: then this bridge is not injected at all and only the
+ * baked-in stub of reactBundleServer.js runs (see the report at this step).
  *
- * Draaien: cd server && node --test --test-force-exit services/publicBridgeScript.test.js
+ * Run: cd server && node --test --test-force-exit services/publicBridgeScript.test.js
  */
 
 const test = require('node:test');
@@ -55,10 +47,9 @@ const bf = require('../core/webpages/bfElements');
 const { maskCode } = require('../core/webpages/webpageBindings');
 
 /**
- * De CLIENT-helft van de tweeling. Twee bestanden, want de client-brug is
- * gesplitst: de platformbruggen worden in de composer opgebouwd, het
- * elementvocabulaire in zijn eigen runtime. Beide moeten bestaan — verhuist er
- * een, dan hoort deze test rood te worden en niet stilletjes de helft te lezen.
+ * The CLIENT half of the twin. Two files, because the client bridge is split: the platform bridges are built in
+ * the composer, the element vocabulary in its own runtime. Both must exist — if one moves, this test should turn
+ * red and not quietly read only half.
  */
 const CLIENT_UTILS = path.join(__dirname, '..', '..', 'agent-hub', 'src', 'utils');
 const CLIENT_BRIDGE_FILES = [
@@ -67,7 +58,7 @@ const CLIENT_BRIDGE_FILES = [
     path.join(CLIENT_UTILS, 'bfElementsRuntime.ts'),
 ];
 
-/** De brug zoals hij echt wordt uitgezonden. Eén plek, zodat elke test hetzelfde toetst. */
+/** The bridge as it is really emitted. One place, so that every test checks the same thing. */
 function bridge() {
     return buildPublicBridgeScript({ token: 't0ken', apiBase: 'https://example.test' });
 }
@@ -97,9 +88,8 @@ test('beeflowTables refuses on a public share, and does not resolve empty', () =
     const s = buildPublicBridgeScript({ token: 't', apiBase: 'http://localhost:3101' });
     assert.match(s, /window\.beeflowTables = \{/);
     assert.match(s, /beeflowTables is not available on shared links/);
-    // "Geen rijen" en "hier kun je geen tabel lezen" mogen niet hetzelfde
-    // lezen: een resolve-empty stub zou een publieke pagina een lege tabel
-    // laten tonen alsof de tabel leeg wás.
+    // "No rows" and "you cannot read a table here" must not read the same: a resolve-empty stub would make a public
+    // page show an empty table as if the table were empty.
     assert.strictEqual(/beeflowTables = \{ query:function\(\)\{return Promise\.resolve/.test(s), false);
 });
 
@@ -113,15 +103,14 @@ test('is a single self-contained, properly-closed script element', () => {
     assert.strictEqual((s.match(/<\/script>/g) || []).length, 1);
 });
 
-// ── 1. HET VOCABULAIRE: DE VORM, NIET EEN TELLING ─────────────────────
+// ── 1. THE VOCABULARY: THE SHAPE, NOT A COUNT ─────────────────────────
 
 /**
- * De vorm die de brug hoort uit te zenden — hier LOS afgeleid uit de registry.
+ * The shape that the bridge should emit — derived SEPARATELY here from the registry.
  *
- * Met opzet niet `publicShareVocabulary()` aanroepen: dan zou de test die
- * functie met zichzelf vergelijken en overal groen op blijven. Dit is een
- * tweede, met de hand geschreven afleiding van dezelfde bron; wijkt de
- * uitzending ervan af, dan is er iets stuk tussen registry en brug.
+ * Deliberately not calling `publicShareVocabulary()`: then the test would compare that function with itself and
+ * stay green everywhere. This is a second, hand-written derivation from the same source; if the emission deviates
+ * from it, then something is broken between registry and bridge.
  */
 function expectedVocabulary() {
     const out = {};
@@ -130,12 +119,11 @@ function expectedVocabulary() {
         out[def.tag] = {
             summary: def.summary,
             needsJs: def.needsJs,
-            // `reads` staat alleen op elementen die er een hebben — de projectie
-            // laat een veld dat het element niet draagt gewoon weg.
+            // `reads` appears only on elements that have one — the projection simply leaves out a field that the
+            // element does not carry.
             ...(def.reads !== undefined ? { reads: def.reads } : {}),
             attributes: def.attributes.map((a) => {
-                // Alleen de velden die een BROWSER iets zeggen. `means` noemt
-                // interne poortpaden en blijft op de server.
+                // Only the fields that mean something to a BROWSER. `means` names internal gate paths and stays on the server.
                 const attr = { name: a.name, required: a.required };
                 if (a.aliases !== undefined) attr.aliases = [...a.aliases];
                 if (a.values !== undefined) attr.values = [...a.values];
@@ -153,9 +141,8 @@ function expectedVocabulary() {
 }
 
 /**
- * Het document zoals een publieke react-share het krijgt: de brug in `<head>`,
- * daarna de opmaak. Wacht op DOMContentLoaded, want de veeg over wat er al in
- * het document stond hangt daaraan.
+ * The document as a public react share receives it: the bridge in `<head>`, then the markup. Waits for
+ * DOMContentLoaded, because the sweep over what was already in the document hangs on that.
  */
 async function renderWithBridge(bodyHtml, { withBridge = true, headExtra = '' } = {}) {
     const dom = new JSDOM(
@@ -191,17 +178,15 @@ test('drift — de uitgezonden brug draagt de VORM van de registry, veld voor ve
 });
 
 test('drift — elk VELD van het vocabulaire is bewust wel of niet verzonden', () => {
-    // Dit is het slot waardoor een nieuw ATTRIBUUT niet stil kan achterblijven.
-    // Een test die alleen elementen telt, ziet zo'n toevoeging niet; deze legt
-    // elke sleutel die in de registry voorkomt naast de projectietabel.
+    // This is the slot through which a new ATTRIBUTE cannot silently stay behind. A test that only counts elements
+    // does not see such an addition; this one lays every key that occurs in the registry beside the projection table.
     const used = { element: new Set(), surface: new Set(), attribute: new Set() };
     for (const def of bf.BF_ELEMENTS) {
         for (const key of Object.keys(def)) used.element.add(key);
         for (const key of Object.keys(def.surfaces.reactShare)) used.surface.add(key);
         for (const attr of def.attributes) for (const key of Object.keys(attr)) used.attribute.add(key);
     }
-    // Zonder deze regel zou een kapotte walk een groene test opleveren die
-    // niets heeft gelezen.
+    // Without this line a broken walk would produce a green test that has read nothing.
     assert.ok(used.element.size >= 5 && used.attribute.size >= 4,
         'sanity: er zijn velden uit de registry gehaald');
 
@@ -215,20 +200,18 @@ test('drift — elk VELD van het vocabulaire is bewust wel of niet verzonden', (
             `PUBLIC_SHARE_PROJECTION.${level} zegt niets over ${undecided.join(', ')}. Zo'n veld gaat stil `
             + 'niet mee naar de publieke share, en dan draagt de tweeling niet meer dezelfde definitie.');
 
-        // Richting 2 — alles wat de tabel noemt, bestaat ook. Een verschrijving
-        // in `ship` zou anders een veld stilzwijgend thuislaten.
+        // Direction 2 — everything that the table names also exists. A typo in `ship` would otherwise leave a field
+        // silently at home.
         const phantom = [...decided].filter(k => !used[level].has(k));
         assert.deepStrictEqual(phantom, [],
             `PUBLIC_SHARE_PROJECTION.${level} noemt ${phantom.join(', ')}, en dat veld bestaat nergens in het `
             + 'vocabulaire — waarschijnlijk een verschrijving, en dan blijft het echte veld thuis.');
 
-        // Een veld kan niet tegelijk verzonden worden en thuisblijven; zou dat
-        // wel kunnen, dan zegt de tabel niets meer.
+        // A field cannot be sent and stay at home at the same time; if it could, the table would say nothing any more.
         const both = ship.filter(k => Object.prototype.hasOwnProperty.call(hold, k));
         assert.deepStrictEqual(both, [], `${level}: ${both.join(', ')} staat in ship én in hold`);
 
-        // Een reden om iets thuis te laten is niet optioneel: "waarom niet" is
-        // precies wat een volgende lezer moet kunnen nalopen.
+        // A reason for keeping something at home is not optional: "why not" is exactly what a next reader must be able to check.
         for (const [key, why] of Object.entries(hold)) {
             assert.ok(typeof why === 'string' && why.length > 20,
                 `${level}.${key} blijft op de server zonder leesbare reden`);
@@ -237,9 +220,8 @@ test('drift — elk VELD van het vocabulaire is bewust wel of niet verzonden', (
 });
 
 test('drift — wat de projectie thuislaat, staat ook echt niet in de uitzending', async () => {
-    // De tabel naast de UITVOER, niet naast zichzelf. Deze test vond een echt
-    // gat: `attributes` werd apart meegegeven, buiten de shiplijst om, dus de
-    // tabel kon zeggen "blijft thuis" terwijl het veld gewoon meereisde.
+    // The table beside the OUTPUT, not beside itself. This test found a real gap: `attributes` was passed separately,
+    // outside the ship list, so the table could say "stays at home" while the field travelled along anyway.
     const dom = await renderWithBridge('');
     try {
         const shipped = JSON.parse(JSON.stringify(dom.window.beeflowBf.elements));
@@ -269,9 +251,8 @@ test('drift — wat de projectie thuislaat, staat ook echt niet in de uitzending
 });
 
 test('BIJT — een veld dat de projectie niet kent, laat de brug niet meer bouwen', () => {
-    // Het mechanisme zelf, met een verzonnen element: de echte registry is
-    // bevroren, dus die kan de test niet muteren. Dit is het require-tijd-slot
-    // dat maakt dat "vergeten" geen optie is.
+    // The mechanism itself, with an invented element: the real registry is frozen, so the test cannot mutate it.
+    // This is the require-time slot that makes "forgotten" no option.
     assert.strictEqual(bf.assertProjectionComplete(), true, 'het echte vocabulaire is volledig beslist');
 
     const invented = [{
@@ -309,13 +290,12 @@ test('drift — een onbekend element komt er als "unknown" uit, met een reden', 
 // ── 2. EERLIJK FALEN: DE WEIGERING IS TE ZIEN ─────────────────────────
 
 /**
- * De elementen die het op déze plek niet zelf doen — uit de registry.
+ * The elements that do NOT work themselves at this place — from the registry.
  *
- * NIET `=== 'refused'`. Een element dat legitiem naar `inert` verschuift zou
- * dan geruisloos uit elke DOM-test in dit bestand vallen, en op de share weer
- * een leeg vak worden zonder dat één test protesteert. De brug markeert alles
- * wat hier niet `live` is en niet al door de snapshot-writer is vervangen
- * (`static`); deze helper stelt dezelfde vraag.
+ * NOT `=== 'refused'`. An element that legitimately shifts to `inert` would then silently drop out of every DOM
+ * test in this file, and on the share become an empty box again without a single test protesting. The bridge marks
+ * everything that is not `live` here and not already replaced by the snapshot writer (`static`); this helper asks
+ * the same question.
  */
 function silentTags() {
     return bf.BF_TAGS.filter((tag) => {
@@ -327,8 +307,8 @@ function silentTags() {
 const refusedTags = silentTags;
 
 test('de te markeren elementen zijn PRECIES wat de registry over deze plek zegt', () => {
-    // Ondergrens ("er zijn er minstens drie") liet een element ongemerkt uit de
-    // verzameling stappen. Exacte gelijkheid dus, in beide richtingen.
+    // A lower bound ("there are at least three") let an element silently drop out of the set being walked. Hence exact
+    // equality, in both directions.
     const expected = bf.BF_TAGS.filter((tag) => {
         const state = bf.getBfElement(tag).surfaces.reactShare.state;
         return state !== 'live' && state !== 'static';
@@ -348,8 +328,8 @@ test('elk geweigerd element zegt in de DOM wat er niet kan, in plaats van leeg t
     try {
         const { document } = dom.window;
         for (const tag of tags) {
-            // createElement + appendChild, want zo komt een element op een
-            // react-share in het document terecht: React bouwt de DOM zelf.
+            // createElement + appendChild, because that is how an element on a react share ends up in the document: React
+            // builds the DOM itself.
             const el = document.createElement(tag);
             document.body.appendChild(el);
 
@@ -367,8 +347,7 @@ test('elk geweigerd element zegt in de DOM wat er niet kan, in plaats van leeg t
 });
 
 test('BIJT — zonder deze brug is datzelfde element wél een leeg vak', async () => {
-    // Negatieve controle. Zonder deze test zou de test hierboven groen kunnen
-    // blijven op iets wat de brug helemaal niet doet.
+    // Negative control. Without this test, the test above could stay green on something that the bridge does not do at all.
     const tag = refusedTags()[0];
     const dom = await renderWithBridge('', { withBridge: false });
     try {
@@ -382,8 +361,8 @@ test('BIJT — zonder deze brug is datzelfde element wél een leeg vak', async (
 test('wat al in de pagina stond wordt ook opgehaald, en de melding komt maar één keer', async () => {
     const tag = refusedTags()[0];
     const notice = bf.getBfElement(tag).surfaces.reactShare.notice;
-    // In het document geschreven vóór de brug klaar was: de custom-element-hook
-    // vuurt daar niet overal voor, dus er moet ook geveegd worden.
+    // Written into the document before the bridge was ready: the custom-element hook does not fire everywhere for that,
+    // so a sweep must happen as well.
     const dom = await renderWithBridge(`<${tag} source="tbl_1"></${tag}>`);
     try {
         const { document } = dom.window;
@@ -392,8 +371,8 @@ test('wat al in de pagina stond wordt ook opgehaald, en de melding komt maar é�
         assert.ok(el.textContent.includes(notice), 'ook een element uit de opmaak zelf meldt zijn weigering');
         assert.strictEqual(document.querySelectorAll('[data-bf-notice]').length, 1);
 
-        // Opnieuw invoegen laat de hook nog een keer vuren; twee meldingen in
-        // één element zou pas echt verwarrend zijn.
+        // Re-inserting fires the hook once more; two notices in
+        // one element would be genuinely confusing.
         el.remove();
         document.body.appendChild(el);
         assert.strictEqual(el.querySelectorAll('[data-bf-notice]').length, 1,
@@ -418,8 +397,8 @@ test('BIJT — elke melding zegt WAT er niet kan, en is geen ontwikkelaarstekst'
     for (const tag of refusedTags()) {
         const share = bf.getBfElement(tag).surfaces.reactShare;
         assert.ok(share.notice && share.notice.length > 15, `${tag}: de lezer krijgt een hele zin te zien`);
-        // "Het werkte niet" is geen mededeling. Er moet staan dát het hier niet
-        // kan; anders is de melding net zo nietszeggend als een leeg vak.
+        // "It didn't work" is not a message. It has to say THAT it can't work here;
+        // otherwise the message is as meaningless as an empty box.
         assert.match(share.notice, /\bcannot\b|\bis not available\b/,
             `${tag}: de melding zegt niet wat er niet kan`);
         // De tekst voor de LEZER draagt geen tagnamen; die horen in `message`,
@@ -436,9 +415,9 @@ test('refresh() haalt op wat de hook nooit gezien heeft', async () => {
     const dom = await renderWithBridge('');
     try {
         const w = dom.window;
-        // Een LOSGEKOPPELDE tak: hier vuurt connectedCallback nooit, want er
-        // wordt niets aan het document gehangen. Dit is de uitweg voor code die
-        // haar opmaak eerst opbouwt en pas later invoegt.
+        // A DISCONNECTED branch: connectedCallback never fires here, because
+        // nothing is attached to the document. This is the escape hatch for code that
+        // builds its markup first and only inserts it later.
         const holder = w.document.createElement('div');
         holder.appendChild(w.document.createElement(tag));
         assert.strictEqual(holder.textContent, '', 'sanity: los van het document is er nog niets gemeld');
@@ -451,19 +430,19 @@ test('refresh() haalt op wat de hook nooit gezien heeft', async () => {
 
 test('de pagina die zelf een element definieert, wordt niet overschreven', async () => {
     const tag = refusedTags()[0];
-    // Een tweede customElements.define op dezelfde naam GOOIT. Zou de brug dat
-    // niet opvangen, dan sleept één zelfgebouwd element de hele brug mee — geen
-    // beeflowAI, geen beeflowTables, niets.
+    // A second customElements.define on the same name THROWS. If the bridge did not
+    // catch that, one self-built element would drag the whole bridge down with it — no
+    // beeflowAI, no beeflowTables, nothing.
     const own = `<script>customElements.define(${JSON.stringify(tag)}, class extends HTMLElement {});<\/script>`;
     const dom = await renderWithBridge(`<${tag}></${tag}>`, { headExtra: own });
     try {
         const w = dom.window;
         assert.ok(w.beeflowBf, 'de brug is heel gebleven, ondanks de bezette naam');
         assert.strictEqual(typeof w.beeflowAI.chat, 'function', 'en het AI-oppervlak staat er nog');
-        // DE TWEE ASSERTS DIE DE WORP ZOUDEN VOELEN. beeflowBf en beeflowAI
-        // staan VÓÓR de define-lus en overleven een uitzondering sowieso; alles
-        // erná niet. Zonder deze twee bleef de test groen als je de guard én de
-        // try/catch weghaalde — precies wat hij hoort te bewijzen.
+        // THE TWO ASSERTS THAT WOULD FEEL THE THROW. beeflowBf and beeflowAI
+        // are set BEFORE the define loop and survive an exception regardless; everything
+        // after that does not. Without these two, the test stayed green if you removed the guard AND the
+        // try/catch — exactly what it is meant to prove.
         assert.strictEqual(typeof w.beeflowIntegrations, 'object',
             'beeflowIntegrations staat NA de define-lus; is hij weg, dan heeft een worp de rest van de brug '
             + 'meegesleurd en krijgt paginacode daar een TypeError');
@@ -475,9 +454,9 @@ test('de pagina die zelf een element definieert, wordt niet overschreven', async
 });
 
 test('de veeg staat er OOK voor als customElements ontbreekt', async () => {
-    // De hook en de veeg dekten elkaar in JSDOM volledig af: je kon de veeg
-    // weghalen en alle tests bleven groen. Hier is er geen hook — het enige dat
-    // het element dan nog kan markeren, is de veeg.
+    // The hook and the sweep completely overlapped in JSDOM: you could remove the sweep
+    // and all tests stayed green. Here there is no hook — the only thing that
+    // can still mark the element is the sweep.
     const tag = refusedTags()[0];
     const kill = '<script>try { delete window.customElements; } catch (e) {}<\/script>';
     const dom = await renderWithBridge(`<${tag}></${tag}>`, { headExtra: kill });
@@ -492,9 +471,9 @@ test('de veeg staat er OOK voor als customElements ontbreekt', async () => {
 });
 
 test('een ONBEKEND element krijgt hier ook een melding, niet alleen aan de client-kant', async () => {
-    // De brug wist het al (`state('bf-nope')` is 'unknown'); hij tekende het
-    // alleen niet. Een element van een nieuwere serverversie, of een tikfout in
-    // de tagnaam, bleef daardoor een leeg vak.
+    // The bridge already knew it (`state('bf-nope')` is 'unknown'); it just didn't
+    // draw it. An element from a newer server version, or a typo in
+    // the tag name, therefore remained an empty box.
     const dom = await renderWithBridge('<bf-nope>Mijn eigen tekst</bf-nope>');
     try {
         const el = dom.window.document.querySelector('bf-nope');
@@ -507,21 +486,21 @@ test('een ONBEKEND element krijgt hier ook een melding, niet alleen aan de clien
 // ── 3. DE TWEELING: HET BRUGOPPERVLAK, HALF OM HALF ───────────────────
 
 /**
- * Het brugoppervlak van BEIDE helften, met elk verschil benoemd.
+ * The bridge surface of BOTH halves, with each difference named.
  *
- *   shared      namen die op allebei staan. Dat ze hier hetzelfde HETEN wil niet
- *               zeggen dat ze hetzelfde DOEN: `ask` bestaat aan beide kanten,
- *               maar weigert hier met een reden. Dat is de bedoeling — een naam
- *               die er niet is, geeft een TypeError; een naam die weigert, geeft
- *               een uitleg.
- *   missingHere namen die de client kent en deze tweeling NIET. Elke ingang is
- *               een gat waar paginacode op stukloopt, dus elke ingang draagt de
- *               schade. Deze lijst mag niet groeien.
- *   serverOnly  namen die alleen hier bestaan, met de reden waarom de client ze
- *               niet nodig heeft.
- *   proxy       de client somt namen op, deze kant zet er een Proxy neer die op
- *               ELKE naam een no-op teruggeeft. Een superset, dus hier valt
- *               niets uit de pas te lopen.
+ *   shared      names that exist on both sides. That they HAVE the same name does not
+ *               mean they DO the same thing: `ask` exists on both sides,
+ *               but here it refuses with a reason. That is the intent — a name
+ *               that isn't there gives a TypeError; a name that refuses gives
+ *               an explanation.
+ *   missingHere names the client knows and this twin does NOT. Every entry is
+ *               a gap that page code trips over, so every entry carries
+ *               the damage. This list must not grow.
+ *   serverOnly  names that exist only here, with the reason the client does not
+ *               need them.
+ *   proxy       the client enumerates names, and this side installs a Proxy that returns a no-op for
+ *               EVERY name. A superset, so nothing here
+ *               falls out of step.
  */
 const BRIDGE_TWIN = {
     beeflowAI: { shared: ['chat', 'chatJSON', 'stream', 'ask'] },
@@ -554,12 +533,11 @@ const BRIDGE_TWIN = {
                 + 'melding uit het vocabulaire; hier is de brug de renderer, dus hier moet paginacode er ook '
                 + 'bij kunnen.',
         },
-        // De client-kant van dit oppervlak wordt in een parallelle W4-stap
-        // geschreven en groeit nog. Daarom hier een ONDERGRENS in plaats van
-        // een gelijkheid: de VRAGEN die beide kanten moeten kunnen beantwoorden
-        // liggen vast, de lijst mag aan die kant langer worden. De inhoud van
-        // `elements` is aan beide kanten met opzet anders — elke kant draagt
-        // zijn eigen plek uit hetzelfde vocabulaire.
+        // The client side of this surface is written in a parallel W4 step and is still growing. That is why
+        // there is a LOWER BOUND here instead of an equality: the QUESTIONS that both sides must be able to answer
+        // are fixed; the list may become longer on that side. The contents of `elements` are deliberately
+        // different on each side — each side carries
+        // its own place from the same vocabulary.
         clientIsSuperset: true,
     },
 };
@@ -567,20 +545,20 @@ const BRIDGE_TWIN = {
 /** Regeleindes gelijktrekken: de checkout kan CRLF dragen. */
 function readSource(file) {
     const raw = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
-    // Geen claim over gedrag: sanity-guard tegen een pad dat stil een lege
-    // string oplevert, waarna clientBridgeText() hieronder vacuous groen zou
-    // zijn op een client-helft die niet is gelezen.
+    // No claim about behaviour: sanity guard against a path that silently yields an empty
+    // string, after which clientBridgeText() below would be vacuously green
+    // on a client half that was not read.
     assert.ok(raw.length > 500, `sanity: ${path.basename(file)} is gelezen en niet leeg`);
     return raw;
 }
 
 /**
- * De brugtekst uit een bestand dat hem als template-literal opbouwt.
+ * The bridge text from a file that builds it as a template literal.
  *
- * Dezelfde truc als promptCatalogSync.test.js: niet de geëxporteerde waarde
- * maar de BRONTEKST, want de brug ÍS een literal. maskCode (W3 exporteert hem
- * hiervoor) haalt de literals eruit; we houden alles wat een window.beeflow*-
- * toewijzing bevat.
+ * The same trick as promptCatalogSync.test.js: not the exported value but the
+ * SOURCE TEXT, because the bridge IS a literal. maskCode (W3 exports it
+ * for this) strips the literals; we keep everything that contains a window.beeflow*
+ * assignment.
  */
 function clientBridgeText() {
     const parts = [];
@@ -600,13 +578,13 @@ function clientBridgeText() {
 }
 
 /**
- * De namen op één niveau diep van `window.<global> = { … }`.
+ * The names one level deep in `window.<global> = { … }`.
  *
- * Werkt op de GEMASKEERDE tekst, zodat accolades in strings en commentaar niet
- * meetellen — zonder dat zou een `"{"` in een foutmelding de haakjestelling uit
- * de pas laten lopen en zou de test namen verzinnen.
+ * Works on the MASKED text, so braces in strings and comments do not count —
+ * otherwise a `"{"` in an error message would throw the brace count out of
+ * step and the test would invent names.
  *
- * @returns {string[]|null} `null` als deze global er niet als objectletterlijk staat
+ * @returns {string[]|null} `null` if this global is not there as an object literal
  */
 function bridgeMembers(text, global) {
     const { masked } = maskCode(text);
@@ -645,8 +623,8 @@ test('drift — de tweeling draagt precies het brugoppervlak dat de tabel beschr
         const serverExtra = Object.keys(spec.serverExtra || {});
 
         if (spec.proxy) {
-            // Geen objectletterlijk om te vergelijken: de Proxy vangt elke naam
-            // op. Dat moet dan wel echt een Proxy zijn.
+            // No object literal to compare: the Proxy catches every name.
+            // That really has to be a Proxy, then.
             assert.match(server, new RegExp(`window\\.${global} = new Proxy\\(`),
                 `${global} hoort hier een Proxy te zijn — een objectletterlijk zou namen missen die de client wél kent`);
             assert.ok((bridgeMembers(client, global) || []).length > 0,
@@ -661,8 +639,8 @@ test('drift — de tweeling draagt precies het brugoppervlak dat de tabel beschr
         assert.ok(Array.isArray(there) && there.length > 0,
             `sanity: ${global} is in de client-brug gevonden`);
 
-        // Richting 1 — deze tweeling draagt precies de gedeelde namen (plus wat
-        // met reden alleen hier hoort te staan).
+        // Direction 1 — this twin carries exactly the shared names (plus what
+        // belongs here only, with a reason).
         assert.deepStrictEqual([...here].sort(), [...shared, ...serverExtra].sort(),
             `services/publicBridgeScript.js draagt een ander ${global}-oppervlak dan de tabel hierboven zegt. `
             + 'Is er een naam bijgekomen? Zet hem er ook aan de client-kant in en noteer hem als gedeeld. Is er '
@@ -689,9 +667,9 @@ test('drift — de tweeling draagt precies het brugoppervlak dat de tabel beschr
 });
 
 test('de bekende gaten in de tweeling staan benoemd, met de schade erbij, en groeien niet', () => {
-    // Pinnen, niet goedpraten. Deze namen bestaan aan de client-kant en niet
-    // hier; paginacode die ze aanroept krijgt een TypeError op een publieke
-    // share. Ze staan hier zodat ze zichtbaar blijven en er geen bij komt.
+    // Pin, don't whitewash. These names exist on the client side and not
+    // here; page code that calls them gets a TypeError on a public
+    // share. They are here so they stay visible and none gets added.
     const gaps = [];
     for (const [global, spec] of Object.entries(BRIDGE_TWIN)) {
         for (const [name, damage] of Object.entries(spec.missingHere || {})) {
@@ -712,16 +690,15 @@ test('de bekende gaten in de tweeling staan benoemd, met de schade erbij, en gro
 // ── 4. DE DERDE BRUG: DE INGEBAKKEN STUB ──────────────────────────────
 
 /**
- * De stub uit services/reactBundleServer.js stond nergens gepind — en juist die
- * is de brug die ALTIJD draait: composeReactDoc bakt hem in elk react-document,
- * de publieke share én het plaatje dat de bouwer-AI van de pagina te zien
- * krijgt. De brug hierboven wordt alleen geïnjecteerd als publieke AI aan staat,
- * en dat staat default UIT.
+ * The stub from services/reactBundleServer.js was pinned nowhere — and that is precisely
+ * the bridge that ALWAYS runs: composeReactDoc bakes it into every react document,
+ * the public share and the picture the builder AI of the page gets to see. The bridge above
+ * is only injected when public AI is on, and that is default OFF.
  *
- * Het `beeflowAI`-oppervlak van dat bestand is de reden dat deze hele
- * tweelingtabel bestaat: het droeg complete/ground/generate en miste
- * chat/chatJSON/stream/ask. Die drie oude namen blijven staan (paginacode kan ze
- * aanroepen), maar ze staan nu BENOEMD in plaats van als stille afwijking.
+ * The `beeflowAI` surface of that file is the reason this whole
+ * twin table exists: it carried complete/ground/generate and was missing
+ * chat/chatJSON/stream/ask. Those three old names remain (page code may call them), but they are now
+ * NAMED instead of a silent deviation.
  */
 const STUB_LEGACY_AI = {
     complete: 'oudste stub-naam; alleen dit bestand heeft hem ooit gehad. Weghalen zou paginacode breken die '
@@ -757,9 +734,9 @@ test('de ingebakken stub draagt hetzelfde brugoppervlak als de tweeling', () => 
 
 test('de stub laat "leeg" en "gelukt" niet op hetzelfde uitkomen', () => {
     const stub = buildStubBridgeScript('reactShare');
-    // Een no-op die RESOLVET is het gevaarlijkst van allemaal: een zelfgebouwde
-    // knop meldt dan succes zonder dat er iets is gedraaid. Zowel de tabelbrug
-    // als de automation-brug moet daarom WEIGEREN, met een reden.
+    // A no-op that RESOLVES is the most dangerous of all: a self-built button
+    // then reports success without anything having run. Both the table bridge
+    // and the automation bridge must therefore REFUSE, with a reason.
     assert.match(stub, /beeflowTables is not available here/);
     assert.match(stub, /beeflowAutomations\.run is not available here/);
     assert.ok(!/run:noop/.test(stub),

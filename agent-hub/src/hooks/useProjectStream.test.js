@@ -297,12 +297,11 @@ describe('when the stream cannot be established', () => {
 
     it('treats a non-2xx answer as a failure, not as an empty feed', async () => {
         vi.useFakeTimers();
-        // De body MOET hier een echte stream zijn. Met `body: null` zou de
-        // bron al struikelen over de tweede helft van `!res.ok || !res.body`
-        // en pinde deze test de statuscontrole nooit — een 502 MET body werd
-        // dan als levende stream gelezen, dus nooit drie strikes en nooit de
-        // polling-fallback. mockImplementation, niet mockResolvedValue: een
-        // ReadableStream is maar één keer leesbaar.
+        // The body MUST be a real stream here. With `body: null` the source would already
+        // stumble over the second half of `!res.ok || !res.body`, and this test would
+        // never pin the status check. A 502 WITH a body would then be read as a living
+        // stream, so never three strikes and never the polling fallback.
+        // mockImplementation, not mockResolvedValue: a ReadableStream is readable only once.
         authFetch.mockImplementation(async () => ({ ok: false, status: 502, body: openStream([]).body }));
         mount();
         await vi.advanceTimersByTimeAsync(30_000);

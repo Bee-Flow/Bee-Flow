@@ -2,31 +2,28 @@ import { describe, it, expect } from 'vitest';
 import { NOT_INSIDE_A_LAYER, buildStepGroups, buildSearchResults } from './stepPalette';
 
 /**
- * DE ZESDE CANVASPLEK: HET PALET.
+ * THE SIXTH CANVAS PLACE: THE PALETTE.
  *
- * De vijf plekken die flow/terminalSteps.test.js bewaakt gaan over een stap die
- * er AL staat. Deze gaat over de vraag of de editor hem daar überhaupt laat
- * neerzetten. Binnen een flowlet/Step én binnen een loop-body — beide komen
- * hier binnen als `inLayer:true` (BuildTab respectievelijk
- * mapping/LoopBodyEditor) — weigert de validator drie stapsoorten hard:
+ * The five places that flow/terminalSteps.test.js guards concern a step that is ALREADY there.
+ * This one concerns whether the editor lets it be placed there at all. Inside a flowlet/Step
+ * AND inside a loop body (both arrive here as `inLayer:true`, from BuildTab and
+ * mapping/LoopBodyEditor respectively), the validator hard-refuses three step types:
  *
  *   approval / form_page   `layer.approval_forbidden` / `layer.form_page_forbidden`
- *                          (validate/graph.js) en `*.nested_forbidden`
+ *                          (validate/graph.js) and `*.nested_forbidden`
  *                          (validate/constants.js NESTED_FORBIDDEN_RULES)
- *   return_to_app          `layer.return_to_app_forbidden` én
+ *   return_to_app          `layer.return_to_app_forbidden` AND
  *                          `return_to_app.nested_forbidden`
  *
- * Bood het palet er één van tóch aan, dan werd de eerstvolgende autosave
- * geweigerd met een fout die het palet zojuist zelf had uitgelokt — precies de
- * faalvorm die de kop van flow/terminalSteps.js benoemt ("de validator weigert
- * een graaf die de editor zojuist heeft laten tekenen"). `return_to_app` zat in
- * FLOW_CONTROL_ITEMS en die sectie ging ongefilterd door; alleen PEOPLE_ITEMS
- * werd gefilterd.
+ * If the palette offered one of these anyway, the next autosave would be refused with an error
+ * that the palette itself had just provoked. That is precisely the failure form that the header
+ * of flow/terminalSteps.js names ("the validator refuses a graph that the editor has just let it
+ * draw"). `return_to_app` sat in FLOW_CONTROL_ITEMS, and that section went through unfiltered;
+ * only PEOPLE_ITEMS was filtered.
  *
- * Dit is GEEN kopie van TERMINAL_STEP_TYPES: `stop_error` mag wél in een lus
- * (hij gooit, en een worp reist uit elke sub-graaf omhoog), en
- * approval/form_page zijn niet terminaal. De lijst gaat over de PLEK, niet over
- * het einde van de run.
+ * This is NOT a copy of TERMINAL_STEP_TYPES: `stop_error` may sit in a loop (it throws, and a
+ * throw travels out of every sub-graph), and approval/form_page are not terminal. The list is
+ * about the PLACE, not about the end of the run.
  */
 const kindsIn = (groups) => {
     const out = new Set();

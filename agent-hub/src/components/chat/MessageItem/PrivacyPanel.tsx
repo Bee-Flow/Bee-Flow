@@ -6,13 +6,13 @@ import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 import { logger } from '../../../utils/logger';
 
 /**
- * Kleur uit index.css, nooit uit dit bestand (C7). De chip was een vaste
- * blauwe rgba met een vaste donkerblauwe inkt: één paar voor twaalf thema's,
- * en op de donkere sets een kleur die niemand heeft gemeten. Het amberen
- * `rgb(180,83,9)` had hetzelfde probleem. Amber volgt nu het chiprecept dat
- * index.css documenteert (het -ink-token voor de woorden); de telchip is
- * bewust NEUTRAAL en niet groen — een groen vinkje is een claim over
- * bescherming, en dit paneel weet niet of de detector overeind stond.
+ * Color from index.css, never from this file (C7). The chip was a fixed
+ * blue rgba with a fixed dark-blue ink: one pair for twelve themes, and on the
+ * dark sets a color nobody has measured. The amber `rgb(180,83,9)` had the
+ * same problem. Amber now follows the chip recipe that index.css documents (the
+ * -ink token for the words); the count chip is deliberately NEUTRAL and not
+ * green. A green check is a claim about protection, and this panel does not
+ * know whether the detector was up.
  */
 const WARN_INK = 'var(--warning-ink, var(--warning))';
 
@@ -53,14 +53,14 @@ const PrivacyPanel = ({ msg, idx, allMessages, t }: PrivacyPanelProps) => {
     // when there is full coverage.
     const anyIncompleteAttachment = Array.isArray(info.attachments)
         && (info.attachments as ScannedAttachment[]).some((a: ScannedAttachment) => a?.reason || a?.timeout || a?.overflow || a?.truncated);
-    // C7 — welke plaatsvervangers dit paneel MAG noemen. Dezelfde meting als
-    // de regel onder het bericht (privacyLine.js): een token telt pas mee als
-    // de echte waarde woordelijk in het gebruikersbericht van deze beurt
-    // staat. De slotzin noemde tot nu toe onvoorwaardelijk `[email_1]` — een
-    // plaatsvervanger die in dít gesprek nooit bestaan hoeft te hebben. Dat is
-    // dezelfde fout als de oude telpil: een geruststelling met een voorbeeld
-    // eronder dat niemand heeft gemeten. Waar de tokenmap ontbreekt (de org
-    // deelt hem niet met het scherm) noemt de zin dus géén voorbeeld.
+    // C7 — which stand-ins this panel MAY name. The same measurement as
+    // the line under the message (privacyLine.js): a token only counts if the
+    // real value literally appears in the user message of this turn. The closing
+    // sentence so far named `[email_1]` unconditionally — a stand-in that never
+    // needed to exist in this conversation. That is the same error as the old
+    // count pill: a reassurance with an example underneath that nobody measured.
+    // Where the token map is missing (the org does not share it with the screen)
+    // the sentence therefore names NO example.
     const userTurnText = (() => {
         for (let i = Number(idx) - 1; i >= 0; i--) {
             const m = Array.isArray(allMessages) ? allMessages[i] : null;
@@ -68,12 +68,12 @@ const PrivacyPanel = ({ msg, idx, allMessages, t }: PrivacyPanelProps) => {
         }
         return '';
     })();
-    // `partial` telt hier net zo hard als `tokens`. Dit paneel is de DIEPERE
-    // vorm van dezelfde claim, dus het mag niet minder voorzichtig zijn dan de
-    // ondiepe: een opsomming van drie namen leest als de hele lijst, en zonder
-    // die vlag zou "The AI only saw placeholders — [a], [b], [c]." dat ook zijn
-    // bij vijf vervangingen. De regel onder het bericht zegt in dat geval
-    // netjes hoeveel het er waren; het paneel deed dat niet.
+    // `partial` counts just as hard as `tokens` here. This panel is the DEEPER
+    // form of the same claim, so it may not be less careful than the shallow one:
+    // a list of three names reads as the whole list, and without that flag
+    // "The AI only saw placeholders — [a], [b], [c]." would also be said with
+    // five replacements. The line under the message says neatly in that case how
+    // many there were; the panel did not.
     const proven = describePrivacyLine({
         count: info.count,
         messageText: userTurnText,

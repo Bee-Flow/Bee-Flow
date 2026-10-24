@@ -1,12 +1,11 @@
 'use strict';
 
 /**
- * Wat een testchat IS — per eigenschap.
+ * What a testchat IS — per property.
  *
- * Elke test hieronder hoort bij één zin uit de kop van testChat.js. Ze staan
- * los omdat ze los kapot kunnen: de poort kan opengaan zonder dat de bron
- * verandert, de bron kan verschuiven zonder dat de poort meebeweegt, en de
- * versieregel kan gaan liegen terwijl al het andere klopt.
+ * Every test below belongs to one sentence from the header of testChat.js. They stand apart because they can
+ * break separately: the gate can open without the source changing, the source can shift without the gate moving,
+ * and the version rule can start lying while everything else is right.
  *
  * Run: cd server && node --test core/agentRuntime/testChat.test.js
  */
@@ -26,9 +25,9 @@ test('a test chat is an editor right, and it refuses rather than degrades', () =
     assert.strictEqual(refused.ok, false);
     assert.strictEqual(refused.status, 403);
     assert.strictEqual(refused.code, 'test_chat_not_allowed');
-    // De verleiding die deze test afsluit: "hij mag niet testen, draai dan maar
-    // een gewone beurt". Dat serveert de GEPUBLICEERDE agent onder de naam van
-    // een test, en dat is precies het antwoord dat nooit mag komen.
+    // The temptation that this test closes: "it may not test, so just run an
+    // ordinary turn". That serves the PUBLISHED agent under the name of a test, and that is precisely
+    // the answer that must never come.
     assert.strictEqual(refused.testChat, undefined);
 });
 
@@ -58,7 +57,7 @@ test('isTestChat reads the metadata the route wrote, not a truthy value', () => 
 // ── De bron in het verbruikslogboek ──────────────────────────────────
 
 test('a test turn writes its usage under its OWN source', () => {
-    // Dit is de enige plek waar een testgesprek nog als gewoon gesprek meetelde.
+    // This is the only place where a test conversation still counted as an ordinary conversation.
     assert.strictEqual(tc.usageSourceFor({ testChat: true }, 'agent_stream'), 'agent_test_chat');
     assert.strictEqual(tc.usageSourceFor({ testChat: true }, 'agent_chat'), 'agent_test_chat');
     assert.strictEqual(tc.TEST_CHAT_USAGE_SOURCE, 'agent_test_chat');
@@ -110,8 +109,8 @@ test('an unreadable projection is unknown, and unknown is not "your concept"', (
 });
 
 test('unpublishedChanges never goes negative', () => {
-    // Een rij waarin published_rev vóór ligt op rev (herstelde snapshot, halve
-    // schrijfactie) mag geen "-3 wijzigingen" op het scherm zetten.
+    // A row in which published_rev lies ahead of rev (restored snapshot, half a write) must not put
+    // "-3 changes" on the screen.
     const info = tc.testChatConfigInfo({
         runtimeSource: 'draft', published_version: 2, published_rev: 9, rev: 4,
     });
@@ -128,7 +127,7 @@ test('the args key names ONE action — same tool, other arguments, other key', 
     assert.notStrictEqual(a, c, 'other tool is another action');
     assert.strictEqual(a, tc.argsKeyFor('gmail_send', '{"to":"a@b.c"}'), 'stable');
     assert.match(a, /^[0-9a-f]{32}$/);
-    // Onomkeerbaar: de ruwe argumenten mogen niet in de sleutel te lezen zijn.
+    // Irreversible: the raw arguments may not be readable from the key.
     assert.ok(!a.includes('a@b'), 'the key must not carry the arguments');
 });
 
@@ -185,8 +184,8 @@ test('an effect nobody could classify is held, not run', () => {
 
 test('a known read is still a read when the caller passes no effect', () => {
     const { effectOf } = require('../automationModel/sideEffectMap');
-    // Een naam waarvan de kaart zelf zegt dat hij leest, zodat deze test niet
-    // op een hardgecodeerde toolnaam leunt die morgen anders heet.
+    // A name of which the card itself says that it reads, so that this test does not lean on a hard-coded tool name
+    // that might be called something else tomorrow.
     const reader = ['gmail_list_messages', 'kb_search', 'web_search']
         .find(n => effectOf(n) === 'reads');
     if (!reader) return; // niets te bewijzen als de kaart geen lezer kent
@@ -223,9 +222,8 @@ test('zonder bruikbare sleutel is elke beurt zijn eigen gesprek — te hoog, noo
 });
 
 test('een efemere id kan nooit een echte rij aanwijzen', () => {
-    // Het voorvoegsel is wat het veilig maakt om een id uit CLIENTINVOER af te
-    // leiden: hij reist mee in guardrail_events.conversation_id, in het
-    // egress-logboek en in de PII-tokenmap-memo.
+    // The prefix is what makes it safe to derive an id from CLIENT input: it travels along in
+    // guardrail_events.conversation_id, in the egress log and in the PII token-map memo.
     const forged = tc.ephemeralConversationId({
         sessionKey: '8ab1e9c4-0f52-4c4a-9a1f-2f3b4c5d6e7f', userId: 'u', agentId: 'a',
     });

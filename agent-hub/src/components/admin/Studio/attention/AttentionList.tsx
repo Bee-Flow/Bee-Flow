@@ -82,11 +82,11 @@ interface StatusLineProps {
 function StatusLine({ t, locale, total, complete, unavailable, capped }: StatusLineProps) {
     const broken = attentionSourceNames(unavailable, t, locale);
     const cappedNames = attentionSourceNames(capped, t, locale);
-    // Which ones did not answer. Never a bare "some checks": a person who sees
-    // that line every day cannot tell whether it is the same source each time.
-    // Geen meervoudspaar: de zin somt namen op en verandert niet met het
-    // aantal — een tweede sleutel met dezelfde tekst is werk voor de vertaler
-    // en niets voor de lezer.
+    // Which ones did not answer. Never a bare “some checks”: a person who sees that
+    // line every day cannot tell whether it is the same source each time.
+    // No plural pair: the sentence lists names and does not change with the count —
+    // a second key with the same text is work for the translator and nothing for
+    // the reader.
     const which = broken.length > 0
         ? ` ${t('studio.attention.unavailable_named', 'Not checked: {sections}.', { sections: broken.join(', ') })}`
         : '';

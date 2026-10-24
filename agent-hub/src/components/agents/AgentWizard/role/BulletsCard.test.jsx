@@ -1,9 +1,8 @@
 /**
- * BulletsCard — "Doet wel" en "Doet niet" (A3 deel A).
+ * BulletsCard: "Does" and "Does not" (A3 part A).
  *
- * De zwaarste bewering op dit scherm staat onder "Doet niet": wat daar staat is
- * een INSTRUCTIE, geen blokkade. Die regel moet er staan, en hij moet naar het
- * mechanisme wijzen dat wél hard is.
+ * The most serious claim on this screen stands under "Does not": what stands there is an INSTRUCTION, not a block. That line
+ * must stand there, and it must point to the mechanism that IS hard.
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/role/BulletsCard.test.jsx
  */
@@ -131,9 +130,8 @@ describe('BulletsCard — toevoegen, bewerken, verwijderen', () => {
     });
 
     it('zegt het als een BEWERKING geweigerd wordt, en houdt het veld open', () => {
-        // Een regel bewerken naar iets dat al in de lijst staat liet er twee in
-        // gaan en één uit komen. `editBullet` geeft daar `'duplicate'` op terug;
-        // hier komt die reden op het scherm in plaats van een lege plek.
+        // Editing a rule to something that is already in the list let two in and one out. `editBullet` returns `'duplicate'` for that.
+        // Here that reason appears on the screen, instead of an empty space.
         const onEdit = vi.fn(() => 'duplicate');
         render(<BulletsCard t={t} variant="does" items={['One', 'Two']} onEdit={onEdit} />);
         fireEvent.click(screen.getAllByTestId('agent-role-bullet-text')[1]);
@@ -146,8 +144,8 @@ describe('BulletsCard — toevoegen, bewerken, verwijderen', () => {
     });
 
     it('beide invoervelden staan op de grens van de server', () => {
-        // Zonder `maxLength` knipt `_list` in personaPrompt.js een regel van 400
-        // tekens stil af op 300 — de afkapping die deze kaart moet voorkomen.
+        // Without `maxLength`, `_list` in personaPrompt.js silently cuts a rule of 400 characters off at 300. That is the
+        // truncation that this card must prevent.
         render(<BulletsCard t={t} variant="does" items={['One']} onAdd={() => null} onEdit={() => null} />);
         fireEvent.click(screen.getByTestId('agent-role-bullet-add'));
         expect(screen.getByTestId('agent-role-bullet-add-input').maxLength).toBe(PERSONA_LIMITS.bullet);

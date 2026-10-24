@@ -203,9 +203,9 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Schema-gezondheidsprobe: altijd 200, degradeert bij een onbereikbare of
-// ongemigreerde database. Ongeauthenticeerd, net als /api/health hierboven
-// (dat matcht exact en swallowt dit pad dus niet). Zie routes/healthSchema.js.
+// Schema health probe: always 200, degrades when the database is unreachable or not migrated.
+// Unauthenticated, like /api/health above (which matches exactly and therefore does not swallow
+// this path). See routes/healthSchema.js.
 app.use('/api/health/schema', require('./routes/healthSchema'));
 
 app.get('/api', (req, res) => {
@@ -606,11 +606,10 @@ app.use('/api/public-app', requireModule('apps'), require('./routes/studioAppPub
 // apply: once a publisher (whose org is gated) creates a share, recipients
 // are anonymous third parties.
 app.use('/share', requireModule('webpages'), require('./routes/publicViewer'));
-// Hetzelfde viewerbestand, tweede adres: /w/<slug> — het adres van de PAGINA
-// in plaats van dat van de share (W3 stap 4). De pagina wijst met
-// `public_share_id` één canonieke share aan; die wordt hier bediend, met
-// exact dezelfde poort, rate-limits, CSP en sandbox. Eén router op twee
-// mounts, met opzet: een tweede viewer zou een tweede toegangscontrole zijn.
+// The same viewer file, second address: /w/<slug> — the address of the PAGE instead of that of the
+// share (W3 step 4). The page points, via `public_share_id`, at one canonical share; that is served
+// here with exactly the same gate, rate limits, CSP and sandbox. One router on two mounts, on purpose:
+// a second viewer would be a second access check.
 app.use('/w', requireModule('webpages'), require('./routes/publicViewer'));
 // Public certificate verification — unauthenticated `/verify/:token` for a
 // LinkedIn-shareable Bee Flow AI certificate. Token-gated (only certs the owner
@@ -665,9 +664,9 @@ app.use('/api/support', requireModule('support'), require('./routes/support'));
 // beta; the org-level support_inbox permission is additionally enforced inside.
 app.use('/api/support-inbox', requireModule('support'), requireCapability('support_inbox'), require('./routes/supportInbox'));
 
-// De per-agent kennis-router (/agents/:id/knowledge) is INGETROKKEN — Track Z, Z5.
-// Hij schreef naar de tabel knowledge_metadata, die door niets in het product werd
-// gelezen. De Studio-kennisbanken leven op /api/kb (hieronder).
+// The per-agent knowledge router (/agents/:id/knowledge) has been WITHDRAWN — Track Z, Z5.
+// It wrote to the table knowledge_metadata, which nothing in the product read. The Studio knowledge bases
+// live at /api/kb (below).
 app.use('/api/kb', requireTraining('knowledge'), require('./routes/knowledgeBases'));
 app.use('/api/search', require('./routes/search'));
 app.use('/api/languages', require('./routes/admin/languageRoutes'));

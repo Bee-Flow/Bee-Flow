@@ -5,24 +5,24 @@ import { interpolate } from '../../../useTranslation';
 import { dispatchSSEEvent } from '../dispatch';
 
 /**
- * Het `dlp_blocked`-event: de tekst die een gebruiker leest als een bijlage om
- * privacyredenen wordt tegengehouden.
+ * The `dlp_blocked` event: the text that a user reads when an attachment is held
+ * back for privacy reasons.
  *
- * Waarom deze test bestaat: de woordenboekwaarde WINT van de Engelse fallback
- * in de code (useTranslation.jsx:270-272), en `interpolate(value, undefined)`
- * geeft de waarde ongewijzigd terug (308-309). Een `t(sleutel, '…${file}…')`
- * zonder derde argument levert daardoor letterlijk `{filename}` op het scherm
- * op. Deze test bijt op precies dat: de bestandsnaam MOET in de zin staan en
- * `{filename}` mag er nooit meer in staan.
+ * Why this test exists: the dictionary value WINS over the English fallback in the
+ * code (useTranslation.jsx:270-272), and `interpolate(value, undefined)` returns the
+ * value unchanged (308-309). A `t(key, '…${file}…')` without a third argument
+ * therefore literally puts `{filename}` on the screen. This test bites on exactly
+ * that: the file name MUST be in the sentence, and `{filename}` may never appear in
+ * it.
  */
 
 const ID = 'assistant-1';
 
 /**
- * Een `t` die het echte gedrag nabootst: woordenboekwaarde eerst, Engelse
- * string-fallback tweede, daarna interpoleren. Onthoudt welke sleutels zijn
- * opgevraagd, zodat een test kan bewijzen dat de grammatica om de SLEUTEL
- * draait en niet om een string in de code.
+ * A `t` that imitates the real behaviour: dictionary value first, English string
+ * fallback second, then interpolating. It remembers which keys were requested, so
+ * that a test can prove that the grammar turns around the KEY and not around a
+ * string in the code.
  */
 function makeT() {
     const keys = [];
@@ -38,7 +38,7 @@ function makeT() {
     return t;
 }
 
-/** Een minimale dispatch-omgeving: alleen wat dit event aanraakt. */
+/** A minimal dispatch environment: only what this event touches. */
 function harness() {
     let messages = [{ id: ID, role: 'assistant', content: '' }];
     const t = makeT();

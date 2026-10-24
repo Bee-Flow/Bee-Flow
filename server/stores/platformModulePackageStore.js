@@ -42,9 +42,9 @@ async function _initDB() {
         );
     `);
     // Forward-compat ALTERs (idempotent) for older deploys. Via runDdl
-    // (stores/lib/_ddl.js): fouten per statement luid verzameld i.p.v. stil
-    // als "already present" — de DROP/ADD/VALIDATE-reeks hieronder slaagt
-    // idempotent, dus elke fout hier is een échte.
+    // (stores/lib/_ddl.js): errors are collected per statement and reported loudly
+    // instead of silently as "already present" — the DROP/ADD/VALIDATE sequence
+    // below succeeds idempotently, so every error here is a real one.
     await runDdl('platformModulePackageStore', [
         `ALTER TABLE platform_module_packages ADD COLUMN IF NOT EXISTS manifest JSONB`,
         `ALTER TABLE platform_module_packages ADD COLUMN IF NOT EXISTS kid TEXT`,

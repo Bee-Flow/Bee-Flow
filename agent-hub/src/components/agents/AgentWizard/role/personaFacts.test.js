@@ -112,7 +112,7 @@ describe('toonchips', () => {
         const persona = { tone: { chips: twelve, text: '' } };
         expect(toneChipsFull(persona)).toBe(true);
         expect(toggleToneChip(persona, 'friendly').tone.chips).toHaveLength(PERSONA_LIMITS.chips);
-        // Uitzetten mag altijd, ook als het vol is.
+        // Switching off is always allowed, even when full.
         expect(toggleToneChip(persona, 'chip0').tone.chips).toHaveLength(PERSONA_LIMITS.chips - 1);
     });
 
@@ -208,12 +208,11 @@ describe('de hand-off-automation', () => {
     });
 
     it('OK met iets dat GEEN lijst is, is onleesbaar — niet "geen automations"', () => {
-        // Dit is precies de invoer die de standaardwaarden van de kaarten
-        // opleveren (`automations = null, automationsState = READ.OK`), en
-        // `selectedHandoff` hieronder én `toolGrants.automationRows` lazen hem
-        // al als onleesbaar. Zonder deze versmalling zette één kaart twee
-        // tegenstrijdige zinnen onder elkaar: "geen enkele automatisering kan door een
-        // agent gestart worden" én "deze automatisering kon hier niet gelezen worden".
+        // This is exactly the input that the default values of the cards yield
+        // (`automations = null, automationsState = READ.OK`), and `selectedHandoff`
+        // below and `toolGrants.automationRows` already read it as unreadable. Without this
+        // narrowing, one card put two contradictory sentences under each other: "no
+        // automation can be started by an agent" and "this automation could not be read here".
         for (const junk of [null, undefined, 'nope', { 0: CALLABLE }]) {
             expect(handoffChoices({ automations: junk, state: READ.OK }))
                 .toEqual({ rows: [], state: READ.ERROR });

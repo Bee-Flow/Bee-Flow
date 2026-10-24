@@ -10,82 +10,69 @@ import { kindColorVar, kindIcon } from '../../shared/kindColors';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 
 /**
- * De chiprij direct onder een antwoord: waar dit antwoord vandaan komt.
+ * The chip row directly under an answer: where this answer comes from.
  *
- * Welke chips er staan bepaalt `answerChips.js`; dit bestand gaat over de ene
- * vraag die overblijft — hoe je laat ZIEN dat ze niet even sterk zijn.
+ * Which chips appear is decided by `answerChips.js`. This file concerns the one question that remains: how
+ * you show that they are not equally strong.
  *
- * ── HET VERSCHIL MAG NIET WEGGEPOETST WORDEN ───────────────────────────────
+ * ── THE DIFFERENCE MUST NOT BE SMOOTHED OVER ───────────────────────────────
  *
- * Een kennisbankchip, een tabelrijchip en een skillchip zijn NOTULEN: de
- * server schreef ze op tijdens het antwoord, en er zit iets achter dat je kunt
- * openen en nalezen. De chip "Regel gevolgd: …" niet — die komt uit een
- * attributie-pass die ná afloop de rol naast het antwoord legde. Dat is een
- * mening, en een mening die eruitziet als notulen is erger dan geen mening,
- * want de hele rij wordt dan gelezen op het gezag van de sterkste chip erin.
+ * A knowledge-base chip, a table-row chip and a skill chip are MINUTES: the server wrote them down while the
+ * answer was being formed, and there is something behind them that you can open and check. The chip "Regel
+ * gevolgd: …" is not: it comes from an attribution pass that placed the role next to the answer afterwards.
+ * That is an opinion, and an opinion that looks like minutes is worse than no opinion, because the whole row
+ * is then read on the authority of the strongest chip in it.
  *
- * ── VIER DRAGERS, WANT KLEUR ALLEEN IS GEEN DRAGER ─────────────────────────
+ * ── FOUR CARRIERS, BECAUSE COLOUR ALONE IS NOT A CARRIER ──────────────────
  *
- * Het verschil moet een schermafdruk in grijstinten overleven, en een
- * schermlezer ook. Dus:
+ * The difference must survive a screenshot in greyscale, and a screen reader too. So:
  *
- *   1. VORM       geoordeeld = een gestippelde rand op een doorzichtige
- *                 ondergrond; opgetekend = een dichte pil met de kleur van
- *                 zijn soort. Zichtbaar zonder kleur.
- *   2. WOORD      de geoordeelde rij draagt een kopje ("Judged") en heeft als
- *                 toegankelijke naam de hele uitleg — een schermlezer krijgt
- *                 dus niet één woord maar de reden.
- *   3. PLAATS     geoordeeld staat ALTIJD onderaan, achter een streep, nooit
- *                 tussen de opgetekende chips door. Niets interleavet.
- *   4. GEEN GLYPH Elke opgetekende chip draagt de glyph van het DING dat
- *                 erachter zit — een boek, een tabel, een skill. Achter een
- *                 geoordeelde chip zit niets, dus draagt hij er geen. (Niet
- *                 ✨: dat teken is in dit product al vergeven aan Skills en
- *                 aan "AI, doe jij het maar", en een chip die per ongeluk als
- *                 skill leest is een verkeerde bewering, geen versiering.)
+ *   1. SHAPE      judged = a dotted border on a transparent background; recorded = a solid pill in the
+ *                 colour of its kind. Visible without colour.
+ *   2. WORD       the judged row carries a heading ("Judged") and has the whole explanation as its
+ *                 accessible name, so a screen reader gets not one word but the reason.
+ *   3. PLACE      judged always stands at the END, behind a dash, never between the recorded chips.
+ *                 Nothing interleaves.
+ *   4. NO GLYPH   every recorded chip carries the glyph of the THING behind it: a book, a table, a skill.
+ *                 Behind a judged chip there is nothing, so it carries none. (Not ✨: that sign is already
+ *                 reserved in this product for Skills and for "AI, you do it", and a chip that is read as a
+ *                 skill by mistake is a wrong claim, not decoration.)
  *
- * KLIKBAARHEID IS EXPRES GEEN DRAGER. Een opgetekende chip heeft niet altijd
- * iets om te openen (een skill heeft in een chat geen pagina), dus "niet
- * klikbaar" zou niets betekenen. Andersom geldt het wel, als gevolg en niet
- * als signaal: een geoordeelde chip is nooit klikbaar, want er is niets om
- * achter te kijken. Vandaar geen handler op deze chips en geen `button`.
+ * CLICKABILITY IS DELIBERATELY NOT A CARRIER. A recorded chip does not always have anything to open (a skill
+ * has no page in a chat), so "not clickable" would mean nothing. The reverse does apply, as a consequence and
+ * not as a signal: a judged chip is never clickable, because there is nothing to look behind. Hence no handler
+ * on these chips and no `button`.
  *
- * ── EEN CHIP DIE NIETS TE OPENEN HEEFT, IS GEEN KNOP (C13) ─────────────────
+ * ── A CHIP WITH NOTHING TO OPEN IS NOT A BUTTON (C13) ──────────────────
  *
- * Een citaatchip opent `CitationOverlay`, en die toont precies één ding: de
- * passage (`content`). Komt die niet mee — een emitter die alleen `preview`
- * stuurt, of een server die de passage voor déze lezer weglaat — dan zou de
- * klik een leeg paneel openen. Van deze kant is "niet meegestuurd" niet te
- * onderscheiden van "mag je niet lezen", dus versmalt onbekende leesbaarheid
- * naar niet-klikbaar: zo'n citaat rendert als `span`, niet als `button`
- * (`citationIsOpenable` in answerChips.js).
+ * A citation chip opens `CitationOverlay`, and that shows exactly one thing: the passage (`content`). If that
+ * does not come along (an emitter that sends only `preview`, or a server that omits the passage for THIS
+ * reader), the click would open an empty panel. From this side, "not sent along" is not distinguishable from
+ * "you may not read it", so unknown readability narrows to non-clickable: such a citation renders as `span`,
+ * not as `button` (`citationIsOpenable` in answerChips.js).
  *
- * Hij VERDWIJNT niet. Het antwoord heeft die bron gebruikt en dat verzwijgen
- * is erger dan hem tonen; hij staat alleen achteraan, gedempt, met de reden
- * in zijn tooltip. Plaats is hier dezelfde drager als bij de geoordeelde rij.
+ * It does NOT disappear. The answer used that source, and concealing it is worse than showing it. It only
+ * stands at the end, muted, with the reason in its tooltip. Placement here is the same carrier as with the
+ * judged row.
  *
- * De pil zelf komt uit `CitationChips` — dezelfde `chipLabel`/`chipTitle`, dus
- * één citatieschema en één manier om "Handboek · p. 12" te schrijven. Alleen
- * de soortglyph blijft weg: die glyph zegt "hier zit een boek/tabel/notulen
- * achter", en dat is precies de bewering die deze chip niet kan waarmaken.
+ * The pill itself comes from `CitationChips`: the same `chipLabel`/`chipTitle`, so one citation scheme and one
+ * way of writing "Handboek · p. 12". Only the kind-glyph disappears: that glyph says "a book, table or minutes
+ * sits behind here", and that is precisely the claim this chip cannot make good.
  *
- * ── DE POORT OP KENNISBANKGEGEVENS REIST MEE ───────────────────────────────
+ * ── THE GATE ON KNOWLEDGE-BASE DATA TRAVELS ALONG ───────────────────────
  *
- * `showSources` is dezelfde schakelaar die `HowIGotThisAnswer` krijgt, en hij
- * geldt hier onverkort: een citaatchip draagt een documenttitel, een
- * paginanummer en via `chipTitle` ook de kop van de passage. Zonder die poort
- * bestond er één regel boven de gepoorte weg een tweede, ONGEPOORTE weg naar
- * exact dezelfde gegevens — precies wat de invariant "the gate is fail-closed
- * at every step" uitsluit. Weglaten van de prop betekent hier `false`: een
- * aanroeper die hem vergeet toont niets in plaats van alles. De productdefault
- * (`true`, want binnen het product is die transparantie juist het punt) hoort
- * op `MessageItem`, dat hem expliciet doorgeeft.
+ * `showSources` is the same switch that `HowIGotThisAnswer` gets, and it applies here unabridged: a citation
+ * chip carries a document title, a page number and, via `chipTitle`, also the heading of the passage. Without
+ * that gate there was one line above the gated path, a second, UNGATED path to exactly the same data, which is
+ * precisely what the invariant "the gate is fail-closed at every step" rules out. Omitting the prop means
+ * `false` here: a caller that forgets it shows nothing instead of everything. The product default (`true`,
+ * because within the product that transparency is the point) belongs on `MessageItem`, which passes it
+ * explicitly.
  *
- * ── VALT DE PASS OM, DAN STAAT HIER NIETS ──────────────────────────────────
+ * ── IF THE PASS FALLS OVER, NOTHING IS SHOWN HERE ──────────────────────
  *
- * Geen event ⇒ geen rij ⇒ geen kopje. Er komt nooit een chip die zegt dat er
- * geen regel gevolgd is: dat zou een bewering zijn uit de bron die zojuist
- * bewees niets te kunnen beweren.
+ * No event means no row, and no heading. A chip that says no rule was followed never appears: that would be a
+ * claim from the source that just proved it could claim nothing.
  */
 
 /** Eén dichte pil — de vorm die `CitationChips` voor een citaat gebruikt. */
@@ -94,12 +81,11 @@ const RECORDED_CLASS = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full 
 const JUDGED_CLASS = `${RECORDED_CLASS} border-dashed`;
 
 /**
- * De citaten waar niets achter openging. Zelfde pil, geen knop.
+ * The citations that nothing opened behind. Same pill, no button.
  *
- * Geen `onClick`, geen `button`, geen tabstop — een chip die niet opent mag
- * ook niet beloven dat hij dat doet. De reden staat in de tooltip én in de
- * toegankelijke naam van de rij, zodat een schermlezer niet alleen "bron"
- * hoort maar ook waarom er niets te openen valt.
+ * No `onClick`, no `button`, no tab stop: a chip that does not open may not promise that it does either.
+ * The reason stands in the tooltip AND in the accessible name of the row, so that a screen reader hears not
+ * only "source" but also why there is nothing to open.
  */
 function ClosedCitationChips({ sources, tt }: { sources: CitationChip[]; tt: TranslateFn }) {
     const hint = tt(
@@ -173,7 +159,7 @@ function SkillChips({ skills, tt }: { skills: SkillChip[]; tt: TranslateFn }) {
     );
 }
 
-/** De geoordeelde helft: een eigen rij, achter een streep, niet klikbaar. */
+/** The judged half: its own row, behind a dash, not clickable. */
 function RuleChips({ rules, tt }: { rules: RuleChip[]; tt: TranslateFn }) {
     const hint = tt(
         'agent_studio.answer_chips_judged_hint',
@@ -183,8 +169,8 @@ function RuleChips({ rules, tt }: { rules: RuleChip[]; tt: TranslateFn }) {
         <div
             className="flex flex-wrap items-center gap-1.5 pt-1.5 [border-top:1px_dashed_var(--border-subtle)]"
             role="list"
-            /* De toegankelijke naam is de UITLEG, niet het kopje: een
-               schermlezer die "Judged" hoort weet nog niets. */
+            /* The accessible name is the EXPLANATION, not the heading: a screen reader that hears "Judged"
+               does not yet know anything. */
             aria-label={hint}
         >
             <span
@@ -250,8 +236,7 @@ const AnswerChips = ({
                         <CitationChips sources={open} onCitationClick={onCitationClick} t={tt} />
                     )}
                     {closed.length > 0 && <ClosedCitationChips sources={closed} tt={tt} />}
-                    {/* Wat er niet past, wordt geteld en niet verzwegen. Zie
-                        MAX_RECORDED_CHIPS in answerChips.js. */}
+                    {/* What does not fit is counted, not concealed. See MAX_RECORDED_CHIPS in answerChips.js. */}
                     {citationsHidden > 0 && (
                         <span
                             data-testid="answer-chips-more"
@@ -264,8 +249,7 @@ const AnswerChips = ({
                 </div>
             )}
             {skills.length > 0 && <SkillChips skills={skills} tt={tt} />}
-            {/* Altijd als laatste. De plaats is een van de dragers van het
-                verschil tussen opgetekend en geoordeeld. */}
+            {/* Always last. The place is one of the carriers of the difference between recorded and judged. */}
             {rules.length > 0 && <RuleChips rules={rules} tt={tt} />}
         </div>
     );

@@ -28,11 +28,10 @@ const VERSION_SOURCES = Object.freeze(['manual', 'ai', 'published', 'restore']);
 const DEFAULT_VERSION_SOURCE = 'manual';
 
 /**
- * Hoe vaak de INSERT zijn nummer opnieuw mag proberen (zie _insertVersionRow).
- * Vijf is ruim: elke poging leest een VERS maximum, dus er hoeven alleen zoveel
- * pogingen te zijn als er schrijvers tegelijk op DEZELFDE pagina zitten. Dat
- * zijn er in de praktijk hoogstens twee (de autosave van de editor naast een
- * AI-beurt van dezelfde persoon).
+ * How often the INSERT may retry its number (see _insertVersionRow).
+ * Five is ample: every attempt reads a FRESH maximum, so there only need to be as many
+ * attempts as there are writers at the same time on the SAME page. In practice that is at
+ * most two (the editor's autosave alongside an AI turn by the same person).
  */
 const SEQ_INSERT_ATTEMPTS = 5;
 const UNIQUE_VIOLATION = '23505';
@@ -43,37 +42,33 @@ function normalizeSource(source) {
 }
 
 /**
- * Schrijf de metadata-rij, met een RACEVRIJ volgnummer.
+ * Write the metadata row, with a RACE-FREE sequence number.
  *
- * ── HET NUMMER ──────────────────────────────────────────────────────────────
+ * ── THE NUMBER ──────────────────────────────────────────────────────────────
  *
- * `seq` wordt niet apart gelezen en daarna geschreven, maar IN het
- * INSERT-statement berekend (`INSERT … SELECT COALESCE(MAX(seq),0)+1 …`). Dat
- * scheelt een rondje, maar het lost de race niet op: onder READ COMMITTED —
- * de standaard van deze pool — zien twee gelijktijdige transacties hetzelfde
- * maximum en schrijven ze allebei v14.
+ * `seq` is not read separately and then written, but computed IN the INSERT statement
+ * (`INSERT … SELECT COALESCE(MAX(seq),0)+1 …`). That saves a round trip, but it does not
+ * solve the race: under READ COMMITTED — the default of this pool — two concurrent
+ * transactions see the same maximum and both write v14.
  *
- * Wat hem WEL oplost is de unieke index `(webpage_id, seq)` uit schema.js: de
- * tweede schrijver krijgt 23505, en dan probeert deze lus het opnieuw. Elke
- * poging leest een vers maximum, dus de tweede poging vindt het nummer van de
- * eerste schrijver terug en wordt v15.
+ * What DOES solve it is the unique index `(webpage_id, seq)` from schema.js: the second
+ * writer gets 23505, and then this loop tries again. Each attempt reads a fresh maximum,
+ * so the second attempt finds the first writer's number and becomes v15.
  *
- * ── WAAROM GEEN LOCK ────────────────────────────────────────────────────────
+ * ── WHY NO LOCK ─────────────────────────────────────────────────────────────
  *
- * Het alternatief is `SELECT … FOR UPDATE` op de `webpages`-rij, wat de
- * schrijvers netjes op een rij zet. Maar de aanroeper heeft dan al vier
- * server-side kopieën naar objectopslag gedaan (copySlotToVersion hierboven),
- * en een rijlock die over netwerk-I/O naar RustFS heen wordt vastgehouden legt
- * bij de eerste trage kopie elke andere save op dezelfde pagina stil. Botsen is
- * hier zeldzaam en goedkoop te herstellen; wachten is dat niet.
+ * The alternative is `SELECT … FOR UPDATE` on the `webpages` row, which puts the writers
+ * neatly in a queue. But the caller has by then already made four server-side copies to
+ * object storage (copySlotToVersion above), and a row lock held across network I/O to
+ * RustFS would silently stall every other save on the same page at the first slow copy.
+ * Colliding is rare and cheap to recover from here; waiting is not.
  *
- * ── WAT ALS HET NUMMER NIET LUKT ────────────────────────────────────────────
+ * ── WHAT IF THE NUMBER DOES NOT SUCCEED ────────────────────────────────────
  *
- * Na SEQ_INSERT_ATTEMPTS gooit hij door. Een momentopname zonder nummer
- * schrijven zou aantrekkelijk lijken, maar dan verschijnt er een rij in de
- * geschiedenis die nooit "v…" kan heten terwijl er niets mis leek te gaan; de
- * aanroepers hier vangen de fout al af en loggen hem (de autosave is
- * best-effort). Luid falen is de eerlijke uitkomst.
+ * After SEQ_INSERT_ATTEMPTS it rethrows. Writing a snapshot without a number would look
+ * attractive, but then a row would appear in the history that could never be called "v…"
+ * while nothing seemed to go wrong; the callers here catch the error and log it (the
+ * autosave is best-effort). Failing loudly is the honest outcome.
  */
 async function _insertVersionRow(params) {
     let lastErr = null;
@@ -111,16 +106,15 @@ async function _insertVersionRow(params) {
  *                          Last positional argument on purpose: the four pre-W2
  *                          call sites keep their exact behaviour without being
  *                          touched.
- * @param {object} [opts] - W4, achter `source` om diezelfde reden.
- * @param {string|null} [opts.actorUserId] - WIE deze versie maakte. Standaard
- *                          `userId`: elke schrijfweg naar een webpagina loopt
- *                          via de eigenaar, dus dat is de eerlijke default.
- *                          Expliciet `null` betekent "niet vast te stellen" en
- *                          komt in de UI terug als een onbekende maker.
- * @param {number|null} [opts.lineDelta] - het netto regelverschil van de
- *                          bewerking waar deze momentopname bij hoort, of niets
- *                          als er niet gemeten is. NIET 0 bij twijfel: 0 is de
- *                          uitspraak "er veranderde niets".
+ * @param {object} [opts] - W4, after `source` for the same reason.
+ * @param {string|null} [opts.actorUserId] - WHO made this version. Defaults to
+ *                          `userId`: every write path to a webpage goes via the
+ *                          owner, so that is the honest default. An explicit `null`
+ *                          means "not determinable" and comes back in the UI as an
+ *                          unknown maker.
+ * @param {number|null} [opts.lineDelta] - the net line difference of the edit this
+ *                          snapshot belongs to, or nothing if it was not measured.
+ *                          NOT 0 when in doubt: 0 is the statement "nothing changed".
  */
 async function createVersion(userId, webpageId, summary = 'Auto-save', hashes = null, source = DEFAULT_VERSION_SOURCE, opts = {}) {
     await initDB();
@@ -144,10 +138,9 @@ async function createVersion(userId, webpageId, summary = 'Auto-save', hashes = 
     }
 
     const kind = normalizeSource(source);
-    // `undefined` betekent "de aanroeper zei er niets over" en valt terug op de
-    // eigenaar; een expliciete `null` betekent "niet vast te stellen" en blijft
-    // null. Die twee mogen niet samenvallen — anders zou een oude aanroepplek
-    // die niets weet stilzwijgend de eigenaar aanwijzen als maker.
+    // `undefined` means "the caller said nothing about it" and falls back to the owner; an
+    // explicit `null` means "not determinable" and stays null. Those two must not coincide —
+    // otherwise an old call site that knows nothing would quietly name the owner as maker.
     const actorUserId = opts.actorUserId === undefined ? (userId || null) : (opts.actorUserId || null);
     const delta = Number.isFinite(opts.lineDelta) ? Math.trunc(opts.lineDelta) : null;
     const seq = await _insertVersionRow(
@@ -254,11 +247,11 @@ async function createVersionSnapshotFromFiles(webpageId, ownerId, files = {}, op
 }
 
 /**
- * De W4-velden van één rij, met de "onbekend is niet nul"-regel op één plek.
+ * The W4 fields of one row, with the "unknown is not zero" rule in one place.
  *
- * `seq` en `line_delta` komen als NULL terug op elke rij van vóór hun kolom
- * (en `line_delta` óók op rijen waar niets te meten viel). Ze worden dus NIET
- * met `|| 0` afgevlakt: 0 is een getal dat iets beweert.
+ * `seq` and `line_delta` come back as NULL on every row from before their column (and
+ * `line_delta` also on rows where nothing could be measured). They are therefore NOT
+ * flattened with `|| 0`: 0 is a number that asserts something.
  */
 function mapVersionFacts(r) {
     const seq = parseInt(r.seq, 10);
@@ -341,12 +334,11 @@ async function getVersion(userId, versionId) {
     if (!r) return null;
     const trio = await readAllSlots(userId, r.webpage_id, versionId);
     const contentLength = parseInt(r.content_length) || 0;
-    // ZIJN DE BYTES ER NOG? `readSlot` antwoordt met '' zowel voor "leeg" als
-    // voor "het object is er niet", dus een momentopname waarvan de objecten uit
-    // de opslag zijn verdwenen las als een LEEG bestand — en Terugzetten schreef
-    // die leegte over de levende pagina heen, terwijl de bevestiging net beloofde
-    // dat je het kon terugdraaien. De rij weet nog hoeveel bytes er hoorden te
-    // staan; dat is het enige onafhankelijke antwoord dat we hebben.
+    // ARE THE BYTES STILL THERE? `readSlot` answers with '' both for "empty" and for "the
+    // object is not there", so a snapshot whose objects had vanished from storage read as an
+    // EMPTY file — and Restore wrote that emptiness over the live page, while the confirmation
+    // had just promised you could undo it. The row knows how many bytes should be there; that
+    // is the only independent answer we have.
     const bytesFound = (trio.html || '').length + (trio.css || '').length + (trio.js || '').length;
     const readable = !(contentLength > 0 && bytesFound === 0);
     return {
@@ -356,8 +348,8 @@ async function getVersion(userId, versionId) {
         contentLength,
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
         source: normalizeSource(r.source),
-        // `false` betekent: de rij bestaat, maar zijn inhoud is weg. Nooit stil
-        // als een lege momentopname behandelen.
+        // `false` means: the row exists, but its content is gone. Never treat it silently as an
+        // empty snapshot.
         readable,
         ...mapVersionFacts(r),
         ...trio,
@@ -390,19 +382,18 @@ async function deleteVersion(userId, versionId, webpageId = null, { managedWrite
 }
 
 /**
- * Is het lang genoeg stil geweest om een nieuwe automatische rij te schrijven?
+ * Has it been quiet long enough to write a new automatic row?
  *
- * `source` klokt PER BRON, en dat is geen detail. De AI-arm schrijft sinds W4
- * onvoorwaardelijk één rij per beurt; keek deze vraag naar de laatste rij van
- * WELKE bron dan ook, dan zette elk gesprek met een beurt per één à twee minuten
- * — het normale tempo — de klok van de handmatige autosave permanent stil. Een
- * bewerking die iemand met de HAND in de Code-tab maakte kreeg dan structureel
- * geen eigen terugzetpunt meer: precies het argument waarmee de debounce uit het
- * AI-pad is gehaald, nu tegen de handmatige kant gekeerd.
+ * `source` is timed PER SOURCE, and that is no detail. Since W4 the AI arm writes one row per
+ * turn unconditionally; if this question looked at the last row of WHICHEVER source, then every
+ * conversation with a turn every one or two minutes — the normal pace — would permanently stop
+ * the clock of the manual autosave. An edit that someone made BY HAND in the Code tab then no
+ * longer got its own restore point: exactly the argument with which the debounce was removed
+ * from the AI path, now turned against the manual side.
  *
  * @param {string} webpageId
- * @param {string|null} [source] alleen naar rijen van deze bron kijken; `null`
- *   kijkt naar alle rijen (het oude gedrag, voor aanroepers die geen bron hebben)
+ * @param {string|null} [source] look only at rows of this source; `null` looks at all rows
+ *   (the old behaviour, for callers that have no source)
  */
 async function shouldAutoVersion(webpageId, source = null) {
     await initDB();

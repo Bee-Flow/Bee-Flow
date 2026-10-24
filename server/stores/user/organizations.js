@@ -411,23 +411,19 @@ function orgConfigKeys(orgId) {
         // Without this a stale connector cache keeps presenting JWTs signed by
         // the deleted org's key.
         `connector_tenant_key_${orgId}`,
-        // De twee U10-vlaggen: allebei een keuze die iemand voor DEZE
-        // organisatie maakte, dus allebei sterven ze met haar. Blijven ze
-        // staan, dan komt een org die op hetzelfde id wordt heropgericht
-        // terug met een MFA-plicht of een schild dat niemand koos.
+        // The two U10 flags: both are choices someone made for THIS organisation, so both die with it.
+        // If they stayed, an org re-created under the same id would come back with an MFA requirement
+        // or a shield that nobody chose.
         `${require('../../core/entitlements/orgMfaRequired').CONFIG_KEY_PREFIX}${orgId}`,
         `${require('../../core/entitlements/coworkShieldFlag').CONFIG_KEY_PREFIX}${orgId}`,
-        // De huisstijl voor documenten: het logo en de bedrijfsgegevens van
-        // DEZE organisatie. Blijft hij staan, dan komt een org die op hetzelfde
-        // id wordt heropgericht terug met andermans briefhoofd — en met een
-        // logo dat als data: URL in de config staat, dus echte bytes van een
-        // verwijderde organisatie.
+        // The house style for documents: the logo and company details of THIS organisation. If it stayed,
+        // an org re-created under the same id would come back with someone else's letterhead — and with
+        // a logo stored as a data: URL in the config, so real bytes of a deleted organisation.
         `${DOCUMENT_STYLE}${orgId}`,
-        // De leerplicht: welke handelingen DEZE organisatie achter een cursus
-        // zet en welke cursus ze weer vrijgeeft. Ook dat is een keuze die
-        // iemand hier maakte, dus hij sterft met de organisatie — blijft hij
-        // staan, dan komt een org die op hetzelfde id wordt heropgericht
-        // terug met een cursusplicht die niemand daar instelde.
+        // The course obligation: which actions THIS organisation puts behind a course, and which course
+        // releases them again. That too is a choice someone made here, so it dies with the organisation —
+        // if it stayed, an org re-created under the same id would come back with a course requirement
+        // that nobody there set.
         `${TRAINING_GATES}${orgId}`,
         // Whether members may edit project notebooks and pages together, and
         // how the AI may join conversations by itself: both chosen for THIS

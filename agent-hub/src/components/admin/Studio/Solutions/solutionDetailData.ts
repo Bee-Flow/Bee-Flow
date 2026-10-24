@@ -42,23 +42,23 @@ const CONTENT_KINDS = new Set([
  * event about a Blueprint this reader is not allowed to see put a version number
  * on their screen, which is the one thing the banner must not do.
  *
- * De afzender staat in routes/projects/packaging.js (`announcePublication`),
- * direct na een geslaagde publicatie. Die schrijft ALLEBEI de helften: een
- * `project_activity`-regel voor de pollende fallback van de hook, en het event
- * zelf voor de live stroom. Op een verbinding die nooit SSE krijgt arriveert dit
- * dus op de volgende poll in plaats van live — de eerlijke helft van de belofte,
- * geen gat. En het event draagt bewust geen Blueprint-id en geen versienummer,
- * om precies de reden hierboven.
+ * The sender is in routes/projects/packaging.js (`announcePublication`), directly
+ * after a successful publication. It writes BOTH halves: a `project_activity` row
+ * for the polling fallback of the hook, and the event itself for the live stream.
+ * On a connection that never gets SSE, this therefore arrives on the next poll
+ * rather than live — the honest half of the promise, not a gap. And the event
+ * deliberately carries no Blueprint id and no version number, for precisely the
+ * reason above.
  */
 const RELEASE_KINDS = new Set(['blueprint.published']);
 
 /**
- * Eén losse lees van dit project, opnieuw op te vragen.
+ * A single one-off read of this project, to be requested again.
  *
- * `status` reist mee omdat "kon niet gelezen worden" en "er is niets" op de
- * Versies- en Installaties-tab twee verschillende antwoorden zijn — zie
- * releaseModel.js. Los van useRemote omdat die geen tweede lees kent, en deze
- * twee moeten opnieuw zodra er gepubliceerd wordt.
+ * `status` travels along because “could not be read” and “there is nothing” are two
+ * different answers on the Versions and Installations tabs — see releaseModel.js.
+ * Separate from useRemote because that has no second read, and these two must be
+ * redone as soon as something is published.
  */
 interface ProjectRead<T> {
     status: string;
@@ -240,9 +240,9 @@ export function useSolutionData(projectId: string) {
                 fetchCompleteness();
             }
             if (RELEASE_KINDS.has(kind)) {
-                // Allebei ORG-GESCOOPTE lezen. De galerijlijst beslist opnieuw
-                // of deze lezer bij die Blueprint mag — de banner leest zijn
-                // versie daaruit en nooit uit het event.
+                // Both ORG-SCOPED reads. The gallery list decides afresh whether this reader may
+                // have that Blueprint — the banner reads its version from there and never from
+                // the event.
                 fetchBlueprints();
                 fetchReleases();
             }

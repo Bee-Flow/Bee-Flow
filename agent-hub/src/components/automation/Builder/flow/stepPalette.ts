@@ -221,28 +221,23 @@ export const ROUTE_ITEM = {
 };
 
 /**
- * Wat er binnen een flowlet/Step of een loop-body niet mag staan — de
- * palet-spiegel van server/automation/validate/constants.js
- * `NESTED_FORBIDDEN_RULES` plus de contract-scope-regels in
- * validate/graph.js. Beide scopes komen hier binnen als `inLayer:true`
- * (BuildTab voor een flowlet, LoopBodyEditor voor een body), en beide weigeren
- * dezelfde drie soorten.
+ * What may not stand inside a flowlet/Step or a loop body: the palette mirror of
+ * server/automation/validate/constants.js `NESTED_FORBIDDEN_RULES`, plus the contract-scope rules
+ * in validate/graph.js. Both scopes arrive here as `inLayer:true` (BuildTab for a flowlet,
+ * LoopBodyEditor for a body), and both refuse the same three types.
  *
- *   approval / form_page   pauzeren, en hervatten speelt de PARENT-graaf per
- *                          step-id opnieuw af — een pauze in een sub-graaf
- *                          heeft geen adres om op terug te komen.
- *   return_to_app          beëindigt de RUN, en een sub-graaf is niet het
- *                          einde daarvan. In een lus draait hij per item
- *                          opnieuw en levert hij geen runregel op (de app
- *                          krijgt niets); in een parallelle tak beweert hij dat
- *                          de run klaar is terwijl de rest nog draait.
+ *   approval / form_page   pause. Resuming replays the PARENT graph per step id, so a pause in a
+ *                          sub-graph has no address to return to.
+ *   return_to_app          ends the RUN, and a sub-graph is not the end of it. In a loop it runs
+ *                          again per item and yields no run record (the app receives nothing);
+ *                          in a parallel branch it claims that the run is done while the rest
+ *                          is still running.
  *
- * Aanbieden wat de validator hard weigert verkoopt de auteur een gegarandeerde
- * fout: hij sleept de stap erin en de eerstvolgende autosave wordt geweigerd —
- * precies de faalvorm die flow/terminalSteps.js benoemt ("de validator weigert
- * een graaf die de editor zojuist heeft laten tekenen"). Daarom FILTEREN, niet
- * disablen: anders dan bij NEEDS_FORM_TRIGGER is er hier geen handeling die de
- * stap alsnog mogelijk maakt zonder de scope te verlaten.
+ * Offering what the validator refuses hard sells the author a guaranteed error: he drags the step
+ * in, and the next autosave is refused. That is precisely the failure form that flow/terminalSteps.js
+ * names ("the validator refuses a graph that the editor has just let it draw"). That is why we
+ * FILTER, not disable: unlike NEEDS_FORM_TRIGGER, there is no action here that makes the step
+ * possible after all without leaving the scope.
  */
 export const NOT_INSIDE_A_LAYER = new Set(['approval', 'form_page', 'return_to_app']);
 

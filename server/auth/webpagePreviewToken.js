@@ -54,24 +54,22 @@ const secret = createSigningSecret({
 /**
  * Issue a token bound to (userId, webpageId) for `ttlMs` milliseconds.
  *
- * `viewerUserId` is de INGELOGDE BEZOEKER, en is iets anders dan `userId`.
- * `userId` is de EIGENAAR van de pagina: de per-pagina SQLite-database en de
- * ai/automations/integrations-bruggen draaien bewust acts-as-author, zodat
- * elke toegelaten lezer dezelfde paginadatabase ziet. Dat mag NOOIT gelden
- * voor een datatable: die heeft zijn eigen graden per persoon, dus de
- * tabelroutes lezen `viewerUserId` en niets anders.
+ * `viewerUserId` is the LOGGED-IN VISITOR, and is something other than `userId`.
+ * `userId` is the OWNER of the page: the per-page SQLite database and the ai/automations/
+ * integrations bridges deliberately act as the author, so that every admitted reader sees the
+ * same page database. That must NEVER apply to a datatable: that has its own grades per person,
+ * so the table routes read `viewerUserId` and nothing else.
  *
- * De claim is optioneel op de wire (een token van vóór W3 heeft hem niet),
- * maar het ontbreken ervan VERSMALT: verifyPreviewToken geeft dan
- * `viewerUserId: null` en de tabelroutes weigeren. Nooit terugvallen op
- * `userId` — dat zou elke lezer de tabelrechten van de auteur geven.
+ * The claim is optional on the wire (a token from before W3 does not have it), but its absence
+ * NARROWS: verifyPreviewToken then gives `viewerUserId: null` and the table routes refuse. Never
+ * fall back to `userId` — that would give every reader the table rights of the author.
  */
 function issuePreviewToken({ userId, webpageId, viewerUserId = null, ttlMs = DEFAULT_TTL_MS }) {
     if (!userId || !webpageId) throw new Error('userId and webpageId are required');
     const expiresAt = Date.now() + Math.max(60_000, ttlMs);
     const payload = { u: userId, w: webpageId, e: expiresAt };
-    // Getrimd: een claim van alleen spaties is geen bezoeker, en zou anders als
-    // gebruikers-id de scope-opzoeking in gaan.
+    // Trimmed: a claim of spaces alone is not a visitor, and would otherwise enter the scope lookup as a
+    // user id.
     const viewer = typeof viewerUserId === 'string' ? viewerUserId.trim() : '';
     if (viewer) payload.v = viewer;
     return {
@@ -93,8 +91,8 @@ function verifyPreviewToken(token) {
     return {
         userId: payload.u,
         webpageId: payload.w,
-        // Alleen een echte, niet-lege string telt. Alles anders (ontbrekend,
-        // een getal, een object) wordt null en laat de tabelroutes weigeren.
+        // Only a real, non-empty string counts. Anything else (missing, a number, an object) becomes null and
+        // makes the table routes refuse.
         viewerUserId: typeof payload.v === 'string' && payload.v.trim() ? payload.v.trim() : null,
         expiresAt: payload.e,
     };

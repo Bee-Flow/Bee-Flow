@@ -1,13 +1,12 @@
 /**
- * `resolveLayerAgentModel` — de enige andere aanroeper die op de weggehaalde
- * default-fallback van `resolveModelForTierName` leunde.
+ * `resolveLayerAgentModel` — the only other caller that leaned on the removed default fallback of
+ * `resolveModelForTierName`.
  *
- * Hij probeert de thinking-tier en valt terug op de fast-tier. Dat zijn allebei
- * INGERICHTE tiers. Vroeger kon de tweede aanroep nooit leeg terugkomen, omdat
- * de resolver zelf een hardgecodeerd `gemini-2.0-flash-lite` invulde — dus liep
- * de flowlet-subagent op een Google-model bij een workspace die geen enkele
- * tier had ingericht. Nu is null een echt antwoord, en de route eromheen
- * (routes/ai/automationBuilder/layerAgent.js) weigert er leesbaar op.
+ * It tries the thinking tier and falls back to the fast tier. Both are PROVISIONED tiers. Formerly the
+ * second call could never come back empty, because the resolver itself filled in a hard-coded
+ * `gemini-2.0-flash-lite` — so the flowlet subagent ran on a Google model in a workspace that had no tier
+ * provisioned at all. Now null is a real answer, and the route around it
+ * (routes/ai/automationBuilder/layerAgent.js) refuses legibly on it.
  *
  * Run: cd server && node --test --test-force-exit automation/flowletAgent.modelResolve.test.js
  */

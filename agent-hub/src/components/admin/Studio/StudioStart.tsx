@@ -62,9 +62,9 @@ export default function StudioStart({ user, onNavigate, hasPermission = () => tr
         can, lockReason, loading: entitlementsLoading, error: entitlementsError,
     } = useEntitlements();
     const runtimeStudioApps = useRuntimeStudioApps();
-    // Eén lezing voor dit hele scherm, zonder timer. `failed` reist mee: een
-    // mislukte lezing is iets anders dan een lezing die nog loopt, en zonder
-    // poller komt die eerste niet meer terug.
+    // One read for this entire screen, without a timer. `failed` travels along: a failed
+    // read is something other than a read that is still running, and without a poller
+    // the first will never come back.
     const { counts, makers, failed: countsFailed } = useStudioCounts({ poll: false });
 
     const ctx = studioGateContext({
@@ -74,21 +74,20 @@ export default function StudioStart({ user, onNavigate, hasPermission = () => tr
     const sections = studioNavSections([...STUDIO_SECTIONS, ...runtimeStudioApps], ctx);
     const groups = groupStudioApps(sections);
 
-    // Runtime modules carry a locale-aware label() fn; built-ins an i18n key.
-    // Beide antwoorden staan in studioNav.js, zodat een sectie hier niet
-    // anders kan heten dan op de rail of in "Laatst bewerkt".
+    // Runtime modules carry a locale-aware label() fn; built-ins an i18n key. Both
+    // answers are in studioNav.js, so a section here cannot be named differently from
+    // how it is on the rail or in “Last edited”.
     const labelOf = (app: StudioLabelled | null) => studioSectionLabel(app, t, locale);
     const descOf = (app: { descKey?: string; descFallback?: string }) => (app.descKey ? t(app.descKey, app.descFallback) : null);
 
     return (
         <div className="h-full overflow-y-auto custom-scrollbar" data-testid="studio-start">
             <div className="max-w-4xl mx-auto px-6 py-8">
-                {/* Wie hier bouwt, wat je nieuw kunt maken, en "beschrijf wat
-                    je wilt" — dat laatste sinds H4 een echt paneel, dat de kop
-                    zelf draagt (studioAi/DescribeItPanel). Dezelfde gegate
-                    `sections` als de rest van dit scherm gaan mee, zodat het
-                    paneel geen soort aanbiedt die hieronder gelockt staat. Het
-                    makersgetal wordt op de server geteld — zie
+                {/* Who builds here, what you can create new, and “describe what you want” — the
+                    latter a real panel since H4, which the header carries itself
+                    (studioAi/DescribeItPanel). The same gated `sections` as the rest of
+                    this screen go along, so the panel offers no kind that is locked
+                    below. The makers number is counted on the server — see
                     StudioHomeHeader.jsx. */}
                 <StudioHomeHeader user={user} sections={sections} onNavigate={onNavigate} makers={makers} />
 
@@ -99,13 +98,13 @@ export default function StudioStart({ user, onNavigate, hasPermission = () => tr
                     on its own (attention/attentionChecks.js). */}
                 <AttentionList user={user} hasFeature={hasLicenseFeature} onNavigate={onNavigate} />
 
-                {/* Daarna waar je gebleven was. Dezelfde secties, dezelfde
-                    gates: een lijst die deze persoon niet mag zien wordt niet
-                    gevraagd, en een lijst die omvalt zegt dat (recent/). */}
-                {/* `gatesResolved`: zolang de entitlements laden of omvielen
-                    LAAT resolveStudioNav de gegate secties helemaal weg — dan
-                    is "nog niets bewerkt" een geruststelling over zeven lijsten
-                    die nooit gevraagd zijn. Onbekend versmalt. */}
+                {/* Afterwards, where you left off. The same sections, the same gates: a list
+                    that this person may not see is not requested, and a list that fails
+                    says so (recent/). */}
+                {/* `gatesResolved`: while the entitlements are loading or have fallen over,
+                    resolveStudioNav OMITS the gated sections entirely — then “nothing
+                    edited yet” is a reassurance about seven lists that were never
+                    requested. Unknown narrows. */}
                 <RecentWorkList
                     sections={sections}
                     onNavigate={onNavigate}
@@ -160,10 +159,10 @@ export default function StudioStart({ user, onNavigate, hasPermission = () => tr
                     </section>
                 ))}
 
-                {/* Onderaan, want het is het antwoord op een tweede vraag: niet
-                    "waar ga ik heen" maar "hoe passen deze dingen in elkaar".
-                    Bewust een handgelegde legenda en geen levende org-brede
-                    graph — de reden staat in map/studioMap.js en blijft staan. */}
+                {/* At the bottom, because it is the answer to a second question: not “where am I
+                    going” but “how do these things fit together”. Deliberately a
+                    hand-drawn legend and not a live org-wide graph — the reason is in
+                    map/studioMap.js and stays. */}
                 <StudioMap counts={counts} countsFailed={countsFailed} />
             </div>
         </div>

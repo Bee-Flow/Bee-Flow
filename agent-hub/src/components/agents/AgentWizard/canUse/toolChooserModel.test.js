@@ -6,12 +6,11 @@ import {
 import { grantedActionsOf } from './toolGrants';
 
 /**
- * De gefaseerde selectie van de kiezer.
+ * The staged selection of the picker.
  *
- * `toolGrants.test.js` pint de REGEL (uitvinken schrijft, weglaten geeft
- * terug). Wat hier gepind wordt is de kiezer eromheen: dat een uitgezette app
- * niet met alle vinkjes aan opengaat, dat openen-en-sluiten niets schrijft, en
- * dat één klik allebei de poorten bedient.
+ * `toolGrants.test.js` pins the RULE (unticking writes, omitting gives back). What is pinned here is the
+ * picker around it: that an app that is switched off does not open with all its ticks on, that opening and
+ * closing writes nothing, and that one click serves both gates.
  */
 
 const APPS = [
@@ -35,9 +34,8 @@ const APPS = [
 
 describe('de beginstand: twee poorten, niet één', () => {
     it('opent een UITGEZETTE app met nul vinkjes, ook al zegt de grants-map "alles"', () => {
-        // Zonder deze regel zou elke app uit de catalogus vol aangevinkt
-        // opengaan — een ontbrekende tools-entry betekent immers "alles" — en
-        // zou de eerste opslag de agent tools geven die niemand koos.
+        // Without this rule every app from the catalogue would open fully ticked, because a missing tools entry
+        // means "everything", and the first save would give the agent tools that nobody chose.
         const sel = chooserInitialSelection({
             toolsConfig: null, enabledIntegrations: ['gmail'], apps: APPS,
         });
@@ -107,8 +105,8 @@ describe('toepassen: één schrijfbeurt, allebei de poorten', () => {
     });
 
     it('alles uitvinken zet de app UIT én schrijft de weigering op', () => {
-        // Allebei versmallen. De weigering blijft staan als iemand later alleen
-        // de app-lijst weer aanzet — dan is er nog steeds niets gekozen.
+        // Both narrow. The refusal stays in place if someone later only switches the app list on again. Then there
+        // is still nothing chosen.
         const initial = chooserInitialSelection({ toolsConfig: null, enabledIntegrations: ['gmail'], apps });
         const selection = new Map(initial);
         selection.set('gmail', new Set());
@@ -120,8 +118,8 @@ describe('toepassen: één schrijfbeurt, allebei de poorten', () => {
     });
 
     it('schrijft NIETS voor een app waar de eigenaar niets aan deed', () => {
-        // Anders zet openen-en-toepassen de agent in het bevestigingsregime
-        // (`hasCuratedGrants`) zonder dat iemand een keuze maakte.
+        // Otherwise opening and applying would put the agent into the confirmation regime (`hasCuratedGrants`)
+        // without anyone making a choice.
         const initial = chooserInitialSelection({ toolsConfig: null, enabledIntegrations: ['gmail', 'google-drive'], apps });
         const selection = new Map(initial);
         selection.set('gmail', new Set(['gmail_search']));
@@ -214,10 +212,9 @@ describe('één rij per grant-subject', () => {
     });
 
     it('één vinkje ERBIJ neemt er nergens twee AF', () => {
-        // De bevinding: de kiezer toonde beide rijen, opende de read-only rij
-        // met nul vinkjes (de app stond app-niveau uit) en schreef alleen díé
-        // rij weg. Resultaat: één leesactie erbij, twee andere weg, en de
-        // verzendactie behouden — op een rij die niemand aanraakte.
+        // The finding: the picker showed both rows, opened the read-only row with zero ticks (the app was switched
+        // off at app level), and wrote only THAT row away. Result: one read action added, two other ones gone,
+        // and the send action kept, on a row that nobody was touching.
         const apps = foldSharedApps([OUTLOOK, OUTLOOK_RO]);
         const initial = chooserInitialSelection({
             toolsConfig: null, enabledIntegrations: ['outlook'], apps,
@@ -237,9 +234,8 @@ describe('één rij per grant-subject', () => {
     });
 
     it('houdt een niet-getoonde rij van dezelfde module in de pas, alleen op de GEDEELDE namen', () => {
-        // Legacy-entry op de read-only rij die de kiezer nu niet toont. Zou hij
-        // blijven staan zoals hij was, dan is het vinkje dat de eigenaar hier
-        // zet dood: de runtime laat beide apps meebeslissen.
+        // Legacy entry on the read-only row that the picker no longer shows. If it stayed as it was, the tick that
+        // the owner sets here would be dead: the runtime lets both apps decide.
         const catalog = [OUTLOOK, OUTLOOK_RO];
         const apps = foldSharedApps(catalog);
         const before = { 'outlook-readonly': { actions: ['outlook_search'] } };
@@ -270,10 +266,9 @@ describe('de EERSTE curatie verandert de betekenis van zwijgen', () => {
     };
 
     it('legt vast wat er stond voor een app die de kiezer nooit kon tonen', () => {
-        // De kiezer opent browse_web AANGEVINKT (de agent is nog niet
-        // gecureerd, dus hij mag alles), de eigenaar versmalt alleen Gmail —
-        // en zonder deze regel verliest de agent zijn browser zonder dat
-        // iemand hem uitvinkte, terwijl de knop zei "1 eraf".
+        // The picker opens browse_web TICKED (the agent is not yet curated, so it may do everything). The owner
+        // narrows only Gmail. Without this rule the agent loses its browser without anyone unticking it, while the
+        // button said "1 removed".
         const apps = [GMAIL, BROWSER];
         const enabled = ['gmail', 'browser-fetch'];
         const initial = chooserInitialSelection({ toolsConfig: null, enabledIntegrations: enabled, apps });
@@ -307,8 +302,8 @@ describe('de EERSTE curatie verandert de betekenis van zwijgen', () => {
         const initial = chooserInitialSelection({
             toolsConfig: before, enabledIntegrations: ['gmail', 'browser-fetch'], apps,
         });
-        // Al gecureerd ⇒ de browser opent met NUL vinkjes (de server serveert
-        // hem ook niet), en er wordt niets voor hem geschreven.
+        // Already curated ⇒ the browser opens with ZERO ticks (the server does not serve it either), and nothing is
+        // written for it.
         expect([...initial.get('browser-fetch')]).toEqual([]);
         const selection = new Map(initial);
         selection.set('gmail', new Set(['gmail_search', 'gmail_compose']));

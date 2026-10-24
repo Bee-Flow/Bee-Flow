@@ -1,15 +1,14 @@
 /**
- * De "Gedaan: …"-beurt van de verfijn-rail (A2 stap 5).
+ * The "Done: …" turn of the refine rail (A2 step 5).
  *
- * Wat hier vastgepind wordt, is precies wat een volgende stage per ongeluk
- * kan omdraaien:
- *   - een LEGE diff is een ZIN ("er veranderde niets"), geen leeg lijstje;
- *   - de ongedaan-knop VERDWIJNT NOOIT: zonder herstelpunt en op een
- *     ingehaalde beurt staat hij er nog steeds, uitgeschakeld, met de reden;
- *   - een uitgeschakelde knop roept onUndo niet aan — dat is het verschil
- *     tussen "niets doen" en "iets ANDERS herstellen";
- *   - de enkelvoud/meervoud-keuze is een SLEUTELkeuze (nOf), geen letter die
- *     in de code aan een woord geplakt wordt.
+ * What is pinned here is exactly what a next stage could accidentally reverse:
+ *   - an EMPTY diff is a SENTENCE ("nothing changed"), not an empty list;
+ *   - the undo button NEVER DISAPPEARS: without a restore point, or on an
+ *     overtaken turn, it is still there, disabled, with the reason;
+ *   - a disabled button does not call onUndo. That is the difference between
+ *     "doing nothing" and "restoring something DIFFERENT";
+ *   - the singular/plural choice is a KEY choice (nOf), not a letter glued onto
+ *     a word in the code.
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/builderSplit/RefineDoneCard.test.jsx
  */
@@ -18,9 +17,9 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 
 import RefineDoneCard from './RefineDoneCard';
 
-// Zelfde vertaler als BuilderSplit.test.jsx: een string als tweede argument is
-// de fallback, en {placeholders} worden echt ingevuld — dit bestand beweert
-// dingen over de zin die de gebruiker leest ("Turned on 2 apps").
+// Same translator as BuilderSplit.test.jsx: a string as second argument is
+// the fallback, and {placeholders} are really filled in. This file asserts
+// things about the sentence the user reads ("Turned on 2 apps").
 const t = (key, fallbackOrParams, paramsArg) => {
     const hasStringFallback = typeof fallbackOrParams === 'string';
     const params = hasStringFallback ? paramsArg : fallbackOrParams;

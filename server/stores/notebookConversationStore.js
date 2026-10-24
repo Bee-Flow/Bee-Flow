@@ -104,7 +104,7 @@ async function _initDB() {
     // Migration: denormalized message counter for the overview cards. The blob
     // is encrypted at rest, so the count can't be derived in SQL — writers keep
     // it in sync (pre-existing rows self-heal on their next turn).
-    // Via runDdl: een échte fout wordt luid gerapporteerd i.p.v. stil ingeslikt.
+    // Via runDdl: a real error is reported loudly instead of being swallowed silently.
     await runDdl('notebookConversationStore', [
         `ALTER TABLE notebook_conversations ADD COLUMN IF NOT EXISTS message_count INTEGER NOT NULL DEFAULT 0`,
     ]);

@@ -1,11 +1,11 @@
 /**
- * De hero van de agent-editor (A2 stap 1).
+ * The hero of the agent editor (A2 step 1).
  *
- * Drie beloftes staan hier vast:
- *   - de OMSCHRIJVING staat er altijd, niet achter een "Add description";
- *   - de tierchip leest zijn label uit TIER_META, door t() heen;
- *   - de taalchip komt uit `persona.language` en verschijnt ALLEEN voor een
- *     code die we kunnen benoemen — een rauwe code is geen taal.
+ * Three promises are fixed here:
+ *   - the DESCRIPTION is always there, not behind an "Add description";
+ *   - the tier chip reads its label from TIER_META, through t();
+ *   - the language chip comes from `persona.language` and appears ONLY for a
+ *     code we can name. A raw code is not a language.
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/builderSplit/AgentHero.test.jsx
  */
@@ -20,9 +20,9 @@ vi.mock('../../../../utils/helpers', () => ({
 import AgentHero, { languageChipLabel } from './AgentHero';
 import { READ } from '../canUse/canUseFacts';
 
-// Zelfde resolutie-volgorde als useTranslation: string-fallback wint van de
-// sleutel, en {count} wordt ingevuld — anders zou de teller-test een
-// letterlijke "{count}/300" goedkeuren.
+// Same resolution order as useTranslation: the string fallback wins over the
+// key, and {count} is filled in. Otherwise the counter test would approve a
+// literal "{count}/300".
 const t = (key, fallbackOrParams, paramsArg) => {
     const hasFallback = typeof fallbackOrParams === 'string';
     const params = hasFallback ? paramsArg : fallbackOrParams;
@@ -52,11 +52,11 @@ describe('AgentHero — de omschrijving staat er altijd', () => {
     it('toont het omschrijvingsveld ook als de agent er geen heeft', () => {
         render(<AgentHero {...baseProps} description="" />);
         const box = screen.getByTestId('agent-hero-description');
-        // Bestaan is niet genoeg: een `hidden` of `display:none` veld is net zo
-        // verborgen als een uitklapknop. Zichtbaarheid is de belofte.
+        // Existence is not enough: a `hidden` or `display:none` field is just as
+        // hidden as an expand button. Visibility is the promise.
         expect(box).toBeVisible();
         expect(box.value).toBe('');
-        // Geen "voeg een omschrijving toe"-knop meer die het veld verbergt.
+        // No more "add a description" button that hides the field.
         expect(screen.queryByText(/Add description/i)).toBeNull();
     });
 
@@ -106,8 +106,8 @@ describe('AgentHero — de identiteitsrij', () => {
         render(<AgentHero {...baseProps} />);
         const badge = screen.getByTestId('agent-hero-avatar-badge');
         expect(badge).toBeVisible();
-        // De tegel eronder moet het trefvlak blijven; een badge die klikken
-        // opvangt maakt de rand van het avatar dood.
+        // The tile below must remain the hit area. A badge that catches clicks
+        // would kill the edge of the avatar.
         expect(badge.className).toContain('pointer-events-none');
     });
 
@@ -127,27 +127,26 @@ describe('AgentHero — de identiteitsrij', () => {
     });
 
     it('zwijgt over de categorie zolang de lijst nog GELEZEN wordt', () => {
-        // Tijdens de bootstrap is `categories` leeg en de toestand LOADING. Een
-        // keuzelijst met alleen "No category" zou dan beweren dat deze agent er
-        // geen heeft.
+        // During bootstrap `categories` is empty and the state is LOADING. A
+        // dropdown with only "No category" would then claim that this agent has none.
         render(<AgentHero {...baseProps} categories={[]} categoryId="c-sales" categoriesState={READ.LOADING} updateCategory={() => {}} />);
         expect(screen.queryByTestId('agent-category-select')).toBeNull();
         expect(screen.queryByTestId('agent-hero-category-unreadable')).toBeNull();
     });
 
     it('zegt het als de lijst NIET GELEZEN kon worden en de agent er een draagt', () => {
-        // Een 403 of netwerkfout landde ook op `[]`, en dan verdween de tag van
-        // een agent die er wél een heeft — zonder melding, en sinds A3 is dit de
-        // enige plek in de editor waar de categorie te zien is.
+        // A 403 or a network error also landed on `[]`, and then the tag of an agent
+        // that DID have one disappeared, without a message. Since A3 this is the
+        // only place in the editor where the category is visible.
         render(<AgentHero {...baseProps} categories={[]} categoryId="c-sales" categoriesState={READ.ERROR} updateCategory={() => {}} />);
         expect(screen.queryByTestId('agent-category-select')).toBeNull();
         expect(screen.getByTestId('agent-hero-category-unreadable').textContent).toMatch(/Category unavailable/i);
     });
 
     it('biedt bij een mislukte lezing GEEN kiezer aan een agent zonder categorie', () => {
-        // Anders staat er een gezaghebbend ogende lijst met alleen "No
-        // category", is "+" de enige actie, en maakt de eigenaar een duplicaat
-        // van een categorie die gewoon bestaat.
+        // Otherwise there would be an authoritative-looking list with only "No
+        // category", "+" would be the only action, and the owner would create a
+        // duplicate of a category that does exist.
         render(<AgentHero {...baseProps} categories={[]} categoryId={null} categoriesState={READ.ERROR} updateCategory={() => {}} />);
         expect(screen.queryByTestId('agent-category-select')).toBeNull();
         expect(screen.queryByTestId('agent-hero-category-unreadable')).toBeNull();

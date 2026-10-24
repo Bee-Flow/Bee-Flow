@@ -1,32 +1,30 @@
 'use strict';
 
 /**
- * Het VENSTER van een regeneratie, tegen een ECHTE Postgres
- * (@electric-sql/pglite, in-proces).
+ * The WINDOW of a regeneration, against a REAL Postgres (@electric-sql/pglite,
+ * in-process).
  *
- * ── WAAROM DIT BESTAND BESTAAT ──────────────────────────────────────
- * "Opnieuw" leest de notitie, praat daarna minutenlang met een model (vier
- * LLM-aanroepen, drie ervan gekapt op 540 s) en schrijft dán pas. Alles wat
- * een mens in dat venster vastlegt — een besluit dat hij in het
- * transcript-tabblad van een regel plukt, een actie die hij aanvinkt — zat
- * niet in de momentopname waartegen de merge draait, en werd bij de landing
- * van de update overschreven. Zonder melding, zonder undo: het scherm toonde
- * daarna keurig de nieuwe werkelijkheid waarin die regel zojuist verdween.
+ * ── WHY THIS FILE EXISTS ────────────────────────────────────────────
+ * "Regenerate" reads the note, then talks for minutes with a model (four LLM calls,
+ * three of them cut off at 540 s) and only then writes. Everything a person records
+ * in that window — a decision they pick from a line in the transcript tab, an action
+ * they check off — was not in the snapshot the merge runs against, and was
+ * overwritten when the update landed. Without notice, without undo: the screen then
+ * neatly showed the new reality in which that line had just disappeared.
  *
- * De merge kan dat niet zien: die vergelijkt alleen `source` en kijkt naar
- * rijen die minuten geleden zijn gelezen. Het antwoord moet dus uit de
- * DATABASE komen op het moment van schrijven — en dat is precies waarom deze
- * suite een echte Postgres draait in plaats van een nagespeelde `run()`. Een
- * fake db bewijst dat de route de juiste bedoeling doorgeeft; alleen een
- * echte database bewijst dat het SQL die bedoeling ook uitvoert.
+ * The merge cannot see that: it compares only `source` and looks at rows that were
+ * read minutes ago. So the answer has to come from the DATABASE at the moment of
+ * writing — and that is precisely why this suite runs a real Postgres instead of a
+ * simulated `run()`. A fake db proves that the route passes the right intention on;
+ * only a real database proves that the SQL also carries that intention out.
  *
- * ── ÉÉN KLOK ────────────────────────────────────────────────────────
- * Het vertrekpunt (`readAt`) en de `createdAt` van elke artefactregel komen
- * allebei uit `NOW()` van deze ene Postgres. Node's klok komt er niet aan te
- * pas: twee klokken die milliseconden uit elkaar lopen zouden precies aan de
- * randen van dit venster de verkeerde kant op beslissen.
+ * ── ONE CLOCK ────────────────────────────────────────────────────────
+ * The starting point (`readAt`) and the `createdAt` of each artifact row both come
+ * from `NOW()` of this one Postgres. Node's clock does not come into it: two clocks
+ * that differ by milliseconds would decide the wrong way exactly at the edges of
+ * this window.
  *
- * Draaien: cd server && node --test stores/transcriptionStore.artifactWindow.pg.test.js
+ * Run: cd server && node --test stores/transcriptionStore.artifactWindow.pg.test.js
  */
 
 const { test, before } = require('node:test');
@@ -42,8 +40,8 @@ const { mergeRegeneratedActionItems, mergeRegeneratedNotes } = require('../core/
 const OWNER = 'owner-1';
 
 before(async () => {
-    // Eén echte schema-init: dezelfde DDL die productie draait, zodat een
-    // kolom die hier ontbreekt ook hier omvalt.
+    // One real schema init: the same DDL that production runs, so that a column
+    // missing here also fails here.
     await store.getTranscriptions(OWNER, { limit: 1 });
 });
 
@@ -61,20 +59,19 @@ async function readColumns(id) {
 }
 
 /**
- * Wacht tot de databaseklok ná `readAt` staat.
+ * Wait until the database clock is past `readAt`.
  *
- * In het echt zitten er minuten tussen de read van een run en wat een mens
- * "tijdens de run" doet. Hier zit er één `await` tussen, en PGlite's klok tikt
- * per milliseconde: twee statements na elkaar krijgen meestal dezelfde
- * `NOW()` (gemeten: 4452 van 5000 opeenvolgende statements). De schrijfactie
- * "tijdens de run" droeg dan de stempel van de read zelf, en `>` telt gelijk
- * terecht als vóór de run. De test faalde daarmee op een volgorde die hij niet
- * zelf had neergezet, op een snelle, stille machine het vaakst (22 van 30
- * runs).
+ * In reality there are minutes between the read of a run and what a person does
+ * "during the run". Here there is one `await` in between, and PGlite's clock ticks
+ * per millisecond: two statements in a row mostly get the same `NOW()` (measured:
+ * 4452 of 5000 consecutive statements). The write action "during the run" then
+ * carried the stamp of the read itself, and `>` correctly counts equal as before the
+ * run. The test then failed on an order it had not set up itself, most often on a
+ * fast, quiet machine (22 of 30 runs).
  *
- * Dit verzwakt geen assertie: elke schrijfactie "tijdens de run" hieronder
- * gebeurt ná de read, en nu staat dat ook zo in de klok van de database. Het
- * volgende statement begint na deze SELECT, dus zijn `NOW()` ligt er niet voor.
+ * This weakens no assertion: every write action "during the run" below happens after
+ * the read, and now that is also true on the database's clock. The next statement
+ * starts after this SELECT, so its `NOW()` does not lie before it.
  */
 async function untilTheClockPasses(readAt) {
     for (let tries = 0; tries < 1000; tries++) {
@@ -93,7 +90,7 @@ async function readForTheRun(id) {
     return snapshot;
 }
 
-/** Een notitie met precies wat het model de vorige keer vond. */
+/** A note with exactly what the model found last time. */
 async function seedNote() {
     const { id } = await store.createTranscription({
         userId: OWNER,
@@ -108,8 +105,8 @@ async function seedNote() {
 }
 
 /**
- * Wat een mens tijdens de run doet: PATCH /:id stuurt de HELE lijst terug —
- * de rijen die hij bij het openen van de notitie kreeg, plus de nieuwe.
+ * What a person does during the run: PATCH /:id sends back the WHOLE list —
+ * the rows they got when opening the note, plus the new one.
  */
 async function personAddsDuringTheRun(id, snapshot) {
     return store.updateTranscription(id, OWNER, {
@@ -132,13 +129,13 @@ function regeneratedFrom(snapshot) {
 test('een artefact dat TUSSEN het lezen en het schrijven ontstaat, overleeft de regeneratie', async () => {
     const id = await seedNote();
 
-    // 1. De run leest zijn invoer. Dít is het vertrekpunt, en het komt uit
-    //    dezelfde database als de stempels waartegen het straks vergelijkt.
+    // 1. The run reads its input. THIS is the starting point, and it comes from
+    //    the same database as the stamps it is compared against later.
     const snapshot = await readForTheRun(id);
     assert.ok(snapshot.readAt, 'de read geeft het moment mee waarop hij las');
 
-    // 2. Terwijl het model praat: iemand plukt in het transcript-tabblad een
-    //    besluit van een regel en voegt een actie toe.
+    // 2. While the model is talking: someone picks a decision from a line in the
+    //    transcript tab and adds an action.
     await personAddsDuringTheRun(id, snapshot);
 
     // 3. De regeneratie landt, met het vertrekpunt uit stap 1.
@@ -165,9 +162,9 @@ test('een artefact dat TUSSEN het lezen en het schrijven ontstaat, overleeft de 
 });
 
 test('de schrijfactie MELDT wat er landde, zodat de client die rij ook ziet', async () => {
-    // Anders staat de rij veilig in de database maar verdwijnt hij van het
-    // scherm tot de volgende ophaalronde — voor de persoon die kijkt niet te
-    // onderscheiden van verliezen. De route antwoordt met déze lijsten.
+    // Otherwise the row is safe in the database but disappears from the screen until
+    // the next fetch round — for the person looking, indistinguishable from a loss.
+    // The route responds with THESE lists.
     const id = await seedNote();
     const snapshot = await readForTheRun(id);
     await personAddsDuringTheRun(id, snapshot);
@@ -199,9 +196,9 @@ test('zonder vertrekpunt wist dezelfde schrijfactie hem — dat is wat er misgin
 });
 
 test('een AI-rij die de verse pass NIET opnieuw mint verdwijnt, ook al werd de kolom tijdens de run herschreven', async () => {
-    // De valkuil van een stempel: PATCH herschrijft de HELE lijst, dus zonder
-    // zorg zou elke oude rij daar een verse `createdAt` van krijgen en als
-    // "nieuw" overleven — precies de rijen die "Opnieuw" hoort te vervangen.
+    // The trap of a stamp: PATCH rewrites the WHOLE list, so without care every old row
+    // would get a fresh `createdAt` there and survive as "new" — exactly the rows that
+    // "Regenerate" should replace.
     const id = await seedNote();
     await store.updateTranscription(id, OWNER, {
         actionItems: [{ id: 'ai-9', source: 'ai', text: 'AI-punt dat straks niet terugkomt' }],
@@ -255,9 +252,9 @@ test('de client kan de stempel niet zetten — de database overschrijft wat er b
 });
 
 test('een stempel met drie cijfers, van vóór de microseconden, telt nog steeds als vóór de run', async () => {
-    // Zo staat een rij in de kolom die gestempeld is vóór de klok naar
-    // microseconden ging. Tekst tegen tekst vergelijkt dat goed met een read
-    // van nu, zolang de twee niet in dezelfde milliseconde vallen.
+    // This is how a row sits in the column when it was stamped before the clock went to
+    // microseconds. Text against text compares fine with a read of now, as long as the
+    // two do not fall in the same millisecond.
     const legacy = '2026-01-05T09:30:00.123Z';
     const { id } = await store.createTranscription({
         userId: OWNER, title: 'Weekstart', fileName: 'w.m4a', transcript: 'Hallo.',
@@ -274,15 +271,14 @@ test('een stempel met drie cijfers, van vóór de microseconden, telt nog steeds
         ['Vers AI-punt', 'Tijdens de run toegevoegd']);
 });
 
-// ── Rijen zonder stempel: de normale toestand, niet de uitzondering ──
+// ── Rows without a stamp: the normal state, not the exception ──
 //
-// Alles wat via createTranscription is aangemaakt (Talk, Meet, auto-import)
-// en elke notitie die door /reprocess is gegaan (die schrijft de kolom rauw)
-// draagt GEEN stempel. Hoe zo'n rij zich tot het venster verhoudt wordt door
-// één regel beslist, en die regel is de gevaarlijkste van dit bestand: hij
-// stempelde ongestempelde rijen met `updated_at` van de NOTITIE, en dat is
-// geen bewijs dat de rij oud is — het is het moment van de vorige willekeurige
-// schrijfactie, die net zo goed TIJDENS de lopende run kan hebben plaatsgevonden.
+// Everything created via createTranscription (Talk, Meet, auto-import) and every note
+// that went through /reprocess (which writes the column raw) carries NO stamp. How
+// such a row relates to the window is decided by one rule, and that rule is the most
+// dangerous in this file: it stamped unstamped rows with the `updated_at` of the NOTE,
+// and that is no proof that the row is old — it is the moment of the previous arbitrary
+// write, which may just as well have happened DURING the running run.
 
 test('een ongestempelde AI-rij herrijst NIET doordat er tijdens de run iets anders op de notitie werd geschreven', async () => {
     const { id } = await store.createTranscription({
@@ -290,7 +286,7 @@ test('een ongestempelde AI-rij herrijst NIET doordat er tijdens de run iets ande
         title: 'Weekstart',
         fileName: 'weekstart.m4a',
         transcript: 'Hallo.',
-        // Zoals een auto-import ze wegschrijft: geen stempels.
+        // As an auto-import writes them away: no stamps.
         actionItems: [
             { id: 'ai-0', source: 'ai', text: 'AI punt 0' },
             { id: 'ai-1', source: 'ai', text: 'AI punt 1' },
@@ -301,17 +297,17 @@ test('een ongestempelde AI-rij herrijst NIET doordat er tijdens de run iets ande
     // 1. De run leest.
     const snapshot = await readForTheRun(id);
 
-    // 2. Tijdens de run hernoemt de eigenaar de notitie. `updated_at` verspringt,
-    //    geen artefactkolom wordt geraakt — dus geen stempel.
+    // 2. During the run the owner renames the note. `updated_at` jumps, and no
+    //    artifact column is touched — so no stamp.
     await store.updateTranscription(id, OWNER, { title: 'Weekstart (hernoemd)' });
 
-    // 3. Nog steeds tijdens de run voegt hij een actie toe: de HELE lijst gaat
-    //    terug naar de kolom, met de drie ongestempelde AI-rijen erin.
+    // 3. Still during the run he adds an action: the WHOLE list goes back to the column,
+    //    with the three unstamped AI rows in it.
     await store.updateTranscription(id, OWNER, {
         actionItems: [...snapshot.actionItems, { id: 'ua-live', source: 'user', text: 'Tijdens de run toegevoegd' }],
     });
 
-    // 4. De regeneratie landt: de verse pass levert nog maar één punt op.
+    // 4. The regeneration lands: the fresh pass yields only one item.
     await store.updateTranscription(id, OWNER, {
         actionItems: mergeRegeneratedActionItems(snapshot.actionItems, [{ id: 'ai-0', text: 'Vers AI-punt' }]),
         artifactsSince: snapshot.readAt,
@@ -325,12 +321,12 @@ test('een ongestempelde AI-rij herrijst NIET doordat er tijdens de run iets ande
     );
 });
 
-// ── ONTSTAAN is niet het enige wat tijdens de run gebeurt ────────────
+// ── CREATED is not the only thing that happens during the run ────────────
 //
-// Het venster redde alleen rijen die tijdens de run ZIJN ONTSTAAN. Een
-// bestaand AI-punt dat iemand in datzelfde venster afvinkt houdt zijn oude
-// aanmaakmoment én staat gewoon in de verse lijst, dus beide voorwaarden
-// faalden en de minuten oude momentopname draaide het vinkje stil terug.
+// The window only rescued rows that were CREATED during the run. An existing AI item
+// that someone checks off in that same window keeps its old creation moment AND sits
+// in the fresh list, so both conditions failed and the minutes-old snapshot quietly
+// turned the check back off.
 
 test('een vinkje dat TIJDENS de run wordt gezet blijft staan', async () => {
     const { id } = await store.createTranscription({
@@ -376,8 +372,8 @@ test('een tekstcorrectie die TIJDENS de run wordt getypt blijft staan', async ()
 });
 
 test('een rij die NIET tijdens de run veranderde wordt gewoon vervangen', async () => {
-    // De keerzijde, zodat "de kolom wint" niet stiekem "Opnieuw doet niets meer"
-    // wordt: een PATCH die dezelfde inhoud terugstuurt is geen wijziging.
+    // The flip side, so that "the column wins" does not quietly become "Regenerate no
+    // longer does anything": a PATCH that sends back the same content is not a change.
     const { id } = await store.createTranscription({
         userId: OWNER, title: 'Weekstart', fileName: 'w.m4a', transcript: 'Hallo.',
         actionItems: [{ id: 'ai-0', source: 'ai', text: 'Klant bellen', done: false }],
@@ -394,9 +390,9 @@ test('een rij die NIET tijdens de run veranderde wordt gewoon vervangen', async 
 });
 
 test('het venster is strikt NA het vertrekpunt: een rij die op datzelfde moment is aangeraakt wordt vervangen', async () => {
-    // `>` en niet `>=`. Op de terugvalroute (noteActions gebruikt `updatedAt`
-    // als er geen `readAt` is) is dat precies het verschil tussen "vervangen"
-    // en "blijft staan", en die grens hoort vast te liggen.
+    // `>` and not `>=`. On the fallback route (noteActions uses `updatedAt` when there is
+    // no `readAt`) that is exactly the difference between "replaced" and "stays", and that
+    // boundary should stay pinned down.
     const id = await seedNote();
     await store.updateTranscription(id, OWNER, {
         decisions: [{ id: 'd-9', source: 'ai', text: 'Oud AI-besluit' }],
@@ -427,8 +423,8 @@ test('een rij die tijdens de run ontstond en TOCH in de verse lijst zit komt é�
 
     const after = await readColumns(id);
     assert.strictEqual(after.decisions.filter((d) => d.id === 'd-1').length, 1, 'precies één rij met deze id');
-    // En het is de rij van de MENS, niet de verse: hij is tijdens de run
-    // aangeraakt, dus de kolom wint.
+    // And it is the row of the PERSON, not the fresh one: they touched it during the run,
+    // so the column wins.
     assert.deepStrictEqual(after.decisions.map((d) => d.text), ['Vers AI-besluit', 'Tijdens de run vastgelegd']);
 });
 
@@ -443,26 +439,26 @@ test('de twee stempels zijn onafhankelijk: herschrijven verjongt `createdAt` nie
     assert.strictEqual(second.createdAt, first.createdAt, 'aanmaakmoment blijft');
     assert.ok(second.touchedAt >= first.touchedAt, 'aanraakmoment loopt mee');
 
-    // En de client kan ook deze stempel niet zetten.
+    // And the client cannot set this stamp either.
     await store.updateTranscription(id, OWNER, {
         decisions: [{ id: 'ud-1', source: 'user', text: 'Gecorrigeerd', touchedAt: '2099-01-01T00:00:00.000Z' }],
     });
     assert.notStrictEqual((await readColumns(id)).decisions[0].touchedAt, '2099-01-01T00:00:00.000Z');
 });
 
-// ── DE TWEE REGELS SAMEN, IN ÉÉN SCHRIJFACTIE ────────────────────────
+// ── THE TWO RULES TOGETHER, IN ONE WRITE ─────────────────────────────
 //
-// Fix 2 (het venster) en fix 3 (menselijke invoer) beslissen allebei wat er
-// blijft staan, en ze mogen elkaar niet in de weg zitten. Ze kijken naar
-// verschillende TIJDVAKKEN, en dat is precies wat ze verenigbaar maakt:
+// Fix 2 (the window) and fix 3 (human input) both decide what stays, and they must not
+// get in each other's way. They look at different TIME SPANS, and that is exactly what
+// makes them compatible:
 //
-//   invoer VÓÓR het vertrekpunt  → staat in de momentopname → de JS-merge
-//                                  (mergeRegeneratedActionItems) beschermt hem
-//   invoer NÁ het vertrekpunt    → onzichtbaar voor die merge → het SQL-venster
-//                                  beschermt hem, tegen de kolom van NU
+//   input BEFORE the starting point  → in the snapshot → the JS merge
+//                                      (mergeRegeneratedActionItems) protects it
+//   input AFTER the starting point   → invisible to that merge → the SQL window
+//                                      protects it, against the column as of NOW
 //
-// Waar ze elkaar raken — dezelfde rij, in beide tijdvakken aangeraakt — wint
-// de KOLOM, want die is per definitie verser dan de invoer van de merge.
+// Where they meet — the same row, touched in both spans — the COLUMN wins, because it
+// is by definition fresher than the merge's input.
 
 test('invoer van vóór én van tijdens de run overleven dezelfde schrijfactie', async () => {
     const { id } = await store.createTranscription({
@@ -484,8 +480,8 @@ test('invoer van vóór én van tijdens de run overleven dezelfde schrijfactie',
         ],
     });
 
-    // De regeneratie landt: de verse pass levert het eerste punt weer op met
-    // nieuwe tekst, en het tweede niet meer.
+    // The regeneration lands: the fresh pass yields the first item again with new text,
+    // and the second one no longer.
     await store.updateTranscription(id, OWNER, {
         actionItems: mergeRegeneratedActionItems(snapshot.actionItems, [
             { id: 'ai-0', text: 'Klant bellen (herzien)', assignee: 'Tom', timestamp: '12:30' },
@@ -496,16 +492,16 @@ test('invoer van vóór én van tijdens de run overleven dezelfde schrijfactie',
     const after = await readColumns(id);
     const byText = Object.fromEntries(after.actionItems.map((i) => [i.text, i]));
 
-    // FIX 3: het vinkje van vóór de run staat er nog, én de AI-tekst is ververst.
+    // FIX 3: the check from before the run is still there, and the AI text has been refreshed.
     assert.ok(byText['Klant bellen (herzien)'], 'de verse tekst landde');
     assert.strictEqual(byText['Klant bellen (herzien)'].done, true, 'het oude vinkje reisde mee');
 
-    // FIX 2, deel 1: het vinkje dat TIJDENS de run werd gezet op een punt dat
-    // de merge weggooide, houdt dat punt in de kolom.
+    // FIX 2, part 1: the check that was set DURING the run on an item that the merge
+    // threw away keeps that item in the column.
     assert.ok(byText['Notulen delen'], 'tijdens de run afgevinkt, dus niet vervangen');
     assert.strictEqual(byText['Notulen delen'].done, true);
 
-    // FIX 2, deel 2: het punt dat tijdens de run ontstond staat er ook nog.
+    // FIX 2, part 2: the item that came into existence during the run is still there too.
     assert.ok(byText['Tijdens de run toegevoegd']);
 
     assert.strictEqual(after.actionItems.length, 3, 'geen duplicaten uit de twee regels samen');

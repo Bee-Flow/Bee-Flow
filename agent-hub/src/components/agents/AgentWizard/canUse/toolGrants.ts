@@ -1,39 +1,33 @@
 /**
- * toolGrants — het GRANTS-CONTRACT van de Tools-kaart, puur (A2 stap 3).
+ * toolGrants: the GRANTS CONTRACT of the Tools card, pure (A2 step 3).
  *
- * Hier staat de ene regel waar deze hele stage om draait, en hij staat hier
- * omdat hij nergens anders mag staan: de kaart en de kiezer schrijven allebei
- * aan `config.tools`, en een tweede plek waar dat gebeurt is een tweede plek
- * waar hij vergeten kan worden.
+ * Here stands the one rule that this whole stage revolves around. It stands here because it may stand nowhere else:
+ * the card and the picker both write to `config.tools`, and a second place where that happens is a second place where
+ * it can be forgotten.
  *
- * ── DE REGEL ────────────────────────────────────────────────────────
- * Een app die de map NIET noemt houdt zijn VOLLEDIGE toolbelt.
+ * ── THE RULE ────────────────────────────────────────────────────────
+ * An app that the map does NOT mention keeps its FULL tool belt.
  *
- * Dat is bewust — het is de "geen migratie"-regel van
- * `server/core/agentRuntime/toolPolicy.js`: elke agent van vóór de kiezer
- * houdt zijn tools zonder datamigratie. Het gevolg is precies andersom dan je
- * zou verwachten:
+ * That is deliberate. It is the "no migration" rule of `server/core/agentRuntime/toolPolicy.js`: every agent from before
+ * the picker keeps its tools without a data migration. The consequence is precisely the reverse of what you would expect:
  *
- *   een app UITVINKEN  ⇒  `{ actions: [] }` WEGSCHRIJVEN
- *   de sleutel weglaten ⇒  de HELE app teruggeven
+ *   unticking an app  ⇒  WRITE `{ actions: [] }`
+ *   omitting the key  ⇒  give back the WHOLE app
  *
- * Dus: de map mag NOOIT gebouwd worden uit alleen de aangevinkte apps. Wie
- * `Object.fromEntries(selected.map(...))` schrijft, geeft elke uitgevinkte app
- * in stilte alles terug. Dezelfde val sloeg al toe op de automations-sectie: "alle
- * automations uitvinken" leverde ÁLLE automatiseringen op, omdat de lege sectie werd
- * weggegooid en daarna las als "nooit gekozen". Zie
- * `.claude/handoff/A1B-RECHTENLAAG-REVIEW.md`, bevinding 1.
+ * So the map must NEVER be built from only the ticked apps. Whoever writes `Object.fromEntries(selected.map(...))` gives
+ * every unticked app everything back, in silence. The same trap already caught the automations section: "untick all
+ * automations" yielded ALL automations, because the empty section was thrown away and afterwards read as "never chosen".
+ * See `.claude/handoff/A1B-RECHTENLAAG-REVIEW.md`, finding 1.
  *
- * ── DE ANDERE HELFT VAN DEZELFDE VAL ────────────────────────────────
- * De beginselectie van de kiezer moet een ONTBREKENDE entry uitklappen naar
- * álle acties van die app. Doe je dat niet, dan staat een agent van vóór de
- * kiezer open met nul vinkjes terwijl hij in werkelijkheid alles mag — en de
- * eerste keer opslaan neemt hem alles af, zonder dat iemand iets uitvinkte.
- * `initialSelection` doet dat; `applyAppSelection` is er de tegenhanger van.
+ * ── THE OTHER HALF OF THE SAME TRAP ────────────────────────────────
+ * The initial selection of the picker must expand a MISSING entry to ALL actions of that app. If it does not, an agent
+ * from before the picker opens with zero ticks while in reality it may do everything, and the first save takes
+ * everything from it without anyone unticking anything. `initialSelection` does that; `applyAppSelection` is its
+ * counterpart.
  *
- * ── WAT HIER NIET IN ZIT ────────────────────────────────────────────
- * Zinnen. Dit zijn feiten en mutaties; de tekst staat in `ToolsCard.jsx`, waar
- * ook de letterlijke `t()`-sleutels staan die de i18n-guard leest.
+ * ── WHAT IS NOT IN HERE ─────────────────────────────────────────────
+ * Sentences. These are facts and mutations. The text is in `ToolsCard.jsx`, where the literal `t()` keys that the
+ * i18n guard reads also stand.
  */
 
 import { isAgentCallable } from '../../../admin/Studio/SkillsStudio/skillModel';
@@ -45,24 +39,22 @@ export type { AutomationLike, ToolsConfig, SelectionMap } from './toolGrants.typ
 
 export const RESERVED_TOOL_KEYS = Object.freeze(['automations', 'datatables']);
 
-/** Sleutels die een gewoon object niet veilig kan dragen (spiegel van toolPolicy.js). */
+/** Keys that a plain object cannot safely carry (mirror of toolPolicy.js). */
 const UNSAFE_OBJECT_KEYS = Object.freeze(new Set(['__proto__', 'constructor', 'prototype']));
 
 export const CONFIRM = Object.freeze({ DIRECT: 'direct', ASK: 'ask' });
 export const ACT_AS = Object.freeze({ VIEWER: 'viewer', OWNER: 'owner' });
 
 /**
- * In wiens naam een app draait, als VRAAG en niet als antwoord.
+ * In whose name an app runs, as a QUESTION and not as an answer.
  *
- *   USER      de app leent een gebruikersverbinding (Gmail, Drive, YouTrack).
- *             Alleen hier heeft "in wiens naam" betekenis, en alleen hier
- *             wordt `actAs` opgeslagen;
- *   PLATFORM  de app heeft geen gebruikersverbinding — websearch, ingebouwde
- *             tools, platformdiensten. Statisch "Als: Bee Flow", geen keuze,
- *             en GEEN `actAs` in de config: een opgeslagen keuze die niets
- *             stuurt is precies wat toolPolicy.js verbiedt;
- *   UNKNOWN   we konden het niet vragen. Dat is geen PLATFORM — dat zou een
- *             app die wél credentials leent als "Bee Flow" tekenen.
+ *   USER      the app borrows a user connection (Gmail, Drive, YouTrack).
+ *             Only here does "in whose name" have meaning, and only here is `actAs` stored.
+ *   PLATFORM  the app has no user connection: websearch, built-in tools, platform services.
+ *             Static "As: Bee Flow", no choice, and NO `actAs` in the config. A stored choice that
+ *             steers nothing is exactly what toolPolicy.js forbids.
+ *   UNKNOWN   we could not ask. That is not PLATFORM, because that would draw an app that DOES borrow
+ *             credentials as "Bee Flow".
  */
 export const ACT_AS_KIND = Object.freeze({ USER: 'user', PLATFORM: 'platform', UNKNOWN: 'unknown' });
 
@@ -70,7 +62,7 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
     return !!v && typeof v === 'object' && !Array.isArray(v);
 }
 
-/** Alleen niet-lege strings, uniek, in volgorde. */
+/** Only non-empty strings, unique, in order. */
 function uniqueStrings(list: unknown) {
     const seen = new Set<string>();
     const out: string[] = [];
@@ -82,7 +74,7 @@ function uniqueStrings(list: unknown) {
     return out;
 }
 
-/** Is dit een app-sleutel (en niet een gereserveerde sectie of iets gevaarlijks)? */
+/** Is this an app key (and not a reserved section or something dangerous)? */
 export function isAppKey(key: unknown): key is string {
     return typeof key === 'string' && !!key
         && !RESERVED_TOOL_KEYS.includes(key)
@@ -90,46 +82,37 @@ export function isAppKey(key: unknown): key is string {
 }
 
 /**
- * De gegunde acties van één app: `'*'` (alles) of een lijst.
+ * The granted actions of one app: `'*'` (everything) or a list.
  *
- * Exacte spiegel van `allowedToolsFor` in toolPolicy.js, inclusief de
- * versmalling die daar sinds A1c staat: een `actions` die niemand kan lezen is
- * GEEN verzoek om alles, dus die wordt `[]`. Een ONTBREKENDE entry blijft
- * `'*'` — dat is de "geen migratie"-regel en het is iets heel anders.
+ * An exact mirror of `allowedToolsFor` in toolPolicy.js, including the narrowing that has been there since A1c: an
+ * `actions` that nobody can read is NOT a request for everything, so it becomes `[]`. A MISSING entry stays `'*'`.
+ * That is the "no migration" rule, and it is something quite different.
  *
- * `requiresGrant` (uit de catalogus, `app.requiresGrant`) is de uitzondering
- * die A2-1 toevoegde: bij een app die de kiezer NOOIT kon tonen betekent
- * zwijgen niets in plaats van alles. Zie het blok in de functie.
+ * `requiresGrant` (from the catalogue, `app.requiresGrant`) is the exception that A2-1 added: for an app that the
+ * picker could NEVER show, silence means nothing rather than everything. See the block in the function.
  */
 export function grantedActionsOf(toolsConfig: ToolsConfigIn, appId: string | null | undefined, { requiresGrant = false } = {}) {
     if (!isPlainObject(toolsConfig) || !isAppKey(appId)) return '*';
     const entry = toolsConfig[appId];
     if (!isPlainObject(entry)) {
-        // Geen entry ⇒ alles (de regel). Een entry die geen object IS ⇒ de
-        // server maakt er `{actions: []}` van, dus dat is wat hier hoort te
-        // staan; anders zou de kaart "alles" tonen voor een grant die de
-        // runtime tot niets versmalt.
+        // No entry ⇒ everything (the rule). An entry that is not an object ⇒ the server makes `{actions: []}` of it, so
+        // that is what should stand here. Otherwise the card would show "everything" for a grant that the runtime
+        // narrows to nothing.
         if (entry !== undefined) return [];
-        // ...BEHALVE bij een app die de kiezer nooit kon tonen (`requiresGrant`
-        // uit de catalogus; `browse_web` en de andere inline geregistreerde
-        // tools). Zwijgen is daar geen keuze — niemand kreeg die app ooit te
-        // zien, dus "de eigenaar liet hem staan" kan niet waar zijn. De server
-        // leest het zo (toolPolicy.isToolAllowed → appRequiresExplicitGrant),
-        // en zonder deze spiegel opent de kiezer met vinkjes aan die de runtime
-        // weigert. Alleen bij een GECUREERDE agent: zonder curatie kijkt de
-        // rechtenlaag niet eens naar de map, en dan mag de app ook echt alles.
+        // ...EXCEPT for an app that the picker could never show (`requiresGrant` from the catalogue; `browse_web` and the
+        // other inline registered tools). Silence is not a choice there: nobody ever got to see that app, so "the owner
+        // left it alone" cannot be true. The server reads it that way (toolPolicy.isToolAllowed → appRequiresExplicitGrant),
+        // and without this mirror the picker opens with ticks on that the runtime refuses. Only for a CURATED agent:
+        // without curation the rights layer does not even look at the map, and then the app may really do everything.
         return requiresGrant && hasCuratedGrants(toolsConfig) ? [] : '*';
     }
     const { actions } = entry;
     if (actions === '*') return '*';
     if (actions === undefined || actions === null) {
-        // Een entry ZONDER actielijst. Bij een gewone app is dat nog steeds
-        // "alles" (de geen-migratieregel), maar bij een app die de kiezer nooit
-        // kon tonen niet: daar is alleen een UITGESCHREVEN keuze toestemming.
-        // De kaart zet zulke entries zelf neer — `setAppConfirm` en
-        // `setAppActAs` schrijven `{confirm}` respectievelijk `{actAs}` — dus
-        // zonder deze spiegel zou de kaart vinkjes tonen die de runtime weigert
-        // (server/core/agentRuntime/toolPolicy.js `_appAllowsTool`).
+        // An entry WITHOUT an action list. For an ordinary app that is still "everything" (the no-migration rule), but for an
+        // app that the picker could never show it is not: there only a WRITTEN-OUT choice is a permission. The card itself
+        // writes such entries (`setAppConfirm` and `setAppActAs` write `{confirm}` and `{actAs}` respectively), so without
+        // this mirror the card would show ticks that the runtime refuses (server/core/agentRuntime/toolPolicy.js `_appAllowsTool`).
         return requiresGrant && hasCuratedGrants(toolsConfig) ? [] : '*';
     }
     if (!Array.isArray(actions)) return [];
@@ -139,13 +122,12 @@ export function grantedActionsOf(toolsConfig: ToolsConfigIn, appId: string | nul
 // ── Twee rijen over dezelfde module ─────────────────────────────────
 
 /**
- * Wie LEVERT welke toolnaam? `naam → [appId, …]`, uit de catalogus.
+ * Who SUPPLIES which tool name? `name → [appId, …]`, from the catalogue.
  *
- * Twee registry-entries kunnen dezelfde tools leveren op dezelfde credentials
- * (`outlook` en `outlook-readonly`), en de runtime laat dan ELKE claimende app
- * zijn grant uitspreken: de smalste wint (toolPolicy.js `_decidingApps`). De
- * kaart wist daar niets van en telde per rij alleen de eigen entry — dus
- * rapporteerde zij vier aangevinkte acties waar de runtime er één serveert.
+ * Two registry entries can deliver the same tools on the same credentials (`outlook` and `outlook-readonly`), and
+ * the runtime then lets EVERY supplying app speak its grant: the strictest wins (toolPolicy.js `_decidingApps`).
+ * The card knew nothing about that and counted per row only its own entry, so it reported four ticked actions
+ * where the runtime serves one.
  */
 export function claimantsOf(apps: ToolApp[]) {
     const out: ClaimantsIndex = new Map();
@@ -163,14 +145,13 @@ export function claimantsOf(apps: ToolApp[]) {
 }
 
 /**
- * De acties van één app die de runtime ECHT honoreert.
+ * The actions of one app that the runtime ACTUALLY honours.
  *
- * De eigen grant, doorsneden met die van elke andere app die dezelfde naam
- * levert — precies wat `isToolAllowed` doet. Zonder catalogus valt er niets te
- * doorsnijden en is het antwoord de eigen grant.
+ * The own grant, intersected with that of every other app that supplies the same name: exactly what
+ * `isToolAllowed` does. Without a catalogue there is nothing to intersect, and the answer is the own grant.
  *
- * @returns {{names: string[]|null, narrowedBy: string[]}} `names: null` = de
- *   acties van deze app zijn onbekend, en dan is er niets te tonen.
+ * @returns {{names: string[]|null, narrowedBy: string[]}} `names: null` = the actions of this app are unknown,
+ *   and then there is nothing to show.
  */
 export function effectiveActionsOf(toolsConfig: ToolsConfigIn, app: ToolApp | null, { apps = null, claimants = null }: { apps?: ToolApp[] | null; claimants?: ClaimantsIndex | null } = {}) {
     const known = !!app && app.actionsKnown !== false && Array.isArray(app.actions);
@@ -202,18 +183,15 @@ export function effectiveActionsOf(toolsConfig: ToolsConfigIn, app: ToolApp | nu
 }
 
 /**
- * Heeft deze agent al een GECUREERDE map? Spiegel van `hasCuratedGrants` in
- * toolPolicy.js (r569).
+ * Does this agent already have a CURATED map? Mirror of `hasCuratedGrants` in toolPolicy.js (r569).
  *
- * Dit is de opt-in-grens van het hele mechanisme: zolang het antwoord `false`
- * is, kijkt de runtime niet eens naar de map — geen bevestigingsregime, geen
- * `enforceNames`. De EERSTE entry zet dat om, en dat is een merkbare
- * gedragswijziging voor een agent die vandaag onbeheerd draait. De kiezer mag
- * die dus niet stil laten gebeuren; hij zegt het hardop vóór de eerste keer
- * opslaan.
+ * This is the opt-in boundary of the whole mechanism. As long as the answer is `false`, the runtime does not even
+ * look at the map: no confirmation regime, no `enforceNames`. The FIRST entry switches that over, and that is a
+ * noticeable change of behaviour for an agent that today runs unattended. The picker may therefore not let it
+ * happen silently; it says so out loud before the first save.
  *
- * Junk telt niet mee (een entry die geen object is gunt niets), en een LEGE
- * gereserveerde sectie ook niet — precies zoals de server hem leest.
+ * Junk does not count (an entry that is not an object grants nothing), and an EMPTY reserved section does not
+ * either, precisely as the server reads it.
  */
 export function hasCuratedGrants(toolsConfig: ToolsConfigIn) {
     if (!isPlainObject(toolsConfig)) return false;
@@ -225,14 +203,14 @@ export function hasCuratedGrants(toolsConfig: ToolsConfigIn) {
     return false;
 }
 
-/** Het opgeslagen `confirm` van een app, of `null` als er geen keuze staat. */
+/** The stored `confirm` of an app, or `null` if there is no choice. */
 export function storedConfirmOf(toolsConfig: ToolsConfigIn, appId: string) {
     const entry = isPlainObject(toolsConfig) ? toolsConfig[appId] : null;
     if (!isPlainObject(entry)) return null;
     return entry.confirm === CONFIRM.DIRECT || entry.confirm === CONFIRM.ASK ? entry.confirm : null;
 }
 
-/** Het opgeslagen `actAs` van een app, of `null` als er geen keuze staat. */
+/** The stored `actAs` of an app, or `null` if there is no choice. */
 export function storedActAsOf(toolsConfig: ToolsConfigIn, appId: string) {
     const entry = isPlainObject(toolsConfig) ? toolsConfig[appId] : null;
     if (!isPlainObject(entry)) return null;
@@ -251,11 +229,10 @@ function cloneTools(toolsConfig: ToolsConfigIn) {
 }
 
 /**
- * Schrijf de acties van één app.
+ * Write the actions of one app.
  *
- * `actions` is `'*'` (de hele app) of een lijst. EEN LEGE LIJST WORDT
- * OPGESLAGEN — dat is het hele contract. `delete out[appId]` hoort hier niet
- * te staan en mag hier nooit komen te staan: dat geeft de app terug.
+ * `actions` is `'*'` (the whole app) or a list. AN EMPTY LIST IS STORED: that is the whole contract.
+ * `delete out[appId]` does not belong here and must never come to stand here, because that gives the app back.
  */
 export function setAppActions(toolsConfig: ToolsConfigIn, appId: string, actions: string | (string | undefined)[]) {
     if (!isAppKey(appId)) return isPlainObject(toolsConfig) ? cloneTools(toolsConfig) : {};
@@ -268,11 +245,10 @@ export function setAppActions(toolsConfig: ToolsConfigIn, appId: string, actions
 }
 
 /**
- * Schrijf het bevestigingsbeleid van één app.
+ * Write the confirmation policy of one app.
  *
- * De ACTIES blijven staan zoals ze waren — ook als er nog geen entry was, en
- * dan betekent een ontbrekende `actions` nog steeds "de hele app". Er wordt
- * hier dus niets afgenomen; er wordt een keuze bij gezet.
+ * The ACTIONS stay as they were, also if there was no entry yet. Then a missing `actions` still means "the whole
+ * app". Nothing is taken away here; a choice is added.
  */
 export function setAppConfirm(toolsConfig: ToolsConfigIn, appId: string, confirm: string, { requiresGrant = false } = {}) {
     if (!isAppKey(appId) || (confirm !== CONFIRM.DIRECT && confirm !== CONFIRM.ASK)) {
@@ -284,15 +260,13 @@ export function setAppConfirm(toolsConfig: ToolsConfigIn, appId: string, confirm
 }
 
 /**
- * De entry van een app, met zijn HUIDIGE acties uitgeschreven.
+ * The entry of an app, with its CURRENT actions written out.
  *
- * Een entry BIJZETTEN mag niet stilzwijgend acties toevoegen of afnemen, en dat
- * kon het wel: `{confirm}` of `{actAs}` neerzetten zonder `actions` maakte van
- * "de eigenaar zei niets over deze app" een entry, en bij een app die de kiezer
- * nooit kon tonen (`requiresGrant`) betekent dat het verschil tussen NIETS en
- * ALLES — twee versmallende gebaren op de kaart gaven zo een volledige headless
- * browser aan een gecureerde agent. Door de acties expliciet mee te schrijven
- * betekent de entry na afloop precies wat de rij ervoor toonde.
+ * Setting an entry must not silently add or remove actions, and it used to: `{confirm}` or `{actAs}` written without
+ * `actions` turned "the owner said nothing about this app" into an entry. For an app that the picker could never show
+ * (`requiresGrant`), that means the difference between NOTHING and ALL: two narrowing gestures on the card gave a full
+ * headless browser to a curated agent. By writing the actions out explicitly, the entry afterwards means exactly what
+ * the row showed before.
  */
 function _entryKeepingActions(toolsConfig: ToolsConfigIn, appId: string, requiresGrant: boolean): Record<string, unknown> {
     const prev: Record<string, unknown> = isPlainObject(toolsConfig) && isPlainObject(toolsConfig[appId]) ? toolsConfig[appId] : {};
@@ -302,18 +276,16 @@ function _entryKeepingActions(toolsConfig: ToolsConfigIn, appId: string, require
 }
 
 /**
- * Schrijf "in wiens naam" voor één app.
+ * Write "in whose name" for one app.
  *
- * `null` HAALT de keuze weg in plaats van er `viewer` van te maken. Dat is het
- * verschil tussen "de eigenaar koos de vrager" en "de eigenaar koos niets", en
- * `mayLendOwnerConnection` leest dat verschil: alleen een OPGESLAGEN `actAs`
- * beslist daar, een ontbrekende laat de standaard staan.
+ * `null` REMOVES the choice instead of making it `viewer`. That is the difference between "the owner chose the asker"
+ * and "the owner chose nothing", and `mayLendOwnerConnection` reads that difference: only a STORED `actAs` decides
+ * there, and a missing one leaves the default in place.
  */
 export function setAppActAs(toolsConfig: ToolsConfigIn, appId: string, actAs: string | null, { requiresGrant = false } = {}) {
     if (!isAppKey(appId)) return cloneTools(toolsConfig);
     const out = cloneTools(toolsConfig);
-    // Zelfde reden als bij `setAppConfirm`: een entry bijzetten mag de acties
-    // niet veranderen, dus ze gaan expliciet mee.
+    // Same reason as with `setAppConfirm`: setting an entry must not change the actions, so they go along explicitly.
     const next = _entryKeepingActions(toolsConfig, appId, requiresGrant);
     if (actAs === ACT_AS.OWNER || actAs === ACT_AS.VIEWER) next.actAs = actAs;
     else delete next.actAs;
@@ -322,43 +294,36 @@ export function setAppActAs(toolsConfig: ToolsConfigIn, appId: string, actAs: st
 }
 
 /**
- * De beginselectie van de kiezer: welke acties staan er vandaag AAN?
+ * The initial selection of the picker: which actions are ON today?
  *
- * Een app zonder entry krijgt AL ZIJN acties, want dat is wat hij vandaag mag.
- * Zonder deze uitklap zou de kiezer een agent van vóór A1b met nul vinkjes
- * openen en zou de eerste opslag hem alles afnemen — een "migratie" die
- * niemand vroeg en niemand ziet.
+ * An app without an entry gets ALL its actions, because that is what it may do today. Without this expansion the
+ * picker would open an agent from before A1b with zero ticks, and the first save would take everything from it: a
+ * "migration" that nobody asked for and nobody sees.
  *
- * Een app waarvan we de acties NIET kennen (de catalogus mist hem, of zijn
- * module laadde niet) levert `null`: dat is niet "geen acties", en de
- * aanroeper mag er dus ook geen selectie van maken.
+ * An app whose actions we do NOT know (the catalogue lacks it, or its module did not load) yields `null`. That is
+ * not "no actions", and the caller may therefore not make a selection of it either.
  *
- * Een app met `requiresGrant` gaat op een GECUREERDE agent juist met nul
- * vinkjes open: daar is een ontbrekende entry geen "alles" maar een "niets"
- * (zie `grantedActionsOf`). Zonder die tweede helft zou de kiezer vinkjes
- * tonen die de runtime niet honoreert — en `commitSelection` schrijft alleen
- * wat VERANDERDE, dus die vinkjes zouden nooit een echte grant worden.
+ * An app with `requiresGrant` opens with zero ticks on a CURATED agent: there a missing entry is not "everything" but
+ * "nothing" (see `grantedActionsOf`). Without that second half the picker would show ticks that the runtime does not
+ * honour, and `commitSelection` writes only what CHANGED, so those ticks would never become a real grant.
  *
  * @param {object|null} toolsConfig
  * @param {Array<{id: string, actions?: Array<{name: string}>, actionsKnown?: boolean,
  *                requiresGrant?: boolean}>} apps
- * @returns {Map<string, Set<string>|null>} per app-id de aangevinkte acties
+ * @returns {Map<string, Set<string>|null>} per app id the ticked actions
  */
 export function initialSelection(toolsConfig: ToolsConfigIn, apps: ToolApp[], { catalog = null }: { catalog?: ToolApp[] | null } = {}) {
     const out: SelectionMap = new Map();
     const list = Array.isArray(apps) ? apps : [];
-    // De doorsnede wordt tegen de VOLLEDIGE catalogus gemaakt, ook als de
-    // kiezer maar één rij per grant-subject toont: een app die hier niet in
-    // beeld is kan de namen nog steeds versmallen, en dan opent de kiezer met
-    // vinkjes die bij dispatch alsnog weigeren.
+    // The intersection is made against the FULL catalogue, even if the picker shows only one row per grant subject. An
+    // app that is not in view here can still narrow the names, and then the picker opens with ticks that refuse at dispatch.
     const full = Array.isArray(catalog) && catalog.length ? catalog : list;
     const claimants = claimantsOf(full);
     for (const app of list) {
         if (!app || !isAppKey(app.id)) continue;
         if (app.actionsKnown === false) { out.set(app.id, null); continue; }
-        // De EFFECTIEVE lezing: levert een tweede app dezelfde namen, dan telt
-        // ook zijn grant mee (de runtime doet dat ook). Anders opent de kiezer
-        // met vinkjes die bij dispatch alsnog weigeren.
+        // The EFFECTIVE reading: if a second app supplies the same names, its grant counts too (the runtime does that as
+        // well). Otherwise the picker opens with ticks that refuse at dispatch.
         const { names } = effectiveActionsOf(toolsConfig, app, { apps: full, claimants });
         out.set(app.id, new Set(names || []));
     }
@@ -366,18 +331,15 @@ export function initialSelection(toolsConfig: ToolsConfigIn, apps: ToolApp[], { 
 }
 
 /**
- * De kiezer commit: schrijf de selectie van ELKE getoonde app weg.
+ * The picker commits: write the selection of EVERY app shown.
  *
- * `shownApps` is de lijst apps die de kiezer heeft LATEN ZIEN. Elke app daarin
- * krijgt een entry — óók de app waar niets van aanstaat, want juist die entry
- * is het uitvinken. Een app die de kiezer niet toonde (niet beschikbaar voor
- * deze gebruiker, of gefilterd weg) blijft ONAANGERAAKT: over die app heeft
- * niemand iets gezegd, en er een refusal voor schrijven zou een keuze
- * verzinnen.
+ * `shownApps` is the list of apps that the picker has SHOWN. Every app in it gets an entry, including the app where
+ * nothing is on, because that very entry is the unticking. An app that the picker did not show (not available for
+ * this user, or filtered away) stays UNTOUCHED: nobody said anything about that app, and writing a refusal for it
+ * would invent a choice.
  *
- * Een app waarvan de acties onbekend zijn (`actionsKnown === false`, of
- * `selection.get(id) === null`) blijft óók onaangeraakt: je kunt niet
- * wegschrijven wat er aanstaat als je niet weet wat er is.
+ * An app whose actions are unknown (`actionsKnown === false`, or `selection.get(id) === null`) also stays untouched:
+ * you cannot write down what is on when you do not know what there is.
  *
  * @param {object|null} toolsConfig
  * @param {{shownApps: Array<{id: string, actions?: Array<{name: string}>, actionsKnown?: boolean}>,
@@ -395,10 +357,9 @@ export function applyAppSelection(toolsConfig: ToolsConfigIn, { shownApps = [], 
         if (picked === null || picked === undefined) continue;
         const names = uniqueStrings((app.actions || []).map(a => a && a.name));
         const chosen = uniqueStrings([...picked]).filter(n => names.includes(n));
-        // ALLES aangevinkt wordt `'*'` en niet de uitgeschreven lijst: dan
-        // erft de app een actie die er volgende release bij komt, in plaats
-        // van hem stil te missen. Dat is de bedoelde betekenis van `'*'`
-        // (toolPolicy.js: "erven bij `'*'`, opt-in bij een lijst").
+        // ALL ticked becomes `'*'`, not the written-out list. Then the app inherits an action that comes in with the next
+        // release, instead of missing it silently. That is the intended meaning of `'*'` (toolPolicy.js: "inherit on
+        // `'*'`, opt-in on a list").
         const allOn = names.length > 0 && chosen.length === names.length;
         out = setAppActions(out, app.id, allOn ? '*' : chosen);
         out = _syncSharedSiblings(out, app, chosen, catalog, shownIds);
@@ -407,14 +368,12 @@ export function applyAppSelection(toolsConfig: ToolsConfigIn, { shownApps = [], 
 }
 
 /**
- * Houd de entries van apps die DEZELFDE toolnamen leveren in de pas.
+ * Keep the entries of apps that supply the SAME tool names in step.
  *
- * De runtime laat elke claimende app meebeslissen, dus een aangevinkte naam die
- * een andere (niet getoonde) app weigert, is een dood vinkje — opslaanbaar en
- * stil zonder effect, precies wat deze laag verbiedt. Alleen de GEDEELDE namen
- * worden gelijkgetrokken: wat zo'n app exclusief levert, blijft staan zoals het
- * stond, en een app die de map niet noemt wordt niet genoemd (die versmalt
- * niets, en er een entry voor verzinnen zou een keuze verzinnen).
+ * The runtime lets every supplying app take part in the decision, so a ticked name that another (not shown) app refuses
+ * is a dead tick: savable, and silently without effect, exactly what this layer forbids. Only the SHARED names are
+ * brought into line. What such an app supplies exclusively stays as it was, and an app that the map does not mention is
+ * not mentioned either (it narrows nothing, and inventing an entry for it would invent a choice).
  */
 function _syncSharedSiblings(out: ToolsConfig, app: ToolApp, chosen: string[], catalog: ToolApp[] | null, shownIds: Set<string>) {
     if (!Array.isArray(catalog) || !catalog.length) return out;
@@ -437,22 +396,18 @@ function _syncSharedSiblings(out: ToolsConfig, app: ToolApp, chosen: string[], c
 }
 
 /**
- * De EERSTE curatie verandert de betekenis van ZWIJGEN — leg vast wat er stond.
+ * The FIRST curation changes the meaning of SILENCE. Record what was there.
  *
- * Zolang niemand de agent cureerde, houdt een app die de kiezer nooit kon tonen
- * (`requiresGrant`: de browser, de notebooks, de regex-regels) zijn hele
- * toolbelt; zodra er ÉÉN entry staat, krijgt hij niets meer. Dat is met opzet zo
- * (niemand kreeg die apps ooit te zien, dus zwijgen is geen keuze) — maar het
- * mag niet gebeuren als BIJVANGST van een klik op een andere rij. "Confirm
- * first" aanzetten op Gmail nam anders stilzwijgend de browser weg.
+ * As long as nobody has curated the agent, an app that the picker could never show (`requiresGrant`: the browser, the
+ * notebooks, the regex rules) keeps its whole toolbelt. As soon as there is ONE entry, it gets nothing. That is
+ * deliberate (nobody ever saw those apps, so silence is no choice), but it must not happen as a side effect of a click
+ * on another row. "Confirm first" on Gmail would otherwise silently take away the browser.
  *
- * Dus: gaat de map van niet-gecureerd naar gecureerd, dan krijgt elke
- * `requiresGrant`-app die nog geen entry heeft zijn HUIDIGE stand
- * uitgeschreven. Dat neemt niets af en voegt niets toe.
+ * Therefore: when the map goes from uncurated to curated, every `requiresGrant` app that does not yet have an entry gets
+ * its CURRENT state written out. That removes nothing and adds nothing.
  *
- * `enabledIntegrations` telt mee omdat de app-niveau lijst de eerste poort is:
- * een app die daar UIT staat, staat uit — hem hier `'*'` geven zou een grant
- * opslaan die vanzelf echt wordt zodra iemand die lijst aanzet.
+ * `enabledIntegrations` counts too, because the app-level list is the first gate: an app that is OFF there stays off.
+ * Giving it `'*'` here would store a grant that becomes real the moment someone switches that list on.
  */
 export function keepRequiresGrantApps(before: ToolsConfigIn, after: ToolsConfigIn, { apps = null, enabledIntegrations = null }: { apps?: ToolApp[] | null; enabledIntegrations?: string[] | null } = {}) {
     if (!isPlainObject(after)) return after;
@@ -471,13 +426,11 @@ export function keepRequiresGrantApps(before: ToolsConfigIn, after: ToolsConfigI
 // ── De rijen van de Tools-kaart ─────────────────────────────────────
 
 /**
- * Verstuurt deze app iets, gegeven wat er gegund is?
+ * Does this app send something, given what is granted?
  *
- * `true` / `false` / `null` — en `null` is niet "nee". Zonder catalogus weten
- * we niet wat een actie doet, en dan is de smalle lezing de enige eerlijke:
- * de kaart vergrendelt op "eerst bevestigen". Precies wat
- * `normaliseToolsConfig` doet als de attributie stuk is: onbekend telt als
- * "het verstuurt".
+ * `true` / `false` / `null`, and `null` is not "no". Without a catalogue we do not know what an action does, and then the
+ * narrow reading is the only honest one: the card locks on "confirm first". That is exactly what `normaliseToolsConfig`
+ * does when the attribution is broken: unknown counts as "it sends".
  */
 export function sendsFor(granted: '*' | (string | undefined)[] | null, app: ToolApp | null) {
     if (!app || app.actionsKnown === false || !Array.isArray(app.actions)) return null;
@@ -485,8 +438,8 @@ export function sendsFor(granted: '*' | (string | undefined)[] | null, app: Tool
         ? app.actions
         : app.actions.filter(a => a && (granted as (string | undefined)[]).includes(a.name));
     if (relevant.some(a => a && a.effect === 'sends')) return true;
-    // Een actie zonder effect-veld is een actie waarvan we het effect niet
-    // weten. Eén daarvan maakt het antwoord onbekend voor de hele app.
+    // An action without an effect field is an action whose effect we do not know. One of those makes the answer
+    // unknown for the whole app.
     if (relevant.some(a => !a || typeof a.effect !== 'string' || !a.effect)) return null;
     return false;
 }
@@ -508,21 +461,18 @@ function toolRow({
     const granted = grantedActionsOf(toolsConfig, appId, { requiresGrant: !!(app && app.requiresGrant) });
     const known = !!app && app.actionsKnown !== false && Array.isArray(app.actions);
     const totalActions = known ? app.actions?.length : null;
-    // Wat de RUNTIME serveert, niet wat deze ene entry zegt: levert een tweede
-    // app dezelfde namen, dan moet die ook toestaan (toolPolicy `_decidingApps`).
-    // Zonder die doorsnede telde de rij vier aangevinkte acties waar er één
-    // draaide — over-rapporteren, precies de richting die deze laag verbiedt.
+    // What the RUNTIME serves, not what this one entry says: if a second app supplies the same names, that one must allow
+    // it too (toolPolicy `_decidingApps`). Without that intersection the row counted four ticked actions where one runs.
+    // That is over-reporting, precisely the direction that this layer forbids.
     const { names: effective, narrowedBy } = effectiveActionsOf(toolsConfig, app, { apps, claimants });
     const grantedNames = known ? effective : (granted === '*' ? null : granted);
     const grantedCount = known ? effective?.length : (granted === '*' ? totalActions : granted.length);
 
     const sends = sendsFor(known ? effective : granted, app);
     const storedConfirm = storedConfirmOf(toolsConfig, appId);
-    // Vergrendeld zodra de app kán versturen — óók bij `'*'`. De opgeslagen
-    // waarde mag daar `direct` zijn (normalisatie forceert alleen op een
-    // LIJST), maar `confirmForTool` beslist bij dispatch op het effect en zegt
-    // dan alsnog `ask`. Een schakelaar die "direct" toont waar de runtime
-    // altijd vraagt, is een opgeslagen belofte die niemand nakomt.
+    // Locked as soon as the app CAN send, also at `'*'`. The stored value may be `direct` there (normalisation forces only
+    // on a LIST), but `confirmForTool` decides at dispatch based on the effect and then still says `ask`. A switch that
+    // shows "direct" where the runtime always asks is a stored promise that nobody keeps.
     const confirmLocked = sends !== false;
     const confirm = confirmLocked ? CONFIRM.ASK : (storedConfirm || CONFIRM.DIRECT);
 
@@ -535,9 +485,8 @@ function toolRow({
         && !!lendingEnabled
         && lentKnown
         && lentApps.has(appId)
-        // Een geleende verbinding verstuurt nooit zonder de eigenaar erbij —
-        // dezelfde weigering als in normaliseToolsConfig, en onbekend telt
-        // daar óók als versturen.
+        // A borrowed connection never sends without the owner present: the same refusal as in normaliseToolsConfig, and there
+        // unknown also counts as sending.
         && sends === false;
 
     const storedActAs = storedActAsOf(toolsConfig, appId);
@@ -556,31 +505,28 @@ function toolRow({
         totalActions,
         actionsKnown: known,
         available: app ? (app.available === undefined ? null : app.available) : null,
-        // WAAROM hij kan ontbreken (catalogus: `availabilityKind`). "Deze
-        // installatie heeft hem niet" is een ander feit dan "jij hebt hem niet
-        // verbonden", en de kaart mag alleen de zin zeggen die waar is.
-        // Onbekend blijft null: dan staat de algemene zin er, geen verzonnen.
+        // WHY it may be missing (catalogue: `availabilityKind`). "This installation does not have it" is a different fact from
+        // "you have not connected it", and the card may only say the sentence that is true. Unknown stays null: then the
+        // general sentence stands there, not an invented one.
         availabilityKind: app && typeof app.availabilityKind === 'string' && app.availabilityKind
             ? app.availabilityKind
             : null,
-        // ALLE oorzaken waarom deze app kan ontbreken. `availabilityKind` is
-        // alleen gevuld als er PRECIES ÉÉN is; bij meerdere zou het een feit
-        // beweren dat niet uit de meting komt ("deze installatie heeft hem
-        // niet" terwijl het over het account gaat). Zie routes/agents/toolCatalog.js.
+        // ALL causes why this app may be missing. `availabilityKind` is only filled if there is EXACTLY ONE. With more, it
+        // would assert a fact that does not come from the measurement ("this installation does not have it" while it is
+        // about the account). See routes/agents/toolCatalog.js.
         availabilityKinds: app && Array.isArray(app.availabilityKinds)
             ? app.availabilityKinds.filter(k => typeof k === 'string' && k)
             : [],
         sends,
-        // Welke ANDERE app deze rij versmalt (dezelfde tools, een strengere
-        // grant). Leeg als er niets doorsnijdt.
+        // Which OTHER app narrows this row (the same tools, a stricter grant). Empty if nothing intersects.
         narrowedBy,
         confirm,
         confirmLocked,
         actAsKind,
         actAs,
         canActAsOwner,
-        // "De eigenaar koos owner, maar dat mag niet (meer)" — de rij zegt dat
-        // hardop in plaats van stil `viewer` te tonen alsof dat de keuze was.
+        // "The owner chose owner, but that is no longer allowed": the row says so out loud, instead of silently showing
+        // `viewer` as if that were the choice.
         ownerRefused: storedActAs === ACT_AS.OWNER && !canActAsOwner,
         ownerLendsUncurated,
         ownerLendingUnset,
@@ -609,18 +555,16 @@ export function toolRows({
             if (app && isAppKey(app.id)) byId.set(app.id, { ...app });
         }
     }
-    // `providersKnown` is een eigenschap van het ANTWOORD, niet van één app;
-    // hij reist mee op elke rij zodat `toolRow` puur kan blijven.
+    // `providersKnown` is a property of the ANSWER, not of one app. It travels along on every row so that `toolRow` can
+    // stay pure.
     const known = catalogState === READ.OK && !!providersKnown;
-    // Idem voor de curatie: een eigenschap van de AGENT, één keer berekend.
+    // Likewise for the curation: a property of the AGENT, calculated once.
     //
-    // De leen-meldingen doen een uitspraak over wat de RUNTIME doet, en die
-    // leest `published_config` — niet de draft die hier in handen is. Eén vinkje
-    // in de kiezer maakte de draft gecureerd en de kaart meldde meteen dat er
-    // niet meer geleend werd, terwijl de gepubliceerde agent gewoon doorleende.
-    // Daarom telt het antwoord van de server (`runtimeCurated` uit
-    // GET /agents/:id/tool-lending); `null`/onbekend zegt niets, want een
-    // geruststelling die niet klopt is erger dan geen zin.
+    // The lending notices make a claim about what the RUNTIME does, and that reads `published_config`, not the draft that
+    // is in hand here. One tick in the picker made the draft curated, and the card immediately reported that no more was
+    // being lent, while the published agent was still lending as before. Therefore the answer of the server counts
+    // (`runtimeCurated` from GET /agents/:id/tool-lending). `null`/unknown says nothing, because a reassurance that is not
+    // correct is worse than no sentence.
     const curated = runtimeCurated === undefined ? hasCuratedGrants(toolsConfig) : runtimeCurated;
     // Wie levert welke toolnaam — één keer voor alle rijen.
     const claimants = claimantsOf(catalogState === READ.OK && Array.isArray(apps) ? apps : []);
@@ -630,10 +574,9 @@ export function toolRows({
     if (Array.isArray(enabledIntegrations)) {
         for (const id of enabledIntegrations) push(id);
     } else if (byId.size > 0) {
-        // Legacy `null`: alles wat beschikbaar is staat aan. "Beschikbaar" is
-        // een vraag die alleen de catalogus beantwoordt, en een app waarvan
-        // dat onbekend is (`available === null`) tellen we mee — weglaten zou
-        // beweren dat de agent hem niet heeft.
+        // Legacy `null`: everything that is available is on. "Available" is a question that only the catalogue answers, and an app
+        // whose status is unknown (`available === null`) we count along. Leaving it out would claim that the agent does not
+        // have it.
         for (const [id, app] of byId) if (app.available !== false) push(id);
     }
     for (const key of Object.keys(isPlainObject(toolsConfig) ? toolsConfig : {})) push(key);
@@ -661,8 +604,7 @@ export function automationGrantsOf(toolsConfig: ToolsConfigIn) {
         .filter(id => !UNSAFE_OBJECT_KEYS.has(id))
         .map((id) => {
             const g = (toolsConfig.automations as Record<string, unknown>)[id];
-            // Spiegel van normaliseToolsConfig: een confirm die niemand kan
-            // lezen is NIET "geen bevestiging". Onleesbaar ⇒ `ask`.
+            // Mirror of normaliseToolsConfig: a confirm that nobody can read is NOT "no confirmation". Unreadable ⇒ `ask`.
             const confirm = isPlainObject(g) && (g.confirm === CONFIRM.DIRECT || g.confirm === CONFIRM.ASK)
                 ? g.confirm
                 : (isPlainObject(g) && g.confirm === undefined ? CONFIRM.DIRECT : CONFIRM.ASK);
@@ -671,11 +613,10 @@ export function automationGrantsOf(toolsConfig: ToolsConfigIn) {
 }
 
 /**
- * De parameterpillen van een automatisering: de velden die de agent moet meegeven.
+ * The parameter pills of an automation: the fields that the agent has to pass along.
  *
- * Uit `trigger.parametersSchema` — hetzelfde schema waaruit
- * `automationToTool` de tool-signatuur rendert, dus wat hier op het scherm
- * staat is letterlijk wat het model moet invullen. Vereiste velden eerst.
+ * From `trigger.parametersSchema`, the same schema from which `automationToTool` renders the tool signature. So what
+ * appears on the screen here is literally what the model has to fill in. Required fields first.
  */
 export function paramPillsOf(automation: AutomationLike | null | undefined) {
     const schema = automation?.definition?.trigger?.parametersSchema

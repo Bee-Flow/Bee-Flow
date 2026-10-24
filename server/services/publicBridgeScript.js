@@ -1,66 +1,56 @@
 /**
  * Public-share AI bridge script (server-emitted).
  *
- * A CommonJS server twin of the client bridge in
- * agent-hub/src/utils/composeWebpageDocument.js — hand-kept, not imported,
- * because that file is ESM frontend code (same reason reactBundleServer.js
- * keeps its own copy of the client builder). Injected at content-serve time
- * into an externally-shared react-mui page ONLY when the author opted the
- * share into public AI. It runs AFTER the baked stub bridge
- * (reactBundleServer.buildStubBridgeScript), so its window.beeflowAI overrides
- * the stub (later definition wins).
+ * A CommonJS server twin of the client bridge in agent-hub/src/utils/composeWebpageDocument.js —
+ * hand-kept, not imported, because that file is ESM frontend code (same reason reactBundleServer.js
+ * keeps its own copy of the client builder). Injected at content-serve time into an externally-shared
+ * react-mui page ONLY when the author opted the share into public AI. It runs AFTER the baked stub
+ * bridge (reactBundleServer.buildStubBridgeScript), so its window.beeflowAI overrides the stub (later
+ * definition wins).
  *
  * Differences from the in-app bridge:
- *   - Static bearer token baked in (no parent session, so no postMessage
- *     token-refresh). On 401 the call rejects; the viewer reloads the page to
- *     get a fresh 30-min token.
- *   - BASE = apiBase + "/api/public-share" (the token carries the webpageId, so
- *     there is no "/:id" path segment).
- *   - Exposes ONLY beeflowAI.{chat,chatJSON,stream}. beeflowDB, beeflowApp,
- *     beeflowAutomations, beeflowIntegrations, and beeflowAI.ask stay stubbed
- *     as resolve-empty no-ops so page code degrades gracefully instead of
- *     throwing (server refuses those surfaces for anonymous viewers anyway).
- *   - beeflowTables REJECTS rather than resolving empty: "no rows" and "you
- *     cannot read a table here" must not look the same. A public share shows a
- *     table only as the static HTML the snapshot writer rendered from
- *     publicColumns (services/webpageBfTable.js).
+ *   - Static bearer token baked in (no parent session, so no postMessage token-refresh). On 401 the
+ *     call rejects; the viewer reloads the page to get a fresh 30-min token.
+ *   - BASE = apiBase + "/api/public-share" (the token carries the webpageId, so there is no "/:id"
+ *     path segment).
+ *   - Exposes ONLY beeflowAI.{chat,chatJSON,stream}. beeflowDB, beeflowApp, beeflowAutomations,
+ *     beeflowIntegrations, and beeflowAI.ask stay stubbed as resolve-empty no-ops so page code
+ *     degrades gracefully instead of throwing (the server refuses those surfaces for anonymous viewers
+ *     anyway).
+ *   - beeflowTables REJECTS rather than resolving empty: "no rows" and "you cannot read a table here"
+ *     must not look the same. A public share shows a table only as the static HTML the snapshot writer
+ *     rendered from publicColumns (services/webpageBfTable.js).
  *
- * ── HET ELEMENTVOCABULAIRE STAAT HIER NIET ──────────────────────────
+ * ── THE ELEMENT VOCABULARY IS NOT HERE ──────────────────────────────
  *
- * `window.beeflowBf` wordt AFGELEID uit core/webpages/bfElements.js
- * (`publicShareVocabulary()`) en niet hier verklaard. Dat is het hele punt: dit
- * bestand is al eens uit de pas gaan lopen met zijn client-tweeling — het
- * `beeflowAI`-oppervlak verschilt vandaag nog per bestand — en een lijst die je
- * met de hand bijhoudt, houdt niemand bij. Een element toevoegen aan het
- * vocabulaire, of een ATTRIBUUT aan een bestaand element, verandert wat deze
- * functie uitzendt vanzelf; er valt niets te vergeten. Elke ingang draagt een
- * reden in plaats van stilte, precies zoals beeflowTables hierboven WEIGERT in
- * plaats van een lege lijst te geven. In dit bestand staat daarom met opzet
- * GEEN enkele tagnaam — ook niet in commentaar; bfElements.drift.test.js
- * verbiedt dat, want elke naam die hier met de hand staat kan achterlopen.
+ * `window.beeflowBf` is DERIVED from core/webpages/bfElements.js (`publicShareVocabulary()`) and not
+ * explained here. That is the whole point: this file has already once drifted out of step with its client
+ * twin — the `beeflowAI` surface still differs per file today — and a list that you maintain by hand is
+ * maintained by nobody. Adding an element to the vocabulary, or an ATTRIBUTE to an existing element,
+ * changes what this function emits by itself; nothing can be forgotten. Every entry carries a reason
+ * instead of silence, just as beeflowTables above REFUSES instead of giving an empty list. That is why
+ * this file deliberately contains NO tag name — not even in a comment; bfElements.drift.test.js forbids
+ * it, because any name written here by hand can fall behind.
  *
- * ── EN DE ELEMENTEN FALEN HIER ZICHTBAAR ────────────────────────────
+ * ── AND THE ELEMENTS FAIL VISIBLY HERE ──────────────────────────────
  *
- * Op een react-share draait wél JS, maar de tabelbrug bestaat er niet en de
- * automation-brug is een no-op. Een element dat daarvan afhangt kan hier dus niets,
- * en zonder hulp is dat ONZICHTBAAR: een niet-gedefinieerd custom element is
- * `display:inline` zonder kinderen — een leeg vak. Een lezer ziet dan een lege
- * tabel (die leest als "er zijn geen rijen") of een knop die niets doet zonder
- * te zeggen waarom. Bij de automation-brug is het nog een graadje erger: die
- * RESOLVET, dus een zelfgebouwde knop meldt succes zonder dat er iets gebeurde.
+ * On a react share JS does run, but the table bridge does not exist there and the automation bridge is a
+ * no-op. An element that depends on that can therefore do nothing here, and without help that is
+ * INVISIBLE: an undefined custom element is `display:inline` with no children — an empty box. A reader then
+ * sees an empty table (which reads as "there are no rows") or a button that does nothing without saying why.
+ * With the automation bridge it is one degree worse: that one RESOLVES, so a home-made button reports success
+ * without anything having happened.
  *
- * Daarom definieert deze brug voor elk GEWEIGERD element een custom element dat
- * zijn eigen weigering toont. De lijst en de tekst komen uit het vocabulaire;
- * hier staat alleen het mechanisme. Dezelfde regel als in de vanilla snapshot,
- * waar de uitklapper vóór DOMPurify een zichtbaar uitgeschakeld blok neerzet:
- * dood mag, stil niet.
+ * That is why this bridge defines, for every REFUSED element, a custom element that shows its own refusal.
+ * The list and the text come from the vocabulary; only the mechanism is here. The same rule as in the vanilla
+ * snapshot, where the expander places a visibly disabled block before DOMPurify: dead is allowed, silent is not.
  */
 
 const { buildBfNoticeScript, jsonLiteral } = require('./bfBridgeNotices');
 
 function buildPublicBridgeScript({ token, apiBase }) {
-    // jsonLiteral, niet JSON.stringify: een `</script>` in een waarde zou de brug
-    // in tweeën knippen en alles erna (o.a. beeflowIntegrations) laten verdwijnen.
+    // jsonLiteral, not JSON.stringify: a `</script>` in a value would cut the bridge in two and make everything
+    // after it (among others beeflowIntegrations) disappear.
     const tokenLiteral = jsonLiteral(String(token || ''));
     const baseLiteral = jsonLiteral(String(apiBase || '').replace(/\/+$/, '') + '/api/public-share');
     return `<script>(function(){
@@ -150,18 +140,18 @@ function buildPublicBridgeScript({ token, apiBase }) {
   // throwing ReferenceError.
   window.beeflowDB = { query:function(){return Promise.resolve([]);}, exec:function(){return Promise.resolve({changes:0});}, batch:function(){return Promise.resolve([]);} };
   window.beeflowApp = { call:function(){return Promise.resolve({});} };
-  // run() WEIGERT, net als beeflowTables hieronder en om dezelfde reden. Een
-  // no-op die resolvet is hier het gevaarlijkst van allemaal: een zelfgebouwde
-  // knop meldt dan "Verzonden!" terwijl er niets is gedraaid. list() mag wel
-  // leeg antwoorden — "je mag hier geen automatiseringen opsommen" en "er zijn er geen"
-  // komen daar op hetzelfde neer, en paginacode die erover itereert breekt niet.
+  // run() REFUSES, like beeflowTables below and for the same reason. A
+  // no-op that resolves is the most dangerous of all here: a hand-built
+  // button then reports "Sent!" while nothing was run. list() may answer
+  // empty: "you may not list automations here" and "there are none"
+  // amount to the same thing there, and page code iterating over it does not break.
   function noRun(){ return Promise.reject(new Error("beeflowAutomations.run is not available on shared links")); }
   window.beeflowAutomations = { run:noRun, list:function(){return Promise.resolve([]);} };
-  // Tabelbindingen bestaan op een publieke share NIET. Bewust een WEIGERING en
-  // geen lege lijst zoals de stubs hierboven: een lege lijst leest als "de
-  // tabel heeft geen rijen", en dat is iets anders dan "hier kun je geen tabel
-  // lezen". Wat een publieke lezer wel van een tabel te zien krijgt, heeft de
-  // snapshot-writer server-side uit publicColumns gerenderd
+  // Table bindings do NOT exist on a public share. Deliberately a REFUSAL
+  // and not an empty list like the stubs above: an empty list reads as "the
+  // table has no rows", which is something different from "you cannot read a
+  // table here". What a public reader does get to see of a table, the
+  // snapshot writer rendered server-side from publicColumns
   // (services/webpageBfTable.js).
   function noTables(){ return Promise.reject(new Error("beeflowTables is not available on shared links")); }
   window.beeflowTables = { query:noTables, insert:noTables, update:noTables };

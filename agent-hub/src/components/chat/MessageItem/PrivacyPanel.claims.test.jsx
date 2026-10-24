@@ -9,19 +9,17 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import PrivacyPanel from './PrivacyPanel';
 
 /**
- * C7 — het paneel is de DIEPERE vorm van dezelfde claim als de regel onder het
- * bericht, en moet dus dezelfde bewijslast dragen.
+ * C7: the panel is the DEEPER form of the same claim as the line under the message, and must therefore carry the
+ * same burden of proof.
  *
- * De slotzin luidde onvoorwaardelijk "The AI only saw placeholders like
- * [email_1]". Die `[email_1]` is een verzinsel: hij komt uit de Engelse tekst,
- * niet uit dit gesprek. In een beurt waarin een telefoonnummer werd vervangen
- * staat er dus een plaatsvervanger op het scherm die nooit heeft bestaan — en
- * precies zo'n voorbeeld is wat een gebruiker onthoudt en navertelt.
+ * The closing sentence read unconditionally "The AI only saw placeholders like [email_1]". That `[email_1]` is an
+ * invention: it comes from the English text, not from this conversation. In a turn in which a phone number was
+ * replaced, the screen thus shows a placeholder that never existed, and exactly such an example is what a user
+ * remembers and retells.
  *
- * De regel: een plaatsvervanger mag alleen genoemd worden als hij gemeten is
- * (privacyLine.js — de echte waarde staat woordelijk in het bericht van deze
- * beurt). Kan dat niet, dan noemt de zin er geen enkele. Dat is geen mindere
- * zin maar een eerlijke.
+ * The rule: a placeholder may only be named if it has been measured (privacyLine.js: the real value stands verbatim
+ * in the message of this turn). If that cannot be done, the sentence names none at all. That is not a weaker
+ * sentence but an honest one.
  */
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -30,7 +28,7 @@ const T = (_key, en, params) => {
     return Object.entries(params).reduce((out, [k, v]) => out.replaceAll(`{${k}}`, String(v)), en);
 };
 
-/** Een beurt: het getypte bericht, en het antwoord dat de tokenisatie draagt. */
+/** One turn: the typed message, and the answer that carries the tokenisation. */
 function turn(info, userText = 'Mail Jan de Vries op j.devries@vandijk.nl') {
     return [
         { role: 'user', content: userText },
@@ -47,11 +45,9 @@ const BASE = { count: 1, categories: ['Email'], action: 'tokenise', source: 'dlp
 
 describe('PrivacyPanel — een opsomming die de hele lijst lijkt', () => {
     it('zegt hoeveel het er waren zodra het er meer zijn dan het toont', () => {
-        // Er passen er hooguit drie op een regel. Bij vijf vervangingen leest
-        // "The AI only saw placeholders — [a_1], [b_1], [c_1]." als de
-        // volledige opsomming, terwijl er twee ontbreken. Dit paneel heet in
-        // zijn eigen koptekst de DIEPERE vorm van dezelfde claim; het mag niet
-        // meer volledigheid beloven dan de ondiepe vorm eronder.
+        // Only up to three fit on a line. With five replacements, "The AI only saw placeholders — [a_1], [b_1], [c_1]."
+        // reads as the complete enumeration, while two are missing. This panel is called, in its own heading, the DEEPER
+        // form of the same claim. It may not promise more completeness than the shallow form beneath it.
         const text = 'aaaa bbbb cccc dddd eeee';
         renderPanel({
             count: 5,
@@ -88,7 +84,7 @@ describe('PrivacyPanel — geen verzonnen plaatsvervanger (C7)', () => {
         const explainer = screen.getByTestId('privacy-panel-explainer').textContent;
         expect(explainer).not.toContain('[email_1]');
         expect(explainer).not.toMatch(/\[[^\]]+\]/);
-        // De zin verdwijnt niet — hij zegt alleen minder.
+        // The sentence does not disappear. It merely says less.
         expect(explainer).toMatch(/placeholders/i);
     });
 
@@ -99,9 +95,8 @@ describe('PrivacyPanel — geen verzonnen plaatsvervanger (C7)', () => {
     });
 
     it('noemt niets uit een map die over een ANDER bericht gaat', () => {
-        // De kluis draagt tokens van eerdere beurten mee. Een token waarvan de
-        // echte waarde niet in dit bericht staat, bewijst niets over dit
-        // bericht — en dan is de naam van die plaatsvervanger een gok.
+        // The vault carries tokens from earlier turns along. A token whose real
+        // value is not in this message proves nothing about this message, and then the name of that stand-in is a guess.
         renderPanel(
             { ...BASE, tokenMap: { '[phone_7]': '06-12345678' } },
             'Mail Jan de Vries op j.devries@vandijk.nl',

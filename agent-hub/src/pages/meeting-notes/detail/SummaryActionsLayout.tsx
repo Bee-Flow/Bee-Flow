@@ -166,9 +166,9 @@ export default function SummaryActionsLayout({
             templates={templates}
             onNewTemplate={onNewTemplate}
             onEditTemplate={onEditTemplate}
-            // Voor de regel "met welk sjabloon is dit geschreven" (M4 stap 3).
-            // De notitie draagt het id én de versie van het moment van
-            // schrijven; het sjabloon zelf levert alleen de naam.
+            // For the rule "with which template was this written" (M4 step 3).
+            // The note carries the id and the version at the moment of writing. The template
+            // itself supplies only the name.
             meeting={meeting}
         />
     );

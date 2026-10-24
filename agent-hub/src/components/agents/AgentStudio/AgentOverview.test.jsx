@@ -1,14 +1,10 @@
 /**
- * Het agentoverzicht: kop, chips, zoekveld, raster (A5 deel C).
+ * The agent overview: heading, chips, search field, grid (A5 part C).
  *
- * De regressies die dit vasthoudt komen uit DatatablesStudio, waar ze al een
- * keer geld hebben gekost:
- *   - de vier takken (laden → fout → leeg → rijen) horen in ÉÉN
- *     `aria-live`-blok, anders leest een schermlezer een lijst voor die
- *     inmiddels een foutmelding is;
- *   - een mislukte lezing mag NOOIT als "nog geen agents" op het scherm komen;
- *   - het zoekveld staat er op elke lijstlengte (een control die pas boven
- *     vier rijen verschijnt is een control die verhuist).
+ * The regressions this holds on to come from DatatablesStudio, where they have already cost money:
+ *   - the four branches (loading → error → empty → rows) belong in ONE `aria-live` block, otherwise a screen reader reads out a list that has meanwhile become an error message;
+ *   - a failed read may NEVER appear on the screen as "no agents yet";
+ *   - the search field is there at every list length (a control that only appears above four rows is a control that moves).
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentStudio/AgentOverview.test.jsx
  */
@@ -53,15 +49,12 @@ describe('de vier takken staan in één aria-live-blok', () => {
         const { container } = draw({ agents: [], error: 'HTTP 500' });
         const region = liveRegion(container);
         expect(within(region).getByTestId('agent-overview-error').textContent).toContain('HTTP 500');
-        // "geladen maar leeg" en "de lezing faalde" mogen elkaar niet tegenspreken.
+        // "loaded but empty" and "the read failed" must not contradict each other.
         expect(screen.queryByText('No agents yet')).toBeNull();
     });
 
     it('ÉÉN live region: geen role="alert" of role="status" erbinnen', () => {
-        // Twee live regions genest laten een schermlezer de fout twee keer
-        // aankondigen (assertief én polite), en bij elke aanslag in het zoekveld
-        // wordt de hele gewijzigde inhoud opnieuw voorgelezen. Het precedent
-        // (Studio/Datatables/DatatablesStudio.jsx) houdt de kinderen rolloos.
+        // Two nested live regions would let a screen reader announce the error twice (assertive AND polite), and with every keystroke in the search field the whole changed content is read out again. The precedent (Studio/Datatables/DatatablesStudio.jsx) keeps the children roleless.
         const { container } = draw({ agents: [], error: 'HTTP 500' });
         expect(liveRegion(container).querySelector('[role="alert"]')).toBeNull();
         cleanup();
@@ -70,14 +63,12 @@ describe('de vier takken staan in één aria-live-blok', () => {
     });
 
     it('een chip die uit de lijst verdwijnt filtert niet stilzwijgend door', () => {
-        // Anders staat er een leeg raster met geen enkele zichtbare reden: de
-        // laatste agent van die categorie is eruit gehaald, of de categorielijst
-        // kwam pas later binnen.
+        // Otherwise there is an empty grid with no visible reason: the last agent of that category has been removed, or the category list arrived later.
         const { rerender } = draw({ agents: AGENTS });
         const chip = screen.getByText('Sales').closest('button');
         fireEvent.click(chip);
         expect(screen.getAllByTestId('agent-card')).toHaveLength(1);
-        // Dezelfde rijen, maar zonder die categorie: de chip bestaat niet meer.
+        // The same rows, but without that category: the chip no longer exists.
         rerender(<AgentOverview t={t} agents={AGENTS.map(a => ({ ...a, category_id: null }))} onOpen={() => {}} />);
         expect(screen.getAllByTestId('agent-card')).toHaveLength(2);
         expect(screen.queryByTestId('agent-overview-no-match')).toBeNull();
@@ -124,7 +115,7 @@ describe('teller, zoekveld en chips', () => {
         fireEvent.change(box, { target: { value: 'zzz' } });
         expect(screen.queryByTestId('agent-card')).toBeNull();
         expect(screen.getByTestId('agent-overview-no-match')).toBeTruthy();
-        // Niet de lege staat: er ZIJN agents, ze vallen alleen buiten het filter.
+        // Not the empty state: there ARE agents, they just fall outside the filter.
         expect(screen.queryByText('No agents yet')).toBeNull();
     });
 

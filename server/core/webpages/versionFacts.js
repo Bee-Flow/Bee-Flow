@@ -1,48 +1,45 @@
 /**
- * versionFacts — wat er in ÉÉN bewerking van een webpagina gebeurde, mechanisch
- * afgeleid, plus wie hem maakte.
+ * versionFacts — what happened in ONE edit of a web page, mechanically
+ * derived, plus who made it.
  *
- * ── WAAROM DIT EEN EIGEN MODULE IS ──────────────────────────────────────────
+ * ── WHY THIS IS A MODULE OF ITS OWN ─────────────────────────────────────────
  *
- * De rij in de geschiedenislijst wordt op drie plekken geschreven — de
- * handmatige save (routes/webpages.js, PUT /:id), de AI-beurt
- * (routes/ai/webpageChat.js) en het terugzetten (POST /:id/versions/:vid/
- * restore) — en op één plek gelezen (GET /:id/versions). Zonder een gedeelde
- * module zouden er drie manieren ontstaan om "hoeveel regels" en "hoe heet dit"
- * te berekenen, en dan gaat de lijst verschillende talen spreken over dezelfde
- * gebeurtenis.
+ * The row in the history list is written in three places — the manual save (routes/webpages.js, PUT /:id), the AI turn
+ * (routes/ai/webpageChat.js) and the restore (POST /:id/versions/:vid/
+ * restore) — and read in one place (GET /:id/versions). Without a shared
+ * module there would be three ways to calculate "how many lines" and "what is this called", and then the list
+ * would speak different languages about the same event.
  *
- * Alles hier is ZUIVER: geen database, geen opslag, geen require van een store.
- * De route levert de feiten aan (de bytes, de namen); deze module beslist wat
- * ervan te maken valt. Dat maakt hem toetsbaar zonder harnas.
+ * Everything here is PURE: no database, no storage, no require of a store.
+ * The route supplies the facts (the bytes, the names); this module decides what
+ * to make of them. That makes it testable without a harness.
  *
- * ── DE REGEL DIE DEZE MODULE BESCHERMT ──────────────────────────────────────
+ * ── THE RULE THAT THIS MODULE PROTECTS ──────────────────────────────────────
  *
- * ONBEKEND IS NIET NUL EN NIET JIJ.
+ * UNKNOWN IS NOT ZERO AND NOT YOU.
  *
- *   - Een regelverschil dat we niet konden meten is `null`, nooit 0. "Er
- *     veranderde niets" is een uitspraak; "we hebben niet gekeken" is er geen.
- *   - Een `actor_user_id` die niet te lezen is (nooit vastgelegd, of een
- *     account dat niet meer bestaat) levert een maker die ONBEKEND is. Nooit
- *     de lezer zelf — dat zou de geschiedenis een bewering laten doen over wie
- *     iets deed, op grond van niets.
+ *   - A line difference that we could not measure is `null`, never 0. "Nothing
+ *     changed" is a statement; "we did not look" is not one.
+ *   - An `actor_user_id` that cannot be read (never recorded, or an account that
+ *     no longer exists) yields an author that is UNKNOWN. Never the reader
+ *     himself — that would have the history make a claim about who did
+ *     something, on the basis of nothing.
  *
- * ── DE SAMENVATTING WORDT AFGELEID, NOOIT GELEZEN ───────────────────────────
+ * ── THE SUMMARY IS DERIVED, NEVER READ ─────────────────────────────────────
  *
- * De eenregelige samenvatting van een AI-beurt komt uit WAT ER GEBEURDE (welke
- * slots de gereedschappen schreven), niet uit de proza van het model. Dezelfde
- * regel die agent-hub/src/pages/webpages/webpageTurnFacts.js aan de clientkant
- * al aanhoudt: het model beschrijft zijn eigen werk niet altijd correct, de
- * gereedschapsgeschiedenis wel.
+ * The one-line summary of an AI turn comes from WHAT HAPPENED (which
+ * slots the tools wrote), not from the prose of the model. The same
+ * rule that agent-hub/src/pages/webpages/webpageTurnFacts.js already observes on the
+ * client side: the model does not always describe its own work correctly, the tool history does.
  */
 
 'use strict';
 
 /**
- * De drie slots met de namen die overal in het product gelden. Dezelfde
- * namen als agent-hub/src/pages/webpages/webpageCodeFiles.PRIMARY_SLOTS en als
- * stores/webpage/shared.js' sleutels — hier nodig omdat de samenvatting een
- * BESTANDSNAAM moet noemen en niet een slotletter.
+ * The three slots with the names that apply everywhere in the product. The same
+ * names as agent-hub/src/pages/webpages/webpageCodeFiles.PRIMARY_SLOTS and as the
+ * keys of stores/webpage/shared.js — needed here because the summary must name a
+ * FILE NAME and not a slot letter.
  */
 const SLOT_FILES = Object.freeze({
     html: 'index.html',
@@ -54,13 +51,13 @@ const SLOT_FILES = Object.freeze({
 const MANUAL_EDIT_SUMMARY = 'Edited in code';
 
 /**
- * Aantal regels in een tekst.
+ * Number of lines in a text.
  *
- * Niet `text.split('\n').length`: die telt een afsluitende newline als een
- * extra lege regel, waardoor "a\n" twee regels zou zijn en elke bewerking die
- * alleen de afsluiting toevoegt +1 zou opleveren.
+ * Not `text.split('\n').length`: that counts a trailing newline as an
+ * extra empty line, so that "a\n" would be two lines and every edit that
+ * only adds the closing newline would yield +1.
  *
- * Een lege tekst heeft 0 regels — een leeg bestand is niet één lege regel.
+ * An empty text has 0 lines — an empty file is not one empty line.
  */
 function countLines(text) {
     if (typeof text !== 'string' || text === '') return 0;
@@ -70,10 +67,10 @@ function countLines(text) {
 }
 
 /**
- * Het NETTO regelverschil tussen twee versies van dezelfde tekst.
+ * The NET line difference between two versions of the same text.
  *
- * Geeft `null` zodra één van beide kanten geen tekst is — dan is er niets
- * gemeten en mag er geen getal ontstaan.
+ * Gives `null` as soon as one of the two sides has no text — then nothing has been
+ * measured and no number may arise.
  */
 function lineDelta(before, after) {
     if (typeof before !== 'string' || typeof after !== 'string') return null;
@@ -81,11 +78,11 @@ function lineDelta(before, after) {
 }
 
 /**
- * Het netto regelverschil over een verzameling slots.
+ * The net line difference over a collection of slots.
  *
- * `before` en `after` zijn objecten met slotsleutels ({ html, css, js }).
- * Slots waarvan één van beide kanten ontbreekt tellen niet mee — maar als
- * daardoor NIETS meetbaar overblijft is de uitkomst `null` en niet 0.
+ * `before` and `after` are objects with slot keys ({ html, css, js }).
+ * Slots of which one of the two sides is missing do not count — but if
+ * because of that NOTHING measurable remains, the outcome is `null` and not 0.
  */
 function slotsLineDelta(before, after, slots) {
     const list = Array.from(slots || []);
@@ -109,15 +106,15 @@ function joinFileNames(names) {
 }
 
 /**
- * De eenregelige samenvatting van één AI-beurt.
+ * The one-line summary of one AI turn.
  *
- * Slots worden in de vaste volgorde html → css → js genoemd, niet in de
- * volgorde waarin de gereedschappen toevallig vuurden: twee identieke beurten
- * horen dezelfde regel op te leveren.
+ * Slots are named in the fixed order html → css → js, not in the
+ * order in which the tools happened to fire: two identical turns
+ * should yield the same line.
  *
- * Een beurt zonder herkenbaar slot valt terug op 'AI edit' — de tekst die deze
- * rijen vóór W4 allemaal droegen. Dat is geen mooie samenvatting, maar het is
- * de eerlijke: we weten alleen dát de AI iets deed.
+ * A turn without a recognizable slot falls back to 'AI edit' — the text that these
+ * rows all carried before W4. That is not a nice summary, but it is the honest one:
+ * we only know THAT the AI did something.
  */
 function aiTurnSummary(slots) {
     const known = Object.keys(SLOT_FILES).filter(slot => Array.from(slots || []).includes(slot));
@@ -126,11 +123,10 @@ function aiTurnSummary(slots) {
 }
 
 /**
- * De samenvatting van de momentopname die een TERUGZETTEN maakt.
+ * The summary of the snapshot that a RESTORE makes.
  *
- * De rij bevat de stand van VÓÓR het terugzetten — hem terugzetten maakt het
- * terugzetten ongedaan. De tekst zegt dat dus letterlijk, in plaats van
- * "Restored v12", wat op een rij met de oude inhoud precies andersom leest.
+ * The row contains the state from BEFORE the restore — restoring it makes the restore undone. The text says that
+ * literally, instead of "Restored v12", which on a row with the old content reads exactly the other way round.
  */
 function restoreSummary(seq) {
     return Number.isFinite(seq) && seq > 0
@@ -139,19 +135,18 @@ function restoreSummary(seq) {
 }
 
 /**
- * Wie de versie maakte, zoals de geschiedenislijst hem mag tonen.
+ * Who made the version, as the history list may show it.
  *
- * @param {string|null} actorUserId  de kolomwaarde
+ * @param {string|null} actorUserId  the column value
  * @param {object} opts
- * @param {string|null} opts.viewerId  wie er kijkt (voor `isYou`)
- * @param {Map|object|null} opts.names id → weergavenaam, door de route
- *        opgezocht. Een id dat er niet in staat is een account dat niet meer
- *        te lezen is.
+ * @param {string|null} opts.viewerId  who is looking (for `isYou`)
+ * @param {Map|object|null} opts.names id → display name, looked up by the route.
+ *        An id that is not in there is an account that can no longer be
+ *        read.
  * @returns {null | { id: string, name: string|null, isYou: boolean }}
- *          `null` = nooit vastgelegd. `name: null` = vastgelegd maar niet te
- *          lezen. Beide gevallen tekent de UI als "onbekend"; het onderscheid
- *          blijft staan omdat alleen het tweede geval een spoor heeft om op
- *          door te zoeken.
+ *          `null` = never recorded. `name: null` = recorded but not
+ *          readable. The UI draws both cases as "unknown"; the distinction
+ *          remains because only the second case has a trace to search on.
  */
 function actorOf(actorUserId, { viewerId = null, names = null } = {}) {
     const id = typeof actorUserId === 'string' && actorUserId.trim() ? actorUserId.trim() : null;
@@ -162,8 +157,8 @@ function actorOf(actorUserId, { viewerId = null, names = null } = {}) {
     return {
         id,
         name: (typeof name === 'string' && name.trim()) ? name.trim() : null,
-        // Op het ID, niet op de naam: twee collega's mogen dezelfde
-        // weergavenaam dragen zonder dat de een het werk van de ander erft.
+        // On the ID, not on the name: two colleagues may carry
+        // the same display name without the one inheriting the work of the other.
         isYou: !!viewerId && id === viewerId,
     };
 }

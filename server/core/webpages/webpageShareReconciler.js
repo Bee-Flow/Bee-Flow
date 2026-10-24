@@ -1,48 +1,43 @@
 /**
- * Wanneer een openbare snapshot opnieuw geschreven moet worden.
+ * When a public snapshot must be rewritten.
  *
- * Een publieke share is geen levende pagina maar een BEVROREN, script-vrije,
- * door DOMPurify gehaalde momentopname (services/webpageSnapshot.js). Op
- * /w/<slug> draait geen `beeflowTables`; de tabelrijen die daar staan zijn
- * server-side uit `publicColumns` gerenderd op het moment dat de snapshot
- * werd geschreven. Dat is precies wat een publieke pagina veilig maakt — en
- * precies waarom hij zichzelf niet bijwerkt.
+ * A public share is not a live page but a FROZEN, script-free,
+ * DOMPurify-cleaned snapshot (services/webpageSnapshot.js). On /w/<slug> no `beeflowTables` runs; the table rows that stand there
+ * were rendered server-side from `publicColumns` at the moment the snapshot
+ * was written. That is precisely what makes a public page safe — and precisely
+ * why it does not update itself.
  *
- * ── WAAROM DIT EEN AVG-PAD IS, GEEN VERVERSKNOPJE ───────────────────
+ * ── WHY THIS IS A GDPR PATH, NOT A REFRESH BUTTON ───────────────────
  *
- * Tot nu toe werd een snapshot alleen herschreven als de EIGENAAR de pagina
- * opsloeg (routes/webpages.js). Voor de bytes van de pagina klopt dat. Voor de
- * RIJEN die erin gebakken zitten niet:
+ * Until now a snapshot was only rewritten when the OWNER saved the page
+ * (routes/webpages.js). For the bytes of the page that is right. For the
+ * ROWS that are baked into it it is not:
  *
- *   - de retentiesweep verwijdert een rij die te oud is;
- *   - iemand oefent zijn recht op verwijdering uit (DSR) en zijn rij gaat weg;
- *   - een automatisering wist een rij.
+ *   - the retention sweep removes a row that is too old;
+ *   - someone exercises his right to erasure (DSR) and his row goes away;
+ *   - an automation deletes a row.
  *
- * In alle drie de gevallen is de rij uit de tabel verdwenen en staat hij nog
- * gewoon op de openbare pagina, voor iedereen met het adres, tot de eigenaar
- * toevallig iets opslaat. Een gewiste rij die op een publieke snapshot blijft
- * staan is geen verouderde cache maar een verwijdering die niet heeft
- * plaatsgevonden. Daarom hangt deze module aan dezelfde tap als de live
- * kennisbronnen (K8): `datatableStore.notifyDatatableChanged` — één
- * gedebouncede melding per tabel, na elke schrijfweg die er is, de
- * retentiesweep inbegrepen.
+ * In all three cases the row has disappeared from the table and still stands on the
+ * public page, for everyone with the address, until the owner happens to save something. A deleted row that stays on a public snapshot is not a stale
+ * cache but a deletion that has not taken place. That is why this module hangs on the same tap as the live
+ * knowledge sources (K8): `datatableStore.notifyDatatableChanged` — one
+ * debounced notification per table, after every write path that exists, the
+ * retention sweep included.
  *
- * ── WAT DIT NIET IS ─────────────────────────────────────────────────
+ * ── WHAT THIS IS NOT ────────────────────────────────────────────────
  *
- * Geen garantie en geen synchroniciteit. De tap is een in-process timer: hij
- * overleeft geen herstart en kruist geen replica. Er staat dus "binnen de
- * sync-latentie", niet "onmiddellijk", en wie harde verwijdering nodig heeft,
- * trekt de share in — dát is het enige dat direct werkt. Wat deze module
- * verwijdert, verwijdert hij best-effort; wat hij niet haalt, blijft staan tot
- * de volgende aanleiding. Een backstop zoals `armStaleLiveSources` die voor de
- * kennisbronnen bestaat, is hier nog niet gebouwd (zie openPunten).
+ * No guarantee and no synchronicity. The tap is an in-process timer: it does not survive a
+ * restart and does not cross a replica. So there stands "within the sync latency", not "immediately", and whoever needs hard deletion
+ * withdraws the share — that is the only thing that works directly. What this module
+ * removes, it removes best-effort; what it does not reach stays until the
+ * next occasion. A backstop such as `armStaleLiveSources` that exists for the
+ * knowledge sources is not built here yet (see openPunten).
  *
- * ── FAALT DICHT, NIET OPEN ──────────────────────────────────────────
+ * ── FAILS CLOSED, NOT OPEN ──────────────────────────────────────────
  *
- * Kan de lijst gebonden pagina's niet worden gelezen, dan wordt er NIETS
- * herschreven en staat dat in het log. Er is geen tak die bij twijfel "dan
- * maar alles" of "dan maar niets, stil" doet: een onleesbare lijst is een
- * bekend-onbekend en hoort luid te zijn.
+ * If the list of bound pages cannot be read, then NOTHING is rewritten and that is
+ * written to the log. There is no branch that in case of doubt does "then just everything" or "then nothing, silently":
+ * an unreadable list is a known-unknown and must be loud.
  */
 
 'use strict';
@@ -51,15 +46,14 @@ const { featureModule } = require('../featureModules');
 const bridgeGrants = require('../../stores/webpage/bridgeGrants');
 
 /**
- * Herschrijf elke levende publieke snapshot van ÉÉN pagina.
+ * Rewrite every live public snapshot of ONE page.
  *
- * Verplaatst uit routes/webpages.js zodat er één implementatie is: de route
- * roept hem aan bij een eigenaar-save, deze module bij een tabelmutatie. Twee
- * kopieën zouden betekenen dat de ene wel en de andere niet de ingetrokken
- * shares overslaat.
+ * Moved out of routes/webpages.js so that there is one implementation: the route
+ * calls it on an owner save, this module on a table mutation. Two copies would mean that
+ * one skips the withdrawn shares and the other does not.
  *
- * `await`-baar, maar de aanroepers in de routes gebruiken hem fire-and-forget:
- * een save mag nooit wachten op een snapshot.
+ * Awaitable, but the callers in the routes use it fire-and-forget:
+ * a save may never wait on a snapshot.
  */
 async function reSnapshotWebpageShares(webpageId, ownerId, deps = {}) {
     const publicShareStore = deps.publicShareStore || require('../../stores/webpagePublicShareStore');
@@ -91,14 +85,14 @@ function reSnapshotWebpageSharesDetached(webpageId, ownerId, deps = {}) {
 }
 
 /**
- * De rijen van deze tabel zijn veranderd — vernieuw elke openbare pagina die
- * eraan hangt.
+ * The rows of this table have changed — refresh every public page that
+ * hangs on it.
  *
- * Aangeroepen vanaf `datatableStore.notifyDatatableChanged`, dezelfde
- * gedebouncede tap die de live kennisbronnen wapent. Best-effort en zonder
- * ooit te gooien: hij hangt achter een schrijfactie die al gecommit is.
+ * Called from `datatableStore.notifyDatatableChanged`, the same debounced
+ * tap that arms the live knowledge sources. Best-effort and without
+ * ever throwing: it hangs behind a write action that has already been committed.
  *
- * @returns het aantal pagina's waarvoor iets is herschreven
+ * @returns the number of pages for which something has been rewritten
  */
 async function onDatatableChanged(datatableId, deps = {}) {
     if (!datatableId) return 0;
@@ -108,9 +102,9 @@ async function onDatatableChanged(datatableId, deps = {}) {
     try {
         bound = await grants.listPublicWebpagesBoundToDatatable(datatableId);
     } catch (e) {
-        // Onbekend versmalt: niets herschrijven, en het luid zeggen. Stil
-        // doorlopen zou betekenen dat een gewiste rij blijft staan zonder dat
-        // er ergens een spoor van is.
+        // Unknown narrows: rewrite nothing, and say so loudly. Silently
+        // continuing would mean that a deleted row stays standing without
+        // any trace of it anywhere.
         log.warn(`[Webpages] could not list pages bound to datatable ${datatableId}: ${e.message}`);
         return 0;
     }

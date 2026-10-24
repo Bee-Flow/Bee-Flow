@@ -123,10 +123,8 @@ export default function CategoryField({ t, value, categories, onChange, onCreate
                                 <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                         </select>
-                        {/* De ▾ van het ontwerp. `appearance-none` haalt de
-                            browsereigen pijl weg, dus die tekenen we hier —
-                            pointer-events-none, zodat de klik gewoon op de
-                            select landt. */}
+                        {/* The ▾ of the design. `appearance-none` removes the browser's own arrow, so we draw it here —
+                            pointer-events-none, so the click lands on the select just the same. */}
                         {tag && (
                             <ChevronDown
                                 size={12}
@@ -297,10 +295,9 @@ function ManageRow({ t, category, others, onRename, onDelete }: {
             {deleting && typeof deleting === 'object' && (
                 <div className="mt-2 p-2 rounded-lg border border-amber-500/30 bg-amber-500/5 space-y-2">
                     <div className="text-xs text-[var(--text-secondary)]">
-                        {/* Enkelvoud en meervoud zijn twee SLEUTELS. "(s)" is
-                            onvertaalbaar naar talen met andere meervoudsregels,
-                            en deze zin verschijnt nu ook vanuit de identiteitsrij
-                            — AgentHero opent hetzelfde beheerpopover. */}
+                        {/* Singular and plural are two KEYS. "(s)" cannot be translated into languages with other plural
+                            rules, and this sentence now also appears from the identity row — AgentHero opens the same
+                            management popover. */}
                         {nOf(
                             t, 'agent_wizard.builder.category_in_use', deleting.count,
                             'In use by {count} agent. What should happen to it?',

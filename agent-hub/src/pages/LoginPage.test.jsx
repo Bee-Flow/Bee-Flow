@@ -99,9 +99,9 @@ function signIn(username = 'ada@example.com', password = 'hunter2') {
 describe('what the screen asks the server before it draws anything', () => {
     it('shows a spinner instead of a form until the auth settings have landed', async () => {
         const { container } = render(<LoginPage onLogin={vi.fn()} />);
-        // De spinner zelf pinnen, niet alleen de afwezigheid van het formulier:
-        // `allowPasswordLogin` start op null, dus de velden blijven ook weg
-        // wanneer de spinner-tak volledig zou verdwijnen.
+        // Pin the spinner itself, not just the absence of the form. `allowPasswordLogin`
+        // starts at null, so the fields also stay away when the spinner branch would
+        // disappear entirely.
         expect(container.querySelector('.animate-spin')).not.toBeNull();
         expect(screen.queryByTestId('login-submit-button')).toBeNull();
         expect(screen.queryByTestId('username')).toBeNull();

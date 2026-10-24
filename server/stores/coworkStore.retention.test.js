@@ -1,10 +1,10 @@
 /**
- * De retentie-DELETE op cowork_runs, tegen een gestubde db: dit pint het
- * SQL-contract vast dat de veiligheid draagt — alleen gesloten rijen
- * (finished_at gestempeld, status niet 'running'), strikt ouder dan de
- * cutoff, in een subselect-LIMIT-batch (de automationStore-vorm, §WS3.1).
- * De echte-Postgres-round-trip (verwijdert alleen oude rijen, idempotent)
- * staat in coworkStore.test.js en skipt zonder DB; dit bestand draait overal.
+ * The retention DELETE on cowork_runs, against a stubbed db: this pins the
+ * SQL contract that carries the safety — only closed rows
+ * (finished_at stamped, status not 'running'), strictly older than the
+ * cutoff, in a subselect-LIMIT batch (the automationStore shape, §WS3.1).
+ * The real-Postgres round trip (deletes only old rows, idempotent)
+ * is in coworkStore.test.js and skips without a DB; this file runs everywhere.
  *
  * Run: node --test --test-force-exit stores/coworkStore.retention.test.js
  */

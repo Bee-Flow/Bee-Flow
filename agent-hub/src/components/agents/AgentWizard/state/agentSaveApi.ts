@@ -36,22 +36,21 @@ interface SaveRequestError extends Error {
 }
 
 /**
- * Het systeemprompt dat de editor moet OVERNEMEN nadat een opslag geland is,
- * of `null` voor "laat staan wat er staat".
+ * The system prompt that the editor must ADOPT after a save has landed, or `null` for
+ * "keep what is there".
  *
- * WAAROM DIT BESTAAT. Een persona in veldmodus is de BRON van het prompt: de
- * server rendert `agents.system_prompt` uit de velden en negeert het prompt dat
- * de client meestuurde (`resolvePersonaWrite` → `renderedPromptFor`). Neemt de
- * editor dat antwoord niet over, dan houdt hij zijn eigen tekst vast — en de
- * eerstvolgende opslag ZONDER persona schrijft die er weer overheen. Vanaf dat
- * moment beschrijft de persona-kolom een prompt dat de agent niet meer draait,
- * en dat is precies de drift die A1c's "één richting" moet voorkomen.
+ * WHY THIS EXISTS. A persona in field mode is the SOURCE of the prompt: the server
+ * renders `agents.system_prompt` from the fields and ignores the prompt that the client
+ * sent (`resolvePersonaWrite` → `renderedPromptFor`). If the editor does not adopt
+ * that answer, it keeps its own text, and the next save WITHOUT a persona writes that
+ * over it again. From that moment the persona column describes a prompt that the agent
+ * no longer runs, and that is precisely the drift that A1c's "one direction" must
+ * prevent.
  *
- * Alleen na een opslag die ECHT een persona meestuurde, en alleen zolang de
- * gebruiker sindsdien niet getypt heeft: zijn toetsaanslagen leven alleen in
- * `stateRef` en zijn nergens anders terug te halen, dus die winnen altijd van
- * een antwoord dat onderweg was. Een antwoord zonder leesbaar prompt levert
- * `null` — onbekend is geen reden om iets te overschrijven.
+ * Only after a save that REALLY sent a persona, and only as long as the user has not
+ * typed since. His keystrokes live only in `stateRef` and cannot be recovered anywhere
+ * else, so those always win over an answer that was on its way. An answer without a
+ * readable prompt yields `null`: unknown is no reason to overwrite anything.
  */
 export function adoptedPromptAfterSave({ sentPersona, sentSystemPrompt, localSystemPrompt, savedSystemPrompt }: {
     sentPersona: unknown;

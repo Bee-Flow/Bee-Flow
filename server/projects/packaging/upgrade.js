@@ -104,19 +104,14 @@ async function planUpgrade({ projectId, manifest } = {}) {
                 continue;
             }
 
-            // ONLEESBAAR IS GEEN VERWIJDERD, en dat verschil is hier duur.
-            // `.catch(() => null)` maakte van een storefout (een DB-hik, een
-            // lezer die gooit) precies hetzelfde antwoord als "bestaat niet
-            // meer", en de client zet daar de stelligste zin van de dialoog bij:
-            // "{n} thing you deleted is not brought back". De eigenaar kreeg dan
-            // te horen dat hij iets had weggegooid dat er gewoon staat.
+            // UNREADABLE IS NOT DELETED, and that difference is expensive here.
+            // `.catch(() => null)` turned a store error (a database hiccup, a reader that throws) into exactly the same answer as
+            // "no longer exists", and the client attaches the most emphatic sentence of the dialogue to that:
+            // "{n} thing you deleted is not brought back". The owner was then told that he had thrown away something that is still there.
             //
-            // Een mislukte lees gaat daarom naar `skip` met een `why` die het
-            // woord "edited" NIET bevat. De client eist twee signalen voordat
-            // hij "jij hebt dit aangepast" beweert (upgradeClient.planRows), dus
-            // deze rij landt in "niet te bepalen" — de derde toestand die er al
-            // was. Geen nieuwe groep, geen contractwijziging, en de veilige
-            // kant: er wordt niets vervangen en niets beweerd.
+            // A failed read therefore goes to `skip` with a `why` that does NOT contain the word "edited". The client requires two signals before
+            // it claims "you have edited this" (upgradeClient.planRows), so this row lands in "cannot determine" — the third state that already
+            // existed. No new group, no contract change, and the safe side: nothing is replaced and nothing is claimed.
             let now;
             try {
                 now = await currentPayload(kind, stamp.entityId);
@@ -368,13 +363,12 @@ async function replaceWebpage(entityId, entity, ctx) {
     for (const [slot, content] of [['index.html', files.html], ['style.css', files.css], ['script.js', files.js]]) {
         if (content !== undefined) await store.writeSlot(owner, entityId, slot, content);
     }
-    // Een upgrade herschrijft alle drie de slots, dus hij kan een
-    // `<bf-table source="…">` net zo goed WEGHALEN als toevoegen —
-    // en de dependents-index is delete-then-insert, dus zonder
-    // reconcile blijft de rij van de VORIGE versie staan. De
-    // tabel-eigenaar krijgt dan een 409 over een pagina die zijn tabel
-    // niet meer gebruikt. Zelfde reden als op het install-pad, en hier
-    // sterker: daar is de pagina nieuw, hier heeft ze al een index.
+    // An upgrade rewrites all three slots, so it can REMOVE a
+    // `<bf-table source="…">` just as easily as add one —
+    // and the dependents index is delete-then-insert, so without a
+    // reconcile the row of the PREVIOUS version stays. The table owner
+    // then gets a 409 about a page that no longer uses his table.
+    // Same reason as on the install path, and stronger here: there the page is new, here it already has an index.
     require('../../core/webpages/webpageUsageSync').reconcileWebpageUsageDetached(entityId);
     // A pinned snapshot is the page's live copy: readers move to the new
     // version through a new snapshot, the way the publish route pins one

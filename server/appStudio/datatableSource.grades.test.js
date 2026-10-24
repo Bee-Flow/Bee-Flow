@@ -1,33 +1,30 @@
 /**
- * DE GRAADREKENKUNDE, uitgerekend in plaats van beweerd.
+ * THE GRADE ARITHMETIC, calculated instead of asserted.
  *
- * Eén tabel: (de eigen graad van de kijker t.o.v. die van de app-eigenaar) ×
- * (de route waarlangs hij binnenkomt) × (de modus van de koppeling) → welke
- * graad geldt er, en wat krijgt hij te zien. Elke cel wordt met een ECHTE
- * aanroep van `resolveDatatableRead` / `resolveDatatableWrite` bepaald; alleen
- * de randen die een database aanraken zijn geïnjecteerd. De graadketen zelf
- * (auth/datatableAccess: gradeForPrincipal, narrowGrade, effectiveGradeForRun)
- * draait onvervangen mee.
+ * One table: (the viewer's own grade relative to that of the app owner) ×
+ * (the route by which he comes in) × (the mode of the link) → which grade applies, and
+ * what he gets to see. Each cell is determined with a REAL call to
+ * `resolveDatatableRead` / `resolveDatatableWrite`; only the edges that touch a database
+ * are injected. The grade chain itself (auth/datatableAccess: gradeForPrincipal,
+ * narrowGrade, effectiveGradeForRun) runs along unreplaced.
  *
- * WAAROM DIT EEN EIGEN BESTAND IS. datatableSource.test.js pint de regels één
- * voor één ("een viewer schrijft niet", "een publieke pagina leest niet"). Dit
- * bestand pint de VOLLEDIGE kruistabel, want de fout die je zoekt zit nooit in
- * een regel maar in een combinatie: de cel waarin de kijker minder mag dan de
- * auteur en er tóch iets doorheen komt. Eén ontbrekende MIN is één cel die de
- * verkeerde kant op valt, en zonder de hele tabel is dat de cel die niemand
- * naloopt.
+ * WHY THIS IS A SEPARATE FILE. datatableSource.test.js pins the rules one by one ("a
+ * viewer does not write", "a public page does not read"). This file pins the FULL cross
+ * table, because the bug you are looking for never sits in a rule but in a combination:
+ * the cell in which the viewer may do less than the author and something gets through
+ * anyway. One missing MIN is one cell that falls the wrong way, and without the whole
+ * table that is the cell nobody checks.
  *
- * DE VIER REGELS DIE DE TABEL BEWIJST
- *   1. de graad is die van de KIJKER, nooit die van de auteur;
- *   2. effectief = MINIMUM van (kijker, app-eigenaar, app-rol, modus) — nooit
- *      de unie: er komt geen enkele cel uit waarin iemand méér mag dan hij
- *      alléén al mocht;
- *   3. `mode:'read'` capt op viewer, dus schrijven is er een WEIGERING met een
- *      reden en geen stille no-op;
- *   4. onbekend versmalt, maar zegt waarom: geen graad = 403, onleesbare
- *      identiteit = 503, en nooit een lege lijst.
+ * THE FOUR RULES THE TABLE PROVES
+ *   1. the grade is that of the VIEWER, never that of the author;
+ *   2. effective = MINIMUM of (viewer, app owner, app role, mode) — never the union: no
+ *      cell comes out in which someone may do more than he alone was allowed to;
+ *   3. `mode:'read'` caps at viewer, so writing is a REFUSAL with a reason and not a
+ *      silent no-op;
+ *   4. unknown narrows, but says why: no grade = 403, unreadable identity = 503, and
+ *      never an empty list.
  *
- * Draai: cd server && node --test --test-reporter=tap appStudio/datatableSource.grades.test.js
+ * Run: cd server && node --test --test-reporter=tap appStudio/datatableSource.grades.test.js
  */
 
 'use strict';
@@ -93,10 +90,9 @@ const publicCtx = () => ({
 });
 
 /**
- * De geïnjecteerde randen. `identityFails` maakt van de KIJKER (en alleen van
- * hem) een principaal met `identityError` — de gebruikerslezing viel uit, de
- * app-eigenaar is gewoon leesbaar. Dat onderscheid is precies de cel waarin
- * "onbekend" niet als "niet toegestaan" mag uitkomen.
+ * The injected edges. `identityFails` turns the VIEWER (and only him) into a principal with
+ * `identityError` — the user read failed, the app owner is simply readable. That
+ * distinction is exactly the cell in which "unknown" must not come out as "not allowed".
  */
 function deps({ table = datatable(), grants = [], identityFails = null, admins = [] } = {}) {
     const calls = { getDatatable: 0, listGrants: 0 };
@@ -117,22 +113,20 @@ function deps({ table = datatable(), grants = [], identityFails = null, admins =
             if (identityFails && userId === identityFails) {
                 return { ...p, orgId: null, organizationId: null, orgRole: null, identityError: 'the account could not be read' };
             }
-            // Een org-admin is `owner` op elke tabel van zijn organisatie
-            // (gradeForPrincipal regel 3). Dat is de enige manier om ÍEMAND
-            // owner-graad te geven zonder hem de tabel te laten bezitten — een
-            // GRANT met grade 'owner' levert er geen op: gradeForPrincipal
-            // vertaalt alleen 'editor' en 'viewer' terug (regel 4), en dat is
-            // hier een gegeven, geen bewering.
+            // An org admin is `owner` on every table of his organisation (gradeForPrincipal rule 3).
+            // That is the only way to give SOMEONE owner grade without his owning the table — a
+            // GRANT with grade 'owner' yields none: gradeForPrincipal translates only 'editor' and
+            // 'viewer' back (rule 4), and that is here a given, not an assertion.
             if (admins.includes(userId)) return { ...p, orgRole: 'admin' };
             return p;
         },
     };
 }
 
-// ── De vier kijkersituaties, als grants uitgedrukt ──────────────────
+// ── The four viewer situations, expressed as grants ─────────────────
 //
-// De datatabel is van een DERDE (`owner_user_id: STRANGER`), zodat beide
-// graden uit expliciete grants komen en elke cel apart in te stellen is.
+// The datatable belongs to a THIRD party (`owner_user_id: STRANGER`), so that both grades
+// come from explicit grants and each cell can be set separately.
 
 const GRANT = (userId, grade) => ({ grantee_type: 'user', grantee_id: userId, grade });
 
@@ -214,8 +208,7 @@ test('allebei editor: readwrite laat een SCHRIJVING toe, read niet', async () =>
     assert.equal(ro.ok, false);
     assert.match(ro.message, /reading only/);
 
-    // En lezen op een read-koppeling capt de graad op viewer, ook al is de
-    // laagste van de twee mensen editor.
+    // And reading on a read link caps at viewer, even though the lower of the two people is editor.
     const readRo = await read(dataCtx(), 'read', deps({ grants: BOTH_EDITOR }));
     assert.deepEqual(readRo, { ok: true, grade: 'viewer' });
     const readRw = await read(dataCtx(), 'readwrite', deps({ grants: BOTH_EDITOR }));
@@ -240,9 +233,9 @@ test('geen graad: 403 met een reden, nooit een lege lijst', async () => {
 // ═══ RIJ 5 — de identiteit van de KIJKER is onleesbaar ═══════════════════
 
 test('onleesbare identiteit van de kijker: 503, niet 403 — onbekend is geen weigering', async () => {
-    // De app-eigenaar is gewoon leesbaar; alleen de kijker niet. Zonder dit
-    // onderscheid leest de weigering als een beleidskeuze ("je hoort er niet
-    // bij") terwijl in werkelijkheid niemand het kon nagaan.
+    // The app owner is simply readable; only the viewer is not. Without this distinction the
+    // refusal reads as a policy choice ("you do not belong to it") while in reality nobody
+    // could check it.
     for (const mode of ['read', 'readwrite']) {
         const d = deps({ table: OWNED_BY_APP_OWNER, grants: BOTH_EDITOR, identityFails: VIEWER });
         const r = await read(dataCtx(), mode, d);
@@ -302,8 +295,8 @@ test('routes/studioAppPublic: elke kijkersituatie × elke modus is 403, vóór e
 });
 
 test('een anoniem bezoekers-id onder een GEWONE rol blijft anoniem', async () => {
-    // Twee onafhankelijke poorten: de gereserveerde rol, en het id. Een
-    // toekomstige publieke route die er maar één zet loopt niet stil door.
+    // Two independent gates: the reserved role, and the id. A future public route that sets
+    // only one of them does not pass silently.
     const ctx = { ...publicCtx(), role: 'medewerker', viewer: { id: 'anon:deadbeefdeadbeef', role: 'medewerker', organizationId: null } };
     const d = deps({ grants: BOTH_EDITOR });
     const r = await read(ctx, 'readwrite', d);
@@ -344,18 +337,18 @@ test('een rol die nergens in de mapping valt komt er niet door', async () => {
 // ═══ ER IS NERGENS EEN UNIE ═════════════════════════════════════════════
 
 test('geen enkele cel levert méér op dan de kleinste van de twee mensen', async () => {
-    // De systematische versie van rij 1 en 2: alle negen combinaties van
-    // (kijkersgraad × eigenaarsgraad) op een readwrite-koppeling met de ruimste
-    // app-rol. De uitkomst moet ALTIJD de laagste van de twee zijn.
+    // The systematic version of rows 1 and 2: all nine combinations of
+    // (viewer grade × owner grade) on a readwrite link with the broadest app role. The
+    // outcome must ALWAYS be the lower of the two.
     const order = { viewer: 0, editor: 1, owner: 2 };
     const min = (...gs) => gs.reduce((lo, g) => (order[g] < order[lo] ? g : lo));
     const world = (who, grade) => (grade === 'owner'
         ? { admins: [who], grants: [] }
         : { admins: [], grants: [GRANT(who, grade)] });
-    // De DERDE MIN rijdt mee: een gewone app-rol met schrijfrecht capt op
-    // 'editor' (appRoleGrade), alleen de app-rol 'owner' laat de ladder
-    // helemaal door. Beide worden gedraaid, zodat de cap zichtbaar is in het
-    // verschil tussen de twee kolommen en niet stilzwijgend in de verwachting.
+    // The THIRD MIN rides along: an ordinary app role with write rights caps at 'editor'
+    // (appRoleGrade); only the app role 'owner' lets the ladder through entirely. Both are
+    // run, so that the cap is visible in the difference between the two columns and not
+    // silently in the expectation.
     for (const [appRole, roleCap] of [['medewerker', 'editor'], ['owner', 'owner']]) {
         const ctx = { ...dataCtx(), role: appRole, viewer: { id: VIEWER, role: appRole, organizationId: ORG } };
         for (const a of ['viewer', 'editor', 'owner']) {
@@ -390,12 +383,12 @@ test('en op een read-koppeling is elke cel viewer — de vierde MIN', async () =
     }
 });
 
-// ═══ DE RIJREGEL VAN DE APP-ROL ═══════════════════════════════════════════
+// ═══ THE ROW RULE OF THE APP ROLE ═══════════════════════════════════════════
 //
-// Tot 2026-09-16 werd `access.rowFilters` van de MODELtabel voor een
-// GEKOPPELDE datatabel in zijn geheel weggegooid: het access-blok werd
-// vervangen door dat van de datatabel. Een rol "alleen leverancier X" bewaarde
-// en valideerde prima en filterde niets — het stilste soort autorisatiefout.
+// Until 2026-09-16 `access.rowFilters` of the MODEL table was thrown away in its entirety
+// for a LINKED datatable: the access block was replaced by that of the datatable. A role
+// "only supplier X" stored and validated just fine and filtered nothing — the quietest
+// kind of authorisation error.
 
 /** Een modeltabel met een rijregel voor één app-rol. */
 const modelTableWithRule = (mode, role, expr) => ({
@@ -435,8 +428,8 @@ test('een rijregel voor een ANDERE rol raakt deze kijker niet', async () => {
 });
 
 test('de app-rol `owner` krijgt geen regel; dezelfde persoon ONDER een beperkte rol wel', async () => {
-    // "Bekijk als" is geen doen-alsof: wie de app als een beperkte rol bekijkt
-    // hoort te zien wat die rol ziet, ook als hij de tabel bezit.
+    // "Bekijk als" is not pretence: whoever views the app as a restricted role should see what
+    // that role sees, even if he owns the table.
     const d = deps({ table: OWNED_BY_APP_OWNER, grants: [] });
     const asOwner = { ...dataCtx(), viewerId: OWNER, role: 'owner', viewer: { id: OWNER, role: 'owner', organizationId: ORG } };
     const ownerRun = await resolveWith(modelTableWithRule('readwrite', 'owner', 'record.naam == "ACME"'), asOwner, d);

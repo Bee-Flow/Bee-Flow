@@ -115,13 +115,11 @@ test('builderPrompt\'s prose copy of the table still says the same numbers', () 
     // Numeric separators out (10_000 → 10000) and the comment's own line
     // wrapping flattened, so the sentence can be matched as one string.
     //
-    // Bewust brontekst, en dat kan niet anders: de PROMPT die het model
-    // echt leest (codeStepMenuEntry, hierboven) rondt bewust af tot proza
-    // ("about 1s of CPU… ceilings of 10s and 30s") — geen exacte cijfers om
-    // op te draaien voor het model. Precies daarom staan de exacte cijfers
-    // in een `//`-ontwikkelaarscommentaar ernaast: dat commentaar draagt geen
-    // enkel runtime-gedrag, dus aanroepen kan de aanwezigheid van dit getal
-    // niet waarnemen. De tekst IS hier de eigenschap.
+    // Deliberately source text, and it cannot be otherwise: the PROMPT that the model really reads
+    // (codeStepMenuEntry, above) deliberately rounds off into prose ("about 1s of CPU… ceilings of
+    // 10s and 30s") — no exact figures for the model to act on. That is precisely why the exact
+    // figures stand in a `//` developer comment beside it: that comment carries no runtime behaviour
+    // at all, so calling code cannot observe the presence of this number. The text IS the property here.
     // The comment sits beside CODE_STEP_MENU_ENTRY, which buildFullSystemPrompt
     // in builderPrompt.js splices into the step menu.
     const prompt = fs.readFileSync(path.join(__dirname, 'builderPrompt', 'fullPromptGuidance.js'), 'utf8')

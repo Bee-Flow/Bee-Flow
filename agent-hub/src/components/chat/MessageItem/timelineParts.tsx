@@ -1,35 +1,35 @@
 /**
- * De onderdelen van de verticale tijdlijn — genummerd bolletje, verbindingslijn
- * en duurpil.
+ * The parts of the vertical timeline: the numbered dot, the connecting line
+ * and the duration pill.
  *
- * Ze stonden als markup in `ToolsUsedTimeline`. Het spoorpaneel (A4 deel C)
- * toont dezelfde soort lijst — stappen onder elkaar, met de duur erbij — en
- * moet er ook hetzelfde uitzien: twee lijsten die naast elkaar in de bouwer
- * staan en net níet dezelfde bolletjes en pillen hebben, lezen als twee
- * verschillende soorten bewijs terwijl het één stroom is.
+ * They stood as markup in `ToolsUsedTimeline`. The trail panel (A4 part C)
+ * shows the same kind of list, steps one under another with the duration beside
+ * them, and it must look the same. Two lists that stand next to each other in the
+ * builder but do NOT share the same dots and pills read as two different kinds of
+ * evidence, while it is one stream.
  *
- * Vandaar hier, letterlijk overgenomen, en door allebei gebruikt.
+ * Hence they live here, copied literally, and both use them.
  *
- * `formatDurationMs` is de enige die iets beslist: onder een seconde in hele
- * milliseconden, daarboven op één decimaal. Die keuze zat in `ToolsUsedTimeline`
- * verstopt in een ternary, en de kop van het spoorpaneel ("· 1,8 s") moet
- * exact dezelfde afronding gebruiken — anders staat er 1,8 s boven een rij die
- * 1750 ms zegt.
+ * `formatDurationMs` is the only one that decides anything: under a second in
+ * whole milliseconds, above that to one decimal. That choice was hidden in a
+ * ternary in `ToolsUsedTimeline`, and the heading of the trail panel ("· 1.8 s")
+ * must use exactly the same rounding, otherwise 1.8 s stands above a row that
+ * says 1750 ms.
  */
 
 
 /**
- * `1750` → `'1.8s'`, `840` → `'840ms'`, alles wat geen getal is → null.
+ * `1750` → `'1.8s'`, `840` → `'840ms'`, anything that is not a number → null.
  *
- * Negatieve duren bestaan niet; een klok die achteruit liep is geen meting,
- * dus die komt er als null uit in plaats van als '-3ms'.
+ * Negative durations do not exist. A clock that ran backwards is not a
+ * measurement, so it comes out as null rather than as '-3ms'.
  */
 export function formatDurationMs(ms: number) {
     if (!Number.isFinite(ms) || ms < 0) return null;
     return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
 }
 
-/** Het genummerde bolletje links van een stap. */
+/** The numbered dot to the left of a step. */
 interface StepBadgeProps {
     n: number;
     muted?: boolean;
@@ -53,9 +53,9 @@ export function StepBadge({ n, muted = false }: StepBadgeProps) {
 }
 
 /**
- * De verticale lijn achter de bolletjes. Hoort in een `relative` ouder en
- * alleen bij twee of meer stappen — één bolletje met een streep eraan suggereert
- * een stap die er niet is.
+ * The vertical line behind the dots. It belongs in a `relative` parent and only
+ * appears with two or more steps. One dot with a line attached suggests a step
+ * that is not there.
  */
 interface TimelineRailProps {
     show?: boolean;
@@ -71,7 +71,7 @@ export function TimelineRail({ show = true }: TimelineRailProps) {
     );
 }
 
-/** De duur rechts op een regel. Geen meting ⇒ geen pil. */
+/** The duration on the right of a row. No measurement means no pill. */
 interface DurationPillProps {
     ms: number | null;
     title?: string;

@@ -193,14 +193,13 @@ export function studioSectionAccess({ section, apps, user, hasPermission, sectio
 }
 
 /**
- * De naam van één sectie.
+ * The name of one section.
  *
- * Twee soorten descriptors, één antwoord: een runtime-module draagt een
- * locale-bewuste `label(t, locale)`, een ingebouwde sectie een i18n-sleutel
- * met Engelse fallback. Hier omdat dezelfde drie regels al op vier plekken
- * stonden (rail, flyout, Start, en nu "Laatst bewerkt"), en een sectie die op
- * het ene scherm anders heet dan op het andere is precies de drift die dit
- * bestand moet voorkomen.
+ * Two kinds of descriptors, one answer: a runtime module carries a locale-aware
+ * `label(t, locale)`, a built-in section an i18n key with an English fallback.
+ * Here because the same three lines already stood in four places (rail, flyout,
+ * Start, and now "Recently edited"), and a section that is called one thing on one
+ * screen and another thing on another is exactly the drift this file must prevent.
  */
 export function studioSectionLabel(app: StudioLabelled | null | undefined, t: TranslateFn, locale?: string): string {
     if (!app) return '';
@@ -210,18 +209,17 @@ export function studioSectionLabel(app: StudioLabelled | null | undefined, t: Tr
 }
 
 /**
- * De sectie die een SOORT beheert, uit het register — eerste treffer wint.
+ * The section that manages a KIND, from the register — first hit wins.
  *
- * Twee secties kunnen dezelfde `kind` dragen (Runs en Oplossingen), en de
- * eerste is de sectie die het ding zélf is. Hier omdat er inmiddels twee
- * afleidingen van precies deze wandeling waren: de kaart
- * (map/studioMap.js REGISTRY_BY_KIND) en de aandachtslijst
- * (attention/attentionLink.js SEGMENT_BY_KIND), allebei nieuw op dezelfde dag.
- * Twee kopieën van "welke sectie hoort bij dit soort" zijn twee antwoorden op
- * de vraag waar de knop "Laat zien" heen gaat.
+ * Two sections can carry the same `kind` (Runs and Solutions), and the first is the
+ * section that the thing itself is. Here because two derivations of precisely this
+ * walk had already appeared: the card (map/studioMap.js REGISTRY_BY_KIND) and the
+ * attention list (attention/attentionLink.js SEGMENT_BY_KIND), both new on the same
+ * day. Two copies of "which section belongs to this kind" are two answers to the
+ * question where the "Show" button leads.
  *
- * Alleen de INGEBOUWDE secties: een runtime-module draagt vandaag geen `kind`,
- * en STUDIO_SECTIONS is de lijst die op elke build hetzelfde is.
+ * Only the BUILT-IN sections: a runtime module carries no `kind` today, and
+ * STUDIO_SECTIONS is the list that is the same on every build.
  */
 const APP_BY_KIND = (() => {
     const out: Record<string, StudioSectionDescriptor> = {};
@@ -231,7 +229,7 @@ const APP_BY_KIND = (() => {
     return out;
 })();
 
-/** Het registerrecord van een soort, of null. */
+/** The register record of a kind, or null. */
 export function studioAppForKind(kind: string | null | undefined): StudioSectionDescriptor | null {
     return (kind && APP_BY_KIND[kind]) || null;
 }

@@ -1,14 +1,12 @@
 /**
- * De veiligheidskern van de gekoppelde Studio-tabel: WIENS graad geldt, en hoe
- * ver hij reikt.
+ * The security core of the linked Studio table: WHOSE grade applies, and how far it reaches.
  *
- * Elke test hier is een manier waarop een app anders een uitgiftepunt zou
- * worden voor de rechten van zijn maker. De grade-logica zelf is de ECHTE
- * (auth/datatableAccess draait onvervangen); alleen de randen die een database
- * aanraken — de tabel opzoeken, de grants lezen, de principaal ophalen — worden
- * geïnjecteerd.
+ * Every test here is a way in which an app would otherwise become a channel for the rights of
+ * its maker. The grade logic itself is the REAL one (auth/datatableAccess runs unreplaced); only
+ * the edges that touch a database — looking up the table, reading the grants, fetching the
+ * principal — are injected.
  *
- * Draai: cd server && node --test --test-reporter=tap appStudio/datatableSource.test.js
+ * Run: cd server && node --test --test-reporter=tap appStudio/datatableSource.test.js
  */
 
 const test = require('node:test');
@@ -79,8 +77,8 @@ const publicCtx = (over = {}) => ({
 });
 
 /**
- * De geïnjecteerde randen. `calls` telt mee wat er is aangeraakt, zodat een
- * test kan bewijzen dat een weigering VOOR de opzoeking valt.
+ * The injected edges. `calls` counts what was touched, so that a test can prove that a
+ * refusal falls BEFORE the lookup.
  */
 function deps({ table = datatable(), grants = [], meta = { id: DT_ID, key: 'dt_klanten', fields: [{ key: 'naam', type: 'text' }] }, principals = {} } = {}) {
     const calls = { getDatatable: 0, listGrants: 0, getTableMeta: 0, principals: [] };
@@ -123,9 +121,9 @@ async function refusal(promise) {
 // ═══════════════════════════════════════════════════════════════════
 
 test('de kijker zonder graad krijgt een WEIGERING, niet de graad van de app-eigenaar', async () => {
-    // De app-eigenaar is de eigenaar van de datatabel (graad owner). De kijker
-    // heeft niets: geen grant, en de tabel is niet gepubliceerd. Zou de graad
-    // voor de eigenaar worden bepaald, dan las deze kijker hier de hele tabel.
+    // The app owner is the owner of the datatable (grade owner). The viewer has nothing: no grant,
+    // and the table is not published. If the grade were determined for the owner, this viewer
+    // would read the entire table here.
     const d = deps();
     const err = await refusal(datatableSource.resolveDatatableRead(signedInCtx(), modelTable(), d));
 
@@ -163,9 +161,9 @@ test('een kijker uit een ANDERE organisatie komt er niet in', async () => {
 // ═══════════════════════════════════════════════════════════════════
 
 test('MIN(kijker, eigenaar): de hogere graad van de kijker wordt verlaagd tot die van de eigenaar', async () => {
-    // De datatabel is van een DERDE. De kijker is org-admin (graad owner via
-    // regel 3); de app-eigenaar heeft alleen een viewer-grant. De unie zou hier
-    // 'owner' zeggen — een recht dat geen van beiden via deze deur had.
+    // The datatable belongs to a THIRD party. The viewer is an org admin (grade owner via rule 3);
+    // the app owner has only a viewer grant. The union would say 'owner' here — a permission that
+    // neither of them had through this door.
     const d = deps({
         table: datatable({ owner_user_id: 'u-third' }),
         grants: [{ grantee_type: 'user', grantee_id: OWNER, grade: 'viewer' }],
@@ -178,9 +176,9 @@ test('MIN(kijker, eigenaar): de hogere graad van de kijker wordt verlaagd tot di
 });
 
 test('MIN(kijker, eigenaar): een eigenaar ZONDER graad sluit de deur, ook voor een kijker die alles mag', async () => {
-    // De app-eigenaar is zijn toegang kwijt (de datatabel is van een derde en
-    // hij heeft geen grant meer). De kijker is org-admin en mag alles. De app is
-    // dan geen kanaal meer: hij deelt uit wat zijn maker heeft, en dat is niets.
+    // The app owner has lost his access (the datatable belongs to a third party and he has no grant
+    // any more). The viewer is an org admin and may do everything. The app is then no longer a
+    // channel: it hands out what its maker has, and that is nothing.
     const d = deps({
         table: datatable({ owner_user_id: 'u-third' }),
         grants: [{ grantee_type: 'user', grantee_id: VIEWER, grade: 'editor' }],
@@ -192,8 +190,8 @@ test('MIN(kijker, eigenaar): een eigenaar ZONDER graad sluit de deur, ook voor e
 });
 
 test('MIN met de APP-ROL: een leesrol krijgt geen owner-graad, ook niet als hij die op de datatabel heeft', async () => {
-    // De kijker is org-admin (graad owner) en de koppeling is readwrite, dus de
-    // enige rem is de app-rolmapping: 'medewerker' mag deze tabel alleen lezen.
+    // The viewer is an org admin (grade owner) and the link is readwrite, so the only brake is the
+    // app role mapping: 'employee' may only read this table.
     const d = deps({ principals: { [VIEWER]: principal(VIEWER, { orgRole: 'org_admin' }) } });
     const readOnlyRole = modelTable({
         access: { default: 'role', roles: { medewerker: { read: 'all' } } },
@@ -202,8 +200,8 @@ test('MIN met de APP-ROL: een leesrol krijgt geen owner-graad, ook niet als hij 
     const out = await datatableSource.resolveDatatableRead(signedInCtx(), readOnlyRole, d);
     assert.equal(out.grade, 'viewer');
 
-    // De controle: dezelfde kijker, dezelfde tabel, maar een app-rol die WEL
-    // mag schrijven — dan blijft de graad staan waar de datatabel hem legt.
+    // The check: the same viewer, the same table, but an app role that DOES allow writing — then the
+    // grade stays where the datatable puts it.
     const writableRole = modelTable({
         access: { default: 'role', roles: { medewerker: { read: 'all', update: 'all' } } },
         source: { kind: 'datatable', datatableId: DT_ID, mode: 'readwrite' },
@@ -233,8 +231,8 @@ test("mode:'read' verlaagt zelfs de app-eigenaar die zijn eigen datatabel leest"
 });
 
 test("de cap is niet symbolisch: met row_scope 'own' scheelt hij álle rijen", async () => {
-    // owner kortsluit in resolveScope naar 'all'; een viewer krijgt
-    // `created_by = ?`. Dat verschil is precies waar de cap over gaat.
+    // owner short-circuits in resolveScope to 'all'; a viewer gets `created_by = ?`. That difference
+    // is precisely what the cap is about.
     const ownerCtx = signedInCtx({ viewerId: OWNER, role: 'owner', viewer: { id: OWNER, role: 'owner', organizationId: ORG } });
     const own = { table: datatable({ row_scope: 'own' }) };
 
@@ -269,8 +267,8 @@ test('PUBLIEKE route: een anonieme bezoeker leent NOOIT de graad van de auteur',
 });
 
 test('PUBLIEKE route: ook zonder de gereserveerde rol houdt het anonieme id hem tegen', async () => {
-    // De tweede, onafhankelijke poort — voor een toekomstige route die de rol
-    // anders zet maar wel een anoniem bezoekers-id draagt.
+    // The second, independent gate — for a future route that sets the role differently but does carry
+    // an anonymous visitor id.
     const d = deps();
     const err = await refusal(datatableSource.resolveDatatableRead(publicCtx({ role: 'medewerker' }), modelTable(), d));
     assert.equal(err.status, 403);
@@ -284,8 +282,8 @@ test('INGELOGDE route: de graad komt uit de datatabel, het access-blok ook', asy
 
     // De koppeling is 'read', dus editor wordt viewer.
     assert.equal(out.grade, 'viewer');
-    // tableMeta is die van de DATATABEL (kolommen + het access-blok dat
-    // synthesizeAccess maakt), niet het access-blok van de modeltabel.
+    // tableMeta is that of the DATATABLE (columns + the access block that synthesizeAccess builds),
+    // not the access block of the model table.
     assert.equal(out.tableMeta.key, 'dt_klanten');
     assert.equal(out.tableMeta.access.default, 'none');
     assert.deepEqual(Object.keys(out.tableMeta.access.roles).sort(), ['editor', 'viewer']);
@@ -307,11 +305,11 @@ test('de principaal-resolver valt om: 503 met een reden, geen viewer en geen leg
     assert.equal(err.status, 503);
     assert.equal(err.safe, true);
     assert.match(err.message, /Could not check who you are/i);
-    // Niet als "geen toegang" gepresenteerd: dat zou de kijker de schuld geven
-    // van een uitval. En niet als 404, want dat is een leeg scherm.
+    // Not presented as "no access": that would blame the viewer for an outage. And not as a 404,
+    // because that is an empty screen.
     assert.notEqual(err.status, 403);
     assert.notEqual(err.status, 404);
-    // De interne oorzaak lekt niet mee naar de client.
+    // The internal cause does not leak to the client.
     assert.doesNotMatch(err.message, /users table unreachable/);
 });
 
@@ -376,8 +374,7 @@ test('isDatatableBacked kent alleen de tweede soort', () => {
     assert.equal(datatableSource.isDatatableBacked({ id: 'tbl_1' }), false);
     assert.equal(datatableSource.isDatatableBacked({ id: 'tbl_1', source: null }), false);
     assert.equal(datatableSource.isDatatableBacked(modelTable()), true);
-    // Een kapot blok telt WEL als gekoppeld: het moet gemeld worden, niet
-    // stilzwijgend op de app-database uitkomen.
+    // A broken block DOES count as linked: it must be reported, not quietly land on the app database.
     assert.equal(datatableSource.isDatatableBacked({ id: 'tbl_1', source: 'kapot' }), true);
 });
 
@@ -400,7 +397,7 @@ test('appRoleGrade leest de rolmapping van de app, niet die van de datatabel', (
     assert.equal(cap(t({ default: 'app', roles: {} }), 'medewerker'), 'editor');
     assert.equal(cap(t({ default: 'role', roles: { medewerker: { read: 'all' } } }), 'medewerker'), 'viewer');
     assert.equal(cap(t({ default: 'role', roles: { medewerker: { read: 'all', create: true } } }), 'medewerker'), 'editor');
-    // Geen rol = geen graad; de MIN maakt daar een weigering van.
+    // No role = no grade; the MIN turns that into a refusal.
     assert.equal(cap(t({ default: 'app', roles: {} }), null), null);
     assert.equal(cap(t({ default: 'app', roles: {} }), ''), null);
 });

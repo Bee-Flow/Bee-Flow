@@ -1,75 +1,68 @@
 /**
- * `/api/webpages-preview/:id/tables/:tid/*` — de runtime-brug
- * `window.beeflowTables` van een webpagina naar een GEBONDEN datatable.
+ * `/api/webpages-preview/:id/tables/:tid/*` — the runtime bridge
+ * `window.beeflowTables` from a page to a BOUND datatable.
  *
- * ── DIT IS DE ANDERE HELFT VAN DE BRUG DAN AI/AUTOMATIONS ───────────
+ * ── THIS IS THE OTHER HALF OF THE BRIDGE FROM AI/AUTOMATIONS ────────
  *
- * Alle andere preview-bruggen draaien ACTS-AS-AUTHOR: de pagina roept de LLM
- * aan met het budget van de auteur, start diens automatiseringen, gebruikt diens
- * integraties. Dat kan daar, omdat de auteur die rechten expliciet heeft
- * weggegeven aan zijn eigen pagina.
+ * All other preview bridges run ACTS-AS-AUTHOR: the page calls the LLM with the author's
+ * budget, starts the author's automations, uses the author's integrations. That can work
+ * there, because the author has explicitly handed those rights to their own page.
  *
- * Een datatable is iets anders. Die heeft per persoon een eigen graad
- * (auth/datatableAccess), en een pagina delen mag nooit betekenen dat de
- * lezer de tabelrechten van de auteur leent. Deze routes draaien daarom als
- * de INGELOGDE BEZOEKER: `previewClaims.viewerUserId`, met zijn eigen
- * `gradeForPrincipal`, elke aanroep opnieuw berekend.
+ * A datatable is something else. It has its own grade per person (auth/datatableAccess),
+ * and sharing a page must never mean that the reader borrows the author's table rights.
+ * These routes therefore run as the LOGGED-IN VIEWER: `previewClaims.viewerUserId`, with
+ * their own `gradeForPrincipal`, recalculated on every call.
  *
- * Een token van vóór W3 heeft die claim niet. Dan wordt er NIET teruggevallen
- * op de eigenaar — dat zou precies het lek zijn — maar geweigerd met
- * `viewer_unknown`; de client haalt een vers token op en probeert opnieuw.
+ * A token from before W3 has no such claim. Then there is NO fallback to the owner — that
+ * would be exactly the leak — but a refusal with `viewer_unknown`; the client fetches a
+ * fresh token and tries again.
  *
- * ── EN PUBLIEK KOMT HIER NOOIT LANGS ────────────────────────────────
+ * ── AND PUBLIC NEVER COMES THROUGH HERE ────────────────────────────
  *
- * `/w/<slug>` is een script-vrije, door DOMPurify gehaalde snapshot en de
- * anonieme brug kent alleen /ai/chat en /ai/stream. Op een publieke share
- * bestaat `window.beeflowTables` dus niet; wat daar van een tabel te zien is,
- * heeft de snapshot-writer server-side uit `publicColumns` gerenderd
- * (services/webpageBfTable.js). Deze routes zijn met opzet niet "ook publiek
- * met minder rechten": het preview-token is gebonden aan (userId, webpageId)
- * en mag nooit voor een publieke lezer worden hergebruikt. Wil men ooit een
- * lévende publieke tabel, dan is dat een APARTE, share-scoped, alleen-lezen,
- * rate-limited route op het patroon van de publieke share-brug.
+ * `/w/<slug>` is a script-free snapshot, sanitised by DOMPurify, and the anonymous bridge
+ * knows only /ai/chat and /ai/stream. On a public share `window.beeflowTables` therefore
+ * does not exist; what is visible of a table there has been rendered server-side from
+ * `publicColumns` by the snapshot writer (services/webpageBfTable.js). These routes are
+ * deliberately NOT "also public with fewer rights": the preview token is bound to
+ * (userId, webpageId) and may never be reused for a public reader. Should a LIVE public
+ * table ever be wanted, that is a SEPARATE, share-scoped, read-only, rate-limited route
+ * on the pattern of the public share bridge.
  *
- * ── DE TWEE POORTEN, IN DEZE VOLGORDE ───────────────────────────────
- *   1. de binding — staat deze tabel in `bridge_grants.tables` van DEZE
- *      pagina, en met welke modus en kolommen? Niet gebonden → 404.
- *   2. de graad — mag DEZE BEZOEKER die tabel lezen (viewer) of schrijven
- *      (editor)? Dat beslist core/dataEngine/datatableRuntime.js, de gedeelde
- *      runner die ook de andere consumenten van een datatable gebruiken.
- * Allebei moeten ja zeggen. De binding kan de graad niet verbreden en de graad
- * de binding niet.
+ * ── THE TWO GATES, IN THIS ORDER ────────────────────────────────────
+ *   1. the binding — is this table in `bridge_grants.tables` of THIS page, and with which
+ *      mode and columns? Not bound → 404.
+ *   2. the grade — may THIS VIEWER read (viewer) or write (editor) that table? That is
+ *      decided by core/dataEngine/datatableRuntime.js, the shared runner that the other
+ *      consumers of a datatable also use.
+ * Both must say yes. The binding cannot widen the grade, and the grade cannot widen the
+ * binding.
  *
- * ── WAT EEN PAGINA MAG STUREN ───────────────────────────────────────
+ * ── WHAT A PAGE MAY SEND ────────────────────────────────────────────
  *
- * `beeflowTables.query(id, opts)` stuurt `opts` ONGEWIJZIGD als body, dus de
- * sleutels zijn die van de paginacode zelf. Elke sleutel die deze route niet
- * las viel weg, en weg betekende hier: minder filter, dus MEER rijen.
+ * `beeflowTables.query(id, opts)` sends `opts` UNCHANGED as the body, so the keys are those
+ * of the page code itself. Every key that this route did not read fell away, and falling
+ * away meant here: fewer filters, so MORE rows.
  *
- *   - `{ "filter": [...] }` (enkelvoud) en `{ "search": {...} }` — een vorm
- *     die de compiler kent maar deze brug niet doorgeeft — gaven allebei elke
- *     rij die de bezoeker mag zien, onder een 200.
- *   - `{ "filters": { "field": "status", "op": "eq", "value": "open" } }` —
- *     één filter in plaats van een lijst — werd door readRows' eigen
- *     `Array.isArray(filters) ? filters : []` een lege lijst, vóór de compiler
- *     zijn 'filters must be an array' kon zeggen. Ook: elke rij.
+ *   - `{ "filter": [...] }` (singular) and `{ "search": {...} }` — a shape that the compiler
+ *     knows but this bridge does not pass along — both gave every row that the viewer may
+ *     see, under a 200.
+ *   - `{ "filters": { "field": "status", "op": "eq", "value": "open" } }` — one filter instead
+ *     of a list — became an empty list through readRows' own `Array.isArray(filters) ? filters : []`,
+ *     before the compiler could say 'filters must be an array'. Also: every row.
  *
- * Het schema legt alleen de SLEUTELS en hun soort vast. Wat er ín een filter
- * staat is de taal van de querycompiler, die per onbekende operator al een
- * 400 `bad_descriptor` met een bruikbare zin geeft; een schema dat die taal
- * naspeelt zou eerder antwoorden en minder zeggen. Om dezelfde reden blijven
- * `rowId`, `values` en `expectedUpdatedAt` bij de runner, die er zijn eigen
- * codes op heeft (`row_required`, `no_values`,
- * `expected_updated_at_required`).
+ * The schema fixes only the KEYS and their kind. What is inside a filter is the language of
+ * the query compiler, which already gives a 400 `bad_descriptor` with a usable sentence for
+ * every unknown operator; a schema that mimics that language would answer sooner but say less.
+ * For the same reason `rowId`, `values` and `expectedUpdatedAt` stay with the runner, which
+ * has its own codes for them (`row_required`, `no_values`, `expected_updated_at_required`).
  *
- * Een sortering is de uitzondering, omdat de compiler daar NIETS weigert:
- * resolvePrimarySort leest alleen `dir` of `direction` en maakt van al het
- * andere 'desc'. `{ field, order: 'asc' }` of `dir: 'ascending'` gaf dus
- * aflopend, onder een 200. Het schema kent daarom de sleutels van een
- * sortering (`field`, `dir`, `direction`) en hun twee richtingen.
+ * A sort is the exception, because the compiler refuses NOTHING there: resolvePrimarySort
+ * reads only `dir` or `direction` and turns everything else into 'desc'. `{ field, order: 'asc' }`
+ * or `dir: 'ascending'` therefore gave descending order, under a 200. The schema therefore
+ * knows the keys of a sort (`field`, `dir`, `direction`) and their two directions.
  *
- * De bf-elementen sturen `{ limit }`; de shim stuurt `{ values }` en
- * `{ rowId, values, expectedUpdatedAt }`. Die komen allemaal ongewijzigd door.
+ * The bf elements send `{ limit }`; the shim sends `{ values }` and
+ * `{ rowId, values, expectedUpdatedAt }`. All of those come through unchanged.
  */
 
 const express = require('express');
@@ -84,7 +77,7 @@ const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
 const { z, typeError } = require('../utils/zod');
 
-/** Een body die óók geen body accepteert: Express 5 laat `req.body` dan undefined. */
+/** A body that also accepts no body: Express 5 then leaves `req.body` undefined. */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape).strict(),
@@ -99,9 +92,9 @@ const CURSOR_TEXT = 'cursor is the nextCursor a previous page returned.';
 /** Eén voorwaarde: een object — wat erin staat is aan de compiler. */
 const clause = (message) => z.record(z.string(), z.unknown(), { error: typeError({ invalid: message }) });
 
-// Elke weigering binnen een sortering is dezelfde zin: een union antwoordt met
-// de eerste tak die tot een CHECK kwam, dus alleen een error op de union
-// zou "Unrecognized key(s) in object" laten doorlekken.
+// Every refusal within a sort is the same sentence: a union answers with the first
+// branch that reached a CHECK, so an error on the union alone would leak
+// "Unrecognized key(s) in object".
 const sorted = { error: () => SORT_TEXT };
 /** Een richting zoals resolvePrimarySort hem leest (hoofdletters telden altijd al). */
 const sortDir = z.string(sorted).refine((v) => ['asc', 'desc'].includes(v.toLowerCase()), SORT_TEXT);
@@ -128,12 +121,12 @@ const InsertBody = bodyOf({ values: z.unknown().optional() });
 const UpdateBody = bodyOf({ rowId: z.unknown().optional(), values: z.unknown().optional(), expectedUpdatedAt: z.unknown().optional() });
 
 /**
- * Elke weigering hier GOOIT, in plaats van zelf te antwoorden.
+ * Every refusal here THROWS, instead of answering on its own.
  *
- * Een helper die `res` schrijft én `null` teruggeeft, laat de aanroeper met
- * "en nu?" achter: vergeet die één `return` dan blijft het verzoek hangen tot
- * de browser opgeeft — geen fout, geen antwoord, niets in de log. Eén
- * `catch`-arm die alles afhandelt maakt dat onmogelijk.
+ * A helper that writes `res` and at the same time returns `null` leaves the caller with
+ * "and now what?": forget that one `return` and the request hangs until the browser gives
+ * up — no error, no answer, nothing in the log. A single `catch` arm that handles everything
+ * makes that impossible.
  */
 function refuse(status, code, message) {
     const e = new Error(message);
@@ -160,18 +153,17 @@ function requireViewer(req) {
 }
 
 /**
- * De binding voor `:tid` op deze pagina.
+ * The binding for `:tid` on this page.
  *
- * `write` vraagt om de LETTERLIJKE modus 'readwrite'; de normalizer heeft al
- * elke andere waarde tot 'read' versmald, dus hier hoeft alleen die ene string
- * te worden herkend.
+ * `write` asks for the LITERAL mode 'readwrite'; the normaliser has already narrowed every
+ * other value to 'read', so here only that one string needs to be recognised.
  */
 async function requireBinding(req, { write = false } = {}) {
     const grants = await getBridgeGrants(req.previewClaims.webpageId);
     const binding = (grants.tables || []).find(t => t.datatableId === req.params.tid) || null;
     if (!binding) {
-        // 404, niet 403: of deze pagina aan een tabel hangt is geen informatie
-        // die een bezoeker mag aftasten.
+        // 404, not 403: whether this page hangs on a table is not information
+        // that a viewer may probe.
         throw refuse(404, 'table_not_bound', 'This page is not linked to that table');
     }
     if (write && binding.mode !== 'readwrite') {
@@ -180,7 +172,7 @@ async function requireBinding(req, { write = false } = {}) {
     return binding;
 }
 
-/** Elke weigering met `safe` mag letterlijk terug; de rest wordt een 500. */
+/** Every refusal with `safe` may be returned verbatim; the rest becomes a 500. */
 function sendError(res, err, fallback) {
     if (err && err.safe === true && typeof err.status === 'number') {
         return res.status(err.status).json({
@@ -189,9 +181,9 @@ function sendError(res, err, fallback) {
             ...(err.row ? { row: err.row } : {}),
         });
     }
-    // Een CompileError komt van de descriptor die de pagina zélf stuurde
-    // (een onbekende operator, een lijst waar er geen mag) — dat is een
-    // 400 met een bruikbare tekst, geen interne fout.
+    // A CompileError comes from the descriptor that the page ITSELF sent
+    // (an unknown operator, a list where none is allowed) — that is a 400 with a usable
+    // text, not an internal error.
     if (err && err.name === 'CompileError') {
         return res.status(400).json({ error: err.message, code: 'bad_descriptor' });
     }
@@ -199,7 +191,7 @@ function sendError(res, err, fallback) {
     throw Object.assign(new Error(fallback), { cause: err });
 }
 
-/** De bezoeker + zijn graad op deze tabel. Gooit als een van beide ontbreekt. */
+/** The viewer + their grade on this table. Throws if either is missing. */
 async function resolveFor(req, needed) {
     const principal = await resolveDatatablePrincipalForUser(requireViewer(req));
     return datatableRuntime.resolveForPrincipal(req.params.tid, principal, { needed });

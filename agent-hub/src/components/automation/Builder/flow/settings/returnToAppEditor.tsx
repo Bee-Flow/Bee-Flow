@@ -1,18 +1,16 @@
-// "Back to the app" — de editor van de tweede terminale stap (P4).
+// "Back to the app": the editor of the second terminal step (P4).
 //
-// ── WAT DIT SCHERM EERLIJK MOET ZIJN ────────────────────────────────────────
-//  1. HET SCHERM-ID IS EEN ID, GEEN LIJST. De automation-editor kent de app niet:
-//     hij weet niet welke Studio App deze automatisering straks aanroept, laat staan
-//     welke schermen die heeft (er kunnen er meerdere zijn). Dus een tekstveld
-//     met het id, en dat wordt ook zo GEZEGD — een keuzelijst die maar één app
-//     kent, zou liegen zodra een tweede knop dezelfde automatisering aanroept.
-//  2. NIETS INVULLEN IS NIETS DOEN. Een leeg veld schrijft `null`, niet een
-//     leeg object: zie writeStepPatch in formState.js. De validator zou een
-//     `{ screenId: '' }` als een ONAF scherm lezen terwijl de auteur juist zei
-//     dat er niet genavigeerd hoeft te worden.
-//  3. DE TERUGVAL STAAT IN ADVANCED, MET EEN VEILIGE DEFAULT. "Blijf staan waar
-//     je bent" is het versmallende antwoord als de terugkeer niet uitvoerbaar
-//     is; het foutscherm is de bewuste keuze.
+// ── WHAT THIS SCREEN MUST HONESTLY BE ───────────────────────────────────────
+//  1. THE SCREEN ID IS AN ID, NOT A LIST. The automation editor does not know the app: it does
+//     not know which Studio App this automation will later call, let alone which screens that
+//     app has (there may be several). So it is a text field with the id, and that is also SAID.
+//     A dropdown that knows only one app would lie as soon as a second button starts the same
+//     automation.
+//  2. NOT FILLING IN IS DOING NOTHING. An empty field writes `null`, not an empty object: see
+//     writeStepPatch in formState.js. The validator would read a `{ screenId: '' }` as a SPECIFIC
+//     screen, while the author said that no navigation is needed.
+//  3. THE FALLBACK LIVES IN ADVANCED, WITH A SAFE DEFAULT. "Stay where you are" is the narrowing
+//     answer if the return is not executable; the error screen is the deliberate choice.
 import { FormRow, inputClass } from './formPrimitives';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import SegmentedControl from '../../../../shared/SegmentedControl';

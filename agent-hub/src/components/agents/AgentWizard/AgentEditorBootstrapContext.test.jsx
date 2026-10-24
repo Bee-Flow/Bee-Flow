@@ -1,11 +1,10 @@
 /**
- * AgentEditorBootstrapContext — de gedeelde bootstrap-lezing van de agenteditor.
+ * AgentEditorBootstrapContext — the shared bootstrap reading of the agent editor.
  *
- * Getest wordt één toevoeging (A3 deel A): `automationsState`. De routinelijst
- * landde tot nu toe op `[]` zowel wanneer ze leeg was als wanneer ze niet
- * gelezen kon worden — `/api/automation` hangt achter de automations-module en
- * kan 403'en — en op dat verschil hangt de vraag of een scherm "geen automations"
- * mag zeggen.
+ * One addition is tested (A3 part A): `automationsState`. The routine list so far landed on
+ * `[]` both when it was empty and when it could not be read — `/api/automation` hangs behind
+ * the automations module and can 403 — and the question whether a screen may say "none"
+ * depends on that difference.
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/AgentEditorBootstrapContext.test.jsx
  */

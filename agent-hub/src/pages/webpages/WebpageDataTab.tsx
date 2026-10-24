@@ -72,15 +72,15 @@ interface WebpageDataTabProps {
 
 export default function WebpageDataTab({
     webpageId, sources, onSourcesChange, readOnly = false, theme = 'light', onNavigate = null,
-    // Voor het Audience-segment: de pagina-rij en de drie schrijfacties van de
-    // interne rijen. Ze komen ONGEWIJZIGD van WebpageEditorHeader's capsule —
-    // dezelfde handlers, dezelfde PATCH /:id/publish — zodat er geen tweede weg
-    // naar `is_published` / `shared_groups` ontstaat.
+    // For the Audience segment: the page row and the three write actions of the
+    // internal rows. They come UNCHANGED from WebpageEditorHeader's capsule — the
+    // same handlers, the same PATCH /:id/publish — so that no second route to
+    // `is_published` / `shared_groups` arises.
     page = null, orgGroups = [], onSetPersonal = null, onSetEntireOrg = null, onToggleGroup = null,
 }: WebpageDataTabProps) {
     const { t } = useTranslation();
-    // 'overview' is de default: de kaarten zijn het antwoord op "wat hangt er
-    // aan deze pagina", en dat is de vraag waarmee iemand deze tab opent.
+    // 'overview' is the default: the cards are the answer to "what hangs on this
+    // page", and that is the question with which someone opens this tab.
     const [pane, setPane] = useState('overview');
 
     return (

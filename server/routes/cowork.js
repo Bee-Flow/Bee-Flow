@@ -222,16 +222,13 @@ function fail(res, err, label) {
 }
 
 /**
- * CW-06 — "Loopt sinds 08:00:04".
+ * CW-06 — "Running since 08:00:04".
  *
- * Puur additief: `currentRunStartedAt` komt uit de open historierij
- * (cowork_runs WHERE finished_at IS NULL), niet uit een nieuwe kolom, en er
- * wordt NIETS hernoemd — de Expo-app leest deze payload en een hernoeming daar
- * is een kapotte APK zonder rode test.
+ * Purely additive: `currentRunStartedAt` comes from the open history row
+ * (cowork_runs WHERE finished_at IS NULL), not from a new column, and NOTHING is renamed — the Expo app reads this payload, and a rename there would be a broken APK without a red test.
  *
- * Null is de normale waarde: een schema dat niet loopt heeft niets open staan.
- * De open rij is met opzet de bron en niet `lastStatus === 'running'`: die twee
- * lopen uiteen zodra reapStaleRuns een vastgelopen poging opruimt.
+ * Null is the normal value: a schedule that is not running has nothing open.
+ * The open row is deliberately the source and not `lastStatus === 'running'`: those two diverge as soon as reapStaleRuns clears a stuck attempt.
  */
 function withCurrentRun(schedule, startedAt) {
     schedule.currentRunStartedAt = startedAt || null;
@@ -262,7 +259,7 @@ router.get('/', async (req, res) => {
             }
         }
 
-        // Eén query voor alle open runs van deze gebruiker, geen query per rij.
+        // One query for all open runs of this user, not one query per row.
         const openRuns = await coworkStore.getOpenRunStarts(userId).catch(() => ({}));
         for (const s of schedules) withCurrentRun(s, openRuns[s.id]);
 
@@ -471,16 +468,14 @@ router.get('/:id/runs', validate({ query: RunsQuery }), async (req, res) => {
     }
 });
 
-// GET /:id/stats — de cijfers achter de vier kaarten (CW-11).
+// GET /:id/stats — the figures behind the four cards (CW-11).
 //
-// Eigendom-gecontroleerd op precies dezelfde manier als /:id/runs, en om
-// dezelfde reden: dit is een uitspraak over wat er met andermans post en
-// agenda gebeurde. Geen resultaattekst, alleen tellingen.
+// Ownership-checked in exactly the same way as /:id/runs, and for the same
+// reason: this is a statement about what happened to someone else's mail and calendar. No result text, counts only.
 //
-// Drie van de vier kaarten zijn hiermee te tekenen. "Kosten deze maand"
-// NIET: het runpad legt geen tokens of kosten vast (CW-12), en een euro
-// verzinnen is erger dan een kaart weglaten — er staat dus ook geen leeg
-// kostenveld in dit antwoord om per ongeluk als € 0,00 te renderen.
+// Three of the four cards can be drawn with this. "Cost this month"
+// NOT: the run path does not record tokens or costs (CW-12), and inventing a euro figure is worse than omitting a card — so there is
+// deliberately no empty cost field in this answer that could accidentally be rendered as € 0.00.
 router.get('/:id/stats', async (req, res) => {
     try {
         const userId = req.session.user.id;
@@ -488,9 +483,9 @@ router.get('/:id/stats', async (req, res) => {
         const stats = await coworkStore.getRunStats(req.params.id);
         res.json({
             ...stats,
-            // Levenslang, van het schema zelf: overleeft de retentiesweep die
-            // `total` na 90 dagen laat krimpen. "42 keer gedraaid" hoort dít
-            // getal te zijn, niet het aantal bewaarde rijen.
+            // Lifetime, from the schema itself: survives the retention sweep that
+            // shrinks `total` after 90 days. "Run 42 times" should be THIS number,
+            // not the number of stored rows.
             runCount: schedule.runCount ?? 0,
             // "sinds 8 juli".
             createdAt: schedule.createdAt ?? null,

@@ -1,91 +1,91 @@
 /**
- * bfElements — HET `bf-*`-vocabulaire. Eén lijst, drie consumenten.
+ * bfElements — THE `bf-*` vocabulary. One list, three consumers.
  *
- * ── HET PROBLEEM DAT DEZE MODULE BESTAAT OM TE VOORKOMEN ─────────────
+ * ── THE PROBLEM THIS MODULE EXISTS TO PREVENT ───────────────────────
  *
- * Het vocabulaire leeft op DRIE plekken:
+ * The vocabulary lives in THREE places:
  *
- *   1. de client        — agent-hub/src/utils/bfElements.js, de gegenereerde
- *      spiegel waaruit composeWebpageDocument.js en buildWebpagePreview.js
- *      lezen: wat de preview en een INGELOGDE lezer te zien krijgen;
- *   2. de servertweeling   — services/publicBridgeScript.js, de brug die in een
- *      publiek gedeelde react-mui-pagina wordt geïnjecteerd;
- *   3. de snapshot-renderer — services/webpageSnapshot.js, die VÓÓR DOMPurify
- *      uitklapt (services/webpageBfTable.js doet dat vandaag voor `bf-table`).
+ *   1. the client        — agent-hub/src/utils/bfElements.js, the generated
+ *      mirror from which composeWebpageDocument.js and buildWebpagePreview.js
+ *      read: what the preview and a LOGGED-IN viewer see;
+ *   2. the server twin   — services/publicBridgeScript.js, the bridge that is
+ *      injected into a publicly shared react-mui page;
+ *   3. the snapshot renderer — services/webpageSnapshot.js, which expands
+ *      BEFORE DOMPurify (services/webpageBfTable.js does that for `bf-table` today).
  *
- * Twee handbijgehouden lijsten lopen uit elkaar. Dat is hier geen theorie: op
- * reactBundleServer.js staat al jaren "KEEP IN SYNC met buildWebpagePreview.js"
- * en juist dáár draagt `window.beeflowAI` drie namen (`complete`/`ground`/
- * `generate`) die in de twee andere brugbestanden niet bestaan, terwijl de vier
- * namen die er wél zijn (`chat`/`chatJSON`/`stream`/`ask`) er ontbreken. Een
- * commentaarregel houdt niets tegen.
+ * Two hand-kept lists drift apart. This is not theory here: on reactBundleServer.js
+ * it has said "KEEP IN SYNC with buildWebpagePreview.js" for years, and precisely there
+ * `window.beeflowAI` carries three names (`complete`/`ground`/
+ * `generate`) that do not exist in the other two bridge files, while the four
+ * names that ARE there (`chat`/`chatJSON`/`stream`/`ask`) are missing. A
+ * comment line holds nothing back.
  *
- * ── WAAROM DEZE VARIANT NIET STIL UIT ELKAAR KAN LOPEN ───────────────
+ * ── WHY THIS VARIANT CANNOT QUIETLY DRIFT APART ─────────────────────
  *
- * Vier sloten, elk op een andere plek:
+ * Four locks, each in a different place:
  *
- *   (a) De twee SERVERPLEKKEN kunnen geen kopie houden. Ze `require`n deze
- *       module. De drifttest verbiedt bovendien elk met de hand geschreven
- *       `bf-<naam>`-literal in die bestanden buiten het afgeleide pad om, zodat
- *       er geen tweede lijst kán ontstaan.
- *   (b) De publieke brug is AFGELEID, niet verklaard: hij zendt uit wat
- *       `publicShareVocabulary()` teruggeeft. Een element toevoegen verandert
- *       zijn uitvoer vanzelf — er valt niets te vergeten.
- *   (c) De vanilla snapshot MOET beslissen. `assertCoversVocabulary()` gooit op
- *       REQUIRE-tijd als de handelingstabel van webpageBfTable.js een tag mist
- *       of er een noemt die hier niet bestaat. De server start dan niet en elke
- *       test die het pad aanraakt wordt rood. Dat is geen test die je kunt
- *       vergeten te draaien.
- *   (d) De CLIENT-spiegel is gegenereerd. `renderClientMirror()` maakt het blok
- *       dat letterlijk tussen de markers in agent-hub/src/utils/bfElements.js
- *       hoort te staan; de drifttest vergelijkt dat teken voor teken. Een nieuw element,
- *       een nieuw attribuut of een gewijzigd oordeel verandert die tekst, dus
- *       de test is rood tot het blok is vervangen — en de foutmelding bevat de
- *       tekst die erin moet.
+ *   (a) The two SERVER places cannot keep a copy. They `require` this
+ *       module. The drift test moreover forbids any hand-written `bf-<name>`
+ *       literal in those files outside the derived path, so that
+ *       no second list CAN come into being.
+ *   (b) The public bridge is DERIVED, not declared: it broadcasts what
+ *       `publicShareVocabulary()` returns. Adding an element changes
+ *       its output by itself — nothing can be forgotten.
+ *   (c) The vanilla snapshot MUST decide. `assertCoversVocabulary()` throws at
+ *       REQUIRE time if the action table of webpageBfTable.js misses a tag or
+ *       names one that does not exist here. The server then does not start and every
+ *       test that touches the path turns red. That is not a test you can
+ *       forget to run.
+ *   (d) The CLIENT mirror is generated. `renderClientMirror()` makes the block
+ *       that literally belongs between the markers in agent-hub/src/utils/bfElements.js;
+ *       the drift test compares that text character by character. A new element,
+ *       a new attribute or a changed judgement changes that text, so the
+ *       test is red until the block has been replaced — and the error message contains
+ *       the text that must go in.
  *
- * WAT DIT KAN BEWIJZEN: dat alle drie de plekken dezelfde NAMEN dragen,
- * dezelfde attributen kennen, en per plek hetzelfde OORDEEL uitspreken over wat
- * er van een element overblijft.
+ * WHAT THIS CAN PROVE: that all three places carry the same NAMES,
+ * know the same attributes, and per place pronounce the same JUDGEMENT about what
+ * remains of an element.
  *
- * WAT DIT NIET KAN BEWIJZEN: dat drie implementaties zich hetzelfde GEDRAGEN.
- * Deze module is een datastructuur; of de renderer die er straks uit leest ook
- * werkelijk een inerte knop tekent, moet die renderer zelf komen bewijzen.
+ * WHAT THIS CANNOT PROVE: that three implementations BEHAVE the same. This module is a
+ * data structure; whether the renderer that reads from it draws an inert button
+ * must be proven by that renderer itself.
  *
- * ── DE REGEL DIE DIT ALLEMAAL BESCHERMT ──────────────────────────────
+ * ── THE RULE THAT PROTECTS ALL OF THIS ──────────────────────────────
  *
- * In de VANILLA publieke snapshot draait GEEN JS (services/webpageSnapshot.js
- * laat het js-slot met opzet weg). Alles wat JS nodig heeft is daar dus dood.
- * En "dood" moet ZICHTBAAR zijn, niet stil: DOMPurify pakt een onbekend element
- * stilzwijgend uit (`KEEP_CONTENT: true`, en `ADD_TAGS` bevat alleen `iframe`),
- * dus `<bf-button action="a1">Send</bf-button>` wordt letterlijk `Send` — de tag
- * weg, de attributen weg, geen waarschuwing, geen spoor. Precies daarom draagt
- * elk element hieronder een `notice`: de uitklapper in de volgende stap zet er
- * gewone, zichtbaar uitgeschakelde HTML neer VÓÓR de sanitizer, zodat er na de
- * sanitizer doodgewone opmaak staat die zelf vertelt dat hij niet werkt.
+ * In the VANILLA public snapshot NO JS runs (services/webpageSnapshot.js
+ * deliberately leaves out the js slot). Everything that needs JS is therefore dead there.
+ * And "dead" must be VISIBLE, not silent: DOMPurify quietly unwraps an unknown element
+ * (`KEEP_CONTENT: true`, and `ADD_TAGS` contains only `iframe`), so
+ * `<bf-button action="a1">Send</bf-button>` becomes literally `Send` — the tag
+ * gone, the attributes gone, no warning, no trace. That is precisely why
+ * every element below carries a `notice`: the expander in the next step places
+ * ordinary, visibly disabled HTML there BEFORE the sanitizer, so that after the
+ * sanitizer there is plain markup that itself says it does not work.
  *
- * Deze module RENDERT NIETS. Ze legt vast wat er bestaat; de renderers lezen
- * hieruit.
+ * This module RENDERS NOTHING. It records what exists; the renderers read
+ * from it.
  */
 
 'use strict';
 
 const { deepFreeze } = require('../../utils/deepFreeze');
 
-/** Bovengrens aan het aantal rijen dat een publieke tabel mag tonen. */
+/** Upper bound on the number of rows that a public table may show. */
 const PUBLIC_ROWS_MAX = 100;
 
 /**
- * Hoeveel rijen een `bf-stat` hoogstens optelt — op ELKE plek dezelfde.
+ * How many rows a `bf-stat` adds up at most — the same at EVERY place.
  *
- * Dit getal stond eerder alleen op de server (`datatableRuntime.ROWS_PAGE_MAX`),
- * en de client vroeg er niets voor: `/tables/:id/query` viel dan terug op zijn
- * eigen DEFAULT_LIMIT van 50. Een `<bf-stat agg="sum">` telde daardoor in de
- * preview over 50 rijen en op de gepubliceerde pagina over 500 — twee
- * verschillende getallen voor hetzelfde element, uit twee plekken die juist uit
- * één registry horen te lezen. Daarom staat het getal hier.
+ * This number used to stand only on the server (`datatableRuntime.ROWS_PAGE_MAX`),
+ * and the client asked for nothing: `/tables/:id/query` then fell back to its
+ * own DEFAULT_LIMIT of 50. A `<bf-stat agg="sum">` therefore counted over 50 rows in
+ * the preview and over 500 on the published page — two different numbers for the same
+ * element, from two places that should precisely read from one
+ * registry. That is why the number stands here.
  *
- * services/webpageBfTable.js toetst op require-tijd dat het binnen
- * `datatableRuntime.ROWS_PAGE_MAX` past; verder vragen levert toch niets op.
+ * services/webpageBfTable.js checks at require time that it fits within
+ * `datatableRuntime.ROWS_PAGE_MAX`; anything further asks for trouble.
  */
 const STAT_ROWS_MAX = 500;
 
@@ -93,65 +93,65 @@ const STAT_ROWS_MAX = 500;
 const SURFACES = Object.freeze(['clientComposer', 'reactShare', 'vanillaSnapshot', 'headlessRender']);
 
 /**
- * De toestanden die een element op een plek kan hebben.
+ * The states that an element can have at a place.
  *
- *   live     — het element werkt hier: er draait JS en de bruggen zijn er;
- *   static   — het is hier server-side tot gewone HTML uitgeklapt;
- *   inert    — het staat er wel, maar het doet niets, en dat is te zien;
- *   refused  — het wordt hier helemaal niet bediend, mét een reden.
+ *   live     — the element works here: JS runs and the bridges are there;
+ *   static   — it is expanded here server-side to plain HTML;
+ *   inert    — it is there, but it does nothing, and that is visible;
+ *   refused  — it is not served here at all, WITH a reason.
  */
 const STATES = Object.freeze(['live', 'static', 'inert', 'refused']);
 
-/** Alleen deze vorm telt als een `bf-*`-tag. */
+/** Only this form counts as a `bf-*` tag. */
 const BF_TAG_PATTERN = /^bf-[a-z][a-z0-9-]*$/;
 
 /**
- * Hoe een `bf-*`-element in markup begint. Eén groep: de geschreven naam.
+ * How a `bf-*` element begins in markup. One group: the written name.
  *
- * Alleen de OPENINGSTAG: `</bf-table>` matcht niet, want `\s*` slikt geen
- * schuine streep. Dat is met opzet — wie occurrences telt, wil elk element
- * één keer, niet twee keer.
+ * Only the OPENING TAG: `</bf-table>` does not match, because `\s*` does not swallow
+ * a slash. That is deliberate — whoever counts occurrences wants each element
+ * once, not twice.
  *
- * Geëxporteerd omdat `core/webpages/webpageBindings.js` er de regels van de
- * auteur mee opzoekt. Kopieer dit patroon daar niet: hoe een element ERUITZIET
- * hoort net zo goed bij het vocabulaire als hoe het HEET, en twee patronen
- * lopen net zo hard uit elkaar als twee lijsten.
+ * Exported because `core/webpages/webpageBindings.js` uses it to look up the author's
+ * markings. Do not copy this pattern there: how an element LOOKS in markup
+ * belongs to the vocabulary just as much as what it is CALLED, and two patterns
+ * drift apart just as hard as two lists.
  */
 const BF_TAG_SCAN = /<\s*(bf-[a-z0-9-]*)/gi;
 
-// ── HET VOCABULAIRE ───────────────────────────────────────────────────
+// ── THE VOCABULARY ───────────────────────────────────────────────────
 //
-// Velden per element:
-//   tag         de tagnaam, kleine letters, altijd met `bf-`-voorvoegsel;
-//   summary     één regel Engels — dit is ook wat het model te lezen krijgt;
-//   needsJs     heeft dit element JS NODIG om iets te doen? Zo ja, dan kan het
-//               in de vanilla snapshot per definitie niet meer dan inert zijn;
-//   attributes  wat hij kent, wat verplicht is, en wat het betekent;
-//   binding     wat hij oplevert voor de usage-index: welke tabel, welke
-//               automatisering, welke agent — plus de poort waar dat doorheen moet;
-//   surfaces    per plek: wat blijft ervan over, en waarom.
+// Fields per element:
+//   tag         the tag name, lower case, always with the `bf-` prefix;
+//   summary     one line of English — this is also what the model gets to read;
+//   needsJs     does this element NEED JS to do something? If so, it can in the
+//               vanilla snapshot by definition be nothing more than inert;
+//   attributes  what it knows, what is required, and what it means;
+//   binding     what it yields for the usage index: which table, which
+//               automation, which agent — plus the gate that has to be passed through;
+//   surfaces    per place: what remains of it, and why.
 //
-// Velden per plek (`surfaces.<plek>`):
-//   state    een van STATES;
-//   why      Nederlandse verantwoording voor ONTWIKKELAARS. Blijft op de server;
-//   message  ontwikkelaarstekst voor de CONSOLE, met de tagnaam erin — wat
-//            `beeflowBf.reason()` op een publieke share antwoordt;
-//   notice   de zin die de LEZER op de pagina te zien krijgt. Engels, zonder
-//            tagnamen en zonder interne begrippen. Een geweigerd of inert
-//            element moet er een dragen: zonder tekst is het verschil tussen
-//            "dit kan hier niet" en "dit is leeg" niet te zien, en juist dat
-//            verschil is de regel die W4 beschermt.
+// Fields per place (`surfaces.<place>`):
+//   state    one of STATES;
+//   why      Dutch justification for DEVELOPERS. Stays on the server;
+//   message  developer text for the CONSOLE, with the tag name in it — what
+//            `beeflowBf.reason()` answers on a public share;
+//   notice   the sentence that the READER sees on the page. English, without
+//            tag names and without internal concepts. A refused or inert
+//            element must carry one: without text the difference between
+//            "this cannot work here" and "this is empty" is not visible, and precisely that
+//            difference is the rule that W4 protects.
 //
-// Attribuutvelden:
-//   name          canonieke naam;
-//   required      verplicht — zonder dit attribuut heeft het element geen zin;
-//   aliases       oudere/alternatieve schrijfwijzen die naar `name` vertalen;
-//   means         Engelse uitleg van één regel;
-//   values        de toegestane waarden (als het een gesloten lijst is);
-//   default       wat er geldt als het attribuut ontbreekt;
-//   max           bovengrens voor een getal;
-//   requiredWhen  voorwaardelijk verplicht: `{ attr, notOneOf }` betekent
-//                 "verplicht zodra `attr` iets anders is dan deze waarden".
+// Attribute fields:
+//   name          canonical name;
+//   required      mandatory — without this attribute the element makes no sense;
+//   aliases       older/alternative spellings that translate to `name`;
+//   means         English explanation in one line;
+//   values        the allowed values (if it is a closed list);
+//   default       what applies when the attribute is absent;
+//   max           upper bound for a number;
+//   requiredWhen  conditionally required: `{ attr, notOneOf }` means
+//                 "required as soon as `attr` is something other than these values".
 
 const BF_ELEMENTS = deepFreeze([
     {
@@ -242,8 +242,8 @@ const BF_ELEMENTS = deepFreeze([
         binding: {
             kind: 'datatable',
             from: 'source',
-            // Dezelfde poort als bf-table, om dezelfde reden: een som over een
-            // kolom die niet publiek is, publiceert die kolom alsnog.
+            // The same gate as bf-table, for the same reason: a sum over a column that
+            // is not public would publish that column anyway.
             gate: 'bridge_grants.tables[].publicColumns',
         },
         surfaces: {
@@ -395,8 +395,8 @@ const BF_ELEMENTS = deepFreeze([
         binding: {
             kind: 'agent',
             from: 'agent',
-            // Zonder attribuut valt hij terug op de agent van de PAGINA. Dat is
-            // geen "geen binding": de usage-index moet die pagina-agent tellen.
+            // Without an attribute it falls back to the agent of the PAGE. That is
+            // not "no binding": the usage index must count that page agent.
             fallback: 'bridge_grants.agent',
             gate: 'bridge_grants.agent',
         },
@@ -428,36 +428,34 @@ const BF_ELEMENTS = deepFreeze([
     },
 ]);
 
-// ── DE PROJECTIE NAAR EEN PUBLIEKE SHARE ──────────────────────────────
+// ── THE PROJECTION TO A PUBLIC SHARE ────────────────────────────────
 //
-// `publicShareVocabulary()` zendt het vocabulaire de browser in. Wat daar wel
-// en niet in hoort is niet aan de brug maar aan deze tabel, en de tabel moet
-// VOLLEDIG zijn: `assertProjectionComplete()` gooit op REQUIRE-tijd zodra een
-// veld in geen van beide kolommen staat.
+// `publicShareVocabulary()` sends the vocabulary into the browser. What belongs in there
+// and what does not is decided not by the bridge but by this table, and the table must be
+// COMPLETE: `assertProjectionComplete()` throws at REQUIRE time as soon as a
+// field is in neither column.
 //
-// Waarom beide kolommen expliciet, en niet "alles behalve"? Twee gevaren, en
-// ze wijzen tegengesteld:
+// Why both columns explicitly, and not "everything except"? Two dangers, and they point in opposite directions:
 //
-//   - "alles verzenden tenzij tegengehouden" laat een nieuw veld ongemerkt in
-//     de bron van een publieke pagina belanden. `binding.gate` noemt interne
-//     poortpaden; zoiets hoort daar niet;
-//   - "niets verzenden tenzij opgesomd" laat een nieuw veld ongemerkt op de
-//     server achter, en dan draagt de tweeling niet meer dezelfde definitie —
-//     precies de drift die deze module bestaat om te voorkomen.
+//   - "send everything unless held back" lets a new field slip unnoticed into the source
+//     of a public page. `binding.gate` names internal gate paths; such a thing does not
+//     belong there;
+//   - "send nothing unless listed" lets a new field stay unnoticed on the server, and then the twin no longer carries
+//     the same definition — precisely the drift that this module exists to prevent.
 //
-// Met beide kolommen expliciet is er geen stille derde weg: je moet kiezen.
+// With both columns explicit there is no silent third way: you must choose.
 /**
- * De plekken waar een BRUG het oordeel uitzendt, en die dus door
- * PUBLIC_SHARE_PROJECTION moeten worden gedekt.
+ * The places where a BRIDGE broadcasts the judgement, and which must therefore be covered by
+ * PUBLIC_SHARE_PROJECTION.
  *
- *   reactShare      — de publiek gedeelde react-mui-pagina;
- *   headlessRender  — het plaatje dat de bouwer-AI van de pagina te zien krijgt
- *                     (services/webpageRender.js, via de ingebakken stub-brug).
+ *   reactShare      — the publicly shared react-mui page;
+ *   headlessRender  — the picture that the builder-AI gets of the page (services/webpageRender.js,
+ *                     via the embedded stub bridge).
  *
- * `clientComposer` staat er niet bij: die leest de gegenereerde spiegel, dus
- * daar gaat het HELE vocabulaire heen en valt er niets te projecteren.
- * `vanillaSnapshot` ook niet: daar draait geen brug — de uitklapper zet er
- * gewone HTML neer.
+ * `clientComposer` is not among them: that one reads the generated mirror, so the WHOLE
+ * vocabulary goes there and there is nothing to project.
+ * `vanillaSnapshot` is not either: no bridge runs there — the expander puts
+ * plain HTML there.
  */
 const BRIDGE_SURFACES = Object.freeze(['reactShare', 'headlessRender']);
 
@@ -486,13 +484,13 @@ const PUBLIC_SHARE_PROJECTION = deepFreeze({
 });
 
 /**
- * Gooit als een veld uit het vocabulaire in geen van beide kolommen van de
- * projectie staat. Module-niveau, dus een nieuw veld toevoegen zonder erover te
- * beslissen laat deze module — en daarmee de publieke brug — niet meer laden.
+ * Throws if a field from the vocabulary is in neither column of the
+ * projection. Module level, so a new field added without deciding about it stops this
+ * module — and with it the public bridge — from loading.
  *
- * @param {Array} [elements]  te toetsen definities. Standaard het echte
- *   vocabulaire; een test geeft er een verzonnen element aan mee, want het
- *   echte is bevroren en dus niet te muteren.
+ * @param {Array} [elements]  definitions to check. The default is the real
+ *   vocabulary; a test passes an invented element to it, because the real one is frozen and
+ *   so cannot be mutated.
  */
 function assertProjectionComplete(elements = BF_ELEMENTS) {
     const undecided = [];
@@ -505,12 +503,12 @@ function assertProjectionComplete(elements = BF_ELEMENTS) {
     };
     for (const def of elements) {
         check('element', Object.keys(def), def.tag);
-        // Elke plek waarvan een BRUG het oordeel uitzendt. `clientComposer` gaat
-        // via de gegenereerde spiegel en niet via deze projectie.
+        // Every place whose BRIDGE broadcasts the judgement. `clientComposer` goes
+        // via the generated mirror and not via this projection.
         for (const surface of BRIDGE_SURFACES) {
-            // Een plek waarover dit element helemaal niets zegt is geen crash en
-            // ook geen stilte: hij komt hieronder als onbeslist terug, met dezelfde
-            // melding als een onbeslist veld.
+            // A place about which this element says nothing at all is neither a crash nor
+            // silence: it comes back below as undecided, with the same notice
+            // as an undecided field.
             if (!def.surfaces || !def.surfaces[surface]) {
                 undecided.push(`${def.tag}.surfaces.${surface} (ontbreekt helemaal)`);
                 continue;
@@ -536,7 +534,7 @@ const BY_TAG = new Map(BF_ELEMENTS.map(e => [e.tag, e]));
 
 // ── kleine helpers ────────────────────────────────────────────────────
 
-/** Ziet dit eruit als een van ONZE elementen? Zegt niets over of we hem kennen. */
+/** Does this look like one of OUR elements? Says nothing about whether we know it. */
 function isBfTag(tag) {
     return typeof tag === 'string' && BF_TAG_PATTERN.test(tag.trim().toLowerCase());
 }
@@ -569,7 +567,7 @@ function attributeSpec(tag, written) {
     return def.attributes.find(a => a.name === name || (a.aliases || []).includes(name)) || null;
 }
 
-/** De canonieke naam bij een geschreven naam, of `null` als we hem niet kennen. */
+/** The canonical name for a written name, or `null` if we do not know it. */
 function canonicalAttribute(tag, written) {
     const spec = attributeSpec(tag, written);
     return spec ? spec.name : null;
@@ -585,14 +583,14 @@ function attrGetter(source) {
 }
 
 /**
- * De attributen van één element, op canonieke naam.
+ * The attributes of one element, by canonical name.
  *
  * @param {string} tag
- * @param {object|Function} source  een DOM-element (`getAttribute`) of een
- *                                  gewoon object met de geschreven namen
- * @returns {Object<string,string>} alleen niet-lege waarden, getrimd. Een alias
- *                                  landt onder zijn canonieke naam; een lege of
- *                                  ontbrekende waarde ontbreekt gewoon.
+ * @param {object|Function} source  a DOM element (`getAttribute`) or a
+ *                                  plain object with the written names
+ * @returns {Object<string,string>} only non-empty values, trimmed. An alias
+ *                                  lands under its canonical name; an empty or
+ *                                  missing value is simply absent.
  */
 function readAttributes(tag, source) {
     const def = getBfElement(tag);
@@ -623,7 +621,7 @@ function effectiveAttributes(tag, attrs) {
     return out;
 }
 
-/** Is dit attribuut hier verplicht, gegeven wat er verder geschreven staat? */
+/** Is this attribute required here, given what else is written? */
 function isRequired(spec, effective) {
     if (spec.required === true) return true;
     const when = spec.requiredWhen;
@@ -634,9 +632,9 @@ function isRequired(spec, effective) {
 }
 
 /**
- * Welke verplichte attributen ontbreken? Canonieke namen, in vocabulairevolgorde.
- * Een ONBEKEND element levert `null` — "we weten het niet" is iets anders dan
- * "er ontbreekt niets".
+ * Which required attributes are missing? Canonical names, in vocabulary order.
+ * An UNKNOWN element yields `null` — "we do not know" is something other than
+ * "nothing is missing".
  */
 function missingAttributes(tag, attrs) {
     const def = getBfElement(tag);
@@ -648,11 +646,11 @@ function missingAttributes(tag, attrs) {
 }
 
 /**
- * Wat dit element oplevert voor de usage-index.
+ * What this element yields for the usage index.
  *
  * @returns {{kind:string, id:(string|null), from:string, gate:string, fallback:(string|null)}|null}
- *   `null` als het element niets bindt of we hem niet kennen. `id: null` met een
- *   `fallback` betekent: neem wat er in dat veld van de PAGINA staat.
+ *   `null` if the element binds nothing or we do not know it. `id: null` with a
+ *   `fallback` means: take what is in that field of the PAGE.
  */
 function bindingFor(tag, attrs) {
     const def = getBfElement(tag);
@@ -671,11 +669,11 @@ function bindingFor(tag, attrs) {
 }
 
 /**
- * Alles wat je van één element wilt weten, in één antwoord.
+ * Everything you want to know about one element, in one answer.
  *
- * Een onbekend `bf-*`-element komt hier terug als `{ known: false }` met een
- * `reason` — HERKENBAAR onbekend, nooit een lege definitie die zich als een
- * bekend element voordoet.
+ * An unknown `bf-*` element comes back here as `{ known: false }` with a
+ * `reason` — RECOGNIZABLY unknown, never an empty definition that presents itself as a known
+ * element.
  */
 function inspectBfElement(tag, source) {
     const name = typeof tag === 'string' ? tag.trim().toLowerCase() : '';
@@ -684,8 +682,8 @@ function inspectBfElement(tag, source) {
         return {
             tag: name,
             known: false,
-            // Twee soorten "niet van ons": `<div>` is geen bf-element, en
-            // `<bf-widget>` ziet er wél zo uit maar bestaat niet.
+            // Two kinds of "not ours": `<div>` is not a bf element, and
+            // `<bf-widget>` does look like one but does not exist.
             isBf: isBfTag(name),
             reason: isBfTag(name) ? 'unknown-bf-element' : 'not-a-bf-element',
             attrs: {},
@@ -715,14 +713,14 @@ function hasBfTags(html) {
 }
 
 /**
- * Welke `bf-*`-tags staan er in deze HTML — en welke daarvan kennen we niet?
+ * Which `bf-*` tags stand in this HTML — and which of them do we not know?
  *
- * Dit is de plek die "stil doorgelaten" onmogelijk maakt: DOMPurify pakt een
- * onbekend element zonder één waarschuwing uit, dus wie wil weten dát er iets
- * onbekends stond, moet het hiervóór tellen.
+ * This is the place that makes "quietly let through" impossible: DOMPurify unwraps an unknown element
+ * without a single warning, so whoever wants to know THAT something unknown stood there must count it
+ * beforehand.
  *
- * @returns {{found:string[], known:string[], unknown:string[]}} ontdubbeld,
- *   kleine letters, in volgorde van eerste voorkomen.
+ * @returns {{found:string[], known:string[], unknown:string[]}} de-duplicated,
+ *   lower case, in order of first occurrence.
  */
 function scanBfTags(html) {
     const src = typeof html === 'string' ? html : '';
@@ -741,14 +739,13 @@ function scanBfTags(html) {
 }
 
 /**
- * DE BIJT-TOETS. Gooit als een consument het vocabulaire niet volledig dekt.
+ * THE BITE TEST. Throws if a consumer does not fully cover the vocabulary.
  *
- * Wordt op MODULE-NIVEAU aangeroepen door elke serverconsument, dus een element
- * toevoegen zonder daar een beslissing te noteren laat de module niet meer
- * laden. Beide richtingen: een ontbrekende tag én een tag die hier niet bestaat.
+ * Called at MODULE LEVEL by every server consumer, so adding an element without
+ * recording a decision for it stops the module from loading. Both directions: a missing tag and a tag that does not exist here.
  *
- * @param {string} surface  wie er dekt — komt letterlijk in de foutmelding
- * @param {string[]|Object} handled  de tags die de consument afhandelt
+ * @param {string} surface  who covers it — appears literally in the error message
+ * @param {string[]|Object} handled  the tags that the consumer handles
  */
 function assertCoversVocabulary(surface, handled) {
     const listed = Array.isArray(handled) ? handled : Object.keys(handled || {});
@@ -768,42 +765,42 @@ function assertCoversVocabulary(surface, handled) {
 }
 
 /**
- * Het vocabulaire zoals het op een PUBLIEKE react-share geldt.
+ * The vocabulary as it applies to a PUBLIC react share.
  *
- * Afgeleid, niet verklaard: de publieke brug zendt dit letterlijk uit, dus een
- * nieuw element — of een nieuw ATTRIBUUT van een bestaand element — staat er
- * vanzelf in. Wat er wel en niet meegaat staat in PUBLIC_SHARE_PROJECTION, en
- * die tabel moet volledig zijn (zie `assertProjectionComplete`).
+ * Derived, not declared: the public bridge broadcasts this literally, so a
+ * new element — or a new ATTRIBUTE of an existing element — is in there
+ * by itself. What does and does not go along is stated in PUBLIC_SHARE_PROJECTION, and
+ * that table must be complete (see `assertProjectionComplete`).
  *
- * Elke ingang draagt twee teksten, en dat verschil is de hele bedoeling:
+ * Each entry carries two texts, and that difference is the whole purpose:
  *
- *   message  ontwikkelaarstekst, met de tagnaam erin, voor de console
+ *   message  developer text, with the tag name in it, for the console
  *            (`beeflowBf.reason()`);
- *   notice   de zin die de LEZER in het element zelf te zien krijgt.
+ *   notice   the sentence that the READER sees in the element itself.
  *
- * Beide zijn een weigering MET reden — dezelfde regel als `beeflowTables`, dat
- * op een share met opzet WEIGERT in plaats van een lege lijst terug te geven
- * ("geen rijen" ≠ "hier kun je geen tabel lezen"). Een geweigerd element dat
- * niets zegt, is niet te onderscheiden van een leeg element, en dat is precies
- * het verschil dat W4 beschermt.
+ * Both are a refusal WITH a reason — the same rule as `beeflowTables`, which
+ * on a share deliberately REFUSES instead of returning an empty list
+ * ("no rows" ≠ "you cannot read a table here"). A refused element that
+ * says nothing is indistinguishable from an empty element, and that is exactly
+ * the difference W4 protects.
  *
- * @returns {Object<string, object>} tag → de projectie. Niets in deze uitvoer
- *   is een verwijzing naar het bevroren vocabulaire: de brug serialiseert het
- *   naar JSON en de browser mag ermee doen wat hij wil.
+ * @returns {Object<string, object>} tag → the projection. Nothing in this output
+ *   is a reference to the frozen vocabulary: the bridge serializes it
+ *   to JSON and the browser may do with it what it likes.
  */
 function bridgeVocabulary(surface = 'reactShare') {
     if (!BRIDGE_SURFACES.includes(surface)) {
-        // Geen stille terugval op reactShare: dan zou een verschreven plek de
-        // teksten van een ANDERE plek uitzenden, en dat is precies de leugen die
-        // deze module moet voorkomen ("op een gedeelde link" op een plek die
-        // geen gedeelde link is).
+        // No silent fallback to reactShare: then a mistyped place would broadcast the
+        // texts of a DIFFERENT place, and that is exactly the lie that
+        // this module must prevent ("on a shared link" at a place that is
+        // not a shared link).
         throw new Error(`[bfElements] ${surface} is geen brug-plek; ken er een in BRIDGE_SURFACES.`);
     }
     const project = (level, source) => {
         const out = {};
         for (const key of PUBLIC_SHARE_PROJECTION[level].ship) {
-            // Een veld dat dit element niet heeft, ontbreekt gewoon — behalve de
-            // twee teksten hieronder, die altijd een uitspraak moeten dragen.
+            // A field that this element does not have is simply absent — except for the
+            // two texts below, which must always carry a statement.
             if (source[key] !== undefined) out[key] = source[key];
         }
         return out;
@@ -813,8 +810,8 @@ function bridgeVocabulary(surface = 'reactShare') {
         const entry = project('element', def);
         entry.attributes = def.attributes.map(a => project('attribute', a));
         Object.assign(entry, project('surface', def.surfaces[surface]));
-        // Expliciet `null` in plaats van "ontbreekt": de brug moet kunnen zien
-        // dát er geen tekst is, en dan zelf terugvallen.
+        // Explicit `null` rather than "absent": the bridge must be able to see
+        // that there is no text, and then fall back itself.
         if (entry.message === undefined) entry.message = null;
         if (entry.notice === undefined) entry.notice = null;
         out[def.tag] = entry;
@@ -822,17 +819,17 @@ function bridgeVocabulary(surface = 'reactShare') {
     return out;
 }
 
-/** Het vocabulaire van de PUBLIEKE react-share. Eén plek, met een eigen naam. */
+/** The vocabulary of the PUBLIC react share. One place, with a name of its own. */
 function publicShareVocabulary() {
     return bridgeVocabulary('reactShare');
 }
 
 /**
- * Het vocabulaire als proza, voor de bouwer-prompt.
+ * The vocabulary as prose, for the builder prompt.
  *
- * Ook dit is afgeleid: zo ontstaat er straks geen VIERDE handbijgehouden lijst
- * in routes/ai/webpageChat.js, dat vandaag geen enkel `bf-*`-element noemt en
- * ze dus ook niet kán voorstellen.
+ * This too is derived: that way no FOURTH hand-kept list arises
+ * in routes/ai/webpageChat.js, which today names no `bf-*` element at all and
+ * therefore cannot suggest them either.
  */
 function vocabularyPromptLines() {
     return BF_ELEMENTS.map((def) => {
@@ -852,15 +849,15 @@ const CLIENT_MIRROR_BEGIN = '// >>> BF-ELEMENTS: BEGIN GEGENEREERDE SPIEGEL <<<'
 const CLIENT_MIRROR_END = '// >>> BF-ELEMENTS: EINDE GEGENEREERDE SPIEGEL <<<';
 
 /**
- * Het blok dat letterlijk tussen de markers in
- * agent-hub/src/utils/bfElements.js hoort te staan.
+ * The block that belongs literally between the markers in
+ * agent-hub/src/utils/bfElements.js.
  *
- * De client is ESM-frontendcode buiten de build van de server-
- * modules; hij kan deze CommonJS-module niet importeren (dezelfde reden waarom
- * publicBridgeScript.js en reactBundleServer.js hun eigen kopie van de
- * client-brug houden). Een spiegel is dus onvermijdelijk — maar hij is
- * GEGENEREERD en wordt teken voor teken vergeleken, niet met de hand
- * bijgehouden en met het oog vergeleken.
+ * The client is ESM frontend code outside the build of the server
+ * modules; it cannot import this CommonJS module (the same reason why
+ * publicBridgeScript.js and reactBundleServer.js keep their own copy
+ * of the client bridge). A mirror is therefore unavoidable — but it is
+ * GENERATED and compared character by character, not kept by hand
+ * and checked by eye.
  */
 function renderClientMirror() {
     return [

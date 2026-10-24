@@ -10,21 +10,19 @@ vi.mock('../../../utils/helpers', async (importOriginal) => ({
 import UsedByButtonsCapsule from './UsedByButtonsCapsule';
 
 /**
- * "Gebruikt door 1 knop" — de capsule boven de automation-editor.
+ * "Used by 1 button": the capsule above the automation editor.
  *
- * Elke assertie hier gaat over één regel: DRIE UITSLAGEN DIE NIET MOGEN
- * SAMENVALLEN.
+ * Every assertion here concerns one line: THREE OUTCOMES THAT MUST NOT COINCIDE.
  *
- *   nog niet binnen  → niets tonen (geen aantal dat zo meteen verandert)
- *   mislukt          → "kon niet worden gecontroleerd", NOOIT "nergens gebruikt"
- *   leeg             → "nergens gebruikt", en alleen na een geslaagde lees
+ *   not yet in   → show nothing (no number that is about to change)
+ *   failed       → "could not be checked", NEVER "used nowhere"
+ *   empty        → "used nowhere", and only after a successful read
  *
- * Die middelste is de hele reden dat dit bestand bestaat. Een storing die als
- * "niemand gebruikt dit" leest, is precies de zin waarop iemand een automatisering
- * weggooit die een knop in productie aanzet — dezelfde val die W5 bij de
- * 409-poort dichtzette.
+ * That middle one is the entire reason this file exists. A failure that reads as "nobody
+ * uses this" is precisely the sentence on which someone throws away an automation that
+ * switches a button on in production. It is the same trap that W5 closed off at the 409 gate.
  *
- * Draaien: cd agent-hub && ./node_modules/.bin/vitest run src/components/automation/Builder/UsedByButtonsCapsule.test.jsx
+ * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/automation/Builder/UsedByButtonsCapsule.test.jsx
  */
 
 const authFetch = vi.fn();
@@ -40,10 +38,10 @@ function row(over = {}) {
         consumerKind: 'app',
         consumerId: APP,
         consumerTitle: 'Expenses',
-        // De eigenaar van de AUTOMATISERING (kolom `owner_user_id`), niet van de app —
-        // de route filtert daarop tegen een automatisering die van eigenaar wisselde.
+        // The owner of the AUTOMATION (column `owner_user_id`), not of the app. The route filters
+        // on that, against an automation that changed owner.
         automationOwner: 'u_owner',
-        // Wie de APP mag openen zegt de SERVER; de client leidt het niet af.
+        // Who may OPEN the app is said by the SERVER; the client does not derive it.
         canOpen: true,
         refId: 'act:act_aaaa',
         actionId: 'act_aaaa',
@@ -127,10 +125,10 @@ describe('de lijst', () => {
     });
 
     it('zonder canOpen is er een NAAM maar geen link — een 403 is erger dan geen link', async () => {
-        // De naam mag: de rij is al eigenaar-gefilterd, dus deze kijker mocht
-        // hem lezen. De LINK is een tweede vraag, en het antwoord komt van de
-        // server. Zodra er een tweede consumer_kind bijkomt of één pad een app
-        // overdraagt, is dit het verschil tussen een werkende link en een 403.
+        // The name may be shown: the row is already owner-filtered, so this viewer was allowed to
+        // read it. The LINK is a second question, and its answer comes from the server. The moment
+        // a second consumer_kind is added, or one path hands over an app, this is the difference
+        // between a working link and a 403.
         authFetch.mockResolvedValue(ok({ usage: [row({ canOpen: false })] }));
         const { container } = render(<UsedByButtonsCapsule automationId={AID} />);
         fireEvent.click(await screen.findByTestId('usedby-buttons-capsule'));
@@ -165,7 +163,7 @@ describe('de vraag zelf', () => {
     });
 
     it('toont het antwoord van de VORIGE automatisering niet bij een wissel', async () => {
-        // Een getal dat over de verkeerde automatisering gaat is erger dan geen getal.
+        // A number about the wrong automation is worse than no number.
         authFetch.mockResolvedValueOnce(ok({ usage: [row()] }));
         const { rerender } = render(<UsedByButtonsCapsule automationId={AID} />);
         expect(await screen.findByText('Used by 1 button')).toBeTruthy();

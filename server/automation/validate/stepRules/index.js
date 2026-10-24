@@ -75,14 +75,14 @@ function createStepChecker({
         // parallel branch has no authored edges of its own.
         checkPinnedOutput(step, at, { pushE, outgoingLabels: nested ? null : outgoingLabelsFor(step.id) });
 
-        // Een stap die in een loop-body / parallelle tak niet kan bestaan —
-        // zie NESTED_FORBIDDEN_RULES voor de twee families en het mechanisme
-        // per familie. Dit is de ENIGE plek die genestelde plaatsing toetst:
-        // de contract-scope-regels in graph.js kijken alleen naar top-level
-        // stappen, dus wat hier niet staat, valideert binnen een lus schoon.
-        // De regel woonde ooit in het form_page-blok zelf, waardoor `approval`
-        // (dat via dezelfde machinerie pauzeert) geen tegenhanger had; en de
-        // nieuwe eindstap `return_to_app` had er om dezelfde reden geen.
+        // A step that cannot exist in a loop body / parallel branch —
+        // see NESTED_FORBIDDEN_RULES for the two families and the mechanism
+        // per family. This is the ONLY place that checks nested placement:
+        // the contract-scope rules in graph.js look only at top-level
+        // steps, so what is not here validates cleanly inside a loop.
+        // The rule once lived in the form_page block itself, so `approval`
+        // (which pauses via the same machinery) had no counterpart; and the
+        // new end step `return_to_app` had none for the same reason.
         if (nested) {
             const nestedRule = NESTED_FORBIDDEN_RULES.get(step.type);
             if (nestedRule) {

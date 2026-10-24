@@ -62,12 +62,9 @@
  *                       decides which boxes to open with; without it, the
  *                       overlay ticks every action of an app the runtime is
  *                       serving none of.
- *   `availabilityKinds` ALLE oorzaken waarom deze app kan ontbreken, en
- *                       `availabilityKind` alleen de ene wanneer er precies één
- *                       is. Zie de registry-kop: `browse_web` zit achter de
- *                       docker-probe én het org-entitlement, dus "deze
- *                       installatie heeft hem niet" was daar een bewering die
- *                       de meting niet oplevert.
+ *   `availabilityKinds` ALL the causes why this app may be missing; `availabilityKind` only the one when there is exactly one.
+ *                       See the registry heading: `browse_web` sits behind the docker probe AND the org entitlement, so
+ *                       "this installation does not have it" was a claim there that the measurement does not yield.
  *   `availabilityKind`  what `available: false` MEANS here. 'installation' —
  *                       this server has no backend for it (browse_web behind
  *                       its docker probe); 'permission' — the caller may not
@@ -76,21 +73,20 @@
  *                       available on this installation, and not granted are
  *                       three different things, and the picker may only say the
  *                       one that is true.
- *   `grantsVia`         deze rij levert de tools van een ANDERE app op dezelfde
- *                       credentials (`outlook-readonly` naast `outlook`). De
- *                       runtime beslist er sinds A2-4 op: elke app die een
- *                       gedeelde naam claimt moet hem toestaan. Zonder dit veld
- *                       kon de kiezer twee losse rijen voor hetzelfde
- *                       gereedschap tonen, en nam één vinkje erbij er stil twee
- *                       af op de rij ernaast.
+ *   `grantsVia`         this row supplies the tools of ANOTHER app on the same
+ *                       credentials (`outlook-readonly` beside `outlook`). Since A2-4 the
+ *                       runtime decides on it: every app that claims a shared
+ *                       name must permit it. Without this field the picker could
+ *                       show two separate rows for the same tool, and one tick added
+ *                       would silently take two away from the row beside it.
  *
- * ── `available` VAN TWEE RIJEN OVER DEZELFDE MODULE ─────────────────
- * De gate levert één platte namenlijst, en die twee rijen delen hun namen. "Zit
- * één van mijn namen erin" gaf de read-only rij dus `true` puur door overlap
- * met de volledige rij, óók als de org juist die volledige rij had aangezet.
- * De eigenaar wordt daarom beoordeeld op zijn EXCLUSIEVE namen, en een rij die
- * zijn grants elders laat lopen valt weg zodra de bredere rij beschikbaar is:
- * dan gaat hij nergens meer over. Zie `availabilityFor` in de route.
+ * ── `available` OF TWO ROWS OVER THE SAME MODULE ────────────────────
+ * The gate yields one flat list of names, and those two rows share their names. "Does
+ * one of my names occur in it" therefore gave the read-only row `true` purely through
+ * overlap with the full row, even when the org had enabled precisely that full row.
+ * The owner is therefore judged on his EXCLUSIVE names, and a row whose grants run
+ * elsewhere falls away as soon as the broader row is available: then it decides
+ * nothing any more. See `availabilityFor` in the route.
  *
  * ── IT TAKES NO OPTIONS, AND SAYS SO ────────────────────────────────
  * The answer is per caller and complete: there is no filter by app, by agent
@@ -151,15 +147,15 @@ router.get('/tool-catalog', requireAuth, validate({ query: NoQuery }), async (re
     }
     const providersKnown = typeof providerForTool === 'function';
 
-    // ── ÉÉN LEZING PER ENTRY, DAARNA PAS DE RIJEN ──────────────
-    // De beschikbaarheid van twee entries over DEZELFDE module is niet uit
-    // hun eigen namen af te lezen (zie hieronder), dus alle namen worden
-    // eerst verzameld en daarna pas beoordeeld.
+    // ── ONE READ PER ENTRY, THEN ONLY THE ROWS ────────────────
+    // The availability of two entries over the SAME module cannot be read off
+    // their own names (see below), so all names are first collected and only
+    // then assessed.
     const entries = [];
     const namesOf = new Map();
     for (const entry of ALL_TOOL_APPS || []) {
         if (!entry || !entry.app) continue;
-        // NIET `res` — dat is de express-response van deze handler.
+        // NOT `res` — that is the express response of this handler.
         let loaded;
         try { loaded = loadToolsResult(entry); } catch (_) { loaded = null; }
         const tools = loaded && loaded.ok === true && Array.isArray(loaded.tools) ? loaded.tools : null;
@@ -182,20 +178,20 @@ router.get('/tool-catalog', requireAuth, validate({ query: NoQuery }), async (re
     }
 
     /**
-     * Is deze app voor DEZE gebruiker beschikbaar?
+     * Is this app available for THIS user?
      *
-     * `getIntegrationTools` levert één platte namenlijst, en twee entries
-     * over dezelfde module (outlook / outlook-readonly) delen die namen.
-     * "Bevat de lijst één van mijn namen" gaf de read-only rij dus
-     * `available: true` puur door overlap met de volledige rij — waarna de
-     * kiezer TWEE rijen voor hetzelfde gereedschap toonde, met alle
-     * doorsnede-ellende van dien.
+     * `getIntegrationTools` yields one flat list of names, and two entries
+     * over the same module (outlook / outlook-readonly) share those names.
+     * "Does the list contain one of my names" therefore gave the read-only row
+     * `available: true` purely through overlap with the full row — after which
+     * the picker showed TWO rows for the same tool, with all the trouble of an
+     * intersection that brings.
      *
-     * Het onderscheid dat de platte lijst wél draagt:
-     *   de EIGENAAR wordt beoordeeld op zijn EXCLUSIEVE namen (`outlook`
-     *   op `outlook_compose`) — die zijn er alleen als hij zelf aanstaat;
-     *   de UITLENER is beschikbaar zolang zijn eigen namen er zijn én de
-     *   eigenaar het niet al is: de bredere rij vervangt hem dan volledig.
+     * The distinction that the flat list does carry:
+     *   the OWNER is judged on his EXCLUSIVE names (`outlook`
+     *   on `outlook_compose`) — those are there only if he is switched on himself;
+     *   the LENDER is available as long as his own names are there AND
+     *   the owner does not already have it: the broader row then replaces him entirely.
      */
     const availableOf = new Map();
     const overlaps = (names) => names.some(n => userToolNames.has(n));
@@ -228,20 +224,19 @@ router.get('/tool-catalog', requireAuth, validate({ query: NoQuery }), async (re
         //   `availabilityKind` why an app can be missing. "This server has
         //                      no browser" is not "you did not connect it",
         //                      and neither is "you may not use it".
-        //   `grantsVia`        deze rij levert de tools van een ANDERE app
-        //                      op dezelfde credentials. De kiezer vouwt de
-        //                      twee tot één grant-subject; zonder dit veld
-        //                      kan hij dat niet zien, terwijl de runtime er
-        //                      sinds A2-4 wél op beslist (`_decidingApps`).
+        //   `grantsVia`        this row supplies the tools of ANOTHER app
+        //                      on the same credentials. The picker folds the
+        //                      two into one grant subject; without this field
+        //                      it cannot see that, while the runtime does decide
+        //                      on it since A2-4 (`_decidingApps`).
         const requiresGrant = entry.grantsRequireEntry === true;
-        // ALLE oorzaken, en `availabilityKind` alleen als er precies één is.
-        // Het veld beschrijft een STATISCHE eigenschap van de rij, terwijl
-        // `available: false` per app meerdere, dynamische oorzaken heeft:
-        // `browse_web` zit achter de docker-probe én achter het
-        // org-entitlement, de notebooks óók achter de RBAC-permissie
-        // `use_notebooks`. Eén oorzaak doorgeven maakte van de kaart een
-        // bewering ("deze installatie heeft hem niet") die niet uit de
-        // meting volgt; met meer dan één noemt de kiezer ze allebei.
+        // ALL causes, and `availabilityKind` only when there is exactly one.
+        // The field describes a STATIC property of the row, while `available: false`
+        // per app has several, dynamic causes: `browse_web` sits behind the docker probe
+        // AND behind the org entitlement, the notebooks also behind the RBAC permission
+        // `use_notebooks`. Passing on a single cause made the card a claim
+        // ("this installation does not have it") that does not follow from the
+        // measurement; with more than one, the picker names them both.
         const availabilityKinds = (Array.isArray(entry.availability)
             ? entry.availability
             : [entry.availability])
@@ -250,12 +245,12 @@ router.get('/tool-catalog', requireAuth, validate({ query: NoQuery }), async (re
         const availabilityKind = availabilityKinds.length === 1 ? availabilityKinds[0] : null;
         const grantsVia = typeof entry.grantsVia === 'string' && entry.grantsVia ? entry.grantsVia : null;
         if (tools === null) {
-            // Deze app is niet te LEZEN: de module laadde niet, of zijn
-            // namenlijst is geen array (hernoemde export). Zijn acties zijn
-            // dus onbekend — de app met een LEGE actielijst melden zou
-            // lezen als "hier valt niets te gunnen", en dat is een
-            // bewering. `loadTools` gaf hier `[]` terug zonder te gooien,
-            // waardoor deze tak in productie onbereikbaar was.
+            // This app cannot be READ: the module did not load, or its
+            // names list is not an array (renamed export). Its actions are
+            // therefore unknown — reporting the app with an EMPTY action list
+            // would read as "nothing can be granted here", and that is a
+            // claim. `loadTools` returned `[]` here without throwing, so this
+            // branch was unreachable in production.
             apps.push({
                 id: entry.app,
                 label: entry.label || entry.app,

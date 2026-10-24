@@ -117,9 +117,9 @@ stub('../core/meetingNotes/gmeetNotesSettings', {
     },
     resolveGmeetNotesSettings: async () => ({ ...fx.settings }),
 });
-// meeting_prefs (M5) — de per-vergadering keuze. De beslislogica zelf ligt vast
-// in stores/meetingPrefsStore.test.js; hier telt of de route hem met de eigen
-// scope raadpleegt en zijn antwoord in `excluded` + de statuschip vertaalt.
+// meeting_prefs (M5) — the per-meeting choice. The decision logic itself is fixed
+// in stores/meetingPrefsStore.test.js; here it counts whether the route consults it with its own
+// scope and translates its answer into `excluded` + the status chip.
 stub('../stores/meetingPrefsStore', {
     gmeetIds: ({ eventId = null, meetingCode = null } = {}) => [
         { kind: 'event', id: eventId }, { kind: 'code', id: meetingCode },
@@ -132,22 +132,18 @@ stub('../stores/meetingPrefsStore', {
     },
     setRecord: async (args) => {
         fx.prefWrites.push(args);
-        // Zie de talk-variant: de route LEEST na de schrijf terug, dus de
-        // fixture moet de schrijf ook echt uitvoeren.
+        // See the talk variant: the route READS BACK after the write, so the
+        // fixture must actually carry out the write too.
         for (const { kind, id } of args.ids) fx.prefs[`${kind}:${id}`] = args.record;
         return 1;
     },
     loadMeetingPrefs: async ({ provider, userId, orgId }) => {
         fx.prefLoads.push({ provider, userId, orgId });
-        // Een ORG-brede rij schrijft de echte store als `user_id = ''` en leest
-        // hij alleen via de org-tak van listPrefs. Deze dubbel doet hetzelfde:
-        // zonder `orgId` is `fx.orgPrefs` onzichtbaar. Zonder dat onderscheid
-        // liet het weglaten van de org-scope in de route de hele suite groen,
-        // terwijl de toggle dan AAN staat voor een vergadering die de
-        // beheerder had uitgezet — en anders dan bij de import is er hier geen
-        // tweede vangnet.
-        // EEN FALSE WINT, uit welke rij hij ook komt — de user-rij overschrijft
-        // de org-rij niet, zoals `resolvePrefs` het ook niet doet.
+        // An ORG-wide row writes the real store as `user_id = ''` and reads it only via the org branch of
+        // listPrefs. This double does the same: without `orgId`, `fx.orgPrefs` is invisible. Without that distinction, leaving out the org scope in the route
+        // kept the whole suite green, while the toggle is then ON for a meeting that the
+        // administrator had switched off — and unlike with the import, there is no second safety net here.
+        // A FALSE WINS, from whichever row it comes — the user row does not overwrite the org row, as `resolvePrefs` does not either.
         const scopes = orgId ? [fx.orgPrefs, fx.prefs] : [fx.prefs];
         const opinionFor = (ids) => {
             const seen = ids.flatMap(({ kind, id }) => scopes.map(m => m[`${kind}:${id}`]));
@@ -329,11 +325,10 @@ test('gmeet-meetings: status chip mapping (imported | excluded | will_import | u
 });
 
 test('gmeet-meetings: een ORG-brede uitsluiting staat op UIT in de lijst', async () => {
-    // Dit was het gat: `orgId: userOrgId` → `orgId: null` liet de hele suite
-    // groen. De backfill schrijft een org-brede uitsluiting als rij met
-    // `user_id = ''`; valt de org-tak weg, dan leest die als "geen mening" en
-    // staat de toggle AAN voor een vergadering die de beheerder uitzette.
-    // Anders dan bij de auto-import is er hier geen tweede vangnet.
+    // This was the gap: `orgId: userOrgId` → `orgId: null` left the whole suite
+    // green. The backfill writes an org-wide exclusion as a row with
+    // `user_id = ''`; if the org branch falls away, that reads as "no opinion" and the toggle is ON for a meeting the administrator switched off.
+    // Unlike with the auto-import, there is no second safety net here.
     resetFx();
     fx.cred = { status: 'active', scope: MEET_SCOPES };
     fx.settings.autoImport = true;
@@ -349,9 +344,9 @@ test('gmeet-meetings: een ORG-brede uitsluiting staat op UIT in de lijst', async
 });
 
 test('gmeet-meetings: de uitkomst is hier altijd BESLIST — Meet telt niet na', async () => {
-    // Bij Talk kan de engine bij de start nog live tellen, dus stuurt die
-    // route `recordDecided: false`. Meet oogst alleen en kijkt niet opnieuw;
-    // een "we kijken nog"-melding zou daar onwaar zijn.
+    // With Talk the engine may still count live at the start, so that route
+    // sends `recordDecided: false`. It measures harvest only and does not look again;
+    // a "we are still looking" notice would be untrue there.
     resetFx();
     fx.cred = { status: 'active', scope: MEET_SCOPES };
     fx.settings.autoImport = true;
@@ -406,9 +401,8 @@ test('PATCH gmeet-meetings: exclusion write (per-occurrence and per-series)', as
 });
 
 test('PATCH gmeet-meetings: een serie-rij op UIT overruled het aanzetten van één occurrence', async () => {
-    // `applyToSeries` wordt door geen enkel scherm meegestuurd, dus een
-    // `code`-rij met FALSE is vanuit de UI niet meer weg te krijgen. Minimaal
-    // moet de PATCH dan niet "gelukt" zeggen.
+    // `applyToSeries` is not sent by any screen, so a `code` row with FALSE
+    // cannot be removed from the UI any more. At minimum the PATCH must not say "succeeded" then.
     resetFx();
     fx.prefs['code:abc-defg-hij'] = false;
     const res = await dispatch({ method: 'PATCH', url: '/gmeet-meetings/ev1', body: { record: true, meetingCode: 'abc-defg-hij' } });

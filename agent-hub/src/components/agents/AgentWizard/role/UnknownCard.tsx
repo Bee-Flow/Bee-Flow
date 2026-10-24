@@ -7,32 +7,31 @@ import ChoiceCards from '../../../shared/ChoiceCards';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 
 /**
- * "Als het niet weet" — wat er gebeurt buiten de kennis (Agents-artboard 1c).
+ * "If it does not know": what happens outside the knowledge (Agents artboard 1c).
  *
- * Drie keuzes, en dit is de plek waar `shared/ChoiceCards` wél hoort: precies
- * één van de drie geldt tegelijk, dus een ARIA-radiogroup zegt de waarheid.
- * Tot nu toe stond hier één `Toggle` op `strictKnowledge` met een comment dat
- * de andere twee keuzes nog niet bestonden; ze bestaan sinds A1c
- * (`personaPrompt.UNKNOWN_MODES`), en dit is de kaart die ze aanbiedt.
+ * Three choices, and this is the place where `shared/ChoiceCards` DOES belong: exactly
+ * one of the three applies at a time, so an ARIA radiogroup tells the truth.
+ * Until now there was one `Toggle` here on `strictKnowledge`, with a comment that
+ * the other two choices did not exist yet. They have existed since A1c
+ * (`personaPrompt.UNKNOWN_MODES`), and this is the card that offers them.
  *
- * ── DE ROUTINEKIEZER IS DE MOEILIJKE HELFT ──────────────────────────
- * `verifyHandoffAutomation` (server/routes/agents/crud.js) accepteert een
- * automatisering alleen als hij bestaat, van de EIGENAAR van de agent is, aan staat
- * en een `agent_call`-trigger heeft — dat laatste via `automationToTool`, wat
- * meteen de exacte toolnaam oplevert die de runtime aanbiedt. Wat niet door
- * die keten komt wordt weggegooid, niet bewaard-en-genegeerd, en het prompt
- * valt terug op de eerlijke regel.
+ * ── THE ROUTINE PICKER IS THE HARD HALF ──────────────────────────
+ * `verifyHandoffAutomation` (server/routes/agents/crud.js) accepts an automation only
+ * if it exists, belongs to the OWNER of the agent, is switched on, and has an
+ * `agent_call` trigger. The latter is checked via `automationToTool`, which yields
+ * the exact tool name the runtime offers. Anything that does not come through that
+ * chain is thrown away, not stored and ignored, and the prompt falls back to the
+ * honest rule.
  *
- * Deze kaart spiegelt die keten vooraf, met één harde regel: een lijst die
- * niet gelezen kon worden is NIET "geen automations". `GET /api/automation` hangt
- * achter de automations-module en kan 403'en of omvallen; landen op een lege
- * lijst zou de kaart laten beweren dat deze gebruiker niets heeft om aan door
- * te geven. Vandaar de `READ`-toestand, en vandaar dat de vier takken
- * (laden → fout → leeg → keuzes) in één `aria-live`-blok staan, hetzelfde
- * patroon als `Datatables/DatatablesStudio.jsx`.
+ * This card mirrors that chain in advance, with one hard rule: a list that could not
+ * be read is NOT "no automations". `GET /api/automation` sits behind the automations
+ * module and can 403 or fall over; landing on an empty list would let the card claim
+ * that this user has nothing to hand over. Hence the `READ` state, and hence the four
+ * branches (loading, error, empty, choices) are in one `aria-live` block: the same
+ * pattern as `Datatables/DatatablesStudio.jsx`.
  */
 
-/** Waarom er niet gekozen mag worden, als zin. Letterlijke t()-aanroepen voor de i18n-guard. */
+/** Why one may not choose, as a sentence. Literal t() calls for the i18n guard. */
 function blockedMessage(t: TranslateFn, code: string | null) {
     if (code === 'not_owner') {
         return t('agent_studio.role.handoff_not_owner', 'This agent belongs to someone else. The hand-off automation is checked against its owner, not against you, so an automation of yours would be refused when it saves.');
@@ -81,15 +80,14 @@ function HandoffPill({ t, chosen }: { t: TranslateFn; chosen: HandoffSelection |
 }
 
 /**
- * De vijf takken laden → fout → geblokkeerd → geen/allemaal-uit → keuzes, in
- * één aria-live-blok.
+ * The five branches loading, error, blocked, none/all-off, choices, in one
+ * aria-live block.
  *
- * "GEEN" EN "ALLEMAAL UIT" ZIJN TWEE ZINNEN. Ze vielen samen op
- * `offered.length === 0`, en dan noemde het scherm de TRIGGER als reden terwijl
- * de trigger juist klopte — en zette daar één regel lager "2 automatiseringen are
- * switched off" onder, wat het tegendeel zei. De eigenaar werd zo naar het
- * aanpassen van een trigger gestuurd die al goed was, in plaats van naar de
- * aan/uit-schakelaar.
+ * "NONE" AND "ALL OFF" ARE TWO SENTENCES. They collapsed on
+ * `offered.length === 0`, and then the screen named the TRIGGER as the reason while
+ * the trigger was actually correct. It also put "2 automatiseringen are switched off"
+ * one line lower, which said the opposite. The owner was thus sent to adjust a trigger
+ * that was already fine, instead of to the on/off switch.
  */
 function HandoffChooser({ t, rows, state, blocked, value, onChange, readOnly }: {
     t: TranslateFn;
@@ -103,8 +101,8 @@ function HandoffChooser({ t, rows, state, blocked, value, onChange, readOnly }: 
     const offered = rows.filter(r => r.active);
     const switchedOff = rows.length - offered.length;
     const message = blockedMessage(t, blocked);
-    // Alleen naast een gevulde kiezer: staat ALLES uit, dan zegt de tak
-    // hierboven dat al, en twee keer hetzelfde is één keer te veel.
+    // Only next to a filled picker: if EVERYTHING is off, the branch above already
+    // says that, and saying it twice is once too often.
     const showSwitchedOff = state === READ.OK && !message && offered.length > 0 && switchedOff > 0;
 
     return (
@@ -149,9 +147,9 @@ function HandoffChooser({ t, rows, state, blocked, value, onChange, readOnly }: 
                     </select>
                 </label>
             )}
-            {/* `!message`: de telling komt uit `GET /api/automation`, en dat is
-                de lijst van de INGELOGDE gebruiker. Op andermans agent zou hij
-                dus als een feit over DIE agent gelezen worden. */}
+            {/* `!message`: the count comes from `GET /api/automation`, and that is
+                the list of the LOGGED-IN user. On someone else's agent it would
+                thus be read as a fact about THAT agent. */}
             {showSwitchedOff && (
                 <RoleNote announce={false} testId="agent-role-handoff-switched-off">
                     {nOf(
@@ -172,12 +170,11 @@ function unknownOptions(t: TranslateFn) {
             value: 'honest',
             Icon: Ban,
             label: t('agent_studio.role.unknown_honest', 'Say honestly that it does not know'),
-            // "kennisbank", niet "kennis". De strenge stand die hier eventueel
-            // bij wordt gezet leunt op de KNOWLEDGE BASE RESULTS-sectie, en die
-            // bouwt de server alleen uit `config.knowledge_base_ids` — een
-            // tabelgrant levert er geen. Zou de zin "kennis" beloven, dan zou
-            // een tabel-agent hier lezen dat hij netjes uit zijn tabel gaat
-            // antwoorden terwijl hij alles zou weigeren.
+            // "kennisbank", not "kennis". The strict setting that may be applied here
+            // relies on the KNOWLEDGE BASE RESULTS section, and the server builds that
+            // only from `config.knowledge_base_ids`; a table grant yields none. If the
+            // sentence promised "kennis", a table agent would read here that it will
+            // neatly answer from its table, while it would in fact refuse everything.
             description: t('agent_studio.role.unknown_honest_desc', 'It says so plainly instead of guessing. On an agent with a knowledge base linked it also limits the agent to answering from that base; a table on its own does not count here.'),
         },
         {

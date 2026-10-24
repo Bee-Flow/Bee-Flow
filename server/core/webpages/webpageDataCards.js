@@ -1,35 +1,34 @@
 /**
- * De middenkolom van "Data & koppelingen": wat hangt er aan deze pagina?
+ * The middle column of "Data & connections": what hangs on this page?
  *
- * Vier soorten kaarten, drie ervan komen hiervandaan:
- *   TABEL        per gebonden datatable — naam, rijen, kolomchips, en of de
- *                pagina hem in haar eigen code noemt ("niet gebruikt").
- *   AUTOMATION   per automatisering die zo'n gebonden tabel VOEDT — afgeleid uit de
- *                usage-index (`automation_datatable_usage`), niet uit een
- *                tweede lijst die iemand moet bijhouden: welke kolommen hij
- *                aanraakt, in welke modus, en wanneer hij voor het laatst liep.
- *   WAARSCHUWING een automatisering die RECHTSTREEKS in een gebonden tabel schrijft.
- *                Dat is geen foutmelding maar een mededeling: wie de pagina
- *                bewerkt moet weten dat er ook een ander proces aan die rijen
- *                zit, met een deeplink naar het deelscherm van die tabel.
- * De vierde kaart (Kennisbronnen, de webpage_auto-KB) tekent de client uit
- * `sources`, die de Data-tab toch al heeft — daar is geen serverronde voor nodig.
+ * Four kinds of cards, three of which come from here:
+ *   TABLE        per bound datatable — name, rows, column chips, and whether
+ *                the page mentions it in its own code ("not used").
+ *   AUTOMATION   per automation that FEEDS such a bound table — derived from the
+ *                usage index (`automation_datatable_usage`), not from a
+ *                second list that someone has to maintain: which columns it
+ *                touches, in which mode, and when it last ran.
+ *   WARNING      an automation that writes DIRECTLY into a bound table.
+ *                That is not an error message but a notice: whoever edits the page
+ *                must know that another process also sits on those rows, with a deep link to
+ *                the detail screen of that table.
+ * The fourth card (Knowledge sources, the webpage_auto KB) is drawn by the client from `sources`,
+ * which the Data tab already has — no server round trip is needed for that.
  *
- * ── DRIE DINGEN DIE HIER NIET MOGEN VERSCHUIVEN ─────────────────────
+ * ── THREE THINGS THAT MUST NOT SHIFT HERE ───────────────────────────
  *
- * 1. DIT LEEST ALS DE EIGENAAR, en de route is eigenaar-only. Het is een
- *    beheerscherm over zijn eigen bindingen; een org-lezer van de pagina heeft
- *    hier niets te zoeken en zou via de kolomlijsten leren wat er in andermans
- *    tabel staat.
+ * 1. THIS READS AS THE OWNER, and the route is owner-only. It is a management screen over
+ *    his own bindings; an org reader of the page has nothing to do here and would
+ *    learn through the column lists what is in someone else's table.
  *
- * 2. "NIET GEBRUIKT" IS EEN BEWERING, en die wordt alleen gedaan als hij te
- *    controleren was. `usedInCode` is daarom DRIEWAARDIG: true / false / null.
- *    null = de bestanden waren niet te lezen. De UI mag dan geen van beide
- *    labels tonen — "leeg" en "onleesbaar" moeten verschillend blijven.
+ * 2. "NOT USED" IS AN ASSERTION, and it is only made if it could be checked. `usedInCode`
+ *    is therefore THREE-VALUED: true / false / null.
+ *    null = the files were not readable. The UI may then show neither of the two labels —
+ *    "empty" and "unreadable" must remain different.
  *
- * 3. EEN TABEL DIE DE EIGENAAR NIET (MEER) MAG LEZEN wordt `missing`, niet
- *    weggelaten. Stil verdwijnen laat de auteur denken dat de binding weg is,
- *    terwijl die er nog staat en morgen weer kan werken.
+ * 3. A TABLE THAT THE OWNER MAY NO (LONGER) READ becomes `missing`, not omitted.
+ *    Silently disappearing lets the author think that the binding is gone, while it
+ *    still stands and can work again tomorrow.
  */
 
 'use strict';
@@ -44,26 +43,26 @@ const webpageBindings = require('./webpageBindings');
 const WRITING_MODES = new Set(['write', 'readwrite']);
 
 /**
- * Noemt de eigen code van de pagina deze tabel?
+ * Does the page's own code mention this table?
  *
- * Een grove tekstzoektocht op het tabel-id in ALLE eigen tekstbestanden van de
- * pagina — de drie slots én de extra's, want een react-mui-pagina heeft haar
- * hele app onder `src/` staan en zou anders elke gebonden tabel als "niet
- * gebruikt" gestempeld krijgen. Dat is precies wat er te weten valt zonder de
- * parser die W4 bouwt, en het is
- * eerlijk over zijn grens: een `<bf-table source="tbl_x">` en een
- * `beeflowTables.query("tbl_x")` worden allebei gevonden, een id dat uit een
- * variabele komt niet. Vandaar dat "niet gevonden" in de UI een zachte,
- * gestippelde mededeling is en geen fout.
+ * A rough text search on the table id in ALL own text files of the
+ * page — the three slots and the extras, because a react-mui page has its
+ * whole app under `src/` and would otherwise have every bound table stamped as "not
+ * used". That is precisely what can be known without the
+ * parser that W4 builds, and it is
+ * honest about its limit: a `<bf-table source="tbl_x">` and a
+ * `beeflowTables.query("tbl_x")` are both found, an id that comes from a
+ * variable is not. That is why "not found" in the UI is a soft, dotted notice
+ * and not an error.
  *
- * @returns {Map<string, boolean>|null} null als de bestanden niet leesbaar waren
+ * @returns {Map<string, boolean>|null} null if the files were not readable
  */
 async function scanCodeForTables(userId, webpageId, datatableIds) {
     if (!datatableIds.length) return new Map();
-    // Via webpageBindings.readPageCode, NIET rechtstreeks via readAllSlots: die
-    // geeft lege strings terug zodra de objectopslag plat ligt, en dat zou hier
-    // als "de pagina noemt de tabel niet" worden gelezen. De leesbaarheidsvlag
-    // houdt onleesbaar en leeg uit elkaar.
+    // Via webpageBindings.readPageCode, NOT directly via readAllSlots: that
+    // gives empty strings back as soon as the object storage is down, and that would here
+    // be read as "the page does not mention the table". The readability flag
+    // keeps unreadable and empty apart.
     const code = await webpageBindings.readPageCode(userId, webpageId);
     if (!code.readable) return null;          // onleesbaar ≠ niet gebruikt
     const haystack = [code.html, code.js, ...(code.extras || []).map(f => f.text)].join('\n');
@@ -80,9 +79,8 @@ function foldAutomations(usageRows, { datatableId, tableName }) {
         const prev = byId.get(u.automationId);
         const columns = new Set([...(prev?.columns || []), ...(Array.isArray(u.columns) ? u.columns : [])]);
         const writes = (prev?.writes === true) || WRITING_MODES.has(u.mode);
-        // De laatste run hoort bij de AUTOMATISERING, niet bij de stap; ze zijn per
-        // rij gelijk, maar een null in de ene rij mag een datum in de andere
-        // niet wissen.
+        // The last run belongs to the AUTOMATION, not to the step; they are equal per
+        // row, but a null in one row may not wipe a date in the other.
         const lastRunAt = prev?.lastRunAt || u.lastRunAt || null;
         byId.set(u.automationId, {
             automationId: u.automationId,
@@ -132,8 +130,8 @@ async function buildDataCards({ webpageId, userId }) {
             tables.push({
                 ...base,
                 missing: true,
-                // Alleen de code, niet de tekst van de fout: dit gaat naar een
-                // scherm, niet naar een log.
+                // Only the code, not the text of the error: this goes to a
+                // screen, not to a log.
                 reason: (err && err.safe === true && err.code) ? err.code : 'unavailable',
                 name: null, key: null, rowCount: null, allColumns: [],
             });
@@ -177,8 +175,8 @@ async function buildDataCards({ webpageId, userId }) {
         tables,
         automations,
         warnings,
-        // Wat de tab-badge "n" telt. De Kennisbronnen-kaart telt ook mee, maar
-        // die kent alleen de client (uit `sources`), dus die wordt daar opgeteld.
+        // What the tab badge "n" counts. The Knowledge sources card counts too, but
+        // that one knows only the client (from `sources`), so it is added there.
         counts: { tables: tables.length, automations: automations.length },
     };
 }

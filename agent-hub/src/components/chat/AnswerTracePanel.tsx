@@ -1,49 +1,41 @@
 /**
- * "Spoor van het laatste antwoord" — het blijvende paneel naast de testchat.
+ * "Trace of the last answer": the persistent panel next to the test chat.
  *
- * Wélke regels hier mogen staan bepaalt `answerTrace.js`; dit bestand gaat
- * over de twee dingen die je op het scherm moet kunnen zien:
+ * WHICH lines may stand here is decided by `answerTrace.js`. This file concerns the two things you
+ * must be able to see on screen:
  *
- * ── 1. EEN ONTBREKENDE STAP IS ZICHTBAAR, MET DE REDEN ─────────────────────
+ * ── 1. A MISSING STEP IS VISIBLE, WITH THE REASON ──────────────────────────
  *
- * Het paneel toont altijd alle vijf de regels. Een regel die niet uit een echt
- * event op te maken is, verdwijnt niet stilletjes — hij staat er in gedempte
- * letters met de reden erbij. Dat is met opzet de lelijkere oplossing: een
- * spoor dat alleen zijn geslaagde stappen toont, leest als een compleet
- * verhaal, en dan is de afwezigheid van een stap niet te onderscheiden van een
- * stap die niet gemeten wordt.
+ * The panel always shows all five lines. A line that cannot be derived from a real event does not
+ * disappear silently: it stands there in muted letters with the reason beside it. That is
+ * deliberately the uglier solution. A trace that shows only its successful steps reads as a complete
+ * story, and then the absence of a step is not distinguishable from a step that is not measured.
  *
- * Elke reden gaat over de METING, nooit over de agent. Er staat "no knowledge
- * step was recorded", niet "the agent did not search" — dat laatste weten we
- * niet.
+ * Every reason concerns the MEASUREMENT, never the agent. It says "no knowledge step was recorded",
+ * not "the agent did not search", because the latter we do not know.
  *
- * ── 2. GEOORDEELD ZIET ER ANDERS UIT DAN OPGETEKEND ────────────────────────
+ * ── 2. JUDGED LOOKS DIFFERENT FROM RECORDED ──────────────────────────────
  *
- * Vier regels komen van events die de server schreef terwijl het antwoord
- * gemaakt werd. De regelrij niet: die komt van een attributie-pass die ná
- * afloop de rol naast het antwoord legde. `AnswerChips.jsx` maakte daar al
- * vier dragers voor (vorm, woord, plaats, glyph) en het paneel houdt zich aan
- * dezelfde: gestippeld, een kopje "Judged" met de hele uitleg als
- * toegankelijke naam, en het ✨-teken dat in dit product "door een model
- * gemaakt" betekent. Hetzelfde onderscheid, dezelfde woorden, dezelfde
- * i18n-sleutels — twee panelen die het anders zeggen zijn twee beweringen.
+ * Four lines come from events that the server wrote while the answer was being made. The line about
+ * the attribution pass is not one of them: that comes from an attribution pass that placed the role
+ * next to the answer afterwards. `AnswerChips.jsx` already made four carriers for that (shape, word,
+ * place, glyph), and the panel keeps to the same ones: dotted, a heading "Judged" with the whole
+ * explanation as the accessible name, and the ✨ sign that in this product means "written by a model".
+ * The same distinction, the same words, the same i18n keys. Two panels that say it differently are two claims.
  *
- * ── EEN BESLISSING DIE ALSNOG VALT, WERKT HET SPOOR BIJ ────────────────────
+ * ── A DECISION THAT STILL FALLS, THE TRACE UPDATES ────────────────────────
  *
- * Regel 4 gaat over een actie die is aangeboden en niet gestart. Dat is geen
- * eindtoestand: de gebruiker kan er alsnog ja op zeggen. Het paneel leest
- * daarom niet alleen `msg.pendingToolCalls` maar ook de beslissingen van deze
- * sessie (`toolDecisions`), via dezelfde lezing als de kaart zelf
- * (`toolConfirmStatus.js`). Klikken op de kaart werkt de regel dus meteen bij,
- * en hij zegt daarbij het eerlijke: een goedkeuring van de server betekent dat
- * de call gedraaid heeft, een klik van zojuist betekent dat hij bij het
- * volgende bericht gaat draaien.
+ * Line 4 concerns an action that has been offered and not started. That is not a final state: the
+ * user can still say yes to it. The panel therefore reads not only `msg.pendingToolCalls` but also the
+ * decisions of this session (`toolDecisions`), through the same reading as the card itself
+ * (`toolConfirmStatus.js`). Clicking the card therefore updates the line at once, and it says the
+ * honest thing: an approval from the server means the call has run, a click just now means it will run
+ * with the next message.
  *
- * ── MONTAGE ────────────────────────────────────────────────────────────────
+ * ── MOUNTING ────────────────────────────────────────────────────────────
  *
- * Het paneel is zelfstandig en kent de chat niet. Wie het ophangt, geeft het
- * laatste assistent-bericht mee plus de sessiebeslissingen die `useChatEngine`
- * teruggeeft:
+ * The panel is self-contained and does not know the chat. Whoever hangs it up passes the last assistant
+ * message along, plus the session decisions that `useChatEngine` returns:
  *
  *     const { messages, toolDecisions } = useChatEngine({ testChat: { enabled: true } });
  *     <AnswerTracePanel
@@ -51,7 +43,7 @@
  *         toolDecisions={toolDecisions}
  *     />
  *
- * Draaien: cd agent-hub && ./node_modules/.bin/vitest run src/components/chat/AnswerTracePanel.test.jsx
+ * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/chat/AnswerTracePanel.test.jsx
  */
 
 import { Sparkles } from 'lucide-react';
@@ -65,7 +57,7 @@ import type { HeldAction, HeldActionRow, OmittedFact, QuestionRow, RuleRow, Sour
 import type { TranslateParams } from '../../hooks/useTranslation';
 import type { OmittedNoteProps, RowFactsProps, JudgedFactsProps, TraceRowProps, AnswerTracePanelProps } from './AnswerTracePanel.types';
 
-/** Regel-id → kop. De volgorde komt uit `answerTrace.js`, niet uit deze tabel. */
+/** Rule id → heading. The order comes from `answerTrace.js`, not from this table. */
 const ROW_TITLES: Record<string, { key: string; en: string; }> = {
     question: { key: 'agent_studio.test.trace_row_question', en: 'Your question, read' },
     sources: { key: 'agent_studio.test.trace_row_sources', en: 'Knowledge consulted' },
@@ -75,8 +67,8 @@ const ROW_TITLES: Record<string, { key: string; en: string; }> = {
 };
 
 /**
- * Reden → zin. Elke zin gaat over wat er NIET GEMETEN is; geen van deze zinnen
- * mag te lezen zijn als een uitspraak over wat de agent deed of naliet.
+ * Reason → sentence. Every sentence concerns what was NOT MEASURED. None of these sentences may
+ * be readable as a statement about what the agent did or failed to do.
  */
 const MISSING_TEXT: Record<string, { key: string; en: string; }> = {
     no_trace: { key: 'agent_studio.test.trace_missing_no_trace', en: 'No steps were recorded for this answer.' },
@@ -122,11 +114,10 @@ function heldText(action: HeldAction, tt: (key: string | undefined, fallbackOrPa
 }
 
 /**
- * Eén regel uit een tabel hierboven. De `{ key, en }`-vorm is geen smaak: de
- * i18n-guard vindt alleen zó de sleutels die als DATA reizen — een sleutel in
- * een array met de Engelse tekst ernaast is precies wat er bij O4 en W5 mis
- * ging, want de fallback laat het scherm er goed uitzien terwijl de sleutel
- * onvertaalbaar blijft. Dit bestand staat daarom in KEY_TABLE_FILES.
+ * One row from a table above. The `{ key, en }` shape is no matter of taste: the i18n guard finds
+ * the keys that travel as DATA only this way. A key in an array with the English text beside it is
+ * exactly what went wrong at O4 and W5, because the fallback makes the screen look right while the
+ * key stays untranslatable. This file is therefore in KEY_TABLE_FILES.
  */
 const line = (tt: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string, entry: { key: string; en: string }) => tt(entry.key, entry.en);
 
@@ -174,9 +165,8 @@ function RowFacts({ row, tt }: RowFactsProps) {
 
     if (row.id === 'sources') {
         const bits = [];
-        // ALLE zoektermen, niet de eerste. Twee kb_search-calls met
-        // verschillende termen zijn twee zoekopdrachten, en de passages van
-        // allebei stonden eerst onder één term geteld.
+        // ALL search terms, not just the first. Two kb_search calls with different terms are two
+        // searches, and the passages of both were first counted under one term.
         const queries = Array.isArray(row.queries) ? row.queries : (row.query ? [row.query] : []);
         for (const q of queries) {
             bits.push(tt('agent_studio.test.trace_query', 'Searched for “{query}”', { query: q }));
@@ -190,9 +180,8 @@ function RowFacts({ row, tt }: RowFactsProps) {
                 : null;
             bits.push(docs ? `${passages} ${docs}` : passages);
         }
-        // Tabelrijen tellen in hun eigen eenheid — zie sourcesRow: een rij die
-        // op het moment van de vraag uit een tabel is gelezen is geen passage
-        // uit een document.
+        // Table rows count in their own unit (see sourcesRow): a row that was read from a table at the
+        // moment of the question is not a passage from a document.
         if (row.rows) {
             const rowsText = nOf(tt, 'agent_studio.test.trace_table_rows', row.rows,
                 '{count} table row', '{count} table rows');
@@ -323,12 +312,10 @@ const AnswerTracePanel = ({ msg = null, toolDecisions = {}, t = null, className 
                     {tt('agent_studio.test.trace_title', 'Trace of the last answer')}
                 </span>
                 {trace && (
-                    // De hint hangt af van WAAR de klok stopte. `streaming_start`
-                    // krijgt nooit een einde, dus bij een normale beurt is de
-                    // laatste tik het BEGIN van het antwoord — en dan is dit
-                    // getal de voorbereidingstijd, niet de beurtduur. Dat mag
-                    // niet in een algemene zin verdwijnen boven vijf regels die
-                    // wél over het antwoord gaan.
+                    // The hint depends on WHERE the clock stopped. `streaming_start` never gets an end, so on a
+                    // normal turn the last tick is the BEGINNING of the answer, and then this number is the
+                    // preparation time, not the turn duration. That may not disappear into a general sentence
+                    // above five lines that DO concern the answer.
                     <DurationPill
                         ms={trace.spanMs}
                         title={trace.spanOpen
@@ -359,9 +346,8 @@ const AnswerTracePanel = ({ msg = null, toolDecisions = {}, t = null, className 
                         </ol>
                     </div>
 
-                    {/* Dezelfde tijdlijn als in "How I got this answer" — de
-                        tools die deze beurt echt draaide. Apart ingeklapt, want
-                        het is een tweede lijst met een eigen nummering. */}
+                    {/* The same timeline as in "How I got this answer": the tools that this turn really ran.
+                        Collapsed separately, because it is a second list with its own numbering. */}
                     {trace.tools.length > 0 && (
                         <details className="mt-2">
                             <summary

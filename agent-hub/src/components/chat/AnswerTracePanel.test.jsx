@@ -5,16 +5,15 @@ import { describe, it, expect } from 'vitest';
 import AnswerTracePanel from './AnswerTracePanel';
 
 /**
- * Het spoorpaneel op het scherm. Drie dingen die er echt toe doen:
+ * The trace panel on screen. Three things here really matter:
  *
- *   1. EEN ONTBREKENDE STAP IS ZICHTBAAR. Het paneel toont altijd vijf regels;
- *      een regel zonder event staat er met de reden erbij en zonder één feit.
- *      Alleen de geslaagde stappen tonen leest als een compleet verhaal, en
- *      dan is "niet gemeten" niet te onderscheiden van "niet gebeurd".
- *   2. GEOORDEELD ZIET ER ANDERS UIT DAN OPGETEKEND. Dezelfde dragers als de
- *      chiprij: eigen vorm, eigen kopje, de uitleg als toegankelijke naam.
- *   3. EEN BESLISSING DIE ALSNOG VALT, WERKT DE REGEL BIJ — en zegt daarbij
- *      het verschil tussen "heeft gedraaid" en "gaat draaien".
+ *   1. A MISSING STEP IS VISIBLE. The panel always shows five lines. A line without an event stands
+ *      there with the reason, and without a single fact. Showing only the successful steps reads as a
+ *      complete story, and then "not measured" is indistinguishable from "did not happen".
+ *   2. JUDGED LOOKS DIFFERENT FROM RECORDED. The same carriers as the chip row: its own shape, its own
+ *      heading, the explanation as the accessible name.
+ *   3. A DECISION THAT STILL FALLS UPDATES THE LINE, and says then the difference between "has run"
+ *      and "is going to run".
  */
 
 const KEY = 'a'.repeat(32);
@@ -31,10 +30,9 @@ const fullTurn = () => ({
         step('processed_history', { startedAt: 1000, endedAt: 1020, durationMs: 20 }),
         step('building_prompt', { startedAt: 1020, endedAt: 1060, durationMs: 40 }),
         step('kb_search', { startedAt: 1060, endedAt: 1260, durationMs: 200 }),
-        // GEEN `endedAt`: `streaming_start` krijgt nergens een tegenhanger —
-        // elke emitter is een kale `emitPhase(...)` en de `emitPhaseEnd`-lijst
-        // kent die stage niet. Een fixture die er wél een geeft bevestigt een
-        // vorm die niet bestaat.
+        // NO `endedAt`: `streaming_start` has no counterpart anywhere. Every emitter is a bare
+        // `emitPhase(...)`, and the `emitPhaseEnd` list does not know that stage. A fixture that does
+        // give one confirms a shape that does not exist.
         step('streaming_start', { detail: 'claude-opus-5', startedAt: 1300, endedAt: null, durationMs: null }),
     ],
     toolHistory: [{ name: 'kb_search', args: { query: 'verlofdagen' }, startTime: 1060, endTime: 1260, status: 'done' }],
@@ -72,11 +70,9 @@ describe('de vijf regels', () => {
     });
 
     it('BIJT — en zegt dat de klok stopt waar het antwoord BEGINT', () => {
-        // De laatste tik in een echt spoor is `streaming_start`, en die krijgt
-        // geen einde. Dit getal is dus de voorbereidingstijd, niet de beurtduur
-        // — een beurt van twintig seconden toont hier 300ms. Dat mag niet
-        // verdwijnen in een algemene zin boven vijf regels die wél over het
-        // antwoord gaan.
+        // The last tick in a real trace is `streaming_start`, and that gets no end. So this number is
+        // the preparation time, not the turn duration: a turn of twenty seconds shows 300ms here. That
+        // may not disappear into a general sentence above five lines that DO concern the answer.
         render(<AnswerTracePanel msg={fullTurn()} />);
         const pill = document.querySelector('[data-testid="duration-pill"]');
         expect(pill.getAttribute('title'))
@@ -121,8 +117,7 @@ describe('een ontbrekende stap', () => {
     });
 
     it('BIJT — een ontbrekende regel toont GEEN feit en GEEN duur', () => {
-        // Een gedempte regel met toch een getal erin is op het scherm niet van
-        // een gemeten stap te onderscheiden.
+        // A muted line with a number in it is not distinguishable on screen from a measured step.
         render(<AnswerTracePanel msg={plain()} />);
         const row = rowFor('sources');
         expect(within(row).queryByTestId('trace-fact')).toBeNull();
@@ -177,8 +172,7 @@ describe('geoordeeld ziet er anders uit', () => {
     });
 
     it('BIJT — hij draagt een andere VORM dan de opgetekende regels', () => {
-        // Kleur alleen is geen drager: dit moet een schermafdruk in grijstinten
-        // overleven. De gestippelde rand is die vorm.
+        // Colour alone is not a carrier: this must survive a screenshot in greyscale. The dotted border is that shape.
         render(<AnswerTracePanel msg={fullTurn()} />);
         expect(screen.getByTestId('trace-judged').getAttribute('style'))
             .toContain('dashed');
@@ -194,8 +188,7 @@ describe('geoordeeld ziet er anders uit', () => {
     });
 
     it('BIJT — zonder attributie staat er geen regel die zegt dat er niets gevolgd is', () => {
-        // Dat zou een bewering zijn uit de bron die net bewees niets te kunnen
-        // beweren.
+        // That would be a claim from the source that just proved it could claim nothing.
         render(<AnswerTracePanel msg={{ ...fullTurn(), ruleAttribution: { rules: [] } }} />);
         expect(rowFor('rule').textContent.toLowerCase()).not.toContain('rule followed');
         expect(rowFor('rule').textContent.toLowerCase()).not.toContain('no rule was');
@@ -221,8 +214,8 @@ describe('een beslissing die alsnog valt', () => {
     });
 
     it('BIJT — een klik zegt NIET dat het gedraaid heeft', () => {
-        // De beslissing reist mee met het volgende bericht; er is nog niets
-        // gebeurd. "You approved this — it ran" zou daar onwaar zijn.
+        // The decision travels along with the next message; nothing has happened yet. "You approved this,
+        // it ran" would be false there.
         render(<AnswerTracePanel msg={fullTurn()} toolDecisions={{ [KEY]: 'approve' }} />);
         expect(screen.getByTestId('trace-held').textContent).not.toContain('it ran');
     });

@@ -20,21 +20,20 @@
  * Bounded on purpose: MAX_CONTEXT_ROWS rows, and the caller caps the serialised
  * characters on top. This is context for a prompt, not an export channel.
  *
- * ── DE TWEEDE TABELSOORT ────────────────────────────────────────────
- * Een modeltabel die haar rijen uit een Studio-datatabel haalt bestaat niet in
- * `studioAppDbStore`. Dit was het vierde-en-een-half leespad dat dat niet wist:
- * de lezing raakte de lege schaduwtabel, gaf `[]`, en de catch hieronder maakte
- * van een SQL-fout `null`. Een AI-stap die "de openstaande tickets" als context
- * bindt kreeg dus een leeg antwoord dat niet te onderscheiden was van "er zijn
- * geen rijen" — precies het onderscheid dat readError.js elders wél maakt.
+ * ── THE SECOND KIND OF TABLE ────────────────────────────────────────
+ * A model table that fetches its rows from a Studio datatable does not exist in
+ * `studioAppDbStore`. This was the four-and-a-half-th read path that did not know that: the
+ * read touched the empty shadow table, returned `[]`, and the catch below turned an SQL error
+ * into `null`. An AI step that binds "the open tickets" as context thus received an empty answer
+ * that could not be told apart from "there are no rows" — precisely the distinction that
+ * readError.js does make elsewhere.
  *
- * De koppeling gaat nu door `datatableSource.resolveDatatableRead`, dezelfde
- * body als dataReadRunner. De belofte hierboven ("alles hier gaat als de
- * VIEWER") wordt daarmee ook voor deze soort waar: de graad is die van de
- * kijker, versmald met die van de app-eigenaar, met de app-rol en met de mode.
- * Een WEIGERING wordt hier NIET tot `null` afgevlakt maar doorgegooid — hij
- * draagt `safe:true` en een status, en de dispatcher zet de reden in de
- * stapfout. Alleen zo blijven "leeg" en "mocht niet" verschillende antwoorden.
+ * The link now goes through `datatableSource.resolveDatatableRead`, the same body as
+ * dataReadRunner. The promise above ("everything here runs as the VIEWER") is thereby also true
+ * for this kind: the grade is that of the viewer, narrowed with that of the app owner, with the
+ * app role and with the mode. A REFUSAL is NOT flattened to `null` here but thrown on — it carries
+ * `safe:true` and a status, and the dispatcher puts the reason in the step error. Only in this
+ * way do "empty" and "not allowed" remain different answers.
  */
 
 'use strict';
@@ -117,11 +116,10 @@ async function resolveDataBinding(app, model, binding, { viewer, role, resolveVa
     const { filters, blocked } = resolveFilters(binding.filter, resolveValue);
     if (blocked) return binding.kind === 'record' ? null : [];
 
-    // WAAR de rijen staan en met welke rechten — de enige plek in dit bestand
-    // waar de twee tabelsoorten uit elkaar gaan. Alles erna is één
-    // implementatie. Een weigering van de koppeling gaat NIET door de catches
-    // hieronder: die maken van "kon niet" een lege context, en dat is precies
-    // het antwoord dat hier niet gegeven mag worden.
+    // WHERE the rows are stored and with which rights — the only place in this file where the two
+    // kinds of table part ways. Everything after it is one implementation. A refusal of the link
+    // does NOT go through the catches below: those turn "could not" into an empty context, and that
+    // is exactly the answer that must not be given here.
     const plan = await readPlan(app, table, viewer, role);
 
     const accessFilter = rlsGateway.compileAccessFilter(
@@ -171,11 +169,10 @@ async function resolveDataBinding(app, model, binding, { viewer, role, resolveVa
 }
 
 /**
- * De tabelbeschrijving, de rol, de viewer, de dialect en de opslag — voor
- * allebei de tabelsoorten in dezelfde vorm. De tweelingbroer van
- * `dataReadRunner.readPlan`; dat die twee er zijn komt doordat een STAP geen
- * request-ctx heeft (geen memoïsatie, geen ownerScope) — de BESLISSING is
- * dezelfde functie, en dat is het stuk dat niet mag verdubbelen.
+ * The table description, the role, the viewer, the dialect and the storage — for both kinds of
+ * table in the same shape. The twin of `dataReadRunner.readPlan`; that there are two of them comes
+ * from the fact that a STEP has no request ctx (no memoisation, no ownerScope) — the DECISION is
+ * the same function, and that is the part that must not be duplicated.
  */
 async function readPlan(app, table, viewer, role) {
     if (!datatableSource.isDatatableBacked(table)) {
@@ -196,7 +193,7 @@ async function readPlan(app, table, viewer, role) {
     );
     return {
         tableMeta: resolved.tableMeta,
-        // De GRAAD is hier de rol: het access-blok komt van de datatabel.
+        // The GRADE is the role here: the access block comes from the datatable.
         role: resolved.grade,
         viewer: resolved.viewer,
         dialect: resolved.dialect,

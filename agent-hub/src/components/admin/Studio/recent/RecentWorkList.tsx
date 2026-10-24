@@ -46,47 +46,43 @@ interface RecentWorkListProps {
 }
 
 /**
- * "Laatst bewerkt" — de tweede lijst op het Startscherm van Studio (Track H3).
+ * “Last edited” — the second list on the Studio Start screen (Track H3).
  *
- * Wat er op een rij staat en waar het vandaan komt staat in recentWork.js;
- * dit bestand tekent het. Drie dingen zijn hier de moeite van het lezen waard.
+ * What appears on a row, and where it comes from, is in recentWork.js; this file draws
+ * it. Three things here are worth reading.
  *
- * ── Eén woord per rij, en twee manieren om er geen te hebben ────────────────
+ * ── One word per row, and two ways to have none ───────────────────────────
  *
- * Zes van de negen lijsten dragen een status; drie niet (kennisbanken,
- * skills, oplossingen). Een rij van die drie krijgt GEEN groen vinkje en ook
- * geen lege plek — allebei lezen als "in orde" — maar het woord "No status"
- * in neutrale inkt, met de reden in de tooltip en één zin onder de lijst. Een
- * rij van de andere zes waarvan het veld ontbrak zegt "Status unknown": een
- * ander feit, een andere zin.
+ * Six of the nine lists carry a status; three do not (knowledge bases, skills,
+ * solutions). A row from those three gets NO green tick and also no empty place — both
+ * read as “all fine” — but the word “No status” in neutral ink, with the reason in the
+ * tooltip and one sentence beneath the list. A row from the other six whose field was
+ * missing says “Status unknown”: a different fact, a different sentence.
  *
- * ── Kort is niet hetzelfde als klaar ────────────────────────────────────────
+ * ── Short is not the same as done ─────────────────────────────────────────
  *
- * Een lege lijst heeft twee oorzaken en maar één daarvan is goed nieuws.
- * `complete` (geen enkele sectie die omviel) is het enige recht om "nog niets
- * bewerkt" te zeggen; anders staat er dat er niet overal gekeken kon worden,
- * mét de namen van de lijsten die niet meededen. Dezelfde regel als
- * AttentionList ernaast, en om dezelfde reden.
+ * An empty list has two causes, and only one of them is good news. `complete` (no
+ * single section that fell over) is the only right to say “nothing edited yet”;
+ * otherwise it says that not everywhere could be looked, with the names of the lists
+ * that did not take part. The same rule as AttentionList beside it, and for the same
+ * reason.
  *
- * Een sectie die de server WEIGERT (403) of die achter een licentie zit is
- * geen gat: daar valt voor deze persoon niets te bewerken. Die zwijgt, want
- * een waarschuwing die iedereen elke dag ziet leert iedereen waarschuwingen
- * te negeren.
+ * A section that the server REFUSES (403), or that sits behind a licence, is not a gap:
+ * there is nothing for this person to edit there. That is silent, because a warning
+ * that everyone sees every day teaches everyone to ignore warnings.
  *
- * Twee dingen zijn dat WEL, en allebei zijn ze onzichtbaar als je er niet naar
- * vraagt: de poorten die nog geen antwoord hebben (`gatesResolved` false — dan
- * staan de gegate secties niet eens in de lijst, dus ze kunnen niet gemist
- * worden) en een runtime-module die deze build niet kan uitlezen. Allebei
- * krijgen ze een zin, en allebei houden ze "nog niets bewerkt" tegen.
+ * Two things ARE that, and both are invisible if you do not ask for them: the gates
+ * that do not yet have an answer (`gatesResolved` false — then the gated sections are
+ * not even in the list, so they cannot be missed) and a runtime module that this build
+ * cannot read. Both get a sentence, and both prevent “nothing edited yet”.
  *
- * ── Eén keer ophalen, bij het openen ────────────────────────────────────────
+ * ── Fetch once, on opening ────────────────────────────────────────────────
  *
- * Geen timer. De rail pollt de aantallen al; deze lijst kost maximaal negen
- * verzoeken en die horen bij het openen van het scherm, niet bij elke halve
- * minuut dat het openstaat.
+ * No timer. The rail already polls the counts; this list costs at most nine requests,
+ * and those belong to opening the screen, not to every half minute that it stays open.
  */
 
-/** Het statuswoord van een rij: altijd een woord, nooit een leeg vakje. */
+/** The status word of a row: always a word, never an empty box. */
 function StatusWord({ t, status, testId }: StatusWordProps) {
     const label = statusLabel(status);
     return (
@@ -103,11 +99,10 @@ function StatusWord({ t, status, testId }: StatusWordProps) {
 }
 
 /**
- * Eén rij: waar het over gaat, in welke staat het is, en wanneer het veranderde.
+ * One row: what it is about, in what state it is, and when it changed.
  *
- * Het glyph komt als node binnen, niet als soortnaam — zo staat de opzoeking
- * in het register op dezelfde plek als bij AttentionList ernaast, en tekent
- * deze rij alleen.
+ * The glyph arrives as a node, not as a kind name — so the lookup in the register sits
+ * in the same place as in AttentionList beside it, and this row draws only that.
  */
 function RecentRow({ t, locale, entry, icon, onOpen }: RecentRowProps) {
     const when = entry.at === null ? null : formatRelativeTime(entry.updatedAt, { locale });
@@ -126,8 +121,8 @@ function RecentRow({ t, locale, entry, icon, onOpen }: RecentRowProps) {
                         {entry.name || t('studio.recent.untitled', 'Untitled')}
                     </span>
                     <StatusWord t={t} status={entry.status} testId={`studio-recent-status-${entry.key}`} />
-                    {/* Alleen een tijd als er een leesbare tijd was. "just now"
-                        boven een onleesbare tijdstempel is een verzinsel. */}
+                    {/* A time only if there was a readable time. “just now” above an unreadable timestamp
+                        is an invention. */}
                     {when && (
                         <span className="flex-shrink-0 text-[11px] text-[var(--text-tertiary)]" data-testid={`studio-recent-when-${entry.key}`}>
                             {when}
@@ -145,8 +140,8 @@ function RecentRow({ t, locale, entry, icon, onOpen }: RecentRowProps) {
 }
 
 /**
- * De zin onder de kop. Precies één van drie, en de eerste twee zijn het paar
- * dat dit scherm uit elkaar moet houden.
+ * The sentence under the heading. Precisely one of three, and the first two are the pair
+ * that this screen must keep apart.
  */
 function StatusLine({ t, total, complete, missing, gatesUnknown, unsupported }: StatusLineProps) {
     // Eén of meer lijsten, met hun eigen naam erbij. Meervoud via de sleutel,
@@ -157,9 +152,9 @@ function StatusLine({ t, total, complete, missing, gatesUnknown, unsupported }: 
         'Could not read these lists: {sections}',
         { sections: missing.join(', ') },
     );
-    // De poorten zelf hadden nog geen antwoord: de gegate secties stonden er
-    // dan niet eens, dus ze zijn niet als "geweigerd" te melden — alleen als
-    // niet-gevraagd. Zonder deze zin is dat stilte met een geruststelling erop.
+    // The gates themselves had no answer yet: the gated sections were not there, so they
+    // are not to be reported as “refused” — only as not asked. Without this sentence,
+    // that is silence with a reassurance on it.
     const gatesLine = () => t(
         'studio.recent.gates_unknown',
         'Some lists were not asked for yet because your access is still being checked.',
@@ -208,15 +203,12 @@ export default function RecentWorkList({
     const { t, locale } = useTranslation();
     const [state, setState] = useState<RecentWorkState | null>(null);
 
-    // De secties zijn elke render een nieuwe array; de ids erin niet. Het
-    // ophalen hangt aan die ids, zodat een render van de ouder geen tweede
-    // ronde verzoeken uitlokt.
+    // The sections are a new array on every render; the ids in them are not. The fetch
+    // depends on those ids, so a render of the parent does not trigger a second round of requests.
     const asked = useMemo(() => recentSourcesFor(sections).asked, [sections]);
     const askedKey = asked.map((a) => a.sectionId).join(',');
 
-    // Bijgehouden in een effect, niet tijdens de render: een ref die tijdens
-    // het renderen wordt geschreven is een render met een bijwerking. Staat
-    // BOVEN het effect dat hem leest — dat is de volgorde waarin ze lopen.
+    // Tracked in an effect, not during render: a ref written during rendering is a render with a side effect. It sits ABOVE the effect that reads it — that is the order they run in.
     const sectionsRef = useRef(sections);
     useEffect(() => { sectionsRef.current = sections; });
 
@@ -229,17 +221,14 @@ export default function RecentWorkList({
         return () => { cancelled = true; };
     }, [askedKey, limit, gatesResolved]);
 
-    // Vóór het eerste antwoord wordt er niets beweerd — geen lege lijst, geen
-    // geruststelling. Dezelfde regel als de aantallen op de rail.
+    // Before the first answer, nothing is claimed — no empty list, no reassurance. Same rule as the counts on the rail.
     if (!state) return null;
 
     const { items, unavailable, complete, unsupported = [] } = state;
-    // De namen van de lijsten die niet gelezen konden worden, uit hetzelfde
-    // register als de rail — "Agents" hier en "Agents" daar.
+    // The names of the lists that could not be read, from the same register as the rail — "Agents" here and "Agents" there.
     const byId = new Map<string, StudioNavSection>((sections || []).filter(Boolean).map((app) => [app.id, app]));
     const nameOf = (id: string) => studioSectionLabel(byId.get(id), t, locale) || id;
-    // 'gates' is geen sectie maar het ontbrekende antwoord op de vraag WELKE
-    // secties er zijn; het krijgt daarom zijn eigen zin en geen naam in de rij.
+    // 'gates' is not a section but the missing answer to the question WHICH sections there are; it therefore gets its own sentence and no name in the row.
     const gatesUnknown = unavailable.includes('gates');
     const missing = unavailable.filter((id) => id !== 'gates').map(nameOf);
     const statusless = statuslessKinds(items);
@@ -275,8 +264,7 @@ export default function RecentWorkList({
                 </div>
             )}
 
-            {/* Zonder deze zin is een rij met "No status" een lege plek zonder
-                uitleg — en dat is precies wat dit scherm niet mag tonen. */}
+            {/* Without this sentence a row with "No status" is an empty spot with no explanation — and that is exactly what this screen must not show. */}
             {statusless.length > 0 && (
                 <p className="mt-1.5 text-[11.5px] text-[var(--text-tertiary)]" data-testid="studio-recent-statusless">
                     {t('studio.recent.statusless', 'Some kinds do not report a status in this list, so none is shown for them.')}

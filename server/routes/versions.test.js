@@ -175,7 +175,7 @@ test('pre-refine snapshots the agent as kind pre_refine and hands back the id', 
     assert.strictEqual(agentId, 'a1');
     assert.strictEqual(userId, 'u1');
     assert.strictEqual(opts.kind, 'pre_refine', "nooit 'published' — dat is het andere werkwoord");
-    // Een snapshot is een LEESpunt, geen bewerking: er mag niets geschreven zijn.
+    // A snapshot is a READ point, not an edit: nothing may have been written.
     assert.strictEqual(fx.updateCalls.length, 0);
     assert.strictEqual(fx.publishCalls.length, 0);
 });

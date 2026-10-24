@@ -1,20 +1,18 @@
 'use strict';
 
 /**
- * validate — de TWEEDE tabelsoort: een modeltabel die haar rijen uit een
- * Studio-datatabel haalt (model.tables[].source).
+ * validate — the SECOND kind of table: a model table that fetches its rows from a Studio
+ * datatable (model.tables[].source).
  *
- * Wat hier gepind wordt is precies wat er mis kan gaan zonder dat iemand het
- * merkt:
+ * What is pinned here is precisely what can go wrong without anyone noticing:
  *
- *   1. een datatableId die nergens naar wijst wordt BIJ NAAM gemeld — stil
- *      overslaan levert een app op die publiceert, draait en een leeg scherm
- *      toont, en dan is er niets dat vertelt wáár het misging;
- *   2. `mode` kent twee waarden en een derde is een fout, nooit een
- *      stilzwijgende 'read';
- *   3. een tabel ZONDER source verandert nergens van gedrag — dit is additief.
+ *   1. a datatableId that points nowhere is reported BY NAME — silently skipping it yields an
+ *      app that publishes, runs and shows an empty screen, and then nothing says WHERE it went
+ *      wrong;
+ *   2. `mode` has two values and a third is an error, never a silent 'read';
+ *   3. a table WITHOUT source changes nothing in behaviour — this is additive.
  *
- * Draaien: node --test --test-reporter=tap appStudio/validate.tableSource.test.js
+ * Run: node --test --test-reporter=tap appStudio/validate.tableSource.test.js
  */
 
 const { test } = require('node:test');
@@ -75,10 +73,10 @@ test('a dangling datatableId is reported BY NAME as an error when the owner list
     const rec = find(res.errors, 'binding.unknown_datatable');
     assert.ok(rec, `expected binding.unknown_datatable, got ${JSON.stringify(res.errors)}`);
     assert.equal(rec.severity, 'error');
-    // BIJ NAAM: de id staat in het bericht, niet alleen in het pad.
+    // BY NAME: the id is in the message, not only in the path.
     assert.match(rec.message, /tbl_dt0001/);
-    // En het pad wijst naar de plek waar de auteur het kan repareren — de
-    // binding — niet naar een pad in het datamodel dat de editor niet kent.
+    // And the path points to the place where the author can repair it — the binding — not to a path
+    // in the data model that the editor does not know.
     assert.equal(rec.path, 'screens[0].sections[0].children[0].props.source.tableId');
     assert.ok(rec.hint, 'a finding without a hint is half a finding');
 });
@@ -89,7 +87,7 @@ test('without an owner list it is a WARNING — also by name; unknown is never s
     assert.ok(rec, `expected binding.datatable_unverified, got ${JSON.stringify(res.warnings)}`);
     assert.equal(rec.severity, 'warning');
     assert.match(rec.message, /tbl_dt0001/);
-    // Geen lijst mag NOOIT als "alles resolvet" gelezen worden.
+    // No list may EVER be read as "everything resolves".
     assert.ok(!has(res.errors, 'binding.unknown_datatable'));
 });
 
@@ -113,7 +111,7 @@ test('a linked table with no Studio table selected is an error, not a shrug', ()
 });
 
 test('the finding rides the same draft/publish ladder as every other data reference', () => {
-    // dataRefsAsWarnings: een half bedrade concept moet opslaanbaar blijven.
+    // dataRefsAsWarnings: a half-wired draft must remain saveable.
     const draft = run(readsLinked, {
         dataModel: modelWith(LINKED), datasets: [], datatables: ['tbl_other1'], dataRefsAsWarnings: true,
     });
@@ -188,8 +186,8 @@ test('checkTableRef still runs alongside it — an unknown table is still an unk
         dataModel: modelWith(LINKED), datasets: [], datatables: ['tbl_dt0001'],
     });
     assert.ok(has(res.errors, 'binding.unknown_table'), JSON.stringify(res.errors));
-    // …en het bronoordeel zwijgt over een tabel die het model niet kent: dat is
-    // al gemeld, en twee bevindingen over hetzelfde gat helpen niemand.
+    // …and the source verdict stays silent about a table that the model does not know: that is
+    // already reported, and two findings about the same gap help nobody.
     assert.ok(!has(res.errors, 'binding.unknown_datatable'));
 });
 
@@ -205,7 +203,7 @@ test('every read binding kind asks the question, not just records', () => {
     }
 });
 
-// ── 4. Kolommen van een gekoppelde tabel zijn niet van de app ────────
+// ── 4. Columns of a linked table do not belong to the app ────────
 
 test('filter/sort keys on a LINKED table are not judged here — the datatable owns its columns', () => {
     const binding = {
@@ -223,16 +221,14 @@ test('…while a table with its own storage still has every column checked', () 
     assert.ok(has(res.errors, 'binding.unknown_field'), JSON.stringify(res.errors));
 });
 
-// ── 4. Elk ANDER pad dat een tabel noemt ─────────────────────────────
+// ── 4. Every OTHER path that names a table ─────────────────────────────
 //
-// checkTableSource hing alleen aan de LEESbindingen (validate/bindings.js), dus
-// een app waarvan de gekoppelde tabel alleen door een STAP, door een
-// approval-haak, door een ai-writeTo of door een input_relation werd aangeraakt,
-// valideerde en publiceerde schoon terwijl `source.datatableId` naar een
-// Studio-tabel wees die de eigenaar niet meer heeft. De fout viel dan pas bij het
-// draaien, op het scherm van de gebruiker.
+// checkTableSource was only attached to the READ bindings (validate/bindings.js), so an app whose
+// linked table was touched only by a STEP, by an approval hook, by an ai writeTo or by an
+// input_relation validated and published cleanly while `source.datatableId` pointed to a Studio
+// table that the owner no longer has. The error then surfaced only when running, on the user's screen.
 
-const KNOWN = ['tbl_dtaaaa'];  // een eigenaarslijst waar tbl_dt0001 NIET in staat
+const KNOWN = ['tbl_dtaaaa'];  // an owner list that tbl_dt0001 is NOT in
 const RW = { kind: 'datatable', datatableId: 'tbl_dt0001', mode: 'readwrite' };
 
 /** Eén knop met één actie, plus (optioneel) een los component. */
@@ -266,7 +262,7 @@ test('een STAP die een gekoppelde tabel noemt krijgt dezelfde harde fout als een
 test('een SCHRIJFstap op een mode:read-koppeling is een fout bij het publiceren, niet bij het klikken', () => {
     for (const [what, action] of STEP_CASES) {
         const res = validateAppDefinition(defWithAction(action), {
-            // De datatabel BESTAAT hier wel — alleen de koppeling is read.
+            // The datatable DOES exist here — only the link is read.
             dataModel: modelWith(LINKED), datasets: [], datatables: ['tbl_dt0001'],
         });
         const rec = find(res.errors, 'step.table_read_only');

@@ -139,9 +139,8 @@ test('the caller gets a count for every app they may see — zero included', asy
 });
 
 test('the number is asked per APP, never per viewer', async () => {
-    // De valkuil uit APPS-08: de verbruiksrijen staan op de EIGENAAR van de
-    // app. Zodra de kijker het filter wordt, telt elke app op nul voor iedereen
-    // behalve de bouwer — en nul is een geldig getal, dus dat ziet niemand.
+    // The trap from APPS-08: the usage rows are on the OWNER of the app. As soon as the viewer becomes the filter, every app counts zero for everyone
+    // except the builder — and zero is a valid number, so nobody sees that.
     await api('/usage-counts', { user: 'alice' });
     assert.strictEqual(calls.usage.length, 1);
     const { appIds, opts } = calls.usage[0];

@@ -8,9 +8,9 @@ const ACCENT = '#3B82F6';
 
 // ─── Constants ──────────────────────────────────────────────────
 
-// Modelnamen van Google; die vertalen niet mee. Alleen het woord tussen
-// haakjes is copy, en dat blijft bewust bij de naam staan zodat de twee
-// regels in de lijst zich als één naam laten lezen.
+// Model names from Google; those are not translated. Only the word in brackets is
+// copy, and that deliberately stays with the name so that the two lines in the
+// list read as one name.
 const VIDEO_MODELS = [
     { label: 'Veo 3.1 (Quality)', value: 'veo-3.1-generate-preview' },
     { label: 'Veo 3.0 Fast (Speed)', value: 'veo-3.0-fast-generate-001' },

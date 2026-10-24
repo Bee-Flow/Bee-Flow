@@ -408,22 +408,18 @@ test('PUT /:id 404s for an invisible skill, and a structure error is a 400', asy
 });
 
 /**
- * De 4000-grens op `instructions` staat op de SERVER, en dat is de bedoeling:
- * de tekst gaat elke beurt mee in de systeemprompt, dus de grens hoort waar
- * de prompt wordt gebouwd en niet bij één van de clients.
+ * The 4000 limit on `instructions` sits on the SERVER, and that is the intention:
+ * the text goes along in the system prompt every turn, so the limit belongs where
+ * the prompt is built, and not with one of the clients.
  *
- * POST had die test al. PUT niet — terwijl PUT de route is waar de Studio elke
- * 350ms op uitkomt. Twee dingen worden hier vastgehouden:
+ * POST already had that test. PUT did not — while PUT is the route that the Studio hits every 350 ms. Two things are held here:
  *
- *   1. te lang is een 400 die NIETS schrijft. Een weigering die de rest van de
- *      body wel had opgeslagen zou een halve save zijn, en de editor toont er
- *      één rood lampje voor;
- *   2. precies 4000 mag WEL. De editor kapt zelf af op 4000 (SkillDetail's
- *      INSTRUCTION_LIMIT) om die 400 nooit uit te lokken. Zou de server op
- *      `>= 4000` weigeren, dan stuurt de client eindeloos de enige waarde die
- *      hij kan maken en die de server nooit accepteert — een lus die alleen
- *      als een kapot opslaanlampje zichtbaar is. De twee grenzen moeten dus
- *      dezelfde grens zijn, en dat is wat deze regel bewaakt.
+ *   1. too long is a 400 that writes NOTHING. A refusal that had still saved the rest of the body would be a half save, and the
+ *      editor shows one red light for it;
+ *   2. exactly 4000 IS allowed. The editor cuts off itself at 4000 (SkillDetail's
+ *      INSTRUCTION_LIMIT) so as never to provoke that 400. If the server refused at `>= 4000`, the client would endlessly send the
+ *      only value it can make and that the server never accepts — a loop that is only visible as a broken save light. The two limits must therefore
+ *      be the same limit, and that is what this line guards.
  */
 test('PUT /:id refuses instructions over the cap and writes nothing; exactly 4000 still passes', async () => {
     const tooLong = await call('put', '/:id', { params: { id: 'sk1' }, body: { instructions: 'a'.repeat(4001) } });

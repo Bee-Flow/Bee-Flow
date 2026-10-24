@@ -92,9 +92,9 @@ export default function WebpageChat({
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
 
-    // De vier voorbeelden zijn tekst voor de LEZER en tegelijk het bericht dat
-    // verstuurd wordt: ze horen dus in de taal van de gebruiker, niet in een
-    // module-constante die t() nooit kan bereiken.
+    // The four examples are text for the READER and at the same time the message
+    // that is sent: they therefore belong in the user's language, not in a module
+    // constant that t() can never reach.
     const quickStarts = React.useMemo(() => [
         t('webpages.chat.quick_bakery', 'Landing page for a bakery — hero, menu grid, contact form.'),
         t('webpages.chat.quick_portfolio', 'Personal portfolio site with project gallery and about section.'),

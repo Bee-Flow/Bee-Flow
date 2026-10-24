@@ -1,27 +1,20 @@
 /**
- * De DATA-API op een GEKOPPELDE tabel — de routes, niet de laag eronder.
+ * The DATA API on a LINKED table — the routes, not the layer underneath.
  *
- * De rechtenbeslissing staat in appStudio/datatableSource.js en wordt daar
- * getest (datatableSource.test.js + datatableSource.grades.test.js). Dit bestand
- * gaat over de vier plekken in routes/studioAppData.js die de tweede tabelsoort
- * NIET kenden en er dus stil omheen liepen:
+ * The rights decision lives in appStudio/datatableSource.js and is tested there
+ * (datatableSource.test.js + datatableSource.grades.test.js). This file is about the five places in routes/studioAppData.js that did NOT know the second table kind
+ * and therefore walked silently around it:
  *
- *   1. POST/PATCH  → actionExecutor.writeRecord. Het knooppunt las `table.source`
- *      niet, dus de rij belandde in de app-eigen schaduwtabel terwijl de lijst
- *      uit de datatabel leest: `success:true`, en de rij daarna nergens te zien.
- *   2. DELETE      → compileerde zijn eigen SQL tegen de MODELtabel; 404 op een
- *      rij die in de datatabel gewoon bestaat.
- *   3. readOne     → idem, dus een detailscherm zei structureel "Record not
- *      found" — en de her-lezing na een schrijving toonde de rij die net in de
- *      verkeerde opslag belandde als bewijs dat het gelukt was.
- *   4. GET /tables → filterde alleen op `rlsGateway.canRead` (het access-blok van
- *      de APP), dus naam en kolomnamen van een gekoppelde tabel stonden in de
- *      lijst van een lid dat de datatabel niet mag lezen.
- *   5. GET /export → schreef een gekoppelde tabel weg als `[]`, zonder enige
- *      markering. In een privacyproduct is dat het bestand waarmee iemand een
- *      inzageverzoek beantwoordt.
+ *   1. POST/PATCH  → actionExecutor.writeRecord. The node did not read `table.source`,
+ *      so the row landed in the app's own shadow table while the list reads from the data table: `success:true`, and the row then nowhere to be seen.
+ *   2. DELETE      → compiled its own SQL against the MODEL table; 404 on a row that does exist in the data table.
+ *   3. readOne     → likewise, so a detail screen structurally said "Record not
+ *      found" — and the re-read after a write showed the row that had just landed in the wrong store as proof that it had worked.
+ *   4. GET /tables → filtered only on `rlsGateway.canRead` (the access block of the APP), so the name and column names of a linked table were in
+ *      the list of a member who may not read the data table.
+ *   5. GET /export → wrote a linked table out as `[]`, without any marking. In a privacy product that is the file with which someone answers a subject access request.
  *
- * Draaien: cd server && node --test --test-reporter=tap routes/studioAppData.datatable.test.js
+ * Run: cd server && node --test --test-reporter=tap routes/studioAppData.datatable.test.js
  */
 
 'use strict';
@@ -243,7 +236,7 @@ test('POST records schrijft in de DATATABEL en leest de rij daar terug', async (
     assert.ok(dtCalls.some((c) => c.op === 'exec' && /^INSERT INTO "dt_klanten"/.test(c.sql)));
     // …en de her-lezing ook, dus wat de UI toont is wat er echt staat.
     assert.ok(dtCalls.some((c) => c.op === 'query' && /FROM "dt_klanten"/.test(c.sql)));
-    // De app-eigen opslag is niet aangeraakt voor deze tabel.
+    // The app's own storage is not touched for this table.
     assert.deepStrictEqual(onlyAppTable(appDb), []);
 });
 
@@ -332,8 +325,7 @@ test('GET één record leest de DATATABEL — niet structureel 404', async () =>
 });
 
 test('GET één record zonder graad is 403 met een reden, nooit 404', async () => {
-    // 404 wordt door de runtime-client een LEGE lijst (readError.js), dus een
-    // weigering die 404 antwoordt verschijnt op het scherm als "er is niets".
+    // A 404 becomes an EMPTY list in the runtime client (readError.js), so a refusal that answers 404 appears on the screen as "there is nothing".
     reset({ granted: [] });
     const app = makeApp('readwrite');
     const r = await dispatch({ url: `/${app.id}/data/tables/tbl_link01/records/rec_1`, user: MEMBER });
@@ -352,11 +344,11 @@ test('GET /data/tables toont een gekoppelde tabel alleen aan wie hem mag lezen',
     assert.ok(linked, 'met een grant staat hij er gewoon in');
     assert.strictEqual(linked.linked, true);
     assert.strictEqual(linked.readOnly, false);
-    // De datatableId hoort bij de organisatie waar hij staat, niet bij deze app.
+    // The datatableId belongs to the organisation where it sits, not to this app.
     assert.strictEqual('source' in linked, false);
     assert.strictEqual(JSON.stringify(linked).includes(DT_ID), false);
 
-    // …en zonder grant staat hij er NIET in — ook zijn naam en kolomnamen niet.
+    // …and without a grant it is NOT in there — not even its name and column names.
     reset({ granted: [] });
     const hidden = await dispatch({ url: `/${app.id}/data/tables`, user: MEMBER });
     assert.strictEqual(hidden.statusCode, 200);

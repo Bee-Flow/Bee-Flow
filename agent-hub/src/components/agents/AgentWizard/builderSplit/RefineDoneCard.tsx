@@ -17,27 +17,27 @@ export interface RefineDoneCardProps {
 }
 
 /**
- * De "Gedaan: …"-beurt van de verfijn-rail (A2 stap 5).
+ * The "Done: …" turn of the refine rail (A2 step 5).
  *
- * De rail toonde na een verfijning de hele plankaart terug — naam, omschrijving,
- * capabilities — terwijl de editor ernaast diezelfde velden al bijgewerkt laat
- * zien. Wat er ontbrak was het enige dat de gebruiker níét kan zien: WELKE
- * velden de verfijning heeft aangeraakt. Dat is `changes`, de diff uit
+ * After a refinement the rail showed the whole plan card again (name,
+ * description, capabilities), while the editor next to it already shows those
+ * same fields updated. What was missing was the one thing the user cannot see:
+ * WHICH fields the refinement touched. That is `changes`, the diff from
  * `state/refineMerge.diffRefinedPlan`.
  *
- * Twee regels zitten in dit bestand, en ze zijn allebei het soort dat later
- * per ongeluk wordt omgedraaid:
+ * Two rules sit in this file, and both are the kind that later gets reversed by
+ * accident:
  *
- *   EEN LEGE DIFF IS EEN ZIN, GEEN LEEG LIJSTJE. Een model dat de bestaande
- *   tekst terugkopieert levert nul wijzigingen op; "Gedaan" met niets eronder
- *   leest dan als "er is iets gebeurd dat ik je niet vertel".
+ *   AN EMPTY DIFF IS A SENTENCE, NOT AN EMPTY LIST. A model that copies the
+ *   existing text back yields zero changes. "Done" with nothing under it then
+ *   reads as "something happened that I am not telling you about".
  *
- *   ONGEDAAN MAKEN VERDWIJNT NOOIT STIL. De knop staat er ook als hij niet kán
- *   — zonder pre_refine-rij, of omdat er intussen een nieuwere verfijning
- *   overheen ging — en zegt dan wat eraan scheelt. Een knop die stil weggaat
- *   laat de gebruiker denken dat de verfijning definitief is; een knop die
- *   dóórdrukt zou een ANDER moment herstellen dan waar hij onder staat.
- *   Ongedaan maken gaat precies ÉÉN niveau diep: alleen de nieuwste beurt.
+ *   UNDO NEVER DISAPPEARS SILENTLY. The button is there even when it cannot act,
+ *   because there is no pre_refine row or because a newer refinement has gone
+ *   over it in the meantime, and then it says what is wrong. A button that quietly
+ *   goes away makes the user think the refinement is final. A button that did act
+ *   would restore a DIFFERENT moment than the one it sits under.
+ *   Undo goes exactly ONE level deep: only the newest turn.
  */
 
 /** De regel bij één wijziging — de vormkeuze is een SLEUTELkeuze, nooit een stringkeuze. */
@@ -72,8 +72,8 @@ function changeLabel(t: TranslateFn, change?: RefineChange) {
 }
 
 /**
- * De ongedaan-knop in vier toestanden. Drie ervan zijn "nee, en dit is waarom";
- * alleen `idle` doet iets.
+ * The undo button in four states. Three of them are "no, and this is why";
+ * only `idle` does something.
  */
 function undoStateOf({ undoVersionId, undoState, superseded }: { undoVersionId?: string | null; undoState?: string; superseded?: boolean }) {
     if (undoState === 'undone') return 'undone';
@@ -113,7 +113,7 @@ export default function RefineDoneCard({
             </div>
 
             {lines.length === 0 ? (
-                // Nul wijzigingen is een uitkomst, geen lege lijst.
+                // Zero changes is an outcome, not an empty list.
                 <p className="mt-1 text-[13px] text-[var(--text-secondary)]" data-testid="refine-done-nothing">
                     {t('agent_studio.refine.done_nothing', 'Nothing changed — the agent already worked that way.')}
                 </p>

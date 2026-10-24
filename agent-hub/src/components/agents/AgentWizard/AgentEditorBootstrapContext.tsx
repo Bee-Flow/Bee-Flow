@@ -23,20 +23,18 @@ const EMPTY: AgentEditorBootstrap = {
     allSkills: null,
     integrationStatus: null,
     categories: [],
-    // Dezelfde regel als voor de automatiseringen hieronder: een `[]` uit een MISLUKTE
-    // lezing is niet "deze org heeft geen categorieën". Zonder dat verschil
-    // verdween de categorietag van een agent DIE er een heeft zodra
-    // /agents/categories 403'de, en kreeg een agent zonder er een keuzelijst
-    // met alleen "No category" — waarna de enige mogelijke actie "+" is en de
-    // eigenaar een duplicaat aanmaakt van een categorie die gewoon bestaat.
+    // The same rule as for the automations below: a `[]` from a FAILED reading is not "this org has
+    // no categories". Without that difference the category tag of an agent that DOES have one
+    // disappeared as soon as /agents/categories returned 403, and that agent got a choice list with
+    // only "No category" — after which the only possible action is "+" and the owner creates a
+    // duplicate of a category that does exist.
     categoriesState: READ.LOADING,
     orgGroups: [],
     tiers: {},
     automations: [],
-    // "Kon de routinelijst gelezen worden?" — apart van de lijst zelf, want
-    // `/api/automation` hangt achter de automations-module en kan 403'en of
-    // omvallen, en dan is `[]` niet "deze gebruiker heeft geen automations".
-    // Alleen deze toestand mag beslissen of een scherm "geen" durft te zeggen.
+    // "Could the routine list be read?" — separate from the list itself, because `/api/automation`
+    // hangs behind the automations module and can 403 or fall over, and then `[]` is not "this user
+    // has no automations". Only this state may decide whether a screen dares to say "none".
     automationsState: READ.LOADING,
     loaded: false,
     refreshSkills: () => Promise.resolve(),
@@ -113,8 +111,8 @@ export function AgentEditorBootstrapProvider({ children }: { children?: ReactNod
                     try {
                         const data = await autosRes.json();
                         if (!signal.aborted) {
-                            // Een 200 zonder `automations`-array is geen lege
-                            // lijst maar een antwoord dat we niet herkennen.
+                            // A 200 without an `automations` array is not an empty list but an answer that we do not
+                            // recognise.
                             const ok = Array.isArray(data?.automations);
                             setAutomations(ok ? data.automations : []);
                             setAutomationsState(ok ? READ.OK : READ.ERROR);

@@ -1,77 +1,66 @@
 /**
- * De TESTCHAT (A4 deel A).
+ * The TESTCHAT (A4 part A).
  *
- * `POST /agents/:id/chat/stream` met `{ test: true }` is één gewone beurt in
- * een EFEMERE conversatie, gedraaid op het CONCEPT van de agent. Dit bestand
- * is de enige plek die vastlegt wát dat betekent, zodat de route, de runtime
- * en de kostenrapportage niet elk hun eigen antwoord verzinnen.
+ * `POST /agents/:id/chat/stream` with `{ test: true }` is one ordinary turn in an
+ * EPHEMERAL conversation, run on the DRAFT of the agent. This file is the only place that
+ * records WHAT that means, so that the route, the runtime and the cost reporting do not each
+ * invent their own answer.
  *
- * ── EEN TESTGESPREK IS GEEN GESPREK ─────────────────────────────────
- * Overal waar conversaties opduiken moet een testgesprek hetzelfde betekenen,
- * anders is de telling op de andere plek onwaar. Er is precies één mechanisme
- * dat dat garandeert: er wordt GEEN RIJ geschreven. `ephemeral: true` slaat de
- * hele persistentie over (chatStream maakt een in-memory `ephemeral-<ts>`), en
- * daarmee is het testgesprek per constructie afwezig in:
+ * ── A TEST CONVERSATION IS NOT A CONVERSATION ───────────────────────────
+ * Everywhere that conversations appear, a test conversation must mean the same thing, otherwise
+ * the count in the other place is untrue. There is exactly one mechanism that guarantees that:
+ * NO ROW IS WRITTEN. `ephemeral: true` skips the whole persistence (chatStream makes an
+ * in-memory `ephemeral-<ts>`), and so the test conversation is by construction absent from:
  *
- *   • de historie      — `listConversations` / `listAllConversations` /
+ *   • the history      — `listConversations` / `listAllConversations` /
  *                        `searchConversations` / `GET /:id/history`;
- *   • de kaartvoet A5  — `getAgentChatStats` telt rijen van
+ *   • the overview footer A5 — `getAgentChatStats` counts rows of
  *                        `agent_conversations`;
- *   • de Used-by-tab   — dezelfde teller, via `gatherUsage`;
- *   • de DSR-export    — die leest conversaties (nu nog niet, later wel) uit
- *                        dezelfde tabel.
+ *   • the Used-by tab   — the same counter, via `gatherUsage`;
+ *   • the DSR export    — which reads conversations (not yet, but later) from
+ *                        the same table.
  *
- * Een `is_test`-kolom zou het tegenovergestelde doen: dan bestaat de rij wél
- * en moet ELKE lezer een filter krijgen dat een nieuwe lezer volgend jaar
- * vergeet. Afwezigheid heeft geen lezers nodig.
+ * An `is_test` column would do the opposite: then the row does exist and EVERY reader would need
+ * a filter that a new reader next year forgets. Absence needs no readers.
  *
- * ── BEHALVE IN DE KOSTEN, EN DAAR KRIJGT HET ZIJN EIGEN NAAM ────────
- * `usageStore.logUsage` schrijft óók voor een efemere beurt — dat is juist,
- * een testbeurt kost echt geld op iemands sleutel. Maar hij schreef
- * `source: 'agent_stream'` / `'agent_chat'`, en dáár telde een testgesprek dus
- * wél mee als gewoon gesprek. Dat is de ene plek die de telling elders onwaar
- * maakte. Een testbeurt draagt vanaf nu zijn eigen bron, zoals de
- * testset-run dat al deed met `agent_test_grade`. `COUNT(DISTINCT
- * conversation_id)` over die bron is de eerlijke lezing van "n testgesprekken":
- * één efemere conversatie = één id = één testgesprek.
+ * ── EXCEPT IN THE COSTS, AND THERE IT GETS ITS OWN NAME ────────────────
+ * `usageStore.logUsage` also writes for an ephemeral turn — that is right, a test turn really
+ * costs money on someone's key. But it wrote `source: 'agent_stream'` / `'agent_chat'`, and there a
+ * test conversation WAS counted as an ordinary conversation. That is the one place that made the
+ * count elsewhere untrue. A test turn now carries its own source, as the test-set run already did
+ * with `agent_test_grade`. `COUNT(DISTINCT conversation_id)` over that source is the honest reading
+ * of "n test conversations": one ephemeral conversation = one id = one test conversation.
  *
- * Die laatste zin is een EIS aan de id, geen waarneming. Een efemere
- * conversatie kreeg zijn id per REQUEST (`ephemeral-<Date.now()>`), dus
- * `COUNT(DISTINCT …)` telde beurten en een testgesprek van zes berichten
- * rapporteerde er zes. `ephemeralConversationId` hieronder maakt de id
- * STABIEL over de beurten van één testgesprek: de client draagt zijn
- * sessiesleutel mee en de server hasht die samen met de gebruiker en de agent.
- * Zonder sleutel is het antwoord willekeurig-en-nieuw — dat telt te HOOG
- * (elke beurt een gesprek), en dat is de kant waar niemand een gesprek
- * ziet dat niet bestond.
+ * That last sentence is a REQUIREMENT on the id, not an observation. An ephemeral conversation got
+ * its id per REQUEST (`ephemeral-<Date.now()>`), so `COUNT(DISTINCT …)` counted TURNS and a test
+ * conversation of six messages reported six. `ephemeralConversationId` below makes the id STABLE
+ * across the turns of one test conversation: the client carries its session key and the server
+ * hashes it together with the user and the agent. Without a usable key the answer is random-and-new —
+ * that counts too HIGH (every turn a conversation), and that is the side where nobody sees a
+ * conversation that did not exist.
  *
- * ── EN IN DE AUDIT-RIJEN, MET DEZELFDE NAAM ÉN EEN DROOGLOOPVLAG ────
- * Verbruik was niet het enige dat een testbeurt wegschrijft. De
- * input-guardrails, de PII-events rond een tool en het egress-logboek
- * schreven allemaal hard `source: 'agent_stream'`, dus een experiment van de
- * bouwer stond in de org-privacy-shield-activiteit tussen de productiebeurten
- * — gekoppeld aan een conversation_id die nergens bestaat. Die vijf plekken
- * lopen nu door `usageSourceFor` én zetten `isDryRunTurn`, precies zoals de
- * automation-runner dat voor een droogloop doet: `guardrail_events.is_dry_run`
- * bestaat al en de org-shield filtert er al op.
+ * ── AND IN THE AUDIT ROWS, UNDER THE SAME NAME AND A DRY-RUN FLAG ────
+ * Usage was not the only thing that a test turn wrote. The input guardrails, the PII events around
+ * a tool and the egress log all wrote hard `source: 'agent_stream'`, so an experiment of the builder
+ * stood in the org privacy-shield activity between the production turns — linked to a
+ * conversation_id that exists nowhere. Those five places now go through `usageSourceFor` and set
+ * `isDryRunTurn`, exactly as the automation runner does for a dry run: `guardrail_events.is_dry_run`
+ * already exists and the org shield already filters on it.
  *
- * ── HET DRAAIT OP HET CONCEPT ───────────────────────────────────────
- * `chatWithAgentStream` laadt normaal via `getForRuntime`, en dat serveert de
- * GEPUBLICEERDE config zodra er een publicatie is — precies wat R2 voor een
- * AI-stap vastlegde. Een testchat doet het omgekeerde, met opzet: je test wat
- * je aan het maken bent. Het verschil is geen detail dat je mag verzwijgen —
- * wie zijn concept test en denkt dat hij de live agent ziet, test iets anders
- * dan er draait. Daarom stuurt de runtime `test_chat` over de lijn met wat er
- * werkelijk geladen is (`source`), wat er live staat (`publishedVersion`) en
- * hoever het concept daarop vooruit loopt (`unpublishedChanges`).
+ * ── IT RUNS ON THE DRAFT ──────────────────────────────────────────────
+ * `chatWithAgentStream` normally loads via `getForRuntime`, and that serves the PUBLISHED config as
+ * soon as there is a publication — exactly what R2 recorded for an AI step. A testchat does the
+ * opposite, deliberately: you test what you are making. The difference is no detail that you may
+ * keep quiet — whoever tests his draft and thinks he sees the live agent tests something other than
+ * what runs. Therefore the runtime sends `test_chat` over the line with what was actually loaded
+ * (`source`), what is live (`publishedVersion`) and how far the draft runs ahead of it
+ * (`unpublishedChanges`).
  *
- * ── WAT NIET VANZELF MAG WEGGAAN ────────────────────────────────────
- * Een testchat draait ECHTE tools op ECHTE verbindingen. Daarom wordt in een
- * testchat alles wat niet leest vastgehouden voor een mens (`holdsEffect`),
- * óók wanneer de agentconfig er `direct` van maakt. Dat is alleen maar
- * strenger dan een gewone chat — het kan nooit een call vrijgeven die anders
- * werd tegengehouden — en het maakt de beslisknoppen op de kaart het echte
- * werk in plaats van decoratie.
+ * ── WHAT MUST NOT SILENTLY DISAPPEAR ──────────────────────────────────
+ * A testchat runs REAL tools on REAL connections. Therefore in a testchat everything that does not
+ * read is held back for a human (`holdsEffect`), even when the agent config says `direct` of it.
+ * That is only stricter than an ordinary chat — it can never release a call that was previously held
+ * back — and it makes the decision buttons on the card the real work instead of decoration.
  *
  * Run: cd server && node --test core/agentRuntime/testChat.test.js
  */
@@ -95,19 +84,17 @@ const MAX_TOOL_DECISIONS = 20;
 /** Lengte van de sleutel die de kaart terugstuurt (hex). */
 const ARGS_KEY_LENGTH = 32;
 /**
- * Het voorvoegsel van elke efemere conversatie-id. Een echte rij-id is een
- * uuid/nanoid, dus deze vorm kan er nooit één aanwijzen — dat is precies wat
- * hem veilig maakt om uit clientinvoer af te leiden.
+ * The prefix of every ephemeral conversation id. A real row id is a uuid/nanoid, so this form can
+ * never point to one — that is exactly what makes it safe to derive from client input.
  */
 const EPHEMERAL_PREFIX = 'ephemeral-';
 
 /**
- * Vroeg de client een testchat?
+ * Did the client ask for a testchat?
  *
- * Alleen een letterlijke `true` telt. `'false'`, `0` en `''` zijn geen
- * testchat — een string uit een querystring die als waarheid wordt gelezen is
- * precies hoe een gewone beurt per ongeluk efemeer wordt en uit de historie
- * verdwijnt.
+ * Only a literal `true` counts. `'false'`, `0` and `''` are not a testchat — a string from a query
+ * string that is read as truth is precisely how an ordinary turn accidentally becomes ephemeral and
+ * disappears from the history.
  */
 function wantsTestChat(body) {
     return !!body && body.test === true;
@@ -119,16 +106,14 @@ function isTestChat(messageMetadata) {
 }
 
 /**
- * De poort: mag deze aanvrager een testchat draaien?
+ * The gate: may this requester run a testchat?
  *
- * Hetzelfde recht dat "Test als" vraagt (A1c) en dat `PUT /agents/:id` vraagt:
- * testen hoort bij het bouwen. Een chatter die de agent mag gebruiken hoort
- * niet stiekem het ongepubliceerde concept te kunnen uitlezen — dat is een
- * lek van werk-in-uitvoering, niet alleen een gemak.
+ * The same right that "Test as" asks for (A1c) and that `PUT /agents/:id` asks for: testing belongs to
+ * building. A chatter who may use the agent should not be able to read the unpublished draft in
+ * secret — that is a leak of work-in-progress, not only a convenience.
  *
- * Weigert; degradeert nooit naar een gewone beurt. Een testchat die stilletjes
- * de gepubliceerde config draait is het ene antwoord dat deze route nooit mag
- * geven.
+ * Refuses; never degrades to an ordinary turn. A testchat that quietly runs the published config is
+ * the one answer this route must never give.
  *
  * @returns {{ok:true, testChat:boolean}|{ok:false, status:number, error:string, code:string}}
  */
@@ -144,60 +129,52 @@ function gateTestChatRequest({ test, canEdit } = {}) {
 }
 
 /**
- * De bron waaronder deze beurt zijn verbruik wegschrijft.
+ * The source under which this turn writes its usage.
  *
  * @param {object} messageMetadata
- * @param {string} fallback  wat de call-site schreef toen dit nog niet bestond
+ * @param {string} fallback  what the call site wrote when this did not yet exist
  */
 function usageSourceFor(messageMetadata, fallback) {
     return isTestChat(messageMetadata) ? TEST_CHAT_USAGE_SOURCE : fallback;
 }
 
 /**
- * Is deze beurt een DROOGLOOP voor elke audit-lezer?
+ * Is this turn a DRY RUN for every audit reader?
  *
- * Zelfde woord als de automation-runner gebruikt voor een droge run
- * (`core/automationRunner/execution.js`), zodat `guardrail_events.is_dry_run`
- * één betekenis houdt: er is echt gerekend, er is echt gescand, maar dit was
- * geen productiebeurt en een dashboard dat naar productie kijkt hoort hem niet
- * te tellen. De kolom bestaat al en de org-shield filtert er al op — dit zet
- * hem alleen ook voor de testchat.
+ * The same word the automation runner uses for a dry run (`core/automationRunner/execution.js`), so that
+ * `guardrail_events.is_dry_run` keeps one meaning: real computing happened, a real scan happened, but this
+ * was not a production turn and a dashboard that looks at production should not count it. The column already
+ * exists and the org shield already filters on it — this only sets it for the testchat too.
  *
- * Bewust een aparte naam naast `isTestChat`: de call-sites hieronder gaan over
- * AUDIT, niet over runtimegedrag, en een lezer die `is_dry_run: isTestChat(m)`
- * ziet staan moet niet hoeven raden of dat een toevalligheid is.
+ * Deliberately a separate name next to `isTestChat`: the call sites below concern AUDIT, not runtime
+ * behaviour, and a reader who sees `is_dry_run: isTestChat(m)` should not have to guess whether that is a
+ * coincidence.
  */
 function isDryRunTurn(messageMetadata) {
     return isTestChat(messageMetadata);
 }
 
 /**
- * De id van een EFEMERE conversatie: stabiel over de beurten van één sessie.
+ * The id of an EPHEMERAL conversation: stable across the turns of one session.
  *
- * Waarom dit niet gewoon `ephemeral-${Date.now()}` mag zijn: `usageStore`
- * telt testgesprekken met `COUNT(DISTINCT conversation_id)`. Met een id per
- * REQUEST telt dat BEURTEN, en een testgesprek van zes berichten rapporteert
- * er zes. De sleutel maakt de id stabiel zolang de client dezelfde
- * testsessie draait.
+ * Why this may not simply be `ephemeral-${Date.now()}`: `usageStore` counts test conversations with
+ * `COUNT(DISTINCT conversation_id)`. With an id per REQUEST that counts TURNS, and a test conversation of
+ * six messages reports six. The key makes the id stable as long as the client runs the same test session.
  *
- * Waarom de sleutel van de client NIET rechtstreeks de id wordt:
+ * Why the client's key does NOT become the id directly:
  *
- *   • de id reist mee in `guardrail_events.conversation_id`, in het
- *     egress-logboek en in de PII-tokenmap-memo (die op conversation-id
- *     hangt). Een client die een ECHTE conversatie-id opgeeft zou daarmee de
- *     tokenmap van dat gesprek aanspreken. Daarom wordt er gehasht, en met
- *     het `ephemeral-`-voorvoegsel ervoor: die vorm kan per constructie geen
- *     bestaande rij aanwijzen.
- *   • twee gebruikers die toevallig dezelfde sleutel kiezen mogen niet in
- *     dezelfde efemere conversatie belanden. Daarom zitten `userId` en
- *     `agentId` in de hash — de sleutel alleen is geen adres.
+ *   • the id travels along in `guardrail_events.conversation_id`, in the egress log and in the PII token-map
+ *     memo (which hangs on the conversation id). A client that supplies a REAL conversation id would thereby
+ *     address the token map of that conversation. Therefore it is hashed, with the `ephemeral-` prefix in front:
+ *     that form can by construction not point to an existing row.
+ *   • two users who happen to choose the same key must not land in the same ephemeral conversation. Therefore
+ *     `userId` and `agentId` are in the hash — the key alone is not an address.
  *
- * Zonder bruikbare sleutel: willekeurig en nieuw. Dat telt te HOOG (elke beurt
- * een gesprek), en te hoog tellen laat niemand een gesprek missen dat er wel
- * was — de omgekeerde fout, twee sessies op één id, zou dat wél doen.
+ * Without a usable key: random and new. That counts too HIGH (every turn a conversation), and counting too high
+ * lets nobody miss a conversation that was there — the reverse error, two sessions on one id, would do that.
  *
  * @param {object} p
- * @param {string} [p.sessionKey] wat de client meestuurt voor deze testsessie
+ * @param {string} [p.sessionKey] what the client sends for this test session
  * @param {string} [p.userId]
  * @param {string} [p.agentId]
  */
@@ -214,11 +191,10 @@ function ephemeralConversationId({ sessionKey, userId, agentId } = {}) {
 }
 
 /**
- * De sessiesleutel zoals hij van een request af mag komen.
+ * The session key as it may come from a request.
  *
- * Een opake string van de client, meer niet — hij wordt gehasht en nooit
- * ergens tegenaan gehouden. Te kort of te lang telt als "geen sleutel", en dat
- * levert een verse id op in plaats van een gedeelde.
+ * An opaque string from the client, nothing more — it is hashed and never held against anything. Too short
+ * or too long counts as "no key", and that yields a fresh id instead of a shared one.
  */
 function normaliseSessionKey(raw) {
     if (typeof raw !== 'string') return null;
@@ -229,27 +205,21 @@ function normaliseSessionKey(raw) {
 }
 
 /**
- * Wat er op het scherm moet staan over WELKE agent er zojuist draaide.
+ * What must be on screen about WHICH agent just ran.
  *
- * `runtimeSource` komt uit de store-projectie en is het enige eerlijke
- * antwoord: 'draft' is het concept, 'published' de gepubliceerde blob, 'live'
- * een agent die nooit gepubliceerd is (concept en live zijn dan hetzelfde).
+ * `runtimeSource` comes from the store projection and is the only honest answer: 'draft' is the draft,
+ * 'published' the published blob, 'live' an agent that was never published (draft and live are then the same).
  *
- * Een projectie die niets zei is NIET stilzwijgend het concept: dan komt er
- * `source: 'unknown'` uit en mag het scherm geen geruststelling tonen. De
- * omgekeerde fout — "je test je concept" zeggen terwijl de gepubliceerde blob
- * draaide — is precies de leugen die deze hele functie bestaat om te
- * voorkomen.
+ * A projection that said nothing is NOT silently the draft: then `source: 'unknown'` comes out and the screen
+ * may show no reassurance. The reverse error — saying "you are testing your draft" while the published blob
+ * ran — is exactly the lie that this whole function exists to prevent.
  *
- * WAT DIE TAK VANDAAG WEL EN NIET IS: op het testchatpad stempelt
- * `agentCrud.projectDraft` onvoorwaardelijk `runtimeSource: 'draft'`, en een
- * rij die niet bestaat gooit al eerder 'Agent not found'. 'published' en
- * 'unknown' zijn daar dus niet te bereiken — ze staan hier als
- * FAIL-CLOSED-default voor de tweede call-site die de JSDoc van
- * `ruleAttribution.attributeTurn` uitnodigt (`versionInfo(views)`), en voor
- * een projectie die morgen wél iets anders kan zeggen. Ze zijn niet getest op
- * dit pad omdat ze op dit pad niet voorkomen; dat is iets anders dan
- * "getoetst".
+ * WHAT THAT BRANCH IS AND IS NOT TODAY: on the testchat path `agentCrud.projectDraft` stamps `runtimeSource:
+ * 'draft'` unconditionally, and a row that does not exist already throws 'Agent not found' earlier. 'published'
+ * and 'unknown' are therefore not reachable there — they stand here as a FAIL-CLOSED default for the second call
+ * site that the JSDoc of `ruleAttribution.attributeTurn` invites (`versionInfo(views)`), and for a projection that
+ * may say something different tomorrow. They are not tested on this path because they do not occur on this path;
+ * that is something other than "tested".
  */
 function testChatConfigInfo(agent) {
     const src = agent && agent.runtimeSource;
@@ -259,8 +229,8 @@ function testChatConfigInfo(agent) {
     const publishedRev = Number(agent && agent.published_rev) || 0;
     return {
         source,
-        // Draait wat je aan het maken bent? Alleen 'draft' en 'live' zijn dat;
-        // bij 'unknown' weten we het niet, en dat is geen ja.
+        // Is what you are making what runs? Only 'draft' and 'live' are that;
+        // with 'unknown' we do not know, and that is not a yes.
         runsDraft: source === 'draft' || source === 'live',
         publishedVersion,
         agentRev: rev,
@@ -273,16 +243,15 @@ function testChatConfigInfo(agent) {
 }
 
 /**
- * De sleutel van één vastgehouden call: de naam plus exact deze argumenten.
+ * The key of one held-back call: the name plus exactly these arguments.
  *
- * Dit is de sleutel die `toolRoundExecutor` al gebruikt om één kaart per actie
- * per beurt te tonen (`toolName|stableStringify(args)`), maar gehasht — de
- * ruwe argumenten mogen niet over de lijn en al helemaal niet terug van een
- * client. Wat de kaart terugstuurt is dus een bewering over EEN actie, niet
- * over een tool: dezelfde naam met andere argumenten matcht niet.
+ * This is the key that `toolRoundExecutor` already uses to show one card per action per turn
+ * (`toolName|stableStringify(args)`), but hashed — the raw arguments may not cross the line, and certainly
+ * not come back from a client. What the card sends back is therefore a claim about ONE action, not about
+ * a tool: the same name with other arguments does not match.
  *
  * @param {string} toolName
- * @param {string} stableArgs  het resultaat van `_stableStringify(args)`
+ * @param {string} stableArgs  the result of `_stableStringify(args)`
  */
 function argsKeyFor(toolName, stableArgs) {
     return crypto.createHash('sha256')
@@ -292,14 +261,13 @@ function argsKeyFor(toolName, stableArgs) {
 }
 
 /**
- * De beslissingen die de client meestuurt, opgeschoond.
+ * The decisions that the client sends along, cleaned up.
  *
- * Een beslissing is één `{ toolName, argsKey, decision }`. Onbekend versmalt:
- * alles wat niet letterlijk 'approve' of 'decline' is, telt niet mee — dus
- * ook geen `decision: 'approve '` of `true`. Meer dan MAX_TOOL_DECISIONS
- * worden afgekapt, want dit is een kaartje dat een mens aanklikte, geen batch.
+ * A decision is one `{ toolName, argsKey, decision }`. Unknown narrows: anything that is not literally
+ * 'approve' or 'decline' does not count — so also not `decision: 'approve '` or `true`. More than
+ * MAX_TOOL_DECISIONS are cut off, because this is a card that a human clicked, not a batch.
  *
- * @returns {Map<string, 'approve'|'decline'>} argsKey → beslissing
+ * @returns {Map<string, 'approve'|'decline'>} argsKey → decision
  */
 function normaliseToolDecisions(raw) {
     const out = new Map();
@@ -311,19 +279,18 @@ function normaliseToolDecisions(raw) {
         if (decision !== 'approve' && decision !== 'decline') continue;
         const key = typeof d.argsKey === 'string' ? d.argsKey.trim() : '';
         if (!/^[0-9a-f]{8,64}$/.test(key)) continue;
-        // Eerste beslissing over een sleutel wint. Een tweede regel met een
-        // andere uitkomst voor dezelfde actie is geen nieuwe toestemming.
+        // The first decision about a key wins. A second line with a different outcome for the same
+        // action is not a new permission.
         if (!out.has(key)) out.set(key, decision);
     }
     return out;
 }
 
 /**
- * Moet een testchat deze call vasthouden ook al zegt de config 'direct'?
+ * Must a testchat hold this call even though the config says 'direct'?
  *
- * Alles wat niet aantoonbaar leest. `effectOf` valt zelf al terug op 'writes'
- * voor een naam die hij niet kent, dus een onbekende tool wordt vastgehouden
- * — de kant die niets laat gebeuren.
+ * Everything that is not demonstrably reading. `effectOf` itself already falls back to 'writes' for a name
+ * that it does not know, so an unknown tool is held back — the side that lets nothing happen.
  */
 function holdsEffect(toolName, knownEffect) {
     const effect = knownEffect || (() => {

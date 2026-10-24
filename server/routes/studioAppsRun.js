@@ -66,12 +66,10 @@ async function runBody(run) {
         // Present only when it applies, like `_appEffectsUnknown` below.
         ...(outputTooLarge ? { _outputTooLarge: true } : {}),
         ...(appEffects ? { _appEffects: appEffects } : {}),
-        // `_appEffectsUnknown` is de derde stand, en hij bestaat omdat de
-        // andere twee anders samenvallen: de stappenlees kán omvallen (een
-        // DB-hik, een timeout), en zonder dit veld is het antwoord dan
-        // byte-identiek aan "deze run had geen return_to_app-stap". De
-        // bezoeker ziet dan niets gebeuren en niemand kan zien waarom. De
-        // client zegt het hardop; hij verzint geen effect.
+        // `_appEffectsUnknown` is the third state, and it exists because the other two would
+        // otherwise coincide: the step read can fail (a DB hiccup, a timeout), and without this field the answer is then
+        // byte-identical to "this run had no return_to_app step". The visitor then sees nothing happen and nobody can
+        // see why. The client says so out loud; it does not invent an effect.
         ...(effectsUnknown ? { _appEffectsUnknown: true } : {}),
         error: run.error || null,
         ...(await approvalIdField(run)),

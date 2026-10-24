@@ -1,25 +1,24 @@
 /**
- * O4 deel A — de releasegeschiedenis van een project.
+ * O4 part A — the release history of a project.
  *
- * Twee dingen moeten hier precies kloppen, en beide zijn ordeningsvragen:
+ * Two things must be exactly right here, and both are ordering questions:
  *
- *   1. DE VOLGORDE VAN PUBLICEREN. "v1.3 publiceren" is de galerijrij ÉN de
- *      release-rij. Faalt de tweede, dan mag er geen Blueprint achterblijven
- *      die in geen enkele geschiedenis staat — en er mag ook geen release-rij
- *      ontstaan die naar een Blueprint wijst die er niet is. Dat kan alleen als
- *      ze in dezelfde transactie zitten; deze tests pinnen dat ze dat doen, en
- *      dat een mislukte release-rij alles terugdraait.
- *   2. HET SNOEIEN TOT TWINTIG. Het mag nooit de rij weghalen waar een
- *      installatie naar wijst, en nooit de rij die de galerij op dit moment
- *      serveert. Beide zijn bereikbaar (zie de kop van `_pruneReleases`), dus
- *      beide worden hier nagerekend — inclusief dat de DELETE uitsluitend de
- *      id's krijgt die de kandidatenquery teruggaf.
+ *   1. THE ORDER OF PUBLISHING. "Publish v1.3" is the gallery row AND the release
+ *      row. If the second fails, no Blueprint may remain behind that
+ *      is in no history at all — and no release row may arise that points to a
+ *      Blueprint that does not exist. That is possible only if they sit in the same
+ *      transaction; these tests pin that they do, and that a failed release
+ *      row rolls everything back.
+ *   2. PRUNING TO TWENTY. It must never remove the row that an installation points to,
+ *      and never the row that the gallery is serving at this moment. Both are reachable
+ *      (see the header of `_pruneReleases`), so both are checked here — including that the DELETE
+ *      receives exclusively the ids that the candidate query returned.
  *
- * Hermetisch: `../db` is gestubd (het patroon van guardrailEventStore.test.js),
- * dus er komt geen Postgres aan te pas. De SQL wordt daarom op VORM getoetst —
- * dezelfde keuze die blueprint/mappers.test.js voor `canRead` maakt — plus op
- * gedrag waar dat kan: welke aanroepen op de transactieclient landen, in welke
- * volgorde, met welke parameters, en wat er terugkomt.
+ * Hermetic: `../db` is stubbed (the pattern of guardrailEventStore.test.js),
+ * so no Postgres is involved. The SQL is therefore checked on SHAPE —
+ * the same choice that blueprint/mappers.test.js makes for `canRead` — plus on
+ * behaviour where that is possible: which calls land on the transaction client,
+ * in which order, with which parameters, and what comes back.
  *
  * Run: cd server && node --test stores/blueprint/releases.test.js
  */
@@ -95,8 +94,8 @@ const dbStub = {
     async getOne(sql, params) { calls.getOne.push({ sql, params }); return state.poolRow; },
     async getAll(sql, params) { calls.getAll.push({ sql, params }); return state.poolRows; },
     isSqlStateError(err) { return typeof err?.code === 'string' && /^[0-9A-Z]{5}$/.test(err.code); },
-    // Het contract dat de store ziet: fn krijgt een client, COMMIT bij succes,
-    // ROLLBACK bij een throw. De echte BEGIN/COMMIT staan in db.js.
+    // The contract that the store sees: fn receives a client, COMMIT on success,
+    // ROLLBACK on a throw. The real BEGIN/COMMIT live in db.js.
     async withTransaction(fn) {
         calls.tx.push('BEGIN');
         const client = {
@@ -169,9 +168,8 @@ test('publiceren schrijft de Blueprint en de release-rij in ÉÉN transactie, in
     assert.ok(blueprintAt < releaseAt,
         'de release-rij draagt het blueprint_id, dus de galerijrij moet eerst geschreven zijn');
 
-    // En niets van dit alles mag langs de pool zijn gegaan: een schrijfactie
-    // buiten de transactie is precies de half-afgemaakte publicatie die hier
-    // verboden is.
+    // And none of this may have gone through the pool: a write
+    // outside the transaction is exactly the half-finished publication that is forbidden here.
     const poolWrites = [...calls.run, ...calls.getOne]
         .map(c => flat(c.sql))
         .filter(s => /project_blueprints|project_releases/.test(s));
@@ -195,7 +193,7 @@ test('faalt de release-rij, dan is er NIETS gepubliceerd — ook geen Blueprint'
 });
 
 test('een mislukte release-rij verbrandt geen versienummer', async () => {
-    // Het bump-pad: de galerij staat op v2, dus deze publicatie zou v3 worden.
+    // The bump path: the gallery is at v2, so this publication would become v3.
     await reset();
     state.existingBlueprint = { id: 'bp_1', version: 2 };
     state.releaseInsertThrows = new Error('nope');
@@ -210,9 +208,9 @@ test('een mislukte release-rij verbrandt geen versienummer', async () => {
 });
 
 test('een galerijrij die tussendoor verdwijnt levert GEEN release-rij op die nergens naar wijst', async () => {
-    // De maker mag zijn Blueprint verwijderen terwijl een collega publiceert:
-    // de lookup vindt hem nog, de UPDATE raakt nul rijen. Zonder deze waarborg
-    // zou de geschiedenis een blueprint_id vastleggen dat niet bestaat.
+    // The creator may delete their Blueprint while a colleague is publishing:
+    // the lookup still finds it, the UPDATE touches zero rows. Without this guarantee
+    // the history would record a blueprint_id that does not exist.
     await reset();
     state.existingBlueprint = { id: 'bp_1', version: 2 };
     state.blueprintWriteEmpty = true;
@@ -290,19 +288,19 @@ test('het snoeien laat de rij staan waar een INSTALLATIE naar wijst', async () =
     await store.publishRelease(publishArgs());
     const sql = flat(callMatching(/^SELECT id FROM project_releases/).sql);
 
-    // Een installatie wijst met installed_from_blueprint_id naar de Blueprint en
-    // met installed_version naar het nummer; samen zijn dat precies één rij.
+    // An installation points with installed_from_blueprint_id to the Blueprint and
+    // with installed_version to the number; together those are precisely one row.
     assert.match(sql, /NOT EXISTS \( SELECT 1 FROM projects p JOIN project_solution_entities e ON e\.project_id = p\.id JOIN projects src ON src\.id = r\.project_id WHERE p\.installed_from_blueprint_id = r\.blueprint_id AND e\.installed_version = r\.version AND COALESCE\(p\.organization_id, ''\) = COALESCE\(src\.organization_id, ''\)\)/);
 });
 
 test('alleen installaties in de organisatie van de BRON houden een rij vast', async () => {
-    // De versmalling, en waarom zij er is. Bij een bestandsinstallatie komen
-    // zowel het beweerde Blueprint-id als installed_version uit een bestand dat
-    // de installateur zelf bewerkt. Zonder de org-vergelijking kon iemand met
-    // één doorgestuurd bestand de cap van een ánder project uitzetten door
-    // installaties te maken die versies 21..300 claimen — en die rijen zijn voor
-    // hem niet eens leesbaar (listReleases/getRelease staan achter de
-    // eigenaarsrol op het bronproject, canRead is org-gescoopt).
+    // The narrowing, and why it exists. With a file installation both the claimed
+    // Blueprint id and installed_version come from a file that
+    // the installer edits himself. Without the org comparison someone could, with
+    // one forwarded file, switch off the cap of a DIFFERENT project by
+    // making installations that claim versions 21..300 — and those rows are not even
+    // readable for him (listReleases/getRelease sit behind the
+    // owner role on the source project, canRead is org-scoped).
     await reset();
     await store.publishRelease(publishArgs());
     const sql = flat(callMatching(/^SELECT id FROM project_releases/).sql);
@@ -314,11 +312,11 @@ test('alleen installaties in de organisatie van de BRON houden een rij vast', as
 });
 
 test('de kandidatenquery kijkt alleen naar de release-rijen van DIT project', async () => {
-    // De DELETE hieronder is het enige destructieve statement van een
-    // publicatie. Valt deze WHERE weg — of wordt hij `(r.project_id = $1 OR
-    // TRUE)` — dan snoeit elke publicatie de geschiedenis van élk project op de
-    // instantie weg, over org-grenzen heen. Alleen de parameter toetsen is niet
-    // genoeg: die kan kloppen terwijl de query hem niet gebruikt.
+    // The DELETE below is the only destructive statement of a
+    // publication. If this WHERE drops away — or becomes `(r.project_id = $1 OR
+    // TRUE)` — then every publication prunes the history of EVERY project on the
+    // instance, across organisation boundaries. Checking only the parameter is
+    // not enough: that can be right while the query does not use it.
     await reset();
     await store.publishRelease(publishArgs());
     const sql = flat(callMatching(/^SELECT id FROM project_releases/).sql);
@@ -328,11 +326,10 @@ test('de kandidatenquery kijkt alleen naar de release-rijen van DIT project', as
 });
 
 test('de bump-lookup vergrendelt de rij die hij gaat ophogen', async () => {
-    // Zonder FOR UPDATE lezen twee gelijktijdige publicaties van dezelfde maker
-    // allebei v2 en schrijven ze allebei v3. Dan draagt de geschiedenis TWEE
-    // v3-rijen, waarvan er één een versie vastlegt die nooit installeerbaar is
-    // geweest — en de invariant waar beide snoeiwaarborgen op leunen
-    // ((blueprint_id, version) is precies één rij) is weg.
+    // Without FOR UPDATE, two simultaneous publications by the same creator both read
+    // v2 and both write v3. Then the history carries TWO v3 rows, one of which records a version that
+    // was never installable — and the invariant on which both pruning guarantees rest
+    // ((blueprint_id, version) is exactly one row) is gone.
     await reset();
     state.existingBlueprint = { id: 'bp_1', version: 2 };
     await store.publishRelease(publishArgs());
@@ -385,8 +382,8 @@ test('listReleases bouwt een ALLOW-LIST, geen doorgegeven rij', async () => {
         id: 'rel_1', project_id: 'p1', blueprint_id: 'bp_1', version: 3,
         notes: { summary: 'Twee automations erbij' },
         published_at: '2026-09-08T10:00:00.000Z', published_by: 'alice',
-        // Twee kolommen die er vandaag niet zijn: een manifest van 16 MB en een
-        // kolom die volgend jaar wordt toegevoegd. Geen van beide mag meereizen.
+        // Two columns that do not exist today: a manifest of 16 MB and a
+        // column that will be added next year. Neither may ride along.
         manifest: { solution: { key: 'sol_p1' } },
         internal_note_next_year: 'geheim',
     }];
@@ -398,11 +395,11 @@ test('listReleases bouwt een ALLOW-LIST, geen doorgegeven rij', async () => {
 });
 
 test('listReleases leest ALLEEN de rijen van het meegegeven project', async () => {
-    // Deze WHERE ÍS de scoping — de kop van listReleases zegt zelf dat zij niets
-    // autoriseert. Valt hij weg, dan levert GET /:id/package/releases elke
-    // projecteigenaar de twintig nieuwste release-rijen van de HELE instantie,
-    // inclusief de notities van projecten uit andere organisaties. De routetest
-    // stubt deze functie en kan dat per definitie niet zien.
+    // This WHERE IS the scoping — the header of listReleases itself says that it
+    // authorises nothing. If it drops away, then GET /:id/package/releases gives every
+    // project owner the twenty newest release rows of the WHOLE instance,
+    // including the notes of projects from other organisations. The route test
+    // stubs this function and by definition cannot see that.
     await reset();
     await store.listReleases('p1');
     const call = calls.getAll.at(-1);
@@ -459,7 +456,7 @@ test('getRelease scoopt ALTIJD op het project, nooit op het id alleen', async ()
     const call = calls.getOne.at(-1);
     assert.match(flat(call.sql), /WHERE id = \$1 AND project_id = \$2/);
     assert.deepStrictEqual(call.params, ['rel_1', 'p1']);
-    // Dit is de ENE plek waar het manifest wel meereist: één release, expliciet opgevraagd.
+    // This is the ONE place where the manifest does travel along: one release, explicitly requested.
     assert.strictEqual(rel.manifest.solution.version, 3);
 });
 
@@ -473,12 +470,12 @@ test('getRelease zonder project of zonder id vraagt de database niets', async ()
 // ── 4. De grens die twee bestanden delen ────────────────────────────────────
 
 test('de enveloppegrens van releaseNotes.js is dezelfde als MAX_NOTES_BYTES', async () => {
-    // `releaseNotesPayload` krimpt tot ZIJN eigen grens, en die is met de hand
-    // overgeschreven omdat de store bij require een pool opent. Zakt
-    // MAX_NOTES_BYTES ooit onder die kopie, dan gooit `normalizeNotes` vóór de
-    // transactie en wordt een PUBLICATIE geweigerd wegens een notitie — precies
-    // wat releaseNotes.js belooft dat nooit kan. Deze test is de koppeling die
-    // in geen van beide bestanden past.
+    // `releaseNotesPayload` shrinks to ITS OWN boundary, and that was copied by hand
+    // because the store opens a pool on require. If
+    // MAX_NOTES_BYTES ever drops below that copy, then `normalizeNotes` throws before the
+    // transaction and a PUBLICATION is refused on account of a note — exactly
+    // what releaseNotes.js promises can never happen. This test is the link that
+    // fits in neither of the two files.
     const notes = require('../../projects/packaging/releaseNotes');
     assert.strictEqual(notes.MAX_NOTES_ENVELOPE_BYTES, store.MAX_NOTES_BYTES);
 
@@ -493,14 +490,14 @@ test('de enveloppegrens van releaseNotes.js is dezelfde als MAX_NOTES_BYTES', as
 // ── 5. De ladder ────────────────────────────────────────────────────────────
 
 test('project_releases komt uit de runDdl-ladder, niet uit de stille exec', async () => {
-    // Genuinely textual, zelfde reden als de COLUMN_LADDERS-claims in
-    // boot/bootMigrations.test.js: het verschil tussen runDdl() en de oude
-    // stille exec() is per-statement foutzichtbaarheid, niet een ander
-    // resultaat in een levende database — dat is alleen na te rekenen door de
-    // DDL echt te laten falen, niet iets een unit test hier kan waarnemen.
-    // De COLUMN_LADDERS-claim rekent hetzelfde na vanaf de andere kant; dit is
-    // de claim van de store zelf. Eigen naam (niet `src`) om geen toevallige
-    // woordmatch te geven met de SQL-alias `src` in de tests hierboven.
+    // Genuinely textual, for the same reason as the COLUMN_LADDERS claims in
+    // boot/bootMigrations.test.js: the difference between runDdl() and the old
+    // silent exec() is per-statement error visibility, not a different
+    // result in a live database — that can only be verified by actually letting
+    // the DDL fail, not by something a unit test can observe here.
+    // The COLUMN_LADDERS claim checks the same thing from the other side; this is
+    // the claim of the store itself. Own name (not `src`) so as not to create an accidental
+    // word match with the SQL alias `src` in the tests above.
     const ddlSrc = fs.readFileSync(path.join(__dirname, 'schema.js'), 'utf8');
     const ladder = ddlSrc.slice(ddlSrc.indexOf("runDdl('blueprintStore'"));
     assert.ok(ddlSrc.includes("runDdl('blueprintStore'"), 'de ladder bestaat');

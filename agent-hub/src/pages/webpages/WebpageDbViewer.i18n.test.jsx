@@ -2,14 +2,11 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
- * WebpageDbViewer — het zwaarste scherm van de retrofit (79 letterlijke strings).
+ * WebpageDbViewer — the heaviest screen of the retrofit (79 literal strings).
  *
- * t() is een MARKEERDER (`⟦sleutel⟧`), zodat een string die terugvalt op de
- * Engelse fallback in de bron zichtbaar wordt in plaats van er goed uit te zien.
- * De twee dingen die hier echt vast moeten liggen:
- *   1. het rijaantal kiest een MEERVOUDSSLEUTEL, niet een aangeplakte 's';
- *   2. SQL zelf blijft SQL — kolomnamen, NULL en de typenamen zijn machinetekst
- *      en horen niet in het woordenboek.
+ * t() is a MARKER (`⟦key⟧`), so that a string which falls back to the English fallback becomes visible in the source instead of looking good on screen. The two things that really must be fixed here:
+ *   1. the row count chooses a PLURAL KEY, not a stuck-on 's';
+ *   2. SQL itself stays SQL — column names, NULL and the type names are machine text and do not belong in the dictionary.
  */
 
 const t = (key, fallback, params) => {
@@ -69,8 +66,8 @@ describe('WebpageDbViewer — i18n', () => {
         expect(await screen.findByText('⟦webpages.db.tab_schema⟧')).toBeInTheDocument();
         expect(screen.getByText('⟦webpages.db.tab_browse⟧')).toBeInTheDocument();
         expect(screen.getByText('⟦webpages.db.tab_sql⟧')).toBeInTheDocument();
-        // "Refresh" bestond nog niet als sleutel en staat nu één keer op
-        // hoofdniveau — dezelfde sleutel als de knop in Apps & data.
+        // "Refresh" did not yet exist as a key and now stands once at top level — the
+        // same key as the button in Apps & data.
         expect(screen.getByText('⟦webpages.refresh⟧')).toBeInTheDocument();
     });
 
@@ -78,18 +75,17 @@ describe('WebpageDbViewer — i18n', () => {
         render(<WebpageDbViewer webpageId="wp1" />);
 
         expect(await screen.findByText('⟦webpages.db.col_column⟧')).toBeInTheDocument();
-        // Deze drie wijzen bewust naar common.*: hun tekst bestond daar al, en een
-        // tweede sleutel met dezelfde tekst is precies wat I18N-CONVENTIES 1.3 verbiedt.
-        // Wat deze test bewaakt blijft hetzelfde — de tekst gaat door een SLEUTEL heen,
-        // niet als letterlijke string.
+        // These three deliberately point to common.*: their text already existed there,
+        // and a second key with the same text is precisely what I18N-CONVENTIES 1.3
+        // forbids. What this test guards remains the same — the text goes through a
+        // KEY, not as a literal string.
         expect(screen.getByText('⟦common.type⟧')).toBeInTheDocument();
         expect(screen.getByText('⟦webpages.db.col_not_null⟧')).toBeInTheDocument();
         expect(screen.getByText('⟦webpages.db.col_default⟧')).toBeInTheDocument();
-        // Een MEERVOUDSPAAR, geen kale telsleutel: "1 col" / "2 cols" is in het
-        // Engels al twee vormen, en in het Nederlands krijgt de vertaler anders
-        // één string voor "kolom" én "kolommen". Zodra de sleutel in de
-        // woordenboeken staat kost splitsen een migratie per taal in plaats van
-        // een regel bron.
+        // A PLURAL PAIR, not a bare count key: "1 col" / "2 cols" is already two forms
+        // in English, and in Dutch the translator would otherwise get one string for
+        // "kolom" AND "kolommen". Once the key stands in the dictionaries, splitting
+        // costs a migration per language instead of one line of source.
         expect(screen.getByText('⟦webpages.db.n_col_plural⟧(count=2)')).toBeInTheDocument();
         expect(screen.getByText('⟦webpages.db.tables_count⟧(count=1)')).toBeInTheDocument();
     });
@@ -97,9 +93,9 @@ describe('WebpageDbViewer — i18n', () => {
     it('BIJT — één kolom kiest de ENKELVOUDSSLEUTEL', async () => {
         render(<WebpageDbViewer webpageId="wp1" />);
         await screen.findByText('⟦webpages.db.col_column⟧');
-        // De fixture heeft één tabel met twee kolommen; de enkelvoudige tak
-        // wordt hier op de helper zelf getoetst, zodat de keuze aan de SLEUTEL
-        // hangt en niet aan een ternary om de tekst.
+        // The fixture has one table with two columns; the singular branch is tested here
+        // on the helper itself, so that the choice hangs on the KEY and not on a
+        // ternary around the text.
         const { pluralKey } = await import('../../components/admin/Studio/KnowledgeStudio/plural');
         expect(pluralKey('webpages.db.n_col', 1)).toBe('webpages.db.n_col');
         expect(pluralKey('webpages.db.n_col', 2)).toBe('webpages.db.n_col_plural');
@@ -109,8 +105,8 @@ describe('WebpageDbViewer — i18n', () => {
         render(<WebpageDbViewer webpageId="wp1" />);
         await screen.findByText('⟦webpages.db.col_column⟧');
 
-        // De naam van de tabel, de kolom en het type zijn machinetekst uit de
-        // database; een vertaalde kolomnaam zou een kapotte query opleveren.
+        // The name of the table, the column and the type are machine text from the
+        // database; a translated column name would produce a broken query.
         expect(screen.getAllByText('quotes').length).toBeGreaterThan(0);
         expect(screen.getByText('status')).toBeInTheDocument();
         expect(screen.getByText('TEXT')).toBeInTheDocument();
@@ -120,9 +116,9 @@ describe('WebpageDbViewer — i18n', () => {
         render(<WebpageDbViewer webpageId="wp1" />);
         fireEvent.click(await screen.findByText('⟦webpages.db.tab_browse⟧'));
 
-        // Precies één rij in de fixture → de ENKELVOUDSSLEUTEL, en dus nooit
-        // "1 rows". Met de oude `row${n === 1 ? '' : 's'}` bestond deze keuze
-        // alleen in het Engels.
+        // Precisely one row in the fixture → the SINGULAR KEY, and therefore never
+        // "1 rows". With the old `row${n === 1 ? '' : 's'}` this choice existed only
+        // in English.
         await waitFor(() => expect(screen.getByText('⟦webpages.db.rows⟧(count=1)')).toBeInTheDocument());
         expect(screen.queryByText(/webpages\.db\.rows_plural/)).not.toBeInTheDocument();
     });

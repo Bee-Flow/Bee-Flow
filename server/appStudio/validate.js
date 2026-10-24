@@ -30,13 +30,12 @@
  * publish passes them as hard errors. When opts.dataModel is undefined the
  * checks are skipped entirely — existing callers are untouched.
  *
- * opts.datatables (optional) — de Studio-datatabel-ids die de app-EIGENAAR
- * heeft (array van ids of { id }-records, of een Set). Een modeltabel kan haar
- * rijen uit zo'n datatabel halen (model.tables[].source); is deze lijst er,
- * dan is een datatableId die er niet in staat een harde fout MET de id erin
- * (binding.unknown_datatable). Is de lijst er NIET, dan is het een
- * waarschuwing — ook met de id erin. Stil overslaan gebeurt in geen van beide
- * gevallen: dat levert een app op die publiceert en een leeg scherm toont.
+ * opts.datatables (optional) — the Studio datatable ids that the app OWNER has (array of
+ *   ids or { id } records, or a Set). A model table can fetch its rows from such a
+ *   datatable (model.tables[].source); if this list is present, a datatableId that is not in
+ *   it is a hard error WITH the id in it (binding.unknown_datatable). If the list is NOT
+ *   present, it is a warning — also with the id in it. Silently skipping happens in neither
+ *   case: that gives an app that publishes and shows an empty screen.
  */
 
 'use strict';
@@ -168,13 +167,13 @@ function buildDataTables(dataModel) {
 }
 
 /**
- * opts.dataModel → Map(tableId → source) voor de tabellen die een `source`
- * DRAGEN, en null als de optie niet is meegegeven.
+ * opts.dataModel → Map(tableId → source) for the tables that CARRY a `source`, and null if
+ * the option was not passed.
  *
- * Alleen de tweede soort staat erin. Een tabel met eigen opslag heeft geen
- * `source`, en `Map.get` geeft daar dus undefined — precies het antwoord "deze
- * tabel is van de app zelf". Een `source` die geen object is blijft er WEL in
- * staan: die moet gemeld worden, niet stilzwijgend als eigen opslag gelezen.
+ * Only the second kind is in it. A table with its own storage has no `source`, so `Map.get`
+ * returns undefined there — precisely the answer "this table belongs to the app itself". A
+ * `source` that is not an object DOES stay in it: that must be reported, not quietly read as
+ * own storage.
  */
 function buildTableSources(dataModel) {
     if (dataModel === undefined) return null;
@@ -425,12 +424,10 @@ function buildValidationContext(def, opts, { pushE, pushW, actionIds, screenIds,
         // vorm die vandaag bestaat — vandaar dat niets aan de bestaande soort
         // verandert.
         dataTableSources: buildTableSources(opts.dataModel),
-        // De Studio-datatabellen die de EIGENAAR heeft. Anders dan opts.datasets
-        // krijgt deze GEEN lege verzameling als hij ontbreekt: "geen lijst" en
-        // "een lege lijst" zijn verschillende antwoorden, en de tweede zou elke
-        // gekoppelde tabel afkeuren van een aanroeper die de vraag niet eens
-        // gesteld heeft. Zonder lijst meldt checkTableSource de id bij naam als
-        // waarschuwing; mét lijst is het een harde fout.
+        // The Studio datatables that the OWNER has. Unlike opts.datasets this does NOT get an empty
+        // collection when it is absent: "no list" and "an empty list" are different answers, and the
+        // second would reject every linked table from a caller who never asked the question. Without
+        // a list checkTableSource reports the id by name as a warning; with a list it is a hard error.
         knownDatatables: normalizeIdSet(opts.datatables),
         dataDatasets: opts.dataModel !== undefined ? (normalizeIdSet(opts.datasets) || new Set()) : null,
         // Connector ids ride on the data model itself (model.connectors[]), so

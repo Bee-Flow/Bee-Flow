@@ -292,17 +292,14 @@ test('segmentIndex 0 is a real anchor, and a filing without one still counts', a
     }
 });
 
-// ── DE LIJST DIE HET VERWIJDEREN AANSTUURT ───────────────────────────
+// ── THE LIST THAT DRIVES DELETION ───────────────────────────────────
 //
-// `filedTranscriptSources` is het ENIGE pad in het product dat rijen weghaalt
-// uit de kennisbank van een ANDERE tenant (`DELETE /api/transcriptions/:id/
-// filed-lines`). Zijn SQL stond nergens getest: de nep-pool van
-// routes/transcriptions.usage.test.js matcht op `/FROM kb_sources/` en geeft
-// hetzelfde plan terug ongeacht de SQL-tekst en ongeacht de gebonden
-// parameter, dus een predicaat dat naar `WHERE $1 IS NOT NULL` zou afdrijven
-// bleef daar 17/17 groen — terwijl de route dan élke bron van de hele
-// installatie zou verwijderen. Deze suite draait tegen echte Postgres en is
-// de enige plek waar dat verschil zichtbaar is.
+// `filedTranscriptSources` is the ONLY path in the product that removes rows from the knowledge base of
+// ANOTHER tenant (`DELETE /api/transcriptions/:id/filed-lines`). Its SQL was tested nowhere: the fake pool
+// of routes/transcriptions.usage.test.js matches on `/FROM kb_sources/` and returns the same plan regardless
+// of the SQL text and regardless of the bound parameter, so a predicate that drifted to `WHERE $1 IS NOT NULL`
+// stayed 17/17 green there, while the route would then delete EVERY source of the whole installation. This
+// suite runs against a real Postgres and is the only place where that difference is visible.
 
 test('filedTranscriptSources levert precies de bronnen die DEZE vergadering claimen', async () => {
     const cfg = (id, segmentIndex) => JSON.stringify({
@@ -320,10 +317,9 @@ test('filedTranscriptSources levert precies de bronnen die DEZE vergadering clai
             cfg(MEETING_ID, 3),
             cfg(MEETING_ID, 7),
             cfg('99999999-9999-9999-9999-999999999999', 1),
-            cfg(MEETING_ID, 2),                                   // wél dit id, maar kind 'webpage'
-            // Een id dat ERMEE BEGINT maar het niet IS: dit moet een
-            // gelijkheid zijn, geen LIKE — anders wist één opruimactie de
-            // regels van een andere vergadering mee.
+            cfg(MEETING_ID, 2),                                   // the same id, but kind 'webpage'
+            // An id that STARTS WITH it but is not it: this must be an equality, not a LIKE, otherwise
+            // one cleanup action would take the lines of another meeting along with it.
             JSON.stringify({ metadata: { transcriptionId: `${MEETING_ID}9` } }),
         ]);
     try {
@@ -333,9 +329,8 @@ test('filedTranscriptSources levert precies de bronnen die DEZE vergadering clai
             ['f1', 'f2'],
             'alleen tekstbronnen die precies dit id noemen — uit welke kennisbank dan ook',
         );
-        // En met wat een verwijdering nodig heeft: in welke kennisbank, van
-        // welke tenant. Zonder tenantId gaan de chunks niet weg en blijven hun
-        // embeddings doorzoekbaar.
+        // And with what a deletion needs: in which knowledge base, of which tenant. Without tenantId
+        // the chunks do not go away and their embeddings remain searchable.
         const mine = filed.find(r => r.sourceId === 'f1');
         assert.deepStrictEqual(mine, { sourceId: 'f1', kbId: 'kb-1', tenantId: OWNER });
         const theirs = filed.find(r => r.sourceId === 'f2');

@@ -6,18 +6,18 @@ import TestChatNotice from './TestChatNotice';
 import ToolConfirmCard from './ToolConfirmCard';
 
 /**
- * De kaart bij een tegengehouden call, en de regel die zegt welke agent er
- * draaide (A4 deel A).
+ * The card for a held-back call, and the line that says which agent ran
+ * (A4 part A).
  *
- * Wat hier bewaakt wordt is niet de opmaak maar wat er BEWEERD wordt:
+ * What is guarded here is not the layout but what is CLAIMED:
  *
- *   • een tegengehouden call mag niet lezen als een uitgevoerde;
- *   • een knop die nergens heen kan, hoort er niet te staan — dat is
- *     vals-groen met een muisaanwijzer eraan;
- *   • een beslissing gaat over ÉÉN actie (de argsKey van de server), nooit
- *     over de toolnaam;
- *   • "je concept" mag niet op het scherm komen voor een beurt waarvan
- *     niemand kon zeggen welke config draaide.
+ *   • a held-back call may not read as an executed one;
+ *   • a button that leads nowhere does not belong there. That is false green
+ *     with a mouse pointer on it;
+ *   • a decision concerns ONE action (the argsKey from the server), never the
+ *     tool name;
+ *   • "your draft" may not appear on screen for a turn where
+ *     nobody could say which config ran.
  */
 
 const t = (key, fallback, params) => {
@@ -47,8 +47,8 @@ describe('ToolConfirmCard', () => {
     });
 
     it('BIJT — zonder beslispad staan er geen knoppen', () => {
-        // Een "Goedkeuren" die stilletjes niets doet is het soort vals-groen
-        // dat een testchat hoort te vinden, niet te maken.
+        // An "Approve" that quietly does nothing is the kind of false green
+        // that a test chat should find, not produce.
         render(<ToolConfirmCard calls={[call()]} t={t} />);
         expect(screen.queryByRole('button')).toBeNull();
         expect(screen.getByText(/Nothing was done/i)).toBeInTheDocument();
@@ -86,8 +86,8 @@ describe('ToolConfirmCard', () => {
         expect(screen.getByTestId('tool-confirm-card')).toHaveAttribute('data-status', 'approved');
         expect(screen.queryByText(/Approve and run/i)).toBeNull();
 
-        // ...en de server heeft het laatste woord: een geweigerde call blijft
-        // geweigerd, ook als de client denkt dat er ja geklikt is.
+        // ...and the server has the last word: a refused call stays refused,
+        // even if the client thinks yes was clicked.
         rerender(
             <ToolConfirmCard calls={[call({ status: 'declined' })]} onDecide={() => { }}
                 decided={{ ['a'.repeat(32)]: 'approve' }} t={t} />,
@@ -104,9 +104,9 @@ describe('ToolConfirmCard', () => {
 });
 
 /**
- * Wie de stand zette (A4 deel C, `toolConfirmStatus.js`). De kaart en het
- * spoorpaneel lezen sinds dit deel dezelfde functie, zodat ze het nooit
- * verschillend kunnen zeggen.
+ * Who set the status (A4 part C, `toolConfirmStatus.js`). The card and the
+ * trail panel now both read this same function, so they can never say
+ * different things.
  */
 describe('ToolConfirmCard — wie de stand zette', () => {
     it('BIJT — een klik van zojuist zegt niet dat het GEDRAAID heeft', () => {
@@ -125,9 +125,8 @@ describe('ToolConfirmCard — wie de stand zette', () => {
     });
 
     it('BIJT — een stand die we niet kennen wordt geen "wacht op jou"', () => {
-        // 'pending' is zelf een bewering ("dit heeft niet gedraaid"). Bij een
-        // onleesbare stand kunnen we die niet doen, en dan horen er ook geen
-        // knoppen te staan.
+        // 'pending' is itself a claim ("this has not run"). When a status cannot
+        // be read, we cannot make that claim, and then no buttons should appear.
         render(<ToolConfirmCard calls={[call({ status: 'ran_maybe' })]} onDecide={() => { }} t={t} />);
         expect(screen.getByTestId('tool-confirm-card')).toHaveAttribute('data-status', 'unknown');
         expect(screen.getByText(/Could not tell whether this ran/i)).toBeInTheDocument();

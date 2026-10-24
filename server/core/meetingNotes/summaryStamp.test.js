@@ -1,10 +1,10 @@
 'use strict';
 
 /**
- * De sjabloonstempel — pure vorm van `summary_template_id` + `_version`.
+ * The summary-template stamp: pure form of `summary_template_id` + `_version`.
  *
- * Wat hier vastligt is precies wat het scherm later als waarheid presenteert:
- * welk sjabloon, welke versie, en wanneer we het NIET weten.
+ * What is fixed here is precisely what the screen later presents as the truth: which template, which
+ * version, and when we do NOT know.
  *
  * Run: cd server && node --test --test-force-exit core/meetingNotes/summaryStamp.test.js
  */
@@ -25,14 +25,14 @@ test('een ingebouwd sjabloon krijgt een gemarkeerd id en géén versie', () => {
         summaryTemplateId: 'builtin:standup',
         summaryTemplateVersion: null,
     });
-    // Ingebouwde sjablonen leven in code, niet in een tabel: er is geen
-    // versie om te tonen, en er wordt er dus ook geen verzonnen.
+    // Built-in templates live in code, not in a table: there is no version to show,
+    // and therefore none is invented either.
     assert.strictEqual(stampForBuiltin('general').summaryTemplateVersion, null);
 });
 
 test('een onbekende ingebouwde sleutel stempelt general — de prompt die echt gebruikt is', () => {
-    // builtinPrompt() valt terug op general; de stempel moet dezelfde val
-    // maken, anders noemt de notitie een sjabloon dat hem niet geschreven heeft.
+    // builtinPrompt() falls back to general; the stamp must make the same fallback,
+    // otherwise the note names a template that did not write it.
     assert.strictEqual(stampForBuiltin('does-not-exist').summaryTemplateId, 'builtin:general');
     assert.strictEqual(stampForBuiltin(null).summaryTemplateId, 'builtin:general');
 });
@@ -53,8 +53,8 @@ test('een sjabloonrij zonder bruikbare versie levert null, geen verzonnen 1', ()
 });
 
 test('geen sjabloon = een leeg paar, niet "laat de velden weg"', () => {
-    // Dit is de WIS-waarde: een eenmalige prompt moet een oude stempel
-    // weghalen, en dat kan alleen als er iets geschreven wordt.
+    // This is the ERASE value: a one-off prompt must remove an old stamp, and that can only
+    // happen if something is written.
     assert.deepStrictEqual(EMPTY_STAMP, { summaryTemplateId: null, summaryTemplateVersion: null });
     assert.deepStrictEqual(stampForTemplate(null), { summaryTemplateId: null, summaryTemplateVersion: null });
     assert.deepStrictEqual(stampForTemplate({ version: 3 }), { summaryTemplateId: null, summaryTemplateVersion: null });

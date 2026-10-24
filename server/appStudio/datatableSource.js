@@ -1,36 +1,34 @@
 /**
- * App Studio — de TWEEDE tabelsoort: een modeltabel wier rijen in een
- * STUDIO-DATATABEL staan (`model.tables[].source = {kind:'datatable', …}`).
+ * App Studio — the SECOND kind of table: a model table whose rows are in a
+ * STUDIO DATATABLE (`model.tables[].source = {kind:'datatable', …}`).
  *
- * ── WAAROM DIT EEN EIGEN BESLISSING IS ──────────────────────────────
- * Een gewone app-tabel staat in de database VAN DE APP. Die database is van de
- * eigenaar, en wie er iets uit mag zien bepaalt de app helemaal zelf
- * (rlsGateway + het `access`-blok van de tabel). Een Studio-datatabel is van
- * niemand in het bijzonder: hij staat in de organisatie, wordt gedeeld met
- * automatiseringen en met andere apps, en draagt zijn eigen rechtenladder
- * (auth/datatableAccess — viewer < editor < owner).
+ * ── WHY THIS IS ITS OWN DECISION ────────────────────────────────────
+ * An ordinary app table lives in the database OF THE APP. That database belongs to the
+ * owner, and who may see anything in it is decided by the app entirely itself
+ * (rlsGateway + the `access` block of the table). A Studio datatable belongs to nobody
+ * in particular: it sits in the organisation, is shared with automations and with other
+ * apps, and carries its own permission ladder (auth/datatableAccess — viewer < editor < owner).
  *
- * Een app die zo'n tabel leest is dus een TWEEDE DEUR naar gegevens die al een
- * slot hebben. De app mag dat slot niet vervangen; hij mag er alleen nog een
- * bij zetten. Alles hieronder volgt daaruit.
+ * An app that reads such a table is therefore a SECOND DOOR to data that already has a
+ * lock. The app may not replace that lock; it may only add one more. Everything below
+ * follows from that.
  *
- * ── REGEL 1: DE GRAAD IS DIE VAN DE KIJKER, NOOIT DIE VAN DE AUTEUR ─
- * `gradeForPrincipal` wordt gesteld voor de PRINCIPAAL VAN DE KIJKER: zijn
- * organisatie, zijn groepen, zijn orgRole, vers uit de database. De app-eigenaar
- * is niet de vrager. Zou de graad voor de eigenaar worden bepaald, dan zou elke
- * gedeelde app een uitgiftepunt zijn voor de rechten van zijn maker: één scherm
- * met een tabelbinding en iedereen die de app mag openen leest de HR-tabel van
- * de eigenaar.
+ * ── RULE 1: THE GRADE IS THAT OF THE VIEWER, NEVER THAT OF THE AUTHOR ─
+ * `gradeForPrincipal` is determined for the PRINCIPAL OF THE VIEWER: his organisation,
+ * his groups, his orgRole, fresh from the database. The app owner is not the one asking.
+ * Were the grade determined for the owner, every shared app would be a dispensing point
+ * for the rights of its maker: one screen with a table binding, and everyone who may open
+ * the app reads the owner's HR table.
  *
- * ── REGEL 2: EFFECTIEF = MINIMUM, NOOIT DE UNIE ─────────────────────
- * Er zijn drie antwoorden op "wat mag deze lezing":
- *   a) de graad van de KIJKER op de datatabel
- *   b) de graad van de APP-EIGENAAR op diezelfde datatabel
- *   c) wat de APP-ROL van de kijker op deze modeltabel mag (het `access`-blok)
- * De effectieve graad is het MINIMUM van die drie.
+ * ── RULE 2: EFFECTIVE = MINIMUM, NEVER THE UNION ───────────────────
+ * There are three answers to "what may this read do":
+ *   a) the grade of the VIEWER on the datatable
+ *   b) the grade of the APP OWNER on that same datatable
+ *   c) what the APP ROLE of the viewer may do on this model table (the `access` block)
+ * The effective grade is the MINIMUM of those three.
  *
- * a) en b) gaan door `auth/datatableAccess.effectiveGradeForRun` — de regel die
- * daar al vooruit geschreven stond, letterlijk (datatableAccess.js:311-317):
+ * a) and b) go through `auth/datatableAccess.effectiveGradeForRun` — the rule that was
+ * already written out there in advance, literally (datatableAccess.js:311-317):
  *
  *     const a = gradeForPrincipal(table, grants, principal);
  *     if (!onBehalfOfPrincipal || onBehalfOfPrincipal.userId === principal.userId) return a;
@@ -38,75 +36,68 @@
  *     if (!a || !b) return null;
  *     return rank(a) <= rank(b) ? a : b;
  *
- * WAAROM EEN UNIE HIER EEN LEK ZOU ZIJN. Een unie telt twee graden bij elkaar
- * op: mag de kijker lezen en mag de eigenaar schrijven, dan levert de unie
- * schrijfrecht op dat GEEN VAN BEIDEN alleen had. Toegepast op deze deur is dat
- * niet theoretisch — het is precies de aanval: de kijker heeft niets op de
- * datatabel, de eigenaar heeft alles, en de unie maakt van "ik mag deze app
- * openen" hetzelfde als "ik ben de eigenaar". De MIN doet het omgekeerde: een
- * app kan nooit méér uitdelen dan zijn kijker zelf al had, en nooit méér dan
- * zijn maker zelf had. `if (!a || !b) return null` maakt daarbij van ONBEKEND
- * een weigering in plaats van de laagste graad — "geen graad" en "de laagste
- * graad" blijven verschillende waarden.
+ * WHY A UNION WOULD BE A LEAK HERE. A union adds two grades together: if the viewer may
+ * read and the owner may write, the union yields write rights that NEITHER OF THEM HAD
+ * ALONE. Applied to this door that is not theoretical — it is precisely the attack: the
+ * viewer has nothing on the datatable, the owner has everything, and the union makes
+ * "I may open this app" the same as "I am the owner". The MIN does the reverse: an app can
+ * never hand out more than its viewer already had himself, and never more than its maker
+ * had. `if (!a || !b) return null` thereby turns UNKNOWN into a refusal rather than the
+ * lowest grade — "no grade" and "the lowest grade" remain different values.
  *
- * c) is de derde MIN en staat hieronder in `appRoleGrade`.
+ * c) is the third MIN and is below in `appRoleGrade`.
  *
- * ── REGEL 3: `mode:'read'` CAPT OP viewer ───────────────────────────
- * Een koppeling die 'read' zegt, mag ook via de graad geen schrijfrecht laten
- * ontstaan. De cap is niet symbolisch: `owner` kortsluit in
- * core/dataEngine/accessFilter.resolveScope naar 'all' en slaat elke rijfilter
- * over, dus zonder cap zou een `row_scope:'own'`-tabel via een read-koppeling
- * álle rijen tonen aan wie toevallig owner-graad heeft. Met de cap ziet
- * iedereen door deze deur wat een viewer ziet.
+ * ── RULE 3: `mode:'read'` CAPS AT viewer ───────────────────────────
+ * A link that says 'read' may not, even via the grade, produce write rights. The cap is
+ * not symbolic: `owner` short-circuits in core/dataEngine/accessFilter.resolveScope to
+ * 'all' and skips every row filter, so without the cap a `row_scope:'own'` table reached
+ * through a read link would show ALL rows to whoever happened to have owner grade. With
+ * the cap, everyone who comes through this door sees what a viewer sees.
  *
- * ── WAT EEN LEZER PER ROUTE KRIJGT ──────────────────────────────────
- * routes/studioAppData.js (ingelogd, `ctx.viewerId` = de sessiegebruiker):
- *   de kijker krijgt zijn EIGEN graad op de datatabel, verlaagd tot die van de
- *   app-eigenaar en tot wat zijn app-rol op deze tabel mag. Geen graad op de
- *   datatabel (andere organisatie, geen grant, niet in het publicatiepubliek,
- *   of een persoonlijke tabel van iemand anders) = 403, geen lege lijst.
+ * ── WHAT A READER GETS PER ROUTE ──────────────────────────────────
+ * routes/studioAppData.js (logged in, `ctx.viewerId` = the session user):
+ *   the viewer gets HIS OWN grade on the datatable, lowered to that of the app owner and
+ *   to what his app role may do on this table. No grade on the datatable (other
+ *   organisation, no grant, not in the publication audience, or someone else's personal
+ *   table) = 403, not an empty list.
  *
- * routes/studioAppPublic.js (publiek, `ctx.role` = de gereserveerde rol
- * `public` en `ctx.viewerId` = een anoniem, serverbedacht bezoekers-id):
- *   ALTIJD een weigering. Een anonieme bezoeker is geen principaal — hij heeft
- *   geen organisatie, geen groepen en geen orgRole — en de enige graad die er
- *   dan nog te lenen valt is die van de auteur. Dat is precies wat niet mag,
- *   dus dit pad eindigt hier met 403 en een reden. Een openbaar formulier dat
- *   organisatiegegevens moet tonen, doet dat via een tabel van de app zelf.
+ * routes/studioAppPublic.js (public, `ctx.role` = the reserved role `public` and
+ * `ctx.viewerId` = an anonymous, server-minted visitor id):
+ *   ALWAYS a refusal. An anonymous visitor is not a principal — he has no organisation,
+ *   no groups and no orgRole — and the only grade left to borrow is that of the author.
+ *   That is exactly what may not happen, so this path ends here with 403 and a reason. A
+ *   public form that must show organisation data does that via a table of the app itself.
  *
- * ── ONBEKEND VERSMALT, MAAR ZEGT WAAROM ─────────────────────────────
- * Geen enkele tak hieronder valt terug op 'viewer' en geen enkele geeft een
- * lege lijst. Kan de graad niet worden bepaald — de identiteit is niet te lezen,
- * de tabel is weg, de koppeling deugt niet — dan is dat een weigering die
- * vertelt wát er niet kon. Een lege lijst zou hetzelfde scherm opleveren als
- * "er zijn geen rijen", en dat verschil is het enige waar iemand op kan
- * handelen. Zie ook readError.js: een weigering is nooit een 404, want de
- * runtime-client degradeert die naar "leeg".
+ * ── UNKNOWN NARROWS, BUT SAYS WHY ─────────────────────────────────
+ * No branch below falls back to 'viewer', and no branch gives an empty list. If the grade
+ * cannot be determined — the identity cannot be read, the table is gone, the link is not
+ * sound — then that is a refusal that tells WHAT could not be determined. An empty list
+ * would give the same screen as "there are no rows", and that difference is the only thing
+ * someone can act on. See also readError.js: a refusal is never a 404, because the runtime
+ * client degrades that to "empty".
  *
- * ── LEZEN ÉN SCHRIJVEN, ÉÉN BESLISSING ──────────────────────────────
- * `resolveDatatableRead` (dataReadRunner) en `resolveDatatableWrite`
- * (actionExecutor/records.js) zijn twee ingangen op ÉÉN body. Er stond hier
- * even een tweede module voor het schrijfpad (`datatableBinding.js`, met
- * MIN(app-eigenaar, app-rol, mode) en zónder de eigen graad van de kijker); die
- * is weggehaald zodra bleek dat het twee antwoorden op dezelfde vraag waren.
- * De ruimere van de twee is niet gekozen: een app die schrijft namens iemand
- * die zelf niets op de tabel mag, is precies de deur die regel 1 dichthoudt.
+ * ── READING AND WRITING, ONE DECISION ──────────────────────────────
+ * `resolveDatatableRead` (dataReadRunner) and `resolveDatatableWrite` (actionExecutor/
+ * records.js) are two entries to ONE body. There was briefly a second module here for the
+ * write path (`datatableBinding.js`, with MIN(app owner, app role, mode) and WITHOUT the
+ * viewer's own grade); it was removed as soon as it turned out to be two answers to the
+ * same question. The broader of the two was not chosen: an app that writes on behalf of
+ * someone who himself may do nothing on the table is precisely the door that rule 1 keeps
+ * shut.
  *
- * Wat een SCHRIJVING er bovenop krijgt, en verder niets:
- *   • `mode:'read'` is een WEIGERING met een reden, niet een cap die verderop
- *     toevallig ook 403 oplevert. Een koppeling die als lezen is opgeslagen en
- *     toch een schrijfstap krijgt, moet dat zeggen — een stille no-op ziet er
- *     voor de gebruiker uit als een gelukte actie en de rij die nooit verscheen
- *     wordt pas dagen later gemist.
- *   • de graad moet minstens `editor` zijn (`gradeAtLeast`) — de GROVE
- *     controle die core/dataEngine/accessFilter.js in zijn moduledoc noemt: het
- *     gecompileerde predicaat is géén schrijfrechtcheck en mag er nooit voor
- *     doorgaan.
- *   • beide `access`-blokken worden PER ACTIE bevraagd. `appRoleGrade`
- *     hieronder vouwt create/update/delete tot één bovengrens; een rol die wel
- *     mag toevoegen maar niet verwijderen zou daarmee alsnog mogen verwijderen.
- *     `assertCanWrite` op de MODELtabel (de app-rol) en op de DATATABEL (de
- *     graad) stelt de vraag alsnog voor precies deze actie.
+ * What a WRITE adds on top of that, and nothing more:
+ *   • `mode:'read'` is a REFUSAL with a reason, not a cap that happens to yield 403
+ *     further on. A link saved as a read that nevertheless gets a write step must say so —
+ *     a silent no-op looks to the user like a successful action, and the row that never
+ *     appeared is only missed days later.
+ *   • the grade must be at least `editor` (`gradeAtLeast`) — the COARSE check that
+ *     core/dataEngine/accessFilter.js mentions in its module doc: the compiled predicate
+ *     is NOT a write-rights check and must never pass for one.
+ *   • both `access` blocks are queried PER ACTION. `appRoleGrade` below folds
+ *     create/update/delete into one upper bound; a role that may add but not delete
+ *     would thereby still be allowed to delete. `assertCanWrite` on the MODEL table (the
+ *     app role) and on the DATATABLE (the grade) asks the question again for precisely
+ *     this action.
  */
 
 'use strict';
@@ -114,19 +105,19 @@
 // Pure modules: de vocabulaire en de compiler-helft van de access-laag.
 const {
     PUBLIC_ROLE_KEY,
-    // De bron-grammatica komt UIT het vocabulaire, nooit uit een kopie hier.
-    // Er stond een tweede lijst ('datatable', 'read'|'readwrite') letterlijk in
-    // de shapeOk hieronder; die liep bij een derde kind of een derde mode stil
-    // uit de pas met validate/refs.js en dataModel/modelValidate.js, die hem
-    // dan wél zouden accepteren. De richting van die drift is veilig (deze
-    // module weigert), maar hij komt pas boven als een gebruiker de app opent.
+    // The source grammar comes FROM the vocabulary, never from a copy here.
+    // There was a second list ('datatable', 'read'|'readwrite') written out literally in the
+    // shapeOk below; that quietly drifted out of step with validate/refs.js and
+    // dataModel/modelValidate.js when a third kind or a third mode came along, and those
+    // would accept it. The direction of that drift is safe (this module refuses), but it only
+    // surfaces once a user opens the app.
     TABLE_SOURCE_KINDS,
     TABLE_SOURCE_MODES,
     WRITABLE_TABLE_SOURCE_MODE,
 } = require('../core/dataEngine/dataModel/vocabulary');
 const { resolveScope, assertCanWrite } = require('../core/dataEngine/accessFilter');
-// De rechtenladder zelf. Bewust NIET injecteerbaar: dit is de beslissing, niet
-// een afhankelijkheid ervan.
+// The permission ladder itself. Deliberately NOT injectable: this is the decision, not
+// a dependency of it.
 const {
     GRADES,
     narrowGrade,
@@ -141,34 +132,32 @@ const { ANON_VIEWER_PREFIX } = require('./publicAccess');
 const { readError } = require('./readError');
 
 /**
- * De bron van een modeltabel, of null als de app haar rijen zelf bezit.
+ * The source of a model table, or null if the app owns its rows itself.
  *
- * `null` en `undefined` betekenen allebei "eigen opslag" — de soort die er
- * altijd al was. Alles wat er wél staat wordt beoordeeld, ook als het geen
- * object is: stil als "eigen opslag" lezen zou een kapotte koppeling laten
- * uitkomen op de database van de app, waar die tabel niet bestaat.
+ * `null` and `undefined` both mean "own storage" — the kind that always existed. Anything
+ * that IS there is judged, even if it is not an object: quietly reading a broken link as
+ * "own storage" would land on the app's database, where that table does not exist.
  */
 function tableSource(table) {
     const s = table ? table.source : null;
     return (s === undefined || s === null) ? null : s;
 }
 
-/** Haalt deze modeltabel haar rijen uit een Studio-datatabel? */
+/** Does this model table fetch its rows from a Studio datatable? */
 function isDatatableBacked(table) {
     return tableSource(table) !== null;
 }
 
 /**
- * Het MINIMUM van twee graden — of null zodra er één onbekend is.
+ * The MINIMUM of two grades — or null as soon as one of them is unknown.
  *
- * De rekenkunde zelf is `auth/datatableAccess.narrowGrade`: één implementatie
- * van "versmallen, nooit optellen", gedeeld met effectiveGradeForRun. Wat hier
- * omheen staat is de VOCABULAIRECHECK. narrowGrade weert een falsy waarde
- * (`!a || !b → null`), maar een waarheidsachtige niet-graad ('admin', een
- * rolnaam uit de app) krijgt `rank() === -1` en wint dan als kleinste — dan komt
- * er een string uit die geen graad is. Downstream valt dat dicht
- * (`resolveScope` kent alleen viewer/editor en geeft 'none'), maar een graad die
- * geen graad is hoort de deur niet te halen: hier is dat een weigering.
+ * The arithmetic itself is `auth/datatableAccess.narrowGrade`: one implementation of
+ * "narrow, never add", shared with effectiveGradeForRun. What is here around it is the
+ * VOCABULARY CHECK. narrowGrade rejects a falsy value, but a truthy non-grade ('admin', a
+ * role name from the app) gets `rank() === -1` and then wins as the smallest — then a
+ * string comes out that is not a grade. Downstream that is closed (`resolveScope` knows
+ * only viewer/editor and gives 'none'), but a grade that is not a grade should not get
+ * through the door: here that is a refusal.
  */
 function minGrade(a, b) {
     if (!GRADES.includes(a) || !GRADES.includes(b)) return null;
@@ -176,21 +165,21 @@ function minGrade(a, b) {
 }
 
 /**
- * De graad die de APP-ROL van de kijker hoogstens toestaat — de derde MIN.
+ * The grade that the viewer's APP ROLE allows at most — the third MIN.
  *
- * De app-rol zegt wat iemand in DEZE app met DEZE tabel mag; dat staat in het
- * `access`-blok van de modeltabel en is de mapping die de auteur zelf heeft
- * ingesteld. Mag die rol de tabel wijzigen, dan is 'editor' de bovengrens;
- * anders 'viewer'. De app-eigenaar zelf (rol 'owner') wordt hier niet verlaagd —
- * zijn eigen graad op de datatabel is dan de enige begrenzing die telt.
+ * The app role says what someone may do with THIS table in THIS app; that is in the
+ * `access` block of the model table and is the mapping the author set up. If that role
+ * may change the table, then 'editor' is the upper bound; otherwise 'viewer'. The app owner
+ * himself (role 'owner') is not lowered here — his own grade on the datatable is then the
+ * only limit that counts.
  *
- * Of de rol de tabel überhaupt mag LEZEN is hier al beantwoord: dataReadRunner
- * .requireReadableTable heeft `rlsGateway.canRead(table, role)` gedraaid en
- * anders 403 gegeven. Deze functie gaat alleen over de bovengrens.
+ * Whether the role may READ the table at all has already been answered here:
+ * dataReadRunner.requireReadableTable ran `rlsGateway.canRead(table, role)` and otherwise
+ * gave 403. This function is only concerned with the upper bound.
  *
- * Geen rol = geen graad. Dat is de kijker die nergens in de rolmapping valt;
- * hij komt langs deze functie niet verder, ook niet met een grant op de
- * datatabel — de app is dan niet de deur waardoor hij binnenkomt.
+ * No role = no grade. That is the viewer who appears nowhere in the role mapping; he does
+ * not get past this function, not even with a grant on the datatable — the app is then not
+ * the door through which he comes in.
  */
 function appRoleGrade(table, role) {
     if (typeof role !== 'string' || !role) return null;
@@ -202,13 +191,12 @@ function appRoleGrade(table, role) {
 }
 
 /**
- * De rijregel die de auteur aan DEZE app-rol hing voor DEZE modeltabel.
+ * The row rule that the author attached to THIS app role for THIS model table.
  *
- * Alleen een niet-lege string of een AST; alles anders is geen regel. Wordt
- * niet hier gevalideerd: `PUT /api/studio-apps/:id/schema` toetst elke
- * rowFilter met `rlsGateway.validateRowFilter` vóór het opslaan, en een regel
- * die daar toch langs kwam laat `rowFilterToSql` in het leespad falen — een
- * weigering, nooit een ruimere lezing.
+ * Only a non-empty string or an AST counts; anything else is not a rule. It is not validated
+ * here: `PUT /api/studio-apps/:id/schema` checks every rowFilter with
+ * `rlsGateway.validateRowFilter` before saving, and a rule that got past that anyway makes
+ * `rowFilterToSql` fail on the read path — a refusal, never a wider read.
  */
 function rowFilterForRole(table, role) {
     if (typeof role !== 'string' || !role || role === 'owner') return null;
@@ -216,41 +204,38 @@ function rowFilterForRole(table, role) {
     if (!rules || typeof rules !== 'object') return null;
     const rule = rules[role];
     if (typeof rule === 'string') return rule.trim() ? rule : null;
-    // Een AST is een object — een LIJST niet. `[]` is waar en van het type
-    // 'object', en zou er zonder deze regel als "regel" doorheen glippen.
+    // An AST is an object — a LIST is not. `[]` is truthy and of type 'object', and without this
+    // check it would slip through as a "rule".
     return (rule && typeof rule === 'object' && !Array.isArray(rule)) ? rule : null;
 }
 
 /**
- * De principaal van één gebruiker, vers uit de database — of een weigering.
+ * The principal of one user, fresh from the database — or a refusal.
  *
- * `resolveDatatablePrincipalForUser` slikt zelf een mislukte gebruikerslezing
- * (`try { … } catch (_) { }`) en levert dan een principaal zonder organisatie,
- * zonder orgRole en zonder groepen op. Die degradeert naar "geen graad", en dat
- * is als ANTWOORD prima (onbekend versmalt) maar als BOODSCHAP fout: het zou de
- * kijker vertellen dat hij geen toegang heeft terwijl in werkelijkheid niemand
- * het kon nagaan. Vandaar dat een uitval hier een eigen weigering krijgt, met
- * dezelfde redenering als `datatable_identity_unavailable` in
+ * `resolveDatatablePrincipalForUser` itself swallows a failed user read
+ * (`try { … } catch (_) { }`) and then delivers a principal without organisation, without
+ * orgRole and without groups. That degrades to "no grade", and that is fine as an ANSWER
+ * (unknown narrows) but wrong as a MESSAGE: it would tell the viewer that he has no access
+ * while in reality nobody could check it. Hence a failure here gets its own refusal, with the
+ * same reasoning as `datatable_identity_unavailable` in
  * core/automationRunner/datatableResolve.js.
  *
- * DRIE MANIEREN WAAROP DIT MISGAAT, en alle drie komen ze hier uit als 503.
- * De resolver kan stuklopen; hij kan niets teruggeven; en — het geval dat lang
- * onzichtbaar was — hij kan de gebruikerslezing intern hebben opgegeten en een
- * principaal MÉT userId maar ZONDER org, orgRole en groepen teruggeven. Dat
- * laatste degradeert verderop naar "geen graad" en zou er als 403 uitkomen
- * terwijl het een 503 was. Sinds `resolveDatatablePrincipal` zijn mislukte
- * lezingen MELDT (`principal.identityError`, additief, naar het voorbeeld van
- * `ctx.identityError` in core/automationRunner/datatableResolve.js) is ook die
- * tak te zien, en wordt hij hier geweigerd in plaats van stilzwijgend als een
- * te lage graad afgehandeld.
+ * THREE WAYS IN WHICH THIS GOES WRONG, and all three come out here as 503. The resolver can
+ * break down; it can return nothing; and — the case that was invisible for a long time — it
+ * can have swallowed the user read internally and return a principal WITH a userId but
+ * WITHOUT org, orgRole and groups. That last one degrades further down to "no grade" and
+ * would come out as a 403 while it was a 503. Since `resolveDatatablePrincipal` REPORTS failed
+ * reads (`principal.identityError`, additive, following the example of `ctx.identityError` in
+ * core/automationRunner/datatableResolve.js), that branch too is visible, and here it is
+ * refused instead of being handled silently as a grade that is too low.
  */
 async function principalFor(userId, resolve, unavailable) {
     let principal = null;
     try {
         principal = await resolve(userId);
     } catch (_) {
-        // De oorzaak blijft binnen: `safe`-boodschappen gaan letterlijk naar de
-        // client, en een databasefout is niets voor die kant van de lijn.
+        // The cause stays inside: `safe` messages go literally to the client, and a database error
+        // is nothing for that side of the line.
         principal = null;
     }
     if (!principal || !principal.userId || principal.identityError) {
@@ -263,27 +248,26 @@ async function principalFor(userId, resolve, unavailable) {
 const WRITE_ACTIONS = Object.freeze(['create', 'update', 'delete']);
 
 /**
- * Alles wat één LEZING of één SCHRIJVING van een datatabel-gekoppelde modeltabel
- * nodig heeft. Eén body, twee ingangen — zie de kop van dit bestand.
+ * Everything that ONE READ or ONE WRITE of a datatable-linked model table needs.
+ * One body, two entries — see the header of this file.
  *
- * @param {object} ctx   de context ({app, viewerId, role, viewer, …}) — het
- *   leespad geeft die van dataReadRunner, het schrijfpad bouwt dezelfde vorm
- * @param {object} table de MODELtabel (met `source`), niet de datatabel
- * @param {object} [deps] injecteerbare randen (stores, principaalresolver) voor tests
+ * @param {object} ctx   the context ({app, viewerId, role, viewer, …}) — the read path passes
+ *   the one from dataReadRunner, the write path builds the same shape
+ * @param {object} table the MODEL table (with `source`), not the datatable
+ * @param {object} [deps] injectable edges (stores, principal resolver) for tests
  * @param {'read'|'create'|'update'|'delete'} [action]
  * @returns {Promise<{tableMeta, grade, scopeKey, viewer, dialect, datatable}>}
- * @throws  een cliënt-veilige weigering (readError) met een reden
+ * @throws  a client-safe refusal (readError) with a reason
  */
 async function resolveDatatableSource(ctx, table, deps = {}, action = 'read') {
     const isWrite = WRITE_ACTIONS.includes(action);
     if (!isWrite && action !== 'read') {
-        // Een aanroeper die een actie verzint hoort niet stilzwijgend als lezer
-        // behandeld te worden — dat zou de mode-weigering hieronder overslaan.
+        // A caller that invents an action should not silently be treated as a reader — that would
+        // skip the mode refusal below.
         throw readError(422, 'This screen asked for something a linked Studio table cannot do.');
     }
-    // Lazy vereist, net als core/automationRunner/datatableResolve.js het doet:
-    // deze twee slepen de pg-pool binnen en deze module moet laadbaar blijven in
-    // suites die de database stubben.
+    // Lazy require, just as core/automationRunner/datatableResolve.js does it: these two pull in
+    // the pg pool, and this module must stay loadable in suites that stub the database.
     const datatableStore = deps.datatableStore || require('../stores/datatableStore');
     const datatableDbStore = deps.datatableDbStore || require('../stores/datatableDbStore');
     const resolvePrincipal = deps.resolveDatatablePrincipalForUser || resolveDatatablePrincipalForUser;
@@ -293,29 +277,27 @@ async function resolveDatatableSource(ctx, table, deps = {}, action = 'read') {
     const shapeOk = source && typeof source === 'object' && !Array.isArray(source)
         && TABLE_SOURCE_KINDS.includes(source.kind)
         && typeof source.datatableId === 'string' && source.datatableId
-        // Alleen de modes uit het vocabulaire. Een waarde die er niet in staat
-        // stil als 'read' lezen zou een typefout in een recht veranderen; alles
-        // wat geen mode is, is een kapotte koppeling — niet een smallere.
+        // Only the modes from the vocabulary. A value that is not in it, read silently as 'read',
+        // would turn a typo into a permission; anything that is not a mode is a broken link — not
+        // a narrower one.
         && TABLE_SOURCE_MODES.includes(source.mode);
     if (!shapeOk) {
         throw readError(422, 'This screen reads a linked Studio table, but the link is not valid.');
     }
 
-    // ── een `read`-koppeling schrijft niet, en zegt dat ─────────────
-    // Vóór alles wat een database aanraakt: dit antwoord hangt niet af van wie
-    // je bent of van de vraag of de tabel er nog is, en een weigering die pas ná
-    // het zoeken valt kan alsnog een storing worden. De cap op 'viewer' verderop
-    // blijft óók staan — die is het tweede slot voor een aanroeper die ooit een
-    // schrijving als `action:'read'` binnenbrengt.
+    // ── a `read` link does not write, and says so ─────────────
+    // Before anything that touches a database: this answer does not depend on who you are or
+    // on whether the table is still there, and a refusal that falls only AFTER the lookup can
+    // still turn into a failure. The cap at 'viewer' further on also stays — that is the second
+    // lock for a caller who someday brings in a write as `action:'read'`.
     if (isWrite && source.mode !== WRITABLE_TABLE_SOURCE_MODE) {
         throw readError(403, 'This screen is linked to a Studio table for reading only, so it cannot change rows.');
     }
 
-    // ── REGEL 1: wie leest — de kijker, nooit de auteur ─────────────
-    // Twee onafhankelijke poorten voor hetzelfde antwoord op de publieke route:
-    // de gereserveerde rol (wat de app van hem vindt) en het anonieme
-    // bezoekers-id (wie hij is). Eén ervan zou genoeg zijn; twee zorgen dat een
-    // toekomstige route die er maar één zet niet stilzwijgend doorloopt.
+    // ── RULE 1: who reads — the viewer, never the author ─────────────
+    // Two independent gates for the same answer on the public route: the reserved role (what
+    // the app finds of him) and the anonymous visitor id (who he is). One of them would be
+    // enough; two ensure that a future route which sets only one does not pass silently.
     if (ctx && ctx.role === PUBLIC_ROLE_KEY) {
         throw readError(403, `A public page cannot ${isWrite ? 'change rows in' : 'read'} a linked Studio table.`);
     }
@@ -332,9 +314,8 @@ async function resolveDatatableSource(ctx, table, deps = {}, action = 'read') {
         viewerId, resolvePrincipal,
         'Could not check who you are, so access to the linked Studio table cannot be decided.',
     );
-    // Dezelfde principaal? Dan geen tweede ronde: de app-eigenaar die zijn eigen
-    // app bekijkt is één persoon, en effectiveGradeForRun rekent dat verderop
-    // ook zo af.
+    // The same principal? Then no second round: the app owner who views his own app is one
+    // person, and effectiveGradeForRun also settles it that way further on.
     const ownerPrincipal = ownerId === viewerId
         ? viewerPrincipal
         : await principalFor(
@@ -342,12 +323,11 @@ async function resolveDatatableSource(ctx, table, deps = {}, action = 'read') {
             'Could not check who the app owner is, so access to the linked Studio table cannot be decided.',
         );
 
-    // ── de tabel, in de scopes van de EIGENAAR ──────────────────────
-    // De auteur heeft deze koppeling gelegd, dus in zijn organisatie of zijn
-    // persoonlijke scope staat hij. Nooit globaal zoeken en achteraf toetsen —
-    // dat is een tenant raden (core/automationRunner/datatableResolve.js,
-    // weigering 1). De scopes van de KIJKER zijn hier niet de vraag: dat zou een
-    // gelijknamige tabel uit een andere tenant kunnen opleveren.
+    // ── the table, in the scopes of the OWNER ──────────────────────
+    // The author set up this link, so the table is in his organisation or his personal scope.
+    // Never search globally and check afterwards — that is guessing a tenant
+    // (core/automationRunner/datatableResolve.js, refusal 1). The VIEWER's scopes are not the
+    // question here: that could yield a same-named table from another tenant.
     let datatable = null;
     let scope = null;
     try {
@@ -359,8 +339,8 @@ async function resolveDatatableSource(ctx, table, deps = {}, action = 'read') {
         throw readError(503, 'Could not reach the linked Studio table.');
     }
     if (!datatable) {
-        // 422, geen 404: een 404 wordt door de runtime-client een lege lijst, en
-        // "de gekoppelde tabel bestaat niet meer" is geen leeg scherm waard.
+        // 422, not 404: a 404 becomes an empty list in the runtime client, and "the linked table no
+        // longer exists" is not worth an empty screen.
         throw readError(422, 'The Studio table this screen reads is no longer available to the app owner.');
     }
 
@@ -369,15 +349,13 @@ async function resolveDatatableSource(ctx, table, deps = {}, action = 'read') {
     try {
         grants = await datatableStore.listGrants(datatable.id);
     } catch (_) {
-        // Zonder de grants is elke graad een gok naar beneden die als antwoord
-        // "geen toegang" oplevert. Dat is de juiste RICHTING maar de verkeerde
-        // BOODSCHAP — zie principalFor.
+        // Without the grants every grade is a guess downward that comes out as the answer "no access".
+        // That is the right DIRECTION but the wrong MESSAGE — see principalFor.
         throw readError(503, 'Could not check who may read the linked Studio table.');
     }
 
-    // Apart uitgerekend, uitsluitend om te kunnen zeggen WAT er misging. De
-    // beslissing komt hieronder uit effectiveGradeForRun; deze twee zijn de
-    // reden in de weigering.
+    // Calculated separately, purely so that it can say WHAT went wrong. The decision comes out
+    // below from effectiveGradeForRun; these two are the reason in the refusal.
     const viewerGrade = gradeForPrincipal(datatable, grants, viewerPrincipal);
     const ownerGrade = gradeForPrincipal(datatable, grants, ownerPrincipal);
     if (!viewerGrade) {
@@ -394,13 +372,12 @@ async function resolveDatatableSource(ctx, table, deps = {}, action = 'read') {
     const modeCap = source.mode === WRITABLE_TABLE_SOURCE_MODE ? 'owner' : 'viewer';
     const grade = minGrade(minGrade(shared, roleCap), modeCap);
     if (!grade) {
-        // Bereikbaar via `roleCap === null` — een kijker die in de rolmapping van
-        // de app nergens valt. In het leespad is dat vandaag afgevangen door
-        // dataReadRunner.requireReadableTable (`canRead(table, null)` is false),
-        // dus dit is de tweede rem op dezelfde helling. Hij blijft ook staan
-        // omdat een vierde MIN die iemand later toevoegt anders stilzwijgend
-        // `null` als graad zou doorgeven, en `resolveScope(meta, null, 'read')`
-        // daar 'none' van maakt: een lege lijst in plaats van een weigering.
+        // Reachable via `roleCap === null` — a viewer who appears nowhere in the role mapping of the
+        // app. In the read path that is caught today by dataReadRunner.requireReadableTable
+        // (`canRead(table, null)` is false), so this is the second brake on the same slope. It stays
+        // too because a fourth MIN that someone adds later would otherwise pass `null` silently as a
+        // grade, and `resolveScope(meta, null, 'read')` turns that into 'none': an empty list instead
+        // of a refusal.
         throw readError(403, 'This screen may not read the Studio table behind it.');
     }
 
@@ -415,21 +392,19 @@ async function resolveDatatableSource(ctx, table, deps = {}, action = 'read') {
         throw readError(422, 'The Studio table this screen reads has no columns yet.');
     }
     const tableMeta = { ...meta, access: synthesizeAccess(datatable) };
-    // ── de RIJREGEL van de app-rol, bovenop de graad ────────────────
+    // ── the ROW RULE of the app role, on top of the grade ────────────
     //
-    // `synthesizeAccess` vertaalt de rechtenladder van de DATATABEL (viewer /
-    // editor, row_scope 'own'|'all'); de rijfilters van het MODEL vielen er tot
-    // nu toe buiten, want het access-blok werd in zijn geheel vervangen. Een
-    // rol "alleen leverancier X" werd daardoor zonder één foutmelding genegeerd:
-    // hij bewaarde prima, valideerde prima, en filterde niets.
+    // `synthesizeAccess` translates the permission ladder of the DATATABLE (viewer /
+    // editor, row_scope 'own'|'all'); the row filters of the MODEL fell outside it until now,
+    // because the access block was replaced in its entirety. A role "only supplier X" was
+    // thereby ignored without a single error message: it stored fine, validated fine, and
+    // filtered nothing.
     //
-    // Hij komt er nu bij, onder de GRAAD — dat is de sleutel waarmee de
-    // compiler hieronder zoekt, want `viewer.role` is hier de graad. VERSMALLEN
-    // ALLEEN: het predicaat wordt door accessFilter ge-AND met dat van de
-    // graad, dus een rijregel kan nooit méér rijen tonen dan de ladder al
-    // toestond. `role === 'owner'` slaat rijfilters over (accessFilter), dus de
-    // eigenaar van de tabel blijft alles zien — precies zoals bij een app-eigen
-    // tabel.
+    // It comes in now, UNDER the GRADE — that is the key by which the compiler searches below,
+    // because `viewer.role` is the grade here. NARROW ONLY: the predicate is AND-ed by
+    // accessFilter with that of the grade, so a row rule can never show more rows than the
+    // ladder already allowed. `role === 'owner'` skips row filters (accessFilter), so the owner
+    // of the table keeps seeing everything — exactly as with an app-owned table.
     const roleRule = rowFilterForRole(table, ctx.role);
     if (roleRule && grade !== 'owner') {
         tableMeta.access = { ...tableMeta.access, rowFilters: { [grade]: roleRule } };
@@ -437,27 +412,24 @@ async function resolveDatatableSource(ctx, table, deps = {}, action = 'read') {
 
     // ── wat een SCHRIJVING er bovenop krijgt ────────────────────────
     if (isWrite) {
-        // De grove controle. `assertCanWrite` hieronder zou een viewer ook al
-        // weigeren (synthesizeAccess geeft viewer update:'none'), maar
-        // core/dataEngine/accessFilter.js zegt in zoveel woorden dat een
-        // gradeAtLeast nooit weg mag omdat "het filter het wel afvangt": het
-        // predicaat beantwoordt WELKE RIJEN, niet OF.
+        // The coarse check. `assertCanWrite` below would also refuse a viewer (synthesizeAccess gives
+        // viewer update:'none'), but core/dataEngine/accessFilter.js says in so many words that a
+        // gradeAtLeast must never be removed because "the filter catches it anyway": the predicate
+        // answers WHICH ROWS, not WHETHER.
         if (!gradeAtLeast(grade, 'editor')) {
             throw readError(403, 'You do not have permission to change rows in the Studio table behind this screen.');
         }
-        // Twee `access`-blokken, PER ACTIE — `appRoleGrade` vouwde ze tot één
-        // bovengrens en dat is te grof voor een rol die wel mag toevoegen maar
-        // niet verwijderen.
-        //   1. de MODELtabel × de app-rol  — wat de auteur deze rol in DEZE app toestond
-        //   2. de DATATABEL  × de graad    — wat de rechtenladder van de tabel toestaat
-        // Allebei versmallen; één van de twee weglaten is het lek.
+        // Two `access` blocks, PER ACTION — `appRoleGrade` folded them into one upper bound, and that is
+        // too coarse for a role that may add but not delete.
+        //   1. the MODEL table × the app role  — what the author allowed this role in THIS app
+        //   2. the DATATABLE  × the grade     — what the table's permission ladder allows
+        // Both narrow; leaving out one of the two is the leak.
         try {
             assertCanWrite(table, ctx.role, action);
             assertCanWrite(tableMeta, grade, action);
         } catch (e) {
-            // AccessError draagt een cliënt-veilige boodschap maar niet de
-            // `safe`-vlag; hier krijgt hij hem, zodat het schrijfpad één soort
-            // weigering kent.
+            // AccessError carries a client-safe message but not the `safe` flag; here it gets it, so that
+            // the write path knows one kind of refusal.
             throw readError(e && e.status === 400 ? 422 : 403,
                 (e && e.message) || 'You do not have permission to perform this action');
         }
@@ -466,43 +438,40 @@ async function resolveDatatableSource(ctx, table, deps = {}, action = 'read') {
     return {
         datatable,
         scope,
-        // Nooit zelf `${kind}:${id}` plakken — de sleutel wordt door de store
-        // geparseerd, en een handgemaakte variant hasht naar een ANDER schema
-        // (stores/datatableDbStore.js, "THE TENANT IS A SCOPE KEY").
+        // Never paste `${kind}:${id}` together yourself — the key is parsed by the store, and a
+        // hand-made variant hashes to a DIFFERENT schema (stores/datatableDbStore.js,
+        // "THE TENANT IS A SCOPE KEY").
         scopeKey: datatableDbStore.scopeKey(scope),
-        // synthesizeAccess vertaalt de graad-ladder naar het `access`-blok dat
-        // de compiler leest (viewer/editor + row_scope 'own'|'all'). Het
-        // access-blok van de MODELtabel hoort bij de opslag van de app en zegt
-        // niets over deze rijen; het is hierboven al verwerkt als bovengrens.
+        // synthesizeAccess translates the grade ladder into the `access` block that the compiler reads
+        // (viewer/editor + row_scope 'own'|'all'). The access block of the MODEL table belongs to the
+        // app's storage and says nothing about these rows; it has already been handled above as the
+        // upper bound.
         tableMeta,
         grade,
-        // De viewer voor de rijfilter. `id` is wat 'own' scope tegen `created_by`
-        // legt. `role` is hier bewust de GRAAD en niet de app-rol: binnen het
-        // access-blok van de datatabel is de graad de rol, en een rijfilter die
-        // ooit `viewer.role` leest moet hetzelfde antwoord krijgen als de
-        // compiler.
+        // The viewer for the row filter. `id` is what 'own' scope compares against `created_by`. `role`
+        // is deliberately the GRADE here and not the app role: within the access block of the
+        // datatable the grade is the role, and a row filter that ever reads `viewer.role` must get
+        // the same answer as the compiler.
         viewer: { ...(ctx.viewer || {}), id: viewerId, role: grade },
-        // Datatabellen staan ALTIJD in Postgres (zie stores/datatableDbStore.js);
-        // de procesbrede STUDIO_APP_ENGINE gaat over de app-eigen opslag en zegt
-        // hier niets. Een compile onder de verkeerde dialect is geen crash maar
-        // stilzwijgend andere SQL, dus de dialect wordt hier uitgesproken.
+        // Datatables ALWAYS live in Postgres (see stores/datatableDbStore.js); the process-wide
+        // STUDIO_APP_ENGINE concerns the app's own storage and says nothing here. A compile under the
+        // wrong dialect is not a crash but silently different SQL, so the dialect is spelled out here.
         dialect: 'pg',
     };
 }
 
 /**
- * De Studio-datatabellen die deze gebruiker kan bereiken, als lijst van ids.
+ * The Studio datatables that this user can reach, as a list of ids.
  *
- * De AUTEURSTIJD-tweelingbroer van de lezing hierboven: `validate.js` toetst
- * `model.tables[].source.datatableId` hierop, zodat de publicatiepoort dezelfde
- * tabellen ziet als de runtime. Beide scopes (organisatie én persoonlijk) —
- * alleen de persoonlijke meesturen zou een werkende app afkeuren.
+ * The AUTHOR-TIME twin of the read above: `validate.js` checks
+ * `model.tables[].source.datatableId` against this, so that the publication gate sees the
+ * same tables as the runtime. Both scopes (organisation and personal) — sending only the
+ * personal ones would reject a working app.
  *
- * → `null` zodra de identiteit of de store niet gelezen kan worden. "Geen
- * lijst" en "een lege lijst" zijn verschillende antwoorden: de eerste laat
- * checkTableSource de id BIJ NAAM als waarschuwing melden, de tweede zou elke
- * gekoppelde tabel afkeuren op grond van een vraag die niemand kon
- * beantwoorden.
+ * → `null` as soon as the identity or the store cannot be read. "No list" and "an empty
+ * list" are different answers: the first makes checkTableSource report the id BY NAME as a
+ * warning, the second would reject every linked table on the basis of a question that
+ * nobody could answer.
  */
 async function listOwnerDatatableIds(ownerId, deps = {}) {
     if (typeof ownerId !== 'string' || !ownerId) return null;
@@ -510,9 +479,8 @@ async function listOwnerDatatableIds(ownerId, deps = {}) {
     const resolvePrincipal = deps.resolveDatatablePrincipalForUser || resolveDatatablePrincipalForUser;
     try {
         const principal = await resolvePrincipal(ownerId);
-        // Een principaal die deels niet gelezen kon worden mist misschien juist
-        // de organisatie waar de tabel in staat. Dan liever geen lijst dan een
-        // halve.
+        // A principal that was only partly readable may be missing exactly the organisation in which
+        // the table sits. Then rather no list than a half one.
         if (!principal || !principal.userId || principal.identityError) return null;
         const ids = new Set();
         for (const scope of datatableScopesFor(principal)) {
@@ -532,12 +500,11 @@ function resolveDatatableRead(ctx, table, deps = {}) {
 }
 
 /**
- * Eén SCHRIJVING — de ingang van actionExecutor/records.js.
+ * One WRITE — the entry point of actionExecutor/records.js.
  *
- * Dezelfde body, dezelfde drie MINs, plus de mode-weigering, `gradeAtLeast` en
- * de twee `access`-blokken per actie. Wat de aanroeper daarna nog doet is
- * compileren en uitvoeren; er valt geen rechtenbeslissing meer buiten deze
- * functie.
+ * The same body, the same three MINs, plus the mode refusal, `gradeAtLeast` and the two
+ * `access` blocks per action. What the caller then still does is compile and execute; no
+ * permission decision falls outside this function any more.
  *
  * @param {'create'|'update'|'delete'} action
  */

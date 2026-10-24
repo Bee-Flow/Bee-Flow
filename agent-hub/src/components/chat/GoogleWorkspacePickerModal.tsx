@@ -67,11 +67,10 @@ const GoogleWorkspacePickerModal = ({
     emptyIcon: EmptyIcon,
     emptyText,
     emptySearchText,
-    // Welk SOORT ding deze picker aanbiedt: 'email' of 'file'. Het is bewust
-    // geen los zelfstandig naamwoord meer. "Select {noun}s to attach" bouwt
-    // Engelse grammatica in JavaScript — een taal met een ander meervoud of
-    // een andere woordvolgorde kan daar niets mee. Nu kiest het soort de
-    // SLEUTEL en staat de hele zin in het woordenboek.
+    // Which KIND of thing this picker offers: 'email' or 'file'. It is deliberately no longer a
+    // separate noun. "Select {noun}s to attach" builds English grammar in JavaScript, and a language
+    // with another plural or another word order cannot do anything with that. Now the kind chooses
+    // the KEY, and the whole sentence stands in the dictionary.
     itemKind = 'file',
     itemGapClass = 'gap-3',
     exportingLabel,

@@ -9,59 +9,51 @@ import type { ToolApp } from './toolCatalogTypes';
 import type { TranslateParams } from '../../../../hooks/useTranslation';
 
 /**
- * De TOOL-KIEZER van de agent-editor (Agents-artboard 1f, A2 stap 4).
+ * The TOOL PICKER of the agent editor (Agents artboard 1f, A2 step 4).
  *
- * De schil is `shared/AppActionPicker` — dezelfde overlay als de AI-stap van de
- * automations-builder en de connectorkiezer van App Studio. Er komt hier dus
- * geen derde kiezer naast de twee die er al zijn; wat dit bestand toevoegt is
- * de BINDING: welke selectie erin gaat, wat er bij toepassen uit komt, en de
- * zinnen eromheen.
+ * The shell is `shared/AppActionPicker`, the same overlay as the AI step of the automations builder and the
+ * connector picker of App Studio. So no third picker is added next to the two that already exist. What this
+ * file adds is the BINDING: which selection goes in, what comes out on apply, and the sentences around it.
  *
- * ── WAAROM DIT NIET DE PLATTE `selected` GEBRUIKT ───────────────────
- * De schil kende tot deze stage één selectiemodel: een platte lijst
- * actienamen. Die vorm kan "over deze app is niets gezegd" en "deze app mag
- * niets" niet uit elkaar houden — en dat is precies het verschil waar de
- * agent-grants op draaien (bevinding 1 van de A1b-rechtenlaagreview: de lege
- * sectie werd weggegooid en las daarna als "nooit gekozen", dus álle automatiseringen
- * mochten weer). Daarom geeft deze kiezer een `selection`-Map mee: per app een
- * eigen verzameling, met een lege verzameling als échte keuze.
+ * ── WHY THIS DOES NOT USE THE FLAT `selected` ───────────────────────
+ * Until this stage the shell knew one selection model: a flat list of action names. That shape cannot tell
+ * "nothing has been said about this app" apart from "this app may do nothing". That is exactly the difference
+ * the agent grants rest on (finding 1 of the A1b rights-layer review: the empty section was thrown away and
+ * then read as "never chosen", so ALL automations were allowed again). That is why this picker takes a
+ * `selection` Map: per app its own set, with an empty set as a real choice.
  *
- * ── ÉÉN OPSLAG PER SESSIE ───────────────────────────────────────────
- * Elk vinkje muteert alleen lokale state. Pas op "toepassen" gaat er één
- * `patchConfig` de deur uit, met de grants-map én de app-niveau lijst erin.
- * Dat is niet alleen zuiniger: een agent die tijdens het kiezen na elk vinkje
- * wordt opgeslagen, staat halverwege een gedachte in productie.
+ * ── ONE SAVE PER SESSION ────────────────────────────────────────────
+ * Each tick mutates only local state. Only on "apply" does one `patchConfig` leave, with the grants map and the
+ * app-level list in it. That is not only more economical: an agent that gets saved after every tick while you
+ * are choosing is halfway through a thought in production.
  *
- * ── WAT DE KIEZER HARDOP ZEGT ───────────────────────────────────────
- * De eerste entry in de grants-map zet de agent in het bevestigingsregime
- * (`hasCuratedGrants` in toolPolicy.js: daarvóór kijkt de runtime niet eens
- * naar de map). Voor een agent die vandaag onbeheerd een mailroutine draait is
- * dat een merkbare gedragswijziging achter één klik. Die staat daarom in de
- * voet, vóór het opslaan, en niet in een release-noot achteraf.
+ * ── WHAT THE PICKER SAYS OUT LOUD ───────────────────────────────────
+ * The first entry in the grants map puts the agent into the confirmation regime (`hasCuratedGrants` in
+ * toolPolicy.js: before that, the runtime does not even look at the map). For an agent that today runs a mail
+ * routine unattended, that is a noticeable change in behaviour behind one click. So it is stated in the footer,
+ * before saving, and not in a release note afterwards.
  *
- * ── EEN MISLUKTE CATALOGUS IS GEEN LEGE KIEZER ──────────────────────
- * Zonder catalogus zijn er geen acties om uit te kiezen. Een lege overlay zou
- * dan "je hebt geen apps" beweren; deze zegt dat de lijst niet gelezen kon
- * worden en biedt opnieuw proberen. Precies andersom als bij de Tools-KAART,
- * waar de grants uit de config komen en de rijen dus wél blijven staan.
+ * ── A FAILED CATALOGUE IS NOT AN EMPTY PICKER ───────────────────────
+ * Without a catalogue there are no actions to choose from. An empty overlay would then claim "you have no apps".
+ * This one says that the list could not be read and offers to try again. That is precisely the opposite of the
+ * Tools CARD, where the grants come from the config and the rows therefore stay.
  */
 
 /**
- * Waarom deze app kan ontbreken, in één zin.
+ * Why this app may be missing, in one sentence.
  *
- * `availabilityKind` komt van de catalogus (server/routes/agents/toolCatalog.js).
- * De kiezer-brede zin gaat over een verbinding die de gebruiker niet legde, en
- * dat is niet het enige dat "niet beschikbaar" kan betekenen: `browse_web` zit
- * achter een docker-probe, dus op de ene installatie is hij er en op de andere
- * niet. AFWEZIG, NIET BESCHIKBAAR OP DEZE INSTALLATIE en NIET TOEGEKEND zijn
- * drie verschillende dingen; hier wordt alleen gezegd welke waar is.
+ * `availabilityKind` comes from the catalogue (server/routes/agents/toolCatalog.js). The picker-wide sentence
+ * is about a connection that the user did not make, and that is not the only thing "not available" can mean:
+ * `browse_web` sits behind a docker probe, so on one installation it is there and on another it is not.
+ * ABSENT, NOT AVAILABLE ON THIS INSTALLATION and NOT GRANTED are three different things. Here only the one
+ * that is true is said.
  *
- * `null` betekent "de gewone zin volstaat" — dat is ook waar een onbekende
- * soort op landt: een verzonnen uitleg is erger dan de algemene.
+ * `null` means "the general sentence is enough". That is also where an unknown kind lands: an invented
+ * explanation is worse than the general one.
  */
 function unavailableHintFor(t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string, app: ToolApp) {
-    // Meer dan één mogelijke oorzaak ⇒ geen van de specifieke zinnen: die zou
-    // een feit beweren dat de meting niet oplevert.
+    // More than one possible cause ⇒ none of the specific sentences. One of those would assert a fact
+    // that the measurement does not yield.
     if (app && Array.isArray(app.availabilityKinds) && app.availabilityKinds.length > 1) {
         return t('agent_studio.can_use.chooser_unavailable_mixed',
             'not available to you here');
@@ -79,15 +71,13 @@ function unavailableHintFor(t: (key: string | undefined, fallbackOrParams?: stri
 }
 
 /**
- * De apps zoals de kiezer ze toont.
+ * The apps as the picker shows them.
  *
- * De NAAM valt terug op de statische lijst van de frontend (dezelfde val als
- * op de kaart: liever "Drive" dan "google-drive"), en een app die deze
- * gebruiker niet mag blijft ZICHTBAAR — hij kan voor een ander wél werken,
- * want de agent draait standaard in naam van de vrager. Een app die deze
- * INSTALLATIE niet heeft blijft om dezelfde reden staan: hem verzwijgen is de
- * enige lezing die noch "afwezig" noch "niet toegekend" is, en dan valt er ook
- * niets over uit te vinken.
+ * The NAME falls back to the static list of the frontend (the same fallback as on the card: "Drive" rather
+ * than "google-drive"). An app that this user may not use stays VISIBLE: it may work for someone else, because
+ * the agent runs by default in the name of the asker. An app that this INSTALLATION does not have stays for the
+ * same reason. Hiding it is the only reading that is neither "absent" nor "not granted", and then there is
+ * nothing to untick either.
  */
 function namedApps(apps: ToolApp[] | null, labels: Map<string, string> | Record<string, unknown> | null, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
     if (!Array.isArray(apps)) return [];
@@ -112,11 +102,10 @@ function namedApps(apps: ToolApp[] | null, labels: Map<string, string> | Record<
 }
 
 /**
- * Eén app in de gefaseerde selectie aanpassen.
+ * Adjust one app in the staged selection.
  *
- * Een app waarvan de acties ONBEKEND zijn (`null`) blijft onaangeraakt: je kunt
- * niet kiezen wat je niet kunt zien, en er per ongeluk een lege verzameling van
- * maken zou een weigering opslaan die niemand uitsprak.
+ * An app whose actions are UNKNOWN (`null`) stays untouched. You cannot choose what you cannot see, and making
+ * it an empty set by accident would store a refusal that nobody stated.
  */
 function withPicked(prev: SelectionMap | null, appId: string, mutate: (picked: Set<string>) => void) {
     if (!(prev instanceof Map)) return prev;
@@ -130,11 +119,10 @@ function withPicked(prev: SelectionMap | null, appId: string, mutate: (picked: S
 }
 
 /**
- * De teksten van de gedeelde schil, vertaald.
+ * The texts of the shared shell, translated.
  *
- * De schil zelf kent geen `t()` — hij wordt ook gerenderd door twee surfaces
- * die er geen hebben. Wie hem wél heeft, geeft ze hier mee; de Engelse
- * standaarden in `PICKER_TEXT` blijven de terugval.
+ * The shell itself has no `t()`. It is also rendered by two surfaces that have none. Whoever has one passes
+ * them in here. The English defaults in `PICKER_TEXT` remain the fallback.
  */
 function chooserText(t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
     return {
@@ -159,7 +147,7 @@ function chooserText(t: (key: string | undefined, fallbackOrParams?: string | Tr
     };
 }
 
-/** De twee toestanden die geen kiezer opleveren: nog bezig, of niet gelukt. */
+/** The two states that yield no picker: still busy, or failed. */
 interface ChooserNoticeProps {
     t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
     kind: string;
@@ -212,9 +200,8 @@ interface ChooserFooterProps {
 }
 
 function ChooserFooter({ t, ro, delta, degraded, firstCuration, onApply }: ChooserFooterProps) {
-    // Alleen-lezen: de kiezer TOONT wat er aanstaat, maar biedt geen knop die
-    // een opslag start die de server toch weigert. De vinkjes zelf staan uit
-    // via `readOnly` op de schil, dus er valt hier ook niets te tellen.
+    // Read-only: the picker SHOWS what is switched on, but offers no button that starts a save that the server
+    // would refuse anyway. The ticks themselves are off via `readOnly` on the shell, so there is nothing to count here either.
     if (ro) {
         return (
             <p className="text-[12px] text-[var(--text-tertiary)]" data-testid="agent-tool-chooser-readonly">
@@ -302,17 +289,14 @@ export default function ToolChooser({
     const [initial, setInitial] = useState<SelectionMap | null>(null);
     const [selection, setSelection] = useState<SelectionMap | null>(null);
 
-    // Opnieuw beginnen zodra de kiezer OPENT of er ANDERE apps zijn.
+    // Start over whenever the picker OPENS or there are OTHER apps.
     //
-    // De afhankelijkheid is bewust de LIJST APP-IDS en niet het apps-object:
-    // de editor tekent opnieuw bij van alles wat niets met de kiezer te maken
-    // heeft (opslagstatus, een binnenkomende lezing, een relatieve tijd) en
-    // geeft dan een vers array door. Op de identiteit afgaan betekent dus dat
-    // de kiezer middenin het vinken opnieuw van de config uitgaat en weggooit
-    // waar iemand mee bezig is — een verlies dat je pas merkt bij "toepassen".
+    // The dependency is deliberately the LIST OF APP IDS and not the apps object. The editor redraws for
+    // everything that has nothing to do with the picker (save status, an incoming read, a relative time) and
+    // then passes a fresh array. Going by identity would mean the picker goes back to the config in the middle
+    // of ticking and throws away what someone is busy with: a loss that you only notice at "apply".
     //
-    // `toolsConfig` staat er om dezelfde reden NIET in: die verandert door onze
-    // eigen opslag.
+    // `toolsConfig` is deliberately NOT in here for the same reason: it changes through our own save.
     const appsKey = useMemo(() => shownApps.map(app => app.id).join('|'), [shownApps]);
     const seedSelection = useEffectEvent(() => {
         if (!open || !Array.isArray(apps)) { setInitial(null); setSelection(null); return; }
@@ -339,8 +323,8 @@ export default function ToolChooser({
         if (picked.has(name as string)) picked.delete(name as string); else picked.add(name as string);
     }));
 
-    // "Alles aan/uit" werkt op de ZICHTBARE acties (de schil geeft ze mee), zodat
-    // een actief filter niet stilletjes ook de verborgen rijen omzet.
+    // "All on/off" works on the VISIBLE actions (the shell passes them along), so that an active filter does not
+    // silently switch the hidden rows as well.
     const toggleApp = (app: ToolApp, on: boolean, visibleActions: { name?: string; label?: string; effect?: string }[]) => setSelection(prev => withPicked(prev, app.id, (picked) => {
         for (const action of visibleActions || app.actions || []) {
             if (!action || !action.name) continue;

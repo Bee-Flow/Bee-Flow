@@ -12,17 +12,17 @@ export interface RegenerateResult {
     chapters: Chapter[];
     speakers: Speaker[];
     /**
-     * Heeft de artefactpass daadwerkelijk gedraaid?
+     * Did the artifact pass actually run?
      *
-     * Regenerate heeft bewust GEEN samenvatting-kanaal voor slecht nieuws: de
-     * samenvatting die terugkomt is altijd vers. Dit veld is dus het enige
-     * kanaal waarlangs de server kan zeggen dat het uitwerken van de
-     * actiepunten, besluiten en vragen is omgevallen en de OUDE lijsten zijn
-     * blijven staan. Een client die het niet leest toont een groene toast bij
-     * een halve mislukking, en dan drukt niemand nog eens op Opnieuw.
+     * Regenerate deliberately has NO summary channel for bad news: the summary that
+     * comes back is always fresh. This field is therefore the only channel through
+     * which the server can say that the elaboration of the action items, decisions
+     * and questions has failed and the OLD lists have remained. A client that does
+     * not read it shows a green toast for a half failure, and then nobody presses
+     * Opnieuw again.
      *
-     * Optioneel omdat een oudere server het veld niet stuurt — en `undefined`
-     * beweert niets, dus alleen een expliciete `false` is nieuws.
+     * Optional because an older server does not send the field — and `undefined`
+     * claims nothing, so only an explicit `false` is news.
      */
     artifactsRegenerated?: boolean;
 }
@@ -34,20 +34,19 @@ export interface RegenerateOutcome {
 }
 
 /**
- * De uitkomst van een regeneratie in één zin — de web-client zegt hetzelfde.
+ * The outcome of a regeneration in one sentence — the web client says the same.
  *
- * Puur, en met opzet buiten het scherm: dit is de regel die zegt WANNEER een
- * regeneratie geen onverdeeld succes is, en die hoort getest te kunnen worden
- * zonder een renderer.
+ * Pure, and deliberately outside the screen: this is the rule that says WHEN a
+ * regeneration is not an unqualified success, and it should be testable without a
+ * renderer.
  *
- * Drie gevallen, en alleen het eerste is groen:
- *   - de pass draaide en leverde alles op;
- *   - de pass viel om (`artifactsRegenerated === false`) — de samenvatting is
- *     wél vernieuwd, de lijsten zijn de oude;
- *   - de pass draaide, maar vond een of meer bewaarde punten niet terug
- *     (`orphaned`): die staan er nog omdat iemand ze had afgevinkt of
- *     overgetypt, en dat moet gezegd worden voordat de kaart doet alsof de AI
- *     ze zojuist opleverde.
+ * Three cases, and only the first is green:
+ *   - the pass ran and delivered everything;
+ *   - the pass failed (`artifactsRegenerated === false`) — the summary has been
+ *     refreshed, but the lists are the old ones;
+ *   - the pass ran, but could not find one or more stored points (`orphaned`):
+ *     those remain because someone had ticked them off or retyped them, and that
+ *     must be said before the card pretends the AI just delivered them.
  */
 export function describeRegenerateOutcome(res: RegenerateResult | null): RegenerateOutcome {
     if (!res) return { kind: 'warning', message: 'The server sent no answer — nothing was changed.' };

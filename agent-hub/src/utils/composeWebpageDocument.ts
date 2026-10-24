@@ -30,12 +30,12 @@ import {
     inlineStylesheet,
 } from '@shared/webpage/previewInline.mjs';
 
-// Het bf-*-elementvocabulaire staat NIET in dit bestand: het staat in
-// ./bfElements.js, een gegenereerde spiegel van server/core/webpages/bfElements.js.
-// Schrijf hier dus geen tagnaam met de hand bij — bfElements.drift.test.js verbiedt
-// dat, juist omdat een tweede lijst in deze composer precies de drift is die W4
-// moet voorkomen. De renderer die eruit leest staat in ./bfElementsRuntime.js en
-// wordt hieronder NA de bestaande shims uitgezonden.
+// The bf-* element vocabulary is NOT in this file: it lives in
+// ./bfElements.js, a generated mirror of server/core/webpages/bfElements.js.
+// Do not write a tag name here by hand — bfElements.drift.test.js forbids that,
+// precisely because a second list in this composer is the drift that W4
+// must prevent. The renderer that reads from it lives in ./bfElementsRuntime.js and
+// is emitted below, AFTER the existing shims.
 import { buildBfElementsScript } from './bfElementsRuntime';
 
 // The bridges, the selection relay and the inliners are shared with the
@@ -94,11 +94,11 @@ export function composeWebpageDocument({ html, css, js }: WebpageSlots, options:
     const beeflowBridgesScript = (dbToken && dbApiBase && dbWebpageId)
         ? buildBeeflowBridgesScript({ dbToken, dbApiBase, dbWebpageId })
         : '';
-    // De Bee Flow-elementen. Met opzet NIET achter dezelfde poort als de shims
-    // hierboven: zonder token bestaan die bruggen niet, en juist dan moet elk
-    // element ZEGGEN dat het zijn bron niet kan bereiken in plaats van als een
-    // leeg, onbekend element onzichtbaar te blijven. Het blok definieert geen
-    // enkele brug — het leest ze op naam.
+    // The Bee Flow elements. Deliberately NOT behind the same gate as the shims
+    // above: without a token those bridges do not exist, and precisely then every
+    // element must SAY that it cannot reach its source, instead of staying invisible
+    // as an empty, unknown element. The block defines no bridge at all — it reads them
+    // by name.
     const bfElementsScript = buildBfElementsScript();
     const bridgeScript = selectionBridge ? buildSelectionBridgeScript() : '';
 

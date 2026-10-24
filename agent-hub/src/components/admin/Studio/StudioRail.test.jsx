@@ -132,10 +132,10 @@ describe('StudioRail', () => {
     });
 
     it('de rijnaam komt uit de gedeelde studioSectionLabel — ook zonder sleutel', () => {
-        // Deze rij hield ooit zijn eigen kopie van die helper, en die kopie
-        // miste de terugval: een beschrijver zonder label() én zonder labelKey
-        // vroeg er `t(undefined)` en tekende een NAAMLOZE rij. De gedeelde
-        // versie valt terug op labelFallback en dan op de id.
+        // This row once kept its own copy of that helper, and that copy lacked the
+        // fallback: a describer without label() and without labelKey asked for
+        // `t(undefined)` and drew a NAMELESS row. The shared version falls back to
+        // labelFallback and then to the id.
         renderRail({
             sections: [
                 ...SECTIONS,

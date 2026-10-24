@@ -1,123 +1,113 @@
 'use strict';
 
 /**
- * "Wat hangt er aan DEZE webpagina?" — de leeskant van W5 (deel B).
+ * "What depends on THIS webpage?" ("Wat hangt er aan DEZE webpagina?") — the read side of W5 (part B).
  *
- * De tegenhanger van `webpageUsageSync.js`, dat de andere richting op kijkt
- * (welke TABELLEN raakt deze pagina aan). Hier is de pagina het onderwerp:
- * welke dingen zouden stukgaan, of iets kwijtraken, als zij verdwijnt.
+ * The counterpart of `webpageUsageSync.js`, which looks the other way (which TABLES does this page touch). Here the page is the subject: which things would break, or lose something, if it disappeared.
  *
- * Vier deelvragen, en ze zijn met opzet los van elkaar:
+ * Four sub-questions, deliberately kept apart from each other:
  *
- *   solution    de Oplossing waarin de pagina is opgeborgen (`webpages.project_id`)
- *   automation  de automatiseringen die haar bij naam noemen (`automations.definition_json`)
- *   chat        de gesprekken die haar erbij halen — NIET VASTGELEGD
- *   agent       de agents die haar als tool mogen openen — VANDAAG ONBEKEND
+ *   solution    the Solution in which the page is stored (`webpages.project_id`)
+ *   automation  the automations that name it by name (`automations.definition_json`)
+ *   chat        the conversations that pull it in — NOT RECORDED
+ *   agent       the agents that may open it as a tool — UNKNOWN TODAY
  *
- * ── EEN LEGE LIJST IS EEN BEWERING, GEEN LEGE PLEK ──────────────────
+ * ── AN EMPTY LIST IS A CLAIM, NOT AN EMPTY PLACE ──────────────────
  *
- * "Niets gebruikt deze pagina" is de zin waarop iemand op Verwijderen drukt.
- * Die zin mag alleen klinken als alle drie de deelvragen ECHT geantwoord
- * hebben. Daarom levert dit bestand nooit alleen rijen, maar per soort een
- * stand — dezelfde scheiding die `routes/studio/attention.js` voor "Vraagt
- * aandacht" maakt, en om exact dezelfde reden: daar werd ooit "alles is in
- * orde" getoond over een graaf waarvan de helft nooit geladen was.
+ * "Nothing uses this page" is the sentence someone reads when they press Delete. That sentence may only sound once all three sub-questions have REALLY been answered. That is why this file never delivers only rows, but a status per kind — the same split that `routes/studio/attention.js` makes for "Needs attention", and for exactly the same reason: there "all is well" was once shown over a graph of which half was never loaded.
  *
- *   status 'checked'      de scan liep; `found` is een getal en 0 is nieuws
- *   status 'unavailable'  hij kon niet kijken; `found` is null en de soort
- *                         staat in `partial` → de client leest dat als
- *                         "ik weet het niet", nooit als "er is niets"
+ *   status 'checked'      the scan ran; `found` is a number and 0 is news
+ *   status 'unavailable'  it could not look; `found` is null and the kind is
+ *                         listed in `partial` → the client reads that as "I don't
+ *                         know", never as "there is nothing"
  *
- * `complete` is de vergunning om "niets gebruikt dit" te zeggen: alleen waar
- * als `partial` leeg is. Vandaag is dat NOOIT waar (zie `agent` hieronder), en
- * dat is de eerlijke stand — de plaatshouder in
- * `agent-hub/src/pages/webpages/WebpageUsedByTab.jsx` zegt vandaag hetzelfde
- * met woorden. Deze module vervangt die zin door een antwoord dat per soort te
- * controleren is.
+ * `complete` is the licence to say "nothing uses this": only true when `partial`
+ * is empty. Today that is NEVER true (see `agent` below), and that is the honest
+ * state — the placeholder in `agent-hub/src/pages/webpages/WebpageUsedByTab.jsx`
+ * says the same thing in words today. This module replaces that sentence with an
+ * answer that can be checked per kind.
  *
- * ── DE RIJEN ZIJN HET Used-by-CONTRACT ──────────────────────────────
- * `{ kind, id, title, role, ownerId, lastAt }` — wat
- * `shared/UsedByTab.jsx` rendert en `shared/DangerZone.jsx` telt, zodat het
- * tabblad, de verwijderbevestiging en de pillen niet van elkaar kunnen gaan
- * verschillen. Precies de vorm van `core/kb/kbUsage.js` en
+ * ── THE ROWS ARE THE Used-by CONTRACT ─────────────────────────────
+ * `{ kind, id, title, role, ownerId, lastAt }` — what `shared/UsedByTab.jsx`
+ * renders and `shared/DangerZone.jsx` counts, so the tab, the delete confirmation
+ * and the pills cannot drift apart. Exactly the shape of `core/kb/kbUsage.js` and
  * `core/meetingNotes/meetingUsage.js`.
  *
- * ── WAAROM `agent` PERMANENT ONBEKEND IS ────────────────────────────
+ * ── WHY `agent` IS PERMANENTLY UNKNOWN ────────────────────────────
  *
- * De webpagina-tools van een agent (`integrations/webpageAutomationTools.js`)
- * nemen `webpageId` als ARGUMENT en toetsen pas bij de aanroep op
- * `canReadWebpage`. Er is dus geen enkele rij die zegt "agent X mag pagina Y
- * openen"; de bevoegdheid ontstaat op het moment zelf. Dat is iets anders dan
- * "geen enkele agent kan erbij" — het is niet te beantwoorden. Onbekend
- * versmalt, dus deze soort meldt zich als `unavailable` en houdt `complete` op
- * false, in plaats van een nul te melden waar niemand voor kan instaan.
+ * The webpage tools of an agent (`integrations/webpageAutomationTools.js`) take
+ * `webpageId` as an ARGUMENT and only check `canReadWebpage` at the moment of the
+ * call. So there is no row at all that says "agent X may open page Y"; the
+ * permission arises at the moment itself. That is something other than "no agent
+ * can reach it" — it is not answerable. Unknown narrows, so this kind reports as
+ * `unavailable` and `complete` stays false, instead of reporting a zero that nobody
+ * can vouch for.
  *
- * NIET verwarren met `bridge_grants.agent`: dat is de OMGEKEERDE richting (de
- * pagina mag die agent aanroepen). Die hoort in het Gebruikt-door van de
- * AGENT thuis — `stores/agent/agentUsage.js` scant hem daar al — en zou hier
- * een gebruiker verzinnen die er niet is.
+ * NOT to be confused with `bridge_grants.agent`: that is the OPPOSITE direction
+ * (the page may call that agent). It belongs in the Used-by of the AGENT —
+ * `stores/agent/agentUsage.js` already scans it there — and here it would invent a
+ * user who is not there.
  *
- * ── WAAROM `chat` NIET HET BOUWGESPREK IS ───────────────────────────
+ * ── WHY `chat` IS NOT THE BUILD CONVERSATION ─────────────────────
  *
- * Een pagina wordt op twee manieren bij een gesprek gehaald, en maar één
- * daarvan is een AFHANKELIJKHEID:
+ * A page is pulled into a conversation in two ways, and only one of them is a
+ * DEPENDENCY:
  *
- *   1. het gesprek dat AAN de pagina hangt — `webpages.chat_messages`, het
- *      bouwgesprek uit de editor. Dat staat op de rij ZELF, is van de eigenaar,
- *      en gaat mee als de pagina weg is. Het is dus geen ding dat stukgaat: het
- *      is een deel van de pagina. Het als rij melden zou vrijwel élke pagina
- *      "in gebruik" laten heten (iedere pagina die ooit via de editor-chat is
- *      gebouwd heeft die kolom gevuld), met als rij-titel de naam van de pagina
- *      waar de lezer al naar kijkt — een afhankelijkheid die niet bestaat, en
- *      een 409 met de verkeerde zin. Wat er wél mee weggaat is INHOUD, en dat
- *      is een andere vraag dan "wat gaat er stuk"; de dialoog zegt dat met
- *      "what lives on the page goes with it".
- *   2. de pagina in het zijpaneel van een gewone chat
- *      (`AgentHub/useSidePanelState.js`). Dat is PER BEURT: de client stuurt
- *      `sidePanelWebpage` mee in het verzoek, `promptAssembly.js` spuit de
- *      inhoud in de prompt, en er wordt NIETS vastgelegd — niet op het gesprek,
- *      niet op het bericht. Dát is de vraag die de soort `chat` stelt, en zij is
- *      niet te beantwoorden: er bestaat geen rij die haar draagt.
+ *   1. the conversation that is ATTACHED to the page — `webpages.chat_messages`,
+ *      the build conversation from the editor. That sits on the row ITSELF, belongs
+ *      to the owner, and goes along when the page goes. It is therefore not a thing
+ *      that breaks: it is part of the page. Listing it as a row would make almost
+ *      every page "in use" (every page ever built via the editor chat has filled that
+ *      column), with as row title the name of the page the reader is already looking
+ *      at — a dependency that does not exist, and a 409 with the wrong sentence.
+ *      What does go with it is CONTENT, which is a different question from "what
+ *      breaks"; the dialog says that with "what lives on the page goes with it".
+ *   2. the page in the side panel of an ordinary chat
+ *      (`AgentHub/useSidePanelState.js`). That is PER TURN: the client sends
+ *      `sidePanelWebpage` along in the request, `promptAssembly.js` injects the
+ *      content into the prompt, and NOTHING is recorded — not on the conversation,
+ *      not on the message. THAT is the question the `chat` kind asks, and it cannot
+ *      be answered: there is no row that carries it.
  *
- * Daarom meldt `chat` zich als `unavailable` en niet als een nul. Een nul zou
- * beweren dat er gekeken is; er valt niet te kijken. Zou een volgende release
- * die keuze wél vastleggen (een `webpage_id` op `direct_conversations`, of in
- * `conversation_messages.meta_json`), dan wordt dit een echte scan. Let op: de
- * inhoud van gesprekken is versleuteld (`stores/agent/messageCrypto.js`), dus
- * zoeken op een paginanaam of -id IN de berichten is geen alternatief — het
- * antwoord zou stil leeg blijven, wat precies de fout is die deze module
- * voorkomt.
+ * That is why `chat` reports as `unavailable` and not as a zero. A zero would claim
+ * that a look was taken; there is nothing to look at. Should a later release record
+ * that choice (a `webpage_id` on `direct_conversations`, or in
+ * `conversation_messages.meta_json`), this becomes a real scan. Note: the content of
+ * conversations is encrypted (`stores/agent/messageCrypto.js`), so searching for a
+ * page name or id IN the messages is no alternative — the answer would stay silently
+ * empty, which is exactly the error this module prevents.
  *
- * ── WAAROM `automation` ER WÉL IS ───────────────────────────────────
+ * ── WHY `automation` IS THERE ─────────────────────────────────────
  *
- * Een automatisering bindt een pagina DUURZAAM. `automation/builderPrompt.js` zegt de
- * bouwer letterlijk: "Every webpage tool requires `webpageId` … bind it as a
- * literal", en het meegeleverde sjabloon in `automation/templates.js` doet dat
- * ook. Die id's staan in `automations.definition_json` en zijn op te vragen met
- * exact de query die dit huis voor elke andere soort schrijft — `kbUsage.js`
- * doet het zo, en `stores/agent/agentUsage.js` heeft `automation` gewoon in
- * KINDS. Zonder deze scan verdween een factuurautomatisering die elke ochtend in de
- * pagina schrijft uit élk scherm dat de vraag stelt, en faalde zij vanaf de
- * volgende run stil op `resolveWebpageForAccess`.
+ * An automation binds a page DURABLY. `automation/builderPrompt.js` tells the builder
+ * literally: "Every webpage tool requires `webpageId` … bind it as a literal", and the
+ * bundled template in `automation/templates.js` does so too. Those ids live in
+ * `automations.definition_json` and can be queried with exactly the query this house
+ * writes for every other kind — `kbUsage.js` does so, and
+ * `stores/agent/agentUsage.js` simply has `automation` in KINDS. Without this scan an
+ * invoice automation that writes into the page every morning disappeared from every
+ * screen that asks the question, and from the next run it silently failed on
+ * `resolveWebpageForAccess`.
  *
- * Wat de scan NIET vindt is een binding via `{kind:'ref', path:…}`: dan kiest de
- * automatisering haar pagina pas tijdens de run en staat het id nergens. Dat is een
- * bewust gekozen dynamische modus, geen standaard, en de rijen die er wél zijn
- * blijven kloppen — de soort meldt zich dus als `checked`.
+ * What the scan does NOT find is a binding via `{kind:'ref', path:…}`: then the
+ * automation picks its page only during the run and the id appears nowhere. That is a
+ * deliberately chosen dynamic mode, not a default, and the rows that are there remain
+ * correct — so the kind reports as `checked`.
  */
 
 const { pool } = require('../../db');
 const log = require('../../telemetry/log');
 
-/** Elke soort die dit kan vinden, in de volgorde waarin het tabblad ze toont. */
+/** Every kind that this can find, in the order in which the tab shows them. */
 const KINDS = Object.freeze(['solution', 'automation', 'chat', 'agent']);
 
 /**
- * Waarom een soort niet beantwoord kon worden — machinetokens, geen proza.
+ * Why a kind could not be answered — machine tokens, not prose.
  *
- * Zelfde keuze als `REASONS` in webpageUsageSync.js en als `unfiltered` in
- * meetingUsage: een hier verzonnen Engelse zin komt in elke taal onvertaald
- * op het scherm. De client kiest de woorden, de server levert het feit.
+ * Same choice as `REASONS` in webpageUsageSync.js and as `unfiltered` in
+ * meetingUsage: an English sentence invented here would show up untranslated on
+ * the screen in every language. The client chooses the words, the server supplies
+ * the fact.
  */
 const REASONS = Object.freeze({
     NO_PAGE: 'no-page',
@@ -129,20 +119,18 @@ const REASONS = Object.freeze({
 });
 
 /**
- * Bestaat deze tabel op DEZE installatie?
+ * Does this table exist on THIS installation?
  *
- * Eigen kopie, net als in `core/kb/kbUsage.js` en
- * `core/meetingNotes/meetingUsage.js`: elke usage-module is een blad dat
- * alleen `db` nodig heeft, en een require dwars door een ander domein heen
- * (webpages → kb) zou een leesbaarheidswinst van zes regels kosten in
- * koppeling.
+ * Our own copy, just as in `core/kb/kbUsage.js` and `core/meetingNotes/meetingUsage.js`:
+ * every usage module is a leaf that only needs `db`, and a require straight through
+ * another domain (webpages → kb) would cost a readability gain of six lines in coupling.
  *
- * DRIE standen, niet twee. `true` en `false` zijn antwoorden; `null` is "ik kon
- * niet kijken". Zou een omgevallen probe `false` teruggeven, dan meldde de scan
- * `no-projects-table` — een machinetoken waar de client de zin "deze installatie
- * heeft geen Oplossingen" op bouwt, en die zin is onwaar over een installatie
- * die ze wél heeft. Beide standen blokkeren de verwijdering (allebei
- * `unavailable`), maar ze vertellen de lezer iets anders.
+ * THREE states, not two. `true` and `false` are answers; `null` is "I could not
+ * look". Should a probe that fell over return `false`, the scan would report
+ * `no-projects-table` — a machine token on which the client builds the sentence "this
+ * installation has no Solutions", and that sentence is untrue about an installation
+ * that does have them. Both states block the deletion (both `unavailable`), but they
+ * tell the reader something different.
  */
 async function tableExists(name, client) {
     try {
@@ -154,24 +142,23 @@ async function tableExists(name, client) {
 }
 
 /**
- * De Oplossing waarin deze pagina is opgeborgen.
+ * The Solution in which this page is stored.
  *
- * `webpages.project_id` is een ZACHTE verwijzing (geen FK, zie
- * stores/webpage/schema.js): een verwijderde Oplossing laat de pagina staan en
- * de wijzer achter. Drie uitkomsten, en ze zijn alle drie iets anders:
+ * `webpages.project_id` is a SOFT reference (no FK, see
+ * stores/webpage/schema.js): a deleted Solution leaves the page and the pointer behind.
+ * Three outcomes, and all three are different:
  *
- *   geen project_id      de pagina staat los → gecontroleerd, nul rijen. Er
- *                        wordt hier bewust NIET eerst naar de tabel gekeken:
- *                        de paginarij beantwoordt de vraag al volledig, en een
- *                        probe zou een installatie zónder Oplossingen elke
- *                        losse pagina laten melden als "niet gecontroleerd".
- *   tabel afwezig        deze installatie kent geen Oplossingen → `unavailable`
- *                        met `no-projects-table`
- *   probe omgevallen     onbekend → `unavailable` met `probe-failed`, want dat
- *                        is iets anders dan "er zijn hier geen Oplossingen"
- *   wijzer zonder rij    de Oplossing is al weg → gecontroleerd, nul rijen.
- *                        Er gaat niets stuk aan iets wat er niet meer is, en
- *                        een rij zonder naam zou een link opleveren die 404t.
+ *   no project_id        the page stands alone → checked, zero rows. The table is
+ *                        deliberately NOT looked at first: the page row answers the
+ *                        question completely, and a probe would make every loose page
+ *                        in an installation WITHOUT Solutions report "not checked".
+ *   table absent         this installation has no Solutions → `unavailable` with
+ *                        `no-projects-table`
+ *   probe fell over      unknown → `unavailable` with `probe-failed`, because that is
+ *                        something other than "there are no Solutions here"
+ *   pointer without row  the Solution is already gone → checked, zero rows.
+ *                        Nothing breaks on something that no longer exists, and a row
+ *                        without a name would yield a link that returns 404.
  */
 async function scanSolution(webpage, db) {
     const projectId = webpage.projectId || null;
@@ -201,23 +188,21 @@ async function scanSolution(webpage, db) {
 }
 
 /**
- * Automatiseringen die deze pagina bij naam noemen.
+ * Automations that name this page.
  *
- * De id's zitten op onbekende diepte in `definition_json` (een stap-argument,
- * een quick-mode-veld, een sjabloon), dus de containment-operator kan niet —
- * `jsonb_path_exists` met een recursieve wildcard is de ene vorm die ze vindt
- * waar een editor ze ook heeft neergezet. Exact de query die
- * `core/kb/kbUsage.js` voor dezelfde vraag schrijft.
+ * The ids sit at an unknown depth in `definition_json` (a step argument, a quick-mode
+ * field, a template), so the containment operator cannot be used —
+ * `jsonb_path_exists` with a recursive wildcard is the one form that finds them
+ * wherever an editor has put them. Exactly the query that
+ * `core/kb/kbUsage.js` writes for the same question.
  *
- * Twee vormen, want de bouwer schrijft de gebonden variant en oudere
- * definities de kale: `{webpageId: {kind:'literal', value:'wp_1'}}` en
- * `{webpageId: 'wp_1'}`.
+ * Two forms, because the builder writes the bound variant and older definitions the
+ * bare one: `{webpageId: {kind:'literal', value:'wp_1'}}` and `{webpageId: 'wp_1'}`.
  *
- * Het id gaat via de VARS-parameter van jsonpath naar binnen, nooit
- * geconcateneerd in het pad. Een webpagina-id is een route-parameter, en een
- * waarde met een aanhalingsteken zou anders de stringliteraal IN het jsonpath
- * sluiten en als padsyntax worden gelezen — placeholder of niet, de injectie
- * zit dan in het pad en niet in de SQL.
+ * The id goes in via the VARS parameter of jsonpath, never concatenated into the path.
+ * A webpage id is a route parameter, and a value with a quote character would otherwise
+ * close the string literal INSIDE the jsonpath and be read as path syntax — placeholder
+ * or not, the injection then sits in the path and not in the SQL.
  */
 async function scanAutomation(webpage, db) {
     const present = await tableExists('automations', db);
@@ -247,26 +232,25 @@ async function scanAutomation(webpage, db) {
 }
 
 /**
- * Gesprekken die deze pagina erbij halen — zie de kop: niet vastgelegd.
+ * Conversations that pull this page in — see the heading: not recorded.
  *
- * Bewust GEEN scan over `webpages.chat_messages`. Dat is het bouwgesprek van de
- * pagina zelf: het staat op dezelfde rij, gaat mee als de pagina weg is, en kan
- * dus per definitie niet stukgaan aan de verwijdering. Het als afhankelijkheid
- * melden liet vrijwel elke pagina "in gebruik" heten, met als rij-titel de naam
- * van de pagina waar de lezer al naar keek.
+ * Deliberately NO scan over `webpages.chat_messages`. That is the build conversation of
+ * the page itself: it sits on the same row, goes along when the page goes, and so by
+ * definition cannot break from the deletion. Listing it as a dependency made almost
+ * every page "in use", with as row title the name of the page the reader was already
+ * looking at.
  *
- * De vraag die hier hoort — welke gewone gesprekken hebben deze pagina in hun
- * zijpaneel — heeft geen rij die haar draagt: `sidePanelWebpage` reist per beurt
- * mee in het verzoek en wordt nergens opgeslagen. Onbekend versmalt, dus geen
- * nul.
+ * The question that belongs here — which ordinary conversations have this page in their
+ * side panel — has no row that carries it: `sidePanelWebpage` travels along per turn in
+ * the request and is stored nowhere. Unknown narrows, so no zero.
  */
 async function scanChat() {
     return { rows: [], unchecked: REASONS.NOT_RECORDED };
 }
 
 /**
- * Agents die deze pagina als tool mogen openen — zie de kop: niet vast te
- * stellen. Geen query, geen rijen, en met opzet ook geen nul.
+ * Agents that may open this page as a tool — see the heading: not determinable. No query,
+ * no rows, and deliberately no zero either.
  */
 async function scanAgent() {
     return { rows: [], unchecked: REASONS.NOT_RECORDED };
@@ -280,29 +264,27 @@ const SCANS = Object.freeze({
 });
 
 /**
- * Alles wat aan deze webpagina hangt.
+ * Everything that hangs on this webpage.
  *
- * @param {object} webpage  de PAGINARIJ zoals de store hem teruggeeft, niet
- *                          alleen haar id: `projectId` is wat `scanSolution`
- *                          leest, en zonder die eigenschap meldt hij
- *                          "gecontroleerd, nul rijen" voor een pagina die wél
- *                          in een Oplossing ligt — een echte afhankelijkheid
- *                          die als een BEVESTIGDE nul uit de lijst valt in
- *                          plaats van als een gat. `id` draagt de rest.
+ * @param {object} webpage  the PAGE ROW as the store returns it, not only its id:
+ *                          `projectId` is what `scanSolution` reads, and without that
+ *                          property it reports "checked, zero rows" for a page that IS
+ *                          in a Solution — a real dependency that drops out of the list
+ *                          as a CONFIRMED zero instead of as a gap. `id` carries the rest.
  * @param {object} [opts]
- * @param {object} [opts.db]  injectiepunt voor de tests
+ * @param {object} [opts.db]  injection point for the tests
  * @returns {Promise<{rows: Array, partial: string[], sources: object, complete: boolean}>}
- *          `partial` noemt de soorten die NIET beantwoord konden worden. Niet
- *          leeg betekent "ik weet het niet" — nooit "er is niets".
+ *          `partial` names the kinds that could NOT be answered. Not empty means "I don't
+ *          know" — never "there is nothing".
  */
 async function usageForWebpage(webpage, { db = pool } = {}) {
     const rows = [];
     const partial = [];
     const sources = {};
 
-    // Zonder pagina is er niets gevraagd én niets beweerd. Nul rijen mét drie
-    // onbeantwoorde soorten, want een aanroeper die hier per ongeluk `null`
-    // binnenkrijgt mag daar geen schone verwijdering uit lezen.
+    // Without a page nothing has been asked and nothing has been claimed. Zero rows with three
+    // unanswered kinds, because a caller that accidentally receives `null` here must not
+    // read a clean deletion from it.
     if (!webpage || webpage.id == null || webpage.id === '') {
         for (const kind of KINDS) {
             sources[kind] = { status: 'unavailable', found: null, reason: REASONS.NO_PAGE };
@@ -315,10 +297,10 @@ async function usageForWebpage(webpage, { db = pool } = {}) {
         try {
             const out = await SCANS[kind](webpage, db);
             const found = Array.isArray(out?.rows) ? out.rows : [];
-            // Gevonden rijen blijven staan, óók als de soort onbeantwoord is:
-            // ze zijn echt, en weggooien zou een bestaande afhankelijkheid
-            // verbergen. Wat dan niet meer klopt is het AANTAL — vandaar
-            // `found: null`, dezelfde regel als in attention.js.
+            // Found rows remain in place, even when the kind is unanswered:
+            // they are real, and throwing them away would hide an existing
+            // dependency. What then no longer holds is the COUNT — hence
+            // `found: null`, the same rule as in attention.js.
             rows.push(...found);
             if (out?.unchecked) {
                 sources[kind] = { status: 'unavailable', found: null, reason: out.unchecked };
@@ -337,14 +319,13 @@ async function usageForWebpage(webpage, { db = pool } = {}) {
 }
 
 /**
- * Versmal de rijen tot wat deze persoon verteld mag worden.
+ * Narrow the rows to what this person may be told.
  *
- * Dezelfde regel als bij kennisbanken en vergadernotities: een rij van iemand
- * anders houdt zijn SOORT en zijn ROL — dat is wat "wat gaat er stuk" nodig
- * heeft — en verliest zijn NAAM. De route hieronder is al eigenaar-gescoopt,
- * dus in de praktijk raakt dit één rij: een Oplossing van een collega waarin
- * de eigenaar zijn pagina heeft opgeborgen. Zonder eigenaar (org-breed) is de
- * rij van niemand privé en blijft hij heel.
+ * The same rule as for knowledge bases and meeting notes: a row belonging to someone
+ * else keeps its KIND and its ROLE — that is what "what breaks" needs — and loses its
+ * NAME. The route below is already owner-scoped, so in practice this touches one row: a
+ * Solution of a colleague in which the owner has stored his page. Without an owner
+ * (org-wide) the row belongs to nobody privately and stays whole.
  */
 function redactForeign(rows, userId) {
     return (Array.isArray(rows) ? rows : []).map((r) => {

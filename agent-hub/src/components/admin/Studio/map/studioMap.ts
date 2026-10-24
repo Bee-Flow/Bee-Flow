@@ -6,37 +6,36 @@ import { studioAppForKind } from '../studioNav';
 import type { BlockMeta, CountState, CurveRoute, EdgeGeometry, ElbowRoute, MapBlock, MapEdge, MapNode, Point, Side } from './studioMap.types';
 
 /**
- * De kaart op het Startscherm van Studio: de twaalf bouwstenen en de twaalf
- * manieren waarop ze aan elkaar hangen. Dit bestand is het MODEL — de
- * handgelegde coördinaten, de randen en de meetkunde. StudioMap.jsx tekent.
+ * The map on the Studio Start screen: the twelve building blocks and the twelve ways
+ * they hang together. This file is the MODEL — the hand-chosen coordinates, the edges
+ * and the geometry. StudioMap.jsx draws.
  *
- * ── DIT IS BEWUST GEEN LIVE ORG-BREDE GRAPH ────────────────────────────────
+ * ── THIS IS DELIBERATELY NOT A LIVE ORG-WIDE GRAPH ─────────────────────────
  *
- * Niet uit gemak, en niet omdat de data ontbreekt: het argument staat
- * uitgeschreven in components/admin/Studio/Solutions/ProjectFlowTab.jsx (regel 1-18) en het
- * blijft staan. Wat een bouwer uit zo'n plaat wil weten is "wat hangt van wat
- * af, en wat is stuk", en een handgelegde knopentekening beantwoordt dat op
- * deze schaal slechter dan proza — terwijl ze een layout-engine kost en veel
- * manieren om op een smal scherm fout te lijken. Daarom is de LEVENDE graph
- * per oplossing gebouwd (server/projects/graph.js + Track O), waar de knopen
- * geteld zijn, de eigenaren bekend en een kapotte rand een zin krijgt.
+ * Not out of convenience, and not because the data is missing: the argument is
+ * written out in components/admin/Studio/Solutions/ProjectFlowTab.jsx (lines 1-18),
+ * and it stands. What a builder wants to know from such a plate is “what depends on
+ * what, and what is broken”, and a hand-drawn node drawing answers that at this scale
+ * worse than prose — while it costs a layout engine and many ways to look wrong on a
+ * narrow screen. That is why the LIVE graph is built per solution (server/projects/
+ * graph.js + Track O), where the nodes are counted, the owners known, and a broken
+ * edge gets a sentence.
  *
- * Wat hier staat is dus een LEGENDA, geen inventaris. Ze tekent de SOORTEN en
- * de SOORTEN RANDEN die het product kent — nooit iemands eigen objecten. De
- * getallen op de tegels komen los daarvan uit GET /api/studio/counts.
+ * What stands here is therefore a LEGEND, not an inventory. It draws the KINDS and the
+ * KIND EDGES that the product knows — never someone's own objects. The numbers on the
+ * tiles come separately from GET /api/studio/counts.
  *
- * Wie dit later alsnog tot een levende org-brede graph wil promoveren: lees
- * eerst ProjectFlowTab.jsx:1-18 en graph.js:1-64. Beide leggen uit waarom een
- * org-brede knopentekening precies de vraag níet beantwoordt.
+ * Whoever later wants to promote it to a live org-wide graph: first read
+ * ProjectFlowTab.jsx:1-18 and graph.js:1-64. Both explain why an org-wide node drawing
+ * precisely does NOT answer the question.
  *
- * ── Handgelegd betekent: dit veroudert ─────────────────────────────────────
+ * ── Hand-drawn means: this goes out of date ────────────────────────────────
  *
- * De coördinaten hieronder zijn met de hand gekozen. Komt er een elfde
- * bouwsteen bij, dan heeft die geen plek op deze kaart en zou de plaat er
- * stilletjes onvolledig bij liggen. Daartegen is één verdediging, en die
- * staat in studioMap.test.js: de soorten in MAP_BLOCKS worden vergeleken met
- * KIND_KEYS uit shared/kindColors.js (het register), en de test wordt rood
- * zodra ze uiteenlopen — in beide richtingen. Herleg de kaart, dan.
+ * The coordinates below were chosen by hand. If an eleventh building block arrives, it
+ * has no place on this map and the plate would silently be incomplete. There is one
+ * defence against that, and it is in studioMap.test.js: the kinds in MAP_BLOCKS are
+ * compared with KIND_KEYS from shared/kindColors.js (the register), and the test goes
+ * red as soon as they diverge — in both directions. Redraw the map, then.
  */
 
 /* ── Meetkunde ────────────────────────────────────────────────────────────── */
@@ -47,10 +46,10 @@ export const MAP_W = 700;
 export const MAP_H = 534;
 
 /**
- * De drie lanen zijn de categorieën van het register (STUDIO_CATEGORIES), in
- * dezelfde volgorde als de rail ze toont: Bouwen · AI · Bundelen. Het LABEL
- * komt straks uit dat register, zodat de laan op de kaart niet anders kan
- * heten dan de kop op de rail. Alleen de band-coördinaten staan hier.
+ * The three lanes are the categories of the register (STUDIO_CATEGORIES), in the same
+ * order as the rail shows them: Build · AI · Bundle. The LABEL later comes from that
+ * register, so that the lane on the map cannot be named differently from the heading
+ * on the rail. Only the band coordinates stand here.
  */
 export const MAP_LANES: readonly Readonly<{ id: string; y: number; h: number }>[] = Object.freeze([
     Object.freeze({ id: 'build', y: 8, h: 236 }),
@@ -59,23 +58,23 @@ export const MAP_LANES: readonly Readonly<{ id: string; y: number; h: number }>[
 ]);
 
 /**
- * Soorten die shared/kindColors.js WEL een kleur geeft, maar die hier niet
- * horen: ze zijn geen bouwsteen die je in de Studio maakt. De drifttest legt
- * de kaart tegen KIND_KEYS MIN deze lijst — een nieuwe soort moet dus of op
- * de plaat, of hier met een reden. Stilzwijgend weglaten kan niet.
+ * Kinds that shared/kindColors.js DOES give a colour, but that do not belong here:
+ * they are not a building block that you make in Studio. The drift test checks the map
+ * against KIND_KEYS MINUS this list — a new kind must therefore either be on the plate,
+ * or here with a reason. Silent omission is not possible.
  *
- *   compliance — een gebied dat je BEHEERT, geen ding dat je maakt. Het woont
- *                in organisatie-instellingen (Compliance Center, sep 2026) en
- *                staat in kindColors alleen zodat de header, de tegel in de
- *                instellingennav en de eigen rail één token delen.
+ *   compliance — an area that you MANAGE, not a thing that you make. It lives in
+ *                organisation settings (Compliance Center, Sep 2026) and is in
+ *                kindColors only so that the header, the tile in the settings nav and
+ *                its own rail share one token.
  */
 export const KINDS_OFF_MAP: readonly string[] = Object.freeze(['compliance']);
 
 /**
- * De twaalf bouwstenen. `kind` is de sleutel uit shared/kindColors.js; kleur,
- * glyph en tegelvorm komen daarvandaan, het label en de teller uit het
- * Studio-register (zie blockMeta). x/y zijn handgelegd: kolom a=28, b=262,
- * c=496 en de rij-hoogtes per laan.
+ * The twelve building blocks. `kind` is the key from shared/kindColors.js; colour,
+ * glyph and tile shape come from there, the label and the counter from the Studio
+ * register (see blockMeta). x/y are hand-chosen: column a=28, b=262, c=496, and the
+ * row heights per lane.
  */
 export const MAP_BLOCKS: readonly MapBlock[] = Object.freeze([
     Object.freeze({ id: 'form', kind: 'form', lane: 'build', x: 28, y: 38 }),
@@ -83,10 +82,10 @@ export const MAP_BLOCKS: readonly MapBlock[] = Object.freeze([
     Object.freeze({ id: 'app', kind: 'app', lane: 'build', x: 28, y: 162 }),
     Object.freeze({ id: 'automation', kind: 'automation', lane: 'build', x: 262, y: 100 }),
     Object.freeze({ id: 'datatable', kind: 'datatable', lane: 'build', x: 496, y: 38 }),
-    // Kolom c, middelste rij: de automatisering in het midden waaiert naar rechts
-    // uit naar tabel (boven), document (recht) en goedkeuring (onder). De
-    // vrije plek in kolom b lag in het pad van app→goedkeuring — de
-    // meetkundetest in studioMap.test.js ving dat.
+    // Column c, middle row: the automation in the centre fans out to the right to table
+    // (above), document (straight ahead) and approval (below). The free place in column
+    // b lay in the path from app→approval — the geometry test in studioMap.test.js
+    // caught that.
     Object.freeze({ id: 'document', kind: 'document', lane: 'build', x: 496, y: 100 }),
     Object.freeze({ id: 'meeting', kind: 'meeting', lane: 'ai', x: 28, y: 282 }),
     Object.freeze({ id: 'kb', kind: 'kb', lane: 'ai', x: 262, y: 282 }),
@@ -97,15 +96,15 @@ export const MAP_BLOCKS: readonly MapBlock[] = Object.freeze([
 ]);
 
 /**
- * De laatste doos, en de enige die géén bouwsteen is.
+ * The last box, and the only one that is NOT a building block.
  *
- * Twee van de twaalf randen wijzen naar een goedkeuring, en een goedkeuring is
- * niets wat je MAAKT: ze bestaat pas op het moment dat een app of een automatisering
- * erom vraagt. server/projects/graph.js tekent haar om dezelfde reden als een
- * SYNTHETISCHE knoop (graph.js:32-40). Weglaten zou de kaart twee randen
- * armer maken en de belangrijkste eigenschap van beide verzwijgen: dat er een
- * mens tussen staat. Ze krijgt dus een gestippelde doos zonder kind-kleur, en
- * nooit een teller — goedkeuringen worden niet geteld.
+ * Two of the twelve edges point to an approval, and an approval is nothing that you
+ * MAKE: it exists only at the moment an app or an automation asks for it.
+ * server/projects/graph.js draws it for the same reason as a SYNTHETIC node
+ * (graph.js:32-40). Omitting it would make the map two edges poorer and conceal the
+ * most important property of both: that a human stands between them. It therefore
+ * receives a dotted box without a kind colour, and never a counter — approvals are
+ * not counted.
  */
 export const MAP_SYNTHETIC: readonly MapNode[] = Object.freeze([
     Object.freeze({
@@ -127,10 +126,9 @@ export function mapNode(id: string): MapNode | null {
 /* ── De twaalf randen ───────────────────────────────────────────────────────── */
 
 /**
- * De negen werkwoorden die over de twaalf randen lopen. Eén rand draagt er twee
- * (een automatisering LEEST en SCHRIJFT een tabel): dat zijn twee verschillende
- * risico's op dezelfde verbinding, en graph.js houdt ze om die reden ook
- * apart binnen één paar.
+ * The nine verbs that run over the twelve edges. One edge carries two of them (an
+ * automation READS and WRITES a table): those are two different risks on the same
+ * connection, and graph.js therefore keeps them apart within one pair as well.
  */
 export const VERB_LABEL: Readonly<Record<string, Readonly<{ labelKey: string; labelFallback: string }>>> = Object.freeze({
     runs: Object.freeze({ labelKey: 'studio.map.verb_runs', labelFallback: 'runs' }),
@@ -145,19 +143,18 @@ export const VERB_LABEL: Readonly<Record<string, Readonly<{ labelKey: string; la
 });
 
 /**
- * De elf randen, in de volgorde waarin server/projects/graph.js ze in zijn
- * eigen docblock opsomt (graph.js:22-31, plus de app→tabel-rand die de code
- * kent en de docblock niet noemt). Zo is deze lijst met de hand tegen die
- * ene te leggen. Elke rand is een SOORT verbinding die op schijf al bestaat,
- * geen bedachte relatie.
+ * The eleven edges, in the order in which server/projects/graph.js lists them in its
+ * own docblock (graph.js:22-31, plus the app→table edge that the code knows and the
+ * docblock does not mention). That way this list can be checked by hand against that
+ * one. Each edge is a KIND of connection that already exists on disk, not an invented
+ * relationship.
  *
- * De app→tabel-rand is de enige die vandaag nul exemplaren oplevert, en
- * graph.js NOEMT haar in zijn eigen docblock (graph.js:50-55) juist om te
- * zeggen dat ze niet getekend wordt zolang `SAVE_PATHS.app` in
- * automation/usageSync leeg is. Dat is een FEIT over het product, geen stub:
- * als SOORT verbinding bestaat ze, dus op een legenda hoort ze thuis — met
- * erbij, op de tegel, dat het product haar nog nergens vastlegt
- * (studio.map.edge_app_uses_datatable_note).
+ * The app→table edge is the only one that today yields zero instances, and graph.js
+ * MENTIONS it in its own docblock (graph.js:50-55) precisely to say that it is not
+ * drawn as long as `SAVE_PATHS.app` in automation/usageSync is empty. That is a FACT
+ * about the product, not a stub: as a KIND of connection it exists, so it belongs on a
+ * legend — with, on the tile, the note that the product does not yet record it
+ * anywhere (studio.map.edge_app_uses_datatable_note).
  */
 export const MAP_EDGES: readonly MapEdge[] = Object.freeze([
     Object.freeze({
@@ -192,8 +189,8 @@ export const MAP_EDGES: readonly MapEdge[] = Object.freeze([
         route: Object.freeze({ type: 'curve', fromSide: 'right', toSide: 'left' }),
     }),
     Object.freeze({
-        // Eén paar, twee werkwoorden — lezen en schrijven zijn niet hetzelfde
-        // risico, en de kaart mag ze niet tot "gebruikt" samenvatten.
+        // One pair, two verbs — reading and writing are not the same risk, and the map may
+        // not summarise them as “uses”.
         id: 'automation-datatable', from: 'automation', to: 'datatable', verbs: ['reads', 'writes'],
         labelKey: 'studio.map.edge_automation_datatable',
         labelFallback: 'An automation reads and writes a table.',
@@ -209,9 +206,9 @@ export const MAP_EDGES: readonly MapEdge[] = Object.freeze([
         id: 'app-uses-datatable', from: 'app', to: 'datatable', verbs: ['uses'],
         labelKey: 'studio.map.edge_app_uses_datatable',
         labelFallback: 'An app uses a table.',
-        // De enige rand met een voetnoot: ze bestaat als soort, maar niets in
-        // het product legt haar vandaag vast, en iemand die haar in het
-        // Flow-tabblad gaat terugzoeken vindt daar niets.
+        // The only edge with a footnote: it exists as a kind, but nothing in the product
+        // records it today, and whoever goes looking for it in the Flow tab finds nothing
+        // there.
         noteKey: 'studio.map.edge_app_uses_datatable_note',
         noteFallback: 'Not recorded anywhere yet, so no solution shows it.',
         // Om de automatisering heen: onderlangs en dan door de kolomgang omhoog.
@@ -248,14 +245,14 @@ export const MAP_EDGES: readonly MapEdge[] = Object.freeze([
 ]);
 
 /**
- * De doos zonder randen. Vandaag precies één ('solution'), en de zin daaronder
- * is voor die ene geschreven ("de doos waar de anderen in reizen"). Een elfde
- * soort die zonder randen op de kaart belandt zou anders te horen krijgen dat
- * hij een oplossing is, dus de zin hangt aan de knoop en niet aan het getal 0.
+ * The box without edges. Today precisely one ('solution'), and the sentence below it
+ * is written for that one (“the box that the others travel in”). An eleventh kind that
+ * landed on the map without edges would otherwise be told that it is a solution, so
+ * the sentence hangs on the node and not on the number 0.
  */
 export const NO_EDGE_NODE_ID = 'solution';
 
-/** De randen die deze doos raken — uit of in. Een zelflus telt één keer. */
+/** The edges that touch this box — out or in. A self-loop counts once. */
 export function edgesOf(nodeId: string | null | undefined): MapEdge[] {
     if (!nodeId) return [];
     return MAP_EDGES.filter((e) => e.from === nodeId || e.to === nodeId);
@@ -266,25 +263,26 @@ export function edgeTouches(edge: MapEdge | null | undefined, nodeId: string | n
     return !!edge && !!nodeId && (edge.from === nodeId || edge.to === nodeId);
 }
 
-/* ── Het register: label, teller en laan komen NIET uit dit bestand ───────── */
+/* ── The register: label, counter and lane do NOT come from this file ───────── */
 
 /**
- * Wat het register over deze bouwsteen weet: hoe hij heet, welke teller bij
- * hem hoort en onder welke laan hij valt. Alles afgeleid, niets overgeschreven
- * — anders heet een tabel op de kaart iets anders dan op de rail.
+ * What the register knows about this building block: what it is called, which counter
+ * belongs to it, and under which lane it falls. Everything is derived, nothing
+ * overwritten — otherwise a table on the map would be named differently from one on
+ * the rail.
  *
- * `countKey` volgt de regel van de rail (`countKey || id`), zodat de tegel
- * dezelfde sleutel uit GET /api/studio/counts leest als de rij ernaast.
- * null voor een soort die het register niet (meer) kent — de drifttest maakt
- * daar herrie over voordat iemand het op het scherm ziet.
+ * `countKey` follows the rule of the rail (`countKey || id`), so the tile reads the
+ * same key from GET /api/studio/counts as the row beside it. null for a kind that the
+ * register does not (any more) know — the drift test raises an alarm about that before
+ * anyone sees it on screen.
  */
 export function blockMeta(kind: string | null | undefined): BlockMeta | null {
     const app = studioAppForKind(kind);
     if (!app) return null;
     return {
-        // Het HELE registerrecord reist mee, zodat de tekening de naam via
-        // studioSectionLabel kan opvragen in plaats van labelKey/labelFallback
-        // zelf te herbouwen — die derde kopie miste al de runtime-module-tak.
+        // The WHOLE register record travels along, so that the drawing can request the name
+        // via studioSectionLabel instead of rebuilding labelKey/labelFallback itself — that
+        // third copy already lacked the runtime-module branch.
         app,
         id: app.id,
         labelKey: app.labelKey,
@@ -303,20 +301,20 @@ export function laneMeta(laneId: string) {
 /* ── Tegel-chrome: het bestaande recept, met kindColors ───────────────────── */
 
 /**
- * De omlijning van een tegel.
+ * The outline of a tile.
  *
- * HET RECEPT IS NIET NIEUW: `cardChrome` uit de bouwer-canvas
- * (automation/Builder/flow/nodeTypeColors.js:183) levert rand, schaduw en de
- * selectiering, mét de volgorde waarin die elkaar overrulen. Wat cardChrome
- * niet kan weten is dat een Studio-SOORT geen stapfamilie is: zijn 4px-balk
- * en zijn hoekradius komen uit het stap-vocabulaire. Die twee — en alleen
- * die twee — komen hier uit kindColors, zodat een tabel op deze kaart
- * dezelfde kleur en dezelfde vorm heeft als op de rail en in de bouwer.
+ * THE RECIPE IS NOT NEW: `cardChrome` from the builder canvas
+ * (automation/Builder/flow/nodeTypeColors.js:183) supplies border, shadow and the
+ * selection ring, with the order in which those override one another. What cardChrome
+ * cannot know is that a Studio KIND is not a step family: its 4px bar and its corner
+ * radius come from the step vocabulary. Those two — and only those two — come from
+ * kindColors here, so that a table on this map has the same colour and the same shape
+ * as on the rail and in the builder.
  *
- * De eerste boxShadow-laag ÍS die familiebalk (nodeTypeColors.js:195:
- * `inset 4px 0 0 <balk>`); die wordt vervangen, de rest blijft staan.
- * studioMap.test.js pint dat vast, zodat een verbouwing van cardChrome hier
- * niet stil de verkeerde laag overschrijft.
+ * The first boxShadow layer IS that family bar (nodeTypeColors.js:195:
+ * `inset 4px 0 0 <bar>`); it is replaced, the rest remains. studioMap.test.js pins
+ * that, so that a rebuild of cardChrome does not silently overwrite the wrong layer
+ * here.
  */
 export function kindCardChrome(kind: string | null | undefined, { selected = false, dimmed = false }: { selected?: boolean; dimmed?: boolean } = {}) {
     const { style } = cardChrome({ group: null, selected });
@@ -331,11 +329,11 @@ export function kindCardChrome(kind: string | null | undefined, { selected = fal
 }
 
 /**
- * De omlijning van de synthetische doos.
+ * The outline of the synthetic box.
  *
- * `disabled` uit hetzelfde recept: gestippeld en gedempt is precies hoe de
- * canvas "dit is geen gewone kaart" zegt. Bij selectie gaat de demping eraf —
- * een geselecteerde doos die je niet kunt lezen is geen selectie.
+ * `disabled` from the same recipe: dotted and muted is precisely how the canvas says
+ * “this is not an ordinary card”. On selection the muting goes away — a selected box
+ * that you cannot read is not a selection.
  */
 export function syntheticCardChrome({ selected = false, dimmed = false }: { selected?: boolean; dimmed?: boolean } = {}) {
     const { style } = cardChrome({ group: null, disabled: true, selected });
@@ -356,8 +354,8 @@ const SIDE_NORMAL: Readonly<Record<Side, Readonly<Point>>> = Object.freeze({
 });
 
 /**
- * Het punt op de rand van een doos. `off` schuift LANGS die rand: twee randen
- * die dezelfde doos aan dezelfde kant verlaten mogen niet op elkaar liggen.
+ * The point on the edge of a box. `off` slides ALONG that edge: two edges that leave
+ * the same box on the same side must not lie on top of each other.
  */
 export function anchorOf(node: Point, side: Side | undefined, off = 0): Point {
     const cx = node.x + TILE_W / 2;
@@ -380,9 +378,9 @@ function direction(from: Point, to: Point): Point {
 }
 
 /**
- * De pijlpunt: een driehoek met zijn punt OP het eindpunt. Bewust geen
- * SVG-marker — een marker erft de streekkleur niet overal, en op deze kaart
- * verandert die kleur bij elke selectie.
+ * The arrowhead: a triangle with its point ON the end point. Deliberately not an SVG
+ * marker — a marker does not inherit the stroke colour everywhere, and on this map that
+ * colour changes at every selection.
  */
 export function arrowPath(point: Point, dir: Point, size = 6): string {
     const bx = point.x - dir.x * size;
@@ -472,11 +470,11 @@ function curveGeometry(a: Point, b: Point, route: CurveRoute, edge: MapEdge): Ed
 }
 
 /**
- * Het pad van één rand: `{ d, arrow, mid }`.
+ * The path of one edge: `{ d, arrow, mid }`.
  *
- * Pure meetkunde op de handgelegde coördinaten — geen layout-engine, geen
- * meting in de DOM. Daardoor is elk pad in een test na te rekenen, en tekent
- * de kaart in een test hetzelfde als in een browser.
+ * Pure geometry on the hand-chosen coordinates — no layout engine, no measurement in
+ * the DOM. That is why every path can be recalculated in a test, and why the map draws
+ * the same in a test as in a browser.
  */
 export function edgeGeometry(edge: MapEdge): EdgeGeometry | null {
     const from = mapNode(edge?.from);
@@ -503,25 +501,23 @@ export const MAP_KINDS: readonly string[] = Object.freeze(MAP_BLOCKS.map((b) => 
 /* ── Tellers ──────────────────────────────────────────────────────────────── */
 
 /**
- * De toestand van de teller van één doos, in vier waarden.
+ * The state of the counter of one box, in four values.
  *
- * `counts` null heeft TWEE onverenigbare oorzaken en dit bestand mag ze niet
- * op één hoop gooien: het antwoord is nog onderweg ('pending'), of het is er
- * nooit gekomen ('unknown'). De hook levert dat onderscheid als `failed` —
- * zonder dat zou een 500 op het scherm verschijnen als "The number is not in
- * yet", een belofte die nooit wordt ingelost, want de kaart draait bewust
- * zonder poller. Onbekend versmalt: bij twijfel het streepje en de zin die
- * zegt dat het er niet is, nooit de geruststelling dat het nog komt.
+ * `counts` null has TWO incompatible causes, and this file may not lump them together:
+ * the answer is still on its way ('pending'), or it never came ('unknown'). The hook
+ * delivers that difference as `failed` — without it, a 500 would appear on the screen
+ * as “The number is not in yet”, a promise that is never kept, because the card
+ * deliberately runs without a poller. Unknown narrows: when in doubt, the dash and the
+ * sentence that says it is not there, never the reassurance that it still comes.
  *
- * GET /api/studio/counts LAAT EEN SLEUTEL WEG als de beller hem niet mag zien
- * én als de store eronder omviel, en het strípt zijn eigen `partial`-vlag — de
- * client kan die twee dus niet uit elkaar houden, en beide zijn ze geen nul.
- * `countFor` is de afleider van de rail, niet een tweede: rommel in het
- * antwoord blijft "onbekend".
+ * GET /api/studio/counts OMITS A KEY if the caller may not see it, and if the store
+ * beneath it fell over, and it strips its own `partial` flag — the client cannot tell
+ * those two apart, and both are not zero. `countFor` is the rail's derivation, not a
+ * second one: garbage in the answer remains “unknown”.
  *
- * Een soort die het register NIET (meer) kent is óók 'unknown', niet
- * 'not_counted': "er valt hier niets te tellen" is een vastgesteld feit en
- * hoort alleen bij de synthetische doos, die per constructie niet geteld wordt.
+ * A kind that the register does NOT (any more) know is also 'unknown', not
+ * 'not_counted': “nothing here can be counted” is an established fact and belongs only
+ * to the synthetic box, which by construction is not counted.
  */
 export function countState(node: MapNode | null | undefined, counts: StudioCounts | null | undefined, { failed = false }: { failed?: boolean } = {}): CountState {
     if (!node) return { state: 'unknown' };
@@ -534,29 +530,27 @@ export function countState(node: MapNode | null | undefined, counts: StudioCount
 }
 
 /**
- * De sleutels die GET /api/studio/counts ECHT org-breed telt.
+ * The keys that GET /api/studio/counts REALLY counts org-wide.
  *
- * Eén, vandaag. De rest telt per gebruiker met de scoping van zijn eigen
- * lijstroute: `automations` is `WHERE user_id = $1`, `runs` zijn de eigen runs
- * van de beller (met een commentaar erbij dat org-breed tellen daar fout zou
- * zijn), `solutions` is listUserProjects. Het endpoint kent bovendien HELEMAAL
- * geen scope-parameter — een strip die 'org' doorgeeft verandert de getallen
- * dus niet, alleen de zin eronder. Zonder deze lijst zou die zin omklappen
- * naar een org-brede bewering over een getal dat de bron niet kan dragen: "9 ·
- * Counting everything in the organisation" onder de eigen negen automatiseringen van
- * één bouwer.
+ * One, today. The rest counts per user, with the scoping of its own list route:
+ * `automations` is `WHERE user_id = $1`, `runs` are the caller's own runs (with a
+ * comment there saying that counting org-wide would be wrong), `solutions` is
+ * listUserProjects. The endpoint moreover has NO scope parameter at all — a strip that
+ * passes 'org' does not change the numbers, only the sentence under them. Without this
+ * list, that sentence would flip into an org-wide claim about a number that the source
+ * cannot carry: “9 · Counting everything in the organisation” under the nine own
+ * automations of one builder.
  */
 export const ORG_WIDE_COUNT_KEYS: readonly string[] = Object.freeze(['agents']);
 
 /**
- * De zin die zegt waar het getal over gaat.
+ * The sentence that says what the number is about.
  *
- * Onbekend versmalt (runScope.js:20-25 houdt dezelfde regel aan de kant van
- * de filters): alleen de letterlijke waarde 'org' levert de org-brede zin op.
- * Alles wat we niet herkennen valt terug op wat sowieso waar is — dat het
- * endpoint telt wat déze beller mag zien. En 'org' versmalt óók, per sleutel:
- * een teller die de server niet org-breed telt krijgt de zichtbare zin, hoe
- * breed de strip erboven ook staat.
+ * Unknown narrows (runScope.js:20-25 keeps the same rule on the filter side): only the
+ * literal value 'org' yields the org-wide sentence. Anything we do not recognise falls
+ * back to what is in any case true — that the endpoint counts what THIS caller may see.
+ * And 'org' also narrows, per key: a counter that the server does not count org-wide
+ * gets the visible sentence, however broad the strip above it is.
  */
 export function scopeSentence(t: Translate, scope: string | null | undefined, countKey: string | null = null): string {
     const visible = () => t('studio.map.scope_visible', 'Counting what you can see.');

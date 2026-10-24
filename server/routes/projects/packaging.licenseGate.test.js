@@ -1,23 +1,15 @@
 /**
- * De licentiepoort van packaging.js mag alleen ZIJN EIGEN routes raken.
+ * The licence gate of packaging.js may only touch ITS OWN routes.
  *
- * `router.use(requireFeature('blueprint_packaging'))` — padloos — draaide voor
- * ELK verzoek dat dit router-object bereikte, ook een verzoek waarvan geen
- * enkele route in dit bestand matchte. En omdat `routes/projects.js` deze
- * router monteert met `router.use('/', require('./projects/packaging'))`
- * VÓÓR routes als `PUT /:id/conversations`, kwam zo'n verzoek daar ook echt
- * binnen: de poort weigerde het voordat Express de kans kreeg om door te
- * geven aan de route die er eigenlijk bij hoort. Een org met `projects` maar
- * zonder `blueprint_packaging` kreeg zo 403 op werk dat niets met Blueprints
- * te maken heeft.
+ * `router.use(requireFeature('blueprint_packaging'))` — pathless — ran for EVERY request that reached this router object, including a request that none of the
+ * routes in this file matched. And because `routes/projects.js` mounts this router with `router.use('/', require('./projects/packaging'))`
+ * BEFORE routes such as `PUT /:id/conversations`, such a request also really arrived there: the gate refused it before Express got the chance to pass it
+ * on to the route it actually belonged to. An org with `projects` but without `blueprint_packaging` thus got a 403 on work that has nothing to do with Blueprints.
  *
- * Dit bestand monteert de ECHTE `../projects`-router (niet een hand-gebouwde
- * analogie ervan) met hetzelfde mock-recept als projects.routetable.test.js
- * hiernaast, plus dezelfde licentie-/rolstubs als packaging.installs.test.js.
- * Zo pint de test niet alleen "packaging + een route erna" maar de echte
- * mount-volgorde in routes/projects.js zelf: een latere herordening daar, of
- * een nieuwe route tussen de mount en /:id/conversations, loopt automatisch
- * door dezelfde router mee. Er komt geen database aan te pas.
+ * This file mounts the REAL `../projects` router (not a hand-built analogy of it) with the same mock recipe as projects.routetable.test.js
+ * next to it, plus the same licence/role stubs as packaging.installs.test.js. That way the test pins not only "packaging + a route after it" but the real
+ * mount order in routes/projects.js itself: a later reordering there, or a new route between the mount and /:id/conversations, automatically
+ * runs through the same router. No database is involved.
  *
  * Run: cd server && node --test routes/projects/packaging.licenseGate.test.js
  */
@@ -101,7 +93,7 @@ function request(method, urlPath, body) {
             r.on('data', (c) => { respBody += c; });
             r.on('end', () => {
                 let json = null;
-                try { json = JSON.parse(respBody); } catch { /* niet-JSON is zelf het antwoord */ }
+                try { json = JSON.parse(respBody); } catch { /* non-JSON is itself the answer */ }
                 resolve({ status: r.statusCode, json });
             });
         });

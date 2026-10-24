@@ -17,40 +17,32 @@ interface PrivacyLineProps {
 const FALLBACK_T = (_key: string, en: string, params?: Record<string, unknown>) => interpolate(en, params);
 
 /**
- * De privacyregel onder een bericht (C7).
+ * The privacy line under a message (C7).
  *
- * Twee vormen, en het verschil tussen die twee is de hele bevinding — zie
- * `privacyLine.js` voor de meting eronder. Wat hier telt:
+ * Two forms, and the difference between them is the entire finding. See `privacyLine.js` for the measurement
+ * beneath it. What matters here:
  *
- *   • De demonstratievorm noemt de plaatsvervanger die er daadwerkelijk voor in
- *     de plaats ging. Hij verschijnt alleen als die bekend is.
- *   • De onbewezen vorm zegt dat het scherm de plaatsvervanger niet kan tonen.
- *     Hij zegt NIET "de echte waarde bleef hier" — dat is precies de zin die
- *     zonder tokenmap niet gecontroleerd is, en een privacyclaim zonder meting
- *     eronder is erger dan geen claim.
+ *   • The demonstration form names the placeholder that was actually put in its place. It appears only if that is known.
+ *   • The unproven form says that the screen cannot show the placeholder. It does NOT say "the real value stayed
+ *     here". That is precisely the sentence that is not checked without a token map, and a privacy claim without a
+ *     measurement beneath it is worse than no claim.
  *
- * De regel verving de blauwe "N items redacted"-pil onder het gebruikersbericht.
- * Die pil was de tellervorm: een bewering over een aantal, zonder één
- * aanwijzing erbij. De amberen "Scan incomplete"-pil staat er los van en blijft.
+ * The line replaced the blue "N items redacted" pill under the user message. That pill was the counter form: a claim
+ * about a number, without a single hint with it. The amber "Scan incomplete" pill stands apart from it and remains.
  *
- * ── Twee dingen die deze zin NIET doet ─────────────────────────────────────
- * 1. LIDMAATSCHAP CLAIMEN. Waar er meer vervangen is dan aangetoond, staat er
- *    niet "{count} vervangen, waaronder {tokens}": dat maakt de aangetoonde
- *    plaatsvervanger lid van een verzameling waarvan het scherm dat niet weet
- *    (de kluismap is conversatiebreed). De twee beweringen staan daarom naast
- *    elkaar: de server telde er zoveel, én dít token staat voor een waarde in
- *    dit bericht.
- * 2. GERUSTSTELLEN OVER EEN DOORLAAT. Is een deel van deze beurt niet
- *    gecontroleerd, dan ging dat deel onder fail_open ONGEREDIGEERD naar de
- *    AI. "de echte waarde bleef hier" is dan waar over het aangetoonde en
- *    misleidend over de rest, dus de zin krijgt de doorlaat er direct achteraan
- *    — in de zin zelf, niet alleen in de pil ernaast. PrivacyPanel doet dit al
- *    zo (`anyIncompleteAttachment`); de regel die de primaire, altijd
- *    zichtbare uitspraak werd mag die voorwaarde niet zijn kwijtgeraakt.
+ * ── Two things that this sentence does NOT do ──────────────────────────────
+ * 1. CLAIM MEMBERSHIP. Where more has been replaced than has been shown, there is no "{count} replaced, including
+ *    {tokens}": that would make the shown placeholder a member of a collection that the screen does not know (the
+ *    token vault is conversation-wide). The two claims therefore stand next to each other: the server counted this
+ *    many, AND this token stands for a value in this message.
+ * 2. REASSURE ABOUT A PASS-THROUGH. If a part of this turn was not checked, that part went UNREDACTED to the AI under
+ *    fail_open. "the real value stayed here" is then true about what was shown and misleading about the rest, so the
+ *    sentence gets the pass-through directly after it, in the sentence itself and not only in the pill beside it.
+ *    PrivacyPanel already does this (`anyIncompleteAttachment`). The rule that became the primary, always visible
+ *    claim may not have lost that condition.
  *
- * De reserve-`t` MOET interpoleren: de zinnen dragen een `{count}`, en een
- * reserve die alleen zijn tweede argument teruggeeft zet die placeholder
- * letterlijk op het scherm bij een aanroeper die geen `t` doorgeeft.
+ * The fallback `t` MUST interpolate: the sentences carry a `{count}`, and a fallback that only returns its second
+ * argument puts that placeholder literally on screen when a caller passes no `t`.
  */
 export default function PrivacyLine({
     count, messageText, tokenMap, scanIncomplete = false, t = FALLBACK_T,
@@ -69,8 +61,7 @@ export default function PrivacyLine({
         : line.partial
             ? t(
                 'dlp.line_replaced_partial',
-                // Twee losse beweringen, met opzet niet tot één samengevoegd:
-                // de telling komt van de server, de aanwijzing van dit scherm.
+                // Two separate claims, deliberately not merged into one: the count comes from the server, the hint from this screen.
                 '{count} values were replaced before this went to the AI. {tokens} stands for a value in this message — that real value stayed here',
                 { count: line.count },
             )
@@ -82,10 +73,9 @@ export default function PrivacyLine({
                 { count: line.count },
             );
 
-    // `{tokens}` blijft met opzet staan in de vertaalde zin: de plaatsvervangers
-    // zijn geen tekst maar monospace-chips, en die overleven interpolate() niet.
-    // Ontbreekt de placeholder in een vertaling, dan komen ze achteraan — nooit
-    // verdwijnen ze, want dan bleef de tellervorm over.
+    // `{tokens}` deliberately remains in the translated sentence: the placeholders are not text but monospace chips,
+    // and those do not survive interpolate(). If the placeholder is missing from a translation, they end up at the back.
+    // They never disappear, because then the count form would remain.
     const at = sentence.indexOf('{tokens}');
     const before = at === -1 ? sentence : sentence.slice(0, at);
     const after = at === -1 ? '' : sentence.slice(at + '{tokens}'.length);

@@ -1,31 +1,26 @@
 'use strict';
 
 /**
- * `npm run db:migrate`, END TO END, tegen een echte Postgres.
+ * `npm run db:migrate`, END TO END, against a real Postgres.
  *
- * De oude runner is empirisch betrapt (PLAN-APP-UPGRADE.md): hij meldde
- * "All stores migrated successfully" terwijl geen enkele CREATE TABLE was
- * afgewacht — en na een run ontbraken onder andere `agents`,
- * `direct_conversations` en `integration_activity_log`, omdat hun eigenaren
- * lazy initialiseren of simpelweg niet in de lijst stonden. Deze suite draait
- * de ECHTE ladder (runMigrations: user_sessions → elke store afgewacht →
- * losse datamigraties → NL-catalogi) en controleert de grondwaarheid in
- * information_schema, in plaats van de logregels te geloven.
+ * The old runner was caught empirically (PLAN-APP-UPGRADE.md): it reported
+ * "All stores migrated successfully" while not a single CREATE TABLE had been awaited — and after a run
+ * `agents`, `direct_conversations` and `integration_activity_log`, among others, were missing, because
+ * their owners initialise lazily or simply were not on the list. This suite runs the REAL ladder
+ * (runMigrations: user_sessions → every store awaited → separate data migrations → NL catalogues)
+ * and checks the ground truth in information_schema, instead of believing the log lines.
  *
- * ── WAAROM pglite ────────────────────────────────────────────────────
- * Zelfde redenering en zelfde db.js-facade als
- * stores/datatableDbStore.integration.test.js: @electric-sql/pglite is echte
- * Postgres (WASM, in-proces, al een devDependency), dus deze suite draait
- * ALTIJD — geen container, geen self-skip. pgvector ontbreekt in pglite;
- * dat is hier een feature, want het bewijst meteen dat knowledgeStore's
- * gedocumenteerde degradatie (keyword-zoeken zonder vector) de ladder niet
- * laat vallen.
+ * ── WHY pglite ──────────────────────────────────────────────────────
+ * Same reasoning and same db.js facade as stores/datatableDbStore.integration.test.js:
+ * @electric-sql/pglite is real Postgres (WASM, in-process, already a devDependency), so this suite
+ * ALWAYS runs — no container, no self-skip. pgvector is missing in pglite; that is a feature here,
+ * because it immediately proves that knowledgeStore's documented degradation (keyword search without
+ * vector) does not break the ladder.
  *
- * De tweede test is de idempotentie-eis uit het upgradecontract: de store-DDL
- * draait bij elke boot opnieuw — twee keer draaien hoort nul fouten en nul
- * nieuwe tabellen op te leveren. De laatste tests bewijzen de
- * `schema_migrations`-ledger van de boot-ladder: registreren, overslaan,
- * opnieuw draaien bij een gewijzigd bestand, en --force.
+ * The second test is the idempotence requirement from the upgrade contract: the store DDL runs
+ * again on every boot — running twice must give zero errors and zero new tables. The last tests
+ * prove the `schema_migrations` ledger of the boot ladder: registering, skipping, running again when
+ * a file has changed, and --force.
  *
  * Run: cd server && node --test --test-force-exit migrateDb.integration.test.js
  */
@@ -37,8 +32,8 @@ const Module = require('node:module');
 
 const SERVER = __dirname;
 
-// supportInboxStore weigert terecht te initialiseren zonder de sleutel
-// waarmee mailbox-OAuth-tokens versleuteld worden; de suite levert er een.
+// supportInboxStore rightly refuses to initialise without the key with which mailbox OAuth tokens
+// are encrypted; the suite supplies one.
 process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'integration-test-session-secret-0123456789abcdef';
 
 // ── Eén pglite-verbinding achter de db.js-facade ────────────────────────────
@@ -116,8 +111,8 @@ test('de ladder draait echt: nul fouten, en de bewezen-missende tabellen bestaan
         'elke store hoort een awaitbare initDB()/ready te hebben — "geladen maar niet geverifieerd" is het oude liegen');
 
     tablesAfterFirst = await tableNames();
-    // De grondwaarheid, niet de logregel. Dit zijn precies de afwezigen uit
-    // het empirische bewijs, plus een dwarsdoorsnede door de fleet.
+    // The ground truth, not the log line. These are precisely the absentees from
+    // the empirical evidence, plus a cross-section through the fleet.
     for (const t of [
         'user_sessions', 'users', 'agents', 'agent_conversations', 'direct_conversations',
         'integration_activity_log', 'automations', 'automation_runs',
@@ -139,19 +134,17 @@ test('twee keer draaien is een no-op: nul fouten, nul nieuwe tabellen', async ()
 });
 
 test('gecureerde wording overleeft de ladder — de belofte uit elke catalogusheader', async () => {
-    // Elke add-nl-header belooft "een workspace die zijn eigen wording
-    // curateerde houdt die". Dat gedrag zit sinds U6 in
-    // languageStore.addMissingGUITranslations (atomair via mutateConfig);
-    // hier wordt het door de ECHTE ladder heen bewezen, niet door de helper
-    // los te prikken.
+    // Every add-nl-header promises "a workspace that keeps its own wording curated". That behaviour has been
+    // in languageStore.addMissingGUITranslations since U6 (atomic via mutateConfig);
+    // here it is proven through the REAL ladder, not by poking the helper in isolation.
     const languageStore = require('./stores/languageStore');
     const before = await languageStore.getGUITranslations('nl');
     assert.strictEqual(before['datatables.title'], 'Datatabellen',
         'de catalogus hoort deze sleutel gezaaid te hebben');
 
     await languageStore.setGUITranslations('nl', { ...before, 'datatables.title': 'Mijn tabellen' });
-    // --force: zonder ledger-omzeiling zou de catalogus overgeslagen worden en
-    // bewees deze test niets.
+    // --force: without bypassing the ledger the catalogue would be skipped and
+    // this test would prove nothing.
     const third = await runMigrations({ log: quiet, force: true });
     assert.deepStrictEqual(third.failed, [], 'de derde run hoort schoon te zijn');
 

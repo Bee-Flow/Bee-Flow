@@ -1,28 +1,26 @@
 'use strict';
 
 /**
- * De twee routes die de testset-KAART erbij kreeg (A4 deel D):
+ * The two routes that the test-set CARD received (A4 part D):
  *
- *   GET  /agents/:id/tests/runs      de run-historie achter "Bekijk"
- *   POST /agents/:id/tests/suggest   "+ Dit gesprek als test" — het voorstel
+ *   GET  /agents/:id/tests/runs      the run history behind "Bekijk" (view)
+ *   POST /agents/:id/tests/suggest   "+ Dit gesprek als test" (+ this conversation as a test) — the proposal
  *
- * `core/agentRuntime/testSuggest` wordt NIET nagebootst: de hele belofte van
- * deze route is dat een model geen verbod kan voorstellen en dat onleesbare
- * uitvoer geen half voorstel wordt, en een nagebootste module zou precies die
- * twee kunnen uitzetten.
+ * `core/agentRuntime/testSuggest` is NOT imitated: the whole promise of
+ * this route is that a model cannot propose a prohibition and that unreadable
+ * output does not become a half proposal, and an imitated module could switch
+ * off precisely those two.
  *
- * Vier eigenschappen, en de laatste drie zijn degene die een geruststellende
- * implementatie fout doet:
+ * Four properties, and the last three are the ones that a reassuring implementation gets wrong:
  *
- *   • beide routes vragen het BEWERK-recht, en antwoorden 404 vóór 403;
- *   • een voorstel SCHRIJFT NIETS. Geen rij, en dus ook geen antwoordtekst in
- *     een onversleutelde kolom — de bouwer bewerkt het en zijn eigen POST
- *     /tests maakt de test;
- *   • "geen model ingericht" en "ik kon je model niet lezen" weigeren allebei,
- *     met een EIGEN code, want het eerste kun je oplossen en het tweede moet
- *     je opnieuw proberen;
- *   • een run-historie die niet gelezen kon worden is `runsUnknown`, nooit een
- *     lege lijst — "nog nooit getest" is een andere zin.
+ *   • both routes ask for the EDIT right, and answer 404 before 403;
+ *   • a proposal WRITES NOTHING. No row, and therefore also no answer text in an
+ *     unencrypted column — the builder edits it and his own POST
+ *     /tests creates the test;
+ *   • "no model set up" and "I could not read your model" both refuse, with an
+ *     OWN code, because the first you can resolve and the second you must retry;
+ *   • a run history that could not be read is `runsUnknown`, never an empty list —
+ *     "never tested yet" is a different sentence.
  *
  * Run: cd server && node --test routes/agents/tests.suggest.test.js
  */

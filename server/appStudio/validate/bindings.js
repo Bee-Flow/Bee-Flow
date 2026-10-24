@@ -168,11 +168,10 @@ function validateBinding(key, value, path, ctx) {
     if (value.kind === 'record' || value.kind === 'records' || value.kind === 'aggregate') {
         const label = `${value.kind} binding`;
         checkTableRef(value.tableId, `${path}.tableId`, ctx, label);
-        // …en dan de tweede vraag, voor de tweede tabelsoort: als deze tabel
-        // haar rijen uit een Studio-datatabel haalt, bestaat die datatabel dan
-        // nog? Dit is het scherm dat leeg blijft als het antwoord nee is, dus
-        // hier moet het bij naam gezegd worden. Een tabel met eigen opslag gaat
-        // er ongemoeid doorheen.
+        // …and then the second question, for the second kind of table: if this table fetches its rows
+        // from a Studio datatable, does that datatable still exist? This is the screen that stays empty
+        // if the answer is no, so it has to be said by name here. A table with its own storage passes
+        // through undisturbed.
         checkTableSource(value.tableId, `${path}.tableId`, ctx, label);
         if (value.filter !== undefined && value.filter !== null) validateBindingFilter(value.filter, `${path}.filter`, ctx, value.tableId, label);
         // An aggregate may sort by the columns it produces, which is what the

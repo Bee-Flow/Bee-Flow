@@ -237,15 +237,13 @@ test('GET /org lists all org + group templates and the org groups (admin only)',
     assert.strictEqual(forbidden.statusCode, 403);
 });
 
-// ── DE VERSIE IS VAN DE SERVER, NIET VAN DE CLIENT (M4 stap 3) ───────
+// ── THE VERSION COMES FROM THE SERVER, NOT FROM THE CLIENT (M4 step 3) ──────
 //
-// `version` zegt met welke promptrevisie een samenvatting geschreven is. Zou
-// een client hem kunnen zetten, dan is elke stempel op elke notitie een
-// bewering die de client heeft gekozen — en de kolom waardeloos.
+// `version` says with which prompt revision a summary was written. If a
+// client could set it, every stamp on every note would be a claim that the client chose — and the column worthless.
 //
-// Sinds de body strict is, wordt een PATCH die `version` noemt GEWEIGERD in
-// plaats van half uitgevoerd: de hernoeming ernaast gaat dan ook niet door,
-// en de client leest waarom.
+// Since the body is strict, a PATCH that names `version` is REFUSED instead of half carried out: the rename next to it therefore does not go through either,
+// and the client reads why.
 
 test('PATCH /:id kan `version` niet zetten', async () => {
     templates.push({ id: 'own', scope: 'user', userId: 'u1', name: 'Mine', prompt: 'p', version: 3, organizationId: null, groupId: null, isDefault: false });

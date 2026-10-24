@@ -35,9 +35,9 @@ async function _initDB() {
         )
     `);
     // Safe migration for existing tables — via runDdl (stores/lib/_ddl.js):
-    // fouten per statement luid verzameld i.p.v. stil ingeslikt. NB
-    // (runbookregel in _ddl.js): azure_service_usage_log is een volumetabel
-    // zonder retentie — nieuwe indexen alleen handmatig via CONCURRENTLY.
+    // errors per statement are collected loudly instead of silently swallowed. NB
+    // (runbook rule in _ddl.js): azure_service_usage_log is a volume table
+    // without retention — new indexes only manually via CONCURRENTLY.
     await runDdl('azureServiceUsageStore', [
         `ALTER TABLE azure_service_usage_log ADD COLUMN IF NOT EXISTS tokens INTEGER DEFAULT 0`,
         `CREATE INDEX IF NOT EXISTS idx_azsvc_timestamp ON azure_service_usage_log(timestamp DESC)`,

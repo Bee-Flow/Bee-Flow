@@ -97,13 +97,12 @@ const KINDS = Object.freeze(['kb', 'automation', 'notebook']);
 const MEETING_SOURCE_CONFIG_KEY = 'meetingId';
 
 /**
- * Waar een met de hand gefileerde transcriptregel zijn herkomst bewaart (M4).
+ * Where a manually filed transcript line keeps its provenance (M4).
  *
- * Eén expressie, twee lezers: de scan hieronder telt de regels, en
- * `filedTranscriptSources` haalt ze weg als de eigenaar van de vergadering
- * opruimt. Een tweede, met de hand overgetypte JSON-pad is precies hoe die
- * twee gaan verschillen — en dan telt het ene scherm een regel die het andere
- * niet kan verwijderen.
+ * One expression, two readers: the scan below counts the lines, and
+ * `filedTranscriptSources` removes them if the owner of the meeting cleans up. A second, hand-written
+ * JSON path is precisely how those two would diverge, and then one screen would count a line that the
+ * other cannot delete.
  */
 const FILED_LINE_ORIGIN_SQL = `s.config->'metadata'->>'transcriptionId'`;
 
@@ -249,22 +248,18 @@ async function scanKb(meeting, db) {
 }
 
 /**
- * De gefileerde transcriptregels van één vergadering, adresseerbaar.
+ * The filed transcript lines of one meeting, addressable.
  *
- * `scanKb` klapt ze samen tot één rij per kennisbank met een aantal — precies
- * wat de drie schermen nodig hebben en precies wat je NIET kunt weghalen. Dit
- * is dezelfde verzameling rijen, één per bron, met wat een verwijdering nodig
- * heeft: welke bron, in welke kennisbank, van welke tenant.
+ * `scanKb` collapses them into one row per knowledge base with a count: exactly what the three screens
+ * need and exactly what you can NOT remove. This is the same collection of rows, one per source, with
+ * what a deletion needs: which source, in which knowledge base, of which tenant.
  *
- * BEWUST ONGESCOPET, en dat is hier het punt: het gaat om regels die beweren
- * uit DEZE vergadering te komen, ongeacht in wiens kennisbank ze staan. De
- * bevoegdheid zit in de route erboven (alleen de eigenaar van de vergadering),
- * niet in dit predicaat — dat zou juist de rij verbergen die het slachtoffer
- * moet kunnen opruimen.
+ * DELIBERATELY UNSCOPED, and that is the point here: it concerns lines that claim to come from THIS meeting,
+ * regardless of whose knowledge base they sit in. The authority sits in the route above it (only the owner of
+ * the meeting), not in this predicate; that would precisely hide the row that the victim must be able to clean up.
  *
- * Een query die omvalt gooit; hij mag NOOIT als lege lijst terugkomen, want
- * dan zou "ik kon niet kijken" gelezen worden als "er stond niets" en zou de
- * opruimactie schoon melden terwijl de bewering blijft staan.
+ * A query that fails throws; it must NEVER come back as an empty list, because then "I could not look" would
+ * be read as "nothing was there" and the cleanup action would report clean while the claim remains.
  */
 async function filedTranscriptSources(meetingId, db = pool) {
     const id = meetingId != null ? String(meetingId) : '';

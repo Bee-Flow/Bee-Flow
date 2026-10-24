@@ -1,45 +1,44 @@
 /**
- * De amberen "Scan incomplete"-pil onder het gebruikersbericht: een geüpload
- * bestand was te groot of te traag om helemaal te controleren, en onder het
- * fail_open-beleid van de org ging het ongecontroleerde deel er ongeredigeerd
- * doorheen. Deze pil maakt die doorlaat ZICHTBAAR — nooit stil.
+ * The amber "Scan incomplete" pill under the user message: an uploaded file was
+ * too large or too slow to check completely, and under the org's fail_open policy
+ * the unchecked part went through unredacted. This pill makes that pass-through
+ * VISIBLE, never silently.
  *
- * ── C7: de blauwe "N items redacted"-pil staat hier niet meer ───────────────
- * Die pil was de TELLERVORM van de privacyclaim: een bewering over een aantal,
- * met de plaatsvervanger en de zin "the real values stay here" pas één klik
- * diep in de popover erachter. Wat er onder een bericht hoort te staan is de
- * regel zelf, mét de plaatsvervanger die er daadwerkelijk voor in de plaats
- * ging — en zonder geruststelling waar die plaatsvervanger onbekend is. Die
- * regel is `MessageItem/PrivacyLine.jsx` (meting in `privacyLine.js`), en het
- * enige call-site van deze component geeft sindsdien alleen nog `warnings`
- * mee. De pil hier weghouden is geen opruimwerk maar de bevinding: twee
- * componenten die dezelfde claim maken, met verschillende bewijslast, lopen
- * uit elkaar.
+ * ── C7: the blue "N items redacted" pill is not here any more ───────────────
+ * That pill was the COUNTER FORM of the privacy claim: a claim about a number,
+ * with the stand-in and the sentence "the real values stay here" only one click
+ * deep in the popover behind it. What belongs under a message is the line itself,
+ * with the stand-in that actually went in its place, and without reassurance where
+ * that stand-in is unknown. That line is `MessageItem/PrivacyLine.jsx` (the
+ * measurement is in `privacyLine.js`), and the only call site of this component
+ * now passes nothing but `warnings`. Keeping the pill away here is not tidying up,
+ * it is the finding itself: two components making the same claim with different
+ * evidence drift apart.
  *
- * ── Kleur ──────────────────────────────────────────────────────────────────
- * Geen enkele rgba() meer in dit bestand. De chip volgt het recept dat
- * index.css documenteert: 14% tint van het ruwe statustoken als vlak, het
- * -ink-token voor de woorden, 40% van het ruwe token voor de rand. De
- * hardgecodeerde amber (`rgb(180,83,9)`) was de lichte waarde: op de donkere
- * thema's zakte hij naar ~2,4:1 op zijn eigen chip.
+ * ── Color ──────────────────────────────────────────────────────────────────
+ * No rgba() any more in this file. The chip follows the recipe that index.css
+ * documents: a 14% tint of the raw status token as the surface, the -ink token for
+ * the words, and 40% of the raw token for the border. The hard-coded amber
+ * (`rgb(180,83,9)`) was the light value. On the dark themes it dropped to about
+ * 2.4:1 on its own chip.
  *
  * ── Layering (BFSF-303) ────────────────────────────────────────────────────
- * Het detailpaneel gaat door AnchoredMenu (portal naar <body>) in plaats van
- * een `absolute … z-50`-span. Twee losse fouten maakten samen de gemelde
- * "kapotte overlay":
+ * The detail panel goes through AnchoredMenu (a portal to <body>) instead of an
+ * `absolute … z-50` span. Two separate faults together made the reported "broken
+ * overlay":
  *
- *   1. Layering. Het paneel stond in de berichtenrij, en in de glasthema's
- *      draagt elke `[data-surface]` een backdrop-filter — waardoor elk bericht
- *      zijn eigen stacking context is. `z-50` is dan alleen lokaal, dus het
- *      paneel schilderde ONDER de volgende bubbels. Een portal is de enige
- *      uitweg; AnchoredMenu lost precies dit al op voor de node-config-menu's
- *      (BFSF-328) en klemt gratis binnen de viewport.
- *   2. Doorschijnendheid. Het paneel schilderde `var(--bg-card)`, in
- *      `glass`/`glass-dark` bewust een doorschijnende rgba(…, 0.55), dus de
- *      chattekst erachter kwam er dwars doorheen. Het paneel draagt nu
- *      `data-tokenised-popover`, en index.css geeft dat in de glasthema's een
- *      dicht tier-3-vlak met zware blur — dezelfde behandeling waarmee het
- *      profielmenu leesbaar blijft boven een wallpaper.
+ *   1. Layering. The panel stood in the message row. In the glass themes every
+ *      `[data-surface]` carries a backdrop-filter, so every message is its own
+ *      stacking context. `z-50` was then only local, and the panel painted UNDER
+ *      the next bubbles. A portal is the only way out. AnchoredMenu already solves
+ *      exactly this for the node-config menus (BFSF-328) and clamps to the viewport
+ *      for free.
+ *   2. Translucency. The panel painted `var(--bg-card)`, which in `glass` and
+ *      `glass-dark` is deliberately a translucent rgba(…, 0.55), so the chat text
+ *      behind it came straight through. The panel now carries
+ *      `data-tokenised-popover`, and index.css gives that, in the glass themes, an
+ *      opaque tier-3 surface with heavy blur. This is the same treatment that keeps
+ *      the profile menu legible over a wallpaper.
  */
 
 import { X, AlertTriangle } from 'lucide-react';
@@ -65,10 +64,10 @@ function warningLine(w: { filename?: string; reason?: string; scannedPages?: num
 }
 
 /**
- * De reserve-`t`. Hij MOET interpoleren: de paginazin draagt een `{scanned}`
- * en een `{total}`, en een reserve die alleen zijn tweede argument teruggeeft
- * zet die placeholders letterlijk op het scherm. Een aanroeper die geen `t`
- * doorgeeft is daarmee niet ongeluidig kapot, alleen onvertaald.
+ * The fallback `t`. It MUST interpolate. The page sentence carries a `{scanned}`
+ * and a `{total}`, and a fallback that returns only its second argument puts those
+ * placeholders literally on the screen. A caller that does not pass a `t` is thereby
+ * not silently broken, only untranslated.
  */
 const FALLBACK_T = (_key: string, en: string, params?: string | TranslateParams) => interpolate(en, params);
 

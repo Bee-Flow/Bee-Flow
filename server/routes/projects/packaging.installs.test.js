@@ -1,28 +1,21 @@
 /**
- * O4 deel C — GET /:id/package/installs.
+ * O4 part C — GET /:id/package/installs.
  *
- * Blueprints zijn strikt org-gescoopt. Deze route is de ENIGE die daaroverheen
- * kijkt — zij telt installaties in de hele instantie — en dus de enige plek
- * waar dat mis kan gaan. Wat hier wordt vastgepind:
+ * Blueprints are strictly org-scoped. This route is the ONLY one that looks over that boundary — it counts installs in the whole instance — and therefore the only place
+ * where that can go wrong. What is pinned here:
  *
- *   1. ALLEEN DE BRON. De eigenaarsrol op het BRONPROJECT is de gate; wie hier
- *      binnenkomt is per definitie iemand uit de organisatie die de Blueprint
- *      gemaakt heeft. En WELKE Blueprints meetellen komt uit `listBlueprintsFor`
- *      — de ene org-scoping-query van de store — zodat er geen tweede lezing is
- *      die het met de galerijlijst oneens kan raken.
- *   2. ER KOMEN ALLEEN GETALLEN UIT. Het antwoord heeft precies twee sleutels,
- *      opgebouwd uit een allow-list. Geen projectnaam, geen eigenaar, geen
- *      organisatie, geen tijdstip — ook niet als de stores er meer bij leveren.
- *   3. HET TELT OVER ORGANISATIES HEEN, met de organisatie van het BRONPROJECT
- *      als "hier". Niet die van de sessie: de vraag gaat over waar de Oplossing
- *      thuishoort, niet over wie er toevallig kijkt.
- *   4. NUL IS EEN ANTWOORD, ONLEESBAAR IS ER GEEN. `0` en `null` zijn
- *      verschillende antwoorden en blijven dat — het scherm besluit er iets
- *      anders op.
+ *   1. ONLY THE SOURCE. The owner role on the SOURCE PROJECT is the gate; whoever comes in here is by definition
+ *      someone from the organisation that made the Blueprint. And WHICH Blueprints count comes from `listBlueprintsFor` —
+ *      the one org-scoping query of the store — so that there is no second reading that could disagree with the gallery list.
+ *   2. ONLY NUMBERS COME OUT. The answer has exactly two keys, built from an allow-list. No project name, no owner, no
+ *      organisation, no timestamp — also not if the stores deliver more.
+ *   3. IT COUNTS ACROSS ORGANISATIONS, with the organisation of the SOURCE PROJECT as "here". Not that of the session: the question is about where the Solution
+ *      belongs, not about who happens to be looking.
+ *   4. ZERO IS AN ANSWER, UNREADABLE IS NOT. `0` and `null` are different answers and remain so — the screen decides something
+ *      different on each.
  *
- * Hermetisch: de stores en de gates zijn via require.cache vervangen, dus er
- * komt geen database aan te pas. De verzoeken lopen over echte HTTP tegen
- * express app.listen(0), zoals routes/studio/attention.test.js.
+ * Hermetic: the stores and the gates are replaced via require.cache, so no database is involved. The requests run over real HTTP against
+ * express app.listen(0), as routes/studio/attention.test.js does.
  *
  * Run: cd server && node --test routes/projects/packaging.installs.test.js
  */
@@ -44,8 +37,8 @@ stub('../../license/middleware', {
     featureAllowedForRequest: async () => ({ allowed: true }),
 });
 
-// De rolgate, als schakelaar. DAT hij op deze route staat pint
-// routes/projects.routetable.test.js; hier gaat het om wat er ná de gate gebeurt.
+// The role gate, as a switch. THAT it sits on this route is pinned by
+// routes/projects.routetable.test.js; here it is about what happens AFTER the gate.
 const gate = { role: 'owner' };
 stub('../../auth/projectAccess', {
     requireProjectRole: (minRole) => function requireProjectRoleMw(req, res, next) {
@@ -117,7 +110,7 @@ async function installs(projectId, user) {
         }).on('error', reject);
     });
     let json = null;
-    try { json = JSON.parse(res.body); } catch { /* niet-JSON is zelf het antwoord */ }
+    try { json = JSON.parse(res.body); } catch { /* non-JSON is itself the answer */ }
     return { status: res.status, json };
 }
 
@@ -154,7 +147,7 @@ test('wie het bronproject niet bezit, telt niet', async () => {
     assert.strictEqual(denied.status, 403);
 
     reset();
-    gate.role = null;                    // geen rol op dit project → 404
+    gate.role = null;                    // no role on this project → 404
     const stranger = await installs('p1');
     assert.strictEqual(stranger.status, 404);
     assert.ok(!call('countInstallsFor'), 'een geweigerde lezer laat de telling niet draaien');
@@ -168,17 +161,16 @@ test('zonder sessie is er niets te tellen', async () => {
 });
 
 test('welke Blueprints meetellen komt uit de org-gescoopte galerijlijst', async () => {
-    // Niet uit een eigen tweede lezing: de lijst en de telling moeten het over
-    // "welke Blueprints zijn van deze lezer" eens zijn, en dat is precies de
-    // wond die de kop van canRead beschrijft.
+    // Not from a separate second reading of its own: the list and the count must agree on
+    // "which Blueprints belong to this reader", and that is precisely the
+    // wound that the header of canRead describes.
     reset();
     await installs('p1');
     const listed = call('listBlueprintsFor');
     assert.deepStrictEqual(listed.args, { userId: 'alice', organizationId: 'org_source' });
 
-    // Alleen de Blueprints van DIT project, van alle makers — twee collega's
-    // die hetzelfde project publiceren hebben elk hun eigen serie, en beide
-    // installaties tellen mee.
+    // Only the Blueprints of THIS project, from all makers — two colleagues who
+    // publish the same project each have their own series, and both installs count.
     assert.deepStrictEqual(call('countInstallsFor').ids, ['bp_mine', 'bp_colleague']);
 });
 
@@ -191,10 +183,9 @@ test('een Blueprint die de lezer niet in zijn galerij ziet, telt hij hier ook ni
 });
 
 test('een VERWIJDERDE galerijrij telt nog steeds mee via de eigen geschiedenis', async () => {
-    // Anders leest het scherm "niemand heeft dit geïnstalleerd" zodra de maker
-    // zijn Blueprint weggooit — terwijl de projecten die eruit komen gewoon
-    // blijven bestaan mét hun installed_from_blueprint_id. Dat is het antwoord
-    // waarop iemand besluit een Oplossing weg te gooien.
+    // Otherwise the screen reads "nobody has installed this" as soon as the maker
+    // throws away his Blueprint — while the projects that came out of it simply keep existing, with their installed_from_blueprint_id. That is the answer on which someone
+    // decides to throw away a Solution.
     reset();
     fx.blueprints = [];
     fx.releases = [
@@ -233,9 +224,8 @@ test('een onleesbare geschiedenis is geen nul installaties', async () => {
 
 test('het antwoord heeft precies twee sleutels, en geen projectdetail', async () => {
     reset();
-    // De stores leveren hier bewust RIJKERE objecten dan de route nodig heeft:
-    // een payload uit een allow-list trekt zich daar niets van aan, een payload
-    // waar sleutels van zijn afgehaald wel.
+    // The stores deliberately return RICHER objects here than the route needs:
+    // a payload from an allow-list takes no notice of that, a payload from which keys were removed does.
     fx.project = {
         id: 'p1', name: 'Onboarding', organizationId: 'org_source',
         ownerId: 'alice', icon: '📁', installedFromOrgId: 'org_geheim',
@@ -267,7 +257,7 @@ test('een project zonder organisatie telt met "geen organisatie" als hier', asyn
     assert.deepStrictEqual(call('countInstallsFor').opts, { organizationId: null });
 });
 
-// ── 4. Nul is een antwoord, onleesbaar is er geen ───────────────────────────
+// ── 4. Zero is an answer, unreadable is not ───────────────────────────────
 
 test('nul en onleesbaar zijn verschillende antwoorden', async () => {
     reset();
@@ -276,7 +266,7 @@ test('nul en onleesbaar zijn verschillende antwoorden', async () => {
     assert.deepStrictEqual(zero.json, { installsHere: 0, installsElsewhere: 0 });
 
     reset();
-    fx.counted = null;                   // de store kon het niet nakijken
+    fx.counted = null;                   // the store could not check it
     const unknown = await installs('p1');
     assert.strictEqual(unknown.status, 200);
     assert.deepStrictEqual(unknown.json, { installsHere: null, installsElsewhere: null },

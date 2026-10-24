@@ -12,27 +12,22 @@ import { queryWrapper } from '../../test/queryWrapper';
 const render = (ui, options) => rtlRender(ui, { wrapper: queryWrapper(), ...options });
 
 /**
- * C11 — de voetregel onder de composer.
+ * C11: the footer line under the composer.
  *
- * Het artboard zet er twee zinnen: "Bee Flow draait op je eigen server.
- * Gesprekken verlaten je organisatie niet." Op élke installatie is minstens
- * één daarvan onwaar — op beeflow.nl de eerste, op self-host de tweede zodra
- * de org een externe provider gebruikt. De code zei tot nu toe iets anders
- * (hardgecodeerd "AI can make mistakes…"), dus dit is geen vertaalklus maar
- * een claimklus.
+ * The artboard sets two sentences there: "Bee Flow runs on your own server. Conversations never
+ * leave your organisation." On EVERY installation at least one of them is untrue: on beeflow.nl the
+ * first, on self-host the second as soon as the org uses an external provider. The code said something
+ * else until now (hard-coded "AI can make mistakes…"), so this is not a translation job but a claim job.
  *
- * Wat hier vastligt:
+ * What is fixed here:
  *
- *   1. De serverzin verschijnt ALLEEN op self-host, en alleen voor iemand die
- *      is ingelogd. Dat is de "nee-configuratie"-test die het programma voor
- *      elke privacy- of statusclaim eist.
- *   2. De onbewijsbare zin verschijnt NOOIT — niet achter een vlag, niet in een
- *      andere formulering. Er is niets wat dit scherm kan opvragen dat zegt of
- *      het antwoordende model lokaal draait.
- *   3. Het eigen `warningText` van een call-site wint onverkort. Acht plekken
- *      delen deze box; EmbedChat draait op de website van een klant en zet daar
- *      zijn eigen tekst neer. Een widget hoort geen uitspraken te doen over
- *      wiens server dit is.
+ *   1. The server sentence appears ONLY on self-host, and only for someone who is logged in. That is
+ *      the "no-configuration" test that the programme demands for every privacy or status claim.
+ *   2. The unprovable sentence NEVER appears: not behind a flag, not in another wording. Nothing this
+ *      screen can query says whether the answering model runs locally.
+ *   3. The own `warningText` of a call site wins unabridged. Eight places share this box, and EmbedChat
+ *      runs on a customer's website and places its own text there. A widget should not make statements
+ *      about whose server this is.
  */
 
 vi.mock('../skills/ActiveSkillChips', () => ({ default: () => null }));
@@ -97,10 +92,10 @@ describe('footerNotice — wat de voetregel mag beweren', () => {
     });
 
     it('zegt precies één ding over de server, en niets erbij', () => {
-        // Een verbodslijst vangt alleen de formuleringen die iemand heeft
-        // bedacht; dezelfde belofte in andere woorden glipt erdoor. Daarom
-        // hier de positieve vorm: de serverzin IS deze zin, letterlijk. Wie er
-        // iets aan vastplakt — in welke bewoording dan ook — komt hier langs.
+        // A prohibition list only catches the formulations someone has thought of; the same promise in other
+        // words slips through. That is why the positive form is used here: the server sentence IS this
+        // sentence, literally. Anyone who attaches something to it, in whatever wording, will not get past
+        // this test.
         expect(FOOTER_LINES.ownServer.en).toBe('Bee Flow runs on your own server.');
         expect(FOOTER_LINES.mistakes.en)
             .toBe('AI can make mistakes. Please verify important information.');
@@ -149,11 +144,9 @@ describe('InputArea — de voetregel op het scherm', () => {
     });
 
     it('spreekt een anonieme bezoeker ook door de composer heen niet aan over "je eigen server"', async () => {
-        // De zuivere functie kent deze regel al; deze test pint de BEDRADING.
-        // Zonder hem kan `signedIn: !!user` naar `signedIn: true` verschuiven
-        // en krijgt een bezoeker op de website van een klant "Bee Flow runs on
-        // your own server" te lezen — een uitspraak over de server van iemand
-        // anders — zonder dat er iets rood wordt.
+        // The pure function already knows this rule; this test pins the WIRING. Without it, `signedIn: !!user`
+        // can shift to `signedIn: true`, and a visitor on a customer's website reads "Bee Flow runs on your
+        // own server" (a statement about somebody else's server) without anything turning red.
         deployment = 'self-hosted';
         render(<Harness user={null} />);
         const footer = await screen.findByTestId('composer-footer');
@@ -162,10 +155,9 @@ describe('InputArea — de voetregel op het scherm', () => {
     });
 
     it('staat in dezelfde leeskolom als de berichten erboven (C9)', async () => {
-        // Eén kolom, in twee bestanden geschreven: 760px hier en COLUMN_MAX_W
-        // in MessageItem/index.tsx. Liepen ze uit elkaar (900 vs 768, later
-        // 760 vs 768), dan staat het gesprek net niet boven zijn eigen
-        // invoerveld — het soort verschil dat niemand benoemt en iedereen ziet.
+        // One column, written in two files: 760px here and COLUMN_MAX_W in MessageItem/index.tsx. If they drift
+        // apart (900 vs 768, later 760 vs 768), the conversation sits just not above its own input field.
+        // That is the kind of difference that nobody names and everyone sees.
         render(<Harness />);
         const column = await screen.findByTestId('composer-column');
         expect(column.className).toContain('max-w-[760px]');
@@ -173,8 +165,8 @@ describe('InputArea — de voetregel op het scherm', () => {
     });
 
     it('laat het eigen warningText van een call-site onverkort winnen', async () => {
-        // EmbedChat geeft ?warning=… door. Die tekst hoort de hele mededeling
-        // te zijn: een widget op andermans website claimt niets over servers.
+        // EmbedChat passes ?warning=… along. That text should be the whole notice: a widget on someone else's
+        // website claims nothing about servers.
         deployment = 'self-hosted';
         render(<Harness warningText="Antwoorden van de gemeente zijn niet bindend." />);
         const footer = await screen.findByTestId('composer-footer');

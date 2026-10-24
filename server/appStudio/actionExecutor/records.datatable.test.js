@@ -1,25 +1,23 @@
 /**
- * create_record / update_record / delete_record op een modeltabel die haar rijen
- * uit een STUDIO-DATATABEL haalt (`model.tables[].source`).
+ * create_record / update_record / delete_record on a model table that takes its rows from a
+ * STUDIO DATATABLE (`model.tables[].source`).
  *
- * De rechtenbeslissing zelf staat in appStudio/datatableSource.js en wordt daar
- * getest; hier gaat het om het SCHRIJFpad eromheen — dezelfde module, andere
- * ingang. Wat gepind wordt:
+ * The permission decision itself lives in appStudio/datatableSource.js and is tested there.
+ * Here it is about the WRITE path around it: same module, other entry point. What is pinned:
  *
- *   • elk van de drie acties, op een read- én op een readwrite-koppeling;
- *   • `mode:'read'` weigert HARDOP: niets geschreven én de stap zegt het. Een
- *     stille no-op zou ok:true teruggeven en de gebruiker een rij laten zoeken
- *     die nooit is aangemaakt;
- *   • een kijker die minder mag dan de eigenaar — langs alle vier de MINs
- *     (eigen graad, graad van de eigenaar, app-rol, mode);
- *   • een publieke app schrijft nooit met de graad van de auteur;
- *   • de rijen gaan naar `datatableDbStore` op de scope-sleutel, NOOIT naar
- *     `studioAppDbStore`, met de Postgres-dialect en de quota van de TENANT.
+ *   • each of the three actions, on a read link and on a readwrite link;
+ *   • `mode:'read'` refuses LOUDLY: nothing is written AND the step says so. A silent no-op
+ *     would return ok:true and let the user search for a row that was never created;
+ *   • a viewer who may do less than the owner, through all four MINs (own grade, owner's
+ *     grade, app role, mode);
+ *   • a public app never writes with the author's grade;
+ *   • the rows go to `datatableDbStore` on the scope key, NEVER to `studioAppDbStore`, with
+ *     the Postgres dialect and the quota of the TENANT.
  *
- * De graadketen draait onvervangen mee: alleen de randen die een database
- * aanraken zijn gestubd, en de graden komen uit echte grants.
+ * The grade chain runs unreplaced: only the edges that touch a database are stubbed, and the
+ * grades come from real grants.
  *
- * Draaien: cd server && node --test --test-reporter=tap appStudio/actionExecutor/records.datatable.test.js
+ * Run: cd server && node --test --test-reporter=tap appStudio/actionExecutor/records.datatable.test.js
  */
 
 const test = require('node:test');
@@ -105,9 +103,9 @@ stub('../../stores/datatableDbStore', {
     },
 });
 
-// `null` = iedereen leesbaar; een user-id = ALLEEN die ene niet. Dat
-// onderscheid is de hele test hieronder: viel de lezing voor iedereen om, dan
-// mist ook de app-eigenaar zijn org en komt er een heel andere weigering uit.
+// `null` = readable by everyone; a user id = ONLY that one is not. That
+// distinction is the whole point of the test below: if the read failed for everyone,
+// the app owner would also lose their org and a completely different refusal would come out.
 let userReadFails = null;
 stub('../../stores/userStore', {
     getUser: async (id) => {
@@ -123,7 +121,7 @@ stub('../../auth/audience', {
 });
 stub('../../stores/projectStore', {});
 
-// De app-eigen opslag, die op dit pad juist NIET geraakt mag worden.
+// The app's own storage, which must NOT be touched on this path.
 const appExec = [];
 stub('../../stores/studioAppDbStore', {
     exec: async (ownerId, appId, sql, params) => { appExec.push({ ownerId, appId, sql, params }); return { changes: 1 }; },
@@ -199,8 +197,8 @@ function reset({ table = datatable(), granted = [] } = {}) {
 const run = (step, ctx, mode = 'readwrite', access) =>
     actionExecutor.executeDataStep(app, model(mode, access), step, ctx);
 
-// De eigenaar is owner van de datatabel (regel 2 van gradeForPrincipal); het lid
-// heeft een expliciete editor-grant. Dat is de gewone, werkende opstelling.
+// The owner is owner of the datatable (line 2 of gradeForPrincipal); the member
+// has an explicit editor grant. That is the ordinary, working setup.
 const EDITOR_GRANT = [{ grantee_type: 'user', grantee_id: MEMBER, grade: 'editor' }];
 const VIEWER_GRANT = [{ grantee_type: 'user', grantee_id: MEMBER, grade: 'viewer' }];
 
@@ -239,7 +237,7 @@ test('update_record schrijft naar de datatabel en meldt het aantal rijen', async
     assert.strictEqual(appExec.length, 0);
     assert.match(dtExec[0].sql, /^UPDATE "dt_klanten" SET/);
     assert.match(dtExec[0].sql, /WHERE "id" = \? AND \(1=1\)/);
-    // Een update verandert het rijaantal niet, maar wel de data-versie.
+    // An update does not change the row count, but it does change the data version.
     assert.deepStrictEqual(bumps, [{ id: DT_ID, scope: { kind: 'org', id: ORG }, delta: 0 }]);
 });
 
@@ -254,9 +252,9 @@ test('delete_record verwijdert uit de datatabel en telt de rij af', async () => 
 });
 
 test('create_record stempelt de KIJKER als maker, niet de app-eigenaar', async () => {
-    // created_by is het auditveld én de kolom waarop `row_scope:'own'` filtert.
-    // Stond de eigenaar erin, dan zag een lid zijn eigen zojuist gemaakte rij
-    // meteen niet meer terug.
+    // created_by is the audit field AND the column that `row_scope:'own'` filters on.
+    // If the owner were stored in it, a member would immediately no longer see their own
+    // just-created row.
     reset({ granted: EDITOR_GRANT });
     const res = await run(createStep(), memberCtx());
     assert.strictEqual(res.ok, true, res.error);
@@ -292,7 +290,7 @@ test('een compare-and-set die niets raakt heet een conflict, geen 404', async ()
     assert.strictEqual(res.code, 'record_conflict');
 });
 
-// ═══ read: de drie acties zijn een WEIGERING, geen stille no-op ═══════════
+// ═══ read: the three actions are a REFUSAL, not a silent no-op ═══════════
 
 test('mode:read weigert elk van de drie schrijfacties, hardop', async () => {
     for (const step of ALL_STEPS()) {
@@ -300,9 +298,9 @@ test('mode:read weigert elk van de drie schrijfacties, hardop', async () => {
         const res = await run(step, ownerCtx(), 'read');
         assert.strictEqual(res.ok, false, `${step.kind} had geweigerd moeten worden`);
         assert.match(res.error, /reading only/);
-        // De kern: er is niets geschreven, EN de stap zegt dat ook. Een stille
-        // no-op zou ok:true teruggeven en de gebruiker een rij laten zoeken die
-        // nooit is aangemaakt.
+        // The core: nothing has been written, AND the step says so too. A silent
+        // no-op would return ok:true and let the user search for a row that was
+        // never created.
         assert.strictEqual(dtExec.length, 0);
         assert.strictEqual(appExec.length, 0);
         assert.deepStrictEqual(bumps, []);
@@ -310,8 +308,8 @@ test('mode:read weigert elk van de drie schrijfacties, hardop', async () => {
 });
 
 test('mode:read weigert vóór de lookup — het antwoord hangt niet aan de tabel', async () => {
-    // De tabel is weg; de weigering blijft "alleen-lezen gekoppeld" en wordt
-    // geen storing. Een weigering die pas ná het zoeken valt, kan dat wel.
+    // The table is gone; the refusal stays "linked read-only" and does not become
+    // a fault. A refusal that only falls after the search can, though.
     reset({ table: null });
     const res = await run(createStep(), ownerCtx(), 'read');
     assert.strictEqual(res.ok, false);
@@ -329,12 +327,11 @@ test('mode:read weigert ook een lid met een editor-grant', async () => {
     }
 });
 
-// ═══ een kijker die minder mag dan de eigenaar ════════════════════════════
+// ═══ a viewer who may do less than the owner ════════════════════════════
 
 test('een kijker met viewer-graad schrijft niet, ook al is de eigenaar owner', async () => {
-    // MIN(viewer, owner) = viewer, en viewer schrijft niet. Dit is het geval
-    // waarin de app anders het uitgiftepunt van de rechten van zijn maker zou
-    // zijn.
+    // MIN(viewer, owner) = viewer, and the viewer does not write. This is the case
+    // in which the app would otherwise be the issuing point for its maker's rights.
     reset({ granted: VIEWER_GRANT });
     for (const step of ALL_STEPS()) {
         dtExec.length = 0;
@@ -346,7 +343,7 @@ test('een kijker met viewer-graad schrijft niet, ook al is de eigenaar owner', a
 });
 
 test('een kijker zonder enige graad op de datatabel krijgt een weigering, geen leeg antwoord', async () => {
-    reset();  // geen grants, tabel niet gepubliceerd
+    reset();  // no grants, table not published
     const res = await run(createStep(), memberCtx());
     assert.strictEqual(res.ok, false);
     assert.match(res.error, /do not have access/i);
@@ -354,8 +351,8 @@ test('een kijker zonder enige graad op de datatabel krijgt een weigering, geen l
 });
 
 test('een eigenaar die zijn eigen graad kwijt is, deelt niets meer uit', async () => {
-    // De datatabel is van iemand anders geworden en de eigenaar heeft geen
-    // grant meer; het lid wél. De MIN met de eigenaar houdt de deur dicht.
+    // The datatable has become someone else's and the owner no longer has a grant;
+    // the member still does. The MIN with the owner keeps the door shut.
     reset({
         table: datatable({ ownerUserId: 'u-stranger' }),
         granted: EDITOR_GRANT,
@@ -367,8 +364,8 @@ test('een eigenaar die zijn eigen graad kwijt is, deelt niets meer uit', async (
 });
 
 test('het app-`access`-blok versmalt óók — een leesrol schrijft niet', async () => {
-    // De datatabel zou het toestaan (editor-grant), maar de auteur gaf deze
-    // app-rol geen schrijfrecht: appRoleGrade capt dan op viewer.
+    // The datatable would allow it (editor grant), but the author gave this app role
+    // no write right: appRoleGrade then caps at viewer.
     const readOnlyRole = {
         default: 'none',
         roles: { reader: { read: 'all', create: false, update: 'none', delete: 'none' } },
@@ -384,8 +381,8 @@ test('het app-`access`-blok versmalt óók — een leesrol schrijft niet', async
 });
 
 test('het app-`access`-blok wordt PER ACTIE bevraagd, niet als één bovengrens', async () => {
-    // Deze rol mag toevoegen en wijzigen, maar niet verwijderen. appRoleGrade
-    // vouwt dat tot 'editor'; assertCanWrite stelt de vraag alsnog per actie.
+    // This role may add and change, but not delete. appRoleGrade folds that into
+    // 'editor'; assertCanWrite asks the question again per action.
     const noDelete = {
         default: 'none',
         roles: { agent: { read: 'all', create: true, update: 'all', delete: 'none' } },
@@ -451,20 +448,20 @@ test('een onbereikbare store is een storing, geen weigering-in-vermomming', asyn
     const res = await run(createStep(), ownerCtx());
     assert.strictEqual(res.ok, false);
     assert.match(res.error, /Could not reach/i);
-    // De oorzaak blijft binnen: een `safe`-boodschap gaat letterlijk naar de
-    // client, en 'pg down' hoort niet aan die kant van de lijn.
+    // The cause stays inside: a `safe` message goes literally to the client, and
+    // 'pg down' does not belong on that side of the line.
     assert.strictEqual(/pg down/.test(res.error), false);
 });
 
 test('een onleesbare identiteit van de KIJKER is een storing, geen weigering', async () => {
-    // De eigenaar is prima leesbaar, het lid heeft een editor-grant — alleen de
-    // gebruikerslezing van de KIJKER valt om. Dat is het geval waarin "ik kon
-    // niet kijken" er anders uitkomt als "jij mag niet".
+    // The owner can read fine and the member has an editor grant; only the user read of
+    // the VIEWER fails. That is the case in which "I could not look" comes out differently
+    // from "you are not allowed".
     //
-    // De assertie noemt de zin die er MOET staan en sluit de zin uit die er NIET
-    // mag staan. Een `Could not check who|do not have access`-alternatief zou
-    // allebei goedkeuren en dus niets pinnen: precies de 403 die identityError
-    // moet voorkomen, zou de test hebben gehaald.
+    // The assertion names the sentence that MUST be there and excludes the sentence that
+    // must NOT be there. A `Could not check who|do not have access` alternative would approve
+    // both and thus pin nothing: exactly the 403 that identityError must prevent would have
+    // passed the test.
     reset({ granted: EDITOR_GRANT });
     userReadFails = MEMBER;
     const res = await run(createStep(), memberCtx());
@@ -496,9 +493,9 @@ test('een `source` die niet gelezen kan worden schrijft NIET in de eigen opslag 
 });
 
 test('een onbekende mode is geen schrijfrecht', async () => {
-    // canonicalizeDataModel vult een ONTBREKENDE mode met 'read'; een typefout
-    // ('readWrite') blijft staan en modelValidate keurt hem af. Komt hij hier
-    // toch langs, dan is de koppeling kapot — niet stilzwijgend smaller.
+    // canonicalizeDataModel fills a MISSING mode with 'read'; a typo ('readWrite') stays,
+    // and modelValidate rejects it. If it gets through here anyway, the link is broken, not
+    // silently narrower.
     reset();
     const res = await run(createStep(), ownerCtx(), 'readWrite');
     assert.strictEqual(res.ok, false);
@@ -518,17 +515,16 @@ test('een tabel zonder `source` loopt nog gewoon over de app-opslag', async () =
     assert.match(appExec[0].sql, /^INSERT INTO "klanten"/);
 });
 
-// ═══ DE KNOOPPUNTEN ZELF ═════════════════════════════════════════════════
+// ═══ THE NODES THEMSELVES ═════════════════════════════════════════════════
 //
-// Alles hierboven gaat door executeDataStep — de drie stap-handlers. De
-// record-API (POST/PATCH/DELETE), ai_extract writeTo, file_intake, dataset_query,
-// de send_email-logrij, de goedkeuringshaak, connectorSync en templateInstall
-// komen NIET langs die handlers maar rechtstreeks bij writeRecord /
-// writeRecordBatch / eraseRecord. Die drie kenden de tweede tabelsoort niet en
-// schreven onvoorwaardelijk naar de app-eigen opslag: `mode:'read'` was
-// beschrijfbaar, de graad van de kijker werd nooit opgezocht, en de rij landde in
-// een schaduwtabel die het leespad nooit bevraagt — `success:true`, en de rij
-// daarna nergens te zien.
+// Everything above goes through executeDataStep, the three step handlers. The record API
+// (POST/PATCH/DELETE), ai_extract writeTo, file_intake, dataset_query, the send_email log
+// row, the approval hook, connectorSync and templateInstall do NOT come through those
+// handlers; they call writeRecord / writeRecordBatch / eraseRecord directly. Those three
+// did not know the second table kind and wrote unconditionally to the app's own storage:
+// `mode:'read'` was writable, the viewer's grade was never looked up, and the row landed in
+// a shadow table that the read path never queries. `success:true`, and the row afterwards
+// visible nowhere.
 
 const LINKED = (mode = 'readwrite') => model(mode).tables[0];
 
@@ -572,7 +568,7 @@ test('writeRecord weigert een mode:read-koppeling in plaats van in de app te sch
 });
 
 test('writeRecord weigert een kijker zonder graad — geen stille rij in de schaduwtabel', async () => {
-    reset(); // geen grants, tabel niet gepubliceerd
+    reset(); // no grants, table not published
     const err = await refusal(() => actionExecutor.writeRecord(
         app, model(), LINKED(), { naam: 'Acme' },
         { viewer: { id: MEMBER, role: 'staff', organizationId: ORG } },
@@ -609,8 +605,8 @@ test('writeRecordBatch schrijft N rijen in ÉÉN transactie op de datatabel', as
 });
 
 test('writeRecordBatch weigert een mode:read-koppeling, ook met nul rijen', async () => {
-    // De toestemming wordt óók voor een lege batch gevraagd: "je mocht dit niet"
-    // en "er was niets" zijn verschillende antwoorden.
+    // The permission is ALSO asked for an empty batch: "you were not allowed to do this"
+    // and "there was nothing" are different answers.
     reset({ granted: EDITOR_GRANT });
     for (const rows of [[{ naam: 'A' }], []]) {
         const err = await refusal(() => actionExecutor.writeRecordBatch(
