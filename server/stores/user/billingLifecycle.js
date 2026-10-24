@@ -7,7 +7,9 @@ const { initDB } = require('./schema');
 const { getOrgSubscription, setOrgSubscription, setConsumerSubscription, isManualOverrideActive } = require('./subscriptions');
 const { logSubscriptionAudit } = require('./audit');
 const log = require('../../telemetry/log');
-
+const { bestEffort } = require('../../utils/bestEffort');
+// Lazy require: usage/payg loads this store.
+const invalidatePayg = (orgId, userId) => { try { require('../usage/payg').invalidatePaygCache(orgId, userId); } catch (err) { bestEffort('billingLifecycle:invalidatePaygCache', err); } };
 // ── Notification idempotency ─────────────────────────────
 // Returns true when we have NOT yet sent this kind to this target — caller
 // should then send. Atomic via PK conflict so two cron ticks can't race.
@@ -97,12 +99,11 @@ async function recordPaymentFailureForOrg(orgId) {
           WHERE organization_id = $1`,
         [orgId, new Date().toISOString()]
     );
-    try { require('../usage/payg').invalidatePaygCache(orgId, null); } catch (err) { log.debug('circular-load safe', err); }
-    const row = await getOne(
+    invalidatePayg(orgId, null);
+    return (await getOne(
         'SELECT payment_attempt_count, past_due_since FROM organization_subscriptions WHERE organization_id = $1',
         [orgId]
-    );
-    return row || null;
+    )) || null;
 }
 
 async function recordPaymentFailureForConsumer(userId) {
@@ -116,12 +117,11 @@ async function recordPaymentFailureForConsumer(userId) {
           WHERE user_id = $1`,
         [userId, new Date().toISOString()]
     );
-    try { require('../usage/payg').invalidatePaygCache(null, userId); } catch (err) { log.debug('circular-load safe', err); }
-    const row = await getOne(
+    invalidatePayg(null, userId);
+    return (await getOne(
         'SELECT payment_attempt_count, past_due_since FROM consumer_subscriptions WHERE user_id = $1',
         [userId]
-    );
-    return row || null;
+    )) || null;
 }
 
 async function resetPaymentFailureForOrg(orgId) {
@@ -134,7 +134,7 @@ async function resetPaymentFailureForOrg(orgId) {
           WHERE organization_id = $1`,
         [orgId, new Date().toISOString()]
     );
-    try { require('../usage/payg').invalidatePaygCache(orgId, null); } catch (err) { log.debug('circular-load safe', err); }
+    invalidatePayg(orgId, null);
 }
 
 async function resetPaymentFailureForConsumer(userId) {
@@ -147,7 +147,7 @@ async function resetPaymentFailureForConsumer(userId) {
           WHERE user_id = $1`,
         [userId, new Date().toISOString()]
     );
-    try { require('../usage/payg').invalidatePaygCache(null, userId); } catch (err) { log.debug('circular-load safe', err); }
+    invalidatePayg(null, userId);
 }
 
 // Run a sweep that suspends any org/consumer sub whose past_due_since is
@@ -174,7 +174,7 @@ async function suspendPastDueSubscriptions(graceDays = 7) {
                   WHERE organization_id = $1`,
                 [row.organization_id, new Date().toISOString()]
             );
-            try { require('../usage/payg').invalidatePaygCache(row.organization_id, null); } catch (err) { log.debug('circular-load safe', err); }
+            invalidatePayg(row.organization_id, null);
             await logSubscriptionAudit(
                 'dunning_suspend', 'organization', row.organization_id, 'system', null,
                 { reason: 'past_due_grace_exceeded', attempt_count: row.payment_attempt_count, past_due_since: row.past_due_since, grace_days: graceDays }
@@ -200,7 +200,7 @@ async function suspendPastDueSubscriptions(graceDays = 7) {
                   WHERE user_id = $1`,
                 [row.user_id, new Date().toISOString()]
             );
-            try { require('../usage/payg').invalidatePaygCache(null, row.user_id); } catch (err) { log.debug('circular-load safe', err); }
+            invalidatePayg(null, row.user_id);
             await logSubscriptionAudit(
                 'dunning_suspend', 'consumer', row.user_id, 'system', null,
                 { reason: 'past_due_grace_exceeded', attempt_count: row.payment_attempt_count, past_due_since: row.past_due_since, grace_days: graceDays }
@@ -246,7 +246,7 @@ async function expireOverdueTrials() {
                       WHERE organization_id = $1`,
                     [row.organization_id, nowIso]
                 );
-                try { require('../usage/payg').invalidatePaygCache(row.organization_id, null); } catch (err) { log.debug('circular-load safe', err); }
+                invalidatePayg(row.organization_id, null);
             }
             await logSubscriptionAudit(
                 'trial_expired', 'organization', row.organization_id, 'system', null,
@@ -274,7 +274,7 @@ async function expireOverdueTrials() {
                   WHERE user_id = $1`,
                 [row.user_id, nowIso]
             );
-            try { require('../usage/payg').invalidatePaygCache(null, row.user_id); } catch (err) { log.debug('circular-load safe', err); }
+            invalidatePayg(null, row.user_id);
             await logSubscriptionAudit(
                 'trial_expired', 'consumer', row.user_id, 'system', null,
                 { trial_end_date: row.trial_end_date, transitioned_to: 'suspended' }
@@ -363,7 +363,7 @@ async function downgradeOrgToFreePlan(orgId, { changedBy = 'system', reason = 'd
     }
     try { await require('../../services/planEntitlements').applyPlanToOrg(orgId, freeId, { mode: 'reset' }); }
     catch (e) { log.warn(`[UserStore] downgradeOrgToFreePlan applyPlanToOrg failed for ${orgId}:`, e.message); }
-    try { require('../usage/payg').invalidatePaygCache(orgId, null); } catch (err) { log.debug('circular-load safe', err); }
+    invalidatePayg(orgId, null);
     await logSubscriptionAudit('downgrade_to_free', 'organization', orgId, changedBy, before, { plan_id: freeId, reason });
     return await getOrgSubscription(orgId);
 }

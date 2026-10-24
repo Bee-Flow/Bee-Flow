@@ -10,6 +10,7 @@ const userStore = require('../../stores/userStore');
 const { findSubscriptionTargetByCustomerId } = require('./webhookShared');
 const appPaths = require('../../utils/appPaths');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 /**
  * customer.tax_id.created / updated / deleted — keep the org's stored VAT in
@@ -128,11 +129,11 @@ async function handleSetupIntentFailed(setupIntent) {
         let displayName = null;
         let orgName = null;
         if (target.scope === 'consumer') {
-            const u = await userStore.getUser(target.id).catch(() => null);
+            const u = await userStore.getUser(target.id).catch((e) => fallback('stripe/customer:userLookup', e, null));
             recipientEmail = u?.email || null;
             displayName = u?.displayName || u?.username || null;
         } else {
-            const org = await userStore.getOrganization(target.id).catch(() => null);
+            const org = await userStore.getOrganization(target.id).catch((e) => fallback('stripe/customer:orgLookup', e, null));
             orgName = org?.name || null;
             recipientEmail = org?.email || null;
         }
@@ -143,7 +144,7 @@ async function handleSetupIntentFailed(setupIntent) {
         try {
             const portal = await stripeService.createPortalSession(customerId, portalUrl);
             if (portal?.url) portalUrl = portal.url;
-        } catch (err) { log.debug('fall back', err); }
+        } catch (err) { bestEffort('stripe/customer:portalSession', err); }
 
         const { sendPaymentFailedEmail } = require('../../utils/emailService');
         await sendPaymentFailedEmail({

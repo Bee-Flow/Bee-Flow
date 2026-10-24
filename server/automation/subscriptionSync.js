@@ -39,7 +39,7 @@ async function revokeRemoteSubscriptions(automationId, userId) {
         const existing = await automationStore.getSubscriptionsForAutomation(automationId);
         const msgraphSubs = existing.filter(s => s.provider === 'msgraph' && s.externalRef);
         if (msgraphSubs.length > 0) {
-            const session = await triggerBus.loadSession(userId).catch(() => null);
+            const session = await triggerBus.loadSession(userId).catch((e) => fallback('automation/subscriptionSync:loadSession', e, null));
             for (const sub of msgraphSubs) {
                 await triggerBus.revokeSubscription(sub, session);
             }

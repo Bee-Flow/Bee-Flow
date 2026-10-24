@@ -10,6 +10,7 @@ const userStore = require('../../stores/userStore');
 const { getSubscriberType, verifyMetadataMatchesLocal, stripOverriddenFields } = require('./webhookShared');
 const appPaths = require('../../utils/appPaths');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * customer.subscription.updated — Plan change, trial ending, status change
@@ -165,7 +166,7 @@ async function handleSubscriptionUpdated(subscription) {
         }
         // Snapshot the local row before the write so we can detect a plan_id
         // transition (e.g. a scheduled downgrade reaching its period boundary).
-        const priorSub = await userStore.getOrgSubscription(orgId).catch(() => null);
+        const priorSub = await userStore.getOrgSubscription(orgId);
         const priorPlanId = priorSub?.plan_id || null;
         const strippedUpdate = stripOverriddenFields(updateData);
         const result = await userStore.setOrgSubscriptionRespectingOverride(orgId, updateData, strippedUpdate);
@@ -237,15 +238,13 @@ async function _sendTrialEndingEmailOnce({ scope, orgId, userId, subscription, t
         if (!claimed) return; // already sent for this subscription
 
         // Resolve recipient and display name.
-        let recipientEmail = null;
-        let displayName = null;
-        let orgName = null;
+        let recipientEmail = null, displayName = null, orgName = null;
         if (scope === 'consumer') {
             try {
                 const u = await userStore.getUser(userId);
                 recipientEmail = u?.email || null;
                 displayName = u?.displayName || u?.username || null;
-            } catch (_) { log.debug('user lookup failed, the next recipient option is tried', _); }
+            } catch (_) { bestEffort('stripe/subscription:trialUserLookup', _); }
         } else {
             // Org: prefer the org-admin who initiated checkout (metadata) or
             // the first org_admin user; fall back to the org's billing email.
@@ -260,7 +259,7 @@ async function _sendTrialEndingEmailOnce({ scope, orgId, userId, subscription, t
                 );
                 const adminEmails = (admins || []).map(a => a.email).filter(Boolean);
                 if (adminEmails.length > 0) recipientEmail = adminEmails[0];
-            } catch (_) { log.debug('org admin lookup failed, the notice has no recipient', _); }
+            } catch (_) { bestEffort('stripe/subscription:trialOrgAdminLookup', _); }
         }
         if (!recipientEmail) {
             log.warn(`[Stripe Webhook] trial_will_end: no recipient email found for ${targetType}=${targetId}`);
@@ -330,9 +329,9 @@ async function _notifyAdminNewSubscriptionOnce(subscription) {
         // Resolve a friendly customer name.
         let targetName = null;
         if (scope === 'consumer') {
-            try { const u = await userStore.getUser(targetId); targetName = u?.displayName || u?.username || u?.email || null; } catch (_) { log.debug('customer name lookup failed, the notice omits it', _); }
+            try { const u = await userStore.getUser(targetId); targetName = u?.displayName || u?.username || u?.email || null; } catch (_) { bestEffort('stripe/subscription:customerNameLookup', _); }
         } else {
-            try { const org = await userStore.getOrganization(targetId); targetName = org?.name || null; } catch (_) { log.debug('organization name lookup failed, the notice omits it', _); }
+            try { const org = await userStore.getOrganization(targetId); targetName = org?.name || null; } catch (_) { bestEffort('stripe/subscription:orgNameLookup', _); }
         }
 
         // Resolve plan details. Prefer the matched BeeFlow plan (by Stripe
@@ -349,7 +348,7 @@ async function _notifyAdminNewSubscriptionOnce(subscription) {
                 interval = plan.billing_interval || (priceObj?.recurring?.interval === 'year' ? 'yearly' : 'monthly');
                 trialDays = plan.trial_days || null;
             }
-        } catch (_) { log.debug('plan lookup failed, the notice uses the Stripe price data', _); }
+        } catch (_) { bestEffort('stripe/subscription:planLookup', _); }
         if (!planName && priceObj) {
             planName = priceObj.nickname || 'Subscription';
             if (typeof priceObj.unit_amount === 'number') price = priceObj.unit_amount / 100;
@@ -432,7 +431,7 @@ async function handleSubscriptionDeletedForOrg(orgId, _subscription) {
     // be left `cancelled` (locked-out / unlimited if the row is later cleared).
     // A previously-paid subscription that the customer actively cancelled keeps
     // the cancelled state. "Never paid" = local payment_status was never 'paid'.
-    const existing = await userStore.getOrgSubscription(orgId).catch(() => null);
+    const existing = await userStore.getOrgSubscription(orgId);
     const everPaid = existing?.payment_status === 'paid';
     if (!everPaid) {
         const downgraded = await userStore.downgradeOrgToFreePlan(orgId, { changedBy: 'stripe_webhook', reason: 'trial_ended_no_payment' });

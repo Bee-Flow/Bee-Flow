@@ -5,6 +5,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 const { getClient } = require('./client');
 const deps = require('./deps');
 
@@ -87,7 +88,7 @@ async function pushOrgBillingToStripe(orgId, { stripeCustomerId } = {}) {
             try {
                 const sub = await userStore.getOrgSubscription(orgId);
                 customerId = sub?.stripe_customer_id || null;
-            } catch (e) { log.debug('no subscription row yet', e); }
+            } catch (e) { bestEffort('stripe/customer:orgSubscriptionLookup', e); }
         }
         if (!customerId) return; // nothing attached — checkout will set it
 

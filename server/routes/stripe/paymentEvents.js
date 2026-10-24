@@ -9,6 +9,7 @@ const userStore = require('../../stores/userStore');
 const { findSubscriptionTargetBySubId, findSubscriptionTargetByCustomerId, stripOverriddenFields } = require('./webhookShared');
 const appPaths = require('../../utils/appPaths');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 /**
  * charge.refunded — flip the subscription's payment_status to 'refunded'.
@@ -179,15 +180,13 @@ async function _sendSubscriptionConfirmationEmailOnce({ target, invoice, subId }
         );
         if (!claimed) return;
 
-        let recipientEmail = null;
-        let displayName = null;
-        let orgName = null;
+        let recipientEmail = null, displayName = null, orgName = null;
         if (target.scope === 'consumer') {
-            const u = await userStore.getUser(target.id).catch(() => null);
+            const u = await userStore.getUser(target.id).catch((e) => fallback('stripe/payment:userLookup', e, null));
             recipientEmail = u?.email || null;
             displayName = u?.displayName || u?.username || null;
         } else {
-            const org = await userStore.getOrganization(target.id).catch(() => null);
+            const org = await userStore.getOrganization(target.id).catch((e) => fallback('stripe/payment:orgLookup', e, null));
             orgName = org?.name || null;
             recipientEmail = org?.email || null;
             try {
@@ -197,7 +196,7 @@ async function _sendSubscriptionConfirmationEmailOnce({ target, invoice, subId }
                     [target.id],
                 );
                 if (admins?.[0]?.email) recipientEmail = admins[0].email;
-            } catch (err) { log.debug('tolerate', err); }
+            } catch (err) { bestEffort('stripe/payment:adminLookup', err); }
         }
         if (!recipientEmail) return;
 
@@ -212,7 +211,7 @@ async function _sendSubscriptionConfirmationEmailOnce({ target, invoice, subId }
                 planName = plan.name;
                 interval = plan.billing_interval || interval;
             }
-        } catch (err) { log.debug('fall back to Stripe\'s own data', err); }
+        } catch (err) { bestEffort('stripe/payment:planLookup', err); }
         if (!planName) planName = price?.nickname || line?.description || 'Subscription';
 
         const periodEnd = line?.period?.end;
@@ -225,7 +224,7 @@ async function _sendSubscriptionConfirmationEmailOnce({ target, invoice, subId }
                     const portal = await stripeService.createPortalSession(invoice.customer, portalUrl);
                     if (portal?.url) portalUrl = portal.url;
                 }
-            } catch (err) { log.debug('fall back to the settings page', err); }
+            } catch (err) { bestEffort('stripe/payment:portalSession', err); }
         }
 
         const { sendSubscriptionConfirmationEmail } = require('../../utils/emailService');
@@ -325,15 +324,13 @@ async function _sendFinalDunningEmailOnce({ target, customerId }) {
         const claimed = await userStore.claimNotification(targetType, target.id, 'payment_dunning_capped', null, { cap: DUNNING_MAX_ATTEMPTS });
         if (!claimed) return;
 
-        let recipientEmail = null;
-        let displayName = null;
-        let orgName = null;
+        let recipientEmail = null, displayName = null, orgName = null;
         if (target.scope === 'consumer') {
-            const u = await userStore.getUser(target.id).catch(() => null);
+            const u = await userStore.getUser(target.id).catch((e) => fallback('stripe/payment:userLookup', e, null));
             recipientEmail = u?.email || null;
             displayName = u?.displayName || u?.username || null;
         } else {
-            const org = await userStore.getOrganization(target.id).catch(() => null);
+            const org = await userStore.getOrganization(target.id).catch((e) => fallback('stripe/payment:orgLookup', e, null));
             orgName = org?.name || null;
             recipientEmail = org?.email || null;
             try {
@@ -343,7 +340,7 @@ async function _sendFinalDunningEmailOnce({ target, customerId }) {
                     [target.id],
                 );
                 if (admins?.[0]?.email) recipientEmail = admins[0].email;
-            } catch (err) { log.debug('tolerate', err); }
+            } catch (err) { bestEffort('stripe/payment:adminLookup', err); }
         }
         if (!recipientEmail) return;
 
@@ -354,7 +351,7 @@ async function _sendFinalDunningEmailOnce({ target, customerId }) {
                 const portal = await stripeService.createPortalSession(customerId, portalUrl);
                 if (portal?.url) portalUrl = portal.url;
             }
-        } catch (err) { log.debug('fall back', err); }
+        } catch (err) { bestEffort('stripe/payment:portalSession', err); }
 
         const { sendSubscriptionSuspendedEmail } = require('../../utils/emailService');
         await sendSubscriptionSuspendedEmail({
@@ -379,15 +376,13 @@ async function _sendPaymentFailedEmailOnce({ target, attempt, customerId }) {
         // Resolve recipient + display name. Mirrors the trial-end helper but
         // tolerates a missing customer id (some failure modes don't include
         // it; we fall back to the org/user record).
-        let recipientEmail = null;
-        let displayName = null;
-        let orgName = null;
+        let recipientEmail = null, displayName = null, orgName = null;
         if (target.scope === 'consumer') {
-            const u = await userStore.getUser(target.id).catch(() => null);
+            const u = await userStore.getUser(target.id).catch((e) => fallback('stripe/payment:userLookup', e, null));
             recipientEmail = u?.email || null;
             displayName = u?.displayName || u?.username || null;
         } else {
-            const org = await userStore.getOrganization(target.id).catch(() => null);
+            const org = await userStore.getOrganization(target.id).catch((e) => fallback('stripe/payment:orgLookup', e, null));
             orgName = org?.name || null;
             recipientEmail = org?.email || null;
             try {
@@ -398,7 +393,7 @@ async function _sendPaymentFailedEmailOnce({ target, attempt, customerId }) {
                 );
                 const adminEmails = (admins || []).map(a => a.email).filter(Boolean);
                 if (adminEmails.length > 0) recipientEmail = adminEmails[0];
-            } catch (err) { log.debug('tolerate', err); }
+            } catch (err) { bestEffort('stripe/payment:adminLookup', err); }
         }
         if (!recipientEmail) return;
 
@@ -409,7 +404,7 @@ async function _sendPaymentFailedEmailOnce({ target, attempt, customerId }) {
                 const portal = await stripeService.createPortalSession(customerId, portalUrl);
                 if (portal?.url) portalUrl = portal.url;
             }
-        } catch (err) { log.debug('fall back to settings page', err); }
+        } catch (err) { bestEffort('stripe/payment:portalSession', err); }
 
         const { sendPaymentFailedEmail } = require('../../utils/emailService');
         await sendPaymentFailedEmail({

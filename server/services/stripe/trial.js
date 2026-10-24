@@ -5,6 +5,7 @@
 
 const deps = require('./deps');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 const { getClient } = require('./client');
 const { buildStripeAddress } = require('./customer');
 
@@ -50,7 +51,7 @@ async function createTrialSubscription({ plan, subscriberType, subscriberId, org
     let org = null;
     if (subscriberType === 'organization' && subscriberId) {
         try { org = await deps.userStore().getOrganization(subscriberId); }
-        catch (e) { log.debug('non-fatal — fall back to name/email only', e); }
+        catch (e) { bestEffort('stripe/trial:orgLookup', e); }
     }
     const trialAddress = buildStripeAddress(org);
 
@@ -92,7 +93,7 @@ async function createTrialSubscription({ plan, subscriberType, subscriberId, org
                 log.warn(`[Stripe] trial for ${subscriberType} ${subscriberId}: stripe_tax_enabled but no billing address — automatic_tax skipped (invoice will lack BTW lines until the address is completed)`);
             }
         }
-    } catch (e) { log.debug('non-fatal — behave as before', e); }
+    } catch (e) { bestEffort('stripe/trial:taxConfig', e); }
 
     const buildTrialParams = (withTax) => ({
         customer: customerId,

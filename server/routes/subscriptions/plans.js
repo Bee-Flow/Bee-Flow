@@ -7,6 +7,7 @@ const express = require('express');
 const userStore = require('../../stores/userStore');
 const { getAdminId } = require('./shared');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
@@ -187,7 +188,7 @@ router.put('/plans/:id', validate({ body: UpdatePlanBody }), async (req, res) =>
             JSON.stringify(req.body[f] ?? null) !== JSON.stringify(oldPlan?.[f] ?? null)
         );
         if (entChanged) {
-            try { require('../../license').bumpServerLicenseVersion(); } catch (err) { log.debug('best-effort cache bust', err); }
+            try { require('../../license').bumpServerLicenseVersion(); } catch (err) { bestEffort('subscriptions/plans:licenseVersionBump', err); }
         }
 
         // Auto-sync to Stripe if enabled.

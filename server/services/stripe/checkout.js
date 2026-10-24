@@ -6,6 +6,7 @@
 
 const deps = require('./deps');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 const { getClient, escapeSearchValue } = require('./client');
 const { resolveStripeTaxId, buildStripeAddress } = require('./customer');
 
@@ -117,7 +118,7 @@ async function createCheckoutSession({ plan, orgId, orgName, userId, subscriberT
                         limit: 1,
                     });
                     if (found?.data?.[0]?.id) effectiveCustomerId = found.data[0].id;
-                } catch (e) { log.debug('Search API unavailable or index lag — fall through to create.', e); }
+                } catch (e) { bestEffort('stripe/checkout:customerSearch', e); }
             }
             if (!effectiveCustomerId) {
                 const created = await stripe.customers.create({
@@ -129,7 +130,7 @@ async function createCheckoutSession({ plan, orgId, orgName, userId, subscriberT
             }
             if (effectiveCustomerId) {
                 try { await userStore.setOrgSubscription(orgId, { stripe_customer_id: effectiveCustomerId }); }
-                catch (e) { log.debug('non-fatal — webhook will also persist it', e); }
+                catch (e) { bestEffort('stripe/checkout:persistCustomerId', e); }
             }
 
             // Attach the org's VAT id (idempotent) so Stripe Tax can apply EU
