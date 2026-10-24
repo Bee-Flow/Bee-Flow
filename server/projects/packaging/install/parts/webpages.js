@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Install the WEBPAGES, unpublished. Their bridge grants are written later, by
  * the reference pass (install/patch.js, install/grants.js).

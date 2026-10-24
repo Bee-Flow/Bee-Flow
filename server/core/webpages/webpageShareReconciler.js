@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Wanneer een openbare snapshot opnieuw geschreven moet worden.
  *

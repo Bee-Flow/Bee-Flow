@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -121,7 +122,7 @@ function tablesAxis(config) {
  *   "onleesbaar", en de aanroeper hoort dat als een gat te melden, niet als
  *   een agent zonder bronnen.
  */
-function groundedOn(config) {
+function groundedOn(/** @type {any} */ config) {
     if (!isPlainObject(config)) return { kb: null, tables: null };
     return {
         // Alleen snake_case: dat is de sleutel die knowledgeSearch.js leest.

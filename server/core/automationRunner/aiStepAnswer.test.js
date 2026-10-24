@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * aiStepAnswer: the routes to the model and the reuse seam, with the real
  * llmClient and provider limiter on top of a fake adapter (an adapter that can

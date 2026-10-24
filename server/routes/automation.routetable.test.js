@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Route-table equivalence smoke for routes/automation.js (§WS5 #4).
  *

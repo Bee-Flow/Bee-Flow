@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage Export — server-side PDF rendering of a webpage via Playwright.
  *

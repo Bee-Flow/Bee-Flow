@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -93,10 +94,11 @@ describe('QueryBuilder', () => {
     });
 
     it('saves the dataset and returns its id + chart mapping to the caller', async () => {
+        const user = userEvent.setup();
         const { onSave } = renderBuilder();
 
         await waitFor(() => expect(screen.getAllByText('EU').length).toBeGreaterThan(0));
-        fireEvent.click(screen.getByText('Use this'));
+        await user.click(screen.getByText('Use this'));
 
         await waitFor(() => expect(onSave).toHaveBeenCalled());
         const arg = onSave.mock.calls.at(-1)[0];
@@ -114,11 +116,12 @@ describe('QueryBuilder', () => {
     });
 
     it('drops rows that named the OLD table when the source table changes', async () => {
+        const user = userEvent.setup();
         renderBuilder();
         await waitFor(() => expect(screen.getAllByText('EU').length).toBeGreaterThan(0));
 
         // Break the count down by a Tasks-only column…
-        fireEvent.click(screen.getByText(/add a breakdown/i));
+        await user.click(screen.getByText(/add a breakdown/i));
         fireEvent.change(screen.getByRole('combobox', { name: 'Break down by' }), { target: { value: 'region' } });
         await waitFor(() => expect(queryBodies.at(-1).aggregate.groupBy).toEqual([{ field: 'region' }]));
 
@@ -147,10 +150,11 @@ describe('QueryBuilder', () => {
     }, 15_000); // several debounced preview round-trips
 
     it('sends a number filter typed with a decimal comma as a NUMBER', async () => {
+        const user = userEvent.setup();
         renderBuilder();
         await waitFor(() => expect(screen.getAllByText('EU').length).toBeGreaterThan(0));
 
-        fireEvent.click(screen.getByText(/add filter/i));
+        await user.click(screen.getByText(/add filter/i));
         fireEvent.change(screen.getByRole('combobox', { name: 'Filter field' }), { target: { value: 'amount' } });
         fireEvent.change(screen.getByRole('combobox', { name: 'Filter operator' }), { target: { value: 'gt' } });
         fireEvent.change(screen.getByRole('textbox', { name: 'Filter value' }), { target: { value: '1.234,56' } });
@@ -160,25 +164,27 @@ describe('QueryBuilder', () => {
     });
 
     it('never saves a series key that the current result no longer has', async () => {
+        const user = userEvent.setup();
         const { onSave } = renderBuilder();
         await waitFor(() => expect(screen.getAllByText('EU').length).toBeGreaterThan(0));
 
         // Pin the mapping explicitly on the first result's `total` column.
         const totalPill = screen.getByRole('button', { name: 'total' });
-        fireEvent.click(totalPill);
-        fireEvent.click(screen.getByRole('button', { name: 'total' }));
+        await user.click(totalPill);
+        await user.click(screen.getByRole('button', { name: 'total' }));
 
         // A summed measure answers with `revenue` instead of `total`.
         fireEvent.change(screen.getByRole('combobox', { name: 'What to work out' }), { target: { value: 'sum' } });
         fireEvent.change(screen.getByRole('combobox', { name: 'Which column' }), { target: { value: 'amount' } });
         await waitFor(() => expect(screen.getAllByText('revenue').length).toBeGreaterThan(0));
 
-        fireEvent.click(screen.getByText('Use this'));
+        await user.click(screen.getByText('Use this'));
         await waitFor(() => expect(onSave).toHaveBeenCalled());
         expect(onSave.mock.calls.at(-1)[0].chart.series.map((s) => s.key)).toEqual(['revenue']);
     }, 15_000); // several debounced preview round-trips
 
     it('cannot be saved while the preview for the current query is still coming', async () => {
+        const user = userEvent.setup();
         const { onSave } = renderBuilder();
         await waitFor(() => expect(screen.getAllByText('EU').length).toBeGreaterThan(0));
 
@@ -187,17 +193,18 @@ describe('QueryBuilder', () => {
         fireEvent.change(screen.getByRole('combobox', { name: 'What to work out' }), { target: { value: 'sum' } });
         const useThis = screen.getByText('Use this');
         expect(useThis.disabled).toBe(true);
-        fireEvent.click(useThis);
+        await user.click(useThis);
         expect(onSave).not.toHaveBeenCalled();
     });
 
     it('offers a way OUT of the no-tables empty state', async () => {
+        const user = userEvent.setup();
         const onOpenTables = vi.fn();
         authFetch.mockImplementation(async (url) => (url.endsWith('/data/tables') ? resp(200, { tables: [] }) : resp(404, {})));
         const { onClose } = renderBuilder({ onOpenTables });
 
         const button = await screen.findByRole('button', { name: /add a table/i });
-        fireEvent.click(button);
+        await user.click(button);
         expect(onOpenTables).toHaveBeenCalled();
         expect(onClose).toHaveBeenCalled();
     });

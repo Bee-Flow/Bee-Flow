@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * `definition.runPolicy` — how an automation behaves when it runs (Studio →
  * Automations handoff 5, Settings › Advanced):

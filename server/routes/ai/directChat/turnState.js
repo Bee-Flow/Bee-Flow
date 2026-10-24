@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — the mutable state one streamed turn shares.
  *

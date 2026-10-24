@@ -72,7 +72,7 @@ async function postPage(req, res) {
         const { slug, title, copyFromId, templateId } = req.body || {};
         const result = await cmsStore.createPage(req.siteId, { slug, title, copyFromId, templateId });
         res.json({ success: true, ...result });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
 async function putPagesOrder(req, res) {
@@ -81,7 +81,7 @@ async function putPagesOrder(req, res) {
         if (!Array.isArray(orderedIds)) return res.status(400).json({ error: 'orderedIds array required' });
         await cmsStore.reorderPages(req.siteId, orderedIds);
         res.json({ success: true });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
 async function putPageMeta(req, res) {
@@ -91,14 +91,14 @@ async function putPageMeta(req, res) {
         // the editor needs the new one for its next save of this page.
         const doc = await cmsStore.getPage(req.siteId, req.params.id, { fresh: true });
         res.json({ success: true, page: updated, pageRev: doc?.rev });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
 async function putPageHomepage(req, res) {
     try {
         await cmsStore.setHomepage(req.siteId, req.params.id);
         res.json({ success: true });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
 async function deletePageHandler(req, res) {
@@ -112,7 +112,7 @@ async function deletePageHandler(req, res) {
         if (!outcome) return res.status(404).json({ error: 'Page not found' });
         const redirect = entry && !wasHomepage ? await cmsStore.redirectDeletedPage(req.siteId, entry.slug, redirectTo) : null;
         res.json({ success: true, ...outcome, ...(redirect ? { redirect: redirect.entry || null, redirectError: redirect.error || null } : {}) });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
 // ── Page templates (global, org-wide) ────────────────────────────────
@@ -151,14 +151,14 @@ async function postTemplate(req, res) {
                 blockCount:  Array.isArray(entry.blocks) ? entry.blocks.length : 0,
             },
         });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
 async function deleteTemplateHandler(req, res) {
     try {
         await cmsStore.deleteTemplate(req.params.id);
         res.json({ success: true });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
 async function getPageById(req, res) {
@@ -186,7 +186,7 @@ async function putPage(req, res) {
         res.json({ success: true, page: saved, dropped, localeOverrides });
     } catch (err) {
         if (err instanceof HttpError) throw err;
-        res.status(400).json({ error: err.message });
+        throw new HttpError(400, 'bad_request', err.message);
     }
 }
 
@@ -202,7 +202,7 @@ async function putPageLocale(req, res) {
         res.json({ success: true, mediaWarning: mediaWarningFor(override, saved) });
     } catch (err) {
         if (err instanceof HttpError) throw err;
-        res.status(400).json({ error: err.message });
+        throw new HttpError(400, 'bad_request', err.message);
     }
 }
 

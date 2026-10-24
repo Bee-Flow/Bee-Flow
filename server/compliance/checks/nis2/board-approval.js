@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * NIS2 Art. 20(1)(2) — management bodies approve the cybersecurity measures,
  * oversee their implementation and follow training.

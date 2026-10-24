@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import FormBuilderFields, {
@@ -47,30 +48,33 @@ describe('FormBuilderFields — the question list', () => {
         expect(screen.getByText('No questions yet — nobody can submit this form.')).toBeTruthy();
     });
 
-    it('adds a question that already works, without opening a dialog', () => {
+    it('adds a question that already works, without opening a dialog', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderEditor(form([]));
-        fireEvent.click(screen.getByText('Add a question'));
+        await user.click(screen.getByText('Add a question'));
         expect(onChange.mock.calls[0][0].fields).toEqual([
             { name: 'new_question', type: 'text', label: 'New question', required: false, placeholder: '' },
         ]);
     });
 
-    it('moves a question up and down, and greys the arrows out at the ends', () => {
+    it('moves a question up and down, and greys the arrows out at the ends', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderEditor(form([text('one', 'One'), text('two', 'Two')]));
         const up = screen.getAllByLabelText('Move question up');
         const down = screen.getAllByLabelText('Move question down');
         expect(up[0].disabled).toBe(true);
         expect(down[1].disabled).toBe(true);
 
-        fireEvent.click(down[0]);
+        await user.click(down[0]);
         expect(onChange.mock.calls[0][0].fields.map(f => f.name)).toEqual(['two', 'one']);
-        fireEvent.click(up[1]);
+        await user.click(up[1]);
         expect(onChange.mock.calls[1][0].fields.map(f => f.name)).toEqual(['two', 'one']);
     });
 
-    it('removes the question the visitor is looking at, by its own name', () => {
+    it('removes the question the visitor is looking at, by its own name', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderEditor(form([text('one', 'One'), text('two', 'Two')]));
-        fireEvent.click(screen.getByLabelText('Remove Two'));
+        await user.click(screen.getByLabelText('Remove Two'));
         expect(onChange.mock.calls[0][0].fields.map(f => f.name)).toEqual(['one']);
     });
 
@@ -89,9 +93,10 @@ describe('FormBuilderFields — the question list', () => {
         expect(onChange.mock.calls[0][0].fields[0]).toMatchObject({ name: 'colour', type: 'select' });
     });
 
-    it('ticks a question as required from the card, without touching anything else', () => {
+    it('ticks a question as required from the card, without touching anything else', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderEditor(form([text('one', 'One')]));
-        fireEvent.click(screen.getByText('Required').querySelector('input'));
+        await user.click(screen.getByText('Required').querySelector('input'));
         expect(onChange.mock.calls[0][0].fields[0]).toMatchObject({ name: 'one', required: true });
     });
 
@@ -124,11 +129,12 @@ describe('FormBuilderFields — the per-type controls', () => {
         expect(onChange.mock.calls[0][0].fields[0].maxSizeMb).toBe(10);
     });
 
-    it('hides the placeholder and the binding name until Advanced is opened', () => {
+    it('hides the placeholder and the binding name until Advanced is opened', async () => {
+        const user = userEvent.setup();
         renderEditor(form([text('one', 'One')]));
         expect(screen.queryByText('Binding name')).toBeNull();
 
-        fireEvent.click(screen.getByText('Advanced'));
+        await user.click(screen.getByText('Advanced'));
         expect(screen.getByText('Binding name')).toBeTruthy();
         expect(screen.getByText('trigger.output.one')).toBeTruthy();
         expect(screen.getByLabelText('Question 1 placeholder')).toBeTruthy();
@@ -138,14 +144,15 @@ describe('FormBuilderFields — the per-type controls', () => {
         expect(screen.getByText(/Rename it from the automation that uses this form/)).toBeTruthy();
     });
 
-    it('lets the binding name be renamed where the whole automation is in scope', () => {
+    it('lets the binding name be renamed where the whole automation is in scope', async () => {
+        const user = userEvent.setup();
         const onRenameField = vi.fn(() => 3);
         const { onChange } = renderEditor(form([text('one', 'One'), text('two', 'Two')]), { onRenameField });
-        fireEvent.click(screen.getAllByText('Advanced')[0]);
+        await user.click(screen.getAllByText('Advanced')[0]);
 
         const box = screen.getByLabelText('Binding name for One');
         fireEvent.change(box, { target: { value: 'contactpersoon' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+        await user.click(screen.getByRole('button', { name: 'Rename' }));
 
         // The shell rewrites the automation; the panel also renames its own copy,
         // or the node's autosave would put the old name straight back.
@@ -154,27 +161,29 @@ describe('FormBuilderFields — the per-type controls', () => {
         expect(screen.getByText(/3 bindings in this automation now point at it/)).toBeTruthy();
     });
 
-    it('refuses a name the server would reject, or one the page already uses', () => {
+    it('refuses a name the server would reject, or one the page already uses', async () => {
+        const user = userEvent.setup();
         const onRenameField = vi.fn(() => 0);
         renderEditor(form([text('one', 'One'), text('two', 'Two')]), { onRenameField });
-        fireEvent.click(screen.getAllByText('Advanced')[0]);
+        await user.click(screen.getAllByText('Advanced')[0]);
         const box = screen.getByLabelText('Binding name for One');
 
         fireEvent.change(box, { target: { value: '2naam' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+        await user.click(screen.getByRole('button', { name: 'Rename' }));
         expect(screen.getByText(/Start with a letter/)).toBeTruthy();
 
         fireEvent.change(box, { target: { value: 'two' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+        await user.click(screen.getByRole('button', { name: 'Rename' }));
         expect(screen.getByText(/already binds that name/)).toBeTruthy();
 
         // Neither attempt reached the automation.
         expect(onRenameField).not.toHaveBeenCalled();
     });
 
-    it('shows the binding base it was given, so a form_page reads as its own step', () => {
+    it('shows the binding base it was given, so a form_page reads as its own step', async () => {
+        const user = userEvent.setup();
         renderEditor(form([text('one', 'One')]), { bindingBase: 'steps.fp_1.output' });
-        fireEvent.click(screen.getByText('Advanced'));
+        await user.click(screen.getByText('Advanced'));
         expect(screen.getByText('steps.fp_1.output.one')).toBeTruthy();
     });
 });

@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import AnnouncementBar from './AnnouncementBar';
@@ -68,9 +69,10 @@ describe('AnnouncementBar', () => {
         expect(document.querySelector('.announce-bar-close')).toBeNull();
     });
 
-    it('dismisses, persists a fingerprint, and stays hidden on remount', () => {
+    it('dismisses, persists a fingerprint, and stays hidden on remount', async () => {
+        const user = userEvent.setup();
         mount({ enabled: true, text: TEXT });
-        fireEvent.click(document.querySelector('.announce-bar-close'));
+        await user.click(document.querySelector('.announce-bar-close'));
         expect(document.querySelector('.announce-bar')).toBeNull();
         const stored = window.localStorage.getItem('cms.announcementDismissed');
         expect(stored).toBeTruthy();
@@ -80,9 +82,10 @@ describe('AnnouncementBar', () => {
         expect(document.querySelector('.announce-bar')).toBeNull();
     });
 
-    it('re-shows when the message changes after a dismissal', () => {
+    it('re-shows when the message changes after a dismissal', async () => {
+        const user = userEvent.setup();
         mount({ enabled: true, text: TEXT });
-        fireEvent.click(document.querySelector('.announce-bar-close'));
+        await user.click(document.querySelector('.announce-bar-close'));
         cleanup();
 
         const next = { en: { ...TEXT.en, message: 'Black Friday: 30% off' } };

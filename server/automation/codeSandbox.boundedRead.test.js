@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * BFSF-460: defaultFetchHttp (the code step's ctx.http bridge) reads the
  * response through readBodyBounded, so an endless body is cut at the cap and

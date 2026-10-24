@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import AppStepper from './AppStepper';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
@@ -62,7 +63,8 @@ describe('AppStepper', () => {
         }
     });
 
-    it('is inert without an event, and clickable with one', () => {
+    it('is inert without an event, and clickable with one', async () => {
+        const user = userEvent.setup();
         const { container, unmount } = renderStepper(node('new'));
         expect(container.querySelectorAll('button')).toHaveLength(0);
         unmount();
@@ -70,7 +72,7 @@ describe('AppStepper', () => {
         const runAction = vi.fn();
         const clickable = { ...node('new'), onRowClick: 'act_pick01' };
         renderStepper(clickable, { runAction });
-        fireEvent.click(screen.getByText('Done').closest('button'));
+        await user.click(screen.getByText('Done').closest('button'));
         // The step itself rides along as `item`/`value`/`index`, so a navigate
         // param can carry which step was clicked.
         expect(runAction).toHaveBeenCalledWith('act_pick01', expect.objectContaining({

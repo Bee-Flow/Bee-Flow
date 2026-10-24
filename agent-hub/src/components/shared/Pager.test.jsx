@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import Pager from './Pager';
@@ -29,24 +30,26 @@ describe('Pager', () => {
         expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
     });
 
-    it('a middle page: both live, offsets step by limit', () => {
+    it('a middle page: both live, offsets step by limit', async () => {
+        const user = userEvent.setup();
         const onOffset = vi.fn();
         render(<Pager offset={24} limit={12} total={93} onOffset={onOffset} testId="p" />);
         expect(screen.getByTestId('p-range').textContent).toBe('Rows 25–36 of 93');
-        fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
+        await user.click(screen.getByRole('button', { name: 'Previous' }));
         expect(onOffset).toHaveBeenLastCalledWith(12);
-        fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+        await user.click(screen.getByRole('button', { name: 'Next' }));
         expect(onOffset).toHaveBeenLastCalledWith(36);
     });
 
-    it('the last, short page: "Rows 85–93 of 93", Next disabled', () => {
+    it('the last, short page: "Rows 85–93 of 93", Next disabled', async () => {
+        const user = userEvent.setup();
         const onOffset = vi.fn();
         render(<Pager offset={84} limit={12} total={93} onOffset={onOffset} testId="p" />);
         expect(screen.getByTestId('p-range').textContent).toBe('Rows 85–93 of 93');
         expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
-        fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+        await user.click(screen.getByRole('button', { name: 'Next' }));
         expect(onOffset).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
+        await user.click(screen.getByRole('button', { name: 'Previous' }));
         expect(onOffset).toHaveBeenCalledWith(72);
     });
 
@@ -57,10 +60,11 @@ describe('Pager', () => {
         expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
     });
 
-    it('Previous from a short first step never goes below 0', () => {
+    it('Previous from a short first step never goes below 0', async () => {
+        const user = userEvent.setup();
         const onOffset = vi.fn();
         render(<Pager offset={5} limit={12} total={93} onOffset={onOffset} testId="p" />);
-        fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
+        await user.click(screen.getByRole('button', { name: 'Previous' }));
         expect(onOffset).toHaveBeenCalledWith(0);
     });
 

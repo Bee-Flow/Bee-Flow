@@ -1,4 +1,5 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
@@ -77,9 +78,10 @@ describe('WebpageAppsPanel', () => {
     });
 
     it('revokes an integration grant via DELETE', async () => {
+        const user = userEvent.setup();
         render(<WebpageAppsPanel webpageId="wp1" />);
         const btn = await screen.findByRole('button', { name: 'Remove gmail_search' });
-        fireEvent.click(btn);
+        await user.click(btn);
         await waitFor(() => expect(authFetch).toHaveBeenCalledWith(
             'https://host.example/api/webpages/wp1/grants/integrations/gmail_search',
             { method: 'DELETE' },
@@ -87,8 +89,9 @@ describe('WebpageAppsPanel', () => {
     });
 
     it('greys out unconnected apps in the picker and points at Settings', async () => {
+        const user = userEvent.setup();
         render(<WebpageAppsPanel webpageId="wp1" />);
-        fireEvent.click(await screen.findByRole('button', { name: /Add an app/ }));
+        await user.click(await screen.findByRole('button', { name: /Add an app/ }));
         const appSelect = await screen.findByLabelText('App');
         const youtrackOption = [...appSelect.options].find(o => o.value === 'youtrack');
         expect(youtrackOption.disabled).toBe(true);
@@ -99,11 +102,12 @@ describe('WebpageAppsPanel', () => {
     });
 
     it('grants a connected app action via POST', async () => {
+        const user = userEvent.setup();
         render(<WebpageAppsPanel webpageId="wp1" />);
-        fireEvent.click(await screen.findByRole('button', { name: /Add an app/ }));
+        await user.click(await screen.findByRole('button', { name: /Add an app/ }));
         fireEvent.change(await screen.findByLabelText('App'), { target: { value: 'gmail' } });
         fireEvent.change(await screen.findByLabelText('Action'), { target: { value: 'gmail_search' } });
-        fireEvent.click(screen.getByRole('button', { name: /Add to page/ }));
+        await user.click(screen.getByRole('button', { name: /Add to page/ }));
         await waitFor(() => expect(authFetch).toHaveBeenCalledWith(
             'https://host.example/api/webpages/wp1/grants/integrations',
             expect.objectContaining({ method: 'POST' }),
@@ -113,6 +117,7 @@ describe('WebpageAppsPanel', () => {
     });
 
     it('surfaces the server connection_required error when the grant is refused', async () => {
+        const user = userEvent.setup();
         authFetch.mockImplementation(async (url, opts) => {
             if (opts?.method === 'POST') {
                 return { ok: false, status: 409, json: async () => ({ error: 'Connect YouTrack first.', code: 'connection_required', provider: 'youtrack' }) };
@@ -120,10 +125,10 @@ describe('WebpageAppsPanel', () => {
             return grantsResponse();
         });
         render(<WebpageAppsPanel webpageId="wp1" />);
-        fireEvent.click(await screen.findByRole('button', { name: /Add an app/ }));
+        await user.click(await screen.findByRole('button', { name: /Add an app/ }));
         fireEvent.change(await screen.findByLabelText('App'), { target: { value: 'gmail' } });
         fireEvent.change(await screen.findByLabelText('Action'), { target: { value: 'gmail_search' } });
-        fireEvent.click(screen.getByRole('button', { name: /Add to page/ }));
+        await user.click(screen.getByRole('button', { name: /Add to page/ }));
         await waitFor(() => expect(screen.getByText('Connect YouTrack first.')).toBeTruthy());
         expect(screen.getByRole('link', { name: 'Reconnect it' }).getAttribute('href')).toContain('/app/settings/integrations');
     });

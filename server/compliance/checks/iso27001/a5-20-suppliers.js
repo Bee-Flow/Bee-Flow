@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ISO 27001 A.5.20 / A.5.22 / A.5.23 — Supplier agreements, supplier
  * monitoring and cloud services.

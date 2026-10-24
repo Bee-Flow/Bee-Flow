@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * supportSlaEnforcer: the scheduled tick follows the runtime module switch, and
  * a breach reaches the team chat channel.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * trimSnapshot — the byte-cap guard on the persisted builder session.
  *

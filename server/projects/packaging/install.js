@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Install a Blueprint: turn a written-down Solution back into a live one.
  *
@@ -159,9 +160,9 @@ async function installOne(kind, entity, ctx, report) {
 /**
  * Install a Blueprint as a new Solution.
  *
- * @param {object}   input
- * @param {object}   input.manifest
- * @param {string}   input.ownerId          every entity is created under this person
+ * @param {object}   [input]
+ * @param {Record<string, any>} [input.manifest]
+ * @param {string}   [input.ownerId]          every entity is created under this person
  * @param {string}   [input.organizationId]
  * @param {string}   [input.name]           override the Blueprint's own name
  * @param {string}   [input.blueprintId]    the gallery Blueprint this came
@@ -229,7 +230,8 @@ async function installBlueprint({
     // The project first, so every entity below is stamped at INSERT.
     let project;
     try {
-        project = await projectStore.createProject({
+        // createProject's optional fields are not declared optional.
+        project = await projectStore.createProject(/** @type {any} */ ({
             name: name || solution.name || 'Installed Solution',
             description: solution.description || '',
             customInstructions: solution.customInstructions || '',
@@ -241,7 +243,7 @@ async function installBlueprint({
             // collaborative project: it lists under Solutions only.
             kind: 'solution',
             ...provenance,
-        });
+        }));
     } catch (err) {
         return { ok: false, errors: [`The Solution could not be created: ${err.message}`] };
     }

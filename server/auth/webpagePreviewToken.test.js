@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage preview token — durable-secret bootstrap + round-trip regressions.
  *

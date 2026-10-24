@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * canonicalJSON must be a function of the VALUE, stable across the Postgres
  * JSONB round-trip: key order, number spelling, whitespace and `undefined`

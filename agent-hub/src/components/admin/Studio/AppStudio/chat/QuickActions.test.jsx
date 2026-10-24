@@ -1,6 +1,9 @@
-import { fireEvent, render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useEffect } from 'react';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { authFetch } from '@/utils/helpers';
+import BuilderChatPane from './BuilderChatPane';
 import QuickActions from './QuickActions';
 
 vi.mock('@/components/MarkdownRenderer', () => ({ default: ({ content }) => <div>{content}</div> }));
@@ -14,8 +17,6 @@ vi.mock('@/utils/helpers', async (importOriginal) => {
 });
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { authFetch } from '@/utils/helpers';
-import BuilderChatPane from './BuilderChatPane';
 import { EditorChromeContext } from '../editor/EditorChromeContext';
 import { AppEditorProvider, useAppEditor } from '../state/AppEditorContext';
 import { KITCHEN_SINK } from '../state/sampleDefinitions';
@@ -31,10 +32,11 @@ function sseResponse(events) {
 }
 
 describe('QuickActions (unit)', () => {
-    it('fires onAction with the chip prompt', () => {
+    it('fires onAction with the chip prompt', async () => {
+        const user = userEvent.setup();
         const onAction = vi.fn();
         render(<QuickActions onAction={onAction} />);
-        fireEvent.click(screen.getByText('Use my data'));
+        await user.click(screen.getByText('Use my data'));
         expect(onAction).toHaveBeenCalledTimes(1);
         expect(onAction.mock.calls[0][0]).toMatch(/data/i);
     });
@@ -55,14 +57,15 @@ describe('QuickActions (unit)', () => {
         expect([...row.querySelectorAll('button')][0]).toHaveTextContent('Fix errors');
     });
 
-    it('disables "Fix errors" until there are errors', () => {
+    it('disables "Fix errors" until there are errors', async () => {
+        const user = userEvent.setup();
         const onAction = vi.fn();
         const { rerender } = render(<QuickActions onAction={onAction} hasErrors={false} />);
-        fireEvent.click(screen.getByText('Fix errors'));
+        await user.click(screen.getByText('Fix errors'));
         expect(onAction).not.toHaveBeenCalled();
 
         rerender(<QuickActions onAction={onAction} hasErrors />);
-        fireEvent.click(screen.getByText('Fix errors'));
+        await user.click(screen.getByText('Fix errors'));
         expect(onAction).toHaveBeenCalledTimes(1);
     });
 });
@@ -84,6 +87,7 @@ describe('QuickActions → BuilderChatPane sends selection context', () => {
     });
 
     it('threads the current selection + screen into the builder request', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(sseResponse([sse('done', { appId: 'app-1', finalized: true })]));
         const chrome = { flush: vi.fn().mockResolvedValue(), commitTurn: vi.fn(), markSaved: vi.fn() };
 
@@ -101,7 +105,7 @@ describe('QuickActions → BuilderChatPane sends selection context', () => {
         // Select a node, then click the "Use my data" quick action.
         await waitFor(() => expect(ctxRef.current).not.toBeNull());
         act(() => ctxRef.current.dispatch({ type: 'select_node', nodeId: 'cmp_headg1' }));
-        fireEvent.click(screen.getByText('Use my data'));
+        await user.click(screen.getByText('Use my data'));
 
         await waitFor(() => {
             expect(authFetch.mock.calls.some(([u]) => String(u).includes('/builder/stream'))).toBe(true);

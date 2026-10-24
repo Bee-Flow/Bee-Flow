@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * MAY THIS TOOL BE OFFERED? The app-keyed half of the grants map.
  *

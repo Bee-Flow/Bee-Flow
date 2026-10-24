@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AppApprovalList from './AppApprovalList';
 import { DataProvider } from '../DataContext';
@@ -89,10 +90,11 @@ describe('AppApprovalList', () => {
     });
 
     it('deciding posts to the shared decide route and fires onDecided', async () => {
+        const user = userEvent.setup();
         const { runAction } = renderList(node({}, { onDecided: 'act_after' }));
-        fireEvent.click(await screen.findByTestId('approval-list-row'));
+        await user.click(await screen.findByTestId('approval-list-row'));
         // The detail fetch resolves with canDecide → the shared controls mount.
-        fireEvent.click(await screen.findByRole('button', { name: 'Approve' }));
+        await user.click(await screen.findByRole('button', { name: 'Approve' }));
         await waitFor(() => {
             const urls = globalThis.__authFetch.mock.calls.map((c) => String(c[0]));
             expect(urls.some((u) => u.endsWith('/approvals/apr_1/decide'))).toBe(true);
@@ -132,9 +134,10 @@ describe('AppApprovalList', () => {
     });
 
     it('a decided row leaves the "waiting" slice', async () => {
+        const user = userEvent.setup();
         renderList();
-        fireEvent.click(await screen.findByTestId('approval-list-row'));
-        fireEvent.click(await screen.findByRole('button', { name: 'Approve' }));
+        await user.click(await screen.findByTestId('approval-list-row'));
+        await user.click(await screen.findByRole('button', { name: 'Approve' }));
         await waitFor(() => expect(screen.queryByTestId('approval-list-row')).not.toBeInTheDocument());
     });
 });

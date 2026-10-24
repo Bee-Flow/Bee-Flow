@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * aiPaths — reading a path the AI wrote without corrupting a valid one.
  *

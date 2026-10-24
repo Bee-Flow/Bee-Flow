@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * requireTraining(areaId) — the express side of an organisation's "finish the
  * course first" rule. See trainingGates.js for what the rule is and the four

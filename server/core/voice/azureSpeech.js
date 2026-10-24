@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Azure AI Speech (ConversationTranscriber) — shared transcription core.
  *
@@ -54,7 +55,7 @@ function clamp(value, lo, hi) {
  * inactivity watchdog is what actually catches stalls, so the cap only has to
  * be generous enough to never cut off a healthy run.
  *
- * @param {{durationSeconds?: number, env?: object}} [opts]
+ * @param {{durationSeconds?: number, env?: Record<string, string|undefined>}} [opts]
  * @returns {{overallMs: number, inactivityMs: number}}
  */
 function computeAzureTimeouts({ durationSeconds = 0, env = process.env } = {}) {

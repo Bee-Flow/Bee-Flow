@@ -1,3 +1,4 @@
+// @typecheck
 const { processSystemPrompt } = require('../llm/promptUtils');
 const { nowLine } = require('../llm/clock');
 const { buildSkillInjection } = require('../tools/skillInjection');
@@ -111,7 +112,7 @@ async function buildSystemPrompt({ agent, tools, userId, messageMetadata, memory
 async function injectSkills({ agent, tools, userId, messageMetadata, forceDynamicSkills }) {
     const sessionSkillIds = Array.isArray(messageMetadata?.activeSkillIds) ? messageMetadata.activeSkillIds : [];
     const attachedSkillIds = Array.isArray(agent?.config?.attachedSkillIds) ? agent.config.attachedSkillIds : [];
-    const skillInjection = await buildSkillInjection({
+    const skillInjection = await buildSkillInjection(/** @type {any} */ ({
         sessionSkillIds,
         attachedSkillIds,
         orgId: messageMetadata?.orgId,
@@ -124,7 +125,7 @@ async function injectSkills({ agent, tools, userId, messageMetadata, forceDynami
         // ('','') and every ephemeral chat shares one row.
         agentId: agent?.id || null,
         conversationId: messageMetadata?.conversationId || null,
-    });
+    }));
     if (Array.isArray(tools) && skillInjection.tools.length > 0) {
         for (const t of skillInjection.tools) tools.push(t);
     }

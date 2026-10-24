@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -84,7 +85,7 @@ describe('TablesManager', () => {
         await screen.findByPlaceholderText('Invoices');
 
         editTableName('Bills');
-        fireEvent.click(screen.getByRole('button', { name: /make a form/i }));
+        await userEvent.click(screen.getByRole('button', { name: /make a form/i }));
 
         await waitFor(() => expect(studioAppsApi.saveSchema).toHaveBeenCalled());
         expect(studioAppsApi.saveSchema.mock.calls[0][1].tables[0].name).toBe('Bills');
@@ -97,7 +98,7 @@ describe('TablesManager', () => {
         await screen.findByPlaceholderText('Invoices');
 
         editTableName('Bills');
-        fireEvent.click(screen.getByRole('button', { name: /make a form/i }));
+        await userEvent.click(screen.getByRole('button', { name: /make a form/i }));
 
         await waitFor(() => expect(toast.error).toHaveBeenCalled());
         expect(onCommit).not.toHaveBeenCalled();
@@ -112,7 +113,7 @@ describe('TablesManager', () => {
 
         editTableName('Bills');
         const saveButton = screen.getByRole('button', { name: /save changes/i });
-        fireEvent.click(saveButton);
+        await userEvent.click(saveButton);
 
         // The user keeps typing while the request is out.
         editTableName('Bills 2026');
@@ -126,8 +127,8 @@ describe('TablesManager', () => {
         renderManager();
         await screen.findByPlaceholderText('Invoices');
 
-        fireEvent.click(screen.getByRole('button', { name: /^Rows$/ }));
-        expect(await screen.findByRole('button', { name: /paste from a spreadsheet/i })).toBeTruthy();
+        await userEvent.click(screen.getByRole('button', { name: /^Rows$/ }));
+        expect((await screen.findAllByRole('button', { name: /paste from a spreadsheet/i })).length).toBeGreaterThan(0);
         // The table list stays put, so another table's rows are one click away.
         expect(screen.getByRole('button', { name: 'Invoices' })).toBeTruthy();
     });
@@ -150,14 +151,14 @@ describe('TablesManager', () => {
         renderManager();
         await screen.findByPlaceholderText('Invoices');
 
-        fireEvent.click(screen.getByRole('button', { name: /^Relationships$/ }));
+        await userEvent.click(screen.getByRole('button', { name: /^Relationships$/ }));
         // Lazily loaded — ReactFlow is a lot of code for a tab most sessions
         // never open — so the tab arrives on a later tick.
         expect((await screen.findByTestId('relations')).textContent).toBe('2 tables on the map');
 
-        fireEvent.click(screen.getByRole('button', { name: /^Tables$/ }));
+        await userEvent.click(screen.getByRole('button', { name: /^Tables$/ }));
         editTableName('Bills');
-        fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+        await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
         await waitFor(() => expect(studioAppsApi.saveSchema).toHaveBeenCalled());
         expect(studioAppsApi.saveSchema.mock.calls[0][1].tables.map((t) => t.id)).toEqual(['tbl_a', 'tbl_b']);
     });
@@ -171,7 +172,7 @@ describe('TablesManager', () => {
         await screen.findByPlaceholderText('Invoices');
 
         editTableName('Bills');
-        fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+        await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
 
         await waitFor(() => expect(toast.error).toHaveBeenCalled());
         expect(toast.error.mock.calls.at(-1)[0]).toMatch(/Prices.*web address/i);

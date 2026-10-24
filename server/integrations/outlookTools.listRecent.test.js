@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * outlook_list_recent: the `since` filter and @odata.nextLink paging.
  *

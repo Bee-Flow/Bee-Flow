@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * NIS2 Art. 23(4) — the significant-incident reporting path: early warning
  * within 24 h, incident notification within 72 h, final report within one

@@ -1,4 +1,5 @@
-import { render, fireEvent, waitFor } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import AppFilePreview, { firstDescriptor } from './AppFilePreview';
 import { DataProvider } from '../DataContext';
@@ -116,12 +117,13 @@ describe('AppFilePreview', () => {
     });
 
     it('explains a 404 as access, and Try again re-fetches', async () => {
+        const user = userEvent.setup();
         globalThis.__authFetch = vi.fn(async () => ({ ok: false, status: 404, json: async () => ({}) }));
         const { getByText } = renderPreview(STUDIO);
         await waitFor(() => expect(getByText('You do not have access to this file.')).toBeTruthy());
 
         globalThis.__authFetch.mockClear();
-        fireEvent.click(getByText('Try again'));
+        await user.click(getByText('Try again'));
         await waitFor(() => expect(globalThis.__authFetch).toHaveBeenCalled());
     });
 

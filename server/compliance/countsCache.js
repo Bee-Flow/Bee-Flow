@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The /counts cache, owned by the feature rather than by its route.
  *

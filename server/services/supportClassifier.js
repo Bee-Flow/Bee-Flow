@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Support Classifier — decides whether an inbound email is a genuine customer
  * SUPPORT request for this inbox's organization, so non-support mail (order
@@ -113,12 +114,12 @@ async function maybeFilterNonSupport(inbox, thread, message) {
 
         await supportStore.addThreadTag(thread.id, NOT_SUPPORT_TAG);
         await supportStore.updateThread(thread.id, { category: verdict.suggestedCategory || NOT_SUPPORT_CATEGORY });
-        await supportStore.recordThreadEvent({
+        await supportStore.recordThreadEvent(/** @type {any} */ ({
             threadId: thread.id,
             actorKind: 'automation',
             action: 'classified_not_support',
             payload: { confidence: verdict.confidence, reason: verdict.reason },
-        }).catch(() => {});
+        })).catch(() => {});
         return { filtered: true, reason: verdict.reason };
     } catch (e) {
         log.warn('[SupportClassifier] maybeFilterNonSupport failed:', e.message);

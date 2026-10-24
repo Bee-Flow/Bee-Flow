@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Local adapter — system messages are folded into a template-safe shape.
  *

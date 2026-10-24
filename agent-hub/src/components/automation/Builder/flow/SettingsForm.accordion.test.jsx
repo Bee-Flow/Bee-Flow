@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import scopedStorage from '../../../../utils/scopedStorage';
@@ -64,11 +65,12 @@ describe('SettingsForm — accordion sections', () => {
         expect(screen.getByDisplayValue('to')).toBeTruthy();
     });
 
-    it('persists a collapsed section across remounts', () => {
+    it('persists a collapsed section across remounts', async () => {
+        const user = userEvent.setup();
         const step = { id: 'h1', type: 'http_request', label: 'Call', method: 'GET', url: '' };
         renderForm(step);
         expect(screen.getByText('Method')).toBeTruthy();
-        fireEvent.click(sectionHeader('Request'));
+        await user.click(sectionHeader('Request'));
         expect(scopedStorage.getItem('collapse.inspector.http_request.request')).toBe('0');
         cleanup();
         renderForm(step);

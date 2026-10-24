@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -282,7 +283,7 @@ const SCANS = Object.freeze({
 /**
  * Alles wat aan deze webpagina hangt.
  *
- * @param {object} webpage  de PAGINARIJ zoals de store hem teruggeeft, niet
+ * @param {Record<string, any>} webpage  de PAGINARIJ zoals de store hem teruggeeft, niet
  *                          alleen haar id: `projectId` is wat `scanSolution`
  *                          leest, en zonder die eigenschap meldt hij
  *                          "gecontroleerd, nul rijen" voor een pagina die wél

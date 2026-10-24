@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A webpage's current draft as ONE ready-to-run HTML document — what the web
  * editor's preview iframe shows, built on the server so a client that cannot
@@ -162,7 +163,7 @@ async function composeReactDraft(webpageId, extras, headScripts) {
 
 /**
  * @param {object} opts
- * @param {object} opts.webpage      the page row (owner in `userId`)
+ * @param {Record<string, any>} opts.webpage      the page row (owner in `userId`)
  * @param {{html:string,css:string,js:string}} opts.slots  what the caller may read
  * @param {string} opts.headScripts  the bridges to bake into <head>
  * @returns {Promise<{ status:'ready'|'empty'|'stranded'|'build_error', html:string|null,

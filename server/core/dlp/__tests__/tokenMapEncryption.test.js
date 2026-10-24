@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Privacy Shield token map is the reverse dictionary: [email_1] -> the real
  * address. It is exactly the PII that was stripped from the message, and it was

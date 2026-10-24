@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Chat title generation — uses a fast model to create conversation titles
  */

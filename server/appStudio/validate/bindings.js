@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio validator — the binding grammar: binding objects on props and
  * step fields, and the record/records/aggregate filter & sort descriptors.

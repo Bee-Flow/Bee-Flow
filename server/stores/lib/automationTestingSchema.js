@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Test data of Automations: the schema.

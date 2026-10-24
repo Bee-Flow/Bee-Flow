@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Notification preference routes — what I am told about, per channel.
  *

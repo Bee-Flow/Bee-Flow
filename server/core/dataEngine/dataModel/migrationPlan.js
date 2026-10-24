@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio data model — migration planning: the ordered DDL that carries a
  * database from one model's physical schema to the next, diffed by stable id.
@@ -83,7 +84,7 @@ function createTables(p) {
     for (const [id, nt] of p.newTables) {
         if (!p.inScope(id) || !p.physical.has(id)) continue;
         if (!p.oldTables.has(id) || p.materialised.has(id)) {
-            p.plan.push(ddlForTable(nt, { tableKeyById: p.newKeyById, dialect: p.dialect }));
+            p.plan.push(ddlForTable(nt, /** @type {any} */ ({ tableKeyById: p.newKeyById, dialect: p.dialect })));
         }
     }
 }

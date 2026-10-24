@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Restricted expression evaluator for automation conditions.
  *

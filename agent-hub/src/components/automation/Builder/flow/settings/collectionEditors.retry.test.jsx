@@ -21,6 +21,7 @@
 // because the failure it guards against is a file that was never edited.
 
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { createElement } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { RetrySection } from './collectionEditors';
@@ -51,17 +52,19 @@ describe('the "if this fails" row', () => {
         expect(screen.queryByRole('combobox', { name: 'Try again' })).toBeNull();
     });
 
-    it('ticking it asks for two more tries, five seconds apart', () => {
+    it('ticking it asks for two more tries, five seconds apart', async () => {
+        const user = userEvent.setup();
         const { set } = setup(OPTED_IN);
-        fireEvent.click(screen.getByRole('checkbox', { name: /Try again if this step fails/i }));
+        await user.click(screen.getByRole('checkbox', { name: /Try again if this step fails/i }));
         expect(set).toHaveBeenCalledWith('retry', { max: 2, backoffMs: 5000 });
     });
 
-    it('unticking it clears the field rather than leaving a zero behind', () => {
+    it('unticking it clears the field rather than leaving a zero behind', async () => {
+        const user = userEvent.setup();
         // null is what buildPatch needs to null the key out on the step; a
         // `{ max: 0 }` left behind would persist as a config that does nothing.
         const { set } = setup({ retry: { max: 3, backoffMs: 2000 } });
-        fireEvent.click(screen.getByRole('checkbox', { name: /Try again if this step fails/i }));
+        await user.click(screen.getByRole('checkbox', { name: /Try again if this step fails/i }));
         expect(set).toHaveBeenCalledWith('retry', null);
     });
 

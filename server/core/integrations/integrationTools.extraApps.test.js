@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for the extraEnabledApps allowlist (skill-scoped app enablement).
  *

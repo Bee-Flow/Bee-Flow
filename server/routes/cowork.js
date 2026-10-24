@@ -52,6 +52,7 @@ const express = require('express');
 const { z, typeError, datetimeWithOffset } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
 const coworkStore = require('../stores/coworkStore');
@@ -215,10 +216,9 @@ async function loadOwned(id, userId) {
     return existing;
 }
 
-function fail(res, err, label) {
-    const status = err.statusCode || 500;
-    if (status >= 500) log.error(`[Cowork] ${label} error:`, err.message);
-    res.status(status).json({ error: err.message });
+function fail(res, err, _label) {
+    if (err.statusCode >= 400 && err.statusCode < 500) throw new HttpError(err.statusCode, 'cowork_refused', err.message); // the guards' caller-written message
+    throw err; // anything else: the terminal handler logs it and answers a generic 500
 }
 
 /**

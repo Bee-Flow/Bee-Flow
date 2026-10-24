@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De agent-KIEZER van de AI-stap: welke agents staan er in de lijst, en wat
  * staat erbij als er eentje niet gekozen kan worden? (R2, deel C)

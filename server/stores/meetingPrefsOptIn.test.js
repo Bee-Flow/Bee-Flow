@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * meetingPrefsOptIn: which users have a live explicit "record" mark.
  * The db and the prefs store are injected through init(); the fake db applies the same

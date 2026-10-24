@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import DiagramPane from './DiagramPane';
@@ -44,10 +45,11 @@ describe('DiagramPane — Wrap to fit', () => {
         expect(btn.closest('[data-testid="canvas-zoom-stack"]')).toBeTruthy();
     });
 
-    it('commits exactly one definition change, with every position rewritten', () => {
+    it('commits exactly one definition change, with every position rewritten', async () => {
+        const user = userEvent.setup();
         const onDefinitionChange = vi.fn();
         renderCanvas({ onDefinitionChange });
-        fireEvent.click(wrapButton());
+        await user.click(wrapButton());
 
         expect(onDefinitionChange).toHaveBeenCalledTimes(1);
         const next = onDefinitionChange.mock.calls[0][0];
@@ -57,13 +59,14 @@ describe('DiagramPane — Wrap to fit', () => {
         expect(Number.isFinite(next.trigger.position.x)).toBe(true);
     });
 
-    it('folds the flowlets away first', () => {
+    it('folds the flowlets away first', async () => {
+        const user = userEvent.setup();
         // Positions are stored in collapsed space, so wrapping a canvas whose
         // containers are drawn expanded would measure one thing and show
         // another — which is how a wrapped flow came out wider than the screen.
         const onCollapseAllFlowlets = vi.fn();
         renderCanvas({ onDefinitionChange: vi.fn(), onCollapseAllFlowlets });
-        fireEvent.click(wrapButton());
+        await user.click(wrapButton());
         expect(onCollapseAllFlowlets).toHaveBeenCalledTimes(1);
     });
 

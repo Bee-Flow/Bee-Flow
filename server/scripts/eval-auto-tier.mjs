@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Evaluate the auto-tier classifier stages against a labelled corpus, so the
  * classify-service labels and cut-offs (core/llm/tierClassifierService.js)

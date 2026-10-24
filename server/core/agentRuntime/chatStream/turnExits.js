@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The ways a turn of ./turnLoop ends other than through ../finalizeTurn, and
  * the words it says when it has to speak for the model.
@@ -129,14 +130,14 @@ function throwLoopExit({ signal, abortLogged, terminationBaseRow }) {
         if (!abortLogged) {
             terminationStore.logTermination({ ...terminationBaseRow(), termination_type: 'aborted' }).catch(() => {});
         }
-        const _abortErr = new Error('Client disconnected before the turn finished');
+        const _abortErr = /** @type {Error & {_terminationLogged?: boolean}} */ (new Error('Client disconnected before the turn finished'));
         _abortErr.name = 'AbortError';
         _abortErr._terminationLogged = true;
         throw _abortErr;
     }
 
     terminationStore.logTermination({ ...terminationBaseRow(), termination_type: 'max_iterations' }).catch(() => {});
-    const _maxIterErr = new Error('Agent exceeded maximum tool call iterations');
+    const _maxIterErr = /** @type {Error & {_terminationLogged?: boolean}} */ (new Error('Agent exceeded maximum tool call iterations'));
     _maxIterErr._terminationLogged = true;
     throw _maxIterErr;
 }

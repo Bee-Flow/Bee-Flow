@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The single-row write-through and the checks every write shares, for
  * ./writeThrough.js (which documents the contract and the order) and

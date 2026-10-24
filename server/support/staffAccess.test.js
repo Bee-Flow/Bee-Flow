@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DB-free tests for the support staff gate (H6 — new shared home for the
  * admin_support permission check + acting-org resolution).

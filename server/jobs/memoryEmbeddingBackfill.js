@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Memory embedding backfill — brings `user_memories` onto the pgvector columns
  * and keeps them on the dimension the ACTIVE embedding provider produces.

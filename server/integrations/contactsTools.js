@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Google Contacts Tools — AI tools for managing Google Contacts
  * 

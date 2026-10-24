@@ -1,4 +1,5 @@
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ReactFlowProvider } from '@xyflow/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import NoteNode from './NoteNode';
@@ -49,10 +50,11 @@ describe('NoteNode — rich text display (BFSF-479)', () => {
         expect(screen.getByText('2 * 3 = 6')).toBeTruthy();
     });
 
-    it('shows the markup legend while editing, and only then', () => {
+    it('shows the markup legend while editing, and only then', async () => {
+        const user = userEvent.setup();
         renderNote({ text: 'hello' });
         expect(screen.queryByText(/\*\*bold\*\*/)).toBeNull();
-        fireEvent.click(screen.getByText('hello'));
+        await user.click(screen.getByText('hello'));
         expect(screen.getByText(/\*\*bold\*\*/)).toBeTruthy();
     });
 });

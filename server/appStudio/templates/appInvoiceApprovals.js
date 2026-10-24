@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio template — Invoice approvals (PDF in, approved and paid out).
  *

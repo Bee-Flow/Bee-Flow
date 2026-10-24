@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Package loader: activate / deactivate a verified package in the live
  * process, the crash accounting that quarantines a misbehaving module, the
@@ -150,7 +151,7 @@ async function _readManifest(dir) {
  * Activate a verified, staged package into the running process.
  * @param {string} moduleId
  * @param {string} version
- * @param {{ actorId?, manifest?, kid?, sha256?, entitlement?, persist?, onPhase? }} opts
+ * @param {{ actorId?, manifest?, kid?, sha256?, entitlement?, persist?, onPhase?, grantedPermissions?, source? }} [opts]
  */
 async function activate(moduleId, version, {
     actorId = null, manifest = null, kid = null, sha256 = null,
@@ -187,6 +188,7 @@ async function activate(moduleId, version, {
             }
             const missing = neededPermissions.filter(p => !grantedList.includes(p));
             if (missing.length) {
+                /** @type {Error & { code?: string, missingPermissions?: string[] }} */
                 const e = new Error(`permissions_not_granted: ${missing.join(',')}`);
                 e.code = 'permissions_not_granted';
                 e.missingPermissions = missing;

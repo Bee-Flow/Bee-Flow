@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The deduction behind an agent-driven AI step's toolstack: which tools may
  * run with no human present (withholdConfirmTools), plus the small readers of

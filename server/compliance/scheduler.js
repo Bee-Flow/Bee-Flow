@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance Scheduler — periodic runAll across every organization.
  *

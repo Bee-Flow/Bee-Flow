@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -19,37 +20,41 @@ describe('ChapterStrip hover tooltip', () => {
         expect(container.firstChild).toBeNull();
     });
 
-    it('shows title + time range + summary when a chapter is hovered', () => {
+    it('shows title + time range + summary when a chapter is hovered', async () => {
+        const user = userEvent.setup();
         render(<ChapterStrip chapters={CHAPTERS} onSeek={() => {}} />);
         // Nothing shown until hover.
         expect(screen.queryByText('Bespreking van MFA en inlogproblemen.')).toBeNull();
 
-        fireEvent.mouseEnter(screen.getByRole('button', { name: /Chapter: MFA en inloggen/ }));
+        await user.hover(screen.getByRole('button', { name: /Chapter: MFA en inloggen/ }));
         expect(screen.getByText('Bespreking van MFA en inlogproblemen.')).toBeTruthy();
         expect(screen.getByText(/10:00\s*–\s*20:00/)).toBeTruthy();
     });
 
-    it('shows title + range but no summary line for a chapter without one', () => {
+    it('shows title + range but no summary line for a chapter without one', async () => {
+        const user = userEvent.setup();
         render(<ChapterStrip chapters={CHAPTERS} onSeek={() => {}} />);
-        fireEvent.mouseEnter(screen.getByRole('button', { name: /Chapter: Afsluiting/ }));
+        await user.hover(screen.getByRole('button', { name: /Chapter: Afsluiting/ }));
         expect(screen.getByText(/20:00\s*–\s*30:00/)).toBeTruthy();
         // No summary text exists for this chapter.
         expect(screen.queryByText('Bespreking van MFA en inlogproblemen.')).toBeNull();
     });
 
-    it('hides the tooltip on mouse leave', () => {
+    it('hides the tooltip on mouse leave', async () => {
+        const user = userEvent.setup();
         render(<ChapterStrip chapters={CHAPTERS} onSeek={() => {}} />);
         const btn = screen.getByRole('button', { name: /Chapter: Opening/ });
-        fireEvent.mouseEnter(btn);
+        await user.hover(btn);
         expect(screen.getByText('Ewald opent de vergadering.')).toBeTruthy();
-        fireEvent.mouseLeave(btn);
+        await user.unhover(btn);
         expect(screen.queryByText('Ewald opent de vergadering.')).toBeNull();
     });
 
-    it('seeks to the chapter start on click', () => {
+    it('seeks to the chapter start on click', async () => {
+        const user = userEvent.setup();
         const onSeek = vi.fn();
         render(<ChapterStrip chapters={CHAPTERS} onSeek={onSeek} />);
-        fireEvent.click(screen.getByRole('button', { name: /Chapter: MFA en inloggen/ }));
+        await user.click(screen.getByRole('button', { name: /Chapter: MFA en inloggen/ }));
         expect(onSeek).toHaveBeenCalledWith(600);
     });
 });

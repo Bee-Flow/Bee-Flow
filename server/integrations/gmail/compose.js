@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Writing mail: header sanitation, the RFC 2822 message, and sending it.
  */

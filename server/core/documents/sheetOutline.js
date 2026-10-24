@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The OUTLINE of a spreadsheet: what is in it, without the data itself.
  *

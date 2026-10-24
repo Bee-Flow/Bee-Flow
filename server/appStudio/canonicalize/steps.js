@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio canonicalizer — sequence steps: the per-kind field walk and the
  * control-flow recursion through nested step lists and switch cases.

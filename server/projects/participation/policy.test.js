@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * projects/participation/policy.js — the organisation's switch and the
  * person's opt-out, with configStore injected.

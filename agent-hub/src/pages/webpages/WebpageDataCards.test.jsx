@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
@@ -74,13 +75,14 @@ describe('WebpageDataCards', () => {
     });
 
     it('shows the feeding automation and the warning card with a deep link to sharing', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(response(clone()));
         const onNavigate = vi.fn();
         render(<WebpageDataCards webpageId="wp1" sources={[]} onNavigate={onNavigate} />);
 
         expect(await screen.findByText(/writes straight into table Rates/)).toBeInTheDocument();
         expect(screen.getByText('Feeds Rates · never ran')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: 'Set up' }));
+        await user.click(screen.getByRole('button', { name: 'Set up' }));
         expect(onNavigate).toHaveBeenCalledWith('studio/datatables/tbl_1?tab=sharing');
     });
 

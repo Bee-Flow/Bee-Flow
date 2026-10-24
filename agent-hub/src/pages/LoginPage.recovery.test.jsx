@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ok, fail } from '@/test/http';
 import LoginPage from './LoginPage';
@@ -118,10 +119,11 @@ describe('the first-run root password', () => {
     });
 
     it('lands on the normal sign-in form once the key is acknowledged', async () => {
+        const user = userEvent.setup();
         route('/auth/setup', () => ok({ recoveryKey: 'AAAA-BBBB' }));
         await firstRun();
         fillRootPassword('Password1', 'Password1');
-        fireEvent.click(await screen.findByTestId('recovery-key-saved'));
+        await user.click(await screen.findByTestId('recovery-key-saved'));
         expect(await screen.findByTestId('username')).toBeInTheDocument();
         expect(screen.queryByTestId('recovery-key-modal')).toBeNull();
     });
@@ -130,10 +132,11 @@ describe('the first-run root password', () => {
     // no confirmation, no "type it back", no second chance. A misclick loses
     // the operator's recovery key silently. Hoort in stage L16 te veranderen.
     it('offers no confirmation step before the key disappears for good', async () => {
+        const user = userEvent.setup();
         route('/auth/setup', () => ok({ recoveryKey: 'AAAA-BBBB' }));
         await firstRun();
         fillRootPassword('Password1', 'Password1');
-        fireEvent.click(await screen.findByTestId('recovery-key-saved'));
+        await user.click(await screen.findByTestId('recovery-key-saved'));
         await screen.findByTestId('username');
         expect(screen.queryByText('AAAA-BBBB')).toBeNull();
     });
@@ -178,19 +181,21 @@ describe('forgetting your password', () => {
     });
 
     it('posts the address to /auth/forgot-password', async () => {
+        const user = userEvent.setup();
         route('/auth/forgot-password', () => ok({ success: true }));
         await openForgot();
         fireEvent.change(screen.getByTestId('forgot-email-input'), { target: { value: 'ada@example.com' } });
-        fireEvent.click(screen.getByText('Send reset link'));
+        await user.click(screen.getByText('Send reset link'));
         await waitFor(() => expect(callTo('/auth/forgot-password')).toBeTruthy());
         expect(bodyOf(callTo('/auth/forgot-password'))).toEqual({ email: 'ada@example.com' });
     });
 
     it('gives the same non-committal answer for an address that has no account', async () => {
+        const user = userEvent.setup();
         route('/auth/forgot-password', () => ok({ success: true }));
         await openForgot();
         fireEvent.change(screen.getByTestId('forgot-email-input'), { target: { value: 'nobody@example.com' } });
-        fireEvent.click(screen.getByText('Send reset link'));
+        await user.click(screen.getByText('Send reset link'));
         expect(await screen.findByText(/If an account exists for that email/)).toBeInTheDocument();
     });
 
@@ -198,27 +203,30 @@ describe('forgetting your password', () => {
     // reached the server is indistinguishable from a delivered mail. The user
     // waits for an e-mail that was never sent. Hoort in stage L16 te veranderen.
     it('claims the mail is on its way even when the request never left the browser', async () => {
+        const user = userEvent.setup();
         route('/auth/forgot-password', () => Promise.reject(new Error('offline')));
         await openForgot();
         fireEvent.change(screen.getByTestId('forgot-email-input'), { target: { value: 'ada@example.com' } });
-        fireEvent.click(screen.getByText('Send reset link'));
+        await user.click(screen.getByText('Send reset link'));
         expect(await screen.findByText(/If an account exists for that email/)).toBeInTheDocument();
     });
 
     // wrat: a 500 gets the same treatment for a different reason — the response
     // is never inspected at all. Hoort in stage L16 te veranderen.
     it('claims the mail is on its way when the server answered with a 500', async () => {
+        const user = userEvent.setup();
         route('/auth/forgot-password', () => fail(500, { error: 'mailer down' }));
         await openForgot();
         fireEvent.change(screen.getByTestId('forgot-email-input'), { target: { value: 'ada@example.com' } });
-        fireEvent.click(screen.getByText('Send reset link'));
+        await user.click(screen.getByText('Send reset link'));
         expect(await screen.findByText(/If an account exists for that email/)).toBeInTheDocument();
         expect(screen.queryByText('mailer down')).toBeNull();
     });
 
     it('walks back to the sign-in form', async () => {
+        const user = userEvent.setup();
         await openForgot();
-        fireEvent.click(screen.getAllByText('Back to sign in')[0]);
+        await user.click(screen.getAllByText('Back to sign in')[0]);
         expect(await screen.findByTestId('username')).toBeInTheDocument();
     });
 });
@@ -260,11 +268,12 @@ describe('arriving on a reset link', () => {
     });
 
     it('confirms and offers the way back to sign in', async () => {
+        const user = userEvent.setup();
         route('/auth/reset-password', () => ok({ success: true }));
         await openReset();
         setNewPassword('correct-horse');
         expect(await screen.findByText(/Your password has been reset/)).toBeInTheDocument();
-        fireEvent.click(screen.getByText('Go to sign in'));
+        await user.click(screen.getByText('Go to sign in'));
         expect(await screen.findByTestId('username')).toBeInTheDocument();
     });
 
@@ -316,18 +325,20 @@ describe('the e-mail-verification gate', () => {
     });
 
     it('resends the link through /auth/resend-verification', async () => {
+        const user = userEvent.setup();
         route('/auth/resend-verification', () => ok({ success: true }));
         await blockedLogin();
-        fireEvent.click(screen.getByText('Resend confirmation email'));
+        await user.click(screen.getByText('Resend confirmation email'));
         await waitFor(() => expect(callTo('/auth/resend-verification')).toBeTruthy());
         expect(bodyOf(callTo('/auth/resend-verification'))).toEqual({ email: 'ada@example.com' });
         expect(await screen.findByText(/a new link is on its way/)).toBeInTheDocument();
     });
 
     it('shows the same neutral confirmation when the resend request fails', async () => {
+        const user = userEvent.setup();
         route('/auth/resend-verification', () => Promise.reject(new Error('offline')));
         await blockedLogin();
-        fireEvent.click(screen.getByText('Resend confirmation email'));
+        await user.click(screen.getByText('Resend confirmation email'));
         expect(await screen.findByText(/a new link is on its way/)).toBeInTheDocument();
     });
 
@@ -343,8 +354,9 @@ describe('the e-mail-verification gate', () => {
     });
 
     it('walks back to the sign-in form', async () => {
+        const user = userEvent.setup();
         await blockedLogin();
-        fireEvent.click(screen.getByText('Back to login'));
+        await user.click(screen.getByText('Back to login'));
         expect(await screen.findByTestId('username')).toBeInTheDocument();
     });
 });

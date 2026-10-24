@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The WebDAV plumbing the file tools and the spreadsheet mirror share: the
  * PROPFIND body asks for the etag, the permission string and the owner id

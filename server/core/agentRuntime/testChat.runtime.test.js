@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De TESTCHAT in een echte streaming-beurt (A4 deel A).
  *

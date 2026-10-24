@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 // Focused unit tests for the tokenise/restore round-trip correctness fixes

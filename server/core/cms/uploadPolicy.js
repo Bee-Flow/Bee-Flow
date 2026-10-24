@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What the CMS accepts as an uploaded asset, in one place.
  *

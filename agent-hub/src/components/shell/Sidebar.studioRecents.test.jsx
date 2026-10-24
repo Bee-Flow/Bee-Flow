@@ -1,4 +1,5 @@
 import { render as rtlRender, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
@@ -140,34 +141,37 @@ describe('Studio flyout — recently edited panel', () => {
     });
 
     it('deep-links to the item, not merely to the section', async () => {
+        const user = userEvent.setup();
         serveAgents();
         const onNavigate = vi.fn();
         renderSidebar({ onNavigate });
         openStudioFlyout();
         hoverSection('agents');
         await screen.findByTestId('subflyout-agents');
-        fireEvent.click(screen.getByTestId('nav-recent-agents-ag2'));
+        await user.click(screen.getByTestId('nav-recent-agents-ag2'));
         expect(onNavigate).toHaveBeenLastCalledWith('studio/agents/ag2');
     });
 
     it('offers a way out to the whole section', async () => {
+        const user = userEvent.setup();
         serveAgents();
         const onNavigate = vi.fn();
         renderSidebar({ onNavigate });
         openStudioFlyout();
         hoverSection('agents');
         await screen.findByTestId('subflyout-agents');
-        fireEvent.click(screen.getByTestId('nav-recent-agents-all'));
+        await user.click(screen.getByTestId('nav-recent-agents-all'));
         expect(onNavigate).toHaveBeenLastCalledWith('studio/agents');
     });
 
     it('picking an item closes both levels', async () => {
+        const user = userEvent.setup();
         serveAgents();
         renderSidebar();
         openStudioFlyout();
         hoverSection('agents');
         await screen.findByTestId('subflyout-agents');
-        fireEvent.click(screen.getByTestId('nav-recent-agents-ag1'));
+        await user.click(screen.getByTestId('nav-recent-agents-ag1'));
         expect(screen.queryByTestId('subflyout-agents')).toBeNull();
         expect(screen.queryByTestId('flyout-studio')).toBeNull();
     });
@@ -197,13 +201,14 @@ describe('Studio flyout — recently edited panel', () => {
     });
 
     it('a failing section list leaves the flyout itself entirely usable', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         fetchMock.impl = async () => { throw new Error('403'); };
         renderSidebar({ onNavigate });
         openStudioFlyout();
         hoverSection('skills');
         await waitFor(() => expect(screen.queryByTestId('subflyout-skills')).toBeNull());
-        fireEvent.click(screen.getByTestId('nav-studio-skills'));
+        await user.click(screen.getByTestId('nav-studio-skills'));
         expect(onNavigate).toHaveBeenLastCalledWith('studio/skills');
     });
 

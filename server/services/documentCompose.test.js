@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The composer is the only thing standing between AI-authored (and then
  * hand-edited) markup and a real Chromium running ON THE SERVER. These tests

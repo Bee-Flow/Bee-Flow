@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * execAiStep's Knowledge Base grounding (BFSF-410).
  *

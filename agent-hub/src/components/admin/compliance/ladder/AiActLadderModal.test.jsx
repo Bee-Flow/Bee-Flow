@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -116,7 +117,8 @@ describe('AiActLadderModal — step verdicts from the signals (artboard 1f)', ()
         expect(screen.queryByTestId('ladder-step-2-verdict')).toBeNull();
     });
 
-    it('all EIGHT Art. 5 chips ticked → "No"; all TEN Annex III questions answered "No" → "No"; the outcome becomes transparency', () => {
+    it('all EIGHT Art. 5 chips ticked → "No"; all TEN Annex III questions answered "No" → "No"; the outcome becomes transparency', async () => {
+        const user = userEvent.setup();
         render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={hookData()} now={NOW} />);
         // These counts were 3 and 4 while the server's lists were 8 and 10, so
         // ticking everything on screen recorded a declaration about things
@@ -124,11 +126,11 @@ describe('AiActLadderModal — step verdicts from the signals (artboard 1f)', ()
         expect(screen.getAllByTestId('ladder-art5-chip')).toHaveLength(8);
         expect(screen.getAllByTestId('ladder-annex-question')).toHaveLength(10);
 
-        fireEvent.click(screen.getAllByTestId('ladder-art5-chip')[0]);
+        await user.click(screen.getAllByTestId('ladder-art5-chip')[0]);
         expect(screen.getByTestId('ladder-step-1').getAttribute('data-state')).toBe('open');
         clickAll('ladder-art5-chip'); // toggles the first OFF and the other seven ON
         expect(screen.getByTestId('ladder-step-1').getAttribute('data-state')).toBe('open');
-        fireEvent.click(screen.getAllByTestId('ladder-art5-chip')[0]);
+        await user.click(screen.getAllByTestId('ladder-art5-chip')[0]);
         expect(screen.getByTestId('ladder-step-1').getAttribute('data-state')).toBe('done');
         expect(screen.getByTestId('ladder-step-1-verdict').textContent).toBe('No');
 
@@ -137,16 +139,16 @@ describe('AiActLadderModal — step verdicts from the signals (artboard 1f)', ()
         expect(screen.getByTestId('ladder-step-3').getAttribute('data-state')).toBe('open');
         expect(screen.getByTestId('ladder-step-3-verdict').textContent).toBe('9 of 10 answered');
 
-        fireEvent.click(screen.getAllByTestId('ladder-annex-no')[9]);
+        await user.click(screen.getAllByTestId('ladder-annex-no')[9]);
         expect(screen.getByTestId('ladder-step-3').getAttribute('data-state')).toBe('done');
         expect(screen.getByTestId('ladder-step-3-verdict').textContent).toBe('No');
 
         // Pressing the answer you gave takes it back — a legal declaration
         // needs a way out of a mis-click, and the step drops back to counting.
-        fireEvent.click(screen.getAllByTestId('ladder-annex-no')[9]);
+        await user.click(screen.getAllByTestId('ladder-annex-no')[9]);
         expect(screen.getByTestId('ladder-step-3').getAttribute('data-state')).toBe('open');
         expect(screen.getByTestId('ladder-step-3-verdict').textContent).toBe('9 of 10 answered');
-        fireEvent.click(screen.getAllByTestId('ladder-annex-no')[9]);
+        await user.click(screen.getAllByTestId('ladder-annex-no')[9]);
 
         const box = screen.getByTestId('ladder-outcome');
         expect(box.getAttribute('data-outcome')).toBe('transparency');
@@ -178,21 +180,23 @@ describe('AiActLadderModal — step verdicts from the signals (artboard 1f)', ()
 
 describe('AiActLadderModal — actions', () => {
     it('"Enable marking" calls the hook\'s enableMarking (PUT settings + refetch) and toasts', async () => {
+        const user = userEvent.setup();
         const data = hookData();
         render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={data} now={NOW} />);
-        fireEvent.click(screen.getByTestId('ladder-enable-marking'));
+        await user.click(screen.getByTestId('ladder-enable-marking'));
         await waitFor(() => expect(data.enableMarking).toHaveBeenCalledTimes(1));
         await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Content marking enabled for this organisation.'));
     });
 
     it('"Record as self-declared" PUTs the answers (art50 from signals), toasts, reports and closes', async () => {
+        const user = userEvent.setup();
         const data = hookData();
         const onClose = vi.fn();
         const onRecorded = vi.fn();
         render(<AiActLadderModal open onClose={onClose} onRecorded={onRecorded} kind="automation" target={quote} data={data} now={NOW} />);
         clickAll('ladder-art5-chip');
         answerAllAnnex('no');
-        fireEvent.click(screen.getByTestId('ladder-record'));
+        await user.click(screen.getByTestId('ladder-record'));
         await waitFor(() => expect(data.save).toHaveBeenCalledTimes(1));
         expect(data.save).toHaveBeenCalledWith({
             art5: { answer: 'no', practices: [] },
@@ -206,23 +210,25 @@ describe('AiActLadderModal — actions', () => {
     });
 
     it('a failed record is its own state: the error line shows, the modal stays open', async () => {
+        const user = userEvent.setup();
         const data = hookData({ save: vi.fn().mockRejectedValue(new Error('500 Internal Server Error')) });
         const onClose = vi.fn();
         render(<AiActLadderModal open onClose={onClose} kind="automation" target={quote} data={data} now={NOW} />);
         clickAll('ladder-art5-chip');
         answerAllAnnex('no');
-        fireEvent.click(screen.getByTestId('ladder-record'));
+        await user.click(screen.getByTestId('ladder-record'));
         await waitFor(() => expect(screen.getByTestId('ladder-action-error').textContent).toContain('500 Internal Server Error'));
         expect(onClose).not.toHaveBeenCalled();
     });
 
-    it('answering ONE domain "Yes" makes it high-risk and names the point of the annex', () => {
+    it('answering ONE domain "Yes" makes it high-risk and names the point of the annex', async () => {
+        const user = userEvent.setup();
         // The four-chip ladder had no way to say yes at all: a genuinely
         // high-risk system could not be recorded as one through this screen.
         render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={hookData()} now={NOW} />);
         clickAll('ladder-art5-chip');
         const credit = screen.getAllByTestId('ladder-annex-yes').find(b => b.getAttribute('data-domain') === 'credit');
-        fireEvent.click(credit);
+        await user.click(credit);
 
         expect(screen.getByTestId('ladder-step-3-verdict').textContent).toBe('Yes');
         expect(screen.getByTestId('ladder-annex-articles').textContent).toBe('High risk under Annex III(5)(b).');
@@ -347,6 +353,7 @@ describe('AiActLadderModal — standalone (owns the hook) and the 404 fallback',
     });
 
     it('"Enable marking" in standalone mode PUTs /settings {ai_content_marking_enabled:true} then refetches the signals', async () => {
+        const user = userEvent.setup();
         authFetch.mockImplementation(async (url, init) => {
             if (url.endsWith('/settings') && init?.method === 'PUT') return { ok: true, json: async () => ({ ok: true }) };
             if (url.endsWith('/signals')) return { ok: true, json: async () => ({ ...ARTBOARD_SIGNALS, marking_enabled: true }) };
@@ -354,7 +361,7 @@ describe('AiActLadderModal — standalone (owns the hook) and the 404 fallback',
         });
         render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} now={NOW} />);
         await waitFor(() => expect(screen.getByTestId('ladder-card-marking').getAttribute('data-tone')).toBe('error'));
-        fireEvent.click(screen.getByTestId('ladder-enable-marking'));
+        await user.click(screen.getByTestId('ladder-enable-marking'));
         await waitFor(() => expect(authFetch).toHaveBeenCalledWith(
             `${API}/settings`,
             expect.objectContaining({ method: 'PUT', body: JSON.stringify({ ai_content_marking_enabled: true }) }),

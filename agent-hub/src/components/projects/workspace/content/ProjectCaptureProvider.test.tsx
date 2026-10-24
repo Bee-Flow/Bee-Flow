@@ -1,5 +1,6 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const fake = vi.hoisted(() => ({
     capture: { open: false, session: 0, openCapture: vi.fn() },
@@ -26,9 +27,10 @@ beforeEach(() => {
 });
 describe('project capture lifecycle', () => {
     it('files into the original project after the tab has unmounted', async () => {
+        const user = userEvent.setup();
         const ui = (tab: boolean) => <ProjectCaptureProvider onNavigate={vi.fn()}>{tab ? <Tab /> : <div>Another project</div>}</ProjectCaptureProvider>;
         const view = render(ui(true));
-        fireEvent.click(screen.getByText('Record'));
+        await user.click(screen.getByText('Record'));
         await waitFor(() => expect(fake.capture.openCapture).toHaveBeenCalledTimes(1));
         view.rerender(ui(false));
         fake.recorder.version = 1; fake.recorder.lastResultId = 'meeting-1';
@@ -38,15 +40,16 @@ describe('project capture lifecycle', () => {
         expect(fake.filed).not.toHaveBeenCalled();
     });
     it('retains the saved meeting for a retry after filing fails', async () => {
+        const user = userEvent.setup();
         fake.attach.mockRejectedValueOnce(new Error('Network unavailable'));
         const navigate = vi.fn();
         const ui = (tab: boolean) => <ProjectCaptureProvider onNavigate={navigate}>{tab ? <Tab /> : null}</ProjectCaptureProvider>;
-        const view = render(ui(true)); fireEvent.click(screen.getByText('Record'));
+        const view = render(ui(true)); await user.click(screen.getByText('Record'));
         await waitFor(() => expect(fake.capture.openCapture).toHaveBeenCalledTimes(1));
         fake.recorder.version = 1; fake.recorder.lastResultId = 'meeting-1'; view.rerender(ui(false));
-        fireEvent.click(await screen.findByRole('button', { name: 'Open saved meeting' }));
+        await user.click(await screen.findByRole('button', { name: 'Open saved meeting' }));
         expect(navigate).toHaveBeenCalledWith('studio/meeting-notes/meeting-1');
-        fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+        await user.click(screen.getByRole('button', { name: 'Try again' }));
         await waitFor(() => expect(fake.attach).toHaveBeenCalledTimes(2));
         expect(fake.attach.mock.calls[1]).toEqual(['p1', { kind: 'meeting', id: 'meeting-1', attach: true }]);
         expect(fake.recorder.consumeLastResult).toHaveBeenCalledTimes(1);

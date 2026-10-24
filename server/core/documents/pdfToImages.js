@@ -108,10 +108,10 @@ async function renderPdfPagesToImages(pdfBuffer, { maxPages = 20, scale = null, 
             images.push({ base64: pngBuffer.toString('base64'), mimeType: 'image/png' });
         }
 
-        log.info(`[PdfToImages] ${filename}: rendered ${images.length}/${totalPages} pages to PNG${truncated ? ' (truncated)' : ''}`);
+        log.info(`[PdfToImages] ${log.nameForLog(filename)}: rendered ${images.length}/${totalPages} pages to PNG${truncated ? ' (truncated)' : ''}`);
         return { images, totalPages, truncated };
     } catch (err) {
-        log.warn(`[PdfToImages] Failed to render ${filename}:`, err.message);
+        log.warn(`[PdfToImages] Failed to render ${log.nameForLog(filename)}:`, err.message);
         return null;
     }
 }

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Recording mock for `../db` — shared test harness (H2).
  *
@@ -29,16 +30,16 @@
  *   assert.ok(mock.mutations().every(c => /user_id\s*=\s*\$/i.test(c.sql)));
  */
 
-/**
- * @param {object} opts
- * @param {Record<string, object[]>} [opts.tables] table name → seed rows
- * @param {Record<string, (rows: object[], sql: string, params: any[]) => object[]>} [opts.matchers]
- *   per-table override for queries the default equality matcher can't model
- * @param {(sql: string, params: any[]) => ({rows: object[], rowCount: number}) | undefined} [opts.onQuery]
- *   optional escape hatch: return a result to fully override dispatch for a query
- */
 const log = require('../telemetry/log');
 
+/**
+ * @param {object} [opts]
+ * @param {Record<string, Record<string, any>[]>} [opts.tables] table name → seed rows
+ * @param {Record<string, (rows: Record<string, any>[], sql: string, params: any[]) => Record<string, any>[]>} [opts.matchers]
+ *   per-table override for queries the default equality matcher can't model
+ * @param {(sql: string, params: any[]) => ({rows: Record<string, any>[], rowCount: number}) | undefined} [opts.onQuery]
+ *   optional escape hatch: return a result to fully override dispatch for a query
+ */
 function createRecordingDb({ tables = {}, matchers = {}, onQuery } = {}) {
     const calls = { run: [], getOne: [], getAll: [], client: [], exec: [] };
 

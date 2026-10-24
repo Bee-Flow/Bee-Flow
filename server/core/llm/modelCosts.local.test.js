@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DB-free tests — self-hosted models are billed at €0.
  *

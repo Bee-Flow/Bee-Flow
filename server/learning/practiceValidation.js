@@ -1,3 +1,4 @@
+// @typecheck
 // Validation + clamps for AI-generated practice questions (v2).
 //
 // The generator (routes/ai/learning.js POST /practice/generate) forces the

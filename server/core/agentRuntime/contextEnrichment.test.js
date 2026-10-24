@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * BFSF-354 — knowledge-base passages an agent turn injects WITHOUT a tool call
  * honour the Privacy Shield's "own server" block list.

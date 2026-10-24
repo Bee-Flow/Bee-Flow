@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Moved to core/automationModel/bind.js. The automation definition model is
  * pure (no stores, db or network) and core/ (the runner, agentRuntime) reads

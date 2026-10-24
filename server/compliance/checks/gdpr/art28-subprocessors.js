@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR Art. 28 — processor contracts (DPAs).
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * routes/projects/complianceSignal.js — the PROJECT_CHANGED signal the project
  * routes raise: ids only, the org-less bucket, and silence when the compliance

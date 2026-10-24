@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * document_download: the chat hands the user a download button for a
  * SPREADSHEET document. The file is built here from the stored cells, so the
@@ -46,7 +47,7 @@ function csvTab(tabs, wanted) {
  * @param {any} doc   the document, already looked up and scope-checked
  * @param {{ format?: string, tab?: string }} args
  * @param {{ userId: string }} ctx
- * @param {{ cells?: any, storage?: any, evaluate?: Function }} [deps]
+ * @param {{ cells?: any, storage?: any, evaluate?: (cells: Record<string, string>) => Record<string, { display: string }> }} [deps]
  */
 async function downloadSheetDocument(doc, args, ctx, deps = {}) {
     if (doc.docType !== 'spreadsheet') {

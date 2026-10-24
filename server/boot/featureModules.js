@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The feature side of core/featureModules.js: every feature module core code
  * calls by name, registered as a getter (nothing below loads until first use).

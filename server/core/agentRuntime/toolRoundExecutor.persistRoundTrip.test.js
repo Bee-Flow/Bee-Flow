@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The reported defect, end to end across the seam that caused it.
  *

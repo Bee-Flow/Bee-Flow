@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DB-free tests — which models get marked as self-hosted, and the environment
  * auto-registration of local runtimes.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder — the CORE (small-band) projection of the tool schemas.
  *
@@ -148,7 +149,7 @@ function projectCoreToolSchemas(toolSchemas) {
     const list = Array.isArray(toolSchemas) ? toolSchemas : [];
     const hit = _cache.get(list);
     if (hit) return hit;
-    const projected = Object.freeze(list.map(projectOne).map((t) => deepFreeze(t)));
+    const projected = /** @type {any[]} */ (Object.freeze(list.map(projectOne).map((t) => deepFreeze(t))));
     _cache.set(list, projected);
     return projected;
 }

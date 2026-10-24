@@ -15,7 +15,8 @@
  *
  * Run: cd agent-hub && npx vitest run src/demo/DemoHost.test.jsx
  */
-import { render, screen, waitFor, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import DemoHost from './DemoHost';
@@ -235,6 +236,7 @@ describe('the ?vw= viewport override', () => {
     });
 
     it('the close button goes back to the page the visitor came from', async () => {
+        const user = userEvent.setup();
         // pushState (not replace) so there is real history behind the demo,
         // the same shape as the marketing page's same-tab navigation.
         window.history.pushState({}, '', '?vw=1280');
@@ -242,7 +244,7 @@ describe('the ?vw= viewport override', () => {
         await screen.findByText('Demo not found');
 
         const backSpy = vi.spyOn(window.history, 'back').mockImplementation(() => {});
-        fireEvent.click(screen.getByRole('button', { name: /Close the demo/ }));
+        await user.click(screen.getByRole('button', { name: /Close the demo/ }));
         expect(backSpy).toHaveBeenCalledTimes(1);
         backSpy.mockRestore();
     });

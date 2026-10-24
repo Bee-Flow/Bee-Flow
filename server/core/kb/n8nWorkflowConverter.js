@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * n8n Workflow → Markdown Converter
  * 

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A project notebook's own knowledge base, for the people it is shared with.
  *

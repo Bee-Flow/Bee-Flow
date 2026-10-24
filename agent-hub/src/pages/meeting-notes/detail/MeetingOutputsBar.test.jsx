@@ -6,7 +6,8 @@
  * That sentence sits one scroll above a delete button, and it is the one
  * claim on this screen that a person will act on.
  */
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import MeetingOutputsBar, { orderRows } from './MeetingOutputsBar';
@@ -71,20 +72,22 @@ describe('MeetingOutputsBar', () => {
         expect(screen.getByTestId('meeting-output-chip').textContent).toMatch(/on every meeting/i);
     });
 
-    it('navigates in-app for your own row', () => {
+    it('navigates in-app for your own row', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         render(<MeetingOutputsBar rows={[kbRow()]} currentUserId="me" onNavigate={onNavigate} />);
-        fireEvent.click(within(screen.getByTestId('meeting-output-chip')).getByText('Sales'));
+        await user.click(within(screen.getByTestId('meeting-output-chip')).getByText('Sales'));
         expect(onNavigate).toHaveBeenCalledWith('studio/knowledge/kb-1');
     });
 
-    it('somebody else’s row is plain text, not a link that lands on nothing', () => {
+    it('somebody else’s row is plain text, not a link that lands on nothing', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         render(<MeetingOutputsBar rows={[kbRow({ ownerId: 'someone-else', title: null })]} currentUserId="me" onNavigate={onNavigate} />);
         const chip = screen.getByTestId('meeting-output-chip');
         expect(chip.tagName).toBe('SPAN');
         expect(chip.textContent).toMatch(/Someone else/i);
-        fireEvent.click(chip);
+        await user.click(chip);
         expect(onNavigate).not.toHaveBeenCalled();
     });
 

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The shared "no-code theming" vocabulary: five knobs that restyle a whole
  * surface without anyone writing CSS — plus two OPTIONAL colours.

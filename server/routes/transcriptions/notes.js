@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Transcriptions — listing & retrieval.
  *

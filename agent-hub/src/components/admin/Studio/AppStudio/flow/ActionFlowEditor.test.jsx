@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import ActionFlowEditor from './ActionFlowEditor';
@@ -94,50 +95,57 @@ describe('ActionFlowEditor — reading an action', () => {
 });
 
 describe('ActionFlowEditor — building', () => {
-    it('adds a step and commits a sequence', () => {
+    it('adds a step and commits a sequence', async () => {
+        const user = userEvent.setup();
         const { last } = renderFlow(seq([]));
-        fireEvent.click(screen.getByRole('button', { name: /add the first step/i }));
-        fireEvent.click(screen.getByText('Show a message'));
+        await user.click(screen.getByRole('button', { name: /add the first step/i }));
+        await user.click(screen.getByText('Show a message'));
 
         expect(last().kind).toBe('sequence');
         expect(last().steps).toHaveLength(1);
         expect(last().steps[0].kind).toBe('toast');
     });
 
-    it('a new step lands valid — every required field is already there', () => {
+    it('a new step lands valid — every required field is already there', async () => {
+        const user = userEvent.setup();
         const { last } = renderFlow(seq([]));
-        fireEvent.click(screen.getByRole('button', { name: /add the first step/i }));
-        fireEvent.click(screen.getByText('Go to screen'));
+        await user.click(screen.getByRole('button', { name: /add the first step/i }));
+        await user.click(screen.getByText('Go to screen'));
         // The first screen is pre-picked rather than left blank.
         expect(last().steps[0].screenId).toBe('scr_a');
     });
 
-    it('adds a step INTO a branch, not after the container', () => {
+    it('adds a step INTO a branch, not after the container', async () => {
+        const user = userEvent.setup();
         const { last } = renderFlow(seq([{ kind: 'condition', expr: 'x', then: [], else: [] }]));
+        // fireEvent: the branch's add button sits in a React Flow layer with pointer-events: none, which user.click refuses.
         fireEvent.click(screen.getByLabelText('Add a step to Yes'));
-        fireEvent.click(screen.getByText('Show a message'));
+        await user.click(screen.getByText('Show a message'));
 
         expect(last().steps[0].then).toHaveLength(1);
         expect(last().steps[0].else).toHaveLength(0);
         expect(last().steps).toHaveLength(1);
     });
 
-    it('deleting a container takes its branches with it', () => {
+    it('deleting a container takes its branches with it', async () => {
+        const user = userEvent.setup();
         const { last } = renderFlow(seq([
             { kind: 'condition', expr: 'x', then: [{ kind: 'toast', message: 'inside' }], else: [] },
             { kind: 'toast', message: 'after' },
         ]));
+        // fireEvent on the nodes: user.click's mousedown reaches React Flow's d3-zoom, which throws in jsdom (no event.view).
         fireEvent.click(screen.getByText('If…'));
-        fireEvent.click(screen.getByRole('button', { name: /delete this if/i }));
+        await user.click(screen.getByRole('button', { name: /delete this if/i }));
 
         expect(last().steps).toHaveLength(1);
         expect(last().steps[0].message).toBe('after');
     });
 
-    it('the step ids it uses never reach the saved action', () => {
+    it('the step ids it uses never reach the saved action', async () => {
+        const user = userEvent.setup();
         const { last } = renderFlow(seq([]));
-        fireEvent.click(screen.getByRole('button', { name: /add the first step/i }));
-        fireEvent.click(screen.getByText('Show a message'));
+        await user.click(screen.getByRole('button', { name: /add the first step/i }));
+        await user.click(screen.getByText('Show a message'));
         expect(last().steps[0]).not.toHaveProperty('id');
     });
 
@@ -150,16 +158,19 @@ describe('ActionFlowEditor — building', () => {
      * likeliest next move was to publish an action that could not run.
      */
     it('opens the new step’s settings straight away', async () => {
+        const user = userEvent.setup();
         renderFlow(seq([]));
-        fireEvent.click(screen.getByRole('button', { name: /add the first step/i }));
-        fireEvent.click(screen.getByText('Show a message'));
+        await user.click(screen.getByRole('button', { name: /add the first step/i }));
+        await user.click(screen.getByText('Show a message'));
         expect(await screen.findByLabelText('Message')).toBeTruthy();
     });
 
     it('opens the settings of a step added INTO a branch', async () => {
+        const user = userEvent.setup();
         renderFlow(seq([{ kind: 'condition', expr: 'x', then: [], else: [] }]));
+        // fireEvent: the branch's add button sits in a React Flow layer with pointer-events: none, which user.click refuses.
         fireEvent.click(screen.getByLabelText('Add a step to Yes'));
-        fireEvent.click(screen.getByText('Show a message'));
+        await user.click(screen.getByText('Show a message'));
         expect(await screen.findByLabelText('Message')).toBeTruthy();
     });
 });
@@ -254,29 +265,32 @@ describe('ActionFlowEditor — the automation builder’s tools', () => {
         expect(screen.getByRole('menuitem', { name: /delete/i })).toBeTruthy();
     });
 
-    it('duplicating puts the copy straight after the original', () => {
+    it('duplicating puts the copy straight after the original', async () => {
+        const user = userEvent.setup();
         const { last } = renderFlow(seqOf('one', 'two'));
         fireEvent.contextMenu(screen.getByText('one'));
-        fireEvent.click(screen.getByRole('menuitem', { name: /duplicate/i }));
+        await user.click(screen.getByRole('menuitem', { name: /duplicate/i }));
         expect(last().steps.map((s) => s.message)).toEqual(['one', 'one', 'two']);
     });
 
-    it('duplicating a branch step copies what is inside it', () => {
+    it('duplicating a branch step copies what is inside it', async () => {
+        const user = userEvent.setup();
         const { last } = renderFlow(seq([
             { kind: 'condition', expr: 'x', then: [{ kind: 'toast', message: 'inside' }], else: [] },
         ]));
         fireEvent.contextMenu(screen.getByText('If…'));
-        fireEvent.click(screen.getByRole('menuitem', { name: /duplicate/i }));
+        await user.click(screen.getByRole('menuitem', { name: /duplicate/i }));
         expect(last().steps).toHaveLength(2);
         expect(last().steps[1].then[0].message).toBe('inside');
         // The copy carries no editor-only ids into the saved action.
         expect(last().steps[1].then[0]).not.toHaveProperty('id');
     });
 
-    it('deleting from the menu removes that step', () => {
+    it('deleting from the menu removes that step', async () => {
+        const user = userEvent.setup();
         const { last } = renderFlow(seqOf('one', 'two'));
         fireEvent.contextMenu(screen.getByText('one'));
-        fireEvent.click(screen.getByRole('menuitem', { name: /delete/i }));
+        await user.click(screen.getByRole('menuitem', { name: /delete/i }));
         expect(last().steps.map((s) => s.message)).toEqual(['two']);
     });
 
@@ -288,17 +302,18 @@ describe('ActionFlowEditor — the automation builder’s tools', () => {
      * edge-delete path to disconnect one first. Deleting a step and rebuilding
      * it further down was the only way.
      */
-    it('moves a step later, and back', () => {
+    it('moves a step later, and back', async () => {
+        const user = userEvent.setup();
         const { last } = renderFlow(seqOf('one', 'two', 'three'));
         fireEvent.click(screen.getByText('one'));
-        fireEvent.click(screen.getByRole('button', { name: /move this step later/i }));
+        await user.click(screen.getByRole('button', { name: /move this step later/i }));
         expect(last().steps.map((s) => s.message)).toEqual(['two', 'one', 'three']);
 
-        fireEvent.click(screen.getByRole('button', { name: /move this step earlier/i }));
+        await user.click(screen.getByRole('button', { name: /move this step earlier/i }));
         expect(last().steps.map((s) => s.message)).toEqual(['one', 'two', 'three']);
     });
 
-    it('will not move a step out of its own branch', () => {
+    it('will not move a step out of its own branch', async () => {
         renderFlow(seq([
             { kind: 'condition', expr: 'x', then: [{ kind: 'toast', message: 'only one' }], else: [] },
         ]));
@@ -308,22 +323,24 @@ describe('ActionFlowEditor — the automation builder’s tools', () => {
         expect(screen.getByRole('button', { name: /move this step later/i }).disabled).toBe(true);
     });
 
-    it('reorders inside a branch without touching the steps around it', () => {
+    it('reorders inside a branch without touching the steps around it', async () => {
+        const user = userEvent.setup();
         const { last } = renderFlow(seq([
             { kind: 'condition', expr: 'x', then: [{ kind: 'toast', message: 'a' }, { kind: 'toast', message: 'b' }], else: [] },
             { kind: 'toast', message: 'after' },
         ]));
         fireEvent.click(screen.getByText('a'));
-        fireEvent.click(screen.getByRole('button', { name: /move this step later/i }));
+        await user.click(screen.getByRole('button', { name: /move this step later/i }));
         expect(last().steps[0].then.map((s) => s.message)).toEqual(['b', 'a']);
         expect(last().steps[1].message).toBe('after');
     });
 
-    it('keeps the moved step selected, so you can move it twice', () => {
+    it('keeps the moved step selected, so you can move it twice', async () => {
+        const user = userEvent.setup();
         const { last } = renderFlow(seqOf('one', 'two', 'three'));
         fireEvent.click(screen.getByText('one'));
-        fireEvent.click(screen.getByRole('button', { name: /move this step later/i }));
-        fireEvent.click(screen.getByRole('button', { name: /move this step later/i }));
+        await user.click(screen.getByRole('button', { name: /move this step later/i }));
+        await user.click(screen.getByRole('button', { name: /move this step later/i }));
         expect(last().steps.map((s) => s.message)).toEqual(['two', 'three', 'one']);
     });
 });

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * EU AI Act Art. 19 / 26(6) — automatically generated logs of high-risk AI
  * systems must be kept for at least six months.
@@ -111,4 +112,4 @@ module.exports = {
     },
 };
 
-module.exports._test = { requiredDays };
+Object.assign(module.exports, { _test: { requiredDays } });

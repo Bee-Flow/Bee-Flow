@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — everything the streamed turn prepares between the input gates
  * and its first LLM round: the round cap, the volatile step-machine guard,

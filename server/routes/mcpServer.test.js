@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Bee Flow's MCP server surface.
  *

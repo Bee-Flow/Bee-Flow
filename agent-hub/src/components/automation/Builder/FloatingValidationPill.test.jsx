@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import FloatingValidationPill from './FloatingValidationPill';
 
@@ -10,7 +11,8 @@ const def = {
 describe('FloatingValidationPill — never shows raw step ids', () => {
     beforeEach(() => cleanup());
 
-    it('shows the step LABEL, not the raw id, for a validation record', () => {
+    it('shows the step LABEL, not the raw id, for a validation record', async () => {
+        const user = userEvent.setup();
         render(
             <FloatingValidationPill
                 def={def}
@@ -20,13 +22,14 @@ describe('FloatingValidationPill — never shows raw step ids', () => {
                 }}
             />,
         );
-        fireEvent.click(screen.getByTitle(/validation issue/));
+        await user.click(screen.getByTitle(/validation issue/));
         expect(screen.getByText('If:', { exact: false })).toBeTruthy();
         expect(screen.getByText(/expr is required/)).toBeTruthy();
         expect(screen.queryByText(/cond_7f748746/)).toBeNull();
     });
 
-    it('humanizes a raw id embedded in the fatal-error toast text', () => {
+    it('humanizes a raw id embedded in the fatal-error toast text', async () => {
+        const user = userEvent.setup();
         render(
             <FloatingValidationPill
                 def={def}
@@ -34,12 +37,13 @@ describe('FloatingValidationPill — never shows raw step ids', () => {
                 validation={null}
             />,
         );
-        fireEvent.click(screen.getByTitle(/validation issue|issue/));
+        await user.click(screen.getByTitle(/validation issue|issue/));
         expect(screen.getByText(/runPartial: step "If" not found in definition/)).toBeTruthy();
         expect(screen.queryByText(/cond_7f748746/)).toBeNull();
     });
 
-    it('clicking a record calls onFocusStep with the owning step id', () => {
+    it('clicking a record calls onFocusStep with the owning step id', async () => {
+        const user = userEvent.setup();
         const onFocusStep = vi.fn();
         render(
             <FloatingValidationPill
@@ -51,8 +55,8 @@ describe('FloatingValidationPill — never shows raw step ids', () => {
                 }}
             />,
         );
-        fireEvent.click(screen.getByTitle(/validation issue/));
-        fireEvent.click(screen.getByText(/expr is required/));
+        await user.click(screen.getByTitle(/validation issue/));
+        await user.click(screen.getByText(/expr is required/));
         expect(onFocusStep).toHaveBeenCalledWith('cond_7f748746');
     });
 

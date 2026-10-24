@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -34,7 +35,7 @@ function makeSuggestionApplier(deps) {
     const engine = deps.engine || realEngine;
     const announce = deps.announce || announceSuggestions;
     const liveCollabFor = deps.liveCollabFor || ((doc) => require('../documentFeed').liveCollabFor(doc));
-    const feed = deps.feed || { recordContentChange: (...a) => require('../documentFeed').recordContentChange(...a) };
+    const feed = deps.feed || { recordContentChange: (doc, change) => require('../documentFeed').recordContentChange(doc, change) };
     const wordStats = deps.wordStats || ((a, b) => require('../../../stores/lib/documentText').wordStats(a, b));
 
     const hunkOf = (s) => ({ anchor: s.anchor, before: s.before, after: s.after, summary: s.summary });

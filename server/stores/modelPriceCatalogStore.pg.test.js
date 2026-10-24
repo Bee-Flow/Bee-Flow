@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * model_price_catalog against a REAL Postgres (@electric-sql/pglite behind db.js's
  * pool, testUtils/pglitePool.js). The store runs its own schema init and SQL;

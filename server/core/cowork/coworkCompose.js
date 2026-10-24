@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Turn a spoken-language brief into a cowork spec.
  *
@@ -147,7 +148,7 @@ function normaliseDays(value) {
  * Coerce one model reply into a spec that is safe to persist.
  * Pure — no model, no DB. `raw` may be null (model failed entirely).
  */
-function normaliseSpec(raw, { brief, agents = [] } = {}) {
+function normaliseSpec(raw, /** @type {{brief?: any, agents?: any[]}} */ { brief, agents = [] } = {}) {
     const obj = raw && typeof raw === 'object' ? raw : {};
 
     const repeatInterval = typeof obj.repeatInterval === 'string'

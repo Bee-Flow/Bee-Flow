@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The steps of ./turnPreflight, each one phase of "everything that has to be
  * settled before the model may be called". The chat-signals recorder stays in

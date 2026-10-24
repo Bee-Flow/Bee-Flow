@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CRA Art. 14(1)(3)(4) — vulnerability reporting clocks operational.
  *
@@ -269,4 +270,4 @@ module.exports = {
     },
 };
 
-module.exports._test = { _clocksFor, _hasCraRegime, EARLY_WARNING_HOURS, NOTIFICATION_HOURS, FINAL_REPORT_DAYS, INCIDENT_FINAL_REPORT_MONTHS, DUE_SOON_HOURS };
+Object.assign(module.exports, { _test: { _clocksFor, _hasCraRegime, EARLY_WARNING_HOURS, NOTIFICATION_HOURS, FINAL_REPORT_DAYS, INCIDENT_FINAL_REPORT_MONTHS, DUE_SOON_HOURS } });

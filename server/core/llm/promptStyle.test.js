@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * BFSF-261 — writing-style prompt addendum.
  *

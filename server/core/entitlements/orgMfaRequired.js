@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Org-scoped MFA duty (A3) — the READ side only.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * FORM ANSWERS — the pure half: from an automation's definition to the columns
  * of its answers table, and from a submission to a row.

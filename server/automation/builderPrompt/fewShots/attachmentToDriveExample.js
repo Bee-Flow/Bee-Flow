@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Serial example 6: mail attachment to Google Drive via sourceHandle.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for the flowlet sub-agent (flowletAgent.js).
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * One way to write into a project's live feed.
  *

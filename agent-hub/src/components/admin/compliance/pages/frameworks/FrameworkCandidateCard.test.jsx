@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
@@ -45,7 +45,8 @@ const base = (over = {}) => ({
 });
 
 describe('FrameworkCandidateCard — locked', () => {
-    it('a ceiling lock shows the upgrade hint, the plan link, and NO enable button', () => {
+    it('a ceiling lock shows the upgrade hint, the plan link, and NO enable button', async () => {
+        const user = userEvent.setup();
         const onViewPlan = vi.fn();
         const onEnable = vi.fn();
         render(<FrameworkCandidateCard framework={base({ id: 'nis2', locked: 'ceiling' })} now={NOW} onEnable={onEnable} onViewPlan={onViewPlan} />);
@@ -54,7 +55,7 @@ describe('FrameworkCandidateCard — locked', () => {
         expect(screen.getByTestId('fw-locked').textContent).toContain('Available on a higher plan');
         expect(screen.queryByTestId('fw-enable')).toBeNull();
         expect(screen.queryByTestId('fw-disable')).toBeNull();
-        fireEvent.click(screen.getByTestId('fw-view-plan'));
+        await user.click(screen.getByTestId('fw-view-plan'));
         expect(onViewPlan).toHaveBeenCalledTimes(1);
         expect(onEnable).not.toHaveBeenCalled();
     });
@@ -72,13 +73,14 @@ describe('FrameworkCandidateCard — locked', () => {
 });
 
 describe('FrameworkCandidateCard — enable / disable', () => {
-    it('enable calls onEnable(id) with the primary recipe when the framework just came into force', () => {
+    it('enable calls onEnable(id) with the primary recipe when the framework just came into force', async () => {
+        const user = userEvent.setup();
         const onEnable = vi.fn();
         render(<FrameworkCandidateCard framework={base({ recently_in_force: true })} now={NOW} onEnable={onEnable} />);
         const btn = screen.getByTestId('fw-enable');
         expect(btn.dataset.primary).toBe('true');
         expect(btn.style.background).toBe('var(--accent-primary)');
-        fireEvent.click(btn);
+        await user.click(btn);
         expect(onEnable).toHaveBeenCalledWith('cra');
     });
 
@@ -96,12 +98,13 @@ describe('FrameworkCandidateCard — enable / disable', () => {
         expect(screen.getByTestId('fw-relevance').disabled).toBe(true);
     });
 
-    it('an enabled framework shows the check count and a Disable button instead of Enable', () => {
+    it('an enabled framework shows the check count and a Disable button instead of Enable', async () => {
+        const user = userEvent.setup();
         const onDisable = vi.fn();
         render(<FrameworkCandidateCard framework={base({ id: 'eaa', enabled: true, checks_count: 2 })} now={NOW} onDisable={onDisable} />);
         expect(screen.getByTestId('fw-enabled-meta').textContent).toBe('Enabled · 2 checks');
         expect(screen.queryByTestId('fw-enable')).toBeNull();
-        fireEvent.click(screen.getByTestId('fw-disable'));
+        await user.click(screen.getByTestId('fw-disable'));
         expect(onDisable).toHaveBeenCalledWith('eaa');
     });
 
@@ -187,19 +190,21 @@ describe('FrameworkCandidateCard — name, description and the Recommended chip'
 });
 
 describe('FrameworkCandidateCard — relevance', () => {
-    it('a gated framework marked not relevant is pressed and toggles back to relevant', () => {
+    it('a gated framework marked not relevant is pressed and toggles back to relevant', async () => {
+        const user = userEvent.setup();
         const onRelevance = vi.fn();
         render(<FrameworkCandidateCard framework={base({ id: 'dora', relevance: 'not_relevant', relevance_gate: true })} now={NOW} onRelevance={onRelevance} />);
         const chip = screen.getByTestId('fw-relevance');
         expect(chip.getAttribute('aria-pressed')).toBe('true');
-        fireEvent.click(chip);
+        await user.click(chip);
         expect(onRelevance).toHaveBeenCalledWith('dora', 'relevant');
     });
 
-    it('an unmarked gated framework toggles to not_relevant', () => {
+    it('an unmarked gated framework toggles to not_relevant', async () => {
+        const user = userEvent.setup();
         const onRelevance = vi.fn();
         render(<FrameworkCandidateCard framework={base({ id: 'machinery', relevance: 'unknown', relevance_gate: true })} now={NOW} onRelevance={onRelevance} />);
-        fireEvent.click(screen.getByTestId('fw-relevance'));
+        await user.click(screen.getByTestId('fw-relevance'));
         expect(onRelevance).toHaveBeenCalledWith('machinery', 'not_relevant');
     });
 
@@ -248,12 +253,13 @@ describe('FrameworkCandidateCard — chips, copy and icons', () => {
 });
 
 describe('OwnFrameworkCard', () => {
-    it('is a dashed door that calls onOpen', () => {
+    it('is a dashed door that calls onOpen', async () => {
+        const user = userEvent.setup();
         const onOpen = vi.fn();
         render(<OwnFrameworkCard onOpen={onOpen} />);
         const card = screen.getByTestId('fw-card-own');
         expect(card.className).toContain('border-dashed');
-        fireEvent.click(card);
+        await user.click(card);
         expect(onOpen).toHaveBeenCalledTimes(1);
     });
 });

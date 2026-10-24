@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import VariablesManager from './VariablesManager';
@@ -44,9 +45,10 @@ describe('VariablesManager — the list', () => {
         expect(screen.getByLabelText('Name of mine').value).toBe('mine');
     });
 
-    it('adding one commits a definition with the new variable', () => {
+    it('adding one commits a definition with the new variable', async () => {
+        const user = userEvent.setup();
         const { last } = renderManager(baseDef());
-        fireEvent.click(screen.getByRole('button', { name: /new variable/i }));
+        await user.click(screen.getByRole('button', { name: /new variable/i }));
         expect(last().variables).toHaveLength(1);
         expect(last().variables[0].type).toBe('text');
     });
@@ -69,11 +71,12 @@ describe('VariablesManager — types and starting values', () => {
         expect(last().variables[0]).toMatchObject({ type: 'number', default: 0 });
     });
 
-    it('a yes/no variable gets a switch, not a text box', () => {
+    it('a yes/no variable gets a switch, not a text box', async () => {
+        const user = userEvent.setup();
         const { last } = renderManager(baseDef([decl('mine', { type: 'yesno', default: false })]));
         const control = screen.getByLabelText('Starting value of mine');
         expect(control.type).toBe('checkbox');
-        fireEvent.click(control);
+        await user.click(control);
         // A real boolean, not the string "true" — the filter compares against it.
         expect(last().variables[0].default).toBe(true);
     });
@@ -138,27 +141,30 @@ describe('VariablesManager — names', () => {
 });
 
 describe('VariablesManager — deleting', () => {
-    it('an unused variable goes straight away', () => {
+    it('an unused variable goes straight away', async () => {
+        const user = userEvent.setup();
         const { last } = renderManager(baseDef([decl('idle')]));
-        fireEvent.click(screen.getByRole('button', { name: 'Delete idle' }));
+        await user.click(screen.getByRole('button', { name: 'Delete idle' }));
         expect(last()).not.toHaveProperty('variables');
     });
 
-    it('one in use asks first, and names where it is used', () => {
+    it('one in use asks first, and names where it is used', async () => {
+        const user = userEvent.setup();
         const def = baseDef([decl('used')]);
         def.screens[0].sections[0].children = [
             { id: 'cmp_a', type: 'text', props: {}, computed: { text: { kind: 'formula', expr: 'vars.used' } } },
         ];
         const { onCommit } = renderManager(def);
-        fireEvent.click(screen.getByRole('button', { name: 'Delete used' }));
+        await user.click(screen.getByRole('button', { name: 'Delete used' }));
         expect(onCommit).not.toHaveBeenCalled();
         expect(screen.getByText(/still uses? it/i)).toBeTruthy();
         expect(screen.getByText(/Screen “Home”/)).toBeTruthy();
     });
 
-    it('removing the last one drops the key entirely', () => {
+    it('removing the last one drops the key entirely', async () => {
+        const user = userEvent.setup();
         const { last } = renderManager(baseDef([decl('only')]));
-        fireEvent.click(screen.getByRole('button', { name: 'Delete only' }));
+        await user.click(screen.getByRole('button', { name: 'Delete only' }));
         expect('variables' in last()).toBe(false);
     });
 });
@@ -179,9 +185,10 @@ describe('VariablesManager — the unknown-variable banner', () => {
         expect(screen.getByText(/vars\.statusfilter/)).toBeTruthy();
     });
 
-    it('offers to declare it in one click', () => {
+    it('offers to declare it in one click', async () => {
+        const user = userEvent.setup();
         const { last } = renderManager(defWithTypo());
-        fireEvent.click(screen.getByRole('button', { name: /declare it/i }));
+        await user.click(screen.getByRole('button', { name: /declare it/i }));
         expect(last().variables.map((v) => v.name).sort()).toEqual(['statusFilter', 'statusfilter']);
     });
 

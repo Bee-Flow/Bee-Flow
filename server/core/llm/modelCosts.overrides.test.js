@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Admin cost overrides (core/llm/modelCosts.js) — are they applied, and does a
  * save keep the others?

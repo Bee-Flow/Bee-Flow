@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Required training — an organisation may insist a course is finished before a
  * feature can be used.
@@ -114,6 +115,7 @@ const TRAINING_AREAS = Object.freeze([
     }),
 ]);
 
+/** @type {Map<string, (typeof TRAINING_AREAS)[number]>} */
 const AREA_BY_ID = new Map(TRAINING_AREAS.map((a) => [a.id, a]));
 const configKey = (orgId) => `${CONFIG_KEY_PREFIX}${orgId}`;
 

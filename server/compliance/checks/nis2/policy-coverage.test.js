@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * NIS2-Art21(2)-policy-coverage — the ten measures ↔ ISMS policy matrix.
  * Run: cd server && node --test --test-force-exit compliance/checks/nis2/policy-coverage.test.js

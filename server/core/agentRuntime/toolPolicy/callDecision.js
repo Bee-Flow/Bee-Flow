@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ONE CALL AT A TIME: the verdict a policy yields for a single tool name, the
  * bounded argument preview the confirm card shows, and whether anybody is

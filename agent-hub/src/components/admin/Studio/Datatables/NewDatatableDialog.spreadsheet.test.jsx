@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { datatablesApi } from './datatablesApi';
@@ -139,29 +140,31 @@ describe('the card', () => {
     });
 
     it('when chosen, hides the per-table fields, keeps the audience, and hands over to the wizard', async () => {
+        const user = userEvent.setup();
         open();
-        fireEvent.click(await screen.findByRole('radio', { name: CARD }));
+        await user.click(await screen.findByRole('radio', { name: CARD }));
         expect(screen.queryByPlaceholderText('Customers')).toBeNull();
         expect(screen.queryByText(/Add a column/)).toBeNull();
         expect(screen.getByRole('radio', { name: /Your organisation/ })).toBeInTheDocument();
         expect(screen.getByText(/chosen per sheet in the next step/)).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: /Choose files/ }));
+        await user.click(screen.getByRole('button', { name: /Choose files/ }));
         expect(await screen.findByText(/Link spreadsheets from your files/)).toBeInTheDocument();
         expect(await screen.findByRole('checkbox', { name: 'klanten.csv' })).toBeInTheDocument();
         // Back restores the dialog with the card still chosen.
-        fireEvent.click(screen.getByRole('button', { name: /Back/ }));
+        await user.click(screen.getByRole('button', { name: /Back/ }));
         expect(await screen.findByRole('radio', { name: CARD })).toBeChecked();
         expect(screen.queryByPlaceholderText('Customers')).toBeNull();
     });
 
     it('the ordinary card still creates an ordinary table and links nothing', async () => {
+        const user = userEvent.setup();
         datatablesApi.create.mockResolvedValue({ datatable: { id: 'tbl_x' } });
         const onCreated = vi.fn();
         open({ onCreated });
         await screen.findByRole('radio', { name: CARD });
         fireEvent.change(screen.getByPlaceholderText('Customers'), { target: { value: 'Klanten' } });
         fireEvent.change(screen.getByPlaceholderText(/onboarding e-mail/), { target: { value: 'the list' } });
-        fireEvent.click(screen.getByRole('button', { name: /^Create$/ }));
+        await user.click(screen.getByRole('button', { name: /^Create$/ }));
         await waitFor(() => expect(datatablesApi.create).toHaveBeenCalled());
         expect(datatablesApi.create.mock.calls[0][0]).toMatchObject({ name: 'Klanten', key: 'klanten', scope: 'organisation' });
         expect(datatablesApi.linkSpreadsheets).not.toHaveBeenCalled();
@@ -171,20 +174,21 @@ describe('the card', () => {
 
 describe('linking through the wizard', () => {
     it('shows "The tables are ready" with the file-flavoured sentence and the warnings verbatim', async () => {
+        const user = userEvent.setup();
         const warning = '"klanten": 2 rows had no value in Naam and were skipped.';
         datatablesApi.linkSpreadsheets.mockResolvedValue({ datatables: [{ id: 'tbl_new', name: 'klanten', managedKind: 'spreadsheet_file' }], warnings: [warning], partial: false });
         const onCreated = vi.fn();
         open({ onCreated });
-        fireEvent.click(await screen.findByRole('radio', { name: CARD }));
-        fireEvent.click(await screen.findByRole('button', { name: /Choose files/ }));
-        fireEvent.click(await screen.findByRole('checkbox', { name: 'klanten.csv' }));
-        fireEvent.click(screen.getByRole('button', { name: /^Next$/ }));       // sheets: the csv selects itself
+        await user.click(await screen.findByRole('radio', { name: CARD }));
+        await user.click(await screen.findByRole('button', { name: /Choose files/ }));
+        await user.click(await screen.findByRole('checkbox', { name: 'klanten.csv' }));
+        await user.click(screen.getByRole('button', { name: /^Next$/ }));       // sheets: the csv selects itself
         await waitFor(() => expect(screen.getByRole('button', { name: /^Next$/ })).not.toBeDisabled());
-        fireEvent.click(screen.getByRole('button', { name: /^Next$/ }));       // names
+        await user.click(screen.getByRole('button', { name: /^Next$/ }));       // names
         expect((await screen.findAllByDisplayValue('klanten')).length).toBe(2);   // name + technical name
-        fireEvent.click(screen.getByRole('button', { name: /^Next$/ }));       // relations
-        fireEvent.click(await screen.findByRole('button', { name: /^Next$/ })); // review
-        fireEvent.click(await screen.findByRole('button', { name: 'Link the sheet' }));
+        await user.click(screen.getByRole('button', { name: /^Next$/ }));       // relations
+        await user.click(await screen.findByRole('button', { name: /^Next$/ })); // review
+        await user.click(await screen.findByRole('button', { name: 'Link the sheet' }));
         await waitFor(() => expect(datatablesApi.linkSpreadsheets).toHaveBeenCalled());
         expect(datatablesApi.linkSpreadsheets.mock.calls[0][0]).toMatchObject({
             scope: 'organisation',
@@ -194,7 +198,7 @@ describe('linking through the wizard', () => {
         expect(await screen.findByText(/The tables are ready/)).toBeInTheDocument();
         expect(screen.getByText(/being filled in from the file now/)).toBeInTheDocument();
         expect(screen.getByText(warning)).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: /Open the table/ }));
+        await user.click(screen.getByRole('button', { name: /Open the table/ }));
         expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ id: 'tbl_new' }));
         expect(datatablesApi.linkNc).not.toHaveBeenCalled();
     });

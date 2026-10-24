@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Deployment-sourced approvals (design D8, D9, 6.6): the PRD gate of a
  * Solution asks through automation_approvals with source='deployment', and

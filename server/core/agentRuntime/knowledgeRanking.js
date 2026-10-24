@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The ranking half of the agent knowledge search (./knowledgeSearch): score
  * floors, near-duplicate removal, the per-passage trim, and the prompt block

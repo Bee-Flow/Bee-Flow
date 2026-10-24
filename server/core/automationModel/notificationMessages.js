@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The words of an automation notification that leaves Bee Flow's own bell.
  *

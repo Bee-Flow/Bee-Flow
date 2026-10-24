@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Retrieval provenance: what survives a rerank.
  *

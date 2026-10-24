@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Talk recording path parsing.
  *

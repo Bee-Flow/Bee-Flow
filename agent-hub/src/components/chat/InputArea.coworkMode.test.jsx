@@ -23,6 +23,7 @@
  * is asking.
  */
 import { render as rtlRender, screen, fireEvent, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import InputArea from './InputArea';
@@ -101,27 +102,29 @@ function Harness({ cowork, onSendMessage, initialMode = 'chat', locked = false, 
 }
 
 describe('InputArea — Cowork mode', () => {
-    it('routes a send to cowork, not to the conversation', () => {
+    it('routes a send to cowork, not to the conversation', async () => {
+        const user = userEvent.setup();
         const onSendMessage = vi.fn();
         const cowork = makeCowork();
         render(<Harness cowork={cowork} onSendMessage={onSendMessage} />);
 
-        fireEvent.click(screen.getByTestId('cowork-mode-cowork'));
+        await user.click(screen.getByTestId('cowork-mode-cowork'));
         fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Do the thing' } });
-        fireEvent.click(screen.getByTestId('cowork-send'));
+        await user.click(screen.getByTestId('cowork-send'));
 
         expect(cowork.submit).toHaveBeenCalledWith('Do the thing', expect.any(Object));
         expect(onSendMessage).not.toHaveBeenCalled();
     });
 
-    it('flipping back to Chat restores the normal send', () => {
+    it('flipping back to Chat restores the normal send', async () => {
+        const user = userEvent.setup();
         const onSendMessage = vi.fn();
         const cowork = makeCowork();
         render(<Harness cowork={cowork} onSendMessage={onSendMessage} initialMode="cowork" />);
 
-        fireEvent.click(screen.getByTestId('cowork-mode-chat'));
+        await user.click(screen.getByTestId('cowork-mode-chat'));
         fireEvent.change(screen.getByTestId('chat-message-input'), { target: { value: 'Hello' } });
-        fireEvent.click(screen.getByTestId('send-message-button'));
+        await user.click(screen.getByTestId('send-message-button'));
 
         expect(onSendMessage).toHaveBeenCalled();
         expect(cowork.submit).not.toHaveBeenCalled();
@@ -221,6 +224,7 @@ describe('InputArea — what survives the switch', () => {
     });
 
     it('brings them all back when the user switches to Chat', async () => {
+        const user = userEvent.setup();
         render(
             <Harness
                 cowork={makeCowork()}
@@ -233,13 +237,14 @@ describe('InputArea — what survives the switch', () => {
             />,
         );
         await screen.findByRole('button', { name: /apps/i });
-        fireEvent.click(screen.getByTestId('cowork-mode-chat'));
+        await user.click(screen.getByTestId('cowork-mode-chat'));
 
         expect(screen.getByTestId('composer-tools-button')).toBeVisible();
         expect(screen.getByTestId('composer-pill-skills')).toBeVisible();
     });
 
     it('keeps apps reachable in plain chat, from the tools menu', async () => {
+        const user = userEvent.setup();
         // In Cowork the picker keeps its own button; in chat it is a row in the
         // "+" menu. Either way "which apps may this touch" is one click away —
         // the switch must not strand it.
@@ -247,7 +252,7 @@ describe('InputArea — what survives the switch', () => {
         const plus = await screen.findByTestId('composer-tools-button');
         expect(plus).toBeVisible();
 
-        fireEvent.click(plus);
+        await user.click(plus);
         const menu = await screen.findByTestId('composer-tools-panel');
         expect(within(menu).getByTestId('composer-tool-apps')).toBeInTheDocument();
     });

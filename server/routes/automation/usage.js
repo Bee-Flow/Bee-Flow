@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Frequently used" in the builder (Studio → Automations handoff 5).
  *

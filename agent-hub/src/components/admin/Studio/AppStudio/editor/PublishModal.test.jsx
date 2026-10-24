@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the api + directory + toast before importing the component (vi.mock is
@@ -100,12 +101,13 @@ beforeEach(() => {
 
 describe('PublishModal', () => {
     it('Private → PATCH { isPublished: false }', async () => {
+        const user = userEvent.setup();
         studioAppsApi.publish.mockResolvedValue({ success: true, isPublished: false, sharedGroups: [] });
         const onPublished = vi.fn();
         render(<PublishModal open app={orgApp} onClose={vi.fn()} onPublished={onPublished} />);
 
-        fireEvent.click(screen.getByRole('radio', { name: /Private/i }));
-        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+        await user.click(screen.getByRole('radio', { name: /Private/i }));
+        await user.click(screen.getByRole('button', { name: 'Apply' }));
 
         await waitFor(() => expect(studioAppsApi.publish).toHaveBeenCalledTimes(1));
         expect(studioAppsApi.publish).toHaveBeenCalledWith('app-1', { isPublished: false });
@@ -114,35 +116,38 @@ describe('PublishModal', () => {
     });
 
     it('Entire organization → PATCH { isPublished: true, sharedGroups: [] }', async () => {
+        const user = userEvent.setup();
         render(<PublishModal open app={privateApp} onClose={vi.fn()} onPublished={vi.fn()} />);
 
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
-        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('button', { name: 'Apply' }));
 
         await waitFor(() => expect(studioAppsApi.publish).toHaveBeenCalledTimes(1));
         expect(studioAppsApi.publish).toHaveBeenCalledWith('app-1', { isPublished: true, sharedGroups: [] });
     });
 
     it('Specific groups → PATCH { isPublished: true, sharedGroups: [ids] }', async () => {
+        const user = userEvent.setup();
         studioAppsApi.publish.mockResolvedValue({ success: true, isPublished: true, sharedGroups: ['g1'] });
         render(<PublishModal open app={privateApp} onClose={vi.fn()} onPublished={vi.fn()} />);
 
-        fireEvent.click(screen.getByRole('radio', { name: /Specific groups/i }));
+        await user.click(screen.getByRole('radio', { name: /Specific groups/i }));
         // Pick one group.
-        fireEvent.click(screen.getByRole('checkbox', { name: 'Sales' }));
-        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+        await user.click(screen.getByRole('checkbox', { name: 'Sales' }));
+        await user.click(screen.getByRole('button', { name: 'Apply' }));
 
         await waitFor(() => expect(studioAppsApi.publish).toHaveBeenCalledTimes(1));
         expect(studioAppsApi.publish).toHaveBeenCalledWith('app-1', { isPublished: true, sharedGroups: ['g1'] });
     });
 
-    it('disables Apply for "Specific groups" until at least one group is picked', () => {
+    it('disables Apply for "Specific groups" until at least one group is picked', async () => {
+        const user = userEvent.setup();
         render(<PublishModal open app={privateApp} onClose={vi.fn()} onPublished={vi.fn()} />);
 
-        fireEvent.click(screen.getByRole('radio', { name: /Specific groups/i }));
+        await user.click(screen.getByRole('radio', { name: /Specific groups/i }));
         expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
 
-        fireEvent.click(screen.getByRole('checkbox', { name: 'Engineering' }));
+        await user.click(screen.getByRole('checkbox', { name: 'Engineering' }));
         expect(screen.getByRole('button', { name: 'Apply' })).not.toBeDisabled();
     });
 
@@ -154,12 +159,13 @@ describe('PublishModal', () => {
     });
 
     it('reports the version that went live back through onPublished', async () => {
+        const user = userEvent.setup();
         studioAppsApi.publish.mockResolvedValue({ success: true, isPublished: true, sharedGroups: [], publishedVersion: 7 });
         const onPublished = vi.fn();
         render(<PublishModal open app={privateApp} onClose={vi.fn()} onPublished={onPublished} />);
 
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
-        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('button', { name: 'Apply' }));
 
         await waitFor(() => expect(onPublished).toHaveBeenCalled());
         expect(onPublished.mock.calls[0][0]).toMatchObject({ publishedVersion: 7 });
@@ -218,11 +224,12 @@ describe('PublishModal — the Nextcloud app menu', () => {
     });
 
     it('never touches the flag on unpublish — the connector drops the icon via the published filter', async () => {
+        const user = userEvent.setup();
         studioAppsApi.publish.mockResolvedValue({ success: true, isPublished: false, sharedGroups: [] });
         const onPublished = vi.fn();
         render(<PublishModal open app={{ ...orgApp, nextcloudMenu: true }} onClose={vi.fn()} onPublished={onPublished} />);
-        fireEvent.click(screen.getByRole('radio', { name: /Private/i }));
-        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+        await user.click(screen.getByRole('radio', { name: /Private/i }));
+        await user.click(screen.getByRole('button', { name: 'Apply' }));
         await waitFor(() => expect(onPublished).toHaveBeenCalled());
         expect(studioAppsApi.setNextcloudMenu).not.toHaveBeenCalled();
     });
@@ -236,16 +243,18 @@ describe('PublishModal — the Nextcloud app menu', () => {
 });
 
 describe('PublishModal — what the audience gets, not just what it can open', () => {
-    it('names the tables an org-wide publish opens to everyone', () => {
+    it('names the tables an org-wide publish opens to everyone', async () => {
+        const user = userEvent.setup();
         render(<PublishModal open app={privateApp} onClose={vi.fn()} onPublished={vi.fn()} />);
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
 
         expect(impactText()).toBe(
             'Everyone in your organisation will be able to see, add, edit and delete every row in Absences and Employees.',
         );
     });
 
-    it('narrows the sentence when the tables are held back, and lists what stays shut', () => {
+    it('narrows the sentence when the tables are held back, and lists what stays shut', async () => {
+        const user = userEvent.setup();
         useAppRoles.mockReturnValue(access({
             tables: [
                 { ...TABLES[0], access: { default: 'owner', roles: {}, rowFilters: {} } },
@@ -253,7 +262,7 @@ describe('PublishModal — what the audience gets, not just what it can open', (
             ],
         }));
         render(<PublishModal open app={privateApp} onClose={vi.fn()} onPublished={vi.fn()} />);
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
 
         expect(impactText()).toBe(
             'Everyone in your organisation will be able to add rows, and see, edit and delete only the rows '
@@ -261,12 +270,13 @@ describe('PublishModal — what the audience gets, not just what it can open', (
         );
     });
 
-    it('says a row rule narrows it, and never claims the rule holds back adding', () => {
+    it('says a row rule narrows it, and never claims the rule holds back adding', async () => {
+        const user = userEvent.setup();
         useAppRoles.mockReturnValue(access({
             tables: [{ ...TABLES[0], access: { default: 'app', roles: {}, rowFilters: { app: 'record.created_by == viewer.id' } } }],
         }));
         render(<PublishModal open app={privateApp} onClose={vi.fn()} onPublished={vi.fn()} />);
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
 
         expect(impactText()).toBe(
             'Everyone in your organisation will be able to add rows, and see, edit and delete only the rows '
@@ -274,13 +284,14 @@ describe('PublishModal — what the audience gets, not just what it can open', (
         );
     });
 
-    it('gives the groups that were mapped to another role their own sentence', () => {
+    it('gives the groups that were mapped to another role their own sentence', async () => {
+        const user = userEvent.setup();
         useAppRoles.mockReturnValue(access({
             tables: [{ ...TABLES[0], access: { default: 'app', roles: { manager: { read: 'all', create: false, update: 'none', delete: 'none' } }, rowFilters: {} } }],
             roleMapping: { default: 'app', byGroup: { g1: 'manager' } },
         }));
         render(<PublishModal open app={privateApp} onClose={vi.fn()} onPublished={vi.fn()} />);
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
 
         expect(impactText()).toBe(
             'Everyone in your organisation except Sales will be able to see, add, edit and delete every row in Absences. '
@@ -288,25 +299,27 @@ describe('PublishModal — what the audience gets, not just what it can open', (
         );
     });
 
-    it('describes only the groups that were picked', () => {
+    it('describes only the groups that were picked', async () => {
+        const user = userEvent.setup();
         render(<PublishModal open app={privateApp} onClose={vi.fn()} onPublished={vi.fn()} />);
-        fireEvent.click(screen.getByRole('radio', { name: /Specific groups/i }));
+        await user.click(screen.getByRole('radio', { name: /Specific groups/i }));
         expect(impactText()).toBe('Pick the groups above to see what they will be able to reach.');
 
-        fireEvent.click(screen.getByRole('checkbox', { name: 'Sales' }));
+        await user.click(screen.getByRole('checkbox', { name: 'Sales' }));
         expect(impactText()).toBe(
             'Everyone in Sales will be able to see, add, edit and delete every row in Absences and Employees.',
         );
     });
 
-    it('warns that a group outside the picked ones still hands out its own access', () => {
+    it('warns that a group outside the picked ones still hands out its own access', async () => {
+        const user = userEvent.setup();
         useAppRoles.mockReturnValue(access({
             tables: [{ ...TABLES[0], access: { default: 'owner', roles: { manager: { read: 'all', create: true, update: 'all', delete: 'all' } }, rowFilters: {} } }],
             roleMapping: { default: 'app', byGroup: { g2: 'manager' } },
         }));
         render(<PublishModal open app={privateApp} onClose={vi.fn()} onPublished={vi.fn()} />);
-        fireEvent.click(screen.getByRole('radio', { name: /Specific groups/i }));
-        fireEvent.click(screen.getByRole('checkbox', { name: 'Sales' }));
+        await user.click(screen.getByRole('radio', { name: /Specific groups/i }));
+        await user.click(screen.getByRole('checkbox', { name: 'Sales' }));
 
         expect(impactText()).toBe(
             'Everyone in Sales will be able to add rows, and see, edit and delete only the rows they added themselves in Absences. '
@@ -314,17 +327,19 @@ describe('PublishModal — what the audience gets, not just what it can open', (
         );
     });
 
-    it('does not promise access to tables the app never gave an access rule', () => {
+    it('does not promise access to tables the app never gave an access rule', async () => {
+        const user = userEvent.setup();
         useAppRoles.mockReturnValue(access({
             tables: [{ id: 'tbl_1', key: 'absences', name: 'Absences', fields: [] }],
         }));
         render(<PublishModal open app={privateApp} onClose={vi.fn()} onPublished={vi.fn()} />);
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
 
         expect(impactText()).toBe('Everyone in your organisation will not be able to reach any information in this app.');
     });
 
-    it('adds the outside sources readers reach as the owner, whatever their role', () => {
+    it('adds the outside sources readers reach as the owner, whatever their role', async () => {
+        const user = userEvent.setup();
         useAppRoles.mockReturnValue(access({
             tables: [{ ...TABLES[0], access: { default: 'none', roles: {}, rowFilters: {} } }],
             connectors: [
@@ -333,7 +348,7 @@ describe('PublishModal — what the audience gets, not just what it can open', (
             ],
         }));
         render(<PublishModal open app={privateApp} onClose={vi.fn()} onPublished={vi.fn()} />);
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
 
         expect(impactText()).toBe(
             'Everyone in your organisation will not be able to reach any information in this app. '
@@ -342,13 +357,14 @@ describe('PublishModal — what the audience gets, not just what it can open', (
         );
     });
 
-    it('does not call an app with no tables harmless when it fetches outside data', () => {
+    it('does not call an app with no tables harmless when it fetches outside data', async () => {
+        const user = userEvent.setup();
         useAppRoles.mockReturnValue(access({
             tables: [],
             connectors: [{ id: 'conn_1', kind: 'rest', name: 'Price list' }],
         }));
         render(<PublishModal open app={privateApp} onClose={vi.fn()} onPublished={vi.fn()} />);
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
 
         expect(impactText()).toBe(
             'This app has no tables of its own, so there are no stored rows to share. '
@@ -357,9 +373,10 @@ describe('PublishModal — what the audience gets, not just what it can open', (
         );
     });
 
-    it('reassures for a private draft', () => {
+    it('reassures for a private draft', async () => {
+        const user = userEvent.setup();
         render(<PublishModal open app={orgApp} onClose={vi.fn()} onPublished={vi.fn()} />);
-        fireEvent.click(screen.getByRole('radio', { name: /Private/i }));
+        await user.click(screen.getByRole('radio', { name: /Private/i }));
 
         expect(impactText()).toBe('Nobody else can open this app, so nobody else can reach the information in its tables.');
     });
@@ -367,34 +384,38 @@ describe('PublishModal — what the audience gets, not just what it can open', (
 });
 
 describe('PublishModal — when there is no data model to describe', () => {
-    it('says plainly that it could not check, rather than implying safety', () => {
+    it('says plainly that it could not check, rather than implying safety', async () => {
+        const user = userEvent.setup();
         useAppRoles.mockReturnValue(access({ model: null, tables: [], hasModel: false, isError: true }));
         render(<PublishModal open app={privateApp} onClose={vi.fn()} onPublished={vi.fn()} />);
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
 
         expect(impactText()).toContain('We could not check what this would share');
     });
 
-    it('waits for the data model instead of guessing while it loads', () => {
+    it('waits for the data model instead of guessing while it loads', async () => {
+        const user = userEvent.setup();
         useAppRoles.mockReturnValue(access({ model: null, tables: [], hasModel: false, isLoading: true }));
         render(<PublishModal open app={privateApp} onClose={vi.fn()} onPublished={vi.fn()} />);
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
 
         expect(impactText()).toBe('Checking what this would share…');
     });
 
-    it('says there is nothing stored to share when the app has no tables', () => {
+    it('says there is nothing stored to share when the app has no tables', async () => {
+        const user = userEvent.setup();
         useAppRoles.mockReturnValue(access({ model: null, tables: [], hasModel: false }));
         render(<PublishModal open app={privateApp} onClose={vi.fn()} onPublished={vi.fn()} />);
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
 
         expect(impactText()).toBe('This app has no tables of its own, so there are no stored rows to share.');
     });
 
-    it('leaves an audience with no role empty-handed', () => {
+    it('leaves an audience with no role empty-handed', async () => {
+        const user = userEvent.setup();
         useAppRoles.mockReturnValue(access({ roleMapping: { default: '', byGroup: {} } }));
         render(<PublishModal open app={privateApp} onClose={vi.fn()} onPublished={vi.fn()} />);
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
 
         expect(impactText()).toBe('Everyone in your organisation will not be able to reach any information in this app.');
     });
@@ -402,12 +423,13 @@ describe('PublishModal — when there is no data model to describe', () => {
 
 describe('PublishModal — a publish the server refuses', () => {
     it('keeps the modal open and lists every message with its hint', async () => {
+        const user = userEvent.setup();
         studioAppsApi.publish.mockRejectedValue(rejection({ errors: [ERR_BUTTON, ERR_NO_PATH] }));
         const onClose = vi.fn();
         render(<PublishModal open app={privateApp} definition={DEFINITION} onClose={onClose} onPublished={vi.fn()} />);
 
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
-        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('button', { name: 'Apply' }));
 
         await screen.findByText('2 things to fix before publishing');
         expect(screen.getByText(ERR_BUTTON.message)).toBeInTheDocument();
@@ -420,16 +442,18 @@ describe('PublishModal — a publish the server refuses', () => {
     });
 
     it('counts in the singular for one blocker', async () => {
+        const user = userEvent.setup();
         studioAppsApi.publish.mockRejectedValue(rejection({ errors: [ERR_NO_PATH] }));
         render(<PublishModal open app={privateApp} definition={DEFINITION} onClose={vi.fn()} onPublished={vi.fn()} />);
 
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
-        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('button', { name: 'Apply' }));
 
         await screen.findByText('1 thing to fix before publishing');
     });
 
     it('separates warnings from blockers and says they do not block publishing', async () => {
+        const user = userEvent.setup();
         const warning = {
             code: 'binding.table_unset', severity: 'warning', path: 'screens[1].sections[0]',
             message: 'One list has no table picked yet.', hint: 'Connect it before publishing.',
@@ -437,8 +461,8 @@ describe('PublishModal — a publish the server refuses', () => {
         studioAppsApi.publish.mockRejectedValue(rejection({ errors: [ERR_NO_PATH], warnings: [warning] }));
         render(<PublishModal open app={privateApp} definition={DEFINITION} onClose={vi.fn()} onPublished={vi.fn()} />);
 
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
-        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('button', { name: 'Apply' }));
 
         await screen.findByText('1 thing to fix before publishing');
         expect(screen.getByText('1 thing worth a look')).toBeInTheDocument();
@@ -447,6 +471,7 @@ describe('PublishModal — a publish the server refuses', () => {
     });
 
     it('"Show me" resolves the path to the deepest node and reveals it on its page', async () => {
+        const user = userEvent.setup();
         studioAppsApi.publish.mockRejectedValue(rejection({ errors: [ERR_BUTTON] }));
         const onRevealNode = vi.fn();
         const onClose = vi.fn();
@@ -461,23 +486,24 @@ describe('PublishModal — a publish the server refuses', () => {
             />,
         );
 
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
-        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('button', { name: 'Apply' }));
 
         const showMe = await screen.findByRole('button', { name: 'Show me' });
         expect(screen.getByText('on “Overview”')).toBeInTheDocument();
-        fireEvent.click(showMe);
+        await user.click(showMe);
         expect(onRevealNode).toHaveBeenCalledWith({ nodeId: 'cmp_inner', screenId: 'scr_home' });
         expect(onClose).toHaveBeenCalled();
     });
 
     it('offers no "Show me" for a path that addresses no page, or with no handler wired', async () => {
+        const user = userEvent.setup();
         studioAppsApi.publish.mockRejectedValue(rejection({ errors: [ERR_NO_PATH] }));
         const { unmount } = render(
             <PublishModal open app={privateApp} definition={DEFINITION} onClose={vi.fn()} onPublished={vi.fn()} onRevealNode={vi.fn()} />,
         );
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
-        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('button', { name: 'Apply' }));
         await screen.findByText(ERR_NO_PATH.message);
         expect(screen.queryByRole('button', { name: 'Show me' })).toBeNull();
         unmount();
@@ -485,13 +511,14 @@ describe('PublishModal — a publish the server refuses', () => {
         // Resolvable path, but the chrome passed no reveal handler → no dead button.
         studioAppsApi.publish.mockRejectedValue(rejection({ errors: [ERR_BUTTON] }));
         render(<PublishModal open app={privateApp} definition={DEFINITION} onClose={vi.fn()} onPublished={vi.fn()} />);
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
-        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('button', { name: 'Apply' }));
         await screen.findByText(ERR_BUTTON.message);
         expect(screen.queryByRole('button', { name: 'Show me' })).toBeNull();
     });
 
     it('falls back to the stored app definition when the chrome passes none', async () => {
+        const user = userEvent.setup();
         studioAppsApi.publish.mockRejectedValue(rejection({ errors: [ERR_BUTTON] }));
         const onRevealNode = vi.fn();
         render(
@@ -503,38 +530,40 @@ describe('PublishModal — a publish the server refuses', () => {
                 onRevealNode={onRevealNode}
             />,
         );
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
-        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
-        fireEvent.click(await screen.findByRole('button', { name: 'Show me' }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('button', { name: 'Apply' }));
+        await user.click(await screen.findByRole('button', { name: 'Show me' }));
         expect(onRevealNode).toHaveBeenCalledWith({ nodeId: 'cmp_inner', screenId: 'scr_home' });
     });
 
     it('drops the list when the user picks a different audience, and on the next attempt', async () => {
+        const user = userEvent.setup();
         studioAppsApi.publish.mockRejectedValue(rejection({ errors: [ERR_NO_PATH] }));
         render(<PublishModal open app={privateApp} definition={DEFINITION} onClose={vi.fn()} onPublished={vi.fn()} />);
 
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
-        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('button', { name: 'Apply' }));
         await screen.findByText(ERR_NO_PATH.message);
 
-        fireEvent.click(screen.getByRole('radio', { name: /Private/i }));
+        await user.click(screen.getByRole('radio', { name: /Private/i }));
         expect(screen.queryByText(ERR_NO_PATH.message)).toBeNull();
 
         // A retry that succeeds leaves nothing behind either.
         studioAppsApi.publish.mockResolvedValue({ success: true, isPublished: false, sharedGroups: [] });
-        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+        await user.click(screen.getByRole('button', { name: 'Apply' }));
         await waitFor(() => expect(toast.success).toHaveBeenCalled());
         expect(screen.queryByText(ERR_NO_PATH.message)).toBeNull();
     });
 
     it('still toasts when the failure is not a 422 list', async () => {
+        const user = userEvent.setup();
         const err = new Error('Server unavailable');
         err.status = 500;
         studioAppsApi.publish.mockRejectedValue(err);
         render(<PublishModal open app={privateApp} definition={DEFINITION} onClose={vi.fn()} onPublished={vi.fn()} />);
 
-        fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
-        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+        await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        await user.click(screen.getByRole('button', { name: 'Apply' }));
 
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Server unavailable'));
         expect(screen.queryByText(/to fix before publishing/)).toBeNull();
@@ -623,6 +652,7 @@ describe('PublishModal — checking the app before anyone else has to', () => {
      * points at a real node on screen is the one you cannot jump to.
      */
     it('jumps to the component a dry-run finding names', async () => {
+        const user = userEvent.setup();
         studioAppsApi.checkApp.mockResolvedValue({
             ok: false,
             static: { errors: [], warnings: [] },
@@ -638,7 +668,7 @@ describe('PublishModal — checking the app before anyone else has to', () => {
             />,
         );
         check();
-        fireEvent.click(await screen.findByRole('button', { name: 'Show me' }));
+        await user.click(await screen.findByRole('button', { name: 'Show me' }));
         expect(onRevealNode).toHaveBeenCalledWith({ nodeId: 'cmp_inner', screenId: 'scr_home' });
     });
 

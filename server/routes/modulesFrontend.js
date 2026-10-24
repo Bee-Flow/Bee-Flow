@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Module frontend runtime manifest — the pinned FE-RUNTIME contract the SPA
  * reads to lazy-mount remote modules that ship a frontend.

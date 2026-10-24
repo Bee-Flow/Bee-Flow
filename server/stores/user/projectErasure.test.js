@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * stores/user/projectErasure.js — the collaborative-project half of account
  * erasure: every step runs, in order, and one failing store does not stop the

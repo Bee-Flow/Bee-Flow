@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What the Meeting Notes ingest modules share: the error a provider wrapper
  * maps to an HTTP answer, and the best-effort removal of a scratch file.

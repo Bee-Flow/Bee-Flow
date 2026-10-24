@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ISO 27001 A.8.15 / A.8.16 — Event logging and monitoring.
  *

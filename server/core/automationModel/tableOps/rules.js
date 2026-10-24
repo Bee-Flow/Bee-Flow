@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Row rules of the table step: the vocabulary, the check of a rule list, and
@@ -102,8 +103,8 @@ function compileRule(rule) {
         case 'not_contains': return (c) => isBlankCell(c) || !textContains(textOf(c), textOf(value));
         case 'starts_with': return (c) => !isBlankCell(c) && textStartsWith(textOf(c), textOf(value));
         case 'ends_with': return (c) => !isBlankCell(c) && textEndsWith(textOf(c), textOf(value));
-        case 'in': return (c) => !isBlankCell(c) && value.some((v) => equalsValue(c, v));
-        case 'not_in': return (c) => isBlankCell(c) || !value.some((v) => equalsValue(c, v));
+        case 'in': return (c) => !isBlankCell(c) && /** @type {any[]} */ (value).some((v) => equalsValue(c, v));
+        case 'not_in': return (c) => isBlankCell(c) || !(/** @type {any[]} */ (value)).some((v) => equalsValue(c, v));
         case 'gt': return (c) => { const r = compare(c, value); return r !== null && r > 0; };
         case 'gte': return (c) => { const r = compare(c, value); return r !== null && r >= 0; };
         case 'lt': return (c) => { const r = compare(c, value); return r !== null && r < 0; };

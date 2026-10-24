@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -60,9 +61,10 @@ describe('RelationshipsTab', () => {
         expect(screen.getByTestId('edge').textContent).toBe('tbl_att→tbl_msg:messages_ref');
     });
 
-    it('a drag adds the relation column to the table it started from', () => {
+    it('a drag adds the relation column to the table it started from', async () => {
+        const user = userEvent.setup();
         const { onChange } = setup();
-        fireEvent.click(screen.getByTestId('connect'));
+        await user.click(screen.getByTestId('connect'));
         const [next] = onChange.mock.calls[0];
         const added = next.find((t) => t.id === 'tbl_att').fields.at(-1);
         expect(added.type).toBe('relation');
@@ -71,23 +73,26 @@ describe('RelationshipsTab', () => {
         expect(next.find((t) => t.id === 'tbl_msg').fields).toHaveLength(1);
     });
 
-    it('refuses a self-link and says why, without touching the model', () => {
+    it('refuses a self-link and says why, without touching the model', async () => {
+        const user = userEvent.setup();
         const { onChange } = setup();
-        fireEvent.click(screen.getByTestId('self-connect'));
+        await user.click(screen.getByTestId('self-connect'));
         expect(onChange).not.toHaveBeenCalled();
         expect(screen.getByRole('alert').textContent).toMatch(/cannot be linked to itself/i);
     });
 
-    it('names the direction rather than leaving an arrow to be read both ways', () => {
+    it('names the direction rather than leaving an arrow to be read both ways', async () => {
+        const user = userEvent.setup();
         setup({ tables: LINKED });
-        fireEvent.click(screen.getByTestId('edge'));
+        await user.click(screen.getByTestId('edge'));
         expect(screen.getByText(/belongs to one/).textContent).toMatch(/Each\s*Attachments\s*belongs to one\s*Messages/);
     });
 
-    it('retargets and renames through the inspector', () => {
+    it('retargets and renames through the inspector', async () => {
+        const user = userEvent.setup();
         const tables = [...LINKED, { id: 'tbl_thr', key: 'threads', name: 'Threads', fields: [] }];
         const { onChange } = setup({ tables });
-        fireEvent.click(screen.getByTestId('edge'));
+        await user.click(screen.getByTestId('edge'));
 
         fireEvent.change(screen.getByLabelText('Column name'), { target: { value: 'Its message' } });
         expect(onChange.mock.calls[0][0].find((t) => t.id === 'tbl_att').fields.at(-1).name).toBe('Its message');
@@ -96,14 +101,16 @@ describe('RelationshipsTab', () => {
         expect(onChange.mock.calls[1][0].find((t) => t.id === 'tbl_att').fields.at(-1).relation).toEqual({ table: 'tbl_thr' });
     });
 
-    it('removes a link nobody fills', () => {
+    it('removes a link nobody fills', async () => {
+        const user = userEvent.setup();
         const { onChange } = setup({ tables: LINKED });
-        fireEvent.click(screen.getByTestId('edge'));
-        fireEvent.click(screen.getByRole('button', { name: /remove this link/i }));
+        await user.click(screen.getByTestId('edge'));
+        await user.click(screen.getByRole('button', { name: /remove this link/i }));
         expect(onChange.mock.calls[0][0].find((t) => t.id === 'tbl_att').fields).toHaveLength(1);
     });
 
-    it('refuses to remove a link a connector fills, naming it', () => {
+    it('refuses to remove a link a connector fills, naming it', async () => {
+        const user = userEvent.setup();
         // The model rejects a sync whose relation column is gone, so removing it
         // here would fail the whole save with a 422 much later.
         const connectors = [{
@@ -111,8 +118,8 @@ describe('RelationshipsTab', () => {
             sync: { tableId: 'tbl_msg', children: [{ tableId: 'tbl_att', relationField: 'messages_ref' }] },
         }];
         const { onChange } = setup({ tables: LINKED, connectors });
-        fireEvent.click(screen.getByTestId('edge'));
-        fireEvent.click(screen.getByRole('button', { name: /remove this link/i }));
+        await user.click(screen.getByTestId('edge'));
+        await user.click(screen.getByRole('button', { name: /remove this link/i }));
         expect(onChange).not.toHaveBeenCalled();
         expect(screen.getByRole('alert').textContent).toMatch(/“Gmail” fills this link/);
     });

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools: "Flatten a list" (builder_add_array_op op "flatten").
  *
@@ -122,6 +123,7 @@ function planSentence(parents, route) {
  * columns, by the generic-key rule only (no sample to find fills or clashes).
  */
 function unsampledPlan(route, keepFields) {
+    /** @type {Array<{overRef: any, itemVar: any, auto: boolean, fields?: any[]}>} */
     const levels = defaultParents(route).map(({ overRef, itemVar }) => ({ overRef, itemVar, auto: true }));
     if (!keepFields || !keepFields.length || !levels.length) return { parents: levels, notes: [] };
     const nearest = levels[levels.length - 1];

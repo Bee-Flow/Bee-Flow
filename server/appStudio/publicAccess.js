@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — PUBLIC SURFACE resolution.
  *
@@ -196,7 +197,7 @@ function canonPublicAccess(input, push) {
  * the id allocator) and drop the whole block when the entry screen is gone.
  * Mirrors how homeScreenId and nav groups are resolved.
  *
- * @param {object|null} pa       canonPublicAccess output
+ * @param {{entryScreenId?: any, screenIds: any[]}|null} pa       canonPublicAccess output
  * @param {Map<string,string>} renames  old id → canonical id
  * @param {Set<string>} screenIds       the definition's final screen ids
  */

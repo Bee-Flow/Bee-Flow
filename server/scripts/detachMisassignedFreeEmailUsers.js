@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Detach users who were wrongly auto-bound to an organisation because their
  * free/public email domain (gmail.com, …) matched an org's contact-email domain

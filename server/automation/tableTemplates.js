@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Gallery recipes for the table steps: someone uploads a spreadsheet or CSV on
  * a form, the table is edited without code, a short plain summary is written

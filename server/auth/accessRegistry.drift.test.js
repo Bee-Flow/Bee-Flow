@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Drift test — holds auth/accessRegistry.js to the app's REAL router stack.
  *

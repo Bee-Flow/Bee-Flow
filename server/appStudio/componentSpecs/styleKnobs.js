@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio catalog — the visual vocabulary: the theme re-export, the closed
  * set of style knobs, the derived advanced-sizing knobs, and the height

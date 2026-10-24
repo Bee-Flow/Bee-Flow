@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { approvalQuestionName } from './approvalEditors';
 import scopedStorage from '../../../../../utils/scopedStorage';
@@ -97,8 +98,9 @@ describe('approvalQuestionName — minted once, never re-derived', () => {
 
 describe('the approval question list, in the builder', () => {
     it('mints the binding name when the author leaves the label box', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm();
-        fireEvent.click(await screen.findByText('Add a question'));
+        await user.click(await screen.findByText('Add a question'));
         const label = await screen.findByPlaceholderText('Question label');
         fireEvent.change(label, { target: { value: 'Invoice number' } });
         fireEvent.blur(label);
@@ -123,8 +125,9 @@ describe('the approval question list, in the builder', () => {
     });
 
     it('never stores a name the server would refuse, whatever the label starts with', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm();
-        fireEvent.click(await screen.findByText('Add a question'));
+        await user.click(await screen.findByText('Add a question'));
         const label = await screen.findByPlaceholderText('Question label');
         fireEvent.change(label, { target: { value: '2nd signature' } });
         fireEvent.blur(label);

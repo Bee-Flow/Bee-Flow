@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * getOrCreateSigningKey (utils/webhookSigner.js): reuse a stored key, and
  * when one has to be created lazily, audit it with the context configStore

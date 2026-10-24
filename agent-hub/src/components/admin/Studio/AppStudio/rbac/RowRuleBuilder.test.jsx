@@ -1,4 +1,5 @@
 import { render, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import RowRuleBuilder from './RowRuleBuilder';
@@ -41,9 +42,10 @@ describe('RowRuleBuilder — starting a rule', () => {
         expect(getByText('Add a condition')).toBeTruthy();
     });
 
-    it('turns the "rows they added" shortcut into a picker condition, not typed text', () => {
+    it('turns the "rows they added" shortcut into a picker condition, not typed text', async () => {
+        const user = userEvent.setup();
         const { getByText, onChange } = setup();
-        fireEvent.click(getByText('Only rows they added themselves'));
+        await user.click(getByText('Only rows they added themselves'));
         const next = onChange.mock.calls[0][0];
         expect(buildRowRule(next)).toBe('record.created_by == viewer.id');
     });
@@ -117,12 +119,13 @@ describe('RowRuleBuilder — several conditions', () => {
         expect(getByText(/each extra condition shows them more rows, not fewer/)).toBeTruthy();
     });
 
-    it('adds and removes conditions', () => {
+    it('adds and removes conditions', async () => {
+        const user = userEvent.setup();
         const { getByText, getByLabelText, onChange } = setup({ conditions: two });
-        fireEvent.click(getByText('Add a condition'));
+        await user.click(getByText('Add a condition'));
         expect(onChange.mock.calls[0][0].conditions).toHaveLength(3);
 
-        fireEvent.click(getByLabelText('Remove condition 1'));
+        await user.click(getByLabelText('Remove condition 1'));
         expect(onChange.mock.calls[1][0].conditions.map((c) => c.field)).toEqual(['status']);
     });
 

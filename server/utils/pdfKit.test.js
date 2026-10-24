@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The shared pdfkit helpers — and the one bug that made them shared.
  *

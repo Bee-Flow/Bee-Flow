@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for the custom MCP client's pure helpers.
  *

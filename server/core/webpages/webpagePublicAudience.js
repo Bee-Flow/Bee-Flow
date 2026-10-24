@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Wie ziet de pagina" — de vier rijen, en wat er bij de vierde hoort.
  *

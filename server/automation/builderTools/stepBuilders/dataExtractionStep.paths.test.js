@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The data_extraction builder reads its source path with the runner's
  * grammar.

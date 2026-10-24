@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The shipped mailbox table shapes, and the two places that hand them out.
  *

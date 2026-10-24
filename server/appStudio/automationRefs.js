@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Welke knop van deze app draait welke automation" — puur.
  *

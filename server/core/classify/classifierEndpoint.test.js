@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Where classify-service lives: admin config first, then env.
  *

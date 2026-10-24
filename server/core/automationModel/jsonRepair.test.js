@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * jsonRepair — rescuing the JSON a model very nearly wrote.
  *

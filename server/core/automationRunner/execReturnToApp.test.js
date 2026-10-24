@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * `return_to_app` aan de runnerkant — het effectenobject dat de app krijgt.
  *

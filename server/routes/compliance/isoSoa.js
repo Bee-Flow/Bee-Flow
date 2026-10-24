@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance — the ISO 27001 Statement of Applicability rows (list, seed,
  * per-control decision) and the two honest readiness numbers.

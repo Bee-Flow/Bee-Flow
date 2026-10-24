@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Runtime coercion of a form submission.
  *

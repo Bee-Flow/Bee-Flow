@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — the inbound safety gates that run between prompt assembly and
  * the LLM call, in order: Unicode-smuggling defense and the Privacy Shield

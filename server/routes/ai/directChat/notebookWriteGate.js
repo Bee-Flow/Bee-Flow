@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct-chat notebook-write gate.
  *

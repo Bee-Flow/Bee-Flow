@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Notebook Studio routes, mounted by routes/notebooks.js at the same place in
  * its route table.

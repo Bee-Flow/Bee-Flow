@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * rowToRunStep's errorInfo (Studio → Automations handoff 5, round 4).
  *

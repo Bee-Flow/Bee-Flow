@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * withConfigGroup against a fake client: the advisory lock comes first, every
  * read/write uses the same client, COMMIT ends it, and a throw rolls back with

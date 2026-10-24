@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Server test runner — the single entry point behind `npm test`.
  *
@@ -236,6 +237,7 @@ function summaryOf(text) {
     return got.tests === undefined ? null : got;
 }
 
+/** @returns {Promise<void>} */
 function runFile(file) {
     return new Promise((resolve) => {
         // `detached` makes the child a process-group leader so the whole group

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The organisation an automation route acts for must come from the database, and
  * every call site must await it.

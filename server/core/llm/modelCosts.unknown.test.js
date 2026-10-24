@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DB-free tests — a model no price source knows is ESTIMATED, flagged and counted;
  * it is never rated at the dearest model of all.

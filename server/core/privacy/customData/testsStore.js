@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The test sets of the "Your own data" types, stored encrypted and apart.

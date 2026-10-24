@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Per-step checks shared across step types rather than owned by one: the
  * optional maxItems input cap, the reserved/unbindable output-field-name

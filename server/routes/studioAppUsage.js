@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Usage aggregate for the Apps directory (APPS-08) — READ-ONLY, org-scoped.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * NIS2-Art21(2)(a)-risk-analysis — the ISO risk register as NIS2 evidence.
  * Run: cd server && node --test --test-force-exit compliance/checks/nis2/risk-analysis.test.js

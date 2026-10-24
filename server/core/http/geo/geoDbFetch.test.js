@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * geoDbFetch — month fallback, validation before replace, one edition kept.
  * The fetch is injected; the one test that needs a real mmdb uses the ASN

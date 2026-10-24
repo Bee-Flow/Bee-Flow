@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The one rule for Microsoft Graph ids and well-known folder names that end up
  * interpolated into a Graph path (`/me/messages/${id}/reply`, ...).

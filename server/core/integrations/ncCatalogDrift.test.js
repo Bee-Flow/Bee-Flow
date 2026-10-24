@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Catalog drift — the 14 Nextcloud integration ids, in one place.
  *

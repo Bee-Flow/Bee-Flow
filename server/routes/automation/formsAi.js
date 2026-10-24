@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Build it with AI" — draft or revise a form's questions from a brief.
  * (Studio → Forms, Sep 2026.)

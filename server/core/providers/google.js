@@ -716,7 +716,7 @@ class GoogleProvider extends BaseProvider {
         const ai = this.createClient(apiKey, options);
         const model = options.model || 'gemini-3.1-flash-image-preview';
 
-        log.info(`[${this.name || 'Google'}] Image generation for prompt:`, prompt.substring(0, 80));
+        log.info(`[${this.name || 'Google'}] Image generation for prompt:`, log.textForLog(prompt));
 
         const config = {
             responseModalities: ['TEXT', 'IMAGE'],
@@ -786,7 +786,7 @@ class GoogleProvider extends BaseProvider {
         const muteBass = options.muteBass;
         const muteDrums = options.muteDrums;
 
-        log.info(`[Google] Music generation: "${prompt.substring(0, 80)}" (${durationMs / 1000}s, ${bpm} BPM)`);
+        log.info(`[Google] Music generation: "${log.textForLog(prompt)}" (${durationMs / 1000}s, ${bpm} BPM)`);
 
         const audioChunks = [];
 
@@ -931,7 +931,7 @@ class GoogleProvider extends BaseProvider {
         const ai = new GoogleGenAI({ apiKey });
         const model = options.model || 'veo-3.1-generate-preview';
 
-        log.info(`[Google] Video generation: "${prompt.substring(0, 80)}" (model: ${model})`);
+        log.info(`[Google] Video generation: "${log.textForLog(prompt)}" (model: ${model})`);
 
         // Build the generation config. Veo 3.1 honours aspectRatio (16:9/9:16),
         // resolution (720p/1080p), durationSeconds (4/6/8), generateAudio, and

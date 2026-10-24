@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * NIS2 Art. 21(2)(d) — supply-chain security, seen from the supplier side:
  * customers in NIS2 scope send supplier questionnaires, and the ISO evidence

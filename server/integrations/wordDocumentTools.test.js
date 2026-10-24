@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * create_word_document — the chat's .docx tool. Pinned here: a real Word
  * package comes out (PK magic, the org's house style inside it), it lands

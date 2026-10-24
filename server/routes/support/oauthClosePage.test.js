@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The OAuth close page (routes/support/oauthClosePage.js): what it shows and
  * what it hands the opener, for ordinary values and for values that contain

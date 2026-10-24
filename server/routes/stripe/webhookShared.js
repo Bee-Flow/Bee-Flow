@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Subscriber resolution shared by every Stripe webhook handler: reading the
  * subscriber type out of Stripe metadata, mapping a Stripe subscription or

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * approvalEvents — the one place approval trigger events are assembled and
  * dispatched, so the payload cannot drift between the four emitters

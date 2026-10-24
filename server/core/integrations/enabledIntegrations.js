@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Which integrations a headless session should load PROVIDER TOKENS for.
  *
@@ -139,7 +140,7 @@ function parseLenient(raw) {
 }
 
 /**
- * @param {object|null|undefined} org  an organizations row (getOrganization)
+ * @param {Record<string, any>|null|undefined} org  an organizations row (getOrganization)
  * @param {object} [opts]
  * @param {'truthy'|'present'} [opts.overrideWhen='truthy']
  * @param {'strict'|'lenient'} [opts.parse='strict']

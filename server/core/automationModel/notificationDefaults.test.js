@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * automation/notificationDefaults: the handoff 5 policy shape, its defaults,
  * the reader that turns the older shape into it, and the hand-kept UI mirror.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * routes/compliance/customFrameworks — the capability gate, org scoping of
  * every mutation, the attestation flow (expiry from the framework, evidence
@@ -98,6 +99,7 @@ const app = express();
 app.use(express.json());
 app.use((req, _res, next) => { req.session = currentSession; next(); });
 app.use('/api/compliance', router);
+app.use(require('../../core/http/terminalErrorHandler').terminalErrorHandler);
 let server; let base;
 test.before(async () => {
     await new Promise((resolve) => { server = app.listen(0, resolve); });

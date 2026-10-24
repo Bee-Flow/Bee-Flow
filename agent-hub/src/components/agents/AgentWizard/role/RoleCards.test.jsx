@@ -4,6 +4,7 @@
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/role/RoleCards.test.jsx
  */
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 import { PERSONA_LIMITS, READ } from './personaFacts';
@@ -106,22 +107,24 @@ describe('RoleCards — schrijven levert altijd een VOLLEDIGE persona', () => {
         expect(next.unknown).toEqual({ mode: 'honest', automationId: null });
     });
 
-    it('voegt een bullet toe en laat de rest staan', () => {
+    it('voegt een bullet toe en laat de rest staan', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         render(<RoleCards {...base} onChange={onChange} />);
         const card = screen.getByTestId('agent-role-does-not');
-        fireEvent.click(card.querySelector('[data-testid="agent-role-bullet-add"]'));
+        await user.click(card.querySelector('[data-testid="agent-role-bullet-add"]'));
         const input = card.querySelector('[data-testid="agent-role-bullet-add-input"]');
         fireEvent.change(input, { target: { value: 'Change a price' } });
         fireEvent.keyDown(input, { key: 'Enter' });
         expect(onChange.mock.calls[0][0].doesNot).toEqual(['Promise a discount', 'Change a price']);
     });
 
-    it('weigert een dubbele bullet zonder de ouder lastig te vallen', () => {
+    it('weigert een dubbele bullet zonder de ouder lastig te vallen', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         render(<RoleCards {...base} onChange={onChange} />);
         const card = screen.getByTestId('agent-role-does');
-        fireEvent.click(card.querySelector('[data-testid="agent-role-bullet-add"]'));
+        await user.click(card.querySelector('[data-testid="agent-role-bullet-add"]'));
         const input = card.querySelector('[data-testid="agent-role-bullet-add-input"]');
         fireEvent.change(input, { target: { value: 'look up QUOTES' } });
         fireEvent.keyDown(input, { key: 'Enter' });
@@ -129,31 +132,34 @@ describe('RoleCards — schrijven levert altijd een VOLLEDIGE persona', () => {
         expect(card.querySelector('[data-testid="agent-role-bullet-rejected"]')).toBeTruthy();
     });
 
-    it('schakelt een toonchip om via de opgeslagen waarde', () => {
+    it('schakelt een toonchip om via de opgeslagen waarde', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         render(<RoleCards {...base} onChange={onChange} />);
-        fireEvent.click(screen.getByText('Short'));
+        await user.click(screen.getByText('Short'));
         expect(onChange.mock.calls[0][0].tone.chips).toEqual(['formal', 'concise']);
     });
 
-    it('laat het gekozen automation-id vallen zodra de modus geen handoff meer is', () => {
+    it('laat het gekozen automation-id vallen zodra de modus geen handoff meer is', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         const handoff = { ...PERSONA, unknown: { mode: 'handoff', automationId: 'a1' } };
         render(<RoleCards {...base} persona={handoff} onChange={onChange} />);
-        fireEvent.click(screen.getAllByRole('radio')[1]);
+        await user.click(screen.getAllByRole('radio')[1]);
         expect(onChange.mock.calls[0][0].unknown).toEqual({ mode: 'web', automationId: null });
     });
 });
 
 describe('RoleCards — de voetregel naar de vrije instructie', () => {
-    it('staat er met een handler, en zegt niet dat de vakken synchroon blijven', () => {
+    it('staat er met een handler, en zegt niet dat de vakken synchroon blijven', async () => {
+        const user = userEvent.setup();
         const onOpenFree = vi.fn();
         render(<RoleCards {...base} onOpenFree={onOpenFree} />);
         const footer = screen.getByTestId('agent-role-free-footer');
         expect(footer.textContent).toMatch(/Open as free instruction/);
         expect(footer.textContent).toMatch(/reading them back is a separate step/i);
         expect(footer.textContent).not.toMatch(/in sync/i);
-        fireEvent.click(screen.getByTestId('agent-role-free-open'));
+        await user.click(screen.getByTestId('agent-role-free-open'));
         expect(onOpenFree).toHaveBeenCalled();
     });
 
@@ -179,12 +185,13 @@ describe('RoleCards — vrije modus', () => {
         expect(screen.queryByTestId('agent-role-bullet-add')).toBeNull();
     });
 
-    it('biedt de terugweg alleen aan als de ouder hem kan uitvoeren', () => {
+    it('biedt de terugweg alleen aan als de ouder hem kan uitvoeren', async () => {
+        const user = userEvent.setup();
         const { rerender } = render(<RoleCards {...base} persona={free} />);
         expect(screen.queryByTestId('agent-role-back-to-fields')).toBeNull();
         const onBackToFields = vi.fn();
         rerender(<RoleCards {...base} persona={free} onBackToFields={onBackToFields} />);
-        fireEvent.click(screen.getByTestId('agent-role-back-to-fields'));
+        await user.click(screen.getByTestId('agent-role-back-to-fields'));
         expect(onBackToFields).toHaveBeenCalled();
     });
 

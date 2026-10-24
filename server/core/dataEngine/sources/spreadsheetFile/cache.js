@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The in-process DOWNLOAD CACHE — one copy of a file's bytes, and of what was
  * parsed from them, per version marker; shared by describe, sync and (later)

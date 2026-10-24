@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * `resolveModelForTierName` — wie vult er een model in als niemand er een koos?
  *

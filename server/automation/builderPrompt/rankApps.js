@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Order the app catalogue by relevance to what the user asked for.
  *
@@ -82,9 +83,9 @@ function isPinned(app, toolNames, triggerProvider) {
 /**
  * Rank the apps a user may run, most relevant first.
  *
- * @param {object} catalog      from buildCatalogForUser
+ * @param {any} catalog      from buildCatalogForUser
  * @param {string} userMessage  this turn's message
- * @param {object} draft        the automation being built (its apps get pinned)
+ * @param {any} draft        the automation being built (its apps get pinned)
  * @returns {Promise<object>}   the catalogue with `apps` reordered (never filtered
  *                              by relevance), unavailable apps removed
  */

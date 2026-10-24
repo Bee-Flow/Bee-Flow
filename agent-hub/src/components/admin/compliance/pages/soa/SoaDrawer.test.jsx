@@ -43,15 +43,16 @@ describe('SoaDrawer — the approved rule', () => {
         expect(screen.getByTestId('soa-drawer-check').getAttribute('data-status')).toBe('warn');
     });
 
-    it('lets the reviewer approve when the linked check passes and saves the allow-listed patch', () => {
+    it('lets the reviewer approve when the linked check passes and saves the allow-listed patch', async () => {
+        const user = userEvent.setup();
         const onSave = vi.fn();
         render(<SoaDrawer control={control()} checksById={byId('pass')} orgUsers={USERS} onSave={onSave} onClose={vi.fn()} navigate={vi.fn()} />);
         const approved = screen.getByTestId('soa-drawer-decision-approved');
         expect(approved).not.toBeDisabled();
         expect(screen.queryByTestId('soa-drawer-approved-hint')).toBeNull();
-        fireEvent.click(approved);
+        await user.click(approved);
         expect(approved.getAttribute('aria-checked')).toBe('true');
-        fireEvent.click(screen.getByTestId('soa-drawer-actions-primary'));
+        await user.click(screen.getByTestId('soa-drawer-actions-primary'));
         expect(onSave).toHaveBeenCalledWith('A.5.20', {
             status: 'approved', applicable: true, justification: null, how_met: 'DPA per processor', owner_user_id: 'u2',
         });
@@ -68,19 +69,21 @@ describe('SoaDrawer — the approved rule', () => {
         expect(screen.getByTestId('soa-drawer-decision-approved')).toBeDisabled();
     });
 
-    it('"Check ↗" navigates to the section that scores the check\'s regulation, with the check id', () => {
+    it('"Check ↗" navigates to the section that scores the check\'s regulation, with the check id', async () => {
+        const user = userEvent.setup();
         const navigate = vi.fn();
         render(<SoaDrawer control={control()} checksById={byId('pass')} orgUsers={USERS} onSave={vi.fn()} onClose={vi.fn()} navigate={navigate} />);
-        fireEvent.click(screen.getByTestId('soa-drawer-check-open'));
+        await user.click(screen.getByTestId('soa-drawer-check-open'));
         expect(navigate).toHaveBeenCalledWith('gdpr', 'ISO-A5-20');
     });
 });
 
 describe('SoaDrawer — the justification rule', () => {
-    it('Save is disabled for "Excluded" until a justification is written, then sends applicable:false', () => {
+    it('Save is disabled for "Excluded" until a justification is written, then sends applicable:false', async () => {
+        const user = userEvent.setup();
         const onSave = vi.fn();
         render(<SoaDrawer control={control()} checksById={byId('pass')} orgUsers={USERS} onSave={onSave} onClose={vi.fn()} navigate={vi.fn()} />);
-        fireEvent.click(screen.getByTestId('soa-drawer-decision-excluded'));
+        await user.click(screen.getByTestId('soa-drawer-decision-excluded'));
         const save = screen.getByTestId('soa-drawer-actions-primary');
         expect(save).toBeDisabled();
         expect(screen.getByTestId('soa-drawer-justification-hint')).toBeTruthy();
@@ -88,28 +91,30 @@ describe('SoaDrawer — the justification rule', () => {
         expect(save).toBeDisabled();
         fireEvent.change(screen.getByTestId('soa-drawer-justification'), { target: { value: 'Fully cloud — no server room of our own.' } });
         expect(save).not.toBeDisabled();
-        fireEvent.click(save);
+        await user.click(save);
         expect(onSave).toHaveBeenCalledWith('A.5.20', expect.objectContaining({ applicable: false, status: 'todo', justification: 'Fully cloud — no server room of our own.' }));
     });
 
-    it('an already-excluded row opens with "Excluded" selected and its stored status is kept when re-included', () => {
+    it('an already-excluded row opens with "Excluded" selected and its stored status is kept when re-included', async () => {
+        const user = userEvent.setup();
         const onSave = vi.fn();
         const c = control({ entry: { status: 'reviewed', applicable: false, justification: 'cloud only', how_met: null, owner_user_id: null, updated_at: '2026-06-12T09:00:00Z', updated_by: 'u1' } });
         render(<SoaDrawer control={c} checksById={byId('pass')} orgUsers={USERS} onSave={onSave} onClose={vi.fn()} navigate={vi.fn()} />);
         expect(screen.getByTestId('soa-drawer-decision-excluded').getAttribute('aria-checked')).toBe('true');
         expect(screen.getByTestId('soa-drawer-stamp').textContent).toMatch(/Last changed .* by T\. Smit/);
-        fireEvent.click(screen.getByTestId('soa-drawer-decision-reviewed'));
-        fireEvent.click(screen.getByTestId('soa-drawer-actions-primary'));
+        await user.click(screen.getByTestId('soa-drawer-decision-reviewed'));
+        await user.click(screen.getByTestId('soa-drawer-actions-primary'));
         expect(onSave).toHaveBeenCalledWith('A.5.20', expect.objectContaining({ applicable: true, status: 'reviewed' }));
     });
 });
 
 describe('SoaDrawer — owner and stamps', () => {
-    it('shows the owner by display name (never the e-mail) and clears it', () => {
+    it('shows the owner by display name (never the e-mail) and clears it', async () => {
+        const user = userEvent.setup();
         render(<SoaDrawer control={control()} checksById={byId('pass')} orgUsers={USERS} onSave={vi.fn()} onClose={vi.fn()} navigate={vi.fn()} />);
         expect(screen.getByTestId('soa-drawer-owner').textContent).toBe('R. Bakker');
         expect(screen.getByTestId('soa-drawer-owner').textContent).not.toMatch(/@/);
-        fireEvent.click(screen.getByLabelText('Remove owner'));
+        await user.click(screen.getByLabelText('Remove owner'));
         expect(screen.getByTestId('soa-drawer-owner').textContent).toBe('No owner assigned');
     });
 

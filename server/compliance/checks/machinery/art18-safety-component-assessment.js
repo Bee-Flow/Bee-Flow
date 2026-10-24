@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Machinery Regulation (EU) 2023/1230 Art. 18 (substantial modification) /
  * Art. 10 (manufacturer obligations) — indicative refs — a safety-component

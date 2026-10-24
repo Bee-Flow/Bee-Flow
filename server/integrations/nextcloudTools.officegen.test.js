@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tests for the nextcloud_create_spreadsheet / nextcloud_create_document tool
  * handlers — verifies the WebDAV wiring (parent-folder MKCOL, then a PUT of the

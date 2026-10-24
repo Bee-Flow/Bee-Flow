@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * NIS2-Art20-board-approval — admins acknowledged the published ISP + board training stamp.
  * Run: cd server && node --test --test-force-exit compliance/checks/nis2/board-approval.test.js

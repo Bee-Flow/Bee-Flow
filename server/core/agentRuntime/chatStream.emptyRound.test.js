@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Agent runtime — the empty-round guard (source pins).
  *

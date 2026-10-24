@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { playbooksApi } from './playbooksApi';
@@ -26,6 +27,7 @@ afterEach(() => cleanup());
 
 describe('PlaybooksStudio — the list and its doors', () => {
     it('lists the playbooks with progress and a status word; a card opens the run and flips the editing flag', async () => {
+        const user = userEvent.setup();
         const onEditingChange = vi.fn();
         const onNavigate = vi.fn();
         render(<PlaybooksStudio user={{ id: 'u1' }} onNavigate={onNavigate} onEditingChange={onEditingChange} />);
@@ -34,17 +36,18 @@ describe('PlaybooksStudio — the list and its doors', () => {
         expect(card.textContent).toContain('Paused for you');
         expect(screen.getByTestId('playbook-card-pb_2').textContent).toContain('Stopped');
         expect(onEditingChange).toHaveBeenLastCalledWith(false);
-        fireEvent.click(card);
+        await user.click(card);
         expect(screen.getByTestId('playbook-run').getAttribute('data-id')).toBe('pb_1');
         expect(onNavigate).toHaveBeenLastCalledWith('studio/playbooks/pb_1');
         expect(onEditingChange).toHaveBeenLastCalledWith(true);
-        fireEvent.click(screen.getByText('back'));
+        await user.click(screen.getByText('back'));
         expect(screen.queryByTestId('playbook-run')).toBeNull();
         expect(onNavigate).toHaveBeenLastCalledWith('studio/playbooks');
         await waitFor(() => expect(playbooksApi.list).toHaveBeenCalledTimes(2));
     });
 
     it('empty state offers New only to who may build; the deep link "new" opens the dialog and a created playbook opens at once', async () => {
+        const user = userEvent.setup();
         playbooksApi.list.mockResolvedValue({ playbooks: [] });
         const { unmount } = render(<PlaybooksStudio user={{ id: 'u1' }} hasPermission={() => false} />);
         expect(await screen.findByText('No playbooks yet')).toBeTruthy();
@@ -54,7 +57,7 @@ describe('PlaybooksStudio — the list and its doors', () => {
         const onNavigate = vi.fn();
         render(<PlaybooksStudio user={{ id: 'u1' }} initialPlaybookId="new" onNavigate={onNavigate} />);
         expect(await screen.findByTestId('new-playbook-dialog')).toBeTruthy();
-        fireEvent.click(screen.getByText('create'));
+        await user.click(screen.getByText('create'));
         expect(screen.getByTestId('playbook-run').getAttribute('data-id')).toBe('pb_new');
         expect(onNavigate).toHaveBeenLastCalledWith('studio/playbooks/pb_new');
     });

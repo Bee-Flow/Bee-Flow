@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Legal Store — runtime overrides for the optional-consent catalog.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Elk pad dat een app-definitie bewaart, brengt `automation_usage` in stap —
  * GETELD, niet opgesomd.

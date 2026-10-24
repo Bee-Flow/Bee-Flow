@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FormDensityContext } from './settings/formDensity';
 import { extractFormState, buildPatch } from './settings/formState';
@@ -97,7 +98,8 @@ describe('SettingsForm — Edit data (set)', () => {
         expect(screen.getByText('Run once per item')).toBeTruthy();
     });
 
-    it('list mode summarises the source in one line, under Advanced, with the change reveal', () => {
+    it('list mode summarises the source in one line, under Advanced, with the change reveal', async () => {
+        const user = userEvent.setup();
         renderForm(LIST_STEP);
         // Not in the way of the actual work: the source lives with the other
         // overrides, one line, named — never as a raw path.
@@ -105,7 +107,7 @@ describe('SettingsForm — Edit data (set)', () => {
         expect(screen.getByText('gmail search')).toBeTruthy();
         expect(screen.getByText('Results')).toBeTruthy();
         expect(screen.queryByDisplayValue('steps.g.output.results')).toBeNull();
-        fireEvent.click(screen.getByLabelText('Change the source list'));
+        await user.click(screen.getByLabelText('Change the source list'));
         expect(editorWithValue(document.body, 'steps.g.output.results')).toBeTruthy();
     });
 
@@ -131,13 +133,14 @@ describe('SettingsForm — Edit data (set)', () => {
     });
 
     it('picking data is visual: the picker offers "Current row" and lands a chip', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm({ ...LIST_STEP, fields: { sender: { kind: 'literal', value: '' } } });
-        fireEvent.click(screen.getByText('Use data from a step'));
+        await user.click(screen.getByText('Use data from a step'));
         expect(await screen.findByText('Current row')).toBeTruthy();
         // 'Subject', not 'subject': the picker leaf reads as words now, like
         // the chip on the next line already did. What lands is unchanged — the
         // expr below is still the raw `item.subject`.
-        fireEvent.click(await screen.findByText('Subject'));
+        await user.click(await screen.findByText('Subject'));
         expect(screen.getByText('▸ Subject')).toBeTruthy();
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
@@ -204,13 +207,14 @@ describe('SettingsForm — Edit data (set)', () => {
     });
 
     it('every table tool round-trips through Save with the exact operations array', async () => {
+        const user = userEvent.setup();
         const step = { ...LIST_STEP, operations: [] };
         const { onPatch } = renderForm(step);
         const add = () => fireEvent.click(screen.getByText('Add a table tool'));
 
-        add(); fireEvent.click(screen.getByText('Number the rows'));
-        add(); fireEvent.click(screen.getByText('Give matching rows a shared ID'));
-        add(); fireEvent.click(screen.getByText('Sort the rows'));
+        add(); await user.click(screen.getByText('Number the rows'));
+        add(); await user.click(screen.getByText('Give matching rows a shared ID'));
+        add(); await user.click(screen.getByText('Sort the rows'));
 
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
@@ -223,12 +227,13 @@ describe('SettingsForm — Edit data (set)', () => {
     });
 
     it('the ▲▼ chevrons reorder operations in the patch', async () => {
+        const user = userEvent.setup();
         const step = {
             ...LIST_STEP,
             operations: [{ op: 'rowId', target: 'id' }, { op: 'sort', key: 'id' }],
         };
         const { onPatch } = renderForm(step);
-        fireEvent.click(screen.getAllByLabelText('Move operation up')[1]); // move sort above rowId
+        await user.click(screen.getAllByLabelText('Move operation up')[1]); // move sort above rowId
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls[0][0].operations).toEqual([
@@ -249,24 +254,26 @@ describe('SettingsForm — Edit data (set)', () => {
     });
 
     it('a legacy forEach in list mode shows the supersession note and is cleared on save', async () => {
+        const user = userEvent.setup();
         const step = { ...LIST_STEP, forEach: { overRef: 'steps.g.output.results', itemVar: 'item' } };
         const { onPatch } = renderForm(step);
         expect(screen.getByText(/List mode replaces/)).toBeTruthy();
         // Make the form dirty (Save is a no-op on an untouched draft), then
         // check the save carries the explicit forEach clear along.
-        fireEvent.click(screen.getByText('Add a table tool'));
-        fireEvent.click(screen.getByText('Sort the rows'));
+        await user.click(screen.getByText('Add a table tool'));
+        await user.click(screen.getByText('Sort the rows'));
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls[0][0].forEach).toBeNull();
     });
 
     it('JSON text in the row offers "Pick fields from it" and a pick adds a plain path into it', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(LIST_STEP);
-        fireEvent.click(screen.getByText('Pick fields from it'));
+        await user.click(screen.getByText('Pick fields from it'));
         // The tree shows the parsed body of the current row: order → total.
         const total = await screen.findByText('total');
-        fireEvent.click(total);
+        await user.click(total);
         // The run reads JSON text as the value it encodes, so the pick is an
         // ordinary path — one chip in the user's words, no parseJson call
         // (which used to break on any key holding a quote).

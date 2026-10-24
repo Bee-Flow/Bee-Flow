@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * chatWithAgent (the non-streaming agent loop: support responder and the
  * non-streaming agent route) bills what the provider really reported.

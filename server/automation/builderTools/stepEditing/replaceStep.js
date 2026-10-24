@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * builder_replace_step — change a step's type in place, keeping its id and
  * wiring. Moved verbatim out of stepEditing.js.
@@ -19,7 +20,7 @@ const { findDanglingRefs } = require('./removeStep');
  * validation runs without touching real edges), grafts the old id, then
  * reconciles outgoing branch edges.
  */
-function applyReplaceStep(graph, args, { draft, scope = null } = {}, draftWrap) {
+function applyReplaceStep(graph, args, /** @type {{draft?: any, scope?: any}} */ { draft, scope = null } = {}, draftWrap) {
     const stepId = typeof args.stepId === 'string' ? args.stepId : null;
     if (!stepId) return { error: 'stepId is required.' };
     const newType = typeof args.newType === 'string' ? args.newType : null;

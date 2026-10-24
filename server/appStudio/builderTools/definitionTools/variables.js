@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — the app-wide VARIABLES (app_set_variables).
  */

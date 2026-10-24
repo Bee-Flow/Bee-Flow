@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The per-replica fan-out of co-editing updates (core/collab/docHub.js),
  * over an in-memory log and bus. No module mocking, no timers left running.

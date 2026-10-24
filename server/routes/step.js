@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Step Routes — REST API for reusable building blocks ("Steps", kind='block').
  *

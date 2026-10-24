@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The `vars` a run sees: the automation's own `definition.vars` with the
  * project's Solution variable values laid over them (design 4.2).
@@ -77,7 +78,7 @@ async function isManagedAutomation(automation, deps) {
 }
 
 /**
- * @param {{ projectId?: string|null, definition?: object|null }|null} automation
+ * @param {{ id?: string, projectId?: string|null, definition?: object|null }|null} automation
  * @param {{ definition?: object|null }} [opts] the definition this run executes
  *        (default: `automation.definition`); a partial run passes the one it built
  * @param {{ variableValuesFor?: (projectId: string) => Promise<Record<string, any>>, log?: any }} [deps]

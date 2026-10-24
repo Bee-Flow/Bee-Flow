@@ -89,7 +89,7 @@ describe('SettingsForm — form page step', () => {
         const user = userEvent.setup();
         await user.click(screen.getByLabelText('Expand question 1'));
         typeInEditor(screen.getByLabelText('Question 1 label'), 'Delivery address');
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Save'));
 
         const patch = onPatch.mock.calls.at(-1)[0];
         expect(patch.form.fields[0].label).toBe('Delivery address');
@@ -105,24 +105,27 @@ describe('SettingsForm — form page step', () => {
         expect(screen.queryByRole('combobox', { name: 'Wait for an answer' })).toBeNull();
     });
 
-    it('the wait window is editable on an input page and clamped on save', () => {
+    it('the wait window is editable on an input page and clamped on save', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderStep(inputPage());
         fireEvent.change(screen.getByRole('combobox', { name: 'Wait for an answer' }), { target: { value: '900' } });
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Save'));
         expect(onPatch.mock.calls.at(-1)[0].waitSeconds).toBe(900);
     });
 
-    it('the preview renders the same component the visitor gets', () => {
+    it('the preview renders the same component the visitor gets', async () => {
+        const user = userEvent.setup();
         renderStep(inputPage());
-        fireEvent.click(screen.getByText('Preview the form'));
+        await user.click(screen.getByText('Preview the form'));
         const preview = screen.getByTestId('form-preview');
         expect(within(preview).getByText('One more thing')).toBeTruthy();
         expect(within(preview).getByRole('button', { name: 'Continue' })).toBeTruthy();
     });
 
-    it('a closing page previews as the ending card, not as a form', () => {
+    it('a closing page previews as the ending card, not as a form', async () => {
+        const user = userEvent.setup();
         renderStep(endingPage());
-        fireEvent.click(screen.getByText('Preview the form'));
+        await user.click(screen.getByText('Preview the form'));
         const preview = screen.getByTestId('form-preview');
         expect(within(preview).getByText('All done')).toBeTruthy();
         // With no sample data to resolve against, the raw binding stays put —
@@ -131,20 +134,22 @@ describe('SettingsForm — form page step', () => {
         expect(within(preview).queryByRole('button')).toBeNull();
     });
 
-    it('a page defaults to the first page\'s styling, and overriding is one click', () => {
+    it('a page defaults to the first page\'s styling, and overriding is one click', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderStep(inputPage());
         const inherit = screen.getByLabelText('Match the first page');
         expect(inherit.checked).toBe(true);
         // While inheriting, the theme controls stay out of the way.
         expect(screen.queryByLabelText('Custom accent colour')).toBeNull();
 
-        fireEvent.click(inherit);
+        await user.click(inherit);
         expect(screen.getByLabelText('Custom accent colour')).toBeTruthy();
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Save'));
         expect(onPatch.mock.calls.at(-1)[0].form.theme).toMatchObject({ primary: expect.any(String) });
     });
 
-    it('a page with no declaration yet offers to create one, and creating it does not break hooks', () => {
+    it('a page with no declaration yet offers to create one, and creating it does not break hooks', async () => {
+        const user = userEvent.setup();
         // Same #310 shape as the trigger: "no declaration" and "declaration"
         // are both renders this component can be in.
         function Harness() {
@@ -163,7 +168,7 @@ describe('SettingsForm — form page step', () => {
             );
         }
         render(<Harness />);
-        fireEvent.click(screen.getByText('Create the page'));
+        await user.click(screen.getByText('Create the page'));
         expect(editorWithValue(document.body, 'One more thing')).toBeTruthy();
         expect(screen.queryByText('Create the page')).toBeNull();
     });
@@ -243,10 +248,11 @@ describe('SettingsForm — form page: values from earlier steps', () => {
         expect(screen.getAllByLabelText('Insert variable')).toHaveLength(5);
     });
 
-    it('picking a value writes a {{…}} template into the page title', () => {
+    it('picking a value writes a {{…}} template into the page title', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderStep(inputPage(), { groups: [TICKET_GROUP], previewSample: TICKET_SAMPLE });
         pickInto(0, 'steps.t.output.number');
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Save'));
         expect(onPatch.mock.calls.at(-1)[0].form.title).toContain('{{steps.t.output.number}}');
     });
 
@@ -256,24 +262,26 @@ describe('SettingsForm — form page: values from earlier steps', () => {
         await user.click(screen.getByLabelText('Expand question 1'));
         // Index 2: title, intro, then the first question's label.
         pickInto(2, 'steps.t.output.number');
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Save'));
 
         const field = onPatch.mock.calls.at(-1)[0].form.fields[0];
         expect(field.label).toContain('{{steps.t.output.number}}');
         expect(field.name).toBe('address');
     });
 
-    it('typing a template by hand works too, and reaches the step unchanged', () => {
+    it('typing a template by hand works too, and reaches the step unchanged', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderStep(endingPage(), { groups: [TICKET_GROUP], previewSample: TICKET_SAMPLE });
         const message = editorWithValue(document.body, 'We created {{steps.t.output.number}}.');
         typeInEditor(message, 'Ticket {{steps.t.output.number}} is open.');
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Save'));
         expect(onPatch.mock.calls.at(-1)[0].form.description).toBe('Ticket {{steps.t.output.number}} is open.');
     });
 
-    it('the preview shows the resolved sample value, the way the visitor will see it', () => {
+    it('the preview shows the resolved sample value, the way the visitor will see it', async () => {
+        const user = userEvent.setup();
         renderStep(endingPage(), { groups: [TICKET_GROUP], previewSample: TICKET_SAMPLE });
-        fireEvent.click(screen.getByText('Preview the form'));
+        await user.click(screen.getByText('Preview the form'));
         const preview = screen.getByTestId('form-preview');
         expect(within(preview).getByText(/We created INC-4471\./)).toBeTruthy();
     });

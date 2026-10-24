@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Availability + ordering + catalog projection for app_event trigger providers.
  *
@@ -106,11 +107,12 @@ function getProviderDef(id) {
     return getTriggerSource(id);
 }
 
-module.exports = { buildAppEventProviders, getProviderDef, providerIsAvailable };
+const api = { buildAppEventProviders, getProviderDef, providerIsAvailable };
+module.exports = api;
 
 // Back-compat: the ordered global declarations. A getter, not a snapshot, so
 // sources registered after this module was first required are still visible.
-Object.defineProperty(module.exports, 'TRIGGER_PROVIDERS', {
+Object.defineProperty(api, 'TRIGGER_PROVIDERS', {
     get: () => listTriggerSources({ includeHidden: true }),
     enumerable: true,
 });

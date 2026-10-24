@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Art-44 transfer assessment over the grouped ledger rows of the last 30 days
  * (compliance/checks/gdpr/art44-external-transfers.js runs the query).
@@ -29,7 +30,7 @@ function rowState(row) {
 }
 
 /**
- * @param {Array<object>} transfers  grouped rows: operator, country_code, country_name, is_eu, is_local, location_state, calls, …
+ * @param {Array<any>} transfers  grouped rows: operator, country_code, country_name, is_eu, is_local, location_state, calls, …
  * @param {Set<string>} sccConfirmed  lower-cased attested operator names
  */
 function assessTransfers(transfers, sccConfirmed) {

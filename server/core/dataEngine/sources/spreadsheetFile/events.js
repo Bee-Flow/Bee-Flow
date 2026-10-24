@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A push from a storage → the spreadsheet mirror(s) it is about, marked
  * stale and kicked. Never patched in place: a file event carries no row.
@@ -142,7 +143,8 @@ async function repoint(mirror, p) {
 async function stale(mirror, reason) {
     await datatableStore.markSourceStale(mirror.id, reason);
     const fresh = await datatableStore.getDatatable(mirror.id, mirror.scope);
-    if (fresh) require('./sync').kickStale(fresh, { reason, delayMs: 0 });
+    // makeSync documents its result as a plain object; kickStale is built by mirror/staleness.
+    if (fresh) /** @type {any} */ (require('./sync')).kickStale(fresh, { reason, delayMs: 0 });
 }
 
 /**

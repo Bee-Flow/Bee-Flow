@@ -1,6 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
+import { authFetch } from '@/utils/helpers';
 import ChartInspector from './ChartInspector';
 import DataGridInspector from './DataGridInspector';
 import StatInspector from './StatInspector';
@@ -11,7 +13,6 @@ vi.mock('@/utils/helpers', async (importOriginal) => {
     const actual = await importOriginal();
     return { ...actual, authFetch: vi.fn() };
 });
-import { authFetch } from '@/utils/helpers';
 
 // Stand-in for the query builder modal: one button that saves the view a chart
 // would get back, so the wiring is asserted without driving the whole modal.
@@ -82,12 +83,13 @@ describe('chart / data grid — one Data block', () => {
         expect(queryByPlaceholderText('[{"label":"Jan","value":10}]')).toBeNull();
     });
 
-    it('a view built from the chooser also prefills the chart, in one commit', () => {
+    it('a view built from the chooser also prefills the chart, in one commit', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ datasets: [] }) });
         const node = { ...NODES.chart, props: { ...NODES.chart.props, source: { kind: 'dataset', datasetId: null } } };
         const { getByText, props, onCommit } = renderInspector(ChartInspector, node);
-        fireEvent.click(getByText('Build a new view…'));
-        fireEvent.click(getByText('save built view'));
+        await user.click(getByText('Build a new view…'));
+        await user.click(getByText('save built view'));
         expect(onCommit).toHaveBeenCalledTimes(1);
         expect(props()).toMatchObject({
             source: { kind: 'dataset', datasetId: 'ds_new' },
@@ -97,9 +99,10 @@ describe('chart / data grid — one Data block', () => {
         });
     });
 
-    it('picking a table writes the source binding', () => {
+    it('picking a table writes the source binding', async () => {
+        const user = userEvent.setup();
         const { getByText, props } = renderInspector(DataGridInspector, NODES.grid);
-        fireEvent.click(getByText('A table in this app'));
+        await user.click(getByText('A table in this app'));
         expect(props().source).toEqual({ kind: 'records', tableId: '' });
     });
 });

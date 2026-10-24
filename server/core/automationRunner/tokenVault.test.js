@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The run-scoped token vault.
  *

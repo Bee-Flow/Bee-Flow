@@ -201,7 +201,7 @@ router.post('/:id/ingest/url', requireAuth, requirePermission('manage_knowledge'
             return res.status(409).json({ error: 'This URL content already exists', documentId: e.documentId });
         }
         if (e.message.includes('Invalid URL') || e.message.includes('Only HTTP')) {
-            return res.status(400).json({ error: e.message });
+            throw new HttpError(400, 'bad_request', e.message);
         }
         if (e.message.includes('Fetch failed')) {
             return next(new HttpError(502, 'fetch_failed', e.message));

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * AIA-Art53-model-inventory — which configured providers count as EXTERNAL.
  *

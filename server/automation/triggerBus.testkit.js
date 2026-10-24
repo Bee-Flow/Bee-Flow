@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -15,7 +16,7 @@
  */
 
 function cacheStub(resolved, exports) {
-    require.cache[resolved] = { id: resolved, filename: resolved, loaded: true, exports };
+    require.cache[resolved] = /** @type {any} */ ({ id: resolved, filename: resolved, loaded: true, exports });
 }
 
 function installDispatchStubs() {

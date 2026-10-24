@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The content rules for an inferred memory, shared by the extractor (what may

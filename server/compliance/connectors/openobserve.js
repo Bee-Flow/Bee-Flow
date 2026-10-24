@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * OpenObserve monitoring connector — is the org's log platform actually
  * receiving data, retaining it, and wired to alert someone (A.8.16

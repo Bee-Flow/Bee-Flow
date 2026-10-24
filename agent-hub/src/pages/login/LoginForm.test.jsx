@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import LoginForm from './LoginForm';
 
@@ -70,20 +71,22 @@ describe('what the form offers on a first visit', () => {
         expect(screen.getByTestId('password')).toBeRequired();
     });
 
-    it('keeps the password masked until the eye is pressed', () => {
+    it('keeps the password masked until the eye is pressed', async () => {
+        const user = userEvent.setup();
         renderForm();
         expect(screen.getByTestId('password')).toHaveAttribute('type', 'password');
         // wrat: the toggle's aria-label is the same hardcoded English string in
         // both states ("Toggle password visibility"), so a screen reader never
         // hears whether the password is currently visible, and a Dutch user
         // never hears Dutch. Hoort in stage L12 te veranderen.
-        fireEvent.click(screen.getByLabelText('Toggle password visibility'));
+        await user.click(screen.getByLabelText('Toggle password visibility'));
         expect(screen.getByTestId('password')).toHaveAttribute('type', 'text');
     });
 
-    it('offers the forgotten-password way out', () => {
+    it('offers the forgotten-password way out', async () => {
+        const user = userEvent.setup();
         const { p } = renderForm();
-        fireEvent.click(screen.getByText('Forgot password?'));
+        await user.click(screen.getByText('Forgot password?'));
         expect(p.onForgotPassword).toHaveBeenCalled();
     });
 
@@ -131,11 +134,12 @@ describe('what the form remembers about you', () => {
         expect(document.cookie).toContain('bf_preferred_login=password');
     });
 
-    it('does not submit — or remember anything — while the fields are still empty', () => {
+    it('does not submit — or remember anything — while the fields are still empty', async () => {
+        const user = userEvent.setup();
         // Both credential fields are `required`, so the browser's own
         // constraint validation stops the click before onSubmit ever runs.
         const { p } = renderForm();
-        fireEvent.click(screen.getByTestId('login-submit-button'));
+        await user.click(screen.getByTestId('login-submit-button'));
         expect(p.handleSubmit).not.toHaveBeenCalled();
         expect(document.cookie).not.toContain('bf_preferred_login');
     });
@@ -144,9 +148,10 @@ describe('what the form remembers about you', () => {
     // stray click on "Sign in with Google" — cancelled at the consent screen,
     // or fired by a mis-tap — pins this browser to a Google-only login screen
     // on the next visit. Hoort in stage L2/L3 te veranderen.
-    it('records a provider as preferred the moment its button is clicked, success or not', () => {
+    it('records a provider as preferred the moment its button is clicked, success or not', async () => {
+        const user = userEvent.setup();
         const { p } = renderForm({ isGoogleConfigured: true });
-        fireEvent.click(screen.getByTestId('sso-google-button'));
+        await user.click(screen.getByTestId('sso-google-button'));
         expect(p.handleGoogleLogin).toHaveBeenCalled();
         expect(document.cookie).toContain('bf_preferred_login=google');
     });
@@ -198,10 +203,11 @@ describe('what the form remembers about you', () => {
         expect(screen.queryByText('login.or_continue_with')).toBeNull();
     });
 
-    it('opens the full list again from "other methods"', () => {
+    it('opens the full list again from "other methods"', async () => {
+        const user = userEvent.setup();
         document.cookie = 'bf_preferred_login=google;path=/';
         renderForm({ isGoogleConfigured: true });
-        fireEvent.click(screen.getByTestId('login-other-methods'));
+        await user.click(screen.getByTestId('login-other-methods'));
         expect(screen.getByTestId('username')).toBeInTheDocument();
         expect(screen.getByTestId('sso-google-button')).toBeInTheDocument();
     });
@@ -309,11 +315,12 @@ describe('the shape of the login form itself', () => {
     // wrat: the create-account button is NOT disabled while a login is in
     // flight, so it can be pressed mid-request and swaps the whole page for the
     // signup wizard. Hoort in stage L16 te veranderen.
-    it('leaves the create-account button clickable during a login request', () => {
+    it('leaves the create-account button clickable during a login request', async () => {
+        const user = userEvent.setup();
         const { p } = renderForm({ isLoading: true });
         const create = screen.getByTestId('create-account-button');
         expect(create).not.toBeDisabled();
-        fireEvent.click(create);
+        await user.click(create);
         expect(p.setSignupMode).toHaveBeenCalledWith(true);
         expect(p.setError).toHaveBeenCalledWith('');
     });

@@ -7,6 +7,7 @@
  * that the overlay opens in a direction that fits on screen.
  */
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
@@ -110,48 +111,53 @@ describe('AppsPicker', () => {
         expect(container).toBeEmptyDOMElement();
     });
 
-    it('hands the picked app back to the host', () => {
+    it('hands the picked app back to the host', async () => {
+        const user = userEvent.setup();
         const props = pickerWith(filterAvailableApps(APP_DEFS, { integrationStatus: GOOGLE }));
-        fireEvent.click(screen.getByTestId('apps-picker-button'));
-        fireEvent.click(screen.getAllByTestId('apps-picker-item').find(el => el.dataset.appId === 'gmail'));
+        await user.click(screen.getByTestId('apps-picker-button'));
+        await user.click(screen.getAllByTestId('apps-picker-item').find(el => el.dataset.appId === 'gmail'));
         expect(props.onPick).toHaveBeenCalledWith(expect.objectContaining({ id: 'gmail' }));
     });
 
-    it('will not pick a disabled app', () => {
+    it('will not pick a disabled app', async () => {
+        const user = userEvent.setup();
         const props = pickerWith(
             filterAvailableApps(APP_DEFS, { integrationStatus: GOOGLE }),
             { isAppEnabled: () => false },
         );
-        fireEvent.click(screen.getByTestId('apps-picker-button'));
-        fireEvent.click(screen.getAllByTestId('apps-picker-item')[0]);
+        await user.click(screen.getByTestId('apps-picker-button'));
+        await user.click(screen.getAllByTestId('apps-picker-item')[0]);
         expect(props.onPick).not.toHaveBeenCalled();
     });
 
-    it('filters on the search box', () => {
+    it('filters on the search box', async () => {
+        const user = userEvent.setup();
         pickerWith(filterAvailableApps(APP_DEFS, { integrationStatus: GOOGLE }));
-        fireEvent.click(screen.getByTestId('apps-picker-button'));
+        await user.click(screen.getByTestId('apps-picker-button'));
         fireEvent.change(screen.getByLabelText('Search apps'), { target: { value: 'calendar' } });
         const ids = screen.getAllByTestId('apps-picker-item').map(el => el.dataset.appId);
         expect(ids).toContain('google-calendar');
         expect(ids).not.toContain('gmail');
     });
 
-    it('drops the overlay below the button when there is no room above it', () => {
+    it('drops the overlay below the button when there is no room above it', async () => {
+        const user = userEvent.setup();
         // In chat the composer sits at the bottom, so the panel opens upward.
         // On the Cowork page it sits under the hero, where upward runs it off
         // the top of the viewport — the same bug the When sheet had.
         const rect = vi.spyOn(Element.prototype, 'getBoundingClientRect');
         rect.mockReturnValue({ top: -140, bottom: 0, left: 0, right: 0, width: 320, height: 400, x: 0, y: -140, toJSON: () => ({}) });
         pickerWith(filterAvailableApps(APP_DEFS, { integrationStatus: GOOGLE }));
-        fireEvent.click(screen.getByTestId('apps-picker-button'));
+        await user.click(screen.getByTestId('apps-picker-button'));
         expect(screen.getByTestId('apps-picker-panel').className).toContain('top-full');
     });
 
-    it('keeps the overlay above the button when it fits', () => {
+    it('keeps the overlay above the button when it fits', async () => {
+        const user = userEvent.setup();
         const rect = vi.spyOn(Element.prototype, 'getBoundingClientRect');
         rect.mockReturnValue({ top: 300, bottom: 700, left: 0, right: 0, width: 320, height: 400, x: 0, y: 300, toJSON: () => ({}) });
         pickerWith(filterAvailableApps(APP_DEFS, { integrationStatus: GOOGLE }));
-        fireEvent.click(screen.getByTestId('apps-picker-button'));
+        await user.click(screen.getByTestId('apps-picker-button'));
         expect(screen.getByTestId('apps-picker-panel').className).toContain('bottom-full');
     });
 });

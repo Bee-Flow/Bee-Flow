@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The three storages a spreadsheet mirror can read from, behind ONE shape.
  *
@@ -50,6 +51,7 @@ const MODULES = Object.freeze({
  * over the MIME type: storages type an uploaded `.csv` as text/plain and an
  * `.xlsx` as application/octet-stream often enough that the MIME alone would
  * hide real spreadsheets; the MIME is what identifies a native Google Sheet.
+ * @param {{ name?:string, mimeType?:string }} [file]
  * @returns {string|null} one of FORMATS, or null for anything else
  */
 function formatOf({ name, mimeType } = {}) {

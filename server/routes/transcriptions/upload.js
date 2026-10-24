@@ -119,7 +119,7 @@ router.post('/', requireAuth, upload.single('audio'), validate({ body: UploadBod
         if (chosen.refusal) return res.status(403).json(chosen.refusal);
         const provider = chosen.provider;
 
-        log.info(`[Transcriptions] Transcribing "${fileName}" (${(uploadBytes / (1024 * 1024)).toFixed(1)} MB) via ${provider} for user ${userId} (${userName || 'unknown'})`);
+        log.info(`[Transcriptions] Transcribing "${log.nameForLog(fileName)}" (${(uploadBytes / (1024 * 1024)).toFixed(1)} MB) via ${provider} for user ${userId} (${userName || 'unknown'})`);
 
         // ── Go async: save the audio up front (so a crashed/timed-out job can
         // still be reprocessed), create a 'processing' note, and respond 202

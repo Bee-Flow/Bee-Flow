@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Swap functions ON shared module objects for the length of a test file, and
  * put them back afterwards.

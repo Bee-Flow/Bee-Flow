@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De reconciler, omgekeerd: een tabel verandert, een openbare pagina moet mee.
  *

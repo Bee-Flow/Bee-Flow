@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Image downscaling — the two caps that fail a whole request.
  *

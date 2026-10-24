@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The steps of a local KB search (./localSearch.js): the full-text query
  * strings, the candidate queries (vector + FTS, with the orphan filter), the

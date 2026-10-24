@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * supportInboxScanEngine — the scan drain follows the runtime module switch.
  *

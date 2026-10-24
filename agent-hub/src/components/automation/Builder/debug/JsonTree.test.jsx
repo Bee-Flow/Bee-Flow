@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import JsonTree, { collectMatches } from './JsonTree';
 
@@ -62,11 +63,12 @@ describe('JsonTree — how much starts open', () => {
         expect(screen.queryByText('level3:')).toBeNull();
     });
 
-    it('expand all reaches the bottom; collapse all folds the root', () => {
+    it('expand all reaches the bottom; collapse all folds the root', async () => {
+        const user = userEvent.setup();
         render(<JsonTree value={NESTED} />);
-        fireEvent.click(screen.getByLabelText('Expand all'));
+        await user.click(screen.getByLabelText('Expand all'));
         expect(screen.getByText('leaf:')).toBeTruthy();
-        fireEvent.click(screen.getByLabelText('Collapse all'));
+        await user.click(screen.getByLabelText('Collapse all'));
         expect(screen.queryByText('level1:')).toBeNull();
     });
 });
@@ -74,11 +76,12 @@ describe('JsonTree — how much starts open', () => {
 describe('JsonTree — copy, count and cap', () => {
     beforeEach(() => cleanup());
 
-    it('copies the whole value as formatted JSON', () => {
+    it('copies the whole value as formatted JSON', async () => {
+        const user = userEvent.setup();
         const writeText = vi.fn();
         Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
         render(<JsonTree value={{ a: 1 }} />);
-        fireEvent.click(screen.getByLabelText('Copy JSON'));
+        await user.click(screen.getByLabelText('Copy JSON'));
         expect(writeText).toHaveBeenCalledWith(JSON.stringify({ a: 1 }, null, 2));
     });
 
@@ -95,10 +98,11 @@ describe('JsonTree — copy, count and cap', () => {
         expect(screen.getByText('{ 2 keys }')).toBeTruthy();
     });
 
-    it('renders 50 children of one container, then offers the rest', () => {
+    it('renders 50 children of one container, then offers the rest', async () => {
+        const user = userEvent.setup();
         render(<JsonTree value={Array.from({ length: 500 }, (_, i) => i)} />);
         expect(screen.queryByText('499')).toBeNull();
-        fireEvent.click(screen.getByText('+450 more'));
+        await user.click(screen.getByText('+450 more'));
         expect(screen.getByText('499')).toBeTruthy();
         expect(screen.queryByText('+450 more')).toBeNull();
     });
@@ -107,12 +111,13 @@ describe('JsonTree — copy, count and cap', () => {
 describe('JsonTree — paths', () => {
     beforeEach(() => cleanup());
 
-    it('hands a leaf its absolute binding path', () => {
+    it('hands a leaf its absolute binding path', async () => {
+        const user = userEvent.setup();
         const onCopyPath = vi.fn();
         render(<JsonTree value={{ results: [{ subject: 'A' }] }} basePath="steps.x.output" onCopyPath={onCopyPath} />);
         // The leaf sits one level below the default depth.
-        fireEvent.click(screen.getByLabelText('Expand all'));
-        fireEvent.click(screen.getAllByLabelText('Copy path').at(-1));
+        await user.click(screen.getByLabelText('Expand all'));
+        await user.click(screen.getAllByLabelText('Copy path').at(-1));
         expect(onCopyPath).toHaveBeenCalledWith('steps.x.output.results[0].subject');
     });
 });

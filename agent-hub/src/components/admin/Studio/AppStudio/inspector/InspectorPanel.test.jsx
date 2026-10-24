@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useEffect } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import InspectorPanel from './InspectorPanel';
@@ -214,8 +215,9 @@ describe('InspectorPanel — streamLock', () => {
 
 describe('InspectorPanel — header ops', () => {
     it('Duplicate commits a definition with a fresh copy of the node', async () => {
+        const user = userEvent.setup();
         const { onCommit } = await renderPanel({ nodeId: 'cmp_refre1' });
-        fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
+        await user.click(screen.getByRole('button', { name: 'Duplicate' }));
         expect(onCommit).toHaveBeenCalledTimes(1);
         const next = onCommit.mock.calls[0][0];
         expect(collectIds(next).size).toBe(collectIds(KITCHEN_SINK).size + 1);
@@ -223,16 +225,18 @@ describe('InspectorPanel — header ops', () => {
     });
 
     it('Delete on a childless node commits removal without a confirm dialog', async () => {
+        const user = userEvent.setup();
         const { onCommit } = await renderPanel({ nodeId: 'cmp_refre1' });
-        fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Delete' }));
         expect(screen.queryByRole('dialog')).toBeNull();
         expect(onCommit).toHaveBeenCalledTimes(1);
         expect(findNode(onCommit.mock.calls[0][0], 'cmp_refre1')).toBeNull();
     });
 
     it('Delete on a container with children asks for confirmation first', async () => {
+        const user = userEvent.setup();
         const { onCommit } = await renderPanel({ nodeId: 'cmp_form01' });
-        fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Delete' }));
         expect(onCommit).not.toHaveBeenCalled();
         const dialog = screen.getByRole('dialog');
         expect(dialog).toBeInTheDocument();
@@ -241,7 +245,7 @@ describe('InspectorPanel — header ops', () => {
         const confirm = Array.from(dialog.querySelectorAll('button'))
             .find((b) => b.textContent?.trim() === 'Delete');
         expect(confirm).toBeTruthy();
-        fireEvent.click(confirm);
+        await user.click(confirm);
         await act(async () => {});
         expect(onCommit).toHaveBeenCalled();
         const next = onCommit.mock.calls.at(-1)[0];

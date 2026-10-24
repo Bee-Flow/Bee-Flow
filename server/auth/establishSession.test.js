@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DB-free tests for establishSession (H11 — session-fixation fix).
  *

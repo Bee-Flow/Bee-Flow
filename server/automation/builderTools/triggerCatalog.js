@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Trigger field/output-sample catalog for the builder, keyed by
  * `<provider>.<event>`.
@@ -175,10 +176,11 @@ const TRIGGER_META_FIELDS = Object.freeze([
     { key: 'schedule.scheduledFor', path: 'trigger.schedule.scheduledFor', sample: '2026-09-03T07:00:00.000Z', note: 'Additional schedules only: the slot that fired.' },
 ]);
 
-module.exports = { triggerFieldsFor, declaredTriggerFields, buildTriggerOutputsCatalog, TRIGGER_META_FIELDS };
+const api = { triggerFieldsFor, declaredTriggerFields, buildTriggerOutputsCatalog, TRIGGER_META_FIELDS };
+module.exports = api;
 
 // Back-compat surface: both maps were plain objects and are still re-exported
 // by builderTools.js. They are computed per access from the registry, so a
 // caller can never poison the declarations by mutating what it reads.
-Object.defineProperty(module.exports, 'TRIGGER_FIELDS_BY_EVENT', { get: fieldsByEvent, enumerable: true });
-Object.defineProperty(module.exports, 'TRIGGER_OUTPUT_SAMPLES', { get: outputSamples, enumerable: true });
+Object.defineProperty(api, 'TRIGGER_FIELDS_BY_EVENT', { get: fieldsByEvent, enumerable: true });
+Object.defineProperty(api, 'TRIGGER_OUTPUT_SAMPLES', { get: outputSamples, enumerable: true });

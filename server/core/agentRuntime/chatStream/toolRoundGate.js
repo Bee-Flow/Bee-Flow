@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The gate a round's tool calls pass through before anything runs.
  *

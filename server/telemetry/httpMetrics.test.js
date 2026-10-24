@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit — httpMetrics event-loop-delay gauge + snapshot shape.
  * DB-free. Run: node --test telemetry/httpMetrics.test.js

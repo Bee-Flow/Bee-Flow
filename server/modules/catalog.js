@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Platform-module catalog — PURE DATA.
  *

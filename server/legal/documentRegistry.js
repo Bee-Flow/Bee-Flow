@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Consent registry — the descriptors for the consents the product still
  * records.

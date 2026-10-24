@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit — featureMap.js notes must not contradict the router they describe.
  *

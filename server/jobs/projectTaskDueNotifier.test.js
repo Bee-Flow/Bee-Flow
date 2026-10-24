@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The daily task reminder, over the real tasks table (PGlite): who is told
  * when, once per tier, never for a finished task, and again after the due date moves.

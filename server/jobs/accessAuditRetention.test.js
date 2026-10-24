@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Retention on an audit trail deletes evidence, so every test here is about
  * NOT deleting: the default, the unreadable setting, the too-short window, and

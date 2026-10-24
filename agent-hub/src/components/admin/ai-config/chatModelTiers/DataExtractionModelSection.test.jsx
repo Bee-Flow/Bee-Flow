@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
@@ -52,7 +53,8 @@ describe('DataExtractionModelSection', () => {
         expect(screen.getByText(/every Data extraction step in an automation runs on, whatever tier/)).toBeTruthy();
     });
 
-    it('a picked model shows by display name (id when there is none) and reaches setDataExtractionModel; Save reaches saveDataExtractionModel', () => {
+    it('a picked model shows by display name (id when there is none) and reaches setDataExtractionModel; Save reaches saveDataExtractionModel', async () => {
+        const user = userEvent.setup();
         renderSection({ dataExtractionModel: 'qwen2.5:1.5b' });
         expect(screen.getByTestId('picker').textContent).toBe('Qwen 2.5 1.5B');
         cleanup();
@@ -60,9 +62,9 @@ describe('DataExtractionModelSection', () => {
         expect(screen.getByTestId('picker').textContent).toBe('gpt-5-mini');
         cleanup();
         const props = renderSection({ dataExtractionModel: 'qwen2.5:1.5b' });
-        fireEvent.click(screen.getByTestId('picker'));
+        await user.click(screen.getByTestId('picker'));
         expect(props.setDataExtractionModel).toHaveBeenCalledWith('qwen2.5:1.5b');
-        fireEvent.click(screen.getByRole('button', { name: 'Save Data Extraction Model' }));
+        await user.click(screen.getByRole('button', { name: 'Save Data Extraction Model' }));
         expect(props.saveDataExtractionModel).toHaveBeenCalledTimes(1);
     });
 

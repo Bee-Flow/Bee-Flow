@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio v2 — SAVED-DATASET RUNNER + scope-partitioned result cache.
  *

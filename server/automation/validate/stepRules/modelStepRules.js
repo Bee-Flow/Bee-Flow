@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The two steps that hand the work to a MODEL: `ai_step` (its prompt, the
  * output schema later steps bind against, the agent it may borrow, that

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok } from '@/test/http';
 import OrgEventTimeline from './OrgEventTimeline';
@@ -39,6 +40,7 @@ describe('OrgEventTimeline', () => {
     });
 
     it('paginates with the cursor on "Load more"', async () => {
+        const user = userEvent.setup();
         authFetch.mockImplementation((url) => {
             if (String(url).includes('cursor=')) {
                 return ok({ events: [{ id: 'e9', code: 'onboarding.completed', severity: 'info', meta: {}, createdAt: '2026-07-21T08:00:00Z' }], nextCursor: null });
@@ -46,7 +48,7 @@ describe('OrgEventTimeline', () => {
             return ok({ events: EVENTS, nextCursor: 'CUR1' });
         });
         render(<OrgEventTimeline orgId="org-b" />);
-        fireEvent.click(await screen.findByText('Load more'));
+        await user.click(await screen.findByText('Load more'));
         expect(await screen.findByText('Onboarding completed')).toBeTruthy();
         // Earlier events stay appended above the new page.
         expect(screen.getByText('Chat blocked: subscription')).toBeTruthy();

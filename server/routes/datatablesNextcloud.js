@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * /api/datatables/nextcloud/* — LINKING Nextcloud tables as datatables.
  *

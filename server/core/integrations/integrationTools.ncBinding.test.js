@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * NC tool availability for DB-bound users on standalone sessions.
  *

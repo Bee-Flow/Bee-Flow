@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 /**
@@ -21,12 +22,13 @@ const HOUSE = { accent: '#123a5e', font: 'sans', footerText: 'Van Dijk', deck: {
 afterEach(cleanup);
 
 describe('DeckLookFields — document mode', () => {
-    it('offers "House style" as the first preset and on every switch; choosing it removes the key', () => {
+    it('offers "House style" as the first preset and on every switch; choosing it removes the key', async () => {
+        const user = userEvent.setup();
         const setDeck = vi.fn();
         render(<DeckLookFields mode="document" testPrefix="document-deck" deck={{ preset: 'dark', slideNumbers: false }} setDeck={setDeck} style={HOUSE} t={t} />);
         expect(screen.getByTestId('document-deck-preset-inherit').getAttribute('aria-checked')).toBe('false');
         expect(screen.getByTestId('document-deck-preset-dark').getAttribute('aria-checked')).toBe('true');
-        fireEvent.click(screen.getByTestId('document-deck-preset-inherit'));
+        await user.click(screen.getByTestId('document-deck-preset-inherit'));
         expect(setDeck).toHaveBeenCalledWith('preset', '');
         const numbers = screen.getByTestId('document-deck-slideNumbers');
         expect(numbers.value).toBe('off');
@@ -39,10 +41,11 @@ describe('DeckLookFields — document mode', () => {
     });
 
     it('the logo and the template deck are three-way choices: house style, none, own', async () => {
+        const user = userEvent.setup();
         const setDeck = vi.fn();
         const { rerender } = render(<DeckLookFields mode="document" testPrefix="document-deck" deck={{}} setDeck={setDeck} style={HOUSE} t={t} />);
         expect(screen.getByTestId('document-deck-logo-house').getAttribute('aria-checked')).toBe('true');
-        fireEvent.click(screen.getByTestId('document-deck-logo-none'));
+        await user.click(screen.getByTestId('document-deck-logo-none'));
         expect(setDeck).toHaveBeenCalledWith('logo', 'none');
         fireEvent.change(screen.getByTestId('document-deck-logo-file'), { target: { files: [new File(['x'], 'logo.png', { type: 'image/png' })] } });
         await vi.waitFor(() => expect(setDeck).toHaveBeenCalledWith('logo', 'data:image/png;base64,AAA='));
@@ -50,7 +53,7 @@ describe('DeckLookFields — document mode', () => {
         expect(screen.getByTestId('document-deck-logo-own').getAttribute('aria-checked')).toBe('true');
         expect(screen.getByTestId('document-deck-logo-preview')).toBeTruthy();
         expect(screen.getByTestId('document-deck-template-none').getAttribute('aria-checked')).toBe('true');
-        fireEvent.click(screen.getByTestId('document-deck-template-house'));
+        await user.click(screen.getByTestId('document-deck-template-house'));
         expect(setDeck).toHaveBeenCalledWith('template', undefined);
         fireEvent.change(screen.getByTestId('document-deck-template-file'), { target: { files: [new File(['x'], 'Conf.pptx')] } });
         await vi.waitFor(() => expect(setDeck).toHaveBeenCalledWith('template', expect.objectContaining({ name: 'Conf.pptx' })));
@@ -58,25 +61,27 @@ describe('DeckLookFields — document mode', () => {
         expect(screen.queryByTestId('house-style-template-suggestions')).toBeNull();
     });
 
-    it('an own colour is a tick; unticking hands the colour back to the house style', () => {
+    it('an own colour is a tick; unticking hands the colour back to the house style', async () => {
+        const user = userEvent.setup();
         const setDeck = vi.fn();
         render(<DeckLookFields mode="document" testPrefix="document-deck" deck={{ accent: '#AA0000' }} setDeck={setDeck} style={HOUSE} t={t} />);
         const tick = screen.getByTestId('document-deck-accent-own');
         expect(tick.checked).toBe(true);
-        fireEvent.click(tick);
+        await user.click(tick);
         expect(setDeck).toHaveBeenCalledWith('accent', '');
     });
 });
 
 describe('DeckLookFields — house mode', () => {
-    it('keeps the house-style ids and checkboxes the panel test relies on', () => {
+    it('keeps the house-style ids and checkboxes the panel test relies on', async () => {
+        const user = userEvent.setup();
         const setDeck = vi.fn();
         render(<DeckLookFields mode="house" deck={HOUSE.deck} setDeck={setDeck} style={HOUSE} set={vi.fn()} t={t} />);
         expect(screen.queryByTestId('house-style-deck-preset-inherit')).toBeNull();
         expect(screen.getByTestId('house-style-deck-preset-band').getAttribute('aria-checked')).toBe('true');
         const numbers = screen.getByTestId('house-style-deck-numbers');
         expect(numbers.type).toBe('checkbox');
-        fireEvent.click(numbers);
+        await user.click(numbers);
         expect(setDeck).toHaveBeenCalledWith('slideNumbers', false);
         expect(screen.queryByTestId('house-style-deck-logo-house')).toBeNull();
         expect(screen.getByTestId('house-style-deck-template-file')).toBeTruthy();

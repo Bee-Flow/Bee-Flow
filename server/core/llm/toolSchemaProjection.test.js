@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tool schemas as the Gemma 4 template can render them.
  *

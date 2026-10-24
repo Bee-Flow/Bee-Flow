@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What the CORE (small-model) App Studio prompt must keep saying about call
  * size and reading order.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — inline flowlets (layers): key slugging, the skeleton the
  * flowlet sub-agent shares, the contract tool and call_layer wiring with its

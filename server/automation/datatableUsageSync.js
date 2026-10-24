@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Write the datatable dependents index for ONE automation, from every path that
  * saves a definition.
@@ -53,7 +54,7 @@ async function scopeForAutomation(automationId, organizationId) {
  * @param {string} automationId
  * @param {string|null} organizationId  the automation's org — NOT the session's
  * @param {object} definition
- * @param {{label?: string}} [opts] log prefix, so the ops line names the path
+ * @param {{label?: string, extraEntries?: any[]}} [opts] log prefix, so the ops line names the path
  * @returns {Promise<number>} rows written, or -1 when the reconcile itself failed
  */
 async function syncDatatableUsage(automationId, organizationId, definition, { label = 'automation', extraEntries = [] } = {}) {

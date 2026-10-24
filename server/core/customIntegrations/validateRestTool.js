@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Validation of one REST tool of a custom-integration definition
  * (./validateCustomIntegration.js): name, description, method, the parameters

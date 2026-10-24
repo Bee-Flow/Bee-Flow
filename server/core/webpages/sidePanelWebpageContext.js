@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Side-panel webpage context — builds the system-prompt block describing the
  * webpage the user has open in their right-side chat panel.

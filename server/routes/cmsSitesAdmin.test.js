@@ -171,6 +171,7 @@ test.before(async () => {
     const app = express();
     app.use(express.json());
     app.use('/api/cms', router);
+    app.use(require('../core/http/terminalErrorHandler').terminalErrorHandler);
     server = http.createServer(app);
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
     baseUrl = `http://127.0.0.1:${server.address().port}/api/cms`;

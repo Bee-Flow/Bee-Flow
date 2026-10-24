@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The one fetch the n8n integration uses.

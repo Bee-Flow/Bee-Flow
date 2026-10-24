@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Dynamic form fields: choices and questions that come from run data.
  *

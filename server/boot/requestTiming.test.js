@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * BFSF-468 - unmatched requests get one fixed label, never the raw path.

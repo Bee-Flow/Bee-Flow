@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The memory block of a direct-chat turn, made safe to send.
  *

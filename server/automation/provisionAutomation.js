@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * provisionAutomation — create / activate / tear down an automation automation from
  * server code (no HTTP layer). Used by the Support settings panel to auto-
@@ -101,7 +102,7 @@ async function activateAutomation(automationId, { userId, session, isAdmin = fal
 
     const topicClassifier = await require('../core/classify/classifierClient').topicClassifierFor(def);
     const v = validateDefinition(def, { availableTools, toolRequiredParams, deliverableEvents, availableAgents, topicClassifier });
-    if (!v.ok) { const err = new Error('Invalid definition'); err.details = v.errors; throw err; }
+    if (!v.ok) { const err = /** @type {Error & {details?: any}} */ (new Error('Invalid definition')); err.details = v.errors; throw err; }
 
     /**
      * ── THE KNOWLEDGE-BASE GATE, ON THE SHARED ACTIVATION PATH ──────
@@ -127,7 +128,7 @@ async function activateAutomation(automationId, { userId, session, isAdmin = fal
         });
         const blocking = kbErrors.filter(f => f.severity === 'error');
         if (blocking.length) {
-            const err = new Error('Invalid definition');
+            const err = /** @type {Error & {details?: any}} */ (new Error('Invalid definition'));
             err.details = blocking;
             throw err;
         }

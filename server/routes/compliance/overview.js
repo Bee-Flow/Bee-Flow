@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance — overview, the full PDF report and the score-over-time trend.
  *

@@ -220,7 +220,7 @@ function formTriggerFields(definition) {
  *
  * Returns issue records `[{ code, path, message, hint }]`; empty = valid.
  */
-function validateFormDeclaration(form, { requireFields = true, allowDisplayFields = true, allowRunData = false, allowInfo } = {}) {
+function validateFormDeclaration(form, /** @type {{requireFields?: boolean, allowDisplayFields?: boolean, allowRunData?: boolean, allowInfo?: boolean}} */ { requireFields = true, allowDisplayFields = true, allowRunData = false, allowInfo } = {}) {
     const infoOk = allowInfo ?? allowDisplayFields;
     const issues = [];
     const push = (code, path, message, hint) => issues.push({ code, path, message, hint });
@@ -238,7 +238,7 @@ function validateFormDeclaration(form, { requireFields = true, allowDisplayField
         return issues;
     }
 
-    for (const [key, max] of [['title', MAX_LABEL_LEN], ['description', MAX_TEXT_LEN], ['submitLabel', MAX_LABEL_LEN], ['successMessage', MAX_TEXT_LEN]]) {
+    for (const [key, max] of /** @type {Array<[string, number]>} */ ([['title', MAX_LABEL_LEN], ['description', MAX_TEXT_LEN], ['submitLabel', MAX_LABEL_LEN], ['successMessage', MAX_TEXT_LEN]])) {
         const v = form[key];
         if (v !== undefined && (typeof v !== 'string' || v.length > max)) {
             push(`${key}_invalid`, `form.${key}`, `${key} must be text of at most ${max} characters.`, 'Shorten it.');

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * HTTP-credential resolution for the http_request automation step (Feature C).
  *

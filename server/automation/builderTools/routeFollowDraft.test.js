@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Follow the route on the AI builder's draft (W8): the shared rewrites
  * applied in place, and said as notes.

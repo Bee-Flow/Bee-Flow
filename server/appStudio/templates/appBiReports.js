@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio template — BI reports.
  *

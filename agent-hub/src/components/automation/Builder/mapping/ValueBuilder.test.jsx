@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import ValueBuilder from './ValueBuilder';
 import { VariablePickerProvider } from './VariablePickerContext';
@@ -55,23 +56,25 @@ describe('ValueBuilder', () => {
         expect(onChange).toHaveBeenCalledWith({ kind: 'literal', value: 'open' });
     });
 
-    it('picking data from a step writes the ref', () => {
+    it('picking data from a step writes the ref', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderBuilder(null);
-        fireEvent.click(screen.getByText('Use data from a step'));
+        await user.click(screen.getByText('Use data from a step'));
         // 'Total', not 'total': the picker leaf now reads as words like the
         // chip it produces already did two assertions below. What is asserted
         // is unchanged — the ref written is still the raw dotted path.
-        fireEvent.click(screen.getByText('Total'));
+        await user.click(screen.getByText('Total'));
         expect(onChange).toHaveBeenCalledWith({ kind: 'ref', path: 'steps.act_4d4307a.output.total' });
     });
 
-    it('text plus data becomes a template, built by clicking — not by typing braces', () => {
+    it('text plus data becomes a template, built by clicking — not by typing braces', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderBuilder({ kind: 'literal', value: 'Order ' });
-        fireEvent.click(screen.getByText('Use data from a step'));
+        await user.click(screen.getByText('Use data from a step'));
         // 'Total', not 'total': the picker leaf now reads as words like the
         // chip it produces already did two assertions below. What is asserted
         // is unchanged — the ref written is still the raw dotted path.
-        fireEvent.click(screen.getByText('Total'));
+        await user.click(screen.getByText('Total'));
         expect(onChange).toHaveBeenCalledWith({
             kind: 'template', value: 'Order {{steps.act_4d4307a.output.total}}',
         });
@@ -96,20 +99,22 @@ describe('ValueBuilder', () => {
         expect(screen.getByText('▸ Total')).toBeTruthy();
     });
 
-    it('removing a chip clears the value', () => {
+    it('removing a chip clears the value', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderBuilder({ kind: 'ref', path: 'steps.act_4d4307a.output.total' });
-        fireEvent.click(screen.getByLabelText('Remove this value'));
+        await user.click(screen.getByLabelText('Remove this value'));
         expect(onChange).toHaveBeenCalledWith({ kind: 'literal', value: '' });
     });
 
-    it('a hand-written formula is shown with step NAMES and never rewritten', () => {
+    it('a hand-written formula is shown with step NAMES and never rewritten', async () => {
+        const user = userEvent.setup();
         const src = 'concat(steps.act_4d4307a.output.total, " eur")';
         const { onChange } = renderBuilder({ kind: 'expr', value: src });
         expect(screen.getByText('Custom formula')).toBeTruthy();
         expect(screen.getByText('gmail search')).toBeTruthy();
         expect(screen.queryByText(/act_4d4307a/)).toBeNull();
         expect(onChange).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByText('Edit the formula'));
+        await user.click(screen.getByText('Edit the formula'));
         // Editing keeps the formula byte-identical; the step reference inside it
         // still reads as a name, so even the raw editor never shows the id.
         const box = editor(document.body);

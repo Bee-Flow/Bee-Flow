@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * remoteCatalog tests — the Hub-catalog × local-state join + the TIMESTAMP-ONLY
  * entitlement gate. catalog / hubClient / platformModuleStore are stubbed via

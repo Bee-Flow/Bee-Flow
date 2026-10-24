@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The repeat ladder — the same rejected call, sent again.
  *

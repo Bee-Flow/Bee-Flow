@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok } from '@/test/http';
 import AuditTab from './AuditTab';
@@ -25,12 +26,13 @@ describe('AuditTab', () => {
     });
 
     it('paginates with the cursor on "Load more"', async () => {
+        const user = userEvent.setup();
         authFetch.mockImplementation((url) => {
             if (String(url).includes('cursor=')) return ok({ events: [{ id: 'e9', actor_kind: 'system', action: 'email_ingested', inbox_id: 'i1', payload: {}, created_at: '2026-06-29T08:00:00Z' }], nextCursor: null });
             return ok({ events: EVENTS, nextCursor: 'CUR1' });
         });
         render(<AuditTab inboxes={[{ id: 'i1', email_address: 'support@acme.nl' }]} />);
-        fireEvent.click(await screen.findByText('Load more'));
+        await user.click(await screen.findByText('Load more'));
         expect(await screen.findByText('Email received')).toBeTruthy();
         const cursorCall = authFetch.mock.calls.find(([url]) => String(url).includes('cursor=CUR1'));
         expect(cursorCall).toBeTruthy();

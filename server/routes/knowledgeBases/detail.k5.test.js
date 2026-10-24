@@ -227,8 +227,11 @@ test('somebody who is not the owner cannot give away a personal base', async () 
 test('an organisation the person does not belong to is refused', async () => {
     fx.kb = { id: 'kb1', tenant_id: 'u1', name: 'Handbook', organization_id: null };
     fx.orgAssertFails = true;
-    const res = await dispatch({ method: 'PATCH', url: '/kb1', body: { organizationId: 'org_theirs' } });
-    assert.strictEqual(res.statusCode, 403);
+    // The helper's own 403 travels up; the terminal handler answers with its message.
+    await assert.rejects(
+        dispatch({ method: 'PATCH', url: '/kb1', body: { organizationId: 'org_theirs' } }),
+        (e) => e.status === 403 && e.message === 'Organisation not accessible',
+    );
     assert.deepStrictEqual(fx.updates, []);
 });
 

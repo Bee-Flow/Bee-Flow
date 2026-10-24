@@ -172,21 +172,23 @@ describe('NodeDetailView — form trigger', () => {
         });
 
         it('"Use empty answers" fills the declared key set without filling the form in', async () => {
+            const user = userEvent.setup();
             // BFSF-408(b). Same helper the renderer seeds its own state with
             // (PublicFormRenderer.initialValues), so this is literally the shape
             // an untouched submission has — not a third sample generator.
             await act(async () => { render(<NodeDetailView {...withActions(formTrigger(FIELDS))} />); });
-            fireEvent.click(screen.getByTestId('ndv-edit-output'));
-            fireEvent.click(screen.getByText('Use empty answers'));
+            await user.click(screen.getByTestId('ndv-edit-output'));
+            await user.click(screen.getByText('Use empty answers'));
             expect(JSON.parse(screen.getByLabelText('Output JSON').value)).toEqual({ name: '', email: '' });
         });
 
         it('saves the trigger payload back onto the TRIGGER, not into steps[]', async () => {
+            const user = userEvent.setup();
             const onSaveStep = vi.fn().mockResolvedValue(undefined);
             await act(async () => { render(<NodeDetailView {...withActions(formTrigger(FIELDS), { onSaveStep })} />); });
-            fireEvent.click(screen.getByTestId('ndv-edit-output'));
+            await user.click(screen.getByTestId('ndv-edit-output'));
             fireEvent.change(screen.getByLabelText('Output JSON'), { target: { value: '{"name":"Ada"}' } });
-            fireEvent.click(screen.getByText('Save output'));
+            await user.click(screen.getByText('Save output'));
 
             await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
             // mergeStepPatchIntoDefinition already routes a trigger patch to
@@ -236,7 +238,8 @@ describe('NodeDetailView — form trigger', () => {
 describe('NodeDetailView — the empty-answers shortcut speaks the dictionary', () => {
     beforeEach(() => { cleanup(); transOverride.current = null; try { localStorage.clear(); } catch { /* ignore */ } });
 
-    it('takes its label and its tooltip from t(), not from the JSX', () => {
+    it('takes its label and its tooltip from t(), not from the JSX', async () => {
+        const user = userEvent.setup();
         // This button only exists on a form trigger, so the general drawer
         // tests never reach it — and it sits on OutputEditorPanel, which had
         // no useTranslation hook at all.
@@ -245,7 +248,7 @@ describe('NodeDetailView — the empty-answers shortcut speaks the dictionary', 
             'automations.ndv.empty_answers_title': 'Elke vraag met een leeg antwoord invullen',
         };
         render(<NodeDetailView {...props(formTrigger(FIELDS))} />);
-        fireEvent.click(screen.getByTestId('ndv-edit-output'));
+        await user.click(screen.getByTestId('ndv-edit-output'));
         expect(screen.getByText('Lege antwoorden gebruiken')).toBeTruthy();
         expect(screen.getByTitle('Elke vraag met een leeg antwoord invullen')).toBeTruthy();
     });

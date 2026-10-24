@@ -295,7 +295,7 @@ async function createIssue(req, res) {
                 includeSubject: await includeSubjectEnabled(),
             });
         } catch (e) {
-            return res.status(400).json({ error: e.message });
+            throw new HttpError(400, 'bad_request', e.message);
         }
         const screen = await screenPayload(req, res, thread, payload);
         if (!screen) return undefined;

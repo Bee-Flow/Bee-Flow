@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * What the chat reports about the memories a turn used: the `memory_used` SSE
@@ -15,7 +16,7 @@ const log = require('../../telemetry/log');
 const PREVIEW_CHARS = 120;
 
 /**
- * @param {Array<{ id?: string, type?: string, content?: string }>} memories  as returned by findRelevantMemories
+ * @param {Array<{ id?: string, type?: string, content?: string, why?: string }>} memories  as returned by findRelevantMemories
  * @returns {Array<{ id: string, type: string, preview: string, why: 'profile'|'relevant' }>}
  */
 function memoryUsedItems(memories) {

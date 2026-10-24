@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import InputDataPanel from './InputDataPanel';
@@ -61,10 +62,11 @@ describe('InputDataPanel i18n — the table takeover', () => {
         expect(screen.queryByText('No data yet — run the upstream step to capture it.')).toBeNull();
     });
 
-    it('the way back really goes back — the key did not replace the behaviour', () => {
+    it('the way back really goes back — the key did not replace the behaviour', async () => {
+        const user = userEvent.setup();
         transOverride.current = NL;
         openTable('Open Gmail search as a table');
-        fireEvent.click(screen.getByRole('button', { name: /Velden/ }));
+        await user.click(screen.getByRole('button', { name: /Velden/ }));
         expect(screen.getByLabelText('Search fields')).toBeTruthy();
     });
 });

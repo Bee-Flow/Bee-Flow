@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Build-stamped `_lic:` session memo — U3.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Datatable columns — the normaliser that gives every field a STABLE ID.
  *

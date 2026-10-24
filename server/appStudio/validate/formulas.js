@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio validator — formula checks: parse-compilation with the shared
  * expr engine (NEVER execution), unknown-root and `vars.<name>` read

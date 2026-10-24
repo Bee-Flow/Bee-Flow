@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Teams (Circles) tools.
  *

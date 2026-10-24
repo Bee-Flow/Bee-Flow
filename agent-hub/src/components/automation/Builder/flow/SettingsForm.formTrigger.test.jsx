@@ -120,9 +120,9 @@ describe('SettingsForm — form trigger', () => {
                 </VariablePickerProvider>
             );
         }
-        render(<Harness />);
-        fireEvent.click(screen.getByText('Create the form'));
         const user = userEvent.setup();
+        render(<Harness />);
+        await user.click(screen.getByText('Create the form'));
         await user.click(screen.getByLabelText('Expand question 1'));
         // The editor for the seeded declaration is on screen — no throw.
         expect(screen.getByDisplayValue('Get in touch')).toBeTruthy();
@@ -150,36 +150,39 @@ describe('SettingsForm — form trigger', () => {
         const user = userEvent.setup();
         await user.click(screen.getByLabelText('Expand question 1'));
         fireEvent.change(screen.getByLabelText('Question 1 label'), { target: { value: 'Full name' } });
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Save'));
 
         const patch = onPatch.mock.calls.at(-1)[0];
         expect(patch.form.fields[0].label).toBe('Full name');
         expect(patch.form.fields[0].name).toBe('name');
     });
 
-    it('adding a question slugs a fresh, unique binding name', () => {
+    it('adding a question slugs a fresh, unique binding name', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(trigger());
-        fireEvent.click(screen.getByText('Add a question'));
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Add a question'));
+        await user.click(screen.getByText('Save'));
         const fields = onPatch.mock.calls.at(-1)[0].form.fields;
         expect(fields).toHaveLength(3);
         expect(fields[2].name).toBe('new_question');
         expect(new Set(fields.map(f => f.name)).size).toBe(3);
     });
 
-    it('a theme preset sets all five keys at once', () => {
+    it('a theme preset sets all five keys at once', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(trigger());
-        fireEvent.click(screen.getByRole('button', { name: /Night/ }));
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByRole('button', { name: /Night/ }));
+        await user.click(screen.getByText('Save'));
         expect(onPatch.mock.calls.at(-1)[0].form.theme).toEqual({
             primary: '#0891B2', radius: 'lg', density: 'comfortable', fontScale: 'md', appearance: 'dark',
         });
     });
 
-    it('the preview renders the same component the visitor gets', () => {
+    it('the preview renders the same component the visitor gets', async () => {
+        const user = userEvent.setup();
         renderForm(trigger());
         expect(screen.queryByTestId('form-preview')).toBeNull();
-        fireEvent.click(screen.getByText('Preview the form'));
+        await user.click(screen.getByText('Preview the form'));
         const preview = screen.getByTestId('form-preview');
         expect(within(preview).getByText('Get in touch')).toBeTruthy();
         expect(within(preview).getByRole('button', { name: 'Submit' })).toBeTruthy();

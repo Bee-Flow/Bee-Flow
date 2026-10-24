@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * EU AI Act — Annex III as TEN QUESTIONS, not a keyword regex.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Per-user Nextcloud access scope — which parts of their Nextcloud a user
  * lets Bee Flow touch.

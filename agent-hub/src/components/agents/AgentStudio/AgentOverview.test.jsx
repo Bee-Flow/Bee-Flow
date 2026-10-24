@@ -13,6 +13,7 @@
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentStudio/AgentOverview.test.jsx
  */
 import { render, screen, cleanup, fireEvent, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 vi.mock('../../../hooks/useTranslation', () => import('../../../test/useTranslationMock'));
@@ -69,13 +70,14 @@ describe('de vier takken staan in één aria-live-blok', () => {
         expect(liveRegion(loading.container).querySelector('[role="status"]')).toBeNull();
     });
 
-    it('een chip die uit de lijst verdwijnt filtert niet stilzwijgend door', () => {
+    it('een chip die uit de lijst verdwijnt filtert niet stilzwijgend door', async () => {
+        const user = userEvent.setup();
         // Anders staat er een leeg raster met geen enkele zichtbare reden: de
         // laatste agent van die categorie is eruit gehaald, of de categorielijst
         // kwam pas later binnen.
         const { rerender } = draw({ agents: AGENTS });
         const chip = screen.getByText('Sales').closest('button');
-        fireEvent.click(chip);
+        await user.click(chip);
         expect(screen.getAllByTestId('agent-card')).toHaveLength(1);
         // Dezelfde rijen, maar zonder die categorie: de chip bestaat niet meer.
         rerender(<AgentOverview t={t} agents={AGENTS.map(a => ({ ...a, category_id: null }))} onOpen={() => {}} />);
@@ -83,20 +85,22 @@ describe('de vier takken staan in één aria-live-blok', () => {
         expect(screen.queryByTestId('agent-overview-no-match')).toBeNull();
     });
 
-    it('fout: Opnieuw proberen roept de lezing opnieuw aan', () => {
+    it('fout: Opnieuw proberen roept de lezing opnieuw aan', async () => {
+        const user = userEvent.setup();
         const onRetry = vi.fn();
         draw({ agents: [], error: 'HTTP 500', onRetry });
-        fireEvent.click(screen.getByText('Retry'));
+        await user.click(screen.getByText('Retry'));
         expect(onRetry).toHaveBeenCalledTimes(1);
     });
 
-    it('leeg: de EmptyState met de ene actie', () => {
+    it('leeg: de EmptyState met de ene actie', async () => {
+        const user = userEvent.setup();
         const onCreate = vi.fn();
         const { container } = draw({ agents: [], onCreate });
         expect(within(liveRegion(container)).getByText('No agents yet')).toBeTruthy();
         // Twee knoppen met dezelfde tekst (kop + EmptyState); de laatste is die van de kaartloze staat.
         const buttons = screen.getAllByText('New agent');
-        fireEvent.click(buttons[buttons.length - 1]);
+        await user.click(buttons[buttons.length - 1]);
         expect(onCreate).toHaveBeenCalledTimes(1);
     });
 
@@ -136,13 +140,14 @@ describe('teller, zoekveld en chips', () => {
         expect(within(chips).getByText('No category')).toBeTruthy();
     });
 
-    it('een chip filtert, en een tweede klik zet hem weer uit', () => {
+    it('een chip filtert, en een tweede klik zet hem weer uit', async () => {
+        const user = userEvent.setup();
         draw();
         const sales = screen.getByText('Sales').closest('button');
-        fireEvent.click(sales);
+        await user.click(sales);
         expect(sales.getAttribute('aria-pressed')).toBe('true');
         expect(screen.getAllByTestId('agent-card')).toHaveLength(1);
-        fireEvent.click(sales);
+        await user.click(sales);
         expect(screen.getAllByTestId('agent-card')).toHaveLength(2);
     });
 

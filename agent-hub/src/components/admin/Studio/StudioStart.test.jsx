@@ -1,4 +1,5 @@
-import { render as rtlRender, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render as rtlRender, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -97,13 +98,14 @@ describe('StudioStart', () => {
         authFetchMock.mockResolvedValue({ ok: true, json: async () => ({ counts: {}, makers: 0 }) });
     });
 
-    it('renders the sections it can open, grouped, and opens one', () => {
+    it('renders the sections it can open, grouped, and opens one', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         renderStart({ onNavigate });
         expect(screen.getByTestId('studio-start')).toBeTruthy();
         // Approvals is hiddenFromNav — it has its own top-level sidebar row.
         expect(screen.queryByTestId('studio-start-approvals')).toBeNull();
-        fireEvent.click(screen.getByTestId('studio-start-skills'));
+        await user.click(screen.getByTestId('studio-start-skills'));
         expect(onNavigate).toHaveBeenCalledWith('studio/skills');
     });
 
@@ -164,7 +166,8 @@ describe('StudioStart', () => {
         expect(screen.getByTestId('studio-map-sentence-form-triggers-automation')).toBeTruthy();
     });
 
-    it('shows a licence-locked section as a signpost, not a door', () => {
+    it('shows a licence-locked section as a signpost, not a door', async () => {
+        const user = userEvent.setup();
         // A Community org: the capability gates fail and the plan does not
         // include them, so the rows stay visible with an upgrade hint.
         entitlementsMock.can = () => false;
@@ -174,7 +177,7 @@ describe('StudioStart', () => {
         const locked = screen.getByTestId('studio-start-skills');
         expect(locked.getAttribute('aria-disabled')).toBe('true');
         expect(screen.getByTestId('studio-start-skills-lock-hint').textContent).toBeTruthy();
-        fireEvent.click(locked);
+        await user.click(locked);
         expect(onNavigate).not.toHaveBeenCalled();
     });
 

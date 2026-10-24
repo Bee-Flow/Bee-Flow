@@ -1,4 +1,5 @@
-import { render, screen, cleanup, fireEvent, within } from '@testing-library/react';
+import { render, screen, cleanup, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { READ } from './canUseFacts';
@@ -96,11 +97,12 @@ describe('ToolsCard — de rijen', () => {
         expect(screen.getByText('Nothing switched on')).toBeTruthy();
     });
 
-    it('opent de kiezer op DIE app', () => {
+    it('opent de kiezer op DIE app', async () => {
+        const user = userEvent.setup();
         const onOpenChooser = vi.fn();
         renderCard({ onOpenChooser });
 
-        fireEvent.click(screen.getAllByTestId('agent-tool-open')[0]);
+        await user.click(screen.getAllByTestId('agent-tool-open')[0]);
         expect(onOpenChooser).toHaveBeenCalledWith({ section: 'apps', appId: 'gmail' });
     });
 
@@ -135,18 +137,20 @@ describe('ToolsCard — bevestigen', () => {
         expect(gmail.getByText('This app can send, so a person always confirms first.')).toBeTruthy();
     });
 
-    it('laat de keuze vrij voor een app die niets verstuurt', () => {
+    it('laat de keuze vrij voor een app die niets verstuurt', async () => {
+        const user = userEvent.setup();
         renderCard();
         const drive = within(screen.getAllByTestId('agent-tool-row')[1]);
         expect(drive.getByRole('radio', { name: 'Direct' }).hasAttribute('disabled')).toBe(false);
-        fireEvent.click(drive.getByRole('radio', { name: 'Confirm first' }));
+        await user.click(drive.getByRole('radio', { name: 'Confirm first' }));
     });
 
-    it('geeft de app-id en de nieuwe waarde door', () => {
+    it('geeft de app-id en de nieuwe waarde door', async () => {
+        const user = userEvent.setup();
         const onChangeConfirm = vi.fn();
         renderCard({ onChangeConfirm });
         const drive = within(screen.getAllByTestId('agent-tool-row')[1]);
-        fireEvent.click(drive.getByRole('radio', { name: 'Confirm first' }));
+        await user.click(drive.getByRole('radio', { name: 'Confirm first' }));
         expect(onChangeConfirm).toHaveBeenCalledWith('google-drive', CONFIRM.ASK);
     });
 
@@ -179,20 +183,22 @@ describe('ToolsCard — in wiens naam', () => {
         expect(web.queryByTestId('agent-tool-actas')).toBeNull();
     });
 
-    it('biedt de eigenaar-optie alleen aan waar er echt geleend is', () => {
+    it('biedt de eigenaar-optie alleen aan waar er echt geleend is', async () => {
+        const user = userEvent.setup();
         renderCard({
             rows: rowsFor({ lentApps: new Set(['gmail', 'google-drive']), lendingEnabled: true }),
         });
         // Drive leent wél (leest en schrijft, verstuurt niet).
         const drive = within(screen.getAllByTestId('agent-tool-row')[1]);
-        fireEvent.click(drive.getByTestId('agent-tool-actas'));
+        await user.click(drive.getByTestId('agent-tool-actas'));
         expect(screen.getByTestId('agent-tool-actas-owner').hasAttribute('disabled')).toBe(false);
     });
 
-    it('weigert de eigenaar-optie zonder leen-grant, en zegt waarom', () => {
+    it('weigert de eigenaar-optie zonder leen-grant, en zegt waarom', async () => {
+        const user = userEvent.setup();
         renderCard();
         const drive = within(screen.getAllByTestId('agent-tool-row')[1]);
-        fireEvent.click(drive.getByTestId('agent-tool-actas'));
+        await user.click(drive.getByTestId('agent-tool-actas'));
         const owner = screen.getByTestId('agent-tool-actas-owner');
         expect(owner.hasAttribute('disabled')).toBe(true);
         expect(owner.textContent).toContain('You have not lent a connection for this app.');
@@ -220,15 +226,16 @@ describe('ToolsCard — in wiens naam', () => {
         expect(screen.getByText(/there is no lent connection for this app/)).toBeTruthy();
     });
 
-    it('geeft de keuze door met de app-id', () => {
+    it('geeft de keuze door met de app-id', async () => {
+        const user = userEvent.setup();
         const onChangeActAs = vi.fn();
         renderCard({
             rows: rowsFor({ lentApps: new Set(['gmail', 'google-drive']), lendingEnabled: true }),
             onChangeActAs,
         });
         const drive = within(screen.getAllByTestId('agent-tool-row')[1]);
-        fireEvent.click(drive.getByTestId('agent-tool-actas'));
-        fireEvent.click(screen.getByTestId('agent-tool-actas-owner'));
+        await user.click(drive.getByTestId('agent-tool-actas'));
+        await user.click(screen.getByTestId('agent-tool-actas-owner'));
         expect(onChangeActAs).toHaveBeenCalledWith('google-drive', ACT_AS.OWNER);
     });
 });
@@ -344,7 +351,8 @@ describe('ToolsCard — de geleende verbinding zonder opgeslagen keuze (A2-2)', 
 });
 
 describe('ToolsCard — wat er niet gelezen kon worden', () => {
-    it('houdt de rijen staan als de catalogus wegvalt, met een waarschuwing erboven', () => {
+    it('houdt de rijen staan als de catalogus wegvalt, met een waarschuwing erboven', async () => {
+        const user = userEvent.setup();
         const onRetryCatalog = vi.fn();
         renderCard({
             rows: rowsFor({ apps: null, catalogState: READ.ERROR, providersKnown: false }),
@@ -359,7 +367,7 @@ describe('ToolsCard — wat er niet gelezen kon worden', () => {
         // En de telling zwijgt in plaats van "0 van 0" te beweren.
         expect(screen.getAllByText('actions unknown')).toHaveLength(3);
 
-        fireEvent.click(within(screen.getByTestId('agent-tools-unreadable')).getByRole('button'));
+        await user.click(within(screen.getByTestId('agent-tools-unreadable')).getByRole('button'));
         expect(onRetryCatalog).toHaveBeenCalled();
     });
 

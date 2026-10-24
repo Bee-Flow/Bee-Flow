@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Read everything a Solution's graph is drawn from, and SAY what could not be
  * read.

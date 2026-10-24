@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * core/memory/extractionModel — model + request shape for the memory extractors.
  *

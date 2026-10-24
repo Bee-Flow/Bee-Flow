@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio v2 — DATA API (record CRUD + aggregation query).
  *

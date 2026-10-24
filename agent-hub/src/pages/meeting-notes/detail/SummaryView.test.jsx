@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -51,30 +52,34 @@ describe('SummaryView regenerate menu', () => {
         expect(screen.getByText('Sales QBR')).toBeTruthy();
     });
 
-    it('regenerates a built-in with a { template } payload', () => {
+    it('regenerates a built-in with a { template } payload', async () => {
+        const user = userEvent.setup();
         const { onRegenerate } = open();
-        fireEvent.click(screen.getByText('Stand-up'));
+        await user.click(screen.getByText('Stand-up'));
         expect(onRegenerate).toHaveBeenCalledWith({ template: 'standup' });
     });
 
-    it('regenerates a custom template with a { templateId } payload', () => {
+    it('regenerates a custom template with a { templateId } payload', async () => {
+        const user = userEvent.setup();
         const { onRegenerate } = open();
-        fireEvent.click(screen.getByText('Klant-review NL'));
+        await user.click(screen.getByText('Klant-review NL'));
         expect(onRegenerate).toHaveBeenCalledWith({ templateId: 'o1' });
     });
 
-    it('offers "New template…" and invokes onNewTemplate', () => {
+    it('offers "New template…" and invokes onNewTemplate', async () => {
+        const user = userEvent.setup();
         const { onNewTemplate } = open();
-        fireEvent.click(screen.getByText(/New template/i));
+        await user.click(screen.getByText(/New template/i));
         expect(onNewTemplate).toHaveBeenCalled();
     });
 
-    it('falls back to built-in labels when no templates are loaded', () => {
+    it('falls back to built-in labels when no templates are loaded', async () => {
+        const user = userEvent.setup();
         const onRegenerate = vi.fn();
         render(<SummaryView summary="" regenerating={false} onRegenerate={onRegenerate} />);
-        fireEvent.click(screen.getByRole('button', { name: /Regenerate/i }));
+        await user.click(screen.getByRole('button', { name: /Regenerate/i }));
         expect(screen.getByText('Retrospective')).toBeTruthy();
-        fireEvent.click(screen.getByText('Sales call'));
+        await user.click(screen.getByText('Sales call'));
         expect(onRegenerate).toHaveBeenCalledWith({ template: 'sales' });
     });
 

@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 
 vi.mock('@/utils/helpers', async (importOriginal) => {
@@ -43,22 +44,24 @@ beforeEach(() => {
 
 describe('useConfirmDialog', () => {
     it('resolving the dialog lets the sequence continue to the server step', async () => {
+        const user = userEvent.setup();
         render(<Harness />);
-        fireEvent.click(screen.getByText('run'));
+        await user.click(screen.getByText('run'));
 
         // The styled confirm appears with the step's message.
         expect(await screen.findByText('Delete this item?')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+        await user.click(screen.getByRole('button', { name: 'Continue' }));
 
         await waitFor(() => expect(stepCalls().length).toBe(1)); // create_record dispatched
     });
 
     it('cancelling the dialog aborts the sequence before the server step', async () => {
+        const user = userEvent.setup();
         render(<Harness />);
-        fireEvent.click(screen.getByText('run'));
+        await user.click(screen.getByText('run'));
 
         await screen.findByText('Delete this item?');
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
         // Give any pending microtasks a chance; the create_record must NOT run.
         await waitFor(() => expect(screen.queryByText('Delete this item?')).not.toBeInTheDocument());

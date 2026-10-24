@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DatatableDetail from './DatatableDetail';
@@ -77,8 +78,9 @@ beforeEach(() => {
 
 describe('the window and the date column travel together', () => {
     it('sends BOTH halves when a preset is picked', async () => {
+        const user = userEvent.setup();
         await openRetention();
-        fireEvent.click(screen.getByRole('radio', { name: /30 days/ }));
+        await user.click(screen.getByRole('radio', { name: /30 days/ }));
         await waitFor(() => expect(datatablesApi.update).toHaveBeenCalled());
         expect(datatablesApi.update).toHaveBeenCalledWith('tbl_1', {
             retentionDays: 30, retentionField: 'signed_at',
@@ -94,37 +96,41 @@ describe('the window and the date column travel together', () => {
     });
 
     it('turning it off sends only the null window — there is no column to name', async () => {
+        const user = userEvent.setup();
         await openRetention({ ...TABLE, retentionDays: 30, retentionField: 'signed_at' });
-        fireEvent.click(screen.getByRole('radio', { name: /Never/ }));
+        await user.click(screen.getByRole('radio', { name: /Never/ }));
         await waitFor(() => expect(datatablesApi.update).toHaveBeenCalledWith('tbl_1', { retentionDays: null }));
     });
 
     it('a custom number is only sent when it is applied, and it must be one', async () => {
+        const user = userEvent.setup();
         await openRetention();
-        fireEvent.click(screen.getByRole('radio', { name: /Other/ }));
+        await user.click(screen.getByRole('radio', { name: /Other/ }));
         const box = await screen.findByLabelText(/^Days$/i);
         expect(datatablesApi.update).not.toHaveBeenCalled();
         // Empty is not a window.
         expect(screen.getByRole('button', { name: /^Apply$/ }).disabled).toBe(true);
         fireEvent.change(box, { target: { value: '45' } });
-        fireEvent.click(screen.getByRole('button', { name: /^Apply$/ }));
+        await user.click(screen.getByRole('button', { name: /^Apply$/ }));
         await waitFor(() => expect(datatablesApi.update).toHaveBeenCalledWith('tbl_1', {
             retentionDays: 45, retentionField: 'signed_at',
         }));
     });
 
     it('explains the server refusal in words instead of showing the code', async () => {
+        const user = userEvent.setup();
         const err = Object.assign(new Error('nope'), { status: 400, code: 'retention_field_required' });
         datatablesApi.update.mockRejectedValue(err);
         await openRetention();
-        fireEvent.click(screen.getByRole('radio', { name: /7 days/ }));
+        await user.click(screen.getByRole('radio', { name: /7 days/ }));
         expect(await screen.findByText(/Pick the date column the age is measured from/i)).toBeInTheDocument();
     });
 
     it('says so when the table has no date column to count from at all', async () => {
+        const user = userEvent.setup();
         datatablesApi.getSchema.mockResolvedValue({ fields: [{ key: 'email', name: 'E-mail', type: 'text' }], modelVersion: 3 });
         renderDetail();
-        fireEvent.click(await screen.findByRole('radio', { name: /retention/i }));
+        await user.click(await screen.findByRole('radio', { name: /retention/i }));
         expect(await screen.findByText(/no date column yet/i)).toBeInTheDocument();
     });
 });

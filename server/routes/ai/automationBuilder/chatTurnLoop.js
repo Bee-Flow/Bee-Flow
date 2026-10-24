@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation Builder — the per-round mechanics of the chat build loop: the
  * model-facing validation report (and the history sanitation that strips it),

@@ -1,3 +1,4 @@
+// @typecheck
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { sanitizeMetadata, sanitizeIcon, countLines, slotTooLarge, MAX_SLOT_CHARS } = require('./webpageMetadataInput');

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — SHARED server-side data-binding collector.
  *
@@ -36,7 +37,7 @@ function bindingFingerprint(binding) {
  * Collect every record/records/dataset binding on the target screen(s).
  *
  * @param {any} def       — a canonical app definition
- * @param {string} [screenId]— when given, only that screen is walked; otherwise
+ * @param {string} [screenId] - when given, only that screen is walked; otherwise
  *                             every screen. An unknown id yields no bindings.
  * @returns {Array<{nodeId:string|null, prop:string, binding:any}>}
  */

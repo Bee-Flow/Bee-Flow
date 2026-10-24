@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De bron-grammatica van een modeltabel staat op DRIE plekken, en dit bestand
  * houdt ze aan elkaar.

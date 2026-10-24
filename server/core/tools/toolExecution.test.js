@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * executeComponentTool's subworkflow branch (core/tools/toolExecution.js).
  *

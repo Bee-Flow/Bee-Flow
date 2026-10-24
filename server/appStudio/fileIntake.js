@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * file_intake — one button-press files a whole mailed order.
  *

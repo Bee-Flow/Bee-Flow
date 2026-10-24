@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Phase `table` — the one phase no model touches. `new`: create a Studio
  * datatable with the recipe's schema (the same transaction the packaging
@@ -24,7 +25,7 @@ function localeOf(playbook) {
 }
 
 /**
- * @param {{ playbook: object, principal: object, recipe: object, hasManageDatatables: boolean }} ctx
+ * @param {{ playbook: Record<string, any>, principal: object, recipe: object, hasManageDatatables?: boolean }} ctx
  * @param {object} deps  { db, datatableStore, datatableDbStore, normalizeFields, migrationPlan, ddlForTable, assertDatatableQuota, datatableAccess }
  * @returns {Promise<{ ok:true, artifacts, summary } | { ok:false, code, error, missing? }>}
  */
@@ -116,6 +117,7 @@ async function createNew({ playbook, principal, recipe, hasManageDatatables }, d
     };
 }
 
+/** @returns {Promise<{ ok:true, artifacts, summary } | { ok:false, code, error, missing? }>} */
 async function verifyExisting({ playbook, principal, recipe }, deps) {
     const { datatableStore, datatableAccess } = deps;
     const id = playbook.options && playbook.options.datatableId;

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * One round's model call: down the native adapter branch or the raw SSE
  * branch (the choice was made in ./roundRequest), with the turn's token

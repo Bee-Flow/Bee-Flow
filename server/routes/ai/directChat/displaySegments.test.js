@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * BFSF-261 — direct-chat display-segment joining.
  *

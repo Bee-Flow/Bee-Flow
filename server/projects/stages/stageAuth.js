@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * One resolver for who may do what on a Solution and its stages (design 8,
  * D12). Every stage route starts with it; it answers by throwing an

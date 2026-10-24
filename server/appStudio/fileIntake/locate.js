@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * file_intake phase 1 — which conversation, which attachments table, and
  * the attachment rows the VIEWER may read. Never client-supplied fileIds,
@@ -54,6 +55,7 @@ async function locateAttachments(app, model, { attTable, threadKey, viewer, ctx,
     // A synthetic records binding through the same reader promptContext uses:
     // the real query compiler, under the viewer's row-level access. Inline
     // images (signature logos) are excluded when the column exists.
+    /** @type {Array<{field: string, op: string, value: any, required?: boolean}>} */
     const filter = [{ field: 'thread_key', op: 'eq', value: threadKey, required: true }];
     if (hasField(attTable, 'is_inline')) filter.push({ field: 'is_inline', op: 'eq', value: false });
     return stepDataSource.resolveDataBinding(app, model, {

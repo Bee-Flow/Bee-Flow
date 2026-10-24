@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Site export / import — the FULL-website contract.
  *

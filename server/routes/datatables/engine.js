@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The row engine this surface writes to, and the sizes it will move at once.
  *

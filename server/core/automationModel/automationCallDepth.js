@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * How deep automations are starting each other right now (handoff 5, round 3).
  *

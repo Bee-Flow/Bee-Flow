@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Source mirror refresh — the SCHEDULED half of "keep this copy in step".
  *

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ModulesPanel from './index';
 import { authFetch } from '../../../utils/helpers';
@@ -67,13 +68,14 @@ describe('ModulesPanel', () => {
     });
 
     it('shows the load error and retry refetches the list', async () => {
+        const user = userEvent.setup();
         authFetch
             .mockImplementationOnce(() => jsonRes({ error: 'nope' }, 400))
             .mockImplementation(() => jsonRes({ modules: [baseModule] }));
         renderPanel();
         expect(await screen.findByTestId('modules-error')).toBeInTheDocument();
 
-        fireEvent.click(screen.getByText('modules.retry'));
+        await user.click(screen.getByText('modules.retry'));
         expect(await screen.findByText('Support Studio')).toBeInTheDocument();
         expect(screen.queryByTestId('modules-error')).toBeNull();
     });
@@ -101,6 +103,7 @@ describe('ModulesPanel', () => {
     });
 
     it('imports a module: POSTs, reloads entitlements, shows the success banner', async () => {
+        const user = userEvent.setup();
         authFetch.mockImplementation((url, init = {}) => {
             if (init.method === 'POST' && String(url).endsWith('/api/admin/modules/support_studio/import')) {
                 return jsonRes({ ok: true, module: { ...baseModule, status: 'imported' } });
@@ -108,7 +111,7 @@ describe('ModulesPanel', () => {
             return jsonRes({ modules: [baseModule] });
         });
         renderPanel();
-        fireEvent.click(await screen.findByRole('button', { name: 'modules.import' }));
+        await user.click(await screen.findByRole('button', { name: 'modules.import' }));
 
         await waitFor(() => expect(reloadSpy).toHaveBeenCalled());
         expect(await screen.findByText('modules.import_success')).toBeInTheDocument();
@@ -117,6 +120,7 @@ describe('ModulesPanel', () => {
     });
 
     it('remove opens the dialog; cancel no-ops; confirm POSTs remove and reloads', async () => {
+        const user = userEvent.setup();
         authFetch.mockImplementation((url, init = {}) => {
             if (init.method === 'POST' && String(url).endsWith('/api/admin/modules/support_studio/remove')) {
                 return jsonRes({ ok: true, module: { ...baseModule, status: 'removed' } });
@@ -125,15 +129,15 @@ describe('ModulesPanel', () => {
         });
         renderPanel();
 
-        fireEvent.click(await screen.findByTitle('modules.remove'));
+        await user.click(await screen.findByTitle('modules.remove'));
         expect(screen.getByText('modules.remove_confirm_title')).toBeInTheDocument();
 
-        fireEvent.click(screen.getByText('modules.cancel'));
+        await user.click(screen.getByText('modules.cancel'));
         expect(screen.queryByText('modules.remove_confirm_title')).toBeNull();
         expect(postCalls()).toHaveLength(0);
 
-        fireEvent.click(screen.getByTitle('modules.remove'));
-        fireEvent.click(screen.getByText('modules.remove_confirm_cta'));
+        await user.click(screen.getByTitle('modules.remove'));
+        await user.click(screen.getByText('modules.remove_confirm_cta'));
 
         await waitFor(() => expect(reloadSpy).toHaveBeenCalled());
         expect(await screen.findByText('modules.remove_success')).toBeInTheDocument();

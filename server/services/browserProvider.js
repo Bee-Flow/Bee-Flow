@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Browser Provider — a thin Playwright client over a REMOTE Chromium.
  *

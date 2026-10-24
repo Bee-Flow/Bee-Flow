@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The visual collectors: every shape a chart's data may arrive in becomes
  * ONE model, numbers are read the way people write them, and a bad cell is a

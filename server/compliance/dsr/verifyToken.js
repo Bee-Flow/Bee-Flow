@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DSR identity-verification token — the signed link in the acknowledgement
  * e-mail. Clicking it proves the requester controls the mailbox the request

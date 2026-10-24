@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — the binding of a step's input VALUES: which required inputs
  * a call leaves unbound, what the draft can bind for itself (and say so),

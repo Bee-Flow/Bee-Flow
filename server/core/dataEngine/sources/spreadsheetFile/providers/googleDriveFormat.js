@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Google Drive / Sheets vocabulary for ./googleDrive.js and
  * ./googleSheetsCells.js: the field lists, the Drive query quoting, the

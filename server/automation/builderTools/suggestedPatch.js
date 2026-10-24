@@ -328,7 +328,7 @@ function applyMove(root, op) {
     if (bf.reason) return bf;
     const fi = firstIndexAt(bf.tokens);
     const ti = firstIndexAt(toTokens);
-    let bt = { tokens: toTokens, note: '' };
+    let bt = /** @type {any} */ ({ tokens: toTokens, note: '' });
     const sameArray = fi >= 0 && ti === fi && renderPath(toTokens.slice(0, ti)) === renderPath(bf.tokens.slice(0, fi));
     if (ti >= 0 && toTokens.length === ti + 1) {
         if (toTokens[ti].index === '?') return { reason: `${op.to}: a whole-element target cannot be [?] — give the final index` };

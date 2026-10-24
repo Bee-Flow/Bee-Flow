@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * serverGeoResolver — geoFromIp on the local database, and never a network call.
  *

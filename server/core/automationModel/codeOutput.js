@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What a Code step leaves in `steps.<id>.output`, in ONE place for the server.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR Art. 30(1)(d) — "the categories of recipients to whom the personal data
  * have been or will be disclosed", read off the automations that are actually
@@ -61,8 +62,8 @@ const EGRESS_GROUP_LIMIT = 200;
 
 function defaultDeps() {
     return {
-        getAll: (...a) => require('../../../db').getAll(...a),
-        getTableMeta: (...a) => require('../../../stores/datatableStore').getTableMeta(...a),
+        getAll: (sql, params) => require('../../../db').getAll(sql, params),
+        getTableMeta: (a, b) => require('../../../stores/datatableStore').getTableMeta(a, b),
     };
 }
 

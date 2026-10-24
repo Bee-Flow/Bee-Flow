@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Pure helpers behind `run-tests.mjs --shard i/n`: which test file runs in
  * which shard, and in what order inside a shard. No I/O, so it is unit tested

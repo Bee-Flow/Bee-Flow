@@ -18,7 +18,7 @@
  * persisted in `direct_conversations.meta_json.hiveMind`. Researcher
  * workers' summaries land in it; the synthesiser reads them all.
  */
-
+// @typecheck
 const crypto = require('crypto');
 const { mapWithConcurrency } = require('../concurrencyUtil');
 const { resolveModelForTier } = require('../llm/modelResolver');

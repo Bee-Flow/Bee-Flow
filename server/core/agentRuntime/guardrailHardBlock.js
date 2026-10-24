@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Streaming agent chat — guardrail / moderation hard block.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Agent runtime — self-hosted runtimes stream through the provider adapter.
  *

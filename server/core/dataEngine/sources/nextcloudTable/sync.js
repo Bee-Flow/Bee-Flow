@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ONE FULL PASS over a Nextcloud mirror — the shared pipeline
  * (../mirror/syncPipeline explains the eleven steps and why their order is

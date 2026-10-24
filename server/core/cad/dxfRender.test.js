@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The 2D DXF renderer.
  *

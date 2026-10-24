@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests — OpenAI/Azure model capability helpers.
  *

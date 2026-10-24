@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * BFSF-354 — a template's knowledge bases are searched and their passages
  * injected into the prompt without a tool call. The Privacy Shield's "own

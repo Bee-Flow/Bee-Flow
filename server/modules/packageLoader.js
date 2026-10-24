@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Package loader — the lifecycle engine for DOWNLOADABLE remote modules.
  *

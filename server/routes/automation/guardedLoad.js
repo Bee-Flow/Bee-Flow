@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The first lines of every handler on one automation: read it, and check the
  * caller's role against what the route needs (automation/access.js guard).

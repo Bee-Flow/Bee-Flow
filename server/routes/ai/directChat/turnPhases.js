@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — the setup phases of a streamed turn, in pipeline order, up to
  * the input gates: tool stack, prompt + history, document scope, the

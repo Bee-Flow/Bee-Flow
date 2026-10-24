@@ -1,4 +1,5 @@
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ReactFlowProvider } from '@xyflow/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import LoopItemNode from './LoopItemNode';
@@ -75,10 +76,11 @@ describe('LoopNode — collapsed', () => {
         expect(screen.getByText(/▸\s*1 step inside/)).toBeTruthy();
     });
 
-    it('offers Expand, passing no flowlet key — a body is not shared', () => {
+    it('offers Expand, passing no flowlet key — a body is not shared', async () => {
+        const user = userEvent.setup();
         const onToggleInline = vi.fn();
         renderLoop({ rt: { onToggleInline } });
-        fireEvent.click(screen.getByRole('button', { name: /expand/i }));
+        await user.click(screen.getByRole('button', { name: /expand/i }));
         expect(onToggleInline).toHaveBeenCalledWith('lp1', null);
     });
 
@@ -182,10 +184,11 @@ describe('LoopNode — expanded container', () => {
         expect(screen.queryByText('▸ 2 steps inside')).toBeNull();
     });
 
-    it('collapses again from the header', () => {
+    it('collapses again from the header', async () => {
+        const user = userEvent.setup();
         const onToggleInline = vi.fn();
         renderLoop({ data: expanded, rt: { onToggleInline } });
-        fireEvent.click(screen.getByTitle(/collapse/i));
+        await user.click(screen.getByTitle(/collapse/i));
         expect(onToggleInline).toHaveBeenCalledWith('lp1', null);
     });
 

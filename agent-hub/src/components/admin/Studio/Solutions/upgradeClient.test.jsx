@@ -1,4 +1,5 @@
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../../../utils/helpers', () => ({
@@ -299,6 +300,7 @@ describe('the dialog', () => {
     });
 
     it('confirming posts to the upgrade route and reports what happened', async () => {
+        const user = userEvent.setup();
         globalThis.__authFetch = vi.fn(async (url) => {
             if (url.endsWith('/upgrade/plan')) return { ok: true, json: async () => PLAN_BODY };
             return {
@@ -313,7 +315,7 @@ describe('the dialog', () => {
         const { findByTestId, getByTestId } = render(
             <UpgradeDialog open projectId="p1" blueprintId="bp1" onClose={() => {}} onDone={onDone} />,
         );
-        fireEvent.click(await findByTestId('upgrade-confirm'));
+        await user.click(await findByTestId('upgrade-confirm'));
         await waitFor(() => expect(getByTestId('upgrade-report')).toBeTruthy());
         expect(getByTestId('upgrade-report').textContent).toMatch(/1 replaced, 1 added/);
         expect(onDone).toHaveBeenCalled();
@@ -323,6 +325,7 @@ describe('the dialog', () => {
     });
 
     it('a failed apply says nothing was rolled back, and does not claim success', async () => {
+        const user = userEvent.setup();
         globalThis.__authFetch = vi.fn(async (url) => (
             url.endsWith('/upgrade/plan')
                 ? { ok: true, json: async () => PLAN_BODY }
@@ -332,7 +335,7 @@ describe('the dialog', () => {
         const { findByTestId, getByTestId, queryByTestId } = render(
             <UpgradeDialog open projectId="p1" blueprintId="bp1" onClose={() => {}} onDone={onDone} />,
         );
-        fireEvent.click(await findByTestId('upgrade-confirm'));
+        await user.click(await findByTestId('upgrade-confirm'));
         await waitFor(() => expect(getByTestId('upgrade-apply-failed')).toBeTruthy());
         expect(queryByTestId('upgrade-report')).toBeNull();
         expect(onDone).not.toHaveBeenCalled();

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Stream retry helpers — extracted from chatStream.js so they can be unit
  * tested without dragging in the full agent-runtime require graph (stores,

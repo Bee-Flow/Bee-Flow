@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import MeetingLibrary from './MeetingLibrary';
@@ -12,7 +13,8 @@ import MeetingLibrary from './MeetingLibrary';
  * to a user who has dozens.
  */
 describe('MeetingLibrary load failure', () => {
-    it('shows a retry affordance instead of the empty state', () => {
+    it('shows a retry affordance instead of the empty state', async () => {
+        const user = userEvent.setup();
         const onRetry = vi.fn();
         render(
             <MeetingLibrary
@@ -30,7 +32,7 @@ describe('MeetingLibrary load failure', () => {
         // that made the failure look like success.
         expect(screen.queryByText(/no meetings yet/i)).toBeNull();
 
-        fireEvent.click(screen.getByRole('button', { name: /try again/i }));
+        await user.click(screen.getByRole('button', { name: /try again/i }));
         expect(onRetry).toHaveBeenCalledTimes(1);
     });
 

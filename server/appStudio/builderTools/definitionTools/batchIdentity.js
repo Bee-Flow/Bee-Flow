@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — what "the SAME batch" and "the same entry" mean,
  * so a resent app_add_components call does not mint a second copy of what

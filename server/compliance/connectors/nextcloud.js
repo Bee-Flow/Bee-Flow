@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud serverinfo connector — workplace-software evidence for
  * A.8.19/A.8.8: which server version is running and whether app updates are

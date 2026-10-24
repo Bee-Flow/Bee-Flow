@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * These pin the bug that six independent reviewers found in the first version

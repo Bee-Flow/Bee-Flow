@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /** Helpers for the table operation tests: synthetic tables and a one-call runner. Not used at run time. */
 

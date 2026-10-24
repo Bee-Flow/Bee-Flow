@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio Builder — POST /stream, the conversational build turn.
  *
@@ -81,6 +82,7 @@
 
 const express = require('express');
 const log = require('../../../telemetry/log');
+const { HttpError } = require('../../../core/http/errors');
 const router = express.Router();
 
 const studioAppStore = require('../../../stores/studioAppStore');
@@ -176,7 +178,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
         ({ resolvedTier, modelId, tier, cfg } = picked);
         adapter = getAdapter(cfg.providerType, cfg.url);
     } catch (e) {
-        return res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 
     // Vision plumbing for app_screenshot: whether THIS model can be shown the

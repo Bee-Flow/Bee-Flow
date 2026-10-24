@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * EAA-Art4-product-surfaces-conformance — verdicts over the CI axe artefact.
  * Run: cd server && node --test --test-force-exit compliance/checks/eaa/art4-product-surfaces-conformance.test.js

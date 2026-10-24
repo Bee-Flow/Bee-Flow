@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The DESIGN phase — the app as a designer sees it, before any builder tool
  * exists. One model call with a designer's brief (the goal in plain words,
@@ -309,12 +310,12 @@ function designToBrief(design) {
 function defaultDeps() {
     return {
         resolveModel: (opts) => require('../../core/llm/modelResolver').resolveModelForTierName(opts.tier || 'fast', opts),
-        chatForcedTool: (...args) => require('../../core/llm/llmClient').chatForcedTool(...args),
+        chatForcedTool: (...args) => /** @type {Function} */ (require('../../core/llm/llmClient').chatForcedTool)(...args),
     };
 }
 
 /**
- * @returns {Promise<{ ok:true, artifacts:{ design }, summary } | { ok:false, code, error, correlationId? }>}
+ * @returns {Promise<{ ok:true, artifacts:{ design, designName, screenCount, elementCount, constraintChanges? }, summary } | { ok:false, code, error, correlationId? }>}
  */
 async function runDesignPhase({ goal, table, sampleRows = [], approvals = false, locale = 'en', userId = null, userOrgId = null, feedback = null, previousDesign = null, ask = null, builderBrief = null, tier = 'fast' }, deps = defaultDeps()) {
     if (!goal) return { ok: false, code: 'goal_missing', error: 'The design phase needs the goal of the app.' };
@@ -348,6 +349,7 @@ async function runDesignPhase({ goal, table, sampleRows = [], approvals = false,
         return modelUnreachable({ what: 'design', code: 'design_failed', modelId, err: e });
     }
     if (!structured) return { ok: false, code: 'design_empty', error: 'The designer returned nothing.' };
+    /** @type {ReturnType<typeof normaliseDesign> & { constraints?: any }} */
     let design = normaliseDesign(structured, locale);
     if (!design.screens.length) return { ok: false, code: 'design_empty', error: 'The design has no screens.' };
     // The constraint is enforced, not hoped for: an extra screen is folded into
@@ -356,7 +358,7 @@ async function runDesignPhase({ goal, table, sampleRows = [], approvals = false,
     let constraintChanges = [];
     if (constraints) {
         const applied = applyScreenConstraints(design, constraints, { maxSections: MAX_SECTIONS });
-        design = { ...applied.design, constraints };
+        design = /** @type {typeof design} */ ({ ...applied.design, constraints });
         constraintChanges = applied.changes;
         if (constraintChanges.length) log.info(`[playbooks/design] screen constraint applied (${constraints.source}): ${constraintChanges.join('; ')}`);
     }

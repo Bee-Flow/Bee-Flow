@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * What the stage routes accept (routes/projects/stages/*, routes/solutionStages.js).

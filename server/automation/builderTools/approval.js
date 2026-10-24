@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — approval authoring: the config normalizer (single
  * assignee / panel / sequential stages / v2 clocks) and the

@@ -221,7 +221,7 @@ describe('OrgUsersPanel — loading and failed fetches', () => {
 
     it('"Manage Groups" in the empty state navigates to the groups section', async () => {
         await renderPanel({ users: [] });
-        fireEvent.click(screen.getByText('Manage Groups'));
+        await userEvent.click(screen.getByText('Manage Groups'));
         expect(tab.navigated).toContain('groups');
     });
 });
@@ -365,7 +365,7 @@ describe('OrgUsersPanel — changing a role', () => {
         fireEvent.change(openRoleEditor('Jan de Vries'), { target: { value: 'member' } });
         const banner = await screen.findByText('This is the last organisation administrator.');
         expect(banner).toBeInTheDocument();
-        fireEvent.click(banner.parentElement.querySelector('button'));
+        await userEvent.click(banner.parentElement.querySelector('button'));
         await waitFor(() => expect(screen.queryByText('This is the last organisation administrator.')).not.toBeInTheDocument());
     });
 
@@ -402,7 +402,7 @@ describe('OrgUsersPanel — changing a role', () => {
 
         expect(await screen.findByText('Give up your admin rights?')).toBeInTheDocument();
         expect(screen.getByText('You are about to remove your own admin rights.')).toBeInTheDocument();
-        fireEvent.click(screen.getByText('Yes, step down'));
+        await userEvent.click(screen.getByText('Yes, step down'));
 
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/users/u_admin', method: 'PUT', body: { orgRole: 'member', confirmSelfDemotion: true },
@@ -415,7 +415,7 @@ describe('OrgUsersPanel — changing a role', () => {
         });
         fireEvent.change(openRoleEditor('Jan de Vries'), { target: { value: 'member' } });
         await screen.findByText('Give up your admin rights?');
-        fireEvent.click(screen.getByText('Cancel'));
+        await userEvent.click(screen.getByText('Cancel'));
         await waitFor(() => expect(screen.queryByText('Give up your admin rights?')).not.toBeInTheDocument());
         expect(writes()).toHaveLength(1);
     });
@@ -424,7 +424,7 @@ describe('OrgUsersPanel — changing a role', () => {
         await renderPanel();
         const select = openRoleEditor('Jan de Vries');
         const closeBtn = select.parentElement.querySelector('button');
-        fireEvent.click(closeBtn);
+        await userEvent.click(closeBtn);
         expect(within(row('Jan de Vries')).queryByRole('combobox')).not.toBeInTheDocument();
         expect(writes()).toHaveLength(0);
     });
@@ -453,7 +453,7 @@ describe('OrgUsersPanel — pending members', () => {
 
     it('Approve grants access immediately, with no confirmation, and forces orgRole "user"', async () => {
         await renderPanel({ users: [PENDING] });
-        fireEvent.click(within(row('Piet Jansen')).getByText('Approve'));
+        await userEvent.click(within(row('Piet Jansen')).getByText('Approve'));
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/users/u_pending', method: 'PUT', body: { status: 'active', orgRole: 'user' },
         }));
@@ -462,19 +462,19 @@ describe('OrgUsersPanel — pending members', () => {
 
     it('Reject asks in the app\'s own dialog first and sends nothing while it is declined', async () => {
         await renderPanel({ users: [PENDING] });
-        fireEvent.click(within(row('Piet Jansen')).getByText('Reject'));
+        await userEvent.click(within(row('Piet Jansen')).getByText('Reject'));
         const dialog = await screen.findByRole('dialog', { name: 'Reject and remove this user?' });
         expect(within(dialog).getByText('They can sign up again later.')).toBeInTheDocument();
         expect(confirmSpy).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByTestId('confirm-dialog-cancel'));
+        await userEvent.click(screen.getByTestId('confirm-dialog-cancel'));
         await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
         expect(writes()).toHaveLength(0);
     });
 
     it('Reject DELETEs the account once confirmed', async () => {
         await renderPanel({ users: [PENDING] });
-        fireEvent.click(within(row('Piet Jansen')).getByText('Reject'));
-        fireEvent.click(await screen.findByTestId('confirm-dialog-confirm'));
+        await userEvent.click(within(row('Piet Jansen')).getByText('Reject'));
+        await userEvent.click(await screen.findByTestId('confirm-dialog-confirm'));
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/users/u_pending', method: 'DELETE', body: undefined,
         }));
@@ -497,7 +497,7 @@ describe('OrgUsersPanel — who may see the controls', () => {
 
     it('lets that same roleless viewer actually fire the role change (no client-side gate)', async () => {
         await renderPanel({}, NOBODY);
-        fireEvent.click(within(row('Eva Bakker')).getByTitle('Change role'));
+        await userEvent.click(within(row('Eva Bakker')).getByTitle('Change role'));
         fireEvent.change(within(row('Eva Bakker')).getByRole('combobox'), { target: { value: 'org_admin' } });
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/users/u_member', method: 'PUT', body: { orgRole: 'org_admin' },
@@ -525,7 +525,7 @@ describe('OrgUsersPanel — SSO auto-approve toggle', () => {
     it('appears for an SSO org and PUTs the flipped value', async () => {
         await renderPanel(ssoOrg());
         expect(screen.getByText('org.auto_approve_sso')).toBeInTheDocument();
-        fireEvent.click(screen.getByText('org.auto_approve_sso').closest('div.flex.items-center.justify-between').querySelector('button'));
+        await userEvent.click(screen.getByText('org.auto_approve_sso').closest('div.flex.items-center.justify-between').querySelector('button'));
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/organizations/orgA', method: 'PUT', body: { autoApproveSSO: true },
         }));
@@ -535,8 +535,8 @@ describe('OrgUsersPanel — SSO auto-approve toggle', () => {
         await renderPanel({ ...ssoOrg({ autoApproveSSO: false }), write: () => jsonRes({ error: 'nope' }, 403) });
         const toggle = screen.getByText('org.auto_approve_sso').closest('div.flex.items-center.justify-between').querySelector('button');
         expect(toggle.className).toContain('bg-[var(--border-default)]');
+        // Sync on purpose (an awaited click lets the refusal land first): flipped before the server answered…
         fireEvent.click(toggle);
-        // Flipped before the server answered…
         expect(toggle.className).toContain('bg-[var(--accent-primary)]');
         // …and taken back once the PUT came back refused.
         await waitFor(() => expect(toggle.className).toContain('bg-[var(--border-default)]'));
@@ -549,7 +549,7 @@ describe('OrgUsersPanel — SSO auto-approve toggle', () => {
                 { id: 'orgA', name: 'Acme B.V.', authMethod: 'password' },
             ],
         }, NOBODY);
-        fireEvent.click(screen.getByText('org.auto_approve_sso').closest('div.flex.items-center.justify-between').querySelector('button'));
+        await userEvent.click(screen.getByText('org.auto_approve_sso').closest('div.flex.items-center.justify-between').querySelector('button'));
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/organizations/orgZ', method: 'PUT', body: { autoApproveSSO: true },
         }));
@@ -584,7 +584,7 @@ describe('OrgUsersPanel — invitations', () => {
         openInvite();
         fireEvent.change(screen.getByPlaceholderText('colleague@example.com'), { target: { value: 'new@acme.nl' } });
         fireEvent.change(screen.getByDisplayValue('User'), { target: { value: 'agent_admin' } });
-        fireEvent.click(screen.getByText('Send'));
+        await userEvent.click(screen.getByText('Send'));
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/invitations', method: 'POST', body: { email: 'new@acme.nl', role: 'agent_admin' },
         }));
@@ -597,9 +597,9 @@ describe('OrgUsersPanel — invitations', () => {
         await renderPanel({ write: () => jsonRes({ success: true, emailSent: false, inviteUrl: 'https://beeflow.nl/invite/abc' }) });
         openInvite();
         fireEvent.change(screen.getByPlaceholderText('colleague@example.com'), { target: { value: 'new@acme.nl' } });
-        fireEvent.click(screen.getByText('Send'));
+        await userEvent.click(screen.getByText('Send'));
         const copy = await screen.findByText('Copy invite link');
-        fireEvent.click(copy);
+        await userEvent.click(copy);
         expect(writeText).toHaveBeenCalledWith('https://beeflow.nl/invite/abc');
     });
 
@@ -607,7 +607,7 @@ describe('OrgUsersPanel — invitations', () => {
         await renderPanel({ write: () => jsonRes({ error: 'Seat cap reached', code: 'seat_cap_exceeded' }, 402) });
         openInvite();
         fireEvent.change(screen.getByPlaceholderText('colleague@example.com'), { target: { value: 'new@acme.nl' } });
-        fireEvent.click(screen.getByText('Send'));
+        await userEvent.click(screen.getByText('Send'));
         expect(await screen.findByText('Seat cap reached')).toBeInTheDocument();
         expect(screen.getByText('View plans & upgrade').getAttribute('href')).toBe('/app/settings/organisation/license');
     });
@@ -616,7 +616,7 @@ describe('OrgUsersPanel — invitations', () => {
         await renderPanel({ write: () => notJsonRes(502) });
         openInvite();
         fireEvent.change(screen.getByPlaceholderText('colleague@example.com'), { target: { value: 'new@acme.nl' } });
-        fireEvent.click(screen.getByText('Send'));
+        await userEvent.click(screen.getByText('Send'));
         expect(await screen.findByText('Network error — please try again')).toBeInTheDocument();
     });
 
@@ -624,7 +624,7 @@ describe('OrgUsersPanel — invitations', () => {
         await renderPanel({ write: () => jsonRes({ success: false, error: 'Domain not allowed' }) });
         openInvite();
         fireEvent.change(screen.getByPlaceholderText('colleague@example.com'), { target: { value: 'new@acme.nl' } });
-        fireEvent.click(screen.getByText('Send'));
+        await userEvent.click(screen.getByText('Send'));
         expect(await screen.findByText('Domain not allowed')).toBeInTheDocument();
     });
 
@@ -656,7 +656,7 @@ describe('OrgUsersPanel — invitations', () => {
 
     it('revokes an invitation without asking for confirmation', async () => {
         await renderPanel({ invitations: [{ id: 'i1', email: 'a@acme.nl', status: 'pending', expires_at: '2026-10-01T00:00:00Z' }] });
-        fireEvent.click(screen.getByTitle('Revoke invitation'));
+        await userEvent.click(screen.getByTitle('Revoke invitation'));
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/invitations/i1', method: 'DELETE', body: undefined,
         }));
@@ -716,7 +716,7 @@ describe('OrgUsersPanel — group assignment popover', () => {
     it('toggling a group PUTs the full new group array', async () => {
         await renderPanel();
         openPopover('Jan de Vries');
-        fireEvent.click(screen.getAllByRole('button').find(b => b.textContent.startsWith('Support')));
+        await userEvent.click(screen.getAllByRole('button').find(b => b.textContent.startsWith('Support')));
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/users/u_admin', method: 'PUT', body: { groups: ['g_fin', 'g_sup'] },
         }));
@@ -725,7 +725,7 @@ describe('OrgUsersPanel — group assignment popover', () => {
     it('removing the last group PUTs an empty array', async () => {
         await renderPanel();
         openPopover('Jan de Vries');
-        fireEvent.click(screen.getAllByRole('button').find(b => b.textContent.startsWith('Finance')));
+        await userEvent.click(screen.getAllByRole('button').find(b => b.textContent.startsWith('Finance')));
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/users/u_admin', method: 'PUT', body: { groups: [] },
         }));
@@ -734,7 +734,7 @@ describe('OrgUsersPanel — group assignment popover', () => {
     it('a refused group change is silent — no error, checkbox unchanged (wrat)', async () => {
         await renderPanel({ write: () => jsonRes({ error: 'forbidden' }, 403) });
         openPopover('Jan de Vries');
-        fireEvent.click(screen.getAllByRole('button').find(b => b.textContent.startsWith('Support')));
+        await userEvent.click(screen.getAllByRole('button').find(b => b.textContent.startsWith('Support')));
         await waitFor(() => expect(writes()).toHaveLength(1));
         expect(screen.getByText('1 selected')).toBeInTheDocument();
         expect(alertSpy).not.toHaveBeenCalled();
@@ -744,7 +744,7 @@ describe('OrgUsersPanel — group assignment popover', () => {
         await renderPanel({ groups: [] });
         openPopover('Jan de Vries');
         expect(screen.getByText('No groups in this organisation yet.')).toBeInTheDocument();
-        fireEvent.click(screen.getByText('Create New Group'));
+        await userEvent.click(screen.getByText('Create New Group'));
         expect(tab.navigated).toContain('groups');
     });
 
@@ -818,8 +818,8 @@ describe('OrgUsersPanel — groups section', () => {
         );
         expect(screen.getByText('Bravo Group')).toBeInTheDocument();
         expect(screen.getByText('Bravo Secrets')).toBeInTheDocument();
-        fireEvent.click(within(groupCard('Bravo Secrets')).getByTitle('Delete group'));
-        fireEvent.click(await screen.findByTestId('confirm-dialog-confirm'));
+        await userEvent.click(within(groupCard('Bravo Secrets')).getByTitle('Delete group'));
+        await userEvent.click(await screen.findByTestId('confirm-dialog-confirm'));
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/groups/g_b2', method: 'DELETE', body: undefined,
         }));
@@ -844,7 +844,7 @@ describe('OrgUsersPanel — groups section', () => {
         expect(within(card).queryByTitle('Delete group')).not.toBeInTheDocument();
         expect(within(card).getByTitle('Edit group settings')).toBeInTheDocument();
 
-        fireEvent.click(screen.getByText('Azure Sales'));
+        await userEvent.click(screen.getByText('Azure Sales'));
         const roleSelect = within(groupCard('Azure Sales')).getByDisplayValue('User (default)');
         expect(roleSelect).not.toBeDisabled();
         fireEvent.change(roleSelect, { target: { value: 'org_admin' } });
@@ -855,19 +855,19 @@ describe('OrgUsersPanel — groups section', () => {
 
     it('deleting a group asks in the app\'s own dialog and sends nothing when declined', async () => {
         await renderPanel();
-        fireEvent.click(within(groupCard('Finance')).getByTitle('Delete group'));
+        await userEvent.click(within(groupCard('Finance')).getByTitle('Delete group'));
         const dialog = await screen.findByRole('dialog', { name: 'Delete this group?' });
         expect(within(dialog).getByText('Users will be unassigned.')).toBeInTheDocument();
         expect(confirmSpy).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByTestId('confirm-dialog-cancel'));
+        await userEvent.click(screen.getByTestId('confirm-dialog-cancel'));
         await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
         expect(writes()).toHaveLength(0);
     });
 
     it('deleting a group DELETEs it once confirmed', async () => {
         await renderPanel();
-        fireEvent.click(within(groupCard('Finance')).getByTitle('Delete group'));
-        fireEvent.click(await screen.findByTestId('confirm-dialog-confirm'));
+        await userEvent.click(within(groupCard('Finance')).getByTitle('Delete group'));
+        await userEvent.click(await screen.findByTestId('confirm-dialog-confirm'));
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/groups/g_fin', method: 'DELETE', body: undefined,
         }));
@@ -875,10 +875,10 @@ describe('OrgUsersPanel — groups section', () => {
 
     it('creates a group and keeps the form open when the server refuses (wrat)', async () => {
         await renderPanel({ write: () => jsonRes({ error: 'nope' }, 400) });
-        fireEvent.click(screen.getByText('Create New Group'));
+        await userEvent.click(screen.getByText('Create New Group'));
         fireEvent.change(screen.getByPlaceholderText('Group name'), { target: { value: 'Legal' } });
         fireEvent.change(screen.getByPlaceholderText('Description (optional)'), { target: { value: 'Legal team' } });
-        fireEvent.click(screen.getByText('Create'));
+        await userEvent.click(screen.getByText('Create'));
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/groups', method: 'POST', body: { name: 'Legal', description: 'Legal team', organizationId: 'orgA' },
         }));
@@ -888,18 +888,18 @@ describe('OrgUsersPanel — groups section', () => {
 
     it('only offers an organisation picker when more than one org came back', async () => {
         await renderPanel();
-        fireEvent.click(screen.getByText('Create New Group'));
+        await userEvent.click(screen.getByText('Create New Group'));
         expect(screen.queryByDisplayValue('Acme B.V.')).not.toBeInTheDocument();
 
         cleanup();
         await renderPanel({ organizations: [{ id: 'orgA', name: 'Acme B.V.' }, { id: 'orgB', name: 'Other BV' }] });
-        fireEvent.click(screen.getByText('Create New Group'));
+        await userEvent.click(screen.getByText('Create New Group'));
         expect(screen.getByDisplayValue('Acme B.V.')).toBeInTheDocument();
     });
 
     it('renames the group description inline', async () => {
         await renderPanel();
-        fireEvent.click(within(groupCard('Finance')).getByTitle('Edit group settings'));
+        await userEvent.click(within(groupCard('Finance')).getByTitle('Edit group settings'));
         const input = screen.getByDisplayValue('Finance team');
         fireEvent.change(input, { target: { value: 'All things money' } });
         fireEvent.keyDown(input, { key: 'Enter' });
@@ -910,13 +910,13 @@ describe('OrgUsersPanel — groups section', () => {
 
     it('shows "Click to add description..." for a group without one', async () => {
         await renderPanel();
-        fireEvent.click(screen.getByText('Support'));
+        await userEvent.click(screen.getByText('Support'));
         expect(within(groupCard('Support')).getByText('Click to add description...')).toBeInTheDocument();
     });
 
     it('reports the group role as inherited by every member', async () => {
         await renderPanel();
-        fireEvent.click(screen.getByText('Support'));
+        await userEvent.click(screen.getByText('Support'));
         const card = groupCard('Support');
         expect(within(card).getByDisplayValue('Agent Admin')).toBeInTheDocument();
         expect(within(card).getByText('All members inherit this role')).toBeInTheDocument();
@@ -928,15 +928,15 @@ describe('OrgUsersPanel — group allowed tiers', () => {
 
     it('reads an empty allowedTiers as "no restriction" — every tier permitted (fail-open by design)', async () => {
         await renderPanel();
-        fireEvent.click(screen.getByText('Finance'));
+        await userEvent.click(screen.getByText('Finance'));
         expect(within(groupCard('Finance')).getByText(/No restriction set: members can use every tier/)).toBeInTheDocument();
         expect(within(groupCard('Finance')).queryByText('Clear restrictions')).not.toBeInTheDocument();
     });
 
     it('clicking a tier pill restricts the group to just that tier', async () => {
         await renderPanel();
-        fireEvent.click(screen.getByText('Finance'));
-        fireEvent.click(within(groupCard('Finance')).getByRole('button', { name: '🧠 Thinking' }));
+        await userEvent.click(screen.getByText('Finance'));
+        await userEvent.click(within(groupCard('Finance')).getByRole('button', { name: '🧠 Thinking' }));
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/groups/g_fin', method: 'PUT', body: { allowedTiers: ['thinking'] },
         }));
@@ -944,10 +944,10 @@ describe('OrgUsersPanel — group allowed tiers', () => {
 
     it('summarises an existing restriction and offers to clear it', async () => {
         await renderPanel({ groups: [{ ...GROUPS[0], allowedTiers: ['fast', 'writer'] }] });
-        fireEvent.click(screen.getByText('Finance'));
+        await userEvent.click(screen.getByText('Finance'));
         const card = groupCard('Finance');
         expect(within(card).getByText(/2 tiers permitted/)).toBeInTheDocument();
-        fireEvent.click(within(card).getByText('Clear restrictions'));
+        await userEvent.click(within(card).getByText('Clear restrictions'));
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/groups/g_fin', method: 'PUT', body: { allowedTiers: [] },
         }));
@@ -955,10 +955,10 @@ describe('OrgUsersPanel — group allowed tiers', () => {
 
     it('switching off the last permitted tier sends an empty list — read back as every tier (fail-open)', async () => {
         await renderPanel({ groups: [{ ...GROUPS[0], allowedTiers: ['fast'] }] });
-        fireEvent.click(screen.getByText('Finance'));
+        await userEvent.click(screen.getByText('Finance'));
         // Fast is the only permitted tier; clicking it off empties the list, and
         // an empty list means "no restriction — members can use every tier".
-        fireEvent.click(within(groupCard('Finance')).getByRole('button', { name: '⚡ Fast' }));
+        await userEvent.click(within(groupCard('Finance')).getByRole('button', { name: '⚡ Fast' }));
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/groups/g_fin', method: 'PUT', body: { allowedTiers: [] },
         }));
@@ -966,14 +966,14 @@ describe('OrgUsersPanel — group allowed tiers', () => {
 
     it('renders custom tiers alongside the four standard ones', async () => {
         await renderPanel({ customTiers: [{ id: 'legal', label: 'Legal', icon: '⚖️' }] });
-        fireEvent.click(screen.getByText('Finance'));
+        await userEvent.click(screen.getByText('Finance'));
         expect(within(groupCard('Finance')).getByRole('button', { name: '⚖️ Legal' })).toBeInTheDocument();
     });
 
     it('reports a failed tier update through the toast', async () => {
         await renderPanel({ write: () => jsonRes({ error: 'boom' }, 500) });
-        fireEvent.click(screen.getByText('Finance'));
-        fireEvent.click(within(groupCard('Finance')).getByRole('button', { name: '⚡ Fast' }));
+        await userEvent.click(screen.getByText('Finance'));
+        await userEvent.click(within(groupCard('Finance')).getByRole('button', { name: '⚡ Fast' }));
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Failed to update allowed tiers (500): boom'));
         expect(alertSpy).not.toHaveBeenCalled();
     });
@@ -984,7 +984,7 @@ describe('OrgUsersPanel — group members', () => {
 
     it('lists the members of an expanded group', async () => {
         await renderPanel();
-        fireEvent.click(screen.getByText('Finance'));
+        await userEvent.click(screen.getByText('Finance'));
         const card = groupCard('Finance');
         expect(within(card).getByText('Jan de Vries')).toBeInTheDocument();
         expect(within(card).getByText('Eva Bakker')).toBeInTheDocument();
@@ -992,13 +992,13 @@ describe('OrgUsersPanel — group members', () => {
 
     it('says so for an empty group', async () => {
         await renderPanel({ groups: [{ id: 'g_new', name: 'Empty', organizationId: 'orgA' }] });
-        fireEvent.click(screen.getByText('Empty'));
+        await userEvent.click(screen.getByText('Empty'));
         expect(screen.getByText('No members in this group')).toBeInTheDocument();
     });
 
     it('shows the GROUP role for every member when the group carries one, overriding their own (wrat)', async () => {
         await renderPanel();
-        fireEvent.click(screen.getByText('Support'));
+        await userEvent.click(screen.getByText('Support'));
         const evaRow = within(groupCard('Support')).getByText('Eva Bakker').closest('div.flex.items-center');
         // Eva is orgRole 'member', but Support carries agent_admin.
         expect(within(evaRow).getByText('Agent Admin')).toBeInTheDocument();
@@ -1008,7 +1008,7 @@ describe('OrgUsersPanel — group members', () => {
         await renderPanel({
             users: [{ id: 'u_admin', displayName: 'Jan de Vries', role: 'user', orgRole: 'org_admin', groups: ['g_fin'], organizationId: 'orgA', status: 'active' }],
         });
-        fireEvent.click(screen.getByText('Finance'));
+        await userEvent.click(screen.getByText('Finance'));
         const janRow = within(groupCard('Finance')).getByText('Jan de Vries').closest('div.flex.items-center');
         expect(within(janRow).getByText('user')).toBeInTheDocument();
         expect(within(janRow).queryByText('Organisation Admin')).not.toBeInTheDocument();
@@ -1016,9 +1016,9 @@ describe('OrgUsersPanel — group members', () => {
 
     it('removes a member from the group immediately, with no confirmation (fail-open)', async () => {
         await renderPanel();
-        fireEvent.click(screen.getByText('Finance'));
+        await userEvent.click(screen.getByText('Finance'));
         const evaRow = within(groupCard('Finance')).getByText('Eva Bakker').closest('div.flex.items-center');
-        fireEvent.click(within(evaRow).getByTitle('Remove from group'));
+        await userEvent.click(within(evaRow).getByTitle('Remove from group'));
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/groups/g_fin/members/u_member', method: 'DELETE', body: undefined,
         }));
@@ -1027,9 +1027,9 @@ describe('OrgUsersPanel — group members', () => {
 
     it('reports a refused removal through the toast', async () => {
         await renderPanel({ write: () => jsonRes({ error: 'Cannot remove the last admin' }, 409) });
-        fireEvent.click(screen.getByText('Finance'));
+        await userEvent.click(screen.getByText('Finance'));
         const evaRow = within(groupCard('Finance')).getByText('Eva Bakker').closest('div.flex.items-center');
-        fireEvent.click(within(evaRow).getByTitle('Remove from group'));
+        await userEvent.click(within(evaRow).getByTitle('Remove from group'));
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Cannot remove the last admin'));
         expect(alertSpy).not.toHaveBeenCalled();
     });
@@ -1038,9 +1038,9 @@ describe('OrgUsersPanel — group members', () => {
         await renderPanel({
             users: [...USERS, { id: 'u_new', displayName: 'Nina Nieuw', email: 'nina@acme.nl', groups: [], organizationId: 'orgA', status: 'active' }],
         });
-        fireEvent.click(screen.getByText('Finance'));
-        fireEvent.click(within(groupCard('Finance')).getByText('Add member'));
-        fireEvent.click(screen.getByText('Nina Nieuw'));
+        await userEvent.click(screen.getByText('Finance'));
+        await userEvent.click(within(groupCard('Finance')).getByText('Add member'));
+        await userEvent.click(screen.getByText('Nina Nieuw'));
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/groups/g_fin/members', method: 'POST', body: { userId: 'u_new' },
         }));
@@ -1048,8 +1048,8 @@ describe('OrgUsersPanel — group members', () => {
 
     it('says everyone is already a member when there is no candidate left', async () => {
         await renderPanel();
-        fireEvent.click(screen.getByText('Finance'));
-        fireEvent.click(within(groupCard('Finance')).getByText('Add member'));
+        await userEvent.click(screen.getByText('Finance'));
+        await userEvent.click(within(groupCard('Finance')).getByText('Add member'));
         expect(screen.getByText('Everyone is already a member')).toBeInTheDocument();
     });
 
@@ -1057,8 +1057,8 @@ describe('OrgUsersPanel — group members', () => {
         await renderPanel({
             users: [...USERS, { id: 'u_out', displayName: 'Outsider Inc', groups: [], organizationId: 'orgB', status: 'active' }],
         });
-        fireEvent.click(screen.getByText('Finance'));
-        fireEvent.click(within(groupCard('Finance')).getByText('Add member'));
+        await userEvent.click(screen.getByText('Finance'));
+        await userEvent.click(within(groupCard('Finance')).getByText('Add member'));
         expect(screen.getByText('Everyone is already a member')).toBeInTheDocument();
     });
 });
@@ -1079,7 +1079,7 @@ describe('OrgUsersPanel — roles section', () => {
         for (const name of ['Organisation Admin', 'Data Protection Officer', 'ISMS Internal Auditor', 'Agent Admin', 'Agent Editor', 'Member']) {
             expect(screen.getByText(name)).toBeInTheDocument();
         }
-        fireEvent.click(screen.getByText('Agent Editor').closest('button'));
+        await userEvent.click(screen.getByText('Agent Editor').closest('button'));
         expect(screen.getByText('No permissions could be read for this role.')).toBeInTheDocument();
     });
 
@@ -1121,7 +1121,7 @@ describe('OrgUsersPanel — roles section', () => {
         // ADMIN carries the org_admin PERMISSION but no orgRole, so the panel
         // offers no toggles: the whole grant is listed under "Permissions".
         await renderPanel();
-        fireEvent.click(screen.getByText('Agent Editor').closest('button'));
+        await userEvent.click(screen.getByText('Agent Editor').closest('button'));
         expect(screen.getByText('Permissions')).toBeInTheDocument();
         expect(screen.getByText('Create, edit, delete and publish agents')).toBeInTheDocument();
         expect(screen.queryByTestId('role-perm-agent_editor-use_forms')).not.toBeInTheDocument();
@@ -1129,7 +1129,7 @@ describe('OrgUsersPanel — roles section', () => {
 
     it('lets an org admin switch the editable half and keeps the rest fixed', async () => {
         await renderPanel({}, ORG_ADMIN);
-        fireEvent.click(screen.getByText('Agent Editor').closest('button'));
+        await userEvent.click(screen.getByText('Agent Editor').closest('button'));
         expect(screen.getByText('What this role may use')).toBeInTheDocument();
         expect(screen.getByTestId('role-perm-agent_editor-use_forms').checked).toBe(true);
         expect(screen.getByTestId('role-perm-agent_editor-use_webpages').checked).toBe(false);
@@ -1144,9 +1144,9 @@ describe('OrgUsersPanel — roles section', () => {
         await renderPanel({}, ORG_ADMIN);
         const editorRow = screen.getByText('Agent Editor').closest('button');
         expect(within(editorRow).getByText('Forms')).toBeInTheDocument();
-        fireEvent.click(editorRow);
-        fireEvent.click(screen.getByTestId('role-perm-agent_editor-use_forms'));
-        fireEvent.click(screen.getByTestId('role-save-agent_editor'));
+        await userEvent.click(editorRow);
+        await userEvent.click(screen.getByTestId('role-perm-agent_editor-use_forms'));
+        await userEvent.click(screen.getByTestId('role-save-agent_editor'));
 
         await waitFor(() => expect(writes()).toHaveLength(1));
         const [put] = writes();

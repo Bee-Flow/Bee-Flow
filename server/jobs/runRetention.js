@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Run-history retention job (§WS3.1).
  *

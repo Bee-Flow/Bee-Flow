@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * OneDrive / Graph vocabulary for ./oneDrive.js and ./oneDriveWorkbook.js:
  * the select lists and limits, A1 addresses, the driveItem -> FileRef

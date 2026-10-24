@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Currency conversion helpers.
  *

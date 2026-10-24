@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Locale overrides follow the ITEM, not the array index: reordering header
  * CTAs, nav items or block arrays in the default language must not move the

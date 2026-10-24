@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * deleteUser / deleteOrganization resolve BOTH erasure ports before the first
  * write. With the ports unregistered the call rejects and the user row (and the

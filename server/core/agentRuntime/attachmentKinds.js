@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * One attachment of each kind put onto the user message, for
  * ./attachmentProcessor: PDFs (through the unified extractor), images

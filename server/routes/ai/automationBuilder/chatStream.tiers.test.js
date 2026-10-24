@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Which tiers an automation-builder turn may run on
  * (routes/ai/automationBuilder/chatStream.js), measured against the list the

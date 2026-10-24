@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * NC onboarding-incomplete reminder (daily tick).
  *

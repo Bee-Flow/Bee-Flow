@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Shared harness for the runPartial() suites (automationRunner.partial.*.test.js):
  * an in-memory automationStore plus stubs for the runner's heavy load-time
@@ -12,10 +13,10 @@
 
 function stub(modPath, exportsObj) {
     const resolved = require.resolve(modPath);
-    require.cache[resolved] = { id: resolved, filename: resolved, loaded: true, exports: exportsObj };
+    require.cache[resolved] = /** @type {any} */ ({ id: resolved, filename: resolved, loaded: true, exports: exportsObj });
 }
 
-function installPartialRunHarness({ getRunsForAutomation } = {}) {
+function installPartialRunHarness(/** @type {{getRunsForAutomation?: Function}} */ { getRunsForAutomation } = {}) {
     const runs = new Map();          // runId -> run row
     const runStepsByRun = new Map(); // runId -> [step row]
     let runSeq = 0;

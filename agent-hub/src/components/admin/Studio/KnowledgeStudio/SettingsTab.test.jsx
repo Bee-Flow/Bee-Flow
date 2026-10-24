@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { knowledgeApi } from './knowledgeApi';
@@ -64,19 +65,21 @@ describe('SettingsTab', () => {
     });
 
     it('saves the new surface list when one is ticked', async () => {
+        const user = userEvent.setup();
         setup({ kb: kb({ usage_contexts: ['agent'] }) });
-        fireEvent.click(screen.getByTestId('kb-surface-ai_step'));
+        await user.click(screen.getByTestId('kb-surface-ai_step'));
         await waitFor(() => expect(knowledgeApi.update).toHaveBeenCalledWith('kb1', {
             usageContexts: ['agent', 'ai_step'],
         }));
     });
 
     it('refuses to let the LAST surface go', async () => {
+        const user = userEvent.setup();
         // An empty list is storable and means "nowhere". A settings screen
         // that lets the last tick go quietly removes the base from every
         // picker on one click.
         setup({ kb: kb({ usage_contexts: ['agent'] }) });
-        fireEvent.click(screen.getByTestId('kb-surface-agent'));
+        await user.click(screen.getByTestId('kb-surface-agent'));
         expect(await screen.findByRole('alert')).toBeTruthy();
         expect(knowledgeApi.update).not.toHaveBeenCalled();
     });
@@ -110,16 +113,17 @@ describe('SettingsTab', () => {
     });
 
     it('asks before widening, and publishes through the audience route', async () => {
+        const user = userEvent.setup();
         // Two routes on purpose: widening who can read the documents has its
         // own authorisation, and a rename must not be able to carry it. And
         // the widening asks first — `confirmWidening` — because "everyone in
         // your organisation" is not a click you take back.
         setup({ kb: kb({ is_published: false }) });
-        fireEvent.click(screen.getByText(/entire organisation/i));
+        await user.click(screen.getByText(/entire organisation/i));
         expect(knowledgeApi.setPublished).not.toHaveBeenCalled();
 
         expect(await screen.findByText(/everyone in your organisation will be able to see/i)).toBeTruthy();
-        fireEvent.click(screen.getByRole('button', { name: /^share$/i }));
+        await user.click(screen.getByRole('button', { name: /^share$/i }));
 
         await waitFor(() => expect(knowledgeApi.setPublished).toHaveBeenCalledWith('kb1', {
             isPublished: true, sharedGroups: [],
@@ -161,10 +165,11 @@ describe('SettingsTab', () => {
         });
 
         it('moves it into the organisation without publishing it', async () => {
+            const user = userEvent.setup();
             // Belonging to an organisation and being shared with it are two
             // decisions, and only the second is "everyone may read this".
             setup({ kb: personal });
-            fireEvent.click(screen.getByTestId('kb-move-to-org'));
+            await user.click(screen.getByTestId('kb-move-to-org'));
             await waitFor(() => expect(knowledgeApi.update).toHaveBeenCalledWith('kb1', { organizationId: 'org1' }));
             expect(knowledgeApi.setPublished).not.toHaveBeenCalled();
         });
@@ -178,49 +183,54 @@ describe('SettingsTab', () => {
 
     describe('deleting', () => {
         it('shows what would break before it asks for the name', async () => {
+            const user = userEvent.setup();
             setup({ usage: [{ kind: 'agent', id: 'a1', role: 'chat', title: 'Support assistant' }] });
-            fireEvent.click(screen.getByText(/delete this knowledge base/i));
+            await user.click(screen.getByText(/delete this knowledge base/i));
             expect(await screen.findByTestId('danger-dependents')).toBeTruthy();
             expect(screen.getByText('Support assistant')).toBeTruthy();
         });
 
         it('confirms breaking only what was actually shown', async () => {
+            const user = userEvent.setup();
             setup({ usage: [{ kind: 'agent', id: 'a1', role: 'chat', title: 'Support assistant' }] });
-            fireEvent.click(screen.getByText(/delete this knowledge base/i));
+            await user.click(screen.getByText(/delete this knowledge base/i));
             fireEvent.change(await screen.findByPlaceholderText('Personeelshandboek'), {
                 target: { value: 'Personeelshandboek' },
             });
-            fireEvent.click(screen.getByText(/delete for good/i));
+            await user.click(screen.getByText(/delete for good/i));
             await waitFor(() => expect(knowledgeApi.remove).toHaveBeenCalledWith('kb1', { confirm: true }));
         });
 
         it('lets the server decide when the list never loaded', async () => {
+            const user = userEvent.setup();
             // `null` is not `[]`. Passing confirm=true here would confirm
             // breaking things nobody was shown.
             setup({ usage: null });
-            fireEvent.click(screen.getByText(/delete this knowledge base/i));
+            await user.click(screen.getByText(/delete this knowledge base/i));
             fireEvent.change(await screen.findByPlaceholderText('Personeelshandboek'), {
                 target: { value: 'Personeelshandboek' },
             });
-            fireEvent.click(screen.getByText(/delete for good/i));
+            await user.click(screen.getByText(/delete for good/i));
             await waitFor(() => expect(knowledgeApi.remove).toHaveBeenCalledWith('kb1', { confirm: false }));
         });
 
         it('says the list is INCOMPLETE when the server could not check something', async () => {
+            const user = userEvent.setup();
             // "I could not reach apps" and "no app uses this" are different
             // statements. Only one of them is safe to press delete on, and
             // this is the sentence that keeps them apart.
             setup({ usage: [], unchecked: ['app', 'automation'] });
-            fireEvent.click(screen.getByText(/delete this knowledge base/i));
+            await user.click(screen.getByText(/delete this knowledge base/i));
             const warning = await screen.findByTestId('kb-delete-unchecked');
             expect(warning.textContent).toMatch(/may be incomplete/i);
             expect(warning.textContent).toMatch(/apps/);
             expect(warning.textContent).toMatch(/automations/);
         });
 
-        it('says nothing about completeness when everything was checked', () => {
+        it('says nothing about completeness when everything was checked', async () => {
+            const user = userEvent.setup();
             setup({ usage: [], unchecked: [] });
-            fireEvent.click(screen.getByText(/delete this knowledge base/i));
+            await user.click(screen.getByText(/delete this knowledge base/i));
             expect(screen.queryByTestId('kb-delete-unchecked')).toBeNull();
         });
 
@@ -265,23 +275,26 @@ describe('duplicating', () => {
     });
 
     it('copies the shell alone by default', async () => {
+        const user = userEvent.setup();
         setup();
-        fireEvent.click(screen.getByTestId('kb-duplicate-shell'));
+        await user.click(screen.getByTestId('kb-duplicate-shell'));
         await waitFor(() => expect(knowledgeApi.duplicate).toHaveBeenCalledWith('kb1', { withSources: false }));
     });
 
     it('copies the sources when asked', async () => {
+        const user = userEvent.setup();
         setup();
-        fireEvent.click(screen.getByTestId('kb-duplicate-sources'));
+        await user.click(screen.getByTestId('kb-duplicate-sources'));
         await waitFor(() => expect(knowledgeApi.duplicate).toHaveBeenCalledWith('kb1', { withSources: true }));
     });
 
     it('hands the copy back so the caller can open it', async () => {
+        const user = userEvent.setup();
         // The point of duplicating is to work on the new one; leaving somebody
         // on the original makes them hunt for what they just made.
         const onDuplicated = vi.fn();
         setup({ onDuplicated });
-        fireEvent.click(screen.getByTestId('kb-duplicate-shell'));
+        await user.click(screen.getByTestId('kb-duplicate-shell'));
         await waitFor(() => expect(onDuplicated).toHaveBeenCalledWith({ id: 'kb_copy' }));
     });
 

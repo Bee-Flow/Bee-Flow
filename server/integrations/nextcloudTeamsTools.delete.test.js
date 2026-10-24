@@ -1,3 +1,4 @@
+// @typecheck
 /** Teams: delete is only reported as done when the team is really gone. */
 const test = require('node:test');
 const assert = require('node:assert/strict');

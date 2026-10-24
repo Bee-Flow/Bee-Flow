@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Column lookup shared by the planner (design time) and the engine (run time),

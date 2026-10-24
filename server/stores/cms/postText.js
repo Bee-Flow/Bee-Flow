@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The plain-text side of a blog post body: excerpts, reading time, the CMS
  * assets it references and the one rule for a stored media reference.

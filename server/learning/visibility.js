@@ -1,3 +1,4 @@
+// @typecheck
 // Server-side resolution of WHICH lessons a user can actually access, so badge
 // and certificate eligibility is computed against the same lesson set the client
 // shows (the client filters gated lessons out of courses; the server must not

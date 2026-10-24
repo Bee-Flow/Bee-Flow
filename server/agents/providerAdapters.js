@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Provider Adapters — Thin wrapper providing OpenAI-style createChatCompletion
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Outbound n8n calls verify certificates unless somebody opted out on purpose.
  *

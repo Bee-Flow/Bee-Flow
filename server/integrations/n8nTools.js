@@ -7,7 +7,7 @@
  *
  * Uses the REST API through n8nHttp.js (certificate policy lives there).
  */
-
+// @typecheck
 const configStore = require('../stores/configStore');
 const { n8nFetch, multipartBody } = require('./n8nHttp');
 const log = require('../telemetry/log');
@@ -36,7 +36,7 @@ async function listActiveWebhookWorkflows(apiBaseUrl, apiKey) {
         throw new Error(`Failed to list n8n workflows: ${listRes.status} ${await listRes.text()}`);
     }
 
-    const listJson = await listRes.json();
+    const listJson = /** @type {any} */ (await listRes.json());
     let workflows = listJson.data ?? listJson;
 
     // 2) Check if the list response already includes nodes (newer n8n versions do)

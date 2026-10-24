@@ -77,7 +77,7 @@ async function openFileInNotebooks(req, res) {
     try {
         parsed = await parseDocument(buffer, file.mimeType, file.filename, { returnHtml: true });
     } catch (e) {
-        log.warn(`[automation/form] could not read ${file.filename} for Notebooks: ${e.message}`);
+        log.warn(`[automation/form] could not read ${log.nameForLog(file.filename)} for Notebooks: ${e.message}`);
         return res.status(422).json({ error: 'This document could not be read into Notebooks.' });
     }
 

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What an installed entity looks like NOW, read back from its store in the
  * same shape install hashed on arrival.

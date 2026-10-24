@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The ONE error shape any source mirror answers with, whoever asked.
  *

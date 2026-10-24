@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * rowToRunStep's `bindingWarnings`: the mappings that found nothing while the
  * step ran, from automation_run_steps.binding_warnings.

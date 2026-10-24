@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Authorization for the monitoring read endpoints (/api/usage/guardrails/*,
  * /api/usage/integrations/*).

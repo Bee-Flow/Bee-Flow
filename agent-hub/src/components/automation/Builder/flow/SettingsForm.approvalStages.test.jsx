@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { extractFormState, buildPatch } from './settings/formState';
@@ -98,9 +99,10 @@ describe('approval stages — the chain editor', () => {
     });
 
     it('reordering moves the stage, not the key', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(approvalStep({ stages: CHAIN }));
         await screen.findByDisplayValue('Team lead');
-        fireEvent.click(screen.getByLabelText('Move stage 2 earlier'));
+        await user.click(screen.getByLabelText('Move stage 2 earlier'));
         const patch = await lastPatch(onPatch);
         // Finance is first now, and it is STILL s2. A positional key would
         // have renamed it to s1 and orphaned every vote filed under s2.
@@ -109,9 +111,10 @@ describe('approval stages — the chain editor', () => {
     });
 
     it('a new stage takes a key nobody in the chain is using', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(approvalStep({ stages: CHAIN }));
         await screen.findByDisplayValue('Team lead');
-        fireEvent.click(screen.getByRole('button', { name: /Add stage/ }));
+        await user.click(screen.getByRole('button', { name: /Add stage/ }));
         // The new row has no approver yet, so nothing is persisted until one
         // is picked — pick one, then read the chain back.
         fireEvent.change(await screen.findByLabelText('Stage 3, approver 1'), { target: { value: 'u:u2' } });
@@ -133,18 +136,20 @@ describe('approval stages — the chain editor', () => {
     });
 
     it('says out loud that a stage with nobody in it is not saved', async () => {
+        const user = userEvent.setup();
         renderForm(approvalStep({ stages: CHAIN }));
         await screen.findByDisplayValue('Team lead');
-        fireEvent.click(screen.getByRole('button', { name: /Add stage/ }));
+        await user.click(screen.getByRole('button', { name: /Add stage/ }));
         expect(await screen.findByText(/Pick at least one approver/)).toBeInTheDocument();
     });
 
     it('switching to stages carries the panel over and clears every legacy field', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(approvalStep({
             approvers: [{ userId: 'u1' }, { userId: 'u2' }], rule: 'quorum', quorum: 2,
             finalApprover: { groupId: 'g1' },
         }));
-        fireEvent.click(await screen.findByRole('button', { name: /Use approval stages/ }));
+        await user.click(await screen.findByRole('button', { name: /Use approval stages/ }));
         const patch = await lastPatch(onPatch);
         expect(patch.approval.stages).toHaveLength(2);
         expect(patch.approval.stages[0].approvers).toEqual([{ userId: 'u1' }, { userId: 'u2' }]);
@@ -158,9 +163,10 @@ describe('approval stages — the chain editor', () => {
     });
 
     it('switching back keeps what the simple shape can still express', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(approvalStep({ stages: CHAIN }));
         await screen.findByDisplayValue('Team lead');
-        fireEvent.click(screen.getByRole('button', { name: /Back to one round of approval/ }));
+        await user.click(screen.getByRole('button', { name: /Back to one round of approval/ }));
         const patch = await lastPatch(onPatch);
         expect(patch.approval.stages).toBeUndefined();
         expect(patch.approval.assignee).toEqual({ userId: 'u1' });
@@ -168,11 +174,12 @@ describe('approval stages — the chain editor', () => {
     });
 
     it('an optional condition is opt-in, and reads as a skip when it is not met', async () => {
+        const user = userEvent.setup();
         renderForm(approvalStep({ stages: CHAIN }));
         await screen.findByDisplayValue('Team lead');
         const openers = screen.getAllByRole('button', { name: /Only ask this stage when/ });
         expect(openers).toHaveLength(2);
-        fireEvent.click(openers[0]);
+        await user.click(openers[0]);
         expect(await screen.findByText(/A stage whose condition is not met is skipped/)).toBeInTheDocument();
     });
 

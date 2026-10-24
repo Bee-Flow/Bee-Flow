@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Cross-graph layer-reference validation (§WS5, extracted verbatim from
  * validate.js): the layer call graph must be acyclic and within the depth cap.

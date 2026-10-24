@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -181,25 +182,28 @@ describe('PolicyAcknowledgements — the list', () => {
 
 describe('PolicyAcknowledgements — reading a policy body', () => {
     it('fetches the body of the clicked slug and renders it', async () => {
+        const user = userEvent.setup();
         await mount({ body: jsonRes({ body: 'All laptops must be encrypted.' }) });
-        fireEvent.click(await screen.findByRole('button'));
+        await user.click(await screen.findByRole('button'));
         expect(await screen.findByText('All laptops must be encrypted.')).toBeInTheDocument();
         expect(String(bodyCalls()[0][0]))
             .toBe('/api/compliance/iso/docs/published/information-security-policy/body');
     });
 
     it('URL-encodes the slug on the body request', async () => {
+        const user = userEvent.setup();
         await mount({ list: jsonRes([{ ...DOC, slug: 'a b/c' }]) });
-        fireEvent.click(await screen.findByRole('button'));
+        await user.click(await screen.findByRole('button'));
         await waitFor(() => expect(bodyCalls()).toHaveLength(1));
         expect(String(bodyCalls()[0][0])).toBe('/api/compliance/iso/docs/published/a%20b%2Fc/body');
     });
 
     it('shows a spinner while the body is in flight', async () => {
+        const user = userEvent.setup();
         const d = deferred();
         await mount({ body: () => d.promise });
         const { container } = { container: document.body };
-        fireEvent.click(await screen.findByRole('button'));
+        await user.click(await screen.findByRole('button'));
         await waitFor(() => expect(container.querySelector('.animate-spin')).not.toBeNull());
         d.resolve(jsonRes({ body: 'text' }));
         expect(await screen.findByText('text')).toBeInTheDocument();
@@ -207,27 +211,30 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
     });
 
     it('spins FOREVER when the body request fails — no error, no retry (wart)', async () => {
+        const user = userEvent.setup();
         await mount({ body: jsonRes({ error: 'nope' }, 500) });
-        fireEvent.click(await screen.findByRole('button'));
+        await user.click(await screen.findByRole('button'));
         await waitFor(() => expect(bodyCalls()).toHaveLength(1));
         await waitFor(() => expect(document.body.querySelector('.animate-spin')).not.toBeNull());
         expect(screen.queryByText(/could not|failed|error/i)).toBeNull();
     });
 
     it('offers the confirm button even though the body never loaded — a policy can be acknowledged unseen (securityFinding)', async () => {
+        const user = userEvent.setup();
         await mount({ body: jsonRes({ error: 'nope' }, 500) });
-        fireEvent.click(await screen.findByRole('button'));
+        await user.click(await screen.findByRole('button'));
         const confirm = await screen.findByRole('button', { name: /I have read and understood this policy/ });
         expect(confirm).toBeEnabled();
         expect(document.body.querySelector('.animate-spin')).not.toBeNull();
 
-        fireEvent.click(confirm);
+        await user.click(confirm);
         await waitFor(() => expect(postCalls()).toHaveLength(1));
         expect(String(postCalls()[0][0]))
             .toBe('/api/compliance/iso/docs/information-security-policy/acknowledge');
     });
 
     it('offers the confirm button when the body request rejects outright (securityFinding)', async () => {
+        const user = userEvent.setup();
         serve();
         authFetch.mockImplementation(async (url, opts = {}) => {
             const u = String(url);
@@ -236,24 +243,26 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
             return jsonRes([DOC]);
         });
         render(<PolicyAcknowledgements />);
-        fireEvent.click(await screen.findByRole('button'));
+        await user.click(await screen.findByRole('button'));
         expect(await screen.findByRole('button', { name: /I have read and understood this policy/ })).toBeEnabled();
     });
 
     it('clicking the same policy again collapses it and drops the body', async () => {
+        const user = userEvent.setup();
         await mount({ body: jsonRes({ body: 'chapter one' }) });
         const header = await screen.findByRole('button');
-        fireEvent.click(header);
+        await user.click(header);
         expect(await screen.findByText('chapter one')).toBeInTheDocument();
-        fireEvent.click(header);
+        await user.click(header);
         await waitFor(() => expect(screen.queryByText('chapter one')).toBeNull());
         expect(screen.queryByRole('button', { name: /I have read and understood/ })).toBeNull();
         // Re-opening refetches; the body is not cached.
-        fireEvent.click(header);
+        await user.click(header);
         await waitFor(() => expect(bodyCalls()).toHaveLength(2));
     });
 
     it('opening a second policy drops the first body immediately, back to a spinner, before the new one lands', async () => {
+        const user = userEvent.setup();
         const slowB = deferred();
         await mount({
             list: jsonRes([
@@ -262,10 +271,10 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
             ]),
             body: (u) => (u.includes('/a/') ? jsonRes({ body: 'body of A' }) : slowB.promise),
         });
-        fireEvent.click(within(rowFor('Policy A')).getByRole('button'));
+        await user.click(within(rowFor('Policy A')).getByRole('button'));
         expect(await screen.findByText('body of A')).toBeInTheDocument();
 
-        fireEvent.click(within(rowFor('Policy B')).getByRole('button'));
+        await user.click(within(rowFor('Policy B')).getByRole('button'));
         // Synchronously, before B answers: A's text is gone and a spinner is up.
         expect(screen.queryByText('body of A')).toBeNull();
         expect(document.body.querySelector('.animate-spin')).not.toBeNull();
@@ -276,6 +285,7 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
     });
 
     it('a slow first body lands under the SECOND policy — no request is cancelled or keyed (wart)', async () => {
+        const user = userEvent.setup();
         const slowA = deferred();
         await mount({
             list: jsonRes([
@@ -284,8 +294,8 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
             ]),
             body: (u) => (u.includes('/a/') ? slowA.promise : jsonRes({ body: 'body of B' })),
         });
-        fireEvent.click(within(rowFor('Policy A')).getByRole('button'));
-        fireEvent.click(within(rowFor('Policy B')).getByRole('button'));
+        await user.click(within(rowFor('Policy A')).getByRole('button'));
+        await user.click(within(rowFor('Policy B')).getByRole('button'));
         expect(await screen.findByText('body of B')).toBeInTheDocument();
 
         slowA.resolve(jsonRes({ body: 'body of A' }));
@@ -303,8 +313,9 @@ describe('PolicyAcknowledgements — confirming', () => {
     };
 
     it('POSTs an empty JSON body to the acknowledge endpoint of that slug', async () => {
+        const user = userEvent.setup();
         await mount();
-        fireEvent.click(await openFirst());
+        await user.click(await openFirst());
         await waitFor(() => expect(postCalls()).toHaveLength(1));
         const [url, opts] = postCalls()[0];
         expect(String(url)).toBe('/api/compliance/iso/docs/information-security-policy/acknowledge');
@@ -313,29 +324,32 @@ describe('PolicyAcknowledgements — confirming', () => {
     });
 
     it('URL-encodes the slug on the acknowledge endpoint', async () => {
+        const user = userEvent.setup();
         await mount({ list: jsonRes([{ ...DOC, slug: 'a b/c' }]) });
-        fireEvent.click(await openFirst());
+        await user.click(await openFirst());
         await waitFor(() => expect(postCalls()).toHaveLength(1));
         expect(String(postCalls()[0][0])).toBe('/api/compliance/iso/docs/a%20b%2Fc/acknowledge');
     });
 
     it('re-reads the list after a successful confirm and flips the badge', async () => {
+        const user = userEvent.setup();
         await mount({
             list: (n) => jsonRes([n === 0
                 ? { ...DOC, acknowledged: false }
                 : { ...DOC, acknowledged: true, acknowledged_at: '2026-09-06T09:00:00Z' }]),
         });
-        fireEvent.click(await openFirst());
+        await user.click(await openFirst());
         await waitFor(() => expect(listCalls()).toHaveLength(2));
         expect(await screen.findByText(`Confirmed ${new Date('2026-09-06T09:00:00Z').toLocaleDateString()}`)).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /I have read and understood/ })).toBeNull();
     });
 
     it('disables the confirm button while the POST is in flight', async () => {
+        const user = userEvent.setup();
         const d = deferred();
         await mount({ ack: () => d.promise });
         const confirm = await openFirst();
-        fireEvent.click(confirm);
+        await user.click(confirm);
         await waitFor(() => expect(confirm).toBeDisabled());
         d.resolve(jsonRes({ ok: true }));
         await waitFor(() => expect(listCalls()).toHaveLength(2));
@@ -349,9 +363,10 @@ describe('PolicyAcknowledgements — confirming', () => {
      * non-ok path below is the observable half of the same silence.
      */
     it('a failed (non-ok) confirm leaves the row unacknowledged with no feedback (wart)', async () => {
+        const user = userEvent.setup();
         await mount({ ack: jsonRes({ error: 'denied' }, 403) });
         const confirm = await openFirst();
-        fireEvent.click(confirm);
+        await user.click(confirm);
         await waitFor(() => expect(postCalls()).toHaveLength(1));
         await waitFor(() => expect(confirm).toBeEnabled());
         expect(listCalls()).toHaveLength(1);
@@ -359,8 +374,9 @@ describe('PolicyAcknowledgements — confirming', () => {
     });
 
     it('never renders a confirm button for an already-acknowledged policy', async () => {
+        const user = userEvent.setup();
         await mount({ list: jsonRes([{ ...DOC, acknowledged: true, acknowledged_at: '2026-08-01T10:00:00Z' }]) });
-        fireEvent.click(await screen.findByRole('button'));
+        await user.click(await screen.findByRole('button'));
         expect(await screen.findByText('# Policy body')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /I have read and understood/ })).toBeNull();
     });

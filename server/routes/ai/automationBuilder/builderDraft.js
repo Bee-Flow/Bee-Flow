@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation Builder — the in-progress draft: load-or-create for a
  * (userId, builderSessionId) pair, and the write-through persist that every

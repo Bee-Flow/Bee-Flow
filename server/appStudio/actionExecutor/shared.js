@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio action executor — SHARED primitives (extracted verbatim from
  * actionExecutor.js): table resolution, the server-side formula scope, binding

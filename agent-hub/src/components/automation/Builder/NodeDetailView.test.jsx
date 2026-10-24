@@ -35,25 +35,28 @@ describe('NodeDetailView', () => {
         expect(screen.getByDisplayValue('My AI')).toBeTruthy();
     });
 
-    it('Execute calls onExecuteStep with the step id', () => {
+    it('Execute calls onExecuteStep with the step id', async () => {
+        const user = userEvent.setup();
         const onExecuteStep = vi.fn();
         render(<NodeDetailView {...baseProps({ onExecuteStep })} />);
-        fireEvent.click(screen.getAllByRole('button', { name: /Test step/ })[0]);
+        await user.click(screen.getAllByRole('button', { name: /Test step/ })[0]);
         expect(onExecuteStep).toHaveBeenCalledWith('s1');
     });
 
-    it('close calls onClose', () => {
+    it('close calls onClose', async () => {
+        const user = userEvent.setup();
         const onClose = vi.fn();
         render(<NodeDetailView {...baseProps({ onClose })} />);
-        fireEvent.click(screen.getByLabelText('Close'));
+        await user.click(screen.getByLabelText('Close'));
         expect(onClose).toHaveBeenCalled();
     });
 
-    it('can hide the Input and Output columns', () => {
+    it('can hide the Input and Output columns', async () => {
+        const user = userEvent.setup();
         render(<NodeDetailView {...baseProps()} />);
-        fireEvent.click(screen.getByLabelText('Hide input'));
+        await user.click(screen.getByLabelText('Hide input'));
         expect(screen.queryByTestId('ndv-col-input')).toBeNull();
-        fireEvent.click(screen.getByLabelText('Hide output'));
+        await user.click(screen.getByLabelText('Hide output'));
         expect(screen.queryByText('Output')).toBeNull();
         // Parameters always stays.
         expect(screen.getByTestId('ndv-col-params')).toBeTruthy();
@@ -131,7 +134,8 @@ describe('NodeDetailView', () => {
             expect(within(panel).queryByText(/Switch to JSON/)).toBeNull();
         });
 
-        it('pins the latest output, and refuses when there is nothing to pin', () => {
+        it('pins the latest output, and refuses when there is nothing to pin', async () => {
+            const user = userEvent.setup();
             const onSaveStep = vi.fn();
             const { rerender } = render(<NodeDetailView {...quickProps()} onSaveStep={onSaveStep} />);
             const pinOf = () => within(screen.getByTestId('ndv-quick-output')).getByRole('button', { name: /pin/i });
@@ -139,7 +143,7 @@ describe('NodeDetailView', () => {
 
             rerender(<NodeDetailView {...quickProps()} onSaveStep={onSaveStep} runStep={{ status: 'success', output: { id: 'm1' } }} />);
             expect(pinOf().disabled).toBe(false);
-            fireEvent.click(pinOf());
+            await user.click(pinOf());
             expect(onSaveStep).toHaveBeenCalled();
         });
 
@@ -151,24 +155,26 @@ describe('NodeDetailView', () => {
         });
 
         it('offers Execute, a data line, and a counted way into everything else', async () => {
+            const user = userEvent.setup();
             const onExecuteStep = vi.fn();
             const onModeChange = vi.fn();
             render(<NodeDetailView {...quickProps({ onExecuteStep, onModeChange })} />);
-            fireEvent.click(screen.getAllByRole('button', { name: /Test step/ })[0]);
+            await user.click(screen.getAllByRole('button', { name: /Test step/ })[0]);
             expect(onExecuteStep).toHaveBeenCalledWith('s1');
             // ai_step hides 3 sections in Simple (Advanced, Structured
             // output and Answer checks). The counted control now reveals them IN THIS dialog by
             // switching the MODE — it must not swap the window for the
             // three-column workspace (the old "More options" did, and still
             // left the sections hidden).
-            fireEvent.click(await screen.findByText(/Show advanced options \(3\)/));
+            await user.click(await screen.findByText(/Show advanced options \(3\)/));
             expect(onModeChange).toHaveBeenCalledWith('advanced');
         });
 
         it('without a mode owner, the legacy counted button still opens the full view', async () => {
+            const user = userEvent.setup();
             const onDensityChange = vi.fn();
             render(<NodeDetailView {...quickProps({ onDensityChange })} />);
-            fireEvent.click(await screen.findByText(/More options \(3\)/));
+            await user.click(await screen.findByText(/More options \(3\)/));
             expect(onDensityChange).toHaveBeenCalledWith('full');
         });
 
@@ -181,10 +187,11 @@ describe('NodeDetailView', () => {
             expect(screen.getByText('2 records')).toBeTruthy();
         });
 
-        it('the expand control switches to the full view', () => {
+        it('the expand control switches to the full view', async () => {
+            const user = userEvent.setup();
             const onDensityChange = vi.fn();
             render(<NodeDetailView {...quickProps({ onDensityChange })} />);
-            fireEvent.click(screen.getByLabelText('Expand to the full view'));
+            await user.click(screen.getByLabelText('Expand to the full view'));
             expect(onDensityChange).toHaveBeenCalledWith('full');
         });
 
@@ -226,12 +233,13 @@ describe('NodeDetailView', () => {
         });
 
         it('saves valid JSON as an EDITED pin, not a captured one', async () => {
+            const user = userEvent.setup();
             const onSaveStep = vi.fn().mockResolvedValue(undefined);
             render(<NodeDetailView {...baseProps({ onSaveStep })} />);
 
-            fireEvent.click(editorOf());
+            await user.click(editorOf());
             fireEvent.change(textarea(), { target: { value: '{"subject":"Hi","id":7}' } });
-            fireEvent.click(screen.getByText('Save output'));
+            await user.click(screen.getByText('Save output'));
 
             await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
             const saved = savedStep(onSaveStep);
@@ -241,15 +249,16 @@ describe('NodeDetailView', () => {
         });
 
         it('refuses invalid JSON in place, and saves nothing at all', async () => {
+            const user = userEvent.setup();
             // "Nothing at all" is the point: a definition save bumps `version`
             // and writes a full snapshot into automation_versions, so a
             // half-typed brace must never reach the server.
             const onSaveStep = vi.fn().mockResolvedValue(undefined);
             render(<NodeDetailView {...baseProps({ onSaveStep })} />);
 
-            fireEvent.click(editorOf());
+            await user.click(editorOf());
             fireEvent.change(textarea(), { target: { value: '{ "subject": ' } });
-            fireEvent.click(screen.getByText('Save output'));
+            await user.click(screen.getByText('Save output'));
 
             expect(screen.getByRole('alert').textContent).toMatch(/^Invalid JSON: /);
             expect(onSaveStep).not.toHaveBeenCalled();
@@ -258,7 +267,8 @@ describe('NodeDetailView', () => {
             expect(textarea().value).toBe('{ "subject": ');
         });
 
-        it('refuses an oversized payload client-side, before the PUT', () => {
+        it('refuses an oversized payload client-side, before the PUT', async () => {
+            const user = userEvent.setup();
             // The inspector PUTs the WHOLE definition on every save. One
             // oversized pin would 400 every later, unrelated edit to this
             // automation, and failedPatchRef would retry into the same 400 — so
@@ -266,21 +276,22 @@ describe('NodeDetailView', () => {
             const onSaveStep = vi.fn().mockResolvedValue(undefined);
             render(<NodeDetailView {...baseProps({ onSaveStep })} />);
 
-            fireEvent.click(editorOf());
+            await user.click(editorOf());
             fireEvent.change(textarea(), { target: { value: JSON.stringify({ body: 'x'.repeat(70_000) }) } });
-            fireEvent.click(screen.getByText('Save output'));
+            await user.click(screen.getByText('Save output'));
 
             expect(screen.getByRole('alert').textContent).toMatch(/Too big to save/);
             expect(onSaveStep).not.toHaveBeenCalled();
         });
 
-        it('refuses the server\'s truncation sentinel, exactly as Pin does', () => {
+        it('refuses the server\'s truncation sentinel, exactly as Pin does', async () => {
+            const user = userEvent.setup();
             const onSaveStep = vi.fn().mockResolvedValue(undefined);
             render(<NodeDetailView {...baseProps({ onSaveStep })} />);
 
-            fireEvent.click(editorOf());
+            await user.click(editorOf());
             fireEvent.change(textarea(), { target: { value: '{"__truncated__":true}' } });
-            fireEvent.click(screen.getByText('Save output'));
+            await user.click(screen.getByText('Save output'));
 
             expect(screen.getByRole('alert').textContent).toMatch(/placeholder, not data/);
             expect(onSaveStep).not.toHaveBeenCalled();
@@ -297,20 +308,21 @@ describe('NodeDetailView', () => {
             expect(within(panel).queryByText(/Pinned/)).toBeNull();
         });
 
-        it('seeds from the last run, then from the pin, then from the describer', () => {
+        it('seeds from the last run, then from the pin, then from the describer', async () => {
+            const user = userEvent.setup();
             const pinned = { ...step, pinnedOutput: { from: 'pin' } };
             const def = { ...definition, steps: [pinned] };
             const p = baseProps({ step: pinned, definition: def, rootDefinition: def });
 
             render(<NodeDetailView {...p} />);
-            fireEvent.click(editorOf());
+            await user.click(editorOf());
             expect(JSON.parse(textarea().value)).toEqual({ from: 'pin' });
 
             // A real run outranks the pin: it is the newer truth about this
             // step, and the author can still edit whatever lands in the box.
             cleanup();
             render(<NodeDetailView {...p} runStep={{ status: 'success', output: { from: 'run' } }} />);
-            fireEvent.click(editorOf());
+            await user.click(editorOf());
             expect(JSON.parse(textarea().value)).toEqual({ from: 'run' });
 
             // Neither: the describer's own sample for this node type, so the
@@ -318,17 +330,18 @@ describe('NodeDetailView', () => {
             // rather than an empty box.
             cleanup();
             render(<NodeDetailView {...baseProps()} />);
-            fireEvent.click(editorOf());
+            await user.click(editorOf());
             expect(() => JSON.parse(textarea().value)).not.toThrow();
         });
     });
 
-    it('the full view offers a way back to the small dialog', () => {
+    it('the full view offers a way back to the small dialog', async () => {
+        const user = userEvent.setup();
         // "Shrink to the small dialog", not "Simple view" — the words Simple /
         // All options belong to the MODE toggle; this button only resizes.
         const onDensityChange = vi.fn();
         render(<NodeDetailView {...baseProps({ density: 'full', onDensityChange })} />);
-        fireEvent.click(screen.getByLabelText('Shrink to the small dialog'));
+        await user.click(screen.getByLabelText('Shrink to the small dialog'));
         expect(onDensityChange).toHaveBeenCalledWith('quick');
     });
 
@@ -476,7 +489,8 @@ describe('NodeDetailView — nothing on the drawer is hardcoded English', () => 
         expect(screen.getByTitle('Schrijf de uitvoer van deze stap met de hand')).toBeTruthy();
     });
 
-    it('translates the hand-written-output sheet, which had no t() of its own', () => {
+    it('translates the hand-written-output sheet, which had no t() of its own', async () => {
+        const user = userEvent.setup();
         // OutputEditorPanel is a component in this file with no useTranslation
         // hook at all — every one of its eight strings was hardcoded.
         dutch({
@@ -486,19 +500,20 @@ describe('NodeDetailView — nothing on the drawer is hardcoded English', () => 
             'automations.ndv.save_output': 'Uitvoer opslaan',
         });
         render(<NodeDetailView {...baseProps()} />);
-        fireEvent.click(screen.getByTestId('ndv-edit-output'));
+        await user.click(screen.getByTestId('ndv-edit-output'));
         expect(screen.getByText('Wat de stappen hierna moeten zien.')).toBeTruthy();
         expect(screen.getByLabelText('Uitvoer-JSON')).toBeTruthy();
         expect(screen.getByText('Annuleren')).toBeTruthy();
         expect(screen.getByText('Uitvoer opslaan')).toBeTruthy();
     });
 
-    it('translates Remove on the sheet once there is something to remove', () => {
+    it('translates Remove on the sheet once there is something to remove', async () => {
+        const user = userEvent.setup();
         dutch({ 'common.remove': 'Weghalen' });
         const pinned = { ...step, pinnedOutput: { id: 'x' }, pinnedAt: 'now', pinnedSource: 'edited' };
         const def = { ...definition, steps: [pinned] };
         render(<NodeDetailView {...baseProps({ step: pinned, definition: def, rootDefinition: def })} />);
-        fireEvent.click(screen.getByTestId('ndv-edit-output'));
+        await user.click(screen.getByTestId('ndv-edit-output'));
         expect(screen.getByText('Weghalen')).toBeTruthy();
     });
 });

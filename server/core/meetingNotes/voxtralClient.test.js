@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Voxtral client gets its timeout under the option name the Mistral SDK
  * reads (`timeoutMs`). The four call sites used to pass `timeout`, which the

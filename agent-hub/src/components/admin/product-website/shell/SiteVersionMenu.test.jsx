@@ -15,6 +15,7 @@
  * Run: cd agent-hub && npx vitest run src/components/admin/ProductWebsite/shell/SiteVersionMenu.test.jsx
  */
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import SiteVersionMenu from './SiteVersionMenu';
@@ -56,20 +57,22 @@ function renderMenu(props = {}) {
 }
 
 describe('SiteVersionMenu export/import', () => {
-    it('the primary Export asks for the zip — the only complete backup', () => {
+    it('the primary Export asks for the zip — the only complete backup', async () => {
+        const user = userEvent.setup();
         const onExportSite = vi.fn();
         renderMenu({ onExportSite });
 
-        fireEvent.click(screen.getByText('Export site'));
+        await user.click(screen.getByText('Export site'));
         expect(onExportSite).toHaveBeenCalledWith('zip');
     });
 
-    it('offers a JSON escape hatch, clearly labelled as image-less', () => {
+    it('offers a JSON escape hatch, clearly labelled as image-less', async () => {
+        const user = userEvent.setup();
         const onExportSite = vi.fn();
         renderMenu({ onExportSite });
 
         const jsonBtn = screen.getByText(/Export as JSON \(no images\)/);
-        fireEvent.click(jsonBtn);
+        await user.click(jsonBtn);
         expect(onExportSite).toHaveBeenCalledWith('json');
     });
 

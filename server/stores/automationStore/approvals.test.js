@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Pure-logic tests for the approvals store — the scope WHERE builder and the
  * row mapper, which together decide WHO SEES WHAT. The SQL paths themselves

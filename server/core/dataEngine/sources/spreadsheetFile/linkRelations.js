@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The relations a link request declares between the sheets it links (and the
  * sheets linked earlier in the same scope), turned into per-mirror declared

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR-Art32-dlp-enabled — the configuration layer and the words it uses.
  *

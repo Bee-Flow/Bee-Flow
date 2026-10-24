@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Rules about what a Condition / Filter / Switch reads and what reads it.
  *
@@ -126,7 +127,7 @@ function walkAst(node, visit) {
 /** The path text of a path node that holds a `[*]`, else null. */
 function wildPathText(node) {
     if (!node || node.kind !== 'path') return null;
-    const paths = rulePaths(node);
+    const paths = /** @type {any[]} */ (rulePaths(node));
     const p = paths.find((x) => x.tokens.some((t) => t.type === 'wild'));
     return p ? p.path : null;
 }
@@ -160,7 +161,7 @@ function checkRuleFields(ctx, step, at) {
     for (const { expr, at: where } of ruleTexts(step)) {
         const ast = parsed(expr);
         if (!ast) continue;
-        for (const { tokens } of rulePaths(ast)) {
+        for (const { tokens } of /** @type {any[]} */ (rulePaths(ast))) {
             if (tokens[0].key !== 'item') continue;
             const f = fieldFinding(tokens, items);
             if (!f) continue;

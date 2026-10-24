@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Talk → Meeting Notes settings API.
  *

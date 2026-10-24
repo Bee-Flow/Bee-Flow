@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The Node matcher for `words` and `pattern` types (the one production and

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * THE COMPLIANCE PHASE'S REVIEW — the biggest of the server-run phases, and
  * the only one that reads everything the playbook built: the table and its

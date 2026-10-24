@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The retention plan: how a purge reaches every table a connector writes.
  *

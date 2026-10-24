@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import SaveStatus from './SaveStatus';
 
@@ -20,11 +21,12 @@ describe('SaveStatus', () => {
         expect(el).toHaveAttribute('aria-live', 'polite');
     });
 
-    it('renders a retry button on error and calls onRetry', () => {
+    it('renders a retry button on error and calls onRetry', async () => {
+        const user = userEvent.setup();
         const onRetry = vi.fn();
         render(<SaveStatus saveState="error" onRetry={onRetry} />);
         const btn = screen.getByRole('button', { name: /save failed/i });
-        fireEvent.click(btn);
+        await user.click(btn);
         expect(onRetry).toHaveBeenCalledTimes(1);
     });
 

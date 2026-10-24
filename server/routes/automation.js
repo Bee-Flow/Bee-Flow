@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation Routes — REST API for the conversational automation builder.
  *

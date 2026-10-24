@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Word (.docx) house style — the organisation's "kantoorstijl" applied to a
  * document built with html-to-docx.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage row-insert / row-update triggers (§20 scaffolding).
  *

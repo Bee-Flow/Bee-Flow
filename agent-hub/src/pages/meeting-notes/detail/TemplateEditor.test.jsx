@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -45,24 +46,26 @@ describe('TemplateEditor', () => {
     });
 
     it('creates a personal template and reports it via onSaved', async () => {
+        const user = userEvent.setup();
         const onSaved = vi.fn();
         const onClose = vi.fn();
         render(<TemplateEditor open onClose={onClose} canManageOrg={false} builtins={[]} onSaved={onSaved} />);
         fireEvent.change(screen.getByPlaceholderText(/Board summary/i), { target: { value: 'My style' } });
         fireEvent.change(screen.getByPlaceholderText(/Describe the summary/i), { target: { value: 'Summarise it' } });
-        fireEvent.click(screen.getByRole('button', { name: /Save template/i }));
+        await user.click(screen.getByRole('button', { name: /Save template/i }));
         await waitFor(() => expect(api.createSummaryTemplate).toHaveBeenCalled());
         expect(api.createSummaryTemplate).toHaveBeenCalledWith(expect.objectContaining({ scope: 'user', name: 'My style', prompt: 'Summarise it' }));
         await waitFor(() => expect(onSaved).toHaveBeenCalled());
     });
 
     it('editing an existing template PATCHes and locks the scope', async () => {
+        const user = userEvent.setup();
         const initial = { id: 'tpl-1', scope: 'org', name: 'Org tmpl', prompt: 'Body', organizationId: 'o1', isDefault: false };
         render(<TemplateEditor open onClose={() => {}} canManageOrg initial={initial} builtins={[]} onSaved={() => {}} />);
         // Scope buttons are disabled when editing.
         expect(screen.getByText('Whole organization').closest('button').disabled).toBe(true);
         fireEvent.change(screen.getByPlaceholderText(/Board summary/i), { target: { value: 'Org tmpl v2' } });
-        fireEvent.click(screen.getByRole('button', { name: /Save template/i }));
+        await user.click(screen.getByRole('button', { name: /Save template/i }));
         await waitFor(() => expect(api.updateSummaryTemplate).toHaveBeenCalledWith('tpl-1', expect.objectContaining({ name: 'Org tmpl v2' })));
     });
 });

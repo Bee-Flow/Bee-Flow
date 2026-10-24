@@ -235,13 +235,13 @@ function handleErr(res, err, _where) {
     // dataReadRunner marks its own refusals `safe` — the same 'Table not found'
     // / 'Forbidden' text these handlers used to return inline.
     if (err && err.safe === true && status) {
-        return res.status(status).json({ error: err.message });
+        throw new HttpError(status, err.code || 'data_request_refused', err.message);
     }
     if (status === 409) {
         return res.status(409).json({ error: err.message, code: err.code || 'quota_exceeded', limit: err.limit, used: err.used });
     }
     if (status === 422 || status === 400 || status === 403) {
-        return res.status(status).json({ error: err.message });
+        throw new HttpError(status, err.code || 'data_request_refused', err.message);
     }
     // Public and unauthenticated: only an HttpError may carry its own message;
     // anything else is a generic 500 (the terminal handler logs the cause).

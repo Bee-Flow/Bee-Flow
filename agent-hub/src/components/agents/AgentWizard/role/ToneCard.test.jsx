@@ -4,6 +4,7 @@
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/role/ToneCard.test.jsx
  */
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 import { PERSONA_LIMITS } from './personaFacts';
@@ -41,10 +42,11 @@ describe('ToneCard — de vijf chips', () => {
         expect(chips.some(c => c.hasAttribute('aria-checked'))).toBe(false);
     });
 
-    it('geeft de WAARDE door, niet het label — die waarde gaat in het prompt', () => {
+    it('geeft de WAARDE door, niet het label — die waarde gaat in het prompt', async () => {
+        const user = userEvent.setup();
         const onToggleChip = vi.fn();
         render(<ToneCard t={t} persona={persona()} onToggleChip={onToggleChip} />);
-        fireEvent.click(screen.getByText('Amounts in €'));
+        await user.click(screen.getByText('Amounts in €'));
         expect(onToggleChip).toHaveBeenCalledWith('amounts in euros');
     });
 

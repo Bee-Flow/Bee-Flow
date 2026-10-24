@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Storage Store — multipart upload contract (local mode).
  *

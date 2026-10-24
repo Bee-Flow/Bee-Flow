@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * READING xlsx / xlsm / xls / ods with SheetJS (@e965/xlsx) — the one parser
  * that reads all four, used for reads only (the community build drops styles
@@ -99,7 +100,7 @@ function rangeOf(ws, { full = false } = {}) {
 
 /**
  * The workbook's tabs, in file order.
- * @returns {Array<{ name, index, hidden, rows, cols }>}  rows/cols = the used range (≤ the probe cap)
+ * @returns {Promise<Array<{ name, index, hidden, rows, cols }>>}  rows/cols = the used range (≤ the probe cap)
  */
 async function listSheets(buffer, format, { probeRows = 10_001 } = {}) {
     const wb = await readWorkbook(buffer, format, {

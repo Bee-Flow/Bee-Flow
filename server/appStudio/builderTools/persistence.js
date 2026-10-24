@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — write-through persistence to studio_apps
  * (persistDraft, the CAS seam every mutating tool ends in) and app_finalize

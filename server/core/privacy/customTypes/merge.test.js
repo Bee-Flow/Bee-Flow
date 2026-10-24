@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The one merge rule for scans with custom types, and the spanOverlap option

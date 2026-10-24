@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import SegmentedControl, { resolveSegmentedBadge } from './SegmentedControl';
 
@@ -24,10 +25,11 @@ describe('SegmentedControl', () => {
         expect(screen.getByRole('radio', { name: 'All options' }).getAttribute('aria-checked')).toBe('false');
     });
 
-    it('reports the picked value through onChange', () => {
+    it('reports the picked value through onChange', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         render(<SegmentedControl value="simple" onChange={onChange} options={OPTIONS} />);
-        fireEvent.click(screen.getByRole('radio', { name: 'All options' }));
+        await user.click(screen.getByRole('radio', { name: 'All options' }));
         expect(onChange).toHaveBeenCalledWith('advanced');
     });
 
@@ -42,7 +44,8 @@ describe('SegmentedControl', () => {
         expect(active.style.color).toBe('var(--text-primary)');
     });
 
-    it('a disabled option cannot be picked', () => {
+    it('a disabled option cannot be picked', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         render(
             <SegmentedControl
@@ -53,7 +56,7 @@ describe('SegmentedControl', () => {
         );
         const opt = screen.getByRole('radio', { name: 'All options' }) as HTMLButtonElement;
         expect(opt.disabled).toBe(true);
-        fireEvent.click(opt);
+        await user.click(opt);
         expect(onChange).not.toHaveBeenCalled();
     });
 });

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * core/integrations/integrationClients.js: the registry, and the contract that
  * integrations/integrationClients.js registers every client core asks for.

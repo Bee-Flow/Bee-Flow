@@ -394,7 +394,8 @@ test('POST /checks/:id/auto-fix runs the fix with the actor, re-runs the check, 
     autoFixImpl = async () => { throw new Error('no auto-fix for this check'); };
     const bad = await getJson('/checks/ISO27001-A.5.1-policies/auto-fix', { method: 'POST' });
     assert.equal(bad.status, 400);
-    assert.deepEqual(bad.body, { error: 'no auto-fix for this check' });
+    assert.equal(bad.body.error, 'no auto-fix for this check');
+    assert.equal(bad.body.code, 'bad_request');
 });
 
 test('POST /checks/:id/auto-fix: a failed re-run never turns a successful fix into an error', async () => {

@@ -9,7 +9,8 @@
  * blob (one lesson mastered), the catalog and achievements answer empty so
  * the bundled catalog and the client-side badge math carry the screen.
  */
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -83,19 +84,21 @@ describe('LearningCenterSection — redesigned shell', () => {
     });
 
     it('"Play" opens the player with the course id; "Beside the app" docks it', async () => {
+        const user = userEvent.setup();
         const seen = [];
         const onOpen = (e) => seen.push(e.detail);
         window.addEventListener(LESSON_PLAYER_OPEN_EVENT, onOpen);
         render(<LearningCenterSection user={USER} />);
-        fireEvent.click(await screen.findByTestId('learning-continue'));
+        await user.click(await screen.findByTestId('learning-continue'));
         expect(seen[0].courseId).toBeTruthy();
         expect(seen[0].layout).toBeNull();
-        fireEvent.click(screen.getByText('Beside the app'));
+        await user.click(screen.getByText('Beside the app'));
         expect(seen[1].layout).toBe('docked');
         window.removeEventListener(LESSON_PLAYER_OPEN_EVENT, onOpen);
     });
 
     it('a course opens as its own screen with a lessons table, and back returns to the map', async () => {
+        const user = userEvent.setup();
         render(<LearningCenterSection user={USER} />);
         // Wait for the server-hydrated path to settle the columns first: the
         // pre-hydration paint expands a different path column, and grabbing a
@@ -106,20 +109,21 @@ describe('LearningCenterSection — redesigned shell', () => {
             expect(within(first).getByText('Build agents & automations')).toBeTruthy();
         });
         const station = (await screen.findAllByTestId('course-station'))[0];
-        fireEvent.click(station);
+        await user.click(station);
         expect(await screen.findByTestId('course-view')).toBeTruthy();
         expect(screen.getAllByTestId('lesson-row').length).toBeGreaterThan(0);
         // A row expands in place, showing only the numbered steps (round 3 —
         // the "what counts" and "help on the way" columns were the same text
         // for every lesson in the product, so they are a line, not a panel).
         expect(screen.queryByTestId('lesson-steps')).toBeNull();
-        fireEvent.click(screen.getAllByLabelText('Lesson details')[0]);
+        await user.click(screen.getAllByLabelText('Lesson details')[0]);
         expect(screen.getByTestId('lesson-steps')).toBeTruthy();
-        fireEvent.click(screen.getByLabelText('Back to the overview'));
+        await user.click(screen.getByLabelText('Back to the overview'));
         expect(await screen.findByTestId('curriculum-map')).toBeTruthy();
     });
 
     it('the curriculum map opens as category tiles: one path expanded, the rest behind their tile (BFSF-473)', async () => {
+        const user = userEvent.setup();
         render(<LearningCenterSection user={USER} />);
         await screen.findByTestId('learning-hero');
         // Every category renders as one large tile — never more than one list open.
@@ -133,21 +137,22 @@ describe('LearningCenterSection — redesigned shell', () => {
         // and closes the previous one (accordion).
         const secondCol = screen.getAllByTestId('curriculum-column')[1];
         expect(within(secondCol).queryByTestId('course-station')).toBeNull();
-        fireEvent.click(within(secondCol).getByTestId('curriculum-tile'));
+        await user.click(within(secondCol).getByTestId('curriculum-tile'));
         expect(within(secondCol).getAllByTestId('course-station').length).toBeGreaterThan(0);
         expect(within(firstCol).queryByTestId('course-station')).toBeNull();
     });
 
     it('the Review and Achievements tabs render from the rail', async () => {
+        const user = userEvent.setup();
         render(<LearningCenterSection user={USER} />);
         await screen.findByTestId('learning-hero');
         const rail = screen.getByTestId('learning-rail');
-        fireEvent.click(within(rail).getByText('Achievements'));
+        await user.click(within(rail).getByText('Achievements'));
         expect(await screen.findByTestId('achievements-view')).toBeTruthy();
         // Every badge is a row here — one per course the learner can see.
         expect(screen.getAllByTestId('badge-row').length).toBeGreaterThanOrEqual(9);
         expect(screen.getAllByTestId('certificate-row').length).toBe(3);
-        fireEvent.click(within(rail).getByText('Review'));
+        await user.click(within(rail).getByText('Review'));
         expect(await screen.findByTestId('review-view')).toBeTruthy();
     });
 });

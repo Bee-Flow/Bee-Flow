@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio action executor — generate_presentation: slides in, a PowerPoint
  * (or PDF deck) in the owner's house style out, as an app attachment.

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import MachineryPage, { subjectRows, assessmentPill, signalText, CLASSIFICATIONS, ART18_CHECK_ID } from './MachineryPage';
@@ -116,6 +117,7 @@ describe('MachineryPage — detections table', () => {
 
 describe('MachineryPage — attest drawer', () => {
     it('opens on a row, loads the history, and posts the classification to the machinery route', async () => {
+        const user = userEvent.setup();
         fetchJson
             .mockResolvedValueOnce(detections())                                   // detections
             .mockResolvedValueOnce([{ id: 'h1', classification: 'monitoring_only', attested_at: '2025-05-05T00:00:00Z' }]) // history
@@ -125,7 +127,7 @@ describe('MachineryPage — attest drawer', () => {
         render(<MachineryPage {...p} />);
         await waitFor(() => expect(screen.getAllByTestId('mach-row').length).toBe(4));
 
-        fireEvent.click(screen.getAllByTestId('mach-attest')[0]);
+        await user.click(screen.getAllByTestId('mach-attest')[0]);
         await waitFor(() => expect(screen.getByTestId('mach-drawer-title')).toBeTruthy());
         expect(screen.getByTestId('mach-drawer-title').textContent).toBe('Siemens line 3');
         expect(screen.getByTestId('mach-drawer-ref').textContent).toBe('custom_integration:int-1');
@@ -137,12 +139,12 @@ describe('MachineryPage — attest drawer', () => {
         expect(screen.getByTestId('mach-drawer-submit').disabled).toBe(true);
         const options = screen.getAllByTestId('mach-drawer-option');
         expect(options.map(o => o.dataset.value)).toEqual(['safety_component', 'monitoring_only', 'not_safety_component']);
-        fireEvent.click(options[0]);
+        await user.click(options[0]);
         expect(options[0].getAttribute('aria-checked')).toBe('true');
         fireEvent.change(screen.getByTestId('mach-drawer-statement'), { target: { value: 'Stops the press on a light-curtain break.' } });
         expect(screen.getByTestId('mach-drawer-submit').disabled).toBe(false);
 
-        fireEvent.click(screen.getByTestId('mach-drawer-submit'));
+        await user.click(screen.getByTestId('mach-drawer-submit'));
         await waitFor(() => expect(fetchJson.mock.calls.length).toBeGreaterThanOrEqual(4));
         const [url, init] = fetchJson.mock.calls[2];
         expect(url).toMatch(/\/machinery\/subjects\/custom_integration%3Aint-1\/attest$/);
@@ -179,28 +181,30 @@ describe('MachineryPage — attest drawer', () => {
     });
 
     it('the drawer opens pre-set on the existing classification and a failed history is its own state', async () => {
+        const user = userEvent.setup();
         fetchJson
             .mockResolvedValueOnce(detections())
             .mockRejectedValueOnce(new Error('500 boom'));
         render(<MachineryPage {...props()} />);
         await waitFor(() => expect(screen.getAllByTestId('mach-row').length).toBe(4));
-        fireEvent.click(screen.getAllByTestId('mach-attest')[1]);
+        await user.click(screen.getAllByTestId('mach-attest')[1]);
         await waitFor(() => expect(screen.getByTestId('mach-drawer-history-failed')).toBeTruthy());
         const active = screen.getAllByTestId('mach-drawer-option').find(o => o.dataset.active === 'true');
         expect(active.dataset.value).toBe('not_safety_component');
     });
 
     it('a refused attestation shows the route\'s reason and keeps the drawer open', async () => {
+        const user = userEvent.setup();
         fetchJson
             .mockResolvedValueOnce(detections())
             .mockResolvedValueOnce([])
             .mockRejectedValueOnce(new Error('400 invalid_subject'));
         render(<MachineryPage {...props()} />);
         await waitFor(() => expect(screen.getAllByTestId('mach-row').length).toBe(4));
-        fireEvent.click(screen.getAllByTestId('mach-attest')[0]);
+        await user.click(screen.getAllByTestId('mach-attest')[0]);
         await waitFor(() => expect(screen.getByTestId('mach-drawer-history-empty')).toBeTruthy());
-        fireEvent.click(screen.getAllByTestId('mach-drawer-option')[1]);
-        fireEvent.click(screen.getByTestId('mach-drawer-submit'));
+        await user.click(screen.getAllByTestId('mach-drawer-option')[1]);
+        await user.click(screen.getByTestId('mach-drawer-submit'));
         await waitFor(() => expect(screen.getByTestId('mach-drawer-error')).toBeTruthy());
         expect(screen.getByTestId('mach-drawer-error').textContent).toContain('cannot be attested');
         expect(screen.getByTestId('mach-drawer-title')).toBeTruthy();

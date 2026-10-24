@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation execution engine (§WS5, extracted verbatim from automationRunner.js).
  * Holds the step handlers (exec*), the DAG walker (runDag), and their shared

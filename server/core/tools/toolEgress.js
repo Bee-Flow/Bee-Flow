@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The egress chokepoint around the tool dispatcher.
@@ -48,7 +49,7 @@ function idsFrom(context, stated) {
 
 /**
  * @param {Function} dispatch  (toolName, toolArgs, context) → result
- * @param {object} [deps]      test seam: { probeApi, logToolEgress, now }
+ * @param {{ probeApi?: any, logToolEgress?: Function, now?: () => number }} [deps]      test seam
  * @returns {Function} executeTool with the same signature
  */
 function createEgressChokepoint(dispatch, deps = {}) {

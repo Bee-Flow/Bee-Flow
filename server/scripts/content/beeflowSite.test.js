@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The seeded Bee Flow website must actually survive the CMS.
  *

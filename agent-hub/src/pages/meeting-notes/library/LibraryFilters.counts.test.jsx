@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import LibraryFilters, { VISIBLE_TAGS } from './LibraryFilters';
@@ -62,32 +63,35 @@ describe('LibraryFilters — counted tag chips', () => {
         expect(within(chip('spelersmonitor')).getByText('3')).toBeTruthy();
     });
 
-    it('folds everything past the first five behind one "+N tags" chip', () => {
+    it('folds everything past the first five behind one "+N tags" chip', async () => {
+        const user = userEvent.setup();
         setup();
         expect(chip('zeldzaam')).toBeFalsy();
         const more = screen.getByTestId('meetings-more-tags');
         expect(more.textContent).toBe(`+${TAGS.length - VISIBLE_TAGS} tags`);
 
-        fireEvent.click(more);
+        await user.click(more);
         expect(chip('zeldzaam')).toBeTruthy();
         // …and folds back, so a long vocabulary does not eat the rail.
-        fireEvent.click(screen.getByRole('button', { name: /fewer tags/i }));
+        await user.click(screen.getByRole('button', { name: /fewer tags/i }));
         expect(chip('zeldzaam')).toBeFalsy();
     });
 
-    it('keeps a selected but unpopular tag visible so it can be switched off', () => {
+    it('keeps a selected but unpopular tag visible so it can be switched off', async () => {
+        const user = userEvent.setup();
         const { onTagChange } = setup({ tag: 'zeldzaam' });
         const selected = chip('zeldzaam');
         expect(selected).toBeTruthy();
         expect(selected.getAttribute('aria-pressed')).toBe('true');
 
-        fireEvent.click(selected);
+        await user.click(selected);
         expect(onTagChange).toHaveBeenCalledWith(null);
     });
 
-    it('clicking an unselected tag filters by it', () => {
+    it('clicking an unselected tag filters by it', async () => {
+        const user = userEvent.setup();
         const { onTagChange } = setup();
-        fireEvent.click(chip('dataweging'));
+        await user.click(chip('dataweging'));
         expect(onTagChange).toHaveBeenCalledWith('dataweging');
     });
 
@@ -107,10 +111,11 @@ describe('LibraryFilters — counted tag chips', () => {
         expect(labels[2].startsWith('beta')).toBe(true);
     });
 
-    it('no vocabulary yet → the owner chips still work, no empty chip row', () => {
+    it('no vocabulary yet → the owner chips still work, no empty chip row', async () => {
+        const user = userEvent.setup();
         const { onOwnerChange } = setup({ tags: [] });
         expect(screen.queryByTestId('meetings-more-tags')).toBeNull();
-        fireEvent.click(screen.getByRole('button', { name: 'Mine' }));
+        await user.click(screen.getByRole('button', { name: 'Mine' }));
         expect(onOwnerChange).toHaveBeenCalledWith('mine');
     });
 

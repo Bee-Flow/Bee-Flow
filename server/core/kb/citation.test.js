@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * One citation shape.
  *

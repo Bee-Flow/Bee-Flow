@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Solution membership on approvals.
  *

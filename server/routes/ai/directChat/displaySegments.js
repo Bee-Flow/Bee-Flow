@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct-chat display segments (BFSF-261, part a).
  *

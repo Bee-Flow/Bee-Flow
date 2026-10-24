@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * releaseNotesFormat — unit tests.
  *

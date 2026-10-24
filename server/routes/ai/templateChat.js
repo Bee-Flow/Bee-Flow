@@ -49,6 +49,7 @@ const {
     buildKbContext, buildSystemPrompt, buildHistoryMessages,
 } = require('./templateChatPrompt');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
 
@@ -163,15 +164,14 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
     }
 
     // Resolve provider
-    let config;
-    let adapter;
+    let config, adapter;
 
     try {
         config = await getProviderForModel(modelId);
         adapter = getAdapter(config.providerType, (config.url || '').replace(/\/+$/, ''));
     } catch (providerErr) {
         log.error(`[TemplateChat] Provider resolution failed for model "${modelId}":`, providerErr.message);
-        return res.status(400).json({ error: providerErr.message });
+        throw new HttpError(400, 'provider_unavailable', 'No AI provider is available for this model. Ask an administrator to check the model configuration.');
     }
     const apiKey = config.apiKey;
     const apiUrl = (config.url || '').replace(/\/+$/, '');

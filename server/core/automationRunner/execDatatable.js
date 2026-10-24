@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The `datatable` step — the only step whose effect outlives the run.
  *

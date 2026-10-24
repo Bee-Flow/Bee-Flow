@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Test kit: the notebookChat router with its dependencies stubbed.
  *

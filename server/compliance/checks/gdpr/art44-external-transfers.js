@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR Art. 44-49 — International transfers / external LLMs.
  *

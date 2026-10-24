@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * History Hydrator — rebuild multimodal content from persisted attachments
  *

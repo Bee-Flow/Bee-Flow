@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Blueprint format: a Solution, written down so it can be installed
  * somewhere else.
@@ -35,7 +36,6 @@
  * because seats are people. Approvals appear in the report and as a
  * `requires: { kind: 'approver' }` entry, never as data.
  */
-
 'use strict';
 
 const FORMAT = 'beeflow.blueprint';
@@ -228,6 +228,7 @@ function withSource(manifest, source) {
  *
  * `exportedAt` is passed in rather than read from the clock so the result is a
  * pure function of its inputs and can be asserted whole.
+ * @param {Record<string, any>} [input]
  */
 function buildManifest({
     project, entities = {}, requires = [], report = {}, exportedAt = null,

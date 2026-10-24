@@ -14,7 +14,7 @@
  *   // In business logic:
  *   if (await userHasBetaFeature(userId, 'meeting_notes', req.session)) { ... }
  */
-
+// @typecheck
 const { exec, getOne, run } = require('../../db');
 const { tagGate } = require('../../auth/gateMeta');
 const { buildKey } = require('../../utils/buildInfo');
@@ -230,8 +230,8 @@ async function getUserBetaFeatures(userId, session = null, { tierHint = null } =
 
     let user;
     try {
-        const userStore = require('../../stores/userStore');
-        user = await userStore.getUser(userId);
+        const userStoreUser = require('../../stores/userStore');
+        user = await userStoreUser.getUser(userId);
     } catch (err) {
         log.error('[BetaFeatures] user lookup failed:', err.message);
         throw new FeatureServiceUnavailableError(err);
@@ -290,8 +290,8 @@ async function getUserBetaFeatures(userId, session = null, { tierHint = null } =
 
     let allGroups;
     try {
-        const userStore = require('../../stores/userStore');
-        allGroups = await userStore.getAllGroups();
+        const userStoreGroups = require('../../stores/userStore');
+        allGroups = await userStoreGroups.getAllGroups();
     } catch (err) {
         log.error('[BetaFeatures] groups lookup failed:', err.message);
         throw new FeatureServiceUnavailableError(err);
@@ -322,7 +322,7 @@ async function getUserBetaFeatures(userId, session = null, { tierHint = null } =
     );
     const featureSet = new Set();
     try {
-        const userStore = require('../../stores/userStore');
+        const userStoreBeta = require('../../stores/userStore');
         for (const orgId of orgIds) {
             const allowed = await getEffectiveOrgBetaAllowList(orgId);
             const allowedSet = new Set(allowed);
@@ -331,7 +331,7 @@ async function getUserBetaFeatures(userId, session = null, { tierHint = null } =
                 for (const fid of allowedSet) featureSet.add(fid);
                 continue;
             }
-            const active = await userStore.getOrgEnabledBetaFeatures(orgId);
+            const active = await userStoreBeta.getOrgEnabledBetaFeatures(orgId);
             const activeSet = new Set(active);
             for (const fid of allowedSet) {
                 if (activeSet.has(fid)) { featureSet.add(fid); continue; }

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * locate — every state, with a fake location database; plus one test that
  * runs against the real DB-IP files when `npm run geo:fetch` has put them in

@@ -26,7 +26,7 @@ function loadPromptFile(filename) {
     try {
         return fs.readFileSync(filePath, 'utf-8').trim();
     } catch (err) {
-        log.error(`[SystemAgents] Failed to load prompt file ${filename}:`, err.message);
+        log.error(`[SystemAgents] Failed to load prompt file ${log.nameForLog(filename)}:`, err.message);
         return '';
     }
 }

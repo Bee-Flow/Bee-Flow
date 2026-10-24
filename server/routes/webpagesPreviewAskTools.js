@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Agentic AI bridge (POST /:id/ai/ask, see ./webpagesPreviewAsk.js): the tool
  * surface built from the page's `bridge_grants`, and the clamp on what a tool

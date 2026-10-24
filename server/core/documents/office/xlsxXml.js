@@ -1,3 +1,4 @@
+// @typecheck
 /** Small XML helpers shared by the .xlsx writers (xlsxWorkbook.js, xlsxCharts.js). */
 
 'use strict';

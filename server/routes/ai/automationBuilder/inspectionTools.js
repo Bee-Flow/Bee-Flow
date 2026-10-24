@@ -1,3 +1,4 @@
+// @typecheck
 // Read-only tools for the assistant. Run values never enter the model or the
 // saved transcript before the PII detector has checked them. If the guard is
 // absent/degraded, the assistant gets types and shapes instead of raw values.

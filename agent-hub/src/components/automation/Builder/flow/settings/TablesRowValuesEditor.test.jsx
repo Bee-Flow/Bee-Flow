@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { literalTableId, readValuesMap, withoutValuesInput } from './tablesRowValues';
@@ -123,17 +124,19 @@ describe('TablesRowValuesEditor', () => {
     });
 
     it('shows a stored value on its column, and clearing it drops the key rather than writing an empty cell', async () => {
+        const user = userEvent.setup();
         mockColumns();
         const value = { Totaal: { kind: 'ref', path: 'loop.e.output.amount_total' }, Bedrijf: { kind: 'literal', value: 'Acme' } };
         const { onChange } = renderEditor({ value });
         await waitFor(() => expect(rows()).toHaveLength(COLUMNS.length));
         // The ref renders as a chip naming the step, not the raw path.
         expect(within(rowTitled('Totaal')).getByText('Each e')).toBeTruthy();
-        fireEvent.click(within(rowTitled('Totaal')).getByLabelText('Remove this value'));
+        await user.click(within(rowTitled('Totaal')).getByLabelText('Remove this value'));
         expect(onChange).toHaveBeenCalledWith({ Bedrijf: { kind: 'literal', value: 'Acme' } });
     });
 
     it('keeps keys that are not a column in a separate group with a remove button — nothing the AI wrote is lost', async () => {
+        const user = userEvent.setup();
         mockColumns();
         const value = {
             vat: { kind: 'ref', path: 'loop.e.output.vat' },
@@ -148,7 +151,7 @@ describe('TablesRowValuesEditor', () => {
         const stray = screen.getByTestId('tables-row-stray');
         expect(within(stray).getByText('vat')).toBeTruthy();
         expect(within(stray).queryByText('excl_btw')).toBeNull();
-        fireEvent.click(within(stray).getByLabelText('Remove vat'));
+        await user.click(within(stray).getByLabelText('Remove vat'));
         expect(onChange).toHaveBeenCalledWith({ excl_btw: { kind: 'ref', path: 'loop.e.output.excl_btw' } });
     });
 
@@ -161,12 +164,13 @@ describe('TablesRowValuesEditor', () => {
     });
 
     it('Auto-map fills by normalised name only: excl_btw → "Excl. btw", bedrijf → "Bedrijf"; amount_total stays unmapped', async () => {
+        const user = userEvent.setup();
         mockColumns();
         const { onChange } = renderEditor({ value: {} });
         await waitFor(() => expect(rows()).toHaveLength(COLUMNS.length));
         // The step iterates over `e`, so the default source is its item group.
         expect(screen.getByLabelText('Map from').value).toBe('lp1__foreach');
-        fireEvent.click(screen.getByText('Auto-map'));
+        await user.click(screen.getByText('Auto-map'));
         expect(onChange).toHaveBeenCalledTimes(1);
         expect(onChange.mock.calls[0][0]).toEqual({
             'Excl. btw': { kind: 'ref', path: 'loop.e.output.excl_btw' },
@@ -179,11 +183,12 @@ describe('TablesRowValuesEditor', () => {
     });
 
     it('Auto-map never overwrites a column that already holds a value', async () => {
+        const user = userEvent.setup();
         mockColumns();
         const value = { Bedrijf: { kind: 'literal', value: 'Keep me' } };
         const { onChange } = renderEditor({ value });
         await waitFor(() => expect(rows()).toHaveLength(COLUMNS.length));
-        fireEvent.click(screen.getByText('Auto-map'));
+        await user.click(screen.getByText('Auto-map'));
         expect(onChange.mock.calls[0][0]).toEqual({
             Bedrijf: { kind: 'literal', value: 'Keep me' },
             'Excl. btw': { kind: 'ref', path: 'loop.e.output.excl_btw' },
@@ -191,15 +196,17 @@ describe('TablesRowValuesEditor', () => {
     });
 
     it('Auto-map can be pointed at another upstream step', async () => {
+        const user = userEvent.setup();
         mockColumns([{ id: 9, title: 'Company', type: 'text' }]);
         const { onChange } = renderEditor({ value: {} });
         await waitFor(() => expect(rows()).toHaveLength(1));
         fireEvent.change(screen.getByLabelText('Map from'), { target: { value: 's1' } });
-        fireEvent.click(screen.getByText('Auto-map'));
+        await user.click(screen.getByText('Auto-map'));
         expect(onChange).toHaveBeenCalledWith({ Company: { kind: 'ref', path: 'steps.s1.output.company' } });
     });
 
     it('a tableId bound from a step shows the manual fallback and says why — no fetch is made', async () => {
+        const user = userEvent.setup();
         mockColumns();
         const { onChange } = renderEditor({ tableId: { kind: 'ref', path: 'steps.s0.output.tableId' }, value: {} });
         expect(screen.getByText(/The table is chosen while the automation runs/)).toBeTruthy();
@@ -207,7 +214,7 @@ describe('TablesRowValuesEditor', () => {
         expect(rows()).toHaveLength(0);
         // Typing titles adds untyped rows the author can bind.
         fireEvent.change(screen.getByLabelText('Column titles'), { target: { value: 'Bedrijf, Excl. btw' } });
-        fireEvent.click(screen.getByText('Add columns'));
+        await user.click(screen.getByText('Add columns'));
         expect(rows()).toHaveLength(2);
         expect(within(rowTitled('Excl. btw')).queryByTestId('tables-row-type')).toBeNull();
         typeInEditor(editor(rowTitled('Excl. btw')), '12');
@@ -215,6 +222,7 @@ describe('TablesRowValuesEditor', () => {
     });
 
     it('a failed read falls back to typed titles, names the failure and offers a retry', async () => {
+        const user = userEvent.setup();
         mockColumns(COLUMNS, { status: 404 });
         renderEditor({ value: { vat: { kind: 'ref', path: 'loop.e.output.vat' } } });
         await waitFor(() => expect(screen.getByText(/Could not read the columns of table 7/)).toBeTruthy());
@@ -224,17 +232,18 @@ describe('TablesRowValuesEditor', () => {
         expect(rowTitled('vat')).toBeTruthy();
         expect(screen.queryByTestId('tables-row-stray')).toBeNull();
         mockColumns();
-        fireEvent.click(screen.getByText('Try again'));
+        await user.click(screen.getByText('Try again'));
         await waitFor(() => expect(rows()).toHaveLength(COLUMNS.length));
         expect(screen.getByTestId('tables-row-stray')).toBeTruthy();
     });
 
     it('a whole-row binding is shown as one slot with a way back to columns', async () => {
+        const user = userEvent.setup();
         mockColumns();
         const { onChange } = renderEditor({ value: { kind: 'ref', path: 'steps.s1.output.row' } });
         expect(screen.getByTestId('tables-row-whole')).toBeTruthy();
         expect(rows()).toHaveLength(0);
-        fireEvent.click(screen.getByText('Fill in the columns one by one instead'));
+        await user.click(screen.getByText('Fill in the columns one by one instead'));
         expect(onChange).toHaveBeenCalledWith({});
     });
 });

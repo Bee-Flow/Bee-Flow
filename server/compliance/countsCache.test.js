@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Run: cd server && node --test --test-force-exit compliance/countsCache.test.js
  */

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * EU AI Act Art. 26 — deployer obligations: human oversight for high-risk use
  * (applies with Annex III from 2 Dec 2027, Regulation (EU) 2026/1744).

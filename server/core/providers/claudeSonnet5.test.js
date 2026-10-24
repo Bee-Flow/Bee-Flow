@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests — Claude Sonnet 5 (and the adaptive-only family) capability handling.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * countWords / stripMarkdownLite unit tests.
  *

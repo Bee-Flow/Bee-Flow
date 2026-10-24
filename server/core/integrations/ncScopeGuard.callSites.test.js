@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Every Nextcloud executor call must pass the scope guard.
  *

@@ -1,4 +1,5 @@
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SkillsGrid from './SkillsGrid';
@@ -92,12 +93,13 @@ describe('SkillsGrid — the panel speaks through t()', () => {
     expect(screen.queryByRole('button', { name: 'All' })).toBeNull();
   });
 
-  it('still filters on the chip it renders — a translated label keeps its id', () => {
+  it('still filters on the chip it renders — a translated label keeps its id', async () => {
+    const user = userEvent.setup();
     transOverride.current = { 'skills.filter_shared': 'Gedeeld' };
     renderGrid({
       skills: [skill('s1', 'Mine only'), { ...skill('s2', 'Shared one'), isShared: true }],
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Gedeeld' }));
+    await user.click(screen.getByRole('button', { name: 'Gedeeld' }));
     expect(screen.getByText('Shared one')).toBeTruthy();
     expect(screen.queryByText('Mine only')).toBeNull();
   });

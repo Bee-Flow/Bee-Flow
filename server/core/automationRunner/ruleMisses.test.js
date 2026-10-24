@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ruleMisses.js: which rule paths found nothing on every item.
  *

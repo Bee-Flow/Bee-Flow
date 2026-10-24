@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio Builder — the per-round mechanics of the build loop that are
  * not the route's own wiring: the machine-message prefixes, the history

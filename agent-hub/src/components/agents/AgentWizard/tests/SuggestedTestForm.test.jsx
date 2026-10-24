@@ -14,6 +14,7 @@
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/tests/SuggestedTestForm.test.jsx
  */
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
@@ -97,24 +98,26 @@ describe('SuggestedTestForm — wie schreef dit', () => {
 });
 
 describe('SuggestedTestForm — bewerken en opslaan', () => {
-    it('vult de vraag uit de beurt in en laat hem bewerken', () => {
+    it('vult de vraag uit de beurt in en laat hem bewerken', async () => {
+        const user = userEvent.setup();
         const onSave = vi.fn();
         render(<SuggestedTestForm t={t} turn={TURN} suggestion={SUGGESTION} onSave={onSave} />);
         const question = screen.getByTestId('agent-tests-field-question');
         expect(question).toHaveValue('When are you open?');
         fireEvent.change(question, { target: { value: 'What are your opening hours?' } });
-        fireEvent.click(screen.getByTestId('agent-tests-suggest-save'));
+        await user.click(screen.getByTestId('agent-tests-suggest-save'));
         expect(onSave.mock.calls[0][0].question).toBe('What are your opening hours?');
     });
 
-    it('BIJT — opgeslagen wordt wat er STAAT, niet wat het model schreef', () => {
+    it('BIJT — opgeslagen wordt wat er STAAT, niet wat het model schreef', async () => {
+        const user = userEvent.setup();
         const onSave = vi.fn();
         render(<SuggestedTestForm t={t} turn={TURN} suggestion={SUGGESTION} onSave={onSave} />);
         fireEvent.change(screen.getByTestId('agent-tests-field-mustMention'), { target: { value: 'open until six on weekdays\n  \nfree parking' } });
         fireEvent.change(screen.getByTestId('agent-tests-field-mustNotMention'), { target: { value: 'discount' } });
         fireEvent.change(screen.getByTestId('agent-tests-field-toolsExpected'), { target: { value: '' } });
         fireEvent.change(screen.getByTestId('agent-tests-field-notes'), { target: { value: '' } });
-        fireEvent.click(screen.getByTestId('agent-tests-suggest-save'));
+        await user.click(screen.getByTestId('agent-tests-suggest-save'));
 
         expect(onSave).toHaveBeenCalledTimes(1);
         expect(onSave.mock.calls[0][0].expect).toEqual({
@@ -126,20 +129,22 @@ describe('SuggestedTestForm — bewerken en opslaan', () => {
         });
     });
 
-    it('slaat het voorstel ongewijzigd op als je niets verandert', () => {
+    it('slaat het voorstel ongewijzigd op als je niets verandert', async () => {
+        const user = userEvent.setup();
         const onSave = vi.fn();
         render(<SuggestedTestForm t={t} turn={TURN} suggestion={SUGGESTION} onSave={onSave} />);
-        fireEvent.click(screen.getByTestId('agent-tests-suggest-save'));
+        await user.click(screen.getByTestId('agent-tests-suggest-save'));
         expect(onSave.mock.calls[0][0].expect.mustMention).toEqual(['open until six']);
         expect(onSave.mock.calls[0][0].expect.toolsExpected).toEqual(['kb_search']);
         expect(onSave.mock.calls[0][0].name).toBe('');
     });
 
-    it('zonder vraag valt er niets op te slaan', () => {
+    it('zonder vraag valt er niets op te slaan', async () => {
+        const user = userEvent.setup();
         const onSave = vi.fn();
         render(<SuggestedTestForm t={t} turn={{ question: '', answer: 'x' }} suggestion={SUGGESTION} onSave={onSave} />);
         expect(screen.getByTestId('agent-tests-suggest-save')).toBeDisabled();
-        fireEvent.click(screen.getByTestId('agent-tests-suggest-save'));
+        await user.click(screen.getByTestId('agent-tests-suggest-save'));
         expect(onSave).not.toHaveBeenCalled();
     });
 
@@ -154,10 +159,11 @@ describe('SuggestedTestForm — bewerken en opslaan', () => {
         expect(screen.getByTestId('agent-tests-suggest-error').textContent).toMatch(/already has 100 tests/);
     });
 
-    it('annuleren gaat naar de aanroeper', () => {
+    it('annuleren gaat naar de aanroeper', async () => {
+        const user = userEvent.setup();
         const onCancel = vi.fn();
         render(<SuggestedTestForm t={t} turn={TURN} suggestion={SUGGESTION} onCancel={onCancel} />);
-        fireEvent.click(screen.getByTestId('agent-tests-suggest-cancel'));
+        await user.click(screen.getByTestId('agent-tests-suggest-cancel'));
         expect(onCancel).toHaveBeenCalled();
     });
 });

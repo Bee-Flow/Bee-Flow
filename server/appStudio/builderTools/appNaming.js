@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder — a name for an app the model never named.
  *
@@ -264,6 +265,7 @@ function briefForSnapshot(brief) {
  */
 function deriveAppName({ message = '', dataModel = null, def = null } = {}) {
     const msg = typeof message === 'string' ? message : '';
+    /** @type {Array<[string, () => string|undefined|null]>} */
     const tries = [
         ['brief', () => fromExplicit(msg)],
         ['heading', () => fromHeading(msg)],

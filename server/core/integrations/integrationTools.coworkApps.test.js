@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for enabledAppsOverride — the per-cowork app list.
  *

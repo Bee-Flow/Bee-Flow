@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * `steps.$handle` — call-local handles that resolve to real step ids.
  *

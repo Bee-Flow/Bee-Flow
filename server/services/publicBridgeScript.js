@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Public-share AI bridge script (server-emitted).
  *

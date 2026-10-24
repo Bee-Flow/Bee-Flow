@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What ./nativeAdapterStream hands the provider adapter, and what it does
  * with the adapter's thinking-part events and its usage afterwards.

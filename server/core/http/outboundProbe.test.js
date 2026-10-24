@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * outboundProbe's contract with its callers, now that it captures off the
  * connection instead of routing fetch through a probe Agent.

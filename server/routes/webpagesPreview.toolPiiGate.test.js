@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * BFSF-354 — the webpage AI bridge's agentic ask (POST /:id/ai/ask) honours
  * the page author's Privacy Shield tool block lists. The bridge acts as the

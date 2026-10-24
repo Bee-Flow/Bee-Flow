@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Theme presets — SCHEMA OF RECORD.
  *

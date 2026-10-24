@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * BFSF-307 read-path repair.
  *

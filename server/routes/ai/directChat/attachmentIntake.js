@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — attachment intake for the streaming turn: eager conversation
  * creation (the scanner needs a real convId for its token-map merge), per-

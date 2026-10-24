@@ -391,15 +391,10 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
     // files expanded, FLAT payload → trigger.output.<name>); every other
     // target keeps the legacy primitive-only `inputs` nesting byte-identical.
     const audit = { _viewerUserId: userId, _studioAppId: app.id, _actionId: actionId };
-    let triggerPayload;
-    try {
-        triggerPayload = actionExecutor.isAppTriggerAutomation(automation)
-            ? { ...(await actionExecutor.resolveAppTriggerInputs(automation, action.inputMapping, req.body?.formValues, { app })), ...audit }
-            : { inputs: resolveInputs(action.inputMapping, req.body?.formValues), ...audit };
-    } catch (e) {
-        if (e.status === 400) return res.status(400).json({ error: e.message });
-        throw e;
-    }
+    // A refusal of the declared inputs carries status 400 and a message for the caller.
+    const triggerPayload = actionExecutor.isAppTriggerAutomation(automation)
+        ? { ...(await actionExecutor.resolveAppTriggerInputs(automation, action.inputMapping, req.body?.formValues, { app })), ...audit }
+        : { inputs: resolveInputs(action.inputMapping, req.body?.formValues), ...audit };
 
     const runner = require('../core/automationRunner');
     const t0 = Date.now();

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Image Generation Tool — extracted from directChat.js for shared use
  */
@@ -45,7 +46,7 @@ async function executeImageGenTool(args, imageGenSettings, send, req) {
     const prompt = args.prompt;
     const aspectRatio = args.aspect_ratio || imageGenSettings?.aspectRatio || '1:1';
 
-    log.info(`[ImageGen Tool] Generating: "${prompt.substring(0, 80)}" (${aspectRatio})`);
+    log.info(`[ImageGen Tool] Generating: "${log.textForLog(prompt)}" (${aspectRatio})`);
 
     const result = await googleAdapter.generateImage(googleApiKey, prompt, {
         aspectRatio,

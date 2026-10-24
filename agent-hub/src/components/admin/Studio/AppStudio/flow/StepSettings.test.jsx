@@ -1,7 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { authFetch } from '@/utils/helpers';
 import StepSettings from './StepSettings';
 import { EditorChromeContext } from '../editor/EditorChromeContext';
 
@@ -48,7 +50,6 @@ vi.mock('@/utils/helpers', async (importOriginal) => {
     const actual = await importOriginal();
     return { ...actual, authFetch: vi.fn() };
 });
-import { authFetch } from '@/utils/helpers';
 
 const listAutomations = vi.fn(async () => ({
     automations: [{ id: 'auto-1', title: 'Send the invoice' }, { id: 'auto-2', title: 'Chase the payment' }],
@@ -202,10 +203,11 @@ describe('StepSettings — fields the runtime ignores', () => {
  */
 describe('StepSettings — a map of name → value cannot silently eat a row', () => {
     it('does not commit a second blank row over the first', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderStep({ kind: 'navigate', screenId: 'scr_b', params: {} });
         await screen.findByLabelText('Screen');
-        fireEvent.click(screen.getByRole('button', { name: /add one/i }));
-        fireEvent.click(screen.getByRole('button', { name: /add one/i }));
+        await user.click(screen.getByRole('button', { name: /add one/i }));
+        await user.click(screen.getByRole('button', { name: /add one/i }));
 
         // Two unnamed rows are on screen…
         expect(screen.getByLabelText('Params 1 name')).toBeTruthy();
@@ -234,9 +236,10 @@ describe('StepSettings — a map of name → value cannot silently eat a row', (
     });
 
     it('commits the row once it is named', async () => {
+        const user = userEvent.setup();
         const { last } = renderStep({ kind: 'navigate', screenId: 'scr_b', params: {} });
         await screen.findByLabelText('Screen');
-        fireEvent.click(screen.getByRole('button', { name: /add one/i }));
+        await user.click(screen.getByRole('button', { name: /add one/i }));
         fireEvent.change(screen.getByLabelText('Params 1 name'), { target: { value: 'recordId' } });
         expect(last().params).toEqual({ recordId: { kind: 'static', value: '' } });
     });
@@ -250,24 +253,26 @@ describe('StepSettings — a map of name → value cannot silently eat a row', (
  */
 describe('StepSettings — emptying a required map keeps the app saveable', () => {
     it('empties create_record values to {} rather than dropping the field', async () => {
+        const user = userEvent.setup();
         const { last } = renderStep({
             kind: 'create_record',
             tableId: 'tbl_inv',
             values: { customer: { kind: 'static', value: 'x' } },
         });
         await screen.findByLabelText('Table');
-        fireEvent.click(screen.getByRole('button', { name: /remove values 1/i }));
+        await user.click(screen.getByRole('button', { name: /remove values 1/i }));
         expect(last().values).toEqual({});
     });
 
     it('drops an optional map entirely when it is emptied', async () => {
+        const user = userEvent.setup();
         const { last } = renderStep({
             kind: 'navigate',
             screenId: 'scr_b',
             params: { recordId: { kind: 'static', value: '1' } },
         });
         await screen.findByLabelText('Screen');
-        fireEvent.click(screen.getByRole('button', { name: /remove params 1/i }));
+        await user.click(screen.getByRole('button', { name: /remove params 1/i }));
         expect(last().params).toBeUndefined();
     });
 });
@@ -292,9 +297,10 @@ describe('StepSettings — a keyed row offers only the kinds the server takes', 
     });
 
     it('switching a navigate param to a formula commits the formula shape', async () => {
+        const user = userEvent.setup();
         const { last } = renderStep({ kind: 'navigate', screenId: 'scr_b', params: { recordId: { kind: 'static', value: '1' } } });
         await screen.findByLabelText('Screen');
-        fireEvent.click(screen.getByRole('radio', { name: /worked out/i }));
+        await user.click(screen.getByRole('radio', { name: /worked out/i }));
         expect(last().params.recordId).toEqual({ kind: 'formula', expr: '' });
     });
 

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * YouTrack service client — the plain-function surface that server code calls.
  *
@@ -64,9 +65,9 @@ async function youtrackRequest(baseUrl, token, method, path, body = null) {
  * Service connection first, the caller's own second. `source` says which won,
  * so a caller can tell an admin why a call behaved the way it did.
  *
- * @param {object}  opts
- * @param {?string} opts.userId       fall back to this user's own token
- * @param {boolean} opts.serviceOnly  never fall back (background jobs: there
+ * @param {object}  [opts]
+ * @param {?string} [opts.userId]       fall back to this user's own token
+ * @param {boolean} [opts.serviceOnly]  never fall back (background jobs: there
  *                                    is no user, and silently borrowing one
  *                                    person's token for a shared poller would
  *                                    make the whole hub depend on them)

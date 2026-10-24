@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Outlook mail samples carry an attachment, so a flatten after Outlook
  * "Read many" is planned before any run (spec A-7, J4).

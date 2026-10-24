@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The marking port: core asks, the feature answers.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Reopening a conversation restores its Privacy Shield tokens for display.
  * An org that encrypts its token maps stores `pii_token_map` as an envelope

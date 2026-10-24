@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — builder_add_note: the free-floating canvas annotation, the
  * one builder that deliberately wires no edge at all.

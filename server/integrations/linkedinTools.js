@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * LinkedIn Tools — AI tool for posting to LinkedIn
  * 

@@ -229,7 +229,7 @@ async function runPartialInLoopBody(automation, { chain, prefix, localId, body }
     }
 
     const plan = seed.seedRunId
-        ? planPartialExecution({ trigger: syntheticAutomation.definition.trigger, steps: body, edges: syntheticAutomation.definition.edges, layers: def.layers }, { targetId: localId, mode, replayState })
+        ? planPartialExecution({ trigger: syntheticAutomation.definition.trigger, steps: body, edges: syntheticAutomation.definition.edges, layers: def.layers }, { targetId: localId, mode: /** @type {'only'|'from'} */ (mode), replayState })
         : null;
     return executePartial(syntheticAutomation, opts, { seed, plan, staleFrom, seedRun: runsWindow?.[0] });
 }
@@ -413,7 +413,7 @@ async function runPartialInLayer(automation, { layerKey, layer }, stepId, { mode
     }
 
     const plan = seed.seedRunId
-        ? planPartialExecution({ trigger: layer.trigger, steps: layer.steps, edges: layer.edges, layers: def.layers }, { targetId: stepId, mode, replayState })
+        ? planPartialExecution({ trigger: layer.trigger, steps: layer.steps, edges: layer.edges, layers: def.layers }, { targetId: stepId, mode: /** @type {'only'|'from'} */ (mode), replayState })
         : null;
     return executePartial(syntheticAutomation, opts, { seed, plan, staleFrom: opts.replayState ? staleFrom : null, seedRun: runsWindow?.[0] });
 }

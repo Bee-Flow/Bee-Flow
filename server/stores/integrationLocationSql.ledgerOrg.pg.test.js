@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * LEDGER_ORG_SQL and the integration_activity_log readers that use it, against
  * a real Postgres (@electric-sql/pglite, in-process).

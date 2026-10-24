@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Browse driver — the domain allowlist (App Studio's per-app confinement).
  * Run: cd server && node --test services/browserAgentDriver.allowlist.test.js

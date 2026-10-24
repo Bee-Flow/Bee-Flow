@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct chat's end-of-turn memory extraction obeys the memory policy that
  * promptAssembly resolved for the turn: write off (org, user, chat) means the

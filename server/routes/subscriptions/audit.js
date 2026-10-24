@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The subscription-changes audit log read.
  */

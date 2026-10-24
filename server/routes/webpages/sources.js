@@ -78,7 +78,7 @@ function register(router, { upload }) {
         res.json({ success: true, source });
 
         ingestFileSource(webpageId, source.id, userId, buffer, fileName, mimeType).catch(err => {
-            log.error(`[Webpages] Background ingestion failed for ${fileName}:`, err.message);
+            log.error(`[Webpages] Background ingestion failed for ${log.nameForLog(fileName)}:`, err.message);
         });
     });
 

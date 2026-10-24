@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import FormPage from './FormPage';
@@ -65,22 +66,24 @@ const renderPage = (props = {}) => render(<FormPage form={row()} onBack={vi.fn()
 
 describe('<FormPage>', () => {
     it('the owner gets Questions · Share · Answers · Settings, opens on Questions and can rename', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         renderPage({ onNavigate });
         await screen.findByTestId('builder-stub');
         const tabs = screen.getAllByRole('tab').map(el => el.textContent);
         expect(tabs.join('|')).toMatch(/Questions.*Share.*Answers.*Settings/);
         expect(api.getForm).toHaveBeenCalledWith('au1');
-        fireEvent.click(screen.getByTestId('form-page-open-automation'));
+        await user.click(screen.getByTestId('form-page-open-automation'));
         expect(onNavigate).toHaveBeenCalledWith('studio/automations/au1');
         for (const [target] of onNavigate.mock.calls) expect(target).not.toContain(TOKEN);
     });
 
     it('saving the questions PUTs the WHOLE definition with the edited trigger form', async () => {
+        const user = userEvent.setup();
         renderPage();
         await screen.findByTestId('builder-stub');
         fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Feedback 2026' } });
-        fireEvent.click(screen.getByTestId('form-save'));
+        await user.click(screen.getByTestId('form-save'));
         await waitFor(() => expect(api.updateAutomation).toHaveBeenCalled());
         const [id, body] = api.updateAutomation.mock.calls[0];
         expect(id).toBe('au1');
@@ -90,12 +93,13 @@ describe('<FormPage>', () => {
     });
 
     it('unsaved questions ask before a tab switch, and "Keep editing" stays', async () => {
+        const user = userEvent.setup();
         renderPage();
         await screen.findByTestId('builder-stub');
         fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Changed' } });
-        fireEvent.click(screen.getByRole('tab', { name: /Share/ }));
+        await user.click(screen.getByRole('tab', { name: /Share/ }));
         expect(await screen.findByText('Unsaved changes')).toBeTruthy();
-        fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }));
+        await user.click(screen.getByRole('button', { name: 'Keep editing' }));
         expect(screen.getByTestId('builder-stub')).toBeTruthy();
     });
 
@@ -111,11 +115,12 @@ describe('<FormPage>', () => {
     });
 
     it('Settings: the collect toggle saves `collect` on the trigger form; switching off asks first', async () => {
+        const user = userEvent.setup();
         renderPage({ tab: 'settings' });
         await screen.findByTestId('form-settings');
-        fireEvent.click(document.getElementById('form-collect'));
+        await user.click(document.getElementById('form-collect'));
         expect(await screen.findByText('Stop collecting?')).toBeTruthy();
-        fireEvent.click(screen.getByRole('button', { name: 'Stop collecting' }));
+        await user.click(screen.getByRole('button', { name: 'Stop collecting' }));
         await waitFor(() => expect(api.updateAutomation).toHaveBeenCalled());
         expect(api.updateAutomation.mock.calls[0][1].definition.trigger.form.collect).toBe(false);
     });

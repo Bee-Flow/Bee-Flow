@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The DAG walker (extracted verbatim from engine.js): fan-in gating,
  * replay/partial-run routing, brancher label resolution and per-step
@@ -240,7 +241,7 @@ function assertPartialTargetReached(partialTargetId, visited) {
         const err = new Error(
             `Step ${partialTargetId} was never reached from the trigger — connect it to the flow (or run the branch that leads to it) before executing it.`,
         );
-        err.errorClass = 'partial_target_unreachable';
+        Object.assign(err, { errorClass: 'partial_target_unreachable' });
         throw err;
     }
 }

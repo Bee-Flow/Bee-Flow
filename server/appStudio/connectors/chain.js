@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Connector CHAINS: follow-up tools run once per row, their parameters bound
  * to fields of the row, under the hard call budget (see MAX_CHAIN_CALLS in

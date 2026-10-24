@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * NIS2-Art21(2)(j)-admin-mfa — admins covered by TOTP or attested SSO-MFA.
  * db / complianceStore / configStore are swapped via installResolveStub.

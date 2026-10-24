@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De AI-beurt en de versiegeschiedenis (W4).
  *

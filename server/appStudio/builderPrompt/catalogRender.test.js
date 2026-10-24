@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for the AI-builder catalog rendering (catalogRender.js).
  *

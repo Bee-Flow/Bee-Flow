@@ -71,7 +71,8 @@ describe('SettingsForm — Filter (unified If/Switch/Filter)', () => {
         expect(screen.getByText('contains(item.subject, "isv")')).toBeTruthy();
     });
 
-    it('summarises the detected source list in one line instead of a form field', () => {
+    it('summarises the detected source list in one line instead of a form field', async () => {
+        const user = userEvent.setup();
         renderForm(FILTER_STEP);
         expect(screen.getByText('Working through')).toBeTruthy();
         expect(screen.getByText('gmail search')).toBeTruthy();
@@ -79,23 +80,25 @@ describe('SettingsForm — Filter (unified If/Switch/Filter)', () => {
         expect(screen.getAllByText(/1 item/).length).toBeGreaterThan(0);
         // The raw picker is one click away, not on screen by default.
         expect(screen.queryByDisplayValue('steps.g.output.results')).toBeNull();
-        fireEvent.click(screen.getByText('change'));
+        await user.click(screen.getByText('change'));
         expect(editorWithValue(document.body, 'steps.g.output.results')).toBeTruthy();
     });
 
-    it('offers the item\'s fields by name in the rule row', () => {
+    it('offers the item\'s fields by name in the rule row', async () => {
+        const user = userEvent.setup();
         renderForm(FILTER_STEP);
-        fireEvent.click(screen.getByText('Subject'));
+        await user.click(screen.getByText('Subject'));
         const list = screen.getByPlaceholderText('Search fields…').closest('div').parentElement;
         expect(within(list).getByText('From email')).toBeTruthy();
     });
 
     it('has no "items that match no rule" setting — a second rule is what adds the output', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(FILTER_STEP);
         openAdvanced();
         expect(screen.queryByText('Items that match no rule')).toBeNull();
 
-        fireEvent.click(screen.getByText('Add output'));
+        await user.click(screen.getByText('Add output'));
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
@@ -104,8 +107,9 @@ describe('SettingsForm — Filter (unified If/Switch/Filter)', () => {
     });
 
     it('adding a second rule to an If turns the step into a switch on save', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(IF_STEP);
-        fireEvent.click(screen.getByText('Add output'));
+        await user.click(screen.getByText('Add output'));
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
@@ -128,12 +132,13 @@ describe('SettingsForm — Filter (unified If/Switch/Filter)', () => {
     });
 
     it('removing a rule from a two-rule switch collapses it back to an If', async () => {
+        const user = userEvent.setup();
         const step = {
             id: 's1', type: 'switch',
             cases: [{ name: 'big', expr: 'a > 10' }, { name: 'small', expr: 'a <= 10' }],
         };
         const { onPatch } = renderForm(step);
-        fireEvent.click(screen.getAllByTitle(/Remove output/)[1]);
+        await user.click(screen.getAllByTitle(/Remove output/)[1]);
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
@@ -194,6 +199,7 @@ describe('SettingsForm — Filter: how many outputs (BFSF-356)', () => {
     });
 
     it('"Several outputs" grows the node and labels every output', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(IF_STEP);
         await userEvent.click(screen.getByRole('radio', { name: 'Several outputs' }));
         expect(screen.getByText('This node has 2 outputs.')).toBeTruthy();
@@ -201,7 +207,7 @@ describe('SettingsForm — Filter: how many outputs (BFSF-356)', () => {
         expect(screen.getByText('Output 1', { selector: 'div' })).toBeTruthy();
         expect(screen.getByText('Output 2', { selector: 'div' })).toBeTruthy();
         // "+ Add output" grows the list further.
-        fireEvent.click(screen.getByText('Add output'));
+        await user.click(screen.getByText('Add output'));
         expect(screen.getByText('This node has 3 outputs.')).toBeTruthy();
 
         save();
@@ -226,6 +232,7 @@ describe('SettingsForm — Filter: how many outputs (BFSF-356)', () => {
     });
 
     it('collapsing to one output NAMES the wired outputs it would cost, and waits', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(TWO_OUTPUT_SWITCH, { wiredCaseNames: new Set(['big', 'small']) });
         await userEvent.click(screen.getByRole('radio', { name: 'One output' }));
         // Nothing has changed yet — the node still has both outputs.
@@ -236,13 +243,13 @@ describe('SettingsForm — Filter: how many outputs (BFSF-356)', () => {
         expect(screen.queryByText(/Output 1 \(big\)/)).toBeNull();
 
         // Backing out leaves the node exactly as it was.
-        fireEvent.click(screen.getByText('Keep several outputs'));
+        await user.click(screen.getByText('Keep several outputs'));
         expect(screen.queryByText(/Going back to one output removes/)).toBeNull();
         expect(screen.getByText('This node has 2 outputs.')).toBeTruthy();
 
         // Confirming does what it said it would.
         await userEvent.click(screen.getByRole('radio', { name: 'One output' }));
-        fireEvent.click(screen.getByText('Remove them anyway'));
+        await user.click(screen.getByText('Remove them anyway'));
         expect(screen.getByText('This node has 1 output plus “Otherwise”.')).toBeTruthy();
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
@@ -289,8 +296,9 @@ describe('SettingsForm — Filter: fan-out is opt-in per node (BFSF-356)', () =>
     });
 
     it('adding a THIRD output to a stored router does not opt it in', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(STORED_ROUTER);
-        fireEvent.click(screen.getByText('Add output'));
+        await user.click(screen.getByText('Add output'));
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];

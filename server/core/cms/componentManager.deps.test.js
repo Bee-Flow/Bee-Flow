@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A component cannot name its own npm dependencies.
  *

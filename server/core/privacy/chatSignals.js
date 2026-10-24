@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Chat signals: the recorder.
  *
@@ -267,7 +268,7 @@ function flush() {
 /**
  * One decided turn as counter keys. Synchronous; returns whether it counted.
  * @param {{ orgKey: string, surface: string, outcome: string, categories?: string[],
- *   providerConfig?: { providerType?: string, url?: string }|null, allowlistedHosts?: string[], signals?: string[] }} turn
+ *   providerConfig?: { providerType?: string, url?: string }|null, allowlistedHosts?: string[], signals?: readonly string[] }} turn
  */
 function recordChatTurn({ orgKey, surface, outcome, categories, providerConfig, allowlistedHosts, signals }) {
     try {

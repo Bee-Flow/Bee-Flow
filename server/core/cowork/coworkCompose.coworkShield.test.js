@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CW-10 — het privacyschild op de Work-composer (composeCowork).
  *

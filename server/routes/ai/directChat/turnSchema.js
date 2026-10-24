@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * What a direct-chat turn (POST /ai/chat/direct/stream) may carry.

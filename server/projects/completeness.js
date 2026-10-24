@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Te controleren" — everything about this Solution that needs a person, in
  * ONE list, plus the single verdict the publish button reads.
@@ -48,7 +49,6 @@
  * for the same reason routes/projects.js does it: a store required at module
  * load reaches a real database in every test that only mocks the route's own.
  */
-
 'use strict';
 
 const { makeFinding, fromLegacy, bySeverity } = require('../core/findings/finding');
@@ -307,13 +307,13 @@ function collectRequires({ automations = [], graph = null } = {}) {
 /**
  * The aggregation itself. Pure.
  *
- * @param {object}   input
- * @param {object}   input.graph            the result of buildGraphForProject (nodes/edges/problems)
- * @param {Array}    input.apps             apps WITH their definitions
- * @param {Array}    input.automations      automations WITH definition/isActive/isDraft
- * @param {Array}    input.knowledgeBases   the bases filed into this project
- * @param {Map|object} input.kbDocumentCounts  kb id → document count, or `null` per id when unread
- * @param {string[]} input.unavailable      sections the loader could not read
+ * @param {object}   [input]
+ * @param {Record<string, any>} [input.graph]          the result of buildGraphForProject (nodes/edges/problems)
+ * @param {Array}    [input.apps]             apps WITH their definitions
+ * @param {Array}    [input.automations]      automations WITH definition/isActive/isDraft
+ * @param {Array}    [input.knowledgeBases]   the bases filed into this project
+ * @param {Map|object} [input.kbDocumentCounts]  kb id → document count, or `null` per id when unread
+ * @param {string[]} [input.unavailable]      sections the loader could not read
  * @returns {{findings: object[], blocked: boolean, complete: boolean, unavailable: string[], requires: object}}
  */
 function buildCompleteness({

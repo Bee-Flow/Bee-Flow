@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import scopedStorage from '../../../../utils/scopedStorage';
@@ -62,20 +63,22 @@ describe('SettingsForm — AI step tool picker', () => {
         expect(screen.getByText(/answers from its prompt only/)).toBeTruthy();
     });
 
-    it('only lists apps the user is permitted to use (hides available:false)', () => {
+    it('only lists apps the user is permitted to use (hides available:false)', async () => {
+        const user = userEvent.setup();
         renderForm({ id: 's1', type: 'ai_step', label: 'AI', prompt: 'Do X', inputs: {}, outputFields: [] });
         openAdvanced();
-        fireEvent.click(screen.getByRole('button', { name: /Browse tools/ }));
+        await user.click(screen.getByRole('button', { name: /Browse tools/ }));
         expect(screen.getAllByText('Gmail').length).toBeGreaterThan(0);
         expect(screen.getByText('Web Search')).toBeTruthy();
         expect(screen.queryByText('YouTrack')).toBeNull();
     });
 
     it('selecting a tool persists tools[] and derives allowTools=true', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm({ id: 's1', type: 'ai_step', label: 'AI', prompt: 'Do X', inputs: {}, outputFields: [] });
         openAdvanced();
-        fireEvent.click(screen.getByRole('button', { name: /Browse tools/ }));
-        fireEvent.click(screen.getByText('Read email'));
+        await user.click(screen.getByRole('button', { name: /Browse tools/ }));
+        await user.click(screen.getByText('Read email'));
         await waitFor(() => {
             const patch = onPatch.mock.calls.at(-1)?.[0];
             expect(patch?.tools).toEqual(['gmail_read']);
@@ -91,9 +94,10 @@ describe('SettingsForm — AI step tool picker', () => {
     });
 
     it('clearing the last tool derives allowTools=false', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm({ id: 's1', type: 'ai_step', label: 'AI', prompt: 'Do X', tools: ['gmail_send'], allowTools: true, inputs: {}, outputFields: [] });
         openAdvanced();
-        fireEvent.click(screen.getByRole('button', { name: /Remove Gmail: Send email/ }));
+        await user.click(screen.getByRole('button', { name: /Remove Gmail: Send email/ }));
         await waitFor(() => {
             const patch = onPatch.mock.calls.at(-1)?.[0];
             expect(patch?.tools).toEqual([]);

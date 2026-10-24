@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Ticket ↔ YouTrack issue links, for the admin support inbox.
  *

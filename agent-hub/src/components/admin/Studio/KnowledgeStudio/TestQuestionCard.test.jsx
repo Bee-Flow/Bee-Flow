@@ -105,17 +105,19 @@ describe('TestQuestionCard', () => {
     });
 
     it('shows the passages that were retrieved, collapsed', async () => {
+        const user = userEvent.setup();
         stream([['kb_sources', { sources: [SOURCE, { ...SOURCE, title: 'Ander doc', score: 0.4 }] }], ['done', {}]]);
         render(<TestQuestionCard kbId="kb1" />);
         await ask();
         const details = await screen.findByTestId('kb-ask-passages');
         expect(details.open).toBe(false);
         expect(details.textContent).toMatch(/Passages found \(2\)/);
-        fireEvent.click(details.querySelector('summary'));
+        await user.click(details.querySelector('summary'));
         expect(screen.getAllByTestId('kb-ask-passage').length).toBe(2);
     });
 
     it('never prints a relevance number', async () => {
+        const user = userEvent.setup();
         // A retriever's score means something only against the other passages
         // in the same answer. "68%" invites reading it as confidence, and then
         // setting a threshold on it.
@@ -123,16 +125,17 @@ describe('TestQuestionCard', () => {
         render(<TestQuestionCard kbId="kb1" />);
         await ask();
         const details = await screen.findByTestId('kb-ask-passages');
-        fireEvent.click(details.querySelector('summary'));
+        await user.click(details.querySelector('summary'));
         expect(details.textContent).not.toMatch(/%/);
         expect(details.textContent).not.toMatch(/0\.9|0\.42/);
     });
 
     it('opens the full passage when a chip is clicked', async () => {
+        const user = userEvent.setup();
         stream([['kb_sources', { sources: [SOURCE] }], ['done', {}]]);
         render(<TestQuestionCard kbId="kb1" />);
         await ask();
-        fireEvent.click(await screen.findByTestId('citation-chip'));
+        await user.click(await screen.findByTestId('citation-chip'));
         const panel = await screen.findByTestId('kb-ask-citation');
         expect(panel.textContent).toMatch(/twee dagen vrij/);
         expect(panel.textContent).toMatch(/Verlof/);

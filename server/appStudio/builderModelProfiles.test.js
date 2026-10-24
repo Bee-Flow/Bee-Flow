@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for the App Studio builder model profiles: the profile→tool-menu
  * selection (small = core menu, everything Claude-4.5-class and up = FULL menu

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio template — Team directory — searchable list + filter bar + a record-detail
  * panel, all over one people table.

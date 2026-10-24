@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * versionFacts — wat er in ÉÉN bewerking van een webpagina gebeurde, mechanisch
  * afgeleid, plus wie hem maakte.
@@ -142,9 +143,9 @@ function restoreSummary(seq) {
  * Wie de versie maakte, zoals de geschiedenislijst hem mag tonen.
  *
  * @param {string|null} actorUserId  de kolomwaarde
- * @param {object} opts
- * @param {string|null} opts.viewerId  wie er kijkt (voor `isYou`)
- * @param {Map|object|null} opts.names id → weergavenaam, door de route
+ * @param {object} [opts]
+ * @param {string|null} [opts.viewerId]  wie er kijkt (voor `isYou`)
+ * @param {Map<any, any>|Record<string, any>|null} [opts.names] id → weergavenaam, door de route
  *        opgezocht. Een id dat er niet in staat is een account dat niet meer
  *        te lezen is.
  * @returns {null | { id: string, name: string|null, isYou: boolean }}

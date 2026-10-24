@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * automation/aiActCheck: the three-question wizard, Bee's suggestions, the
  * mapping onto the register and the status the activation gate reads.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * migrate.js — v1 → v2 is a lossless identity + two seeds. Every v1 template
  * (our v1 sample definitions) must migrate and then canonicalize + validate

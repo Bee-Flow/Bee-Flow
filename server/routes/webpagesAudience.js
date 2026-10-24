@@ -372,7 +372,7 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
     };
     let expiresAt;
     try { expiresAt = parseExpiry(body.expiresAt, existing); }
-    catch (e) { return res.status(400).json({ error: e.message }); }
+    catch (e) { throw new HttpError(400, 'bad_request', e.message); }
 
     if (existing && !audience.accessOptionsChanged(existing, requested)) {
         if (body.expiresAt !== undefined) {

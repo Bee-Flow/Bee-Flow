@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * In-process event bus for automation run lifecycle (§10 scaffolding).
  *
@@ -40,7 +41,7 @@ function onAny(handler) {
     const wrappers = types.map(t => {
         const w = wrap(t);
         bus.on(t, w);
-        return [t, w];
+        return /** @type {[string, (payload: any) => any]} */ ([t, w]);
     });
     return () => { for (const [t, w] of wrappers) bus.off(t, w); };
 }

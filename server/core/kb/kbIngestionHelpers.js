@@ -172,7 +172,7 @@ async function extractFileContentWithMeta(buffer, mime, filename) {
     const useAzure = !!(await configStore.getConfig('use_azure_doc_processing'));
     const meta = { pageCount: null, sheetNames: null };
 
-    log.info(`[KBHelpers] ─── File: ${filename} (${(buffer.length / 1024).toFixed(1)} KB, ${mime}) ───`);
+    log.info(`[KBHelpers] ─── File: ${log.nameForLog(filename)} (${(buffer.length / 1024).toFixed(1)} KB, ${mime}) ───`);
     log.info(`[KBHelpers] Mode: ${useAzure ? '☁️  AZURE' : '🖥️  LOCAL'}`);
 
     // ── Azure Document Intelligence path (all file types) ──

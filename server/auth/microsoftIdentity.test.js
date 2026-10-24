@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 const { test, before } = require('node:test');
 const assert = require('node:assert/strict');

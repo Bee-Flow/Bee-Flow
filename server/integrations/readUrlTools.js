@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * read_url: read the full text of ONE web page the user pasted.
  *

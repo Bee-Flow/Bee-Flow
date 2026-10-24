@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Privacy Shield, for a webpage's light-tier api/ handler.
  *

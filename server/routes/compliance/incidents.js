@@ -292,7 +292,7 @@ router.post('/incidents', requireAuth, requirePermission('admin_compliance'), va
         _rerunRegimeChecks(orgId, incident);
         res.status(201).json(incident);
     } catch (e) {
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 
@@ -319,7 +319,7 @@ router.patch('/incidents/:id', requireAuth, requirePermission('admin_compliance'
         _rerunRegimeChecks(orgId, updated);
         res.json(updated);
     } catch (e) {
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 
@@ -359,7 +359,7 @@ router.post('/incidents/:id/cra-report', requireAuth, requirePermission('admin_c
         _rerunRegimeChecks(orgId, incident);
         res.json(updated);
     } catch (e) {
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 
@@ -387,7 +387,7 @@ router.post('/incidents/:id/customer-notified', requireAuth, requirePermission('
         _rerunRegimeChecks(orgId, incident);
         res.json(updated);
     } catch (e) {
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 

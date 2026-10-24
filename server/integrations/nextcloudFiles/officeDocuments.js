@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Generated Office files — build a real spreadsheet, word-processor document
  * or presentation from tool arguments and PUT it into the user's Nextcloud.

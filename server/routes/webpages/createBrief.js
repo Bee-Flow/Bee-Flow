@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Wat de bouwbalk meestuurt bij POST /, gecontroleerd en omgezet in een brief.
  *

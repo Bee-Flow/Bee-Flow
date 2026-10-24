@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Look-alike properties: same length and class at every position, never the

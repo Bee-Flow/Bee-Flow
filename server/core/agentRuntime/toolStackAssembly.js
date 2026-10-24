@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Streaming agent chat — per-turn tool stack assembly.
  *
@@ -85,7 +86,7 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
         try {
             const { getIntegrationTools } = require('../integrations/integrationTools');
             const session = userAuth?.session;
-            const integrationResult = await getIntegrationTools({
+            const integrationResult = await getIntegrationTools(/** @type {any} */ ({
                 userId,
                 session,
                 isAdmin: session?.user?.isAdmin || false,
@@ -101,7 +102,7 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
                 // user hasn't connected it. The per-tool dispatch override below
                 // then runs those tools as the owner. Inert unless the flag is on.
                 connectionPolicy: { ownerUserId: agent.owner_id || null, resourceType: 'agent', resourceId: agentId },
-            });
+            }));
             baseIntegrationToolNames = new Set(integrationResult.tools.map(t => t.function?.name).filter(Boolean));
             if (integrationResult.tools.length > 0) {
                 // Deduplicate — don't add integration tools that overlap with component tools

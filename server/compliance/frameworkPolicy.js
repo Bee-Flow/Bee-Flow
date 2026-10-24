@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Framework policy — which frameworks are ACTIVE for an organisation.
  *
@@ -305,7 +306,7 @@ async function setEnabled(orgId, id, on, actorId = null, { req = null } = {}) {
         return (await resolve(org, { req })).find(e => e.id === id);
     }
     const current = (await resolve(org, { req })).find(e => e.id === id);
-    if (on && current.locked) throw new FrameworkLockedError(id, current.locked, current.lock);
+    if (on && current.locked) throw new FrameworkLockedError(id, /** @type {any} */ (current.locked), current.lock);
 
     const { enabled } = await _settings(org); // fresh read — never write from a memo
     const next = new Set(enabled);

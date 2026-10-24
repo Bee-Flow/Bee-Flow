@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Streaming agent chat — one tool round of the agentic loop.
  *

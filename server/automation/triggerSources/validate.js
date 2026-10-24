@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Validator for trigger-source declarations.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Google Slides Tools — read + edit existing presentations.
  *

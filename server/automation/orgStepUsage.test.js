@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * automation/orgStepUsage.js — what an organisation's automations are made of.
  *

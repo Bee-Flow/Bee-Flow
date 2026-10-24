@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Local KB ingestion — chunk, embed, store in PostgreSQL `kb_chunks` — and
  * the maintenance around it (delete, read back, orphan purge, cost logging).
@@ -160,7 +161,7 @@ async function ingestLocally(tenantId, kbId, docId, content, options = {}) {
 
             for (let j = 0; j < batch.length; j++) {
                 const i = batchStart + j;
-                const chunk = batch[j];
+                const chunk = /** @type {(typeof batch)[number] & { page_start?: number|null }} */ (batch[j]);
                 const chunkType = chunk.chunk_type || 'content';
                 // null when the extractor gave no pages, or when this chunk
                 // could not be located in them. The column is nullable for

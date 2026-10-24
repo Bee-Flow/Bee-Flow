@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A DATATABLE THAT MIRRORS ONE WORKSHEET OF A SPREADSHEET FILE — the engine
  * behind `managed_kind = 'spreadsheet_file'`.

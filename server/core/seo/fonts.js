@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Font tags for the server-rendered <head>.
  *
@@ -74,7 +75,7 @@ const SANS_TAIL = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 const MONO_TAIL = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 
 /**
- * @param {object} fonts   design.fonts — `{ heading, body, mono }`
+ * @param {{ heading?: any, body?: any, mono?: any }|null} [fonts]   design.fonts — `{ heading, body, mono }`
  * @returns {string} preload links + an inline style block, or '' when the
  *   design names no fonts at all.
  */

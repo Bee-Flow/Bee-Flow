@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Streaming agent chat — DLP un-tokeniser event wrapper.
  *

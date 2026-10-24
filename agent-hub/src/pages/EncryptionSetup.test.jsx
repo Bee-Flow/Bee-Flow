@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ok, fail } from '@/test/http';
 import EncryptionSetup from './EncryptionSetup';
@@ -144,9 +145,10 @@ describe('unlocking with an existing PIN', () => {
         expect(screen.queryByTestId('encryption-pin-confirm')).toBeNull();
     });
 
-    it('refuses an empty PIN without any request', () => {
+    it('refuses an empty PIN without any request', async () => {
+        const user = userEvent.setup();
         renderGate({ mode: 'unlock' });
-        fireEvent.click(screen.getByTestId('encryption-submit'));
+        await user.click(screen.getByTestId('encryption-submit'));
         expect(screen.getByText('Please enter your encryption PIN')).toBeInTheDocument();
         expect(opaquePinLogin).not.toHaveBeenCalled();
     });
@@ -182,8 +184,9 @@ describe('unlocking with an existing PIN', () => {
     });
 
     it('offers the recovery key as a way out, with a new PIN', async () => {
+        const user = userEvent.setup();
         renderGate({ mode: 'unlock' });
-        fireEvent.click(screen.getByText('Forgot your PIN? Use recovery key'));
+        await user.click(screen.getByText('Forgot your PIN? Use recovery key'));
         expect(screen.getByText('Recover Your Account')).toBeInTheDocument();
         expect(screen.getByPlaceholderText('Paste your recovery key here')).toBeInTheDocument();
     });
@@ -203,9 +206,10 @@ describe('recovering with the recovery key', () => {
         fireEvent.click(screen.getByText('Recover & Set New PIN'));
     };
 
-    it('refuses an empty recovery key', () => {
+    it('refuses an empty recovery key', async () => {
+        const user = userEvent.setup();
         openRecovery();
-        fireEvent.click(screen.getByText('Recover & Set New PIN'));
+        await user.click(screen.getByText('Recover & Set New PIN'));
         expect(screen.getByText('Please enter your recovery key')).toBeInTheDocument();
         expect(authFetch).not.toHaveBeenCalled();
     });
@@ -235,22 +239,24 @@ describe('recovering with the recovery key', () => {
         expect(await screen.findByText('Recovery key does not match')).toBeInTheDocument();
     });
 
-    it('walks back to PIN entry, forgetting what was typed', () => {
+    it('walks back to PIN entry, forgetting what was typed', async () => {
+        const user = userEvent.setup();
         openRecovery();
         fireEvent.change(screen.getByPlaceholderText('Paste your recovery key here'), { target: { value: 'AAAA' } });
-        fireEvent.click(screen.getByText('Back to PIN entry'));
+        await user.click(screen.getByText('Back to PIN entry'));
         expect(screen.getByText('Unlock Your Data')).toBeInTheDocument();
-        fireEvent.click(screen.getByText('Forgot your PIN? Use recovery key'));
+        await user.click(screen.getByText('Forgot your PIN? Use recovery key'));
         expect(screen.getByPlaceholderText('Paste your recovery key here')).toHaveValue('');
     });
 });
 
 describe('the recovery-key screen the e2e suite has to click through', () => {
-    it('shows a key handed down as a prop, with the warning and the only exit', () => {
+    it('shows a key handed down as a prop, with the warning and the only exit', async () => {
+        const user = userEvent.setup();
         const { onComplete } = renderGate({ mode: 'recovery', recoveryKeyProp: 'PROP-KEY-9999' });
         expect(screen.getByTestId('encryption-recovery-key')).toHaveTextContent('PROP-KEY-9999');
         expect(screen.getByText(/permanently inaccessible/)).toBeInTheDocument();
-        fireEvent.click(screen.getByTestId('encryption-recovery-saved'));
+        await user.click(screen.getByTestId('encryption-recovery-saved'));
         expect(onComplete).toHaveBeenCalled();
     });
 

@@ -64,7 +64,7 @@ async function putSiteDoc(req, res) {
         res.json({ success: true, site: saved, localeOverrides: report.localeOverrides });
     } catch (err) {
         if (err instanceof HttpError) throw err;
-        res.status(400).json({ error: err.message });
+        throw new HttpError(400, 'bad_request', err.message);
     }
 }
 
@@ -76,7 +76,7 @@ async function putSiteLocale(req, res) {
         if (!cmsStore.isValidLocale(locale)) return res.status(400).json({ error: 'Invalid locale' });
         const saved = await cmsStore.setSiteLocaleOverride(req.siteId, locale, override);
         res.json({ success: true, mediaWarning: mediaWarningFor(override, saved) });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
 async function deleteSiteLocale(req, res) {
@@ -142,7 +142,7 @@ async function postSitePublish(req, res) {
             domain: req.get('host'),
         }).catch((e) => log.warn('[CMS] analytics provisioning after publish failed:', e.message));
         res.json({ success: true, ...result });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
 // ensurePublishedSnapshot lives in ./cmsShared.js (shared with the CMS MCP server).
@@ -175,7 +175,7 @@ async function putSiteLive(req, res) {
         res.json({ success: true, liveSiteId: current });
     } catch (err) {
         if (err instanceof HttpError) return res.status(err.status).json({ error: err.message, code: err.code });
-        res.status(400).json({ error: err.message });
+        throw new HttpError(400, 'bad_request', err.message);
     }
 }
 

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * #229: an override saved under a regional tag (pt-br) must be found when that
  * tag is requested, and a request for a regional tag must fall back to the base

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The wire shape of a Tables row write.
  *

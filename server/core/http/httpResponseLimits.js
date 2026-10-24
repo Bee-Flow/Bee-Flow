@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Shared ceiling for an outbound HTTP response body (character count of the
  * decoded text — called a "1 MiB" cap throughout, though it is really a

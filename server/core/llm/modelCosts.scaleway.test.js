@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DB-free tests — a Scaleway-served model is billed at Scaleway's tariff.
  *

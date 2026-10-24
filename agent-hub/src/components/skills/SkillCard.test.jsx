@@ -1,4 +1,5 @@
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SkillCard from './SkillCard';
@@ -73,29 +74,32 @@ describe('SkillCard — every visible word goes through a key', () => {
     expect(screen.queryByTitle('Show details')).toBeNull();
   });
 
-  it('translates the destructive confirmation — the two buttons that matter most', () => {
+  it('translates the destructive confirmation — the two buttons that matter most', async () => {
+    const user = userEvent.setup();
     // Delete/Cancel were the worst of the twelve: a half-Dutch card whose
     // irreversible choice was still in English. Both keys already exist in
     // both dictionaries, so this needed no new copy at all.
     transOverride.current = { 'common.delete': 'Verwijderen', 'common.cancel': 'Annuleren' };
     renderCard();
-    fireEvent.click(screen.getByTitle('Delete skill'));
+    await user.click(screen.getByTitle('Delete skill'));
     expect(screen.getByText('Verwijderen')).toBeTruthy();
     expect(screen.getByText('Annuleren')).toBeTruthy();
     expect(screen.queryByText('Delete')).toBeNull();
     expect(screen.queryByText('Cancel')).toBeNull();
   });
 
-  it('deletes with the skill id once the confirmation is confirmed', () => {
+  it('deletes with the skill id once the confirmation is confirmed', async () => {
+    const user = userEvent.setup();
     // Translating a destructive control must not change what it does.
     const onDelete = vi.fn();
     renderCard({ onDelete });
-    fireEvent.click(screen.getByTitle('Delete skill'));
-    fireEvent.click(screen.getByText('Delete'));
+    await user.click(screen.getByTitle('Delete skill'));
+    await user.click(screen.getByText('Delete'));
     expect(onDelete).toHaveBeenCalledWith('s1');
   });
 
-  it('translates the four expanded field headings', () => {
+  it('translates the four expanded field headings', async () => {
+    const user = userEvent.setup();
     // FieldPreview renders `label` verbatim into a div, so the translation has
     // to happen at the call site — handing it a key would print the key.
     transOverride.current = {
@@ -105,7 +109,7 @@ describe('SkillCard — every visible word goes through a key', () => {
       'skills.field_examples': 'Voorbeelden',
     };
     renderCard();
-    fireEvent.click(screen.getByTitle('Show details'));
+    await user.click(screen.getByTitle('Show details'));
     for (const word of ['Instructies', 'Werkwijze', 'Regels', 'Voorbeelden']) {
       expect(screen.getByText(word)).toBeTruthy();
     }
@@ -114,9 +118,10 @@ describe('SkillCard — every visible word goes through a key', () => {
     }
   });
 
-  it('never renders a bare key on the English path', () => {
+  it('never renders a bare key on the English path', async () => {
+    const user = userEvent.setup();
     renderCard({ attachedAgentCount: 2, skill: { ...SKILL, isShared: true } });
-    fireEvent.click(screen.getByTitle('Show details'));
+    await user.click(screen.getByTitle('Show details'));
     expect(document.body.textContent).not.toMatch(/\b(skills|common)\.[a-z_]+\b/);
   });
 });

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * routes/ai/webpageChat — de `bf-*`-conventie in de bouwer-prompt.
  *

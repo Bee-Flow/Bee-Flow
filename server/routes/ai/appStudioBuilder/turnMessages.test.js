@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The App Studio turn composition: one folded user message, few-shot policy,
  * head-anchored history — and the prefix that two turns share byte for byte.

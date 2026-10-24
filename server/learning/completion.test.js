@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests — Learning Center completion / badge / certificate math.
  *

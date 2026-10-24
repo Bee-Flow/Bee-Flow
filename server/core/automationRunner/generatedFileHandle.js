@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * `generated_file` handles — how a file a document step KEPT gets pushed on.
  *

@@ -1,6 +1,7 @@
 import { DndContext, useDndContext } from '@dnd-kit/core';
 import { SortableContext } from '@dnd-kit/sortable';
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useEffect } from 'react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import EditorNodeWrapper from './EditorNodeWrapper';
@@ -464,10 +465,11 @@ describe('EditorNodeWrapper — bulk actions act on the selection ROOTS', () => 
 
     const childIdsOf = (def, id) => findNode(def, id).node.children.map((c) => c.id);
 
-    it('duplicating a card and its children does not grow the original', () => {
+    it('duplicating a card and its children does not grow the original', async () => {
+        const user = userEvent.setup();
         const node = card();
         const { onCommit } = renderSelected(node, ['cmp_card1', 'cmp_btn1', 'cmp_btn2']);
-        fireEvent.click(screen.getByRole('button', { name: 'Duplicate selected' }));
+        await user.click(screen.getByRole('button', { name: 'Duplicate selected' }));
 
         const def = onCommit.mock.calls.at(-1)[0];
         expect(childIdsOf(def, 'cmp_card1')).toEqual(['cmp_btn1', 'cmp_btn2']);
@@ -478,11 +480,12 @@ describe('EditorNodeWrapper — bulk actions act on the selection ROOTS', () => 
         expect(roots[1].children).toHaveLength(2);
     });
 
-    it('still duplicates a plain multi-selection of siblings', () => {
+    it('still duplicates a plain multi-selection of siblings', async () => {
+        const user = userEvent.setup();
         // Neither is an ancestor of the other, so both are roots and both copy.
         const node = card();
         const { onCommit } = renderSelected(node, ['cmp_btn1', 'cmp_btn2']);
-        fireEvent.click(screen.getByRole('button', { name: 'Duplicate selected' }));
+        await user.click(screen.getByRole('button', { name: 'Duplicate selected' }));
         expect(childIdsOf(onCommit.mock.calls.at(-1)[0], 'cmp_card1')).toHaveLength(4);
     });
 });

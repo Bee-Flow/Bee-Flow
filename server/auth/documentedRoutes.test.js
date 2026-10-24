@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Every /auth/... path the documentation names is a path the server serves.
  *

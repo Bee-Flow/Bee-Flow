@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * NIS2-Art3-registration — attestation of the registration with the authority.
  * Run: cd server && node --test --test-force-exit compliance/checks/nis2/registration.test.js

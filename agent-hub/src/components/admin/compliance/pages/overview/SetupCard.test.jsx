@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import SetupCard from './SetupCard';
@@ -52,9 +53,10 @@ describe('SetupCard — one path', () => {
         expect(screen.queryByTestId('setup-card-body')).not.toBeInTheDocument();
     });
 
-    it('the CTA expands the active step inline inside the card', () => {
+    it('the CTA expands the active step inline inside the card', async () => {
+        const user = userEvent.setup();
         renderCard();
-        fireEvent.click(screen.getByTestId('setup-card-cta'));
+        await user.click(screen.getByTestId('setup-card-cta'));
         const body = screen.getByTestId('setup-card-body');
         expect(body).toBeInTheDocument();
         expect(screen.getByTestId('setup-step-dpo')).toBeInTheDocument();
@@ -70,27 +72,29 @@ describe('SetupCard — one path', () => {
         expect(screen.getByTestId('setup-card-tile-breach').dataset.state).toBe('active');
     });
 
-    it('blocks the step until it is answered, then walks to the next one', () => {
+    it('blocks the step until it is answered, then walks to the next one', async () => {
+        const user = userEvent.setup();
         const { onStepChange } = renderCard();
-        fireEvent.click(screen.getByTestId('setup-card-cta'));
+        await user.click(screen.getByTestId('setup-card-cta'));
         expect(screen.getByTestId('setup-card-next')).toBeDisabled();
         expect(screen.getByTestId('setup-card-blocked')).toBeInTheDocument();
         fireEvent.change(screen.getByLabelText('DPO name'), { target: { value: 'Jane' } });
         fireEvent.change(screen.getByLabelText('DPO email'), { target: { value: 'jane@acme.example' } });
         expect(screen.getByTestId('setup-card-next')).not.toBeDisabled();
-        fireEvent.click(screen.getByTestId('setup-card-next'));
+        await user.click(screen.getByTestId('setup-card-next'));
         expect(screen.getByTestId('setup-card').dataset.step).toBe('2');
         expect(onStepChange).toHaveBeenCalledWith(2);
-        fireEvent.click(screen.getByTestId('setup-card-back'));
+        await user.click(screen.getByTestId('setup-card-back'));
         expect(screen.getByTestId('setup-card').dataset.step).toBe('1');
     });
 
     it('the last step saves an allow-listed body, never the raw form state', async () => {
+        const user = userEvent.setup();
         const { onFinish } = renderCard({ settings: { dpo_name: 'Jane', dpo_email: 'jane@acme.nl' } });
-        fireEvent.click(screen.getByTestId('setup-card-cta'));
+        await user.click(screen.getByTestId('setup-card-cta'));
         fireEvent.change(screen.getByTestId('setup-step-recipient-input'), { target: { value: 'security@acme.nl' } });
-        fireEvent.click(screen.getByTestId('setup-step-recipient-add'));
-        fireEvent.click(screen.getByTestId('setup-card-next'));
+        await user.click(screen.getByTestId('setup-step-recipient-add'));
+        await user.click(screen.getByTestId('setup-card-next'));
         await waitFor(() => expect(onFinish).toHaveBeenCalledTimes(1));
         const body = onFinish.mock.calls[0][0];
         expect(body.breach_recipients).toEqual(['security@acme.nl']);
@@ -98,9 +102,10 @@ describe('SetupCard — one path', () => {
         expect(body).not.toHaveProperty('newRecipient');
     });
 
-    it('a tile jumps straight to its step', () => {
+    it('a tile jumps straight to its step', async () => {
+        const user = userEvent.setup();
         renderCard();
-        fireEvent.click(screen.getByTestId('setup-card-tile-residency'));
+        await user.click(screen.getByTestId('setup-card-tile-residency'));
         expect(screen.getByTestId('setup-card').dataset.step).toBe('3');
         expect(screen.getByTestId('setup-step-residency')).toBeInTheDocument();
     });
@@ -132,12 +137,13 @@ describe('SetupCard — auto-detect', () => {
     });
 
     it('survives a failing auto-detect endpoint', async () => {
+        const user = userEvent.setup();
         const onAutoDetect = vi.fn().mockRejectedValue(new Error('503'));
         renderCard({ onAutoDetect });
         await waitFor(() => expect(onAutoDetect).toHaveBeenCalled());
         expect(screen.getByTestId('setup-card')).toBeInTheDocument();
         expect(screen.getByTestId('setup-card-cta')).toBeInTheDocument();
-        fireEvent.click(screen.getByTestId('setup-card-cta'));
+        await user.click(screen.getByTestId('setup-card-cta'));
         expect(screen.getByTestId('setup-step-dpo')).toBeInTheDocument();
     });
 
@@ -148,9 +154,10 @@ describe('SetupCard — auto-detect', () => {
         await waitFor(() => expect(onAutoDetect).toHaveBeenCalledTimes(1));
     });
 
-    it('offers the org directory to the DPO step when one is loaded', () => {
+    it('offers the org directory to the DPO step when one is loaded', async () => {
+        const user = userEvent.setup();
         renderCard({ orgUsers: ORG_USERS });
-        fireEvent.click(screen.getByTestId('setup-card-cta'));
+        await user.click(screen.getByTestId('setup-card-cta'));
         expect(screen.getByRole('combobox')).toBeInTheDocument();
     });
 

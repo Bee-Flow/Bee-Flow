@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for officegen's CSV builder — the hardened plain-text sibling of
  * `buildSpreadsheet`. The dangerous part of CSV is not the format but the

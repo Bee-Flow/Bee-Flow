@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Feature registrations: the one place the server fills core's registries
  * with what the features provide. Core may not require a feature

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De chatgeschiedenis van de bouw-AI, per pagina bewaard.
  *

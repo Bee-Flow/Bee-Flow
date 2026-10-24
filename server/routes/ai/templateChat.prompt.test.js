@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Characterisation of the template chat's system prompt and history messages:
  * the full prompt for a template with described/plain parameters, custom

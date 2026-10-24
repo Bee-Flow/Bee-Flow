@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What Bee can work out about the AI Act on its own, per question, with how
  * sure it is (Studio → Automations handoff 5, "the check should be automatic").

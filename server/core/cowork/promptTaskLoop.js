@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The tool-calling loop of a plain-prompt Cowork run (executeTask in
  * core/aiTaskRunner.js): model round, tool calls through the shield gate and

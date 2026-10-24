@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The SQLite → Postgres migrator, exercised end to end against a REAL Postgres
  * (@electric-sql/pglite) and a REAL SQLite source database (better-sqlite3 on a

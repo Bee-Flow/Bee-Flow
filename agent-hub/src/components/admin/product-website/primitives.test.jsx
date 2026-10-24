@@ -7,6 +7,7 @@
  * Run: cd agent-hub && npx vitest run src/components/admin/ProductWebsite/primitives.test.jsx
  */
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
@@ -71,7 +72,8 @@ describe('ColorSwatch', () => {
 });
 
 describe('SegmentedControl', () => {
-    it('fires onChange with the clicked option value', () => {
+    it('fires onChange with the clicked option value', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         render(
             <SegmentedControl
@@ -80,13 +82,14 @@ describe('SegmentedControl', () => {
                 onChange={onChange}
             />
         );
-        fireEvent.click(screen.getByText('Columns'));
+        await user.click(screen.getByText('Columns'));
         expect(onChange).toHaveBeenCalledWith('columns');
     });
 });
 
 describe('CollapsibleCard', () => {
-    it('round-trips open state through localStorage when persistKey is set', () => {
+    it('round-trips open state through localStorage when persistKey is set', async () => {
+        const user = userEvent.setup();
         const { unmount } = render(
             <CollapsibleCard title="Badge" persistKey="blk.hero.badge">
                 <div>Inner content</div>
@@ -95,7 +98,7 @@ describe('CollapsibleCard', () => {
         // Defaults closed (defaultOpen defaults to false).
         expect(screen.queryByText('Inner content')).toBeNull();
 
-        fireEvent.click(screen.getByRole('button', { name: /Badge/ }));
+        await user.click(screen.getByRole('button', { name: /Badge/ }));
         expect(screen.getByText('Inner content')).toBeInTheDocument();
         expect(localStorage.getItem('cms.ui.card.blk.hero.badge')).toBe('1');
 
@@ -109,7 +112,7 @@ describe('CollapsibleCard', () => {
         expect(screen.getByText('Inner content')).toBeInTheDocument();
 
         // Closing writes back too.
-        fireEvent.click(screen.getByRole('button', { name: /Badge/ }));
+        await user.click(screen.getByRole('button', { name: /Badge/ }));
         expect(localStorage.getItem('cms.ui.card.blk.hero.badge')).toBe('0');
     });
 
@@ -123,14 +126,15 @@ describe('CollapsibleCard', () => {
         expect(screen.queryByText('Mockup body')).toBeNull();
     });
 
-    it('without persistKey it is plain local state and writes nothing', () => {
+    it('without persistKey it is plain local state and writes nothing', async () => {
+        const user = userEvent.setup();
         render(
             <CollapsibleCard title="Plain" defaultOpen={true}>
                 <div>Plain body</div>
             </CollapsibleCard>
         );
         expect(screen.getByText('Plain body')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: /Plain/ }));
+        await user.click(screen.getByRole('button', { name: /Plain/ }));
         expect(screen.queryByText('Plain body')).toBeNull();
         expect(localStorage.length).toBe(0);
     });

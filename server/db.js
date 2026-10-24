@@ -16,9 +16,9 @@
  *               transactions that block pool slots.
  *   - application_name — visible in pg_stat_activity for monitoring.
  */
-
+// @typecheck
 const { Pool } = require('pg');
-const Redis = require('ioredis');
+const Redis = /** @type {typeof import('ioredis').default} */ (/** @type {unknown} */ (require('ioredis')));
 const log = require('./telemetry/log');
 
 // The store schema-init memo. It lives in stores/lib/storeInit.js — it is
@@ -87,6 +87,7 @@ const _redis = { client: null };
 /**
  * The ioredis options of the shared client.
  * @param {string} url
+ * @returns {import('ioredis').RedisOptions}
  */
 function _redisOptions(url) {
     return {
@@ -439,7 +440,6 @@ function getPoolStats() {
         waiting: pool.waitingCount,
     };
 }
-
 module.exports = {
     pool,
     getRedis,

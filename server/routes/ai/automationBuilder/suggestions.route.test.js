@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Find repeating work" end to end through the route: a patterns scan over a
  * synthetic Gmail inbox and chat ledger, with the real sources, miner, naming

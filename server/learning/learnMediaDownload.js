@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * HTTP download helpers for the Learning Center video pack (learnMediaInstall.js):

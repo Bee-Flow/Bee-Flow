@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct chat → chat signals, through the real input gates.
  *

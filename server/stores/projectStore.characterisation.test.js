@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * projectStore — GOLDEN characterisation, pinned before the split into
  * stores/project/*. Drives the REAL factory (`makeProjectStore`) over a

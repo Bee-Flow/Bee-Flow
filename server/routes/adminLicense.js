@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Admin License Routes — direct license issuance from the admin console.
  *
@@ -35,6 +36,7 @@
 
 const express = require('express');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
@@ -206,7 +208,7 @@ router.post('/grant', validate({ body: GrantBody }), async (req, res) => {
         res.json(result);
     } catch (e) {
         log.error('[Admin License] grant error:', e);
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 
@@ -282,7 +284,7 @@ router.post('/import', validate({ body: ImportBody }), async (req, res) => {
         res.json(result);
     } catch (e) {
         log.error('[Admin License] import error:', e);
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 

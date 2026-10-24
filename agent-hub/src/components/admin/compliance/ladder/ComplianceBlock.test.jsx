@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -99,14 +100,15 @@ describe('ComplianceBlock', () => {
     });
 
     it('"Assess…" opens the ladder modal with the block\'s own hook data', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(notFound);
         render(<ComplianceBlock kind="automation" target={quote} now={NOW} />);
         await screen.findByTestId('compliance-block-signals');
         expect(screen.queryByTestId('ai-act-ladder')).toBeNull();
-        fireEvent.click(screen.getByTestId('compliance-block-assess'));
+        await user.click(screen.getByTestId('compliance-block-assess'));
         expect(screen.getByTestId('ai-act-ladder')).toBeTruthy();
         expect(screen.getByTestId('ladder-contains-ai').getAttribute('data-contains-ai')).toBe('true');
-        fireEvent.click(screen.getByText('Later'));
+        await user.click(screen.getByText('Later'));
         expect(screen.queryByTestId('ai-act-ladder')).toBeNull();
     });
 
@@ -129,13 +131,14 @@ describe('hook points (light smoke)', () => {
     // is the Settings › AI Act section (Builder/settings/AiActSection.tsx).
 
     it('AdvancedDrawer gains a collapsed "Compliance" section that hosts the agent block', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(notFound);
         const t = (k, fb) => fb ?? k;
         render(<AdvancedDrawer open onClose={vi.fn()} t={t} agent={{ id: 'g1', name: 'Helpdesk', is_published: false }} />);
         const heading = screen.getByText('Compliance');
         expect(heading).toBeTruthy();
         // Collapsed by default (Behavior is the open section) — expand it.
-        fireEvent.click(heading.closest('button'));
+        await user.click(heading.closest('button'));
         const block = await screen.findByTestId('compliance-block');
         expect(block.getAttribute('data-kind')).toBe('agent');
         // The existing sections are untouched (a closed section unmounts its body, so check the headings).

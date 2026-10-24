@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import MeetingRow, { actionsPhrase } from './MeetingRow';
@@ -72,12 +73,13 @@ describe('MeetingRow meta line', () => {
         expect(container.querySelector('.w-8.h-8').getAttribute('style')).toContain('var(--bg-tertiary)');
     });
 
-    it('marks the selected row for assistive tech and reports clicks', () => {
+    it('marks the selected row for assistive tech and reports clicks', async () => {
+        const user = userEvent.setup();
         const onClick = vi.fn();
         render(<MeetingRow meeting={BASE} active onClick={onClick} />);
         const row = screen.getByTestId('meeting-row');
         expect(row.getAttribute('aria-current')).toBe('true');
-        fireEvent.click(row);
+        await user.click(row);
         expect(onClick).toHaveBeenCalledTimes(1);
     });
 

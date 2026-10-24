@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Does the TARGET org have the "Your own data" feature?

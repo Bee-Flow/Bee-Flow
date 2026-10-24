@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * pseudonymise: replace identifying columns by a code. The code is the

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Clean up what the playbook test runs left behind — the harness's AND the
  * person's own: playbooks, the automations and apps they built, the tables they

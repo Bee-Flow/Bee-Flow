@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De paginadatabank achter de sessie: de DB-viewer (Schema / Browse / SQL) en
  * de reset. Spiegelt het AI-tooloppervlak in webpageDbTools.js, maar met de
@@ -12,6 +13,7 @@ const { requireAuth } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, NOTHING, NO_QUERY } = require('./schemas');
+const { HttpError } = require('../../core/http/errors');
 
 // ── Wat de DB-viewer mag sturen ─────────────────────────────────────
 //
@@ -70,7 +72,7 @@ function register(router) {
         } catch (err) {
             // Mutation-attempt errors come back here too — surface the message verbatim
             // so the SQL tab can render "use exec instead" inline.
-            res.status(400).json({ error: err.message });
+            throw new HttpError(400, 'bad_request', err.message);
         }
     });
 
@@ -83,7 +85,7 @@ function register(router) {
             const result = await webpageDbStore.exec(userId, wp.id, sql, params || []);
             res.json(result);
         } catch (err) {
-            res.status(400).json({ error: err.message });
+            throw new HttpError(400, 'bad_request', err.message);
         }
     });
 }

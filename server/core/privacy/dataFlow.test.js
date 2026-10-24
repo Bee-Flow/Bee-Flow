@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The ONE personal-data FLOW analyser: what leaves, where it goes, and
  * whether anything stood in front of it.

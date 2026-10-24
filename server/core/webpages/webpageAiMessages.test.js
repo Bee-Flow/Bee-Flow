@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * BFSF-354 — the webpage AI bridges ground their answer on the page's
  * knowledge bases by injecting passages into the system prompt, without a

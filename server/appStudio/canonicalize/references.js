@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio canonicalizer — pass 2 over the rebuilt definition: rewrite the
  * references that pass 1 renamed, drop the ones that resolve to nothing.

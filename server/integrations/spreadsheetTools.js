@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Spreadsheet Tools — the chat's way to hand the user a real .xlsx.
  *

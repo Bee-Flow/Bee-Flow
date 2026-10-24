@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit — Vertex inherits chat/stream/generateImage from GoogleProvider (H9).
  * Proves the overrides are gone (same function reference as the base), that

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Non-streaming agent chat — synchronous tool-calling loop.
  *

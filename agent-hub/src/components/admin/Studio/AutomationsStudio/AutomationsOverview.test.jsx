@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
@@ -76,28 +76,31 @@ describe('AutomationsOverview', () => {
         expect(states).toEqual(['draft', 'live', 'paused', 'live']);
     });
 
-    it('the state pills carry counts and narrow the rows; Clear puts them back', () => {
+    it('the state pills carry counts and narrow the rows; Clear puts them back', async () => {
+        const user = userEvent.setup();
         render(<AutomationsOverview automations={LIB} rowProps={rowProps} folders={[]} />);
         const failing = screen.getByTestId('automations-overview-state-failing');
         expect(failing.textContent).toBe('Failing1');
-        fireEvent.click(failing);
+        await user.click(failing);
         expect(rowTitles()).toEqual(['b']);
-        fireEvent.click(screen.getByTestId('automations-overview-state-paused'));
+        await user.click(screen.getByTestId('automations-overview-state-paused'));
         expect(rowTitles()).toEqual(['c']);
-        fireEvent.click(screen.getByRole('button', { name: /Clear/ }));
+        await user.click(screen.getByRole('button', { name: /Clear/ }));
         expect(rowTitles()).toHaveLength(4);
     });
 
-    it('a live-run poll marks the row running without waiting for lastStatus', () => {
+    it('a live-run poll marks the row running without waiting for lastStatus', async () => {
+        const user = userEvent.setup();
         render(<AutomationsOverview automations={LIB} rowProps={rowProps} folders={[]} activeRunIds={new Set(['c'])} />);
         expect(screen.getByTestId('automations-overview-state-running').textContent).toBe('Running1');
-        fireEvent.click(screen.getByTestId('automations-overview-state-running'));
+        await user.click(screen.getByTestId('automations-overview-state-running'));
         expect(rowTitles()).toEqual(['c']);
     });
 
-    it('clicking a column header sorts and is remembered across remounts', () => {
+    it('clicking a column header sorts and is remembered across remounts', async () => {
+        const user = userEvent.setup();
         const { unmount } = render(<AutomationsOverview automations={LIB} rowProps={rowProps} folders={[]} />);
-        fireEvent.click(screen.getByRole('button', { name: 'Automation' }));
+        await user.click(screen.getByRole('button', { name: 'Automation' }));
         expect(rowTitles()).toEqual(['a', 'b', 'c', 'd']);
         expect(store.get('automationsOverviewSort')).toBe('name');
         unmount();
@@ -105,13 +108,14 @@ describe('AutomationsOverview', () => {
         expect(rowTitles()).toEqual(['a', 'b', 'c', 'd']);
     });
 
-    it('switches to cards and to a board grouped by status, and the choice persists', () => {
+    it('switches to cards and to a board grouped by status, and the choice persists', async () => {
+        const user = userEvent.setup();
         const { unmount } = render(<AutomationsOverview automations={LIB} rowProps={rowProps} folders={[]} />);
-        fireEvent.click(screen.getByRole('radio', { name: /Cards/ }));
+        await user.click(screen.getByRole('radio', { name: /Cards/ }));
         expect(screen.getAllByTestId('automations-overview-card')).toHaveLength(4);
         expect(screen.getByText('Sums up the inbox.')).toBeTruthy();
 
-        fireEvent.click(screen.getByRole('radio', { name: /Board/ }));
+        await user.click(screen.getByRole('radio', { name: /Board/ }));
         const lanes = screen.getAllByTestId('automations-overview-lane');
         expect(lanes.map(l => l.getAttribute('data-lane'))).toEqual(['live', 'paused', 'draft']);
         expect(within(lanes[0]).getAllByTestId('automations-overview-card')).toHaveLength(2);
@@ -123,35 +127,38 @@ describe('AutomationsOverview', () => {
         expect(screen.getByTestId('automations-overview').getAttribute('data-view')).toBe('board');
     });
 
-    it('the board can group by folder, with the org folders as lanes', () => {
+    it('the board can group by folder, with the org folders as lanes', async () => {
+        const user = userEvent.setup();
         store.set('automationsOverviewView', 'board');
         render(<AutomationsOverview automations={LIB} rowProps={rowProps} folders={[{ id: 'f1', name: 'Finance' }]} />);
-        fireEvent.click(screen.getByTestId('automations-overview-group'));
-        fireEvent.click(screen.getByRole('menuitemradio', { name: 'Folder' }));
+        await user.click(screen.getByTestId('automations-overview-group'));
+        await user.click(screen.getByRole('menuitemradio', { name: 'Folder' }));
         const lanes = screen.getAllByTestId('automations-overview-lane');
         expect(lanes.map(l => l.getAttribute('aria-label'))).toEqual(['No folder', 'Finance']);
         expect(within(lanes[1]).getByText('Sketch')).toBeTruthy();
     });
 
-    it('filters by folder in any view once the library has folders', () => {
+    it('filters by folder in any view once the library has folders', async () => {
+        const user = userEvent.setup();
         render(<AutomationsOverview automations={LIB} rowProps={rowProps} folders={[{ id: 'f1', name: 'Finance' }]} />);
         // Pills only exist with folders; every org folder keeps a pill, even at 0.
         expect(screen.getByTestId('automations-overview-folder-all').textContent).toBe('Any folder4');
         expect(screen.getByTestId('automations-overview-folder-f1').textContent).toBe('Finance1');
-        fireEvent.click(screen.getByTestId('automations-overview-folder-f1'));
+        await user.click(screen.getByTestId('automations-overview-folder-f1'));
         expect(rowTitles()).toEqual(['d']);
-        fireEvent.click(screen.getByTestId('automations-overview-folder-__none'));
+        await user.click(screen.getByTestId('automations-overview-folder-__none'));
         expect(rowTitles()).toEqual(['b', 'c', 'a']);
         // Folder narrowing joins the other pills under Clear.
-        fireEvent.click(screen.getByRole('button', { name: /Clear/ }));
+        await user.click(screen.getByRole('button', { name: /Clear/ }));
         expect(rowTitles()).toHaveLength(4);
     });
 
-    it('offers no folder pills without folders, and recovers when a filtered folder disappears', () => {
+    it('offers no folder pills without folders, and recovers when a filtered folder disappears', async () => {
+        const user = userEvent.setup();
         const { rerender } = render(<AutomationsOverview automations={LIB} rowProps={rowProps} folders={[]} />);
         expect(screen.queryByTestId('automations-overview-folder-all')).toBeNull();
         rerender(<AutomationsOverview automations={LIB} rowProps={rowProps} folders={[{ id: 'f1', name: 'Finance' }]} />);
-        fireEvent.click(screen.getByTestId('automations-overview-folder-f1'));
+        await user.click(screen.getByTestId('automations-overview-folder-f1'));
         expect(rowTitles()).toEqual(['d']);
         rerender(<AutomationsOverview automations={LIB} rowProps={rowProps} folders={[]} />);
         expect(rowTitles()).toHaveLength(4);
@@ -176,27 +183,29 @@ describe('AutomationsOverview', () => {
         expect(onCreateFolder).toHaveBeenCalledTimes(1);
     });
 
-    it('a row opens on click and its kebab opens the same actions menu as the sidebar', () => {
+    it('a row opens on click and its kebab opens the same actions menu as the sidebar', async () => {
+        const user = userEvent.setup();
         const props = new Map();
         const rp = (a) => { if (!props.has(a.id)) props.set(a.id, rowProps(a)); return props.get(a.id); };
         render(<AutomationsOverview automations={LIB} rowProps={rp} folders={[]} />);
         const first = screen.getAllByTestId('automations-overview-row')[0];
-        fireEvent.click(within(first).getByText('Sketch'));
+        await user.click(within(first).getByText('Sketch'));
         expect(props.get('d').onSelect).toHaveBeenCalledTimes(1);
 
-        fireEvent.click(within(first).getByRole('button', { name: 'More options' }));
+        await user.click(within(first).getByRole('button', { name: 'More options' }));
         for (const label of ['Activate', 'View executions', 'Duplicate', 'Export JSON', 'Move to folder…', 'Copy ID', 'Delete']) {
             expect(screen.getByText(label)).toBeTruthy();
         }
-        fireEvent.click(screen.getByText('Move to folder…'));
+        await user.click(screen.getByText('Move to folder…'));
         expect(props.get('d').onMoveToFolder).toHaveBeenCalledTimes(1);
     });
 
-    it('tells "no automations" apart from "none match the filter"', () => {
+    it('tells "no automations" apart from "none match the filter"', async () => {
+        const user = userEvent.setup();
         const onCreate = vi.fn();
         const { rerender } = render(<AutomationsOverview automations={[]} query="" rowProps={rowProps} onCreate={onCreate} />);
         expect(screen.getByText('No automations yet')).toBeTruthy();
-        fireEvent.click(screen.getByRole('button', { name: /New automation/ }));
+        await user.click(screen.getByRole('button', { name: /New automation/ }));
         expect(onCreate).toHaveBeenCalled();
 
         rerender(<AutomationsOverview automations={[]} query="zzz" rowProps={rowProps} onCreate={onCreate} />);

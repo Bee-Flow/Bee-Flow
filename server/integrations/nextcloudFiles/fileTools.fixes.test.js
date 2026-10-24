@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Files tools that reported success with wrong output: the folder
  * tree (plain Files route, bare array), read_file on a folder, a text cut in

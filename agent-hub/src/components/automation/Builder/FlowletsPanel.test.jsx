@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import FlowletsPanel from './FlowletsPanel';
 
@@ -63,14 +64,16 @@ describe('FlowletsPanel', () => {
         expect(screen.getByText('Main flow')).toBeTruthy();
     });
 
-    it('always shows a Main flow row and navigates to root (null) on click', () => {
+    it('always shows a Main flow row and navigates to root (null) on click', async () => {
+        const user = userEvent.setup();
         const props = baseProps({ currentScopeKey: 'enrich' });
         render(<FlowletsPanel {...props} />);
-        fireEvent.click(screen.getByText('Main flow'));
+        await user.click(screen.getByText('Main flow'));
         expect(props.onOpenLayer).toHaveBeenCalledWith(null);
     });
 
-    it('shows dependency chips and lets you jump between related layers', () => {
+    it('shows dependency chips and lets you jump between related layers', async () => {
+        const user = userEvent.setup();
         // digest calls enrich; the main flow calls digest.
         const depDef = {
             trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
@@ -84,10 +87,10 @@ describe('FlowletsPanel', () => {
         const props = baseProps({ rootDef: depDef });
         render(<FlowletsPanel {...props} />);
         // "Go to Send digest" chips appear in Main flow (Calls) + enrich (Used by).
-        fireEvent.click(screen.getAllByTitle('Go to Send digest')[0]);
+        await user.click(screen.getAllByTitle('Go to Send digest')[0]);
         expect(props.onOpenLayer).toHaveBeenCalledWith('digest');
         // digest "Calls" enrich → exactly one chip.
-        fireEvent.click(screen.getByTitle('Go to Enrich contact'));
+        await user.click(screen.getByTitle('Go to Enrich contact'));
         expect(props.onOpenLayer).toHaveBeenCalledWith('enrich');
     });
 
@@ -98,7 +101,8 @@ describe('FlowletsPanel', () => {
         expect(screen.queryByText('Looks up the contact and scores them.')).toBeNull();
     });
 
-    it('shows Summarize/description only when aiEnabled is true', () => {
+    it('shows Summarize/description only when aiEnabled is true', async () => {
+        const user = userEvent.setup();
         const props = baseProps({ aiEnabled: true });
         render(<FlowletsPanel {...props} />);
         // enrich already has a description → Regenerate.
@@ -107,11 +111,12 @@ describe('FlowletsPanel', () => {
         // "Summarize" appears for both Main flow and digest (no descriptions);
         // the last one in DOM order is digest's.
         const sums = screen.getAllByText('Summarize');
-        fireEvent.click(sums[sums.length - 1]);
+        await user.click(sums[sums.length - 1]);
         expect(props.onSummarize).toHaveBeenCalledWith('digest');
     });
 
-    it('summarizes the whole automation from the Main flow row', () => {
+    it('summarizes the whole automation from the Main flow row', async () => {
+        const user = userEvent.setup();
         const props = baseProps({
             rootDef: { trigger: { id: 'trg', type: 'trigger', kind: 'manual' }, steps: [], edges: [], layers: {} },
             aiEnabled: true,
@@ -120,32 +125,35 @@ describe('FlowletsPanel', () => {
         render(<FlowletsPanel {...props} />);
         // With no layers, the only AI block is the Main flow's.
         expect(screen.getByText('Pulls Claude invoices from email and files them.')).toBeTruthy();
-        fireEvent.click(screen.getByText('Regenerate'));
+        await user.click(screen.getByText('Regenerate'));
         expect(props.onSummarizeRoot).toHaveBeenCalled();
         // The summarize click must not also navigate to the main flow.
         expect(props.onOpenLayer).not.toHaveBeenCalled();
     });
 
-    it('opens (drills into) a layer when its row is clicked', () => {
+    it('opens (drills into) a layer when its row is clicked', async () => {
+        const user = userEvent.setup();
         const props = baseProps();
         render(<FlowletsPanel {...props} />);
-        fireEvent.click(screen.getByText('Send digest'));
+        await user.click(screen.getByText('Send digest'));
         expect(props.onOpenLayer).toHaveBeenCalledWith('digest');
         // Clicking the row must NOT enter rename mode.
         expect(screen.queryByDisplayValue('Send digest')).toBeNull();
     });
 
-    it('disables Delete while a layer is still referenced', () => {
+    it('disables Delete while a layer is still referenced', async () => {
+        const user = userEvent.setup();
         const props = baseProps({ refCountFor: vi.fn((k) => (k === 'enrich' ? 2 : 0)) });
         render(<FlowletsPanel {...props} />);
         // enrich is the first row → its delete is disabled (refCount 2).
         const del = screen.getAllByLabelText('Delete flowlet')[0];
         expect(del.disabled).toBe(true);
-        fireEvent.click(del);
+        await user.click(del);
         expect(props.onDeleteLayer).not.toHaveBeenCalled();
     });
 
-    it('keeps Delete live on an EMPTY layer even when something calls it', () => {
+    it('keeps Delete live on an EMPTY layer even when something calls it', async () => {
+        const user = userEvent.setup();
         // The palette's "Create flowlet" drops a call node as part of creating
         // one, so a brand-new flowlet was born un-deletable (BFSF-340).
         const props = baseProps({ refCountFor: vi.fn(() => 1) });
@@ -155,7 +163,7 @@ describe('FlowletsPanel', () => {
         expect(enrichDel.disabled).toBe(true);
         expect(digestDel.disabled).toBe(false);
         expect(digestDel.title).toMatch(/Call flowlet/);
-        fireEvent.click(digestDel);
+        await user.click(digestDel);
         expect(props.onDeleteLayer).toHaveBeenCalledWith('digest');
     });
 
@@ -164,20 +172,22 @@ describe('FlowletsPanel', () => {
         expect(screen.getByText(/Reusable sub-flows/)).toBeTruthy();
     });
 
-    it('fires create + toggle callbacks', () => {
+    it('fires create + toggle callbacks', async () => {
+        const user = userEvent.setup();
         const props = baseProps();
         render(<FlowletsPanel {...props} />);
-        fireEvent.click(screen.getByText('Create'));
+        await user.click(screen.getByText('Create'));
         expect(props.onCreateLayer).toHaveBeenCalled();
-        fireEvent.click(screen.getByRole('checkbox'));
+        await user.click(screen.getByRole('checkbox'));
         expect(props.onToggleAi).toHaveBeenCalled();
     });
 
-    it('renames via the pencil (not a row click) and commits on Enter', () => {
+    it('renames via the pencil (not a row click) and commits on Enter', async () => {
+        const user = userEvent.setup();
         const props = baseProps();
         render(<FlowletsPanel {...props} />);
         // digest is the second row → its pencil opens its rename field.
-        fireEvent.click(screen.getAllByLabelText('Rename flowlet')[1]);
+        await user.click(screen.getAllByLabelText('Rename flowlet')[1]);
         const input = screen.getByDisplayValue('Send digest');
         fireEvent.change(input, { target: { value: 'Daily digest' } });
         fireEvent.keyDown(input, { key: 'Enter' });

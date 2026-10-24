@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import UsedByTab, {
@@ -23,10 +24,11 @@ const ROW = (over = {}) => ({
 });
 
 describe('UsedByTab — the navigation rule', () => {
-    it('navigates in-app for an item this account owns', () => {
+    it('navigates in-app for an item this account owns', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         render(<UsedByTab rows={[ROW()]} currentUserId="u1" onNavigate={onNavigate} />);
-        fireEvent.click(screen.getByRole('button', { name: 'Nightly sync' }));
+        await user.click(screen.getByRole('button', { name: 'Nightly sync' }));
         expect(onNavigate).toHaveBeenCalledWith('studio/automations/a1');
     });
 
@@ -40,21 +42,23 @@ describe('UsedByTab — the navigation rule', () => {
         expect(onNavigate).not.toHaveBeenCalled();
     });
 
-    it('an item with no owner (org-scoped) is navigable', () => {
+    it('an item with no owner (org-scoped) is navigable', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         render(<UsedByTab rows={[{ kind: 'agent', id: 'ag1', title: 'Quote assistant', role: 'read', ownerId: null }]} currentUserId="u1" onNavigate={onNavigate} />);
-        fireEvent.click(screen.getByRole('button', { name: 'Quote assistant' }));
+        await user.click(screen.getByRole('button', { name: 'Quote assistant' }));
         expect(onNavigate).toHaveBeenCalledWith('studio/agents/ag1');
         expect(screen.queryByText(/someone else/i)).toBeNull();
     });
 
-    it('an explicit href wins over the kind default, and a kind without a page is plain text', () => {
+    it('an explicit href wins over the kind default, and a kind without a page is plain text', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         render(<UsedByTab rows={[
             { kind: 'app', id: 'p1', title: 'Portal', role: 'read', href: 'studio/apps/p1?screen=s2' },
             { kind: 'chat', id: 'c1', title: 'Chat', role: 'chat' },
         ]} currentUserId="u1" onNavigate={onNavigate} />);
-        fireEvent.click(screen.getByRole('button', { name: 'Portal' }));
+        await user.click(screen.getByRole('button', { name: 'Portal' }));
         expect(onNavigate).toHaveBeenCalledWith('studio/apps/p1?screen=s2');
         expect(screen.queryByRole('button', { name: 'Chat' })).toBeNull();
     });
@@ -205,10 +209,11 @@ describe('UsedByTab — adapt (legacy datatables shape)', () => {
         expect(adaptDatatableUsageRow(contract)).toBe(contract); // a contract row passes through untouched
     });
 
-    it('renders legacy rows through adapt with the same navigation rule', () => {
+    it('renders legacy rows through adapt with the same navigation rule', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         const { rerender } = render(<UsedByTab rows={[LEGACY]} adapt={adaptDatatableUsageRow} currentUserId="u1" onNavigate={onNavigate} />);
-        fireEvent.click(screen.getByRole('button', { name: 'Nightly sync' }));
+        await user.click(screen.getByRole('button', { name: 'Nightly sync' }));
         expect(onNavigate).toHaveBeenCalledWith('studio/automations/a1');
         rerender(<UsedByTab rows={[{ ...LEGACY, automationOwner: 'u9' }]} adapt={adaptDatatableUsageRow} currentUserId="u1" onNavigate={onNavigate} />);
         expect(screen.queryByRole('button', { name: 'Nightly sync' })).toBeNull();

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import AppShell from '../AppShell';
 
@@ -101,7 +102,8 @@ describe('AppShell — tab overflow', () => {
         if (originalOffset) Object.defineProperty(HTMLElement.prototype, 'offsetWidth', originalOffset);
     });
 
-    it('collapses tabs that do not fit into a "More" menu that navigates', () => {
+    it('collapses tabs that do not fit into a "More" menu that navigates', async () => {
+        const user = userEvent.setup();
         // 3 tabs x 100px in a 250px row with a 100px "More" button → 1 visible.
         Object.defineProperty(Element.prototype, 'clientWidth', {
             configurable: true,
@@ -123,9 +125,9 @@ describe('AppShell — tab overflow', () => {
         expect(within(nav).queryByRole('button', { name: 'Settings' })).toBeNull();
 
         const more = within(nav).getByRole('button', { name: /More/ });
-        fireEvent.click(more);
+        await user.click(more);
         const menu = within(nav).getByRole('menu');
-        fireEvent.click(within(menu).getByRole('menuitem', { name: 'Settings' }));
+        await user.click(within(menu).getByRole('menuitem', { name: 'Settings' }));
         expect(picked).toEqual(['scr_set001']);
         // Picking closes the menu.
         expect(within(nav).queryByRole('menu')).toBeNull();
@@ -156,12 +158,13 @@ describe('AppShell — sidebar', () => {
         expect(container.querySelector('header')).toBeNull();
     });
 
-    it('collapse toggle flips the rail and persists per app in localStorage', () => {
+    it('collapse toggle flips the rail and persists per app in localStorage', async () => {
+        const user = userEvent.setup();
         const { container, unmount } = renderSidebar({ appId: 'app-42' });
         const sidebar = () => container.querySelector('.app-nav-sidebar');
         expect(sidebar().hasAttribute('data-collapsed')).toBe(false);
 
-        fireEvent.click(screen.getByRole('button', { name: 'Collapse navigation' }));
+        await user.click(screen.getByRole('button', { name: 'Collapse navigation' }));
         expect(sidebar().hasAttribute('data-collapsed')).toBe(true);
         expect(window.localStorage.getItem('appStudio.nav.collapsed.app-42')).toBe('1');
 
@@ -169,13 +172,14 @@ describe('AppShell — sidebar', () => {
         unmount();
         const { container: again } = renderSidebar({ appId: 'app-42' });
         expect(again.querySelector('.app-nav-sidebar').hasAttribute('data-collapsed')).toBe(true);
-        fireEvent.click(screen.getByRole('button', { name: 'Expand navigation' }));
+        await user.click(screen.getByRole('button', { name: 'Expand navigation' }));
         expect(window.localStorage.getItem('appStudio.nav.collapsed.app-42')).toBeNull();
     });
 
-    it('does not persist collapse without an appId', () => {
+    it('does not persist collapse without an appId', async () => {
+        const user = userEvent.setup();
         renderSidebar();
-        fireEvent.click(screen.getByRole('button', { name: 'Collapse navigation' }));
+        await user.click(screen.getByRole('button', { name: 'Collapse navigation' }));
         expect(window.localStorage.length).toBe(0);
     });
 
@@ -195,9 +199,10 @@ describe('AppShell — sidebar', () => {
 });
 
 describe('AppShell — user menu', () => {
-    it('renders viewer name and opens the account popup with email + role badge', () => {
+    it('renders viewer name and opens the account popup with email + role badge', async () => {
+        const user = userEvent.setup();
         renderShell({ viewer: VIEWER });
-        fireEvent.click(screen.getByRole('button', { name: /Account: Vera Viewer/ }));
+        await user.click(screen.getByRole('button', { name: /Account: Vera Viewer/ }));
         const menu = screen.getByRole('menu');
         expect(within(menu).getByText('vera@example.test')).toBeInTheDocument();
         expect(within(menu).getByText('member')).toBeInTheDocument();
@@ -205,12 +210,13 @@ describe('AppShell — user menu', () => {
         expect(within(menu).queryByRole('menuitem', { name: 'All apps' })).toBeNull();
     });
 
-    it('shows the owner badge and the "All apps" exit when wired', () => {
+    it('shows the owner badge and the "All apps" exit when wired', async () => {
+        const user = userEvent.setup();
         const exits = [];
         renderShell({ viewer: { ...VIEWER, isOwner: true }, onExit: () => exits.push(1) });
-        fireEvent.click(screen.getByRole('button', { name: /Account: Vera Viewer/ }));
+        await user.click(screen.getByRole('button', { name: /Account: Vera Viewer/ }));
         expect(screen.getByText('Owner')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('menuitem', { name: 'All apps' }));
+        await user.click(screen.getByRole('menuitem', { name: 'All apps' }));
         expect(exits).toEqual([1]);
         expect(screen.queryByRole('menu')).toBeNull();
     });
@@ -222,32 +228,35 @@ describe('AppShell — user menu', () => {
 });
 
 describe('AppShell — mobile drawer', () => {
-    it('opens from the trigger and navigates on pick (tabs mode)', () => {
+    it('opens from the trigger and navigates on pick (tabs mode)', async () => {
+        const user = userEvent.setup();
         const picked = [];
         const { container } = renderShell({ onNavigate: (id) => picked.push(id) });
         const trigger = container.querySelector('button[aria-haspopup="dialog"]');
         expect(trigger).not.toBeNull();
         expect(trigger.textContent).toContain('Home'); // current screen name
 
-        fireEvent.click(trigger);
+        await user.click(trigger);
         const drawer = screen.getByRole('dialog', { name: 'App screens' });
-        fireEvent.click(within(drawer).getByRole('button', { name: 'Requests' }));
+        await user.click(within(drawer).getByRole('button', { name: 'Requests' }));
         expect(picked).toEqual(['scr_req001']);
         expect(screen.queryByRole('dialog')).toBeNull();
     });
 
-    it('still shows an active nav-hidden screen as current', () => {
+    it('still shows an active nav-hidden screen as current', async () => {
+        const user = userEvent.setup();
         const { container } = renderShell({ screenId: 'scr_hide01' });
         const trigger = container.querySelector('button[aria-haspopup="dialog"]');
         expect(trigger.textContent).toContain('Secret');
 
-        fireEvent.click(trigger);
+        await user.click(trigger);
         const drawer = screen.getByRole('dialog', { name: 'App screens' });
         const row = within(drawer).getByRole('button', { name: 'Secret' });
         expect(row).toHaveAttribute('aria-current', 'page');
     });
 
-    it('renders the brand bar with the drawer trigger in sidebar mode', () => {
+    it('renders the brand bar with the drawer trigger in sidebar mode', async () => {
+        const user = userEvent.setup();
         const { container } = render(
             <AppShell definition={SIDEBAR_DEF} screenId="scr_home01" onNavigate={() => {}}>
                 <div>content</div>
@@ -257,7 +266,7 @@ describe('AppShell — mobile drawer', () => {
         expect(container.querySelectorAll('[data-app-brand]').length).toBe(2);
         const trigger = container.querySelector('button[aria-haspopup="dialog"]');
         expect(trigger).not.toBeNull();
-        fireEvent.click(trigger);
+        await user.click(trigger);
         // Grouped section label shows inside the drawer too.
         const drawer = screen.getByRole('dialog', { name: 'App screens' });
         expect(within(drawer).getByText('Admin')).toBeInTheDocument();

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage Chat — streaming AI chat scoped to a single webpage's three files.
  *
@@ -22,6 +23,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
 const {
     getAIConfig,
@@ -114,7 +116,7 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
         adapter = getAdapter(config.providerType, (config.url || '').replace(/\/+$/, ''));
     } catch (providerErr) {
         log.error(`[WebpageChat] Provider resolution failed:`, providerErr.message);
-        return res.status(400).json({ error: providerErr.message });
+        throw new HttpError(400, 'bad_request', providerErr.message);
     }
     const apiKey = config.apiKey;
     const apiUrl = (config.url || '').replace(/\/+$/, '');

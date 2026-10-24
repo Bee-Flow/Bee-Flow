@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio catalog — the analytics surfaces: the data grid, the chart and
  * the pivot.

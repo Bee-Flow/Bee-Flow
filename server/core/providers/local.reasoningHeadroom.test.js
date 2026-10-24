@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A thinking turn against a self-hosted runtime keeps room to answer.
  *

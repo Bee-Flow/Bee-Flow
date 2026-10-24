@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — plan-first UX (app_propose_plan, app_mark_phase).
  * The route owns the real side effects (plan SSE, checkpoint snapshots);

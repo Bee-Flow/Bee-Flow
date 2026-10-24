@@ -8,7 +8,8 @@
  * becomes permanently un-submittable — with no error pointing at the cause.
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import PublicFormRenderer, { FormEndingView } from './PublicFormRenderer';
@@ -83,6 +84,7 @@ describe('download field', () => {
     });
 
     it('never becomes part of the submission', async () => {
+        const user = userEvent.setup();
         const onSubmit = vi.fn().mockResolvedValue(undefined);
         render(
             <PublicFormRenderer
@@ -91,7 +93,7 @@ describe('download field', () => {
                 downloadHref={href}
             />,
         );
-        fireEvent.click(screen.getByRole('button', { name: 'Verstuur' }));
+        await user.click(screen.getByRole('button', { name: 'Verstuur' }));
         await waitFor(() => expect(onSubmit).toHaveBeenCalled());
         const values = onSubmit.mock.calls[0][0];
         expect(values).not.toHaveProperty('doc');
@@ -99,15 +101,17 @@ describe('download field', () => {
     });
 
     it('a page that is ONLY a download can still be submitted', async () => {
+        const user = userEvent.setup();
         // The regression that matters: if the required check or initialValues
         // treated this as an input, the button would silently do nothing.
         const onSubmit = vi.fn().mockResolvedValue(undefined);
         render(<PublicFormRenderer form={form([DOWNLOAD])} onSubmit={onSubmit} downloadHref={href} />);
-        fireEvent.click(screen.getByRole('button', { name: 'Verstuur' }));
+        await user.click(screen.getByRole('button', { name: 'Verstuur' }));
         await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
     });
 
     it('a required flag on it is ignored rather than blocking the form', async () => {
+        const user = userEvent.setup();
         const onSubmit = vi.fn().mockResolvedValue(undefined);
         render(
             <PublicFormRenderer
@@ -116,7 +120,7 @@ describe('download field', () => {
                 downloadHref={href}
             />,
         );
-        fireEvent.click(screen.getByRole('button', { name: 'Verstuur' }));
+        await user.click(screen.getByRole('button', { name: 'Verstuur' }));
         await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
     });
 

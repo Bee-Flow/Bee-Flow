@@ -1,4 +1,5 @@
 import { fireEvent, render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import TableDesigner from './TableDesigner';
@@ -37,9 +38,10 @@ describe('TableDesigner', () => {
         expect(last().fields[0].key).toBe('amount');
     });
 
-    it('still allows a deliberate rename, behind a warning', () => {
+    it('still allows a deliberate rename, behind a warning', async () => {
+        const user = userEvent.setup();
         const { last, getByRole, getByPlaceholderText, getByText } = renderDesigner();
-        fireEvent.click(getByRole('button', { name: /change/i }));
+        await user.click(getByRole('button', { name: /change/i }));
         expect(getByText(/stops every form, list and chart/i)).toBeTruthy();
 
         fireEvent.change(getByPlaceholderText('amount'), { target: { value: 'Total amount' } });

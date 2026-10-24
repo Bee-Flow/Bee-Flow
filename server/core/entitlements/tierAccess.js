@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -118,7 +119,10 @@ function tierAccessOf(permitted) {
     };
 }
 
-/** One person's access, read from the list the tier dropdown is built from. */
+/**
+ * One person's access, read from the list the tier dropdown is built from.
+ * @param {{ userId?: string, session?: any, taskType?: string }} [opts]
+ */
 async function tierAccessFor({ userId, session = null, taskType = 'direct_chat' } = {}) {
     // Required when asked, so requiring this file costs nothing and a test
     // that stubs userTiers is the list every caller reads.
@@ -135,6 +139,7 @@ async function tierAccessFor({ userId, session = null, taskType = 'direct_chat' 
  * permitted set would refuse what they deliberately downgrade. A tier is
  * measured under the name the group editor stores (permissionNameOf); a
  * missing name, or no person, is never allowed.
+ * @param {{ userId?: string }} [opts]
  */
 async function groupTierGateFor({ userId } = {}) {
     if (!userId) return { allows: () => false };

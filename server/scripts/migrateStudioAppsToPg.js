@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Move App Studio apps off the per-app SQLite blob and into a per-app Postgres
  * schema (app_<appId> inside beeflow_core).

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * SBOM locator — candidate order, format detection and the never-throw
  * contract, against fixtures in a temp dir.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Cell-precise access to a native Google Sheet, for ./googleDrive.js: list
  * the tabs, sample a tab for number formats and formulas, read it with
@@ -239,7 +240,7 @@ async function appendRowAnywhere(d, file, sheet, cells) {
  * the engine's read of the next pass renumbers what shifted.
  * Date columns then get a DATE / DATE_TIME number format so the serial
  * renders as a date.
- * @returns {{ rowNumber:number, marker:object }}
+ * @returns {Promise<{ rowNumber:number, marker:object }>}
  */
 async function appendRow(d, file, sheet, cells, { ifMatch = null, afterRow = null } = {}) {
     await d.guard(file, ifMatch);
@@ -279,7 +280,7 @@ function makeSheetCells(d) {
         sample: (...a) => sample(d, ...a),
         readSheet: (...a) => readSheet(d, ...a),
         readRow: (...a) => readRow(d, ...a),
-        updateCells: (...a) => updateCells(d, ...a),
+        updateCells: (...a) => /** @type {Function} */ (updateCells)(d, ...a),
         appendRow: (...a) => appendRow(d, ...a),
         deleteRow: (...a) => deleteRow(d, ...a),
     };

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for integrationConnectionStore — legacy-key parsing + the central
  * resolveConnectionForRun decision logic (db mocked; SQL not exercised, the JS

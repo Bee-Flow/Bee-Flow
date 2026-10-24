@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The deploy runner's job: a 15-second tick over the runner, never
  * overlapping in one process and never throwing.

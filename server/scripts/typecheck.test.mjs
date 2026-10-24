@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * typecheck.mjs drives the native compiler (TypeScript 7 has no JS API) with
  * checkJs on for the whole program, so it sees errors everywhere and must

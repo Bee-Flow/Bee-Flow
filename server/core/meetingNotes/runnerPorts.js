@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Meeting notes' side of core/automationRunner/featurePorts.js: the periodic
  * passes the runner's scheduler (core/automationRunner/scheduler/) drives for
@@ -19,10 +20,10 @@ const teams = () => require('./teamsAutoImport');
 
 registerRunnerPorts({
     meetingImports: {
-        gmeetDiscover: (...args) => gmeet().discover(...args),
-        gmeetProcessDue: (...args) => gmeet().processDue(...args),
-        teamsDiscover: (...args) => teams().discover(...args),
-        teamsProcessDue: (...args) => teams().processDue(...args),
-        talkScanAndRecord: (...args) => require('./talkAutoRecord').scanAndRecord(...args),
+        gmeetDiscover: (...args) => /** @type {Function} */ (gmeet().discover)(...args),
+        gmeetProcessDue: (...args) => /** @type {Function} */ (gmeet().processDue)(...args),
+        teamsDiscover: (...args) => /** @type {Function} */ (teams().discover)(...args),
+        teamsProcessDue: (...args) => /** @type {Function} */ (teams().processDue)(...args),
+        talkScanAndRecord: (...args) => /** @type {Function} */ (require('./talkAutoRecord').scanAndRecord)(...args),
     },
 });

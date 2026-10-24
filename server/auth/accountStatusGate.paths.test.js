@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Every way into a session asks the account-status gate.
  *

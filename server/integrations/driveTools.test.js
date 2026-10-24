@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * drive_list_recent: files modified since a date, newest first, capped. The
  * Drive client is injected, so no network and no module stub.

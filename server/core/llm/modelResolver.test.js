@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DB-free tests for modelResolver.getUserTierMap (H6 adoption lock).
  *

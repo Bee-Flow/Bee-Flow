@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Audio conditioning for speech-to-text.
  *

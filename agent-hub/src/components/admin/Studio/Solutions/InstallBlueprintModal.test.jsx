@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../../../../utils/helpers', () => ({
@@ -163,14 +164,15 @@ describe('step 2 — what the installer supplies', () => {
     });
 
     it('sends the answers as resolutions, and nothing for what was left alone', async () => {
+        const user = userEvent.setup();
         open({ manifest: withHoles });
         await toStep(2);
         await waitFor(() => expect(screen.getByTestId('install-require-table').querySelectorAll('option')).toHaveLength(3));
 
         fireEvent.change(screen.getByTestId('install-require-table').querySelector('select'), { target: { value: 'tbl_theirs' } });
         fireEvent.change(screen.getByTestId('install-require-connection').querySelector('select'), { target: { value: 'conn_1' } });
-        fireEvent.click(screen.getByTestId('install-next'));
-        fireEvent.click(screen.getByTestId('install-confirm'));
+        await user.click(screen.getByTestId('install-next'));
+        await user.click(screen.getByTestId('install-confirm'));
 
         await waitFor(() => expect(screen.getByTestId('install-done')).toBeTruthy());
         expect(installBody().resolutions).toEqual({
@@ -182,14 +184,15 @@ describe('step 2 — what the installer supplies', () => {
     });
 
     it('offers an empty table when the recipient has none to point at', async () => {
+        const user = userEvent.setup();
         open({ manifest: manifest({ automations: [automation('aut_1', [
             { id: 's1', type: 'datatable', datatableId: '', datatableKey: 'invoices' },
         ])] }) });
         await toStep(2);
         fireEvent.change(screen.getByTestId('install-require-table').querySelector('select'),
             { target: { value: '__create_empty__' } });
-        fireEvent.click(screen.getByTestId('install-next'));
-        fireEvent.click(screen.getByTestId('install-confirm'));
+        await user.click(screen.getByTestId('install-next'));
+        await user.click(screen.getByTestId('install-confirm'));
         await waitFor(() => expect(screen.getByTestId('install-done')).toBeTruthy());
         expect(installBody().resolutions.tables).toEqual([{ key: 'invoices', create: true }]);
     });
@@ -239,12 +242,13 @@ describe('what the file ASKS for — the part an install refuses', () => {
     });
 
     it('NOTHING ABOUT GRANTS TRAVELS IN THE INSTALL BODY, TICKED OR NOT', async () => {
+        const user = userEvent.setup();
         open({ manifest: asking });
         await toStep(2);
         await waitFor(() => expect(screen.getByTestId('install-grant-integration')).toBeTruthy());
-        fireEvent.click(screen.getByTestId('install-grant-integration').querySelector('input[type=checkbox]'));
-        fireEvent.click(screen.getByTestId('install-next'));
-        fireEvent.click(screen.getByTestId('install-confirm'));
+        await user.click(screen.getByTestId('install-grant-integration').querySelector('input[type=checkbox]'));
+        await user.click(screen.getByTestId('install-next'));
+        await user.click(screen.getByTestId('install-confirm'));
         await waitFor(() => expect(screen.getByTestId('install-done')).toBeTruthy());
 
         // The manifest itself travels, and must: the server needs the file,
@@ -258,12 +262,13 @@ describe('what the file ASKS for — the part an install refuses', () => {
     });
 
     it('a ticked tool is handed over through the PAGE\'S OWN grants route, after the install', async () => {
+        const user = userEvent.setup();
         open({ manifest: asking });
         await toStep(2);
         await waitFor(() => expect(screen.getByTestId('install-grant-integration')).toBeTruthy());
-        fireEvent.click(screen.getByTestId('install-grant-integration').querySelector('input[type=checkbox]'));
-        fireEvent.click(screen.getByTestId('install-next'));
-        fireEvent.click(screen.getByTestId('install-confirm'));
+        await user.click(screen.getByTestId('install-grant-integration').querySelector('input[type=checkbox]'));
+        await user.click(screen.getByTestId('install-next'));
+        await user.click(screen.getByTestId('install-confirm'));
         await waitFor(() => expect(screen.getByTestId('install-done')).toBeTruthy());
 
         const grant = globalThis.__calls.find(c => c.url.includes('/grants/integrations'));
@@ -300,13 +305,14 @@ describe('what the file ASKS for — the part an install refuses', () => {
     });
 
     it('a grant that the server refused is reported, and the install still counts as done', async () => {
+        const user = userEvent.setup();
         mockFetch({ '/grants/integrations': () => fail(409, { code: 'connection_required', error: 'Connect Gmail first' }) });
         open({ manifest: asking });
         await toStep(2);
         await waitFor(() => expect(screen.getByTestId('install-grant-integration')).toBeTruthy());
-        fireEvent.click(screen.getByTestId('install-grant-integration').querySelector('input[type=checkbox]'));
-        fireEvent.click(screen.getByTestId('install-next'));
-        fireEvent.click(screen.getByTestId('install-confirm'));
+        await user.click(screen.getByTestId('install-grant-integration').querySelector('input[type=checkbox]'));
+        await user.click(screen.getByTestId('install-next'));
+        await user.click(screen.getByTestId('install-confirm'));
 
         await waitFor(() => expect(screen.getByTestId('install-result-failures')).toBeTruthy());
         expect(screen.getByTestId('install-result-failures').textContent).toMatch(/Connect Gmail first/);
@@ -316,21 +322,23 @@ describe('what the file ASKS for — the part an install refuses', () => {
 
 describe('step 3 and after', () => {
     it('shares with the people the installer added, through the project\'s own route', async () => {
+        const user = userEvent.setup();
         open({ manifest: manifest({}) });
         await toStep(3);
         await waitFor(() => expect(screen.getByTestId('install-access-add')).toBeTruthy());
         fireEvent.change(screen.getByLabelText('Who to add'), { target: { value: 'u1' } });
         fireEvent.change(screen.getByLabelText('What they may do'), { target: { value: 'editor' } });
-        fireEvent.click(screen.getByTestId('install-access-add'));
+        await user.click(screen.getByTestId('install-access-add'));
         expect(screen.getByTestId('install-access-list').textContent).toMatch(/ada/);
 
-        fireEvent.click(screen.getByTestId('install-confirm'));
+        await user.click(screen.getByTestId('install-confirm'));
         await waitFor(() => expect(screen.getByTestId('install-done')).toBeTruthy());
         const share = globalThis.__calls.find(c => c.url.includes('/share'));
         expect(JSON.parse(share.init.body)).toEqual({ sharedWithType: 'user', sharedWithId: 'u1', permission: 'editor' });
     });
 
     it('THE SERVER\'S OWN LIST OF WHAT IT REFUSED IS SHOWN, EVEN IF THIS SCREEN MISSED IT', async () => {
+        const user = userEvent.setup();
         // The client reads the file with its own eyes and the server decides.
         // Rendering `report.grantRequires` regardless is what stops a drift
         // between the two from becoming a silence.
@@ -345,16 +353,17 @@ describe('step 3 and after', () => {
         });
         open({ manifest: manifest({}) });
         await toStep(3);
-        fireEvent.click(screen.getByTestId('install-confirm'));
+        await user.click(screen.getByTestId('install-confirm'));
         await waitFor(() => expect(screen.getByTestId('install-result-grants')).toBeTruthy());
         expect(screen.getByTestId('install-result-grants').textContent).toMatch(/nextcloud_upload_file/);
     });
 
     it('a refused install says so and creates no result screen', async () => {
+        const user = userEvent.setup();
         mockFetch({ '/package/install': () => fail(403, { error: 'feature_locked' }) });
         open({ manifest: manifest({}) });
         await toStep(3);
-        fireEvent.click(screen.getByTestId('install-confirm'));
+        await user.click(screen.getByTestId('install-confirm'));
         await waitFor(() => expect(screen.getByTestId('install-error')).toBeTruthy());
         expect(screen.queryByTestId('install-done')).toBeNull();
     });
@@ -394,12 +403,13 @@ describe('waar dit bestand zégt vandaan te komen', () => {
     });
 
     it('een bewering reist niet mee naar de installatieroute', async () => {
+        const user = userEvent.setup();
         // De server leest de herkomst uit het MANIFEST dat hij zelf al heeft.
         // Zou de wizard hem los meesturen, dan was er een tweede weg naar die
         // kolommen — precies wat er bij de grants is afgeschaft.
         open({ manifest: fromFile({ blueprintId: 'bp_abc', orgId: 'org1', orgName: 'Acme' }) });
         await toStep(3);
-        fireEvent.click(screen.getByTestId('install-confirm'));
+        await user.click(screen.getByTestId('install-confirm'));
         await waitFor(() => expect(globalThis.__calls.some(c => c.url.includes('/package/install'))).toBe(true));
         const body = installBody();
         expect(body.source).toBeUndefined();

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance — the running clocks of an organisation, in one list.
  *

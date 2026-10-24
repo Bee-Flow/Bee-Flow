@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Row identity: a plain key is used verbatim, anything else is hashed, row
  * numbers become `r<n>`, blank rows and duplicates never get an id.

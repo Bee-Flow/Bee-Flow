@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Re-export: the implementation lives in utils/publicUrl.js, below the
  * features, so core can use it (core may not require a feature,

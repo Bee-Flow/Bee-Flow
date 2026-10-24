@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * BFSF-354 — an AI step's tool loop (execAiStep with allowTools) honours the
  * Privacy Shield's tool block lists, the way chat does: a call whose

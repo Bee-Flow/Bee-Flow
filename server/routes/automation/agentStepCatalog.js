@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What an agent, and a skill, bring to ONE AI step: the data behind the step
  * editor's "Who does the thinking" block (Studio → Automations, handoff 5,

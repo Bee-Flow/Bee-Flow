@@ -272,7 +272,7 @@ function makeCodeAssistRouter(overrides = {}) {
         }
         const usage = turn ? turn.usage : { prompt: 0, completion: 0, cached: 0, cacheCreation: 0, rounds: 0 };
         if (usage.rounds > 0) {
-            log.info(`[CodeAssist] usage automation=${automationId || '-'} step=${body.stepId || '-'} model=${model.modelId} rounds=${usage.rounds} in=${usage.prompt} cached=${usage.cached} out=${usage.completion} repairs=${turn ? turn.repairRounds : 0} changed=${turn ? turn.changed : false}`);
+            log.info(`[CodeAssist] usage automation=${automationId || '-'} step=${body.stepId || '-'} model=${model.modelId} rounds=${usage.rounds} in=${log.textForLog(usage.prompt)} cached=${usage.cached} out=${usage.completion} repairs=${turn ? turn.repairRounds : 0} changed=${turn ? turn.changed : false}`);
         }
         send('done', { usage });
         stopHeartbeat();

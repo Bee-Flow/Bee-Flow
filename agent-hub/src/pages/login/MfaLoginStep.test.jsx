@@ -52,10 +52,11 @@ describe('asking for the second factor', () => {
         expect(screen.getByTestId('mfa-verify-button')).not.toBeDisabled();
     });
 
-    it('hands the trimmed code up on submit', () => {
+    it('hands the trimmed code up on submit', async () => {
+        const user = userEvent.setup();
         const { p } = renderStep();
         fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '  123456 ' } });
-        fireEvent.click(screen.getByTestId('mfa-verify-button'));
+        await user.click(screen.getByTestId('mfa-verify-button'));
         expect(p.onVerify).toHaveBeenCalledWith('123456');
     });
 
@@ -63,10 +64,11 @@ describe('asking for the second factor', () => {
     // pattern, no digits-only filter (the forced-enrollment gate,
     // MfaSetupGate, does cap it at 6). A typo of seven digits is sent to the
     // server and comes back as "invalid code". Hoort in stage L12 te veranderen.
-    it('sends whatever was typed, however long, to the server', () => {
+    it('sends whatever was typed, however long, to the server', async () => {
+        const user = userEvent.setup();
         const { p } = renderStep();
         fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '1234567890' } });
-        fireEvent.click(screen.getByTestId('mfa-verify-button'));
+        await user.click(screen.getByTestId('mfa-verify-button'));
         expect(p.onVerify).toHaveBeenCalledWith('1234567890');
         expect(screen.getByTestId('mfa-code-input')).not.toHaveAttribute('maxlength');
     });
@@ -79,19 +81,21 @@ describe('asking for the second factor', () => {
 });
 
 describe('the way out when the authenticator is gone', () => {
-    it('swaps to a recovery code and clears whatever was half-typed', () => {
+    it('swaps to a recovery code and clears whatever was half-typed', async () => {
+        const user = userEvent.setup();
         renderStep();
         fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '123' } });
-        fireEvent.click(screen.getByText('Use a recovery code'));
+        await user.click(screen.getByText('Use a recovery code'));
         expect(screen.getByText('Enter one of your one-time recovery codes')).toBeInTheDocument();
         expect(screen.getByTestId('mfa-code-input')).toHaveValue('');
         expect(screen.getByTestId('mfa-code-input')).toHaveAttribute('placeholder', 'xxxx-xxxx');
     });
 
-    it('swaps back to the authenticator app', () => {
+    it('swaps back to the authenticator app', async () => {
+        const user = userEvent.setup();
         renderStep();
-        fireEvent.click(screen.getByText('Use a recovery code'));
-        fireEvent.click(screen.getByText('Use your authenticator app instead'));
+        await user.click(screen.getByText('Use a recovery code'));
+        await user.click(screen.getByText('Use your authenticator app instead'));
         expect(screen.getByText('Enter the 6-digit code from your authenticator app')).toBeInTheDocument();
     });
 
@@ -99,11 +103,12 @@ describe('the way out when the authenticator is gone', () => {
     // of its own, so the client cannot tell the server which of the two it is
     // sending — /auth/mfa/verify-login has to guess from the shape. Hoort in
     // stage L16 te veranderen als de fouttoestanden per soort uiteen moeten.
-    it('sends a recovery code through the very same callback as a TOTP code', () => {
+    it('sends a recovery code through the very same callback as a TOTP code', async () => {
+        const user = userEvent.setup();
         const { p } = renderStep();
-        fireEvent.click(screen.getByText('Use a recovery code'));
+        await user.click(screen.getByText('Use a recovery code'));
         fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: 'abcd-efgh' } });
-        fireEvent.click(screen.getByTestId('mfa-verify-button'));
+        await user.click(screen.getByTestId('mfa-verify-button'));
         expect(p.onVerify).toHaveBeenCalledWith('abcd-efgh');
         expect(p.onVerify).toHaveBeenCalledTimes(1);
     });
@@ -113,9 +118,10 @@ describe('the way out when the authenticator is gone', () => {
         expect(screen.getByText(/Locked out\? Use a recovery code, or ask your organization admin/)).toBeInTheDocument();
     });
 
-    it('offers a way back to the login form', () => {
+    it('offers a way back to the login form', async () => {
+        const user = userEvent.setup();
         const { p } = renderStep();
-        fireEvent.click(screen.getByText('Back'));
+        await user.click(screen.getByText('Back'));
         expect(p.onCancel).toHaveBeenCalled();
     });
 });

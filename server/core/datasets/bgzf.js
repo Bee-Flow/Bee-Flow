@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * core/datasets — BGZF blocks on plain zlib. No native deps, deliberately.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * documents.js and sources.js filter a document list on `status`/`pii`
  * against the SAME store vocabulary (stores/knowledgeBases.js's

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Integration tests for the additional-schedule store (automation_schedules).
  *

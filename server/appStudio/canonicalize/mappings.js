@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio canonicalizer — the keyed value maps an action or a step carries:
  * input mappings, navigate params, and the post-run effects block.

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Nextcloud Mail tools against a fake Nextcloud: ids, bodies, flags and error

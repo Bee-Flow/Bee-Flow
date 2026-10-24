@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Blog posts in the CMS store — the PostDoc aggregate end to end on an
  * in-memory config table:

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ISO 27001 A.8.13 — information backup: every Scaleway server must have a
  * recent snapshot. Reads the scaleway connector's summary snapshot;

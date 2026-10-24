@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — default system prompt.
  *

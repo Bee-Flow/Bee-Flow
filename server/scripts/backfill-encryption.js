@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Backfill encryption over rows written before a tier was switched on.
  *

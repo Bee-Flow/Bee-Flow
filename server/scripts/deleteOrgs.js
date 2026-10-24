@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Delete organisations and everything under them — by explicit id.
  *

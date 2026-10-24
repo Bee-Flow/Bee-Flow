@@ -1,3 +1,4 @@
+// @typecheck
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
@@ -90,7 +91,7 @@ async function installDependencies(componentPath, id) {
     } catch (err) { log.debug('no package.json → nothing to do', err); }
     if (!hasDeps) return { installed: true, blocked: [] };
 
-    await new Promise((resolve) => {
+    await new Promise((/** @type {(value?: any) => void} */ resolve) => {
         exec('npm install --silent', { cwd: componentPath }, (error, stdout, stderr) => {
             if (error) log.error(`Failed to install deps for ${id}:`, stderr);
             resolve();

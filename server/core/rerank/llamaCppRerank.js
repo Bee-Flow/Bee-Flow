@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Reranking via the local llama.cpp router (bge-reranker-v2-m3 on the GPU).
  *
@@ -75,7 +76,7 @@ async function rerankLlamaCpp(query, documents, topN) {
             log.warn(`[LlamaCppRerank] ${res.status}: ${body.slice(0, 200)}`);
             return [];
         }
-        const data = await res.json();
+        const data = /** @type {{ results?: any[] } | null} */ (await res.json());
         const rows = Array.isArray(data?.results) ? data.results : [];
         const scored = rows
             // An index outside the input array is the server disagreeing with us

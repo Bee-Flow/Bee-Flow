@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Regression: the NON-streaming Claude and Gemini/Vertex paths used to hand the
  * raw provider usage block to callers that read only prompt_tokens /

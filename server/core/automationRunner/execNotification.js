@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The notification step: the in-app bell and/or a service e-mail, guarded and
  * logged like every other outbound step (./outboundGuard.js).
@@ -40,7 +41,7 @@ function notificationChannels(step) {
     const ignored = requested.filter(c => !known.includes(c));
     if (known.length === 0) {
         const err = new Error(`notification: no supported channel in [${requested.join(', ')}] — use "notification" and/or "email"`);
-        err.errorClass = 'notification_channel_unsupported';
+        Object.assign(err, { errorClass: 'notification_channel_unsupported' });
         throw err;
     }
     return { known, ignored };

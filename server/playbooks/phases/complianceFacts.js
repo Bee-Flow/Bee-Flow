@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What is ACTUALLY true about what the playbook built — the half of the
  * compliance review that does IO.

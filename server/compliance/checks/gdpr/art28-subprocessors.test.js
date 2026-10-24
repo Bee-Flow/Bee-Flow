@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR Art. 28 after the move onto lib/observedOperators: the SQL the ledger
  * query runs is byte-for-byte the query this check has always run, and the

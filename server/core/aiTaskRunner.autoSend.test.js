@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A scheduled run must actually send the email it was asked to send.
  *

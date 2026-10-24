@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * EU AI Act Art. 4 — AI literacy (applies since 2 Feb 2025).
  *

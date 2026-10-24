@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tests for the org-health emitter (services/orgHealth.js): never-throws
  * contract, CODES catalog invariants, meta sanitizer privacy behaviors, and

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — tool inspection: the §B3 inspect-before-bind gate and
  * builder_inspect_tool (input params + output shape, runtime-cached when a

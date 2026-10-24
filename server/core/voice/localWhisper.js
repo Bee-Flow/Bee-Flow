@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Local transcription: NPU first, in-process CPU as the fallback.
  *
@@ -85,7 +86,7 @@ async function getPipeline() {
             const transcriber = await pipeline(
                 'automatic-speech-recognition',
                 LOCAL_WHISPER_MODEL_ID,
-                { dtype: LOCAL_WHISPER_DTYPE },
+                { dtype: /** @type {any} */ (LOCAL_WHISPER_DTYPE) }, // env-configured string
             );
             log.info(`[LocalWhisper] Model ${LOCAL_WHISPER_MODEL_ID} ready (threads=${LOCAL_WHISPER_WASM_THREADS}, maxDuration=${LOCAL_WHISPER_MAX_DURATION_SEC}s)`);
             return transcriber;

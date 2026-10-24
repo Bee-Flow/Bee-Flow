@@ -1,5 +1,6 @@
 import { DndContext } from '@dnd-kit/core';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import ScreenTabs from './ScreenTabs';
 import { AppEditorProvider } from '../state/AppEditorContext';
@@ -27,9 +28,10 @@ describe('ScreenTabs', () => {
         expect(screen.getByRole('button', { name: 'Add screen' })).toBeInTheDocument();
     });
 
-    it('opens the screen-options menu in a portal, so the strip cannot clip it', () => {
+    it('opens the screen-options menu in a portal, so the strip cannot clip it', async () => {
+        const user = userEvent.setup();
         renderTabs();
-        fireEvent.click(screen.getAllByRole('button', { name: /Screen options for/ })[0]);
+        await user.click(screen.getAllByRole('button', { name: /Screen options for/ })[0]);
 
         const menu = screen.getByRole('menu');
         // AnchoredMenu portals to <body>: a `top-full` panel inside the
@@ -41,22 +43,24 @@ describe('ScreenTabs', () => {
         expect(screen.getByRole('menuitem', { name: 'Delete screen' })).toBeInTheDocument();
     });
 
-    it('adds a screen from the pinned + button and commits the new definition', () => {
+    it('adds a screen from the pinned + button and commits the new definition', async () => {
+        const user = userEvent.setup();
         const { onCommit } = renderTabs();
-        fireEvent.click(screen.getByRole('button', { name: 'Add screen' }));
+        await user.click(screen.getByRole('button', { name: 'Add screen' }));
         expect(onCommit).toHaveBeenCalledTimes(1);
         const def = onCommit.mock.calls[0][0];
         expect(def.screens).toHaveLength(KITCHEN_SINK.screens.length + 1);
     });
 
-    it('deleting asks for confirmation before committing', () => {
+    it('deleting asks for confirmation before committing', async () => {
+        const user = userEvent.setup();
         const { onCommit } = renderTabs();
-        fireEvent.click(screen.getAllByRole('button', { name: /Screen options for/ })[0]);
-        fireEvent.click(screen.getByRole('menuitem', { name: 'Delete screen' }));
+        await user.click(screen.getAllByRole('button', { name: /Screen options for/ })[0]);
+        await user.click(screen.getByRole('menuitem', { name: 'Delete screen' }));
 
         // Nothing committed yet — the ConfirmDialog owns the decision.
         expect(onCommit).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByRole('button', { name: 'Delete screen' }));
+        await user.click(screen.getByRole('button', { name: 'Delete screen' }));
         expect(onCommit).toHaveBeenCalledTimes(1);
         expect(onCommit.mock.calls[0][0].screens).toHaveLength(KITCHEN_SINK.screens.length - 1);
     });

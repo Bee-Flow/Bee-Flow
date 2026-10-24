@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "May this mirror talk to Nextcloud right now, and as whom?"
  *
@@ -51,11 +52,11 @@ function deps() {
 }
 
 /**
- * @param {object} source   the mirror's `source` block
+ * @param {Record<string, any>} source   the mirror's `source` block
  * @param {object} [opts]
  * @param {string|null} [opts.orgId]  the table's organisation (null for a personal mirror)
  * @param {boolean} [opts.fresh]      skip the memo (a re-link, a "try again")
- * @returns {Promise<{ auth:object, userId:string, session:object }>}
+ * @returns {Promise<{ auth:{ baseUrl:string, fetch:Function, authError?:string }, userId:string, session:object }>}
  */
 async function resolveLinker(source, { orgId = null, fresh = false } = {}) {
     const userId = source && source.linkedByUserId;

@@ -360,7 +360,7 @@ function validateAndFixBindings(rawInputs, draft, opts = {}) {
  * root is a note here, not a refusal: prose may hold braces for its own
  * reasons. A path an authoritative shape cannot find is still refused.
  */
-function checkTextPlaceholders(text, graph, { draftWrap, label = 'text' } = {}) {
+function checkTextPlaceholders(text, graph, /** @type {{draftWrap?: any, label?: string}} */ { draftWrap, label = 'text' } = {}) {
     if (!hasPlaceholder(text)) return { text, notes: [], error: null };
     const r = validateAndFixBindings({ [label]: { kind: 'template', value: text } }, graph, { draftWrap, lenientRoots: true });
     const relabel = l => (l.startsWith(`inputs.${label}`) ? l.slice('inputs.'.length) : l);

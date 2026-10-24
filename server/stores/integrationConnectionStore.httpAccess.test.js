@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for the Feature-C access helpers on integrationConnectionStore:
  * authorizeConnectionUse (own-or-grant gate for ONE connection id) and

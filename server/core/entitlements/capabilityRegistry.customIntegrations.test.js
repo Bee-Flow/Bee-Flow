@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for the capabilityRegistry org-scoped custom-integration
  * projection (AI Integration Builder).

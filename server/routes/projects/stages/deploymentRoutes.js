@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Deployment routes (design 8, 6): ask for a deployment (202, the runner does

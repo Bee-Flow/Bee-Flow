@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DORA Art. 28(3) — the register of information on ICT third-party
  * arrangements.
@@ -189,4 +190,4 @@ module.exports = {
     },
 };
 
-module.exports._test = { _attestations, EU_EEA };
+Object.assign(module.exports, { _test: { _attestations, EU_EEA } });

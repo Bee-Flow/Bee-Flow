@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Een versierij zoals de geschiedenislijst hem mag lezen: met een maker, met
  * de gepubliceerde rij aangewezen, en met de eerlijke mededeling WAT een

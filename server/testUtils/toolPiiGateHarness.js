@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Shared scaffolding for the tests that pin the Privacy Shield's tool block
  * lists in a tool loop (BFSF-354, core/privacy/toolPiiGate.js).

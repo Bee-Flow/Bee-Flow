@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De agent-kiezer van de AI-stap (R2, deel C).
  *

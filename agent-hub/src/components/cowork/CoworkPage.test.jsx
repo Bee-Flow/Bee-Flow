@@ -6,6 +6,7 @@
  * its editor, and a row per run — the part the sidebar's page never had.
  */
 import { act, cleanup, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import CoworkPage from './CoworkPage';
@@ -106,13 +107,14 @@ describe('CoworkPage — creating', () => {
     });
 
     it('creates from the brief alone — no separate title or date fields', async () => {
+        const user = userEvent.setup();
         render(<CoworkPage />);
         await screen.findByTestId('cowork-brief-input');
 
         fireEvent.change(screen.getByTestId('cowork-brief-input'), {
             target: { value: 'Send the digest\nwith source links' },
         });
-        fireEvent.click(screen.getByTestId('cowork-send'));
+        await user.click(screen.getByTestId('cowork-send'));
 
         await waitFor(() => expect(api.createCowork).toHaveBeenCalledTimes(1));
         const payload = api.createCowork.mock.calls[0][0];
@@ -130,18 +132,19 @@ describe('CoworkPage — creating', () => {
     });
 
     it('carries the picked cadence into the payload and relabels the button', async () => {
+        const user = userEvent.setup();
         render(<CoworkPage />);
         await screen.findByTestId('cowork-brief-input');
 
         fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Weekly digest' } });
-        fireEvent.click(screen.getByTestId('cowork-repeat-chip'));
-        fireEvent.click(screen.getByText('Every week'));
-        fireEvent.click(screen.getByTestId('cowork-when-chip'));
-        fireEvent.click(screen.getByText('Tomorrow morning'));
+        await user.click(screen.getByTestId('cowork-repeat-chip'));
+        await user.click(screen.getByText('Every week'));
+        await user.click(screen.getByTestId('cowork-when-chip'));
+        await user.click(screen.getByText('Tomorrow morning'));
 
         expect(screen.getByTestId('cowork-send')).toHaveTextContent('Schedule');
 
-        fireEvent.click(screen.getByTestId('cowork-send'));
+        await user.click(screen.getByTestId('cowork-send'));
         await waitFor(() => expect(api.createCowork).toHaveBeenCalled());
         const payload = api.createCowork.mock.calls[0][0];
         expect(payload.repeatInterval).toBe('weekly');
@@ -150,12 +153,13 @@ describe('CoworkPage — creating', () => {
     });
 
     it('blocks send until a custom moment is fully picked', async () => {
+        const user = userEvent.setup();
         render(<CoworkPage />);
         await screen.findByTestId('cowork-brief-input');
         fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Do the thing' } });
 
-        fireEvent.click(screen.getByTestId('cowork-when-chip'));
-        fireEvent.click(screen.getByText('Pick a moment…'));
+        await user.click(screen.getByTestId('cowork-when-chip'));
+        await user.click(screen.getByText('Pick a moment…'));
         // The sheet seeds both inputs, so the button stays live…
         expect(screen.getByTestId('cowork-send')).not.toBeDisabled();
         // …and blanking one takes it away again.
@@ -164,12 +168,13 @@ describe('CoworkPage — creating', () => {
     });
 
     it('surfaces a create failure and keeps the brief in the box', async () => {
+        const user = userEvent.setup();
         api.createCowork.mockRejectedValue(new Error('Maximum number of cowork items reached (10).'));
         render(<CoworkPage />);
         await screen.findByTestId('cowork-brief-input');
 
         fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Do the thing' } });
-        fireEvent.click(screen.getByTestId('cowork-send'));
+        await user.click(screen.getByTestId('cowork-send'));
 
         expect(await screen.findByText(/Maximum number of cowork items reached/)).toBeInTheDocument();
         expect(screen.getByTestId('cowork-brief-input')).toHaveValue('Do the thing');
@@ -185,36 +190,39 @@ describe('CoworkPage — creating', () => {
     });
 
     it('sends the chosen model tier instead of silently scheduling on auto', async () => {
+        const user = userEvent.setup();
         render(<CoworkPage />);
         await screen.findByTestId('cowork-brief-input');
 
         fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Send the digest' } });
-        fireEvent.click(screen.getByTestId('cowork-send'));
+        await user.click(screen.getByTestId('cowork-send'));
 
         await waitFor(() => expect(api.createCowork).toHaveBeenCalled());
         expect(api.createCowork.mock.calls[0][0].modelTier).toBe('thinking');
     });
 
     it('starts the brief for you when an app is picked', async () => {
+        const user = userEvent.setup();
         render(<CoworkPage />);
         await screen.findByTestId('cowork-brief-input');
 
-        fireEvent.click(screen.getByTestId('apps-picker-button'));
+        await user.click(screen.getByTestId('apps-picker-button'));
         const calendar = screen.getAllByTestId('apps-picker-item')
             .find(el => el.dataset.appId === 'google-calendar');
-        fireEvent.click(calendar);
+        await user.click(calendar);
 
         expect(screen.getByTestId('cowork-brief-input').value).toMatch(/calendar/i);
     });
 
     it('selects what it just created, so its history is already on screen', async () => {
+        const user = userEvent.setup();
         render(<CoworkPage />);
         await screen.findByTestId('cowork-brief-input');
         // The refresh after create is what puts the new row in the list.
         api.listCowork.mockResolvedValue({ items: [{ ...ITEM, id: 'new' }], maxItems: 10 });
 
         fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Send the digest' } });
-        fireEvent.click(screen.getByTestId('cowork-send'));
+        await user.click(screen.getByTestId('cowork-send'));
 
         expect(await screen.findByTestId('cowork-detail')).toBeInTheDocument();
     });
@@ -254,12 +262,13 @@ describe('CoworkPage — the list', () => {
     });
 
     it('brings the composer back when the user asks for a new one', async () => {
+        const user = userEvent.setup();
         seed([ITEM]);
         render(<CoworkPage initialCoworkId="w1" />);
         await screen.findByTestId('cowork-detail');
         expect(screen.queryByTestId('cowork-brief-input')).not.toBeInTheDocument();
 
-        fireEvent.click(screen.getByTestId('cowork-new'));
+        await user.click(screen.getByTestId('cowork-new'));
         expect(screen.getByTestId('cowork-brief-input')).toBeInTheDocument();
         expect(screen.queryByTestId('cowork-detail')).not.toBeInTheDocument();
     });
@@ -351,10 +360,11 @@ describe('CoworkPage — detail, history and editing', () => {
     });
 
     it('opens the detail and its run history on select', async () => {
+        const user = userEvent.setup();
         seed([ITEM]);
         api.listCoworkRuns.mockResolvedValue({ runs: [RUN], total: 1 });
         render(<CoworkPage />);
-        fireEvent.click(await screen.findByTestId('cowork-row'));
+        await user.click(await screen.findByTestId('cowork-row'));
 
         expect(await screen.findByTestId('cowork-detail')).toBeInTheDocument();
         await waitFor(() => expect(api.listCoworkRuns).toHaveBeenCalledWith('w1'));
@@ -366,11 +376,12 @@ describe('CoworkPage — detail, history and editing', () => {
         expect(run).toHaveTextContent('0m 05s');
         expect(run).not.toHaveTextContent('5.2s');
 
-        fireEvent.click(within(run).getByRole('button', { expanded: false }));
+        await user.click(within(run).getByRole('button', { expanded: false }));
         expect(run).toHaveTextContent('Started by you');
     });
 
     it('renders a run result as Markdown, not as raw asterisks', async () => {
+        const user = userEvent.setup();
         // Results are model output, so they arrive as Markdown. Printed raw,
         // a digest opened with a line of "**Quick reminders:**" and pipes.
         seed([ITEM]);
@@ -379,9 +390,9 @@ describe('CoworkPage — detail, history and editing', () => {
             total: 1,
         });
         render(<CoworkPage />);
-        fireEvent.click(await screen.findByTestId('cowork-row'));
+        await user.click(await screen.findByTestId('cowork-row'));
         const run = await screen.findByTestId('cowork-run');
-        fireEvent.click(within(run).getByRole('button', { expanded: false }));
+        await user.click(within(run).getByRole('button', { expanded: false }));
 
         expect(within(run).getByRole('heading', { name: 'Today' })).toBeInTheDocument();
         expect(within(run).getAllByRole('listitem')).toHaveLength(2);
@@ -390,23 +401,25 @@ describe('CoworkPage — detail, history and editing', () => {
     });
 
     it('leaves a failure as plain text — a stack line is not Markdown', async () => {
+        const user = userEvent.setup();
         seed([ITEM]);
         api.listCoworkRuns.mockResolvedValue({
             runs: [{ ...RUN, status: 'failed', result: null, error: 'Rate limited (429): retry in 60s *now*' }],
             total: 1,
         });
         render(<CoworkPage />);
-        fireEvent.click(await screen.findByTestId('cowork-row'));
+        await user.click(await screen.findByTestId('cowork-row'));
         const run = await screen.findByTestId('cowork-run');
-        fireEvent.click(within(run).getByRole('button', { expanded: false }));
+        await user.click(within(run).getByRole('button', { expanded: false }));
 
         expect(run).toHaveTextContent('Rate limited (429): retry in 60s *now*');
     });
 
     it('says so plainly when a schedule has never run', async () => {
+        const user = userEvent.setup();
         seed([ITEM]);
         render(<CoworkPage />);
-        fireEvent.click(await screen.findByTestId('cowork-row'));
+        await user.click(await screen.findByTestId('cowork-row'));
         expect(await screen.findByTestId('cowork-no-runs')).toBeInTheDocument();
     });
 
@@ -417,43 +430,46 @@ describe('CoworkPage — detail, history and editing', () => {
     });
 
     it('runs, pauses and reloads the history', async () => {
+        const user = userEvent.setup();
         seed([ITEM]);
         api.runCoworkNow.mockResolvedValue({ success: true });
         api.toggleCowork.mockResolvedValue({ success: true, isActive: false });
         render(<CoworkPage initialCoworkId="w1" />);
         await screen.findByTestId('cowork-detail');
 
-        fireEvent.click(screen.getByTestId('cowork-run-now'));
+        await user.click(screen.getByTestId('cowork-run-now'));
         await waitFor(() => expect(api.runCoworkNow).toHaveBeenCalledWith('w1'));
         // A run changes the history, so it must be refetched, not left stale.
         await waitFor(() => expect(api.listCoworkRuns.mock.calls.length).toBeGreaterThan(1));
 
-        fireEvent.click(screen.getByTestId('cowork-toggle'));
+        await user.click(screen.getByTestId('cowork-toggle'));
         await waitFor(() => expect(api.toggleCowork).toHaveBeenCalledWith('w1'));
     });
 
     it('deletes only after the confirm step', async () => {
+        const user = userEvent.setup();
         seed([ITEM]);
         api.deleteCowork.mockResolvedValue({ success: true });
         render(<CoworkPage initialCoworkId="w1" />);
         await screen.findByTestId('cowork-detail');
 
-        fireEvent.click(screen.getByTestId('cowork-delete'));
+        await user.click(screen.getByTestId('cowork-delete'));
         expect(api.deleteCowork).not.toHaveBeenCalled();
 
-        fireEvent.click(screen.getByTestId('cowork-confirm-delete'));
+        await user.click(screen.getByTestId('cowork-confirm-delete'));
         await waitFor(() => expect(api.deleteCowork).toHaveBeenCalledWith('w1'));
     });
 
     it('saves an edit and only then leaves the form', async () => {
+        const user = userEvent.setup();
         seed([ITEM]);
         api.updateCowork.mockResolvedValue({ success: true });
         render(<CoworkPage initialCoworkId="w1" />);
         await screen.findByTestId('cowork-detail');
 
-        fireEvent.click(screen.getByTestId('cowork-edit'));
+        await user.click(screen.getByTestId('cowork-edit'));
         fireEvent.change(await screen.findByTestId('cowork-edit-title'), { target: { value: 'Monthly digest' } });
-        fireEvent.click(screen.getByTestId('cowork-edit-save'));
+        await user.click(screen.getByTestId('cowork-edit-save'));
 
         await waitFor(() => expect(api.updateCowork).toHaveBeenCalled());
         const [id, patch] = api.updateCowork.mock.calls[0];
@@ -463,20 +479,22 @@ describe('CoworkPage — detail, history and editing', () => {
     });
 
     it('keeps a rejected edit on screen instead of discarding it', async () => {
+        const user = userEvent.setup();
         seed([ITEM]);
         api.updateCowork.mockRejectedValue(new Error('Unknown timezone: Mars/Olympus'));
         render(<CoworkPage initialCoworkId="w1" />);
         await screen.findByTestId('cowork-detail');
 
-        fireEvent.click(screen.getByTestId('cowork-edit'));
+        await user.click(screen.getByTestId('cowork-edit'));
         fireEvent.change(await screen.findByTestId('cowork-edit-title'), { target: { value: 'Monthly digest' } });
-        fireEvent.click(screen.getByTestId('cowork-edit-save'));
+        await user.click(screen.getByTestId('cowork-edit-save'));
 
         expect(await screen.findByText(/Unknown timezone/)).toBeInTheDocument();
         expect(screen.getByTestId('cowork-edit-title')).toHaveValue('Monthly digest');
     });
 
     it('round-trips an hourly repeat instead of silently resetting it to Once', async () => {
+        const user = userEvent.setup();
         // The repeat <select> only had options down to 'quarterly', so an
         // hourly item — which the API and the AI composer both produce — fell
         // back to the first option and was rewritten to "Once" on save.
@@ -485,15 +503,16 @@ describe('CoworkPage — detail, history and editing', () => {
         render(<CoworkPage initialCoworkId="w1" />);
         await screen.findByTestId('cowork-detail');
 
-        fireEvent.click(screen.getByTestId('cowork-edit'));
+        await user.click(screen.getByTestId('cowork-edit'));
         expect(await screen.findByTestId('cowork-edit-repeat')).toHaveValue('hourly');
-        fireEvent.click(screen.getByTestId('cowork-edit-save'));
+        await user.click(screen.getByTestId('cowork-edit-save'));
 
         await waitFor(() => expect(api.updateCowork).toHaveBeenCalled());
         expect(api.updateCowork.mock.calls[0][1].repeatInterval).toBe('hourly');
     });
 
     it('sends the wall-clock time along with the moment it was moved to', async () => {
+        const user = userEvent.setup();
         // timeOfDay feeds the schedule description the runner puts in the
         // prompt. Leaving it behind meant a job moved to 07:00 kept telling
         // the model it runs at 09:00.
@@ -502,9 +521,9 @@ describe('CoworkPage — detail, history and editing', () => {
         render(<CoworkPage initialCoworkId="w1" />);
         await screen.findByTestId('cowork-detail');
 
-        fireEvent.click(screen.getByTestId('cowork-edit'));
+        await user.click(screen.getByTestId('cowork-edit'));
         fireEvent.change(await screen.findByTestId('cowork-edit-time'), { target: { value: '07:00' } });
-        fireEvent.click(screen.getByTestId('cowork-edit-save'));
+        await user.click(screen.getByTestId('cowork-edit-save'));
 
         await waitFor(() => expect(api.updateCowork).toHaveBeenCalled());
         const patch = api.updateCowork.mock.calls[0][1];
@@ -513,12 +532,13 @@ describe('CoworkPage — detail, history and editing', () => {
     });
 
     it('offers the Apps picker while editing, so a run can be scoped before it fires', async () => {
+        const user = userEvent.setup();
         // Without it you could only change which apps a cowork may touch from
         // the composer — i.e. only while creating a new one.
         seed([ITEM]);
         render(<CoworkPage initialCoworkId="w1" />);
         await screen.findByTestId('cowork-detail');
-        fireEvent.click(screen.getByTestId('cowork-edit'));
+        await user.click(screen.getByTestId('cowork-edit'));
 
         await screen.findByTestId('cowork-edit-form');
         expect(screen.getByTestId('apps-picker-button')).toBeInTheDocument();
@@ -526,6 +546,7 @@ describe('CoworkPage — detail, history and editing', () => {
     });
 
     it('gives the item its own app list the moment one is switched off', async () => {
+        const user = userEvent.setup();
         // A cowork runs unattended hours later, so "what may this one touch"
         // is a per-item question. Until the picker is touched the item has no
         // list and follows the workspace default.
@@ -533,12 +554,12 @@ describe('CoworkPage — detail, history and editing', () => {
         api.updateCowork.mockResolvedValue({ success: true });
         render(<CoworkPage initialCoworkId="w1" />);
         await screen.findByTestId('cowork-detail');
-        fireEvent.click(screen.getByTestId('cowork-edit'));
+        await user.click(screen.getByTestId('cowork-edit'));
         await screen.findByTestId('cowork-edit-form');
 
-        fireEvent.click(screen.getByTestId('apps-picker-button'));
-        fireEvent.click(screen.getByLabelText('Enable Gmail'));
-        fireEvent.click(screen.getByTestId('cowork-edit-save'));
+        await user.click(screen.getByTestId('apps-picker-button'));
+        await user.click(screen.getByLabelText('Enable Gmail'));
+        await user.click(screen.getByTestId('cowork-edit-save'));
 
         await waitFor(() => expect(api.updateCowork).toHaveBeenCalled());
         const { enabledApps } = api.updateCowork.mock.calls[0][1];
@@ -550,12 +571,13 @@ describe('CoworkPage — detail, history and editing', () => {
     });
 
     it('leaves the list alone when the picker is never opened', async () => {
+        const user = userEvent.setup();
         seed([ITEM]);
         api.updateCowork.mockResolvedValue({ success: true });
         render(<CoworkPage initialCoworkId="w1" />);
         await screen.findByTestId('cowork-detail');
-        fireEvent.click(screen.getByTestId('cowork-edit'));
-        fireEvent.click(await screen.findByTestId('cowork-edit-save'));
+        await user.click(screen.getByTestId('cowork-edit'));
+        await user.click(await screen.findByTestId('cowork-edit-save'));
 
         await waitFor(() => expect(api.updateCowork).toHaveBeenCalled());
         // null, not [] — "follow the workspace list", not "may use nothing".
@@ -563,29 +585,31 @@ describe('CoworkPage — detail, history and editing', () => {
     });
 
     it('can hand an item back to the workspace list', async () => {
+        const user = userEvent.setup();
         seed([{ ...ITEM, enabledApps: ['gmail'] }]);
         api.updateCowork.mockResolvedValue({ success: true });
         render(<CoworkPage initialCoworkId="w1" />);
         await screen.findByTestId('cowork-detail');
-        fireEvent.click(screen.getByTestId('cowork-edit'));
+        await user.click(screen.getByTestId('cowork-edit'));
 
-        fireEvent.click(await screen.findByTestId('cowork-apps-reset'));
-        fireEvent.click(screen.getByTestId('cowork-edit-save'));
+        await user.click(await screen.findByTestId('cowork-apps-reset'));
+        await user.click(screen.getByTestId('cowork-edit-save'));
 
         await waitFor(() => expect(api.updateCowork).toHaveBeenCalled());
         expect(api.updateCowork.mock.calls[0][1].enabledApps).toBeNull();
     });
 
     it('abandons an open edit when the user switches to another item', async () => {
+        const user = userEvent.setup();
         // Carrying the form over would save one item's text onto another.
         seed([ITEM, { ...ITEM, id: 'w2', title: 'Daily standup' }]);
         render(<CoworkPage initialCoworkId="w1" />);
         await screen.findByTestId('cowork-detail');
-        fireEvent.click(screen.getByTestId('cowork-edit'));
+        await user.click(screen.getByTestId('cowork-edit'));
         await screen.findByTestId('cowork-edit-form');
 
         const rows = screen.getAllByTestId('cowork-row');
-        fireEvent.click(rows.find(r => within(r).queryByText('Daily standup')));
+        await user.click(rows.find(r => within(r).queryByText('Daily standup')));
 
         expect(screen.queryByTestId('cowork-edit-form')).not.toBeInTheDocument();
         expect(screen.getByTestId('cowork-detail')).toHaveTextContent('Daily standup');
@@ -655,12 +679,13 @@ describe('CoworkPage — how the list is built', () => {
     });
 
     it('keeps the stale list on screen when a refresh fails, and calls the failure a status, not an alert (wart)', async () => {
+        const user = userEvent.setup();
         seed([ITEM]);
         render(<CoworkPage />);
         await screen.findByText('Weekly digest');
 
         api.listCowork.mockRejectedValue(new Error('Backend down'));
-        fireEvent.click(screen.getByTestId('cowork-refresh'));
+        await user.click(screen.getByTestId('cowork-refresh'));
 
         const box = await screen.findByText('Backend down');
         expect(box.getAttribute('role')).toBe('status');
@@ -670,12 +695,13 @@ describe('CoworkPage — how the list is built', () => {
     });
 
     it('lets a load error take the one status box away from the quota warning', async () => {
+        const user = userEvent.setup();
         api.listCowork.mockResolvedValue({ items: [ITEM], maxItems: 1 });
         render(<CoworkPage />);
         await screen.findByText(/used all 1 cowork slots/);
 
         api.listCowork.mockRejectedValue(new Error('Backend down'));
-        fireEvent.click(screen.getByTestId('cowork-refresh'));
+        await user.click(screen.getByTestId('cowork-refresh'));
 
         expect(await screen.findByText('Backend down')).toBeInTheDocument();
         expect(screen.queryByText(/used all 1 cowork slots/)).not.toBeInTheDocument();
@@ -690,7 +716,7 @@ describe('CoworkPage — the quota ceiling and the flash', () => {
 
         fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'One more thing' } });
         expect(screen.getByTestId('cowork-send')).not.toBeDisabled();
-        fireEvent.click(screen.getByTestId('cowork-send'));
+        await userEvent.click(screen.getByTestId('cowork-send'));
 
         // Nothing async is even started: no compose, no create, no message.
         expect(api.composeCowork).not.toHaveBeenCalled();
@@ -703,7 +729,7 @@ describe('CoworkPage — the quota ceiling and the flash', () => {
         await screen.findByTestId('cowork-brief-input');
 
         fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Send the digest' } });
-        fireEvent.click(screen.getByTestId('cowork-send'));
+        await userEvent.click(screen.getByTestId('cowork-send'));
 
         const flash = await screen.findByText('Off it goes — the result lands in your notifications.');
         expect(flash.getAttribute('role')).toBe('status');
@@ -715,9 +741,9 @@ describe('CoworkPage — the quota ceiling and the flash', () => {
         await screen.findByTestId('cowork-brief-input');
 
         fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Send the digest' } });
-        fireEvent.click(screen.getByTestId('cowork-when-chip'));
-        fireEvent.click(screen.getByText('Tomorrow morning'));
-        fireEvent.click(screen.getByTestId('cowork-send'));
+        await userEvent.click(screen.getByTestId('cowork-when-chip'));
+        await userEvent.click(screen.getByText('Tomorrow morning'));
+        await userEvent.click(screen.getByTestId('cowork-send'));
 
         expect(await screen.findByText('Scheduled.')).toBeInTheDocument();
     });
@@ -754,7 +780,7 @@ describe('CoworkPage — the quota ceiling and the flash', () => {
         api.listCowork.mockResolvedValue({ items: [{ ...ITEM, id: 'new' }], maxItems: 10 });
 
         fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Send the digest' } });
-        fireEvent.click(screen.getByTestId('cowork-send'));
+        await userEvent.click(screen.getByTestId('cowork-send'));
 
         await screen.findByTestId('cowork-detail');
         expect(screen.queryByText(/Off it goes/)).not.toBeInTheDocument();
@@ -769,7 +795,7 @@ describe('CoworkPage — the quota ceiling and the flash', () => {
         render(<CoworkPage initialCoworkId="w1" />);
         await screen.findByTestId('cowork-detail');
 
-        fireEvent.click(screen.getByTestId('cowork-run-now'));
+        await userEvent.click(screen.getByTestId('cowork-run-now'));
         await waitFor(() => expect(api.runCoworkNow).toHaveBeenCalledWith('w1'));
 
         expect(screen.queryByText(/Running — the result lands in your notifications/)).not.toBeInTheDocument();
@@ -781,7 +807,7 @@ describe('CoworkPage — the quota ceiling and the flash', () => {
         render(<CoworkPage initialCoworkId="w1" />);
         await screen.findByTestId('cowork-detail');
 
-        fireEvent.click(screen.getByTestId('cowork-run-now'));
+        await userEvent.click(screen.getByTestId('cowork-run-now'));
 
         const alert = await screen.findByRole('alert');
         expect(alert).toHaveTextContent('Runner is offline');
@@ -791,35 +817,38 @@ describe('CoworkPage — the quota ceiling and the flash', () => {
 
 describe('CoworkPage — what the router is told', () => {
     it('reports a click on a row as cowork/<id>', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         seed([ITEM]);
         render(<CoworkPage onNavigate={onNavigate} />);
-        fireEvent.click(await screen.findByTestId('cowork-row'));
+        await user.click(await screen.findByTestId('cowork-row'));
         expect(onNavigate).toHaveBeenCalledWith('cowork/w1');
     });
 
     it('says nothing when the selection is cleared, so the URL keeps the old item (wart)', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         seed([ITEM]);
         render(<CoworkPage onNavigate={onNavigate} />);
-        fireEvent.click(await screen.findByTestId('cowork-row'));
+        await user.click(await screen.findByTestId('cowork-row'));
         expect(onNavigate).toHaveBeenCalledTimes(1);
 
-        fireEvent.click(screen.getByTestId('cowork-new'));
+        await user.click(screen.getByTestId('cowork-new'));
         expect(screen.getByTestId('cowork-brief-input')).toBeInTheDocument();
         expect(onNavigate).toHaveBeenCalledTimes(1);
     });
 
     it('says nothing after a delete either, leaving the URL on an item that is gone (wart)', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         seed([ITEM]);
         api.deleteCowork.mockResolvedValue({ success: true });
         render(<CoworkPage initialCoworkId="w1" onNavigate={onNavigate} />);
         await screen.findByTestId('cowork-detail');
 
-        fireEvent.click(screen.getByTestId('cowork-delete'));
+        await user.click(screen.getByTestId('cowork-delete'));
         api.listCowork.mockResolvedValue({ items: [], maxItems: 10 });
-        fireEvent.click(screen.getByTestId('cowork-confirm-delete'));
+        await user.click(screen.getByTestId('cowork-confirm-delete'));
 
         await waitFor(() => expect(api.deleteCowork).toHaveBeenCalledWith('w1'));
         await waitFor(() => expect(screen.queryAllByTestId('cowork-row')).toHaveLength(0));
@@ -869,8 +898,9 @@ describe('CoworkPage — the delete confirmation', () => {
     });
 
     it('ignores a click inside the panel', async () => {
+        const user = userEvent.setup();
         const { panel } = await openConfirm();
-        fireEvent.click(panel);
+        await user.click(panel);
         expect(screen.getByText('Delete this cowork?')).toBeInTheDocument();
     });
 
@@ -945,6 +975,7 @@ describe('CoworkPage — on a phone', () => {
     });
 
     it('gives the whole screen to a selected item, with a way back that the router never hears about (wart)', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         seed([ITEM]);
         render(<CoworkPage isMobile initialCoworkId="w1" onNavigate={onNavigate} />);
@@ -954,7 +985,7 @@ describe('CoworkPage — on a phone', () => {
         expect(screen.queryByTestId('cowork-new')).not.toBeInTheDocument();
         expect(screen.queryByTestId('cowork-brief-input')).not.toBeInTheDocument();
 
-        fireEvent.click(screen.getByLabelText('Back to the list'));
+        await user.click(screen.getByLabelText('Back to the list'));
         expect(await screen.findByTestId('cowork-row')).toBeInTheDocument();
         expect(onNavigate).not.toHaveBeenCalled();
     });

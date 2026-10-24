@@ -1,3 +1,4 @@
+// @typecheck
 const { test, afterEach } = require('node:test');
 const assert = require('node:assert');
 

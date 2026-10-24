@@ -77,6 +77,7 @@ describe('the shell (2a/2c)', () => {
     });
 
     it('⋯ menu: Rename table opens the header’s inline edit; Duplicate copies the shape, never the rows, and opens the copy', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         renderDetail({ onNavigate });
         await screen.findByTestId('table-meta');
@@ -86,14 +87,14 @@ describe('the shell (2a/2c)', () => {
         expect(items[1]).toContain('Duplicate');
         expect(items[2]).toContain('Export');
         expect(items[items.length - 1]).toContain('Delete this table…');
-        fireEvent.click(screen.getByTestId('menu-rename'));
+        await user.click(screen.getByTestId('menu-rename'));
         const input = await screen.findByTestId('studio-section-title-input');
         fireEvent.change(input, { target: { value: 'PB duidelijk' } });
         fireEvent.keyDown(input, { key: 'Enter' });
         await waitFor(() => expect(datatablesApi.update).toHaveBeenCalledWith('tbl_1', { name: 'PB duidelijk' }));
 
         openMenu();
-        fireEvent.click(screen.getByTestId('menu-duplicate'));
+        await user.click(screen.getByTestId('menu-duplicate'));
         await waitFor(() => expect(datatablesApi.create).toHaveBeenCalled());
         const body = datatablesApi.create.mock.calls[0][0];
         expect(body.name).toBe('PB vaag (copy)');
@@ -105,10 +106,11 @@ describe('the shell (2a/2c)', () => {
     });
 
     it('⋯ menu: Delete this table… opens the danger zone already armed, in a dialog, and the name is typed', async () => {
+        const user = userEvent.setup();
         renderDetail();
         await screen.findByTestId('table-meta');
         openMenu();
-        fireEvent.click(screen.getByRole('menuitem', { name: /Delete this table/ }));
+        await user.click(screen.getByRole('menuitem', { name: /Delete this table/ }));
         expect(await screen.findByTestId('danger-dependents')).toHaveTextContent('Playbook');
         const confirm = screen.getByRole('button', { name: /Delete for good/ });
         expect(confirm.disabled).toBe(true);
@@ -128,6 +130,7 @@ describe('the shell (2a/2c)', () => {
 
 describe('Columns (2a)', () => {
     it('compact rows: no technical name, no "your own column", a pill on written columns, chips for a choice column, the grip reorders', async () => {
+        const user = userEvent.setup();
         renderDetail();
         await screen.findByDisplayValue('Datum');
         expect(screen.queryByText(/your own column/)).toBeNull();
@@ -144,7 +147,7 @@ describe('Columns (2a)', () => {
         const names = screen.getAllByLabelText('Column name').map(i => i.value);
         expect(names.slice(0, 2)).toEqual(['Leverancier', 'Datum']);
         // the chips' + opens the options editor
-        fireEvent.click(screen.getByTestId('column-options-edit'));
+        await user.click(screen.getByTestId('column-options-edit'));
         expect(screen.getByLabelText('Options for Status').value).toBe('Nieuw, Goedgekeurd, Afgewezen');
     });
 

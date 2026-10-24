@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -17,6 +18,7 @@
 
 const { parseArgs } = require('node:util');
 
+/** @type {Record<string, {type: 'string'|'boolean', default?: any, short?: string}>} */
 const APPLY_OPTION = { apply: { type: 'boolean', default: false } };
 
 /**
@@ -41,6 +43,8 @@ function parseOpsArgs(options = {}, { argv = process.argv.slice(2), positionals 
 /**
  * parseOpsArgs for a script's top level: on a parse error print the reason
  * (and the usage line, when given) to stderr and exit 1 before anything runs.
+ * @param {Record<string, {type: 'string'|'boolean', default?: any, short?: string}>} [options]
+ * @param {{ usage?: string, argv?: string[], positionals?: boolean }} [opts]
  */
 function parseOpsArgsOrExit(options, { usage, ...opts } = {}) {
     try {

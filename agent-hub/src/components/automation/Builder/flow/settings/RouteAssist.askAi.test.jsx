@@ -84,10 +84,11 @@ describe('offline first', () => {
 
 describe('what leaves the page', () => {
     it('SENDS FIELD NAMES AND NOT ONE CELL OF DATA', async () => {
+        const user = userEvent.setup();
         api.suggestRouteRules.mockResolvedValue({ rules: [], problem: 'nope' });
         setup();
         type('route anything that smells like an escalation');
-        fireEvent.click(screen.getByRole('button', { name: /Ask the AI/i }));
+        await user.click(screen.getByRole('button', { name: /Ask the AI/i }));
         await waitFor(() => expect(api.suggestRouteRules).toHaveBeenCalled());
 
         const body = api.suggestRouteRules.mock.calls[0][0];
@@ -102,10 +103,11 @@ describe('what leaves the page', () => {
     });
 
     it('sends the description the author typed, trimmed', async () => {
+        const user = userEvent.setup();
         api.suggestRouteRules.mockResolvedValue({ rules: [], problem: '' });
         setup();
         type('   route escalations   ');
-        fireEvent.click(screen.getByRole('button', { name: /Ask the AI/i }));
+        await user.click(screen.getByRole('button', { name: /Ask the AI/i }));
         await waitFor(() => expect(api.suggestRouteRules).toHaveBeenCalled());
         expect(api.suggestRouteRules.mock.calls[0][0].description).toBe('route escalations');
     });
@@ -121,33 +123,36 @@ describe('what comes back', () => {
     };
 
     it('is shown as rules, and accepted through the same path as a hand-made one', async () => {
+        const user = userEvent.setup();
         api.suggestRouteRules.mockResolvedValue(ANSWER);
         const { onApply } = setup();
         type('route anything that smells like an escalation');
-        fireEvent.click(screen.getByRole('button', { name: /Ask the AI/i }));
+        await user.click(screen.getByRole('button', { name: /Ask the AI/i }));
         await screen.findByText('Escalations');
-        fireEvent.click(screen.getByRole('button', { name: /Use these 2 outputs/i }));
+        await user.click(screen.getByRole('button', { name: /Use these 2 outputs/i }));
         expect(onApply).toHaveBeenCalledWith(ANSWER.rules);
     });
 
     it('SAYS it came from the AI, instead of borrowing the catalogue\'s voice', async () => {
+        const user = userEvent.setup();
         // The catalogue names the field it matched on and cannot drift; a
         // model does neither. Presenting them identically would make the two
         // indistinguishable to the person deciding whether to trust them.
         api.suggestRouteRules.mockResolvedValue(ANSWER);
         setup();
         type('route anything that smells like an escalation');
-        fireEvent.click(screen.getByRole('button', { name: /Ask the AI/i }));
+        await user.click(screen.getByRole('button', { name: /Ask the AI/i }));
         expect(await screen.findByText(/Written by the AI/i)).toBeTruthy();
     });
 
     it('is thrown away when the sentence changes', async () => {
+        const user = userEvent.setup();
         // Rules that answer the OLD sentence, still accept-able, is how
         // someone commits to a question they changed their mind about.
         api.suggestRouteRules.mockResolvedValue(ANSWER);
         setup();
         type('route anything that smells like an escalation');
-        fireEvent.click(screen.getByRole('button', { name: /Ask the AI/i }));
+        await user.click(screen.getByRole('button', { name: /Ask the AI/i }));
         await screen.findByText('Escalations');
         type('actually never mind, something else entirely');
         expect(screen.queryByText('Escalations')).toBeNull();
@@ -166,34 +171,37 @@ describe('what comes back', () => {
     });
 
     it('passes the model\'s own sentence through when it could not answer', async () => {
+        const user = userEvent.setup();
         api.suggestRouteRules.mockResolvedValue({
             rules: [], problem: 'There is no date field to compare against.',
         });
         setup();
         type('split by anything older than last week');
-        fireEvent.click(screen.getByRole('button', { name: /Ask the AI/i }));
+        await user.click(screen.getByRole('button', { name: /Ask the AI/i }));
         expect(await screen.findByText(/no date field/i)).toBeTruthy();
     });
 });
 
 describe('when there is no model behind the box', () => {
     it('says so plainly — that is the normal state on a self-hosted install', async () => {
+        const user = userEvent.setup();
         const err = new Error('nope');
         err.status = 403;
         api.suggestRouteRules.mockRejectedValue(err);
         setup();
         type('route anything that smells like an escalation');
-        fireEvent.click(screen.getByRole('button', { name: /Ask the AI/i }));
+        await user.click(screen.getByRole('button', { name: /Ask the AI/i }));
         expect(await screen.findByText(/not switched on for your organisation/i)).toBeTruthy();
         // And the offline half is still there to use.
         expect(screen.getByLabelText('Describe the outputs you want')).toBeTruthy();
     });
 
     it('a transient failure does not read as a refusal', async () => {
+        const user = userEvent.setup();
         api.suggestRouteRules.mockRejectedValue(new Error('boom'));
         setup();
         type('route anything that smells like an escalation');
-        fireEvent.click(screen.getByRole('button', { name: /Ask the AI/i }));
+        await user.click(screen.getByRole('button', { name: /Ask the AI/i }));
         expect(await screen.findByText(/Could not reach the AI just now/i)).toBeTruthy();
     });
 });

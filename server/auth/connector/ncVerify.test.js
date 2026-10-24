@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for connector/ncVerify.js: the stable instance-id fallback and the
  * capabilities round-trip's SSRF gate.

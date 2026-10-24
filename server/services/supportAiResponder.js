@@ -17,7 +17,7 @@
  *                          "Bee Flow Support" system prompt and tools.
  *   support_ai_kb_ids    — JSON array of KB UUIDs to search.
  */
-
+// @typecheck
 const supportStore = require('../stores/supportStore');
 const configStore = require('../stores/configStore');
 const { chatWithAgent } = require('../core/agentRuntime');
@@ -341,6 +341,7 @@ async function _safeRecordEvent(payload) {
  * Escalate the thread to staff. Idempotent: caller may invoke this from any
  * failure path. Appends a system message + updates status + records an audit
  * event. Never throws — failures are logged.
+ * @param {string} threadId @param {string} reason @param {{ systemMessage?: string }} [opts]
  */
 async function _escalate(threadId, reason, { systemMessage } = {}) {
     try {
@@ -440,7 +441,7 @@ async function _autoTag(thread, lastBody, draftReply) {
  *
  * @param {string} threadId
  * @param {{ aiUserId?: string }} [opts]
- * @returns {Promise<{ message: object, escalated: boolean, escalateReason: string|null } | null>}
+ * @returns {Promise<{ message: object, escalated: boolean, escalateReason: string|null, resolved?: boolean, mode?: string, sent?: boolean, confidence?: number } | null>}
  */
 async function runAiAutoResponder(threadId, opts = {}) {
     let settled = false;
@@ -603,5 +604,4 @@ async function runAiAutoResponder(threadId, opts = {}) {
         }
     }
 }
-
 module.exports = { runAiAutoResponder };

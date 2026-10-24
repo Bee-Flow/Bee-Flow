@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * services/webpageBfTable — de PUBLIEKE kant van een tabelbinding.
  *

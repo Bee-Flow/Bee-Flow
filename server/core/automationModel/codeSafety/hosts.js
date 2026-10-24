@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Host names: the lists two rules match against, and the one matcher the
  * analyser, the validator and the run-time host manifest all use, so "is this

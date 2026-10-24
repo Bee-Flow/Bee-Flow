@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok, fail } from '@/test/http';
 import ConnectorHealthPanel from './ConnectorHealthPanel';
@@ -73,14 +74,15 @@ describe('ConnectorHealthPanel', () => {
     });
 
     it('narrows rows with the status filter pills', async () => {
+        const user = userEvent.setup();
         mockFleet();
         render(<ConnectorHealthPanel />);
         await screen.findByText('Blokkade BV');
-        fireEvent.click(screen.getByTestId('ch-pill-ok'));
+        await user.click(screen.getByTestId('ch-pill-ok'));
         expect(screen.queryByText('Blokkade BV')).toBeNull();
         expect(screen.getByText('Acme BV')).toBeTruthy();
         // Clicking the same pill again clears the filter.
-        fireEvent.click(screen.getByTestId('ch-pill-ok'));
+        await user.click(screen.getByTestId('ch-pill-ok'));
         expect(screen.getByText('Blokkade BV')).toBeTruthy();
     });
 
@@ -94,11 +96,12 @@ describe('ConnectorHealthPanel', () => {
     });
 
     it('shows a load-failed banner with a working Retry on failure', async () => {
+        const user = userEvent.setup();
         authFetch.mockImplementation(() => fail(500));
         render(<ConnectorHealthPanel />);
         expect(await screen.findByText('Failed to load connector health')).toBeTruthy();
         mockFleet();
-        fireEvent.click(screen.getByText('Retry'));
+        await user.click(screen.getByText('Retry'));
         expect(await screen.findByText('Blokkade BV')).toBeTruthy();
         expect(screen.queryByText('Failed to load connector health')).toBeNull();
     });
@@ -110,10 +113,11 @@ describe('ConnectorHealthPanel', () => {
     });
 
     it('opens the drawer and navigates on row click', async () => {
+        const user = userEvent.setup();
         mockFleet();
         const onNavigate = vi.fn();
         render(<ConnectorHealthPanel onNavigate={onNavigate} />);
-        fireEvent.click(await screen.findByText('Blokkade BV'));
+        await user.click(await screen.findByText('Blokkade BV'));
         expect(onNavigate).toHaveBeenCalledWith('admin/security/connector-health/org-b');
         expect(screen.getByTestId('org-drawer').getAttribute('data-org')).toBe('org-b');
     });

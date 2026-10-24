@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Trigger-source registry — what app_event triggers can exist on this install.
  *
@@ -47,7 +48,7 @@ function freeze(decl, origin, orgId) {
  * honoured — a half-valid event would be offered in the builder and never fire.
  */
 function registerTriggerSource(decl, { origin = 'runtime', orgId = null } = {}) {
-    const issues = validateTriggerSource(decl, { existingIds: _global.keys() });
+    const issues = validateTriggerSource(decl, { existingIds: /** @type {any} */ (_global.keys()) });
     const errors = issues.filter(i => i.severity === 'error');
     if (errors.length) {
         log.warn(`[triggerSources] rejected "${decl?.id}" from ${origin}: `

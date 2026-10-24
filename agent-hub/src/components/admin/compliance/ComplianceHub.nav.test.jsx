@@ -108,13 +108,14 @@ describe('ComplianceHub navigation contract', () => {
     });
 
     it('emits admin/compliance/<section> when a sidebar section is clicked', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         render(<ComplianceHub onNavigate={onNavigate} />);
         await waitFor(() => expect(global.fetch).toHaveBeenCalled());
-        fireEvent.click(screen.getByTitle('compliance.nav_gdpr'));
+        await user.click(screen.getByTitle('compliance.nav_gdpr'));
         expect(onNavigate).toHaveBeenCalledWith('admin/compliance/gdpr');
         // Settings carries a hint in its tooltip, so it is found by test id.
-        fireEvent.click(screen.getByTestId('rail-row-settings'));
+        await user.click(screen.getByTestId('rail-row-settings'));
         expect(onNavigate).toHaveBeenCalledWith('admin/compliance/settings');
     });
 
@@ -170,10 +171,11 @@ describe('ComplianceHub navigation contract', () => {
     });
 
     it('emits the CANONICAL id for a row that used to live under iso_*', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         render(<ComplianceHub onNavigate={onNavigate} />);
         await waitFor(() => expect(global.fetch).toHaveBeenCalled());
-        fireEvent.click(screen.getByTitle('compliance.rail_soa'));
+        await user.click(screen.getByTitle('compliance.rail_soa'));
         expect(onNavigate).toHaveBeenCalledWith('admin/compliance/soa');
     });
 

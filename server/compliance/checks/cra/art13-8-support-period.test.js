@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CRA Art. 13(8) support period: relevance/role gates (with the products
  * hint), missing declaration → fail, passed / near end-of-support → warn,

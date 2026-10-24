@@ -172,7 +172,7 @@ router.post('/machinery/subjects/:id/attest', ...guard, validate({ body: AttestB
         try { require('./counts').invalidate(orgId); } catch (err) { log.debug('counts router not shipped yet', err); }
         res.status(201).json({ ...attestation, classification: outcome });
     } catch (e) {
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 

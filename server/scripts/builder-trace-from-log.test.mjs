@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for builder-trace-from-log.mjs — the pure parse/dedupe/fixture
  * functions. REAL_LINE is one rejected line copied byte-for-byte from a

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Email parsing + threading + loop-detection helpers shared by the support
  * inbox sync engine. Pure functions — no I/O.

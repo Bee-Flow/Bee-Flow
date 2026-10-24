@@ -8,7 +8,8 @@
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/canUse/SkillsCard.test.jsx
  */
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 import { READ } from './canUseFacts';
@@ -79,10 +80,11 @@ describe('SkillsCard — leeg is niet hetzelfde als onleesbaar', () => {
         expect(screen.getByTestId('agent-skills-unreadable')).toBeTruthy();
     });
 
-    it('laat een mislukte lezing opnieuw proberen', () => {
+    it('laat een mislukte lezing opnieuw proberen', async () => {
+        const user = userEvent.setup();
         const onRetry = vi.fn();
         render(<SkillsCard {...base} state={READ.ERROR} onRetry={onRetry} />);
-        fireEvent.click(screen.getByText('Retry'));
+        await user.click(screen.getByText('Retry'));
         expect(onRetry).toHaveBeenCalled();
     });
 
@@ -93,10 +95,11 @@ describe('SkillsCard — leeg is niet hetzelfde als onleesbaar', () => {
 });
 
 describe('SkillsCard — de knoppen', () => {
-    it('"+ Koppelen" vraagt de kiezer om de sectie Skills', () => {
+    it('"+ Koppelen" vraagt de kiezer om de sectie Skills', async () => {
+        const user = userEvent.setup();
         const onOpenChooser = vi.fn();
         render(<SkillsCard {...base} onOpenChooser={onOpenChooser} />);
-        fireEvent.click(screen.getByTestId('agent-skills-link'));
+        await user.click(screen.getByTestId('agent-skills-link'));
         expect(onOpenChooser).toHaveBeenCalledWith({ section: CHOOSER_SECTION.SKILLS, appId: null });
     });
 

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The builder's app/action catalog — "what can this user wire up?".
  *
@@ -49,7 +50,7 @@ const log = require('../telemetry/log');
 
 /**
  * @param {string} userId
- * @param {object|null} session  Live request session, or the offline session
+ * @param {any} session  Live request session, or the offline session
  *   from automation/triggerBus loadSession() for unattended/MCP callers.
  */
 async function buildCatalogForUser(userId, session) {
@@ -75,7 +76,7 @@ async function buildCatalogForUser(userId, session) {
             // what execAi passes when it resolves the same set to authorise a
             // step, and without it a tool the runner will happily execute is
             // missing from the builder (and now, refused by it).
-            const r = await getIntegrationTools({ userId, session, isAdmin: !!session?.isAdmin, automationStep: true });
+            const r = await getIntegrationTools(/** @type {any} */ ({ userId, session, isAdmin: !!session?.isAdmin, automationStep: true }));
             userToolDefs = Array.isArray(r.tools) ? r.tools : [];
             for (const t of userToolDefs) if (t?.function?.name) userToolNames.add(t.function.name);
         } catch (e) {

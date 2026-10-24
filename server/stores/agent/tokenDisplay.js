@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Privacy Shield tokens on the DISPLAY read of a conversation (direct and
  * agent chats): the stored messages keep their `[person_1]` placeholders, and

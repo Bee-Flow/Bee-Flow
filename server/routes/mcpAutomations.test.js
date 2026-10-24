@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Automations MCP endpoint's protocol layer.
  *

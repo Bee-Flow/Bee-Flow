@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio catalog — the interactive surfaces: the filter bar, the drag-drop
  * kanban board, the calendar and the AI chat.

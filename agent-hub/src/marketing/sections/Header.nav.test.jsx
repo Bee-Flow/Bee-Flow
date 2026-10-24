@@ -12,6 +12,7 @@
  * Run: cd agent-hub && npx vitest run src/marketing/sections/Header.nav.test.jsx
  */
 import { render, fireEvent, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Header from './Header.jsx';
 
@@ -61,13 +62,14 @@ describe('the mega panel', () => {
         expect(container.querySelectorAll('.nav-mega [role="menuitem"]')).toHaveLength(0);
     });
 
-    it('marks the trigger as a popup owner and tracks its open state', () => {
+    it('marks the trigger as a popup owner and tracks its open state', async () => {
+        const user = userEvent.setup();
         const { container } = renderHeader();
         const trigger = container.querySelector('.nav-item.has-dropdown > a');
         expect(trigger.getAttribute('aria-haspopup')).toBe('true');
         expect(trigger.getAttribute('aria-expanded')).toBe('false');
 
-        fireEvent.mouseEnter(container.querySelector('.nav-item.has-dropdown'));
+        await user.hover(container.querySelector('.nav-item.has-dropdown'));
         expect(trigger.getAttribute('aria-expanded')).toBe('true');
     });
 
@@ -78,10 +80,11 @@ describe('the mega panel', () => {
         expect(within(megaPanel(container)).getByText('Chat, agents and automations')).toBeTruthy();
     });
 
-    it('closes on Escape', () => {
+    it('closes on Escape', async () => {
+        const user = userEvent.setup();
         const { container } = renderHeader();
         const item = container.querySelector('.nav-item.has-dropdown');
-        fireEvent.mouseEnter(item);
+        await user.hover(item);
         expect(item.className).toContain('is-open');
 
         fireEvent.keyDown(window, { key: 'Escape' });
@@ -116,6 +119,7 @@ describe('the mega panel', () => {
         fireEvent.pointerDown(trigger);
         fireEvent.focus(trigger);
         expect(item.className).toContain('is-open');
+        // A bare click event: user.click would fire its own pointerdown first and change the state under test.
         fireEvent.click(trigger);
         expect(item.className).toContain('is-open');
     });
@@ -145,24 +149,26 @@ describe('the mega panel', () => {
         expect(fireEvent.click(pricing)).toBe(true); // not prevented
     });
 
-    it('closes on a click outside the nav', () => {
+    it('closes on a click outside the nav', async () => {
+        const user = userEvent.setup();
         // The only way to dismiss a tapped-open panel on a touch device.
         const { container } = renderHeader();
         const item = container.querySelector('.nav-item.has-dropdown');
-        fireEvent.mouseEnter(item);
+        await user.hover(item);
         expect(item.className).toContain('is-open');
 
         fireEvent.pointerDown(document.body);
         expect(item.className).not.toContain('is-open');
     });
 
-    it('gives the header a background while it is open', () => {
+    it('gives the header a background while it is open', async () => {
+        const user = userEvent.setup();
         // Otherwise an opaque panel hangs off a transparent bar at the top
         // of the page.
         const { container } = renderHeader();
         const header = container.querySelector('header.header');
         expect(header.className).not.toContain('nav-open');
-        fireEvent.mouseEnter(container.querySelector('.nav-item.has-dropdown'));
+        await user.hover(container.querySelector('.nav-item.has-dropdown'));
         expect(header.className).toContain('nav-open');
     });
 });
@@ -173,7 +179,8 @@ describe('the mobile drawer', () => {
         return drawer(container);
     };
 
-    it('lets you reach the parent page AND expand its submenu', () => {
+    it('lets you reach the parent page AND expand its submenu', async () => {
+        const user = userEvent.setup();
         // The regression this file exists for: one control that only ever
         // toggled meant /platform was unreachable on a phone.
         const { container } = renderHeader();
@@ -186,38 +193,41 @@ describe('the mobile drawer', () => {
 
         const caret = row.querySelector('.mobile-nav-caret');
         expect(caret.getAttribute('aria-expanded')).toBe('false');
-        fireEvent.click(caret);
+        await user.click(caret);
         expect(caret.getAttribute('aria-expanded')).toBe('true');
         expect(container.querySelector('.mobile-nav-children')).toBeTruthy();
     });
 
-    it('falls back to toggling on the label when the parent has no href', () => {
+    it('falls back to toggling on the label when the parent has no href', async () => {
+        const user = userEvent.setup();
         const { container } = renderHeader({
             navLinks: [{ ...MEGA, href: '' }],
         });
         openDrawer(container);
         const label = container.querySelector('.mobile-nav-label');
         expect(label.tagName).toBe('BUTTON');
-        fireEvent.click(label);
+        await user.click(label);
         expect(container.querySelector('.mobile-nav-children')).toBeTruthy();
     });
 
-    it('keeps the descriptions that make the submenu legible', () => {
+    it('keeps the descriptions that make the submenu legible', async () => {
+        const user = userEvent.setup();
         const { container } = renderHeader();
         openDrawer(container);
-        fireEvent.click(container.querySelector('.mobile-nav-caret'));
+        await user.click(container.querySelector('.mobile-nav-caret'));
         const descs = [...container.querySelectorAll('.mobile-nav-item-desc')].map(n => n.textContent);
         expect(descs).toContain('Draft from your sources');
     });
 
-    it('shows only one section at a time', () => {
+    it('shows only one section at a time', async () => {
+        const user = userEvent.setup();
         const { container } = renderHeader({
             navLinks: [MEGA, { ...MEGA, id: 'b', label: 'Second' }],
         });
         openDrawer(container);
         const carets = container.querySelectorAll('.mobile-nav-caret');
-        fireEvent.click(carets[0]);
-        fireEvent.click(carets[1]);
+        await user.click(carets[0]);
+        await user.click(carets[1]);
         expect(carets[0].getAttribute('aria-expanded')).toBe('false');
         expect(carets[1].getAttribute('aria-expanded')).toBe('true');
     });
@@ -230,19 +240,21 @@ describe('the mobile drawer', () => {
         expect(cta.textContent).toBe('Open the app');
     });
 
-    it('locks the page while open and restores it on close', () => {
+    it('locks the page while open and restores it on close', async () => {
+        const user = userEvent.setup();
         const { container } = renderHeader();
         openDrawer(container);
         expect(document.body.style.overflow).toBe('hidden');
-        fireEvent.click(container.querySelector('.hamburger'));
+        await user.click(container.querySelector('.hamburger'));
         expect(document.body.style.overflow).not.toBe('hidden');
     });
 
-    it('closes on the scrim, on Escape, and on following a link', () => {
+    it('closes on the scrim, on Escape, and on following a link', async () => {
+        const user = userEvent.setup();
         const { container } = renderHeader();
 
         openDrawer(container);
-        fireEvent.click(container.querySelector('.mobile-nav-scrim'));
+        await user.click(container.querySelector('.mobile-nav-scrim'));
         expect(drawer(container).className).not.toContain('active');
 
         openDrawer(container);
@@ -252,7 +264,7 @@ describe('the mobile drawer', () => {
         // Scoped to the drawer: the same label also exists in the desktop
         // nav, which does not (and must not) close it.
         openDrawer(container);
-        fireEvent.click(within(drawer(container)).getByText('Pricing'));
+        await user.click(within(drawer(container)).getByText('Pricing'));
         expect(drawer(container).className).not.toContain('active');
     });
 });

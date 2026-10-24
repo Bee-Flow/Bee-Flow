@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * EAA-Art4-webpage-a11y — per-source static lint of published pages.
  * Run: cd server && node --test --test-force-exit compliance/checks/eaa/art4-webpage-a11y.test.js

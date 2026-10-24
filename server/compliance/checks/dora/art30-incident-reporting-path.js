@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DORA Art. 30(2)(f), 30(3)(b) — the incident reporting path towards
  * financial customers (Art. 19 sets THEIR clocks: initial notification within
@@ -237,4 +238,4 @@ module.exports = {
     },
 };
 
-module.exports._test = { DEFAULT_NOTICE_HOURS, URGENT_HOURS, _clock, _contacts };
+Object.assign(module.exports, { _test: { DEFAULT_NOTICE_HOURS, URGENT_HOURS, _clock, _contacts } });

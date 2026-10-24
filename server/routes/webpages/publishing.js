@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Publiceren en wat het publiek te zien krijgt: de thumbnail en de
  * org/groep-zichtbaarheid met de versie die eraan vastgepind wordt.
@@ -173,11 +174,7 @@ function register(router) {
         // sticks; new org applies on first publish). Undefined → leave as-is.
         const effectiveOrg = wp.organizationId || organizationId || null;
         let cleanedGroups;
-        try {
-            cleanedGroups = await validateSharedGroupsForOrg(effectiveOrg, sharedGroups);
-        } catch (e) {
-            return res.status(e.status || 500).json({ error: e.message });
-        }
+        cleanedGroups = await validateSharedGroupsForOrg(effectiveOrg, sharedGroups);
 
         // ── Pin what the audience reads ─────────────────────────────────
         // Publishing FREEZES the current content; changing the audience does

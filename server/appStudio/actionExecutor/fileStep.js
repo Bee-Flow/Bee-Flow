@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio action executor — generate_file (extracted verbatim from
  * actionExecutor.js): render rows into a real CSV/spreadsheet in the app's

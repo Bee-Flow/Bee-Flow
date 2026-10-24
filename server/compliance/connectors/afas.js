@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * AFAS Profit connector — HR-population evidence for the employment
  * controls (A.6.1/A.6.5): the GetConnector the org designates as its

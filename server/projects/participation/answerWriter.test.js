@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * projects/participation/answerWriter.js — the automatic answer for a surface
  * that only stores answers (comment threads). Everything injected.

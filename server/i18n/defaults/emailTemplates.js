@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Transactional Email Template Defaults
  *

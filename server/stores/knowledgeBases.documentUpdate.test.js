@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * knowledgeBases.replaceDocumentContent — what the UPDATE writes.
  *

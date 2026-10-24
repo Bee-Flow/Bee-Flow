@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * WHO A PLAYBOOK'S ASSISTANTS MAY NAME — the people and groups handed to a
  * model that proposes access (accessPhaseRoutes: the access assistant) or a

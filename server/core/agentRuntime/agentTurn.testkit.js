@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Test kit: a real chatWithAgentStream turn without Postgres.
  *
@@ -233,7 +234,7 @@ function defaultStubs(S, toolRegistry) {
 
 /**
  * Install the stubs and load chatStream.
- * @param {object} S  the file's state (see turnState)
+ * @param {any} S  the file's state (see turnState)
  * @param {{ toolRegistry?: object, stubs?: object }} [opts]
  */
 function installAgentTurnHarness(S, { toolRegistry = EMPTY_TOOL_REGISTRY, stubs = {} } = {}) {

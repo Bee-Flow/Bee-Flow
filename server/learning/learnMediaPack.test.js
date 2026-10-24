@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Guard for the pinned Learning Center video pack (learning/learnMediaPack.json,
  * generated when a pack is published): when the pin exists it must be valid and

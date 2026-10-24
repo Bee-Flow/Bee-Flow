@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * outputFields — what a ref path yields, and the loop.<var>.<field> check.
  *

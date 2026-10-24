@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Test kit for suites that drive the REAL automationRunner with its stores
  * stubbed in the require cache: an in-memory automationStore whose runs are
@@ -21,7 +22,7 @@ require('../services/runnerPorts');
 /** Put `exportsObj` in the require cache under `modPath` (resolved from core/). */
 function stub(modPath, exportsObj) {
     const resolved = require.resolve(modPath);
-    require.cache[resolved] = { id: resolved, filename: resolved, loaded: true, exports: exportsObj };
+    require.cache[resolved] = /** @type {any} */ ({ id: resolved, filename: resolved, loaded: true, exports: exportsObj });
 }
 
 function installRunnerStoreStubs() {

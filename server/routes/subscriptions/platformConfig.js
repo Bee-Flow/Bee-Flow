@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Install-wide (not org-scoped) subscription admin — the master lists the Plan
  * editor renders, the default trial plans, the unresolved license-issuance
@@ -11,6 +12,7 @@ const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { HttpError } = require('../../core/http/errors');
 
 const router = express.Router();
 
@@ -129,7 +131,7 @@ router.put('/trial-config', validate({ body: TrialConfigBody }), async (req, res
         res.json(newCfg);
     } catch (e) {
         log.error('[Subscriptions] setTrialConfig error:', e);
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 
@@ -170,7 +172,7 @@ router.put('/currency-rates', validate({ body: CurrencyRatesBody }), async (req,
         res.json(after);
     } catch (e) {
         log.error('[Subscriptions] setCurrencyRates error:', e);
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 

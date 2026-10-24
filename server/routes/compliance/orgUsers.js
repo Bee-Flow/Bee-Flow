@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance — the org member directory behind the DPO / breach-recipient
  * pickers.

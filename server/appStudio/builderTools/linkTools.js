@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — LINKING an existing Studio table into the app.
  *
@@ -69,7 +70,7 @@ async function applyLinkDatatable(draftWrap, args, deps = {}) {
         name: a.name,
         mode,
     }, deps);
-    if (resolved.error) return resolved;
+    if ('error' in resolved) return resolved;
     const { datatable, scope } = resolved;
 
     const datatableStore = deps.datatableStore || require('../../stores/datatableStore');

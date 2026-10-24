@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Re-export shim: this module moved to core/kb/n8nWorkflowConverter.js (the core/ layout in
  * server/ARCHITECTURE.md). Kept so every existing require, test stub and

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Microsoft Entra ID (Azure AD) directory connector — identity-population
  * evidence for the access-management controls (A.5.16/A.5.18/A.8.2) via

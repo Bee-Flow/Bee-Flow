@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Every way this router says no.
  *

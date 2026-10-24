@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The credential-gated tool groups of getIntegrationTools
  * (./integrationTools.js): the OAuth providers (Google, Microsoft), the

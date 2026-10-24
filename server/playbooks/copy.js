@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The words the Playbook ENGINE itself writes — the phase summaries the
  * handoff card shows, the descriptions of the things it creates, and the

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Meeting Notes. Dispatched in-process the moment a note is ready to be read.
  *

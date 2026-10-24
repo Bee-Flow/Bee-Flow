@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Remote-module projection — the join between the Hub catalog (hubClient) and
  * this install's persisted state (platform_modules rows written by

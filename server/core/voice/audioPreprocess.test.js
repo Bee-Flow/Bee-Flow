@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Audio conditioning — runs the REAL ffmpeg (via @ffmpeg-installer).
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage light-tier API runtime.
  *
@@ -127,7 +128,7 @@ async function executeApiHandler({ webpageId, route, req }) {
     let runResult;
     try {
         runResult = await codeSandbox.runCode({
-            code: file.text, inputs: req, limits: LIMITS, bridges,
+            code: file.text, inputs: req, limits: LIMITS, bridges, mode: 'live',
             // Fairness unit for the sandbox's concurrency cap: the page author's org.
             concurrencyKey: ctx.authorOrgId || ctx.authorUserId || null,
         });

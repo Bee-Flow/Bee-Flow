@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 vi.mock('../analyticsApi', () => {
@@ -124,16 +125,18 @@ describe('AnalyticsPanel', () => {
     });
 
     it('switches sections and reflects it in the URL', async () => {
+        const user = userEvent.setup();
         render(<AnalyticsPanel />);
-        fireEvent.click(await screen.findByText('Realtime'));
+        await user.click(await screen.findByText('Realtime'));
         await waitFor(() => {
             expect(new URLSearchParams(window.location.search).get('section')).toBe('realtime');
         });
     });
 
     it('adds a drill-down filter chip when a breakdown row is clicked', async () => {
+        const user = userEvent.setup();
         render(<AnalyticsPanel />);
-        fireEvent.click(await screen.findByText('/solutions'));
+        await user.click(await screen.findByText('/solutions'));
         expect(await screen.findByText(/Page: \/solutions/)).toBeInTheDocument();
         await waitFor(() => {
             expect(new URLSearchParams(window.location.search).get('f')).toContain('path');

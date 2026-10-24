@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A JSON request body stays JSON, whatever the mapped values contain.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Data Act Art. 25(2)(d) notice period: self-hosted → n/a (unless the org
  * resells), cloud without a declared platform value → warn, > 60 d → fail,

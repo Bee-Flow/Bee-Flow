@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * pyannoteAI model selection.
  *

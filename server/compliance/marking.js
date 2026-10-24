@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * EU AI Act Art. 50(2) — content marking for AI-generated documents.
  *

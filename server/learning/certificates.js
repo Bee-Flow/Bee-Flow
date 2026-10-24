@@ -1,3 +1,4 @@
+// @typecheck
 // Certificate issuance + lookup — the authority that the auth endpoints and the
 // public /verify route both call. Eligibility is ALWAYS recomputed from the
 // server-side progress blob; client claims are never trusted.
@@ -48,6 +49,11 @@ function isEligible(certId, progress, visibleByCourse) {
 // against the lessons the user can actually access when the caller resolved them
 // (visibleByCourse undefined → strict all-lessons semantics).
 // Returns { record, verifyToken } or { error } when not eligible.
+/**
+ * @param {string} userId
+ * @param {string} certId
+ * @param {{ recipientName?: string, orgName?: string, makePublic?: boolean, visibleByCourse?: any }} [opts]
+ */
 async function issueCertificate(userId, certId, { recipientName, orgName, makePublic = false, visibleByCourse } = {}) {
     const cert = getCatalogCert(certId);
     if (!cert) return { error: 'unknown_certificate' };

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Knowledge Bases — per-user favorites (DB-backed).
  */

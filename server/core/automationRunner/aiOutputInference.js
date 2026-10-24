@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The output schema of a schemaless AI step, read off how later steps use it.
  *

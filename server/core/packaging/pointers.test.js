@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The pointer registry: one list of every place a Solution part names another.
  *

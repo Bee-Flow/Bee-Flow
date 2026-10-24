@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage screenshot tool — lets the Webpages builder AI render the current
  * page in a real headless browser and SEE it (Claude is vision-capable), plus
@@ -75,6 +76,11 @@ function formatDiagnostics(r, vpLabel, modelSupportsVision) {
 const _lastCall = new Map();
 const MIN_INTERVAL_MS = 1500;
 
+/**
+ * @param {string} toolName
+ * @param {Record<string, any>} args
+ * @param {{ webpageId?: string, userId?: string, modelSupportsVision?: boolean }} [opts]
+ */
 async function executeScreenshotTool(toolName, args, { webpageId, userId, modelSupportsVision = false } = {}) {
     if (!isScreenshotTool(toolName)) return { content: `Unknown screenshot tool: ${toolName}` };
     if (!webpageId || !userId) return { content: 'Cannot screenshot: missing webpage context.' };

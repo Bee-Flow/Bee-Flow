@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Turning an ai_step's raw reply into its output (moved verbatim out of
  * execAi.js): when the step has a schema, the JSON is pulled out of the
@@ -14,6 +15,7 @@ const log = require('../../telemetry/log');
  * @returns {any} the step output (a parsed object, a wrapped object or the text)
  */
 function parseAiStepOutput(content, { step, effectiveSchema, inferred, inferredFields, outputContract }) {
+    /** @type {any} */
     let output = content;
     if (effectiveSchema) {
         // Attempt JSON parse anywhere in the response. A model asked for JSON
@@ -75,7 +77,7 @@ function parseAiStepOutput(content, { step, effectiveSchema, inferred, inferredF
             const err = new Error(looksTruncated
                 ? `This step's answer was cut off before the JSON was complete (${text.length} characters). Raise the step's model tier, or ask for fewer or shorter fields in its output schema.`
                 : `This step was asked for JSON matching its output schema but answered with something else, so every "steps.${step.id}.output.…" reference downstream would have been empty. First 200 characters: ${text.slice(0, 200)}`);
-            err.errorClass = 'ValidationError';
+            Object.assign(err, { errorClass: 'ValidationError' });
             throw err;
         }
     }

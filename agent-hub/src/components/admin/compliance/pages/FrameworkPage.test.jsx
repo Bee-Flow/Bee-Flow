@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import FrameworkPage from './FrameworkPage';
@@ -80,12 +81,13 @@ describe('FrameworkPage — the checks tab', () => {
         expect(screen.getByTestId('checks-table-row-GDPR-Art33-breach-article')).toHaveTextContent('A.5.24');
     });
 
-    it('pills filter, the segmented control re-sorts by article, and the search narrows by title', () => {
+    it('pills filter, the segmented control re-sorts by article, and the search narrows by title', async () => {
+        const user = userEvent.setup();
         renderPage();
-        fireEvent.click(screen.getByTestId('checks-table-toolbar-pill-fail'));
+        await user.click(screen.getByTestId('checks-table-toolbar-pill-fail'));
         expect(rowIds()).toEqual(['GDPR-Art33-breach']);
-        fireEvent.click(screen.getByTestId('checks-table-toolbar-pill-all'));
-        fireEvent.click(screen.getByRole('radio', { name: 'By article' }));
+        await user.click(screen.getByTestId('checks-table-toolbar-pill-all'));
+        await user.click(screen.getByRole('radio', { name: 'By article' }));
         expect(rowIds()).toEqual(['GDPR-Art28-dpa', 'GDPR-Art30-ropa', 'GDPR-Art32-enc', 'GDPR-Art33-breach']);
         fireEvent.change(screen.getByTestId('checks-table-toolbar-search'), { target: { value: 'run history' } });
         expect(rowIds()).toEqual(['GDPR-Art33-breach']);
@@ -102,15 +104,16 @@ describe('FrameworkPage — the checks tab', () => {
     });
 
     it('a row click opens the expansion, which loads the trail lazily — exactly once — and closes again', async () => {
+        const user = userEvent.setup();
         const c = core();
         renderPage({ data: { core: c } });
         expect(c.loadTrail).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByTestId('checks-table-row-GDPR-Art33-breach'));
+        await user.click(screen.getByTestId('checks-table-row-GDPR-Art33-breach'));
         expect(screen.getByTestId('checks-table-row-GDPR-Art33-breach')).toHaveAttribute('aria-expanded', 'true');
         expect(screen.getByTestId('checks-table-row-GDPR-Art33-breach-expansion')).toBeInTheDocument();
         await waitFor(() => expect(c.loadTrail).toHaveBeenCalledTimes(1));
         expect(c.loadTrail).toHaveBeenCalledWith('GDPR-Art33-breach', null);
-        fireEvent.click(screen.getByTestId('checks-table-row-GDPR-Art33-breach'));
+        await user.click(screen.getByTestId('checks-table-row-GDPR-Art33-breach'));
         expect(screen.queryByTestId('checks-table-row-GDPR-Art33-breach-expansion')).toBeNull();
         expect(screen.getByTestId('checks-table-row-GDPR-Art33-breach')).toHaveAttribute('aria-expanded', 'false');
     });
@@ -125,9 +128,10 @@ describe('FrameworkPage — the checks tab', () => {
         await waitFor(() => expect(scroll).toHaveBeenCalledTimes(1));
     });
 
-    it('fix buttons route through navigate(sectionId); admin escapes need onNavigate and are hidden without it', () => {
+    it('fix buttons route through navigate(sectionId); admin escapes need onNavigate and are hidden without it', async () => {
+        const user = userEvent.setup();
         const { navigate, unmount } = renderPage();
-        fireEvent.click(screen.getByTestId('checks-table-row-GDPR-Art30-ropa-fix'));
+        await user.click(screen.getByTestId('checks-table-row-GDPR-Art30-ropa-fix'));
         expect(navigate).toHaveBeenCalledWith('ropa', undefined);
         unmount();
         const checks = [{ ...CHECKS[1], remediationLink: 'admin/monitoring/activity' }];
@@ -135,7 +139,7 @@ describe('FrameworkPage — the checks tab', () => {
         expect(screen.queryByTestId('checks-table-row-GDPR-Art33-breach-fix')).toBeNull();
         const onNavigate = vi.fn();
         renderPage({ data: { core: core({ checks }) }, onNavigate });
-        fireEvent.click(screen.getByTestId('checks-table-row-GDPR-Art33-breach-fix'));
+        await user.click(screen.getByTestId('checks-table-row-GDPR-Art33-breach-fix'));
         expect(onNavigate).toHaveBeenCalledWith('admin/monitoring/activity');
     });
 
@@ -221,6 +225,7 @@ describe('FrameworkPage — timeline and evidence tabs', () => {
     });
 
     it('evidence: fetches GET /evidence?regulation=&limit=&offset= through authFetch, renders rows + pager, pages on Next', async () => {
+        const user = userEvent.setup();
         authFetch.mockImplementation((url) => {
             const u = new URL(url, 'http://x');
             const offset = Number(u.searchParams.get('offset'));
@@ -237,7 +242,7 @@ describe('FrameworkPage — timeline and evidence tabs', () => {
         expect(screen.getByTestId('evidence-tab-row-100')).toHaveTextContent('412');
         expect(screen.getByTestId('evidence-tab-row-100')).toHaveTextContent('Run history'); // title from the checks list
         expect(screen.getByTestId('evidence-tab-pager-range')).toHaveTextContent('1–25 of 60');
-        fireEvent.click(screen.getByTestId('evidence-tab-pager-next'));
+        await user.click(screen.getByTestId('evidence-tab-pager-next'));
         await waitFor(() => expect(screen.getByTestId('evidence-tab-row-125')).toBeInTheDocument());
         expect(new URL(authFetch.mock.calls[1][0], 'http://x').searchParams.get('offset')).toBe('25');
     });

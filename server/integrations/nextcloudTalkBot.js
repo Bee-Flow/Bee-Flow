@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Talk BOT client — posting as "Bee Flow", not as a person.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * BFSF-271 — canModifyAgent authorization matrix + route-level 403s.
  *

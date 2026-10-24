@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation trash purge (Studio → Automations handoff 5).
  *

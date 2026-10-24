@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Agent-call trigger contract helpers.
  *
@@ -117,7 +118,7 @@ function rowsOf({ parametersSchema, params }, notes) {
  * the caller can leave the trigger without a schema (the open-object fallback)
  * rather than store an empty one that would read as "this tool takes no input".
  */
-function normalizeParameters({ parametersSchema, params } = {}) {
+function normalizeParameters(/** @type {{parametersSchema?: any, params?: any}} */ { parametersSchema, params } = {}) {
     const notes = [];
     const rows = rowsOf({ parametersSchema, params }, notes);
     if (!rows.length) {

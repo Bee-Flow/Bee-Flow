@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * `recordId` on a record binding.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Cancellation primitives for the automation runner.
  *

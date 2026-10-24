@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Notebook chat: the conversation one turn sends and the input gates it
  * passes before the model sees it (routes/ai/notebookChat.js), in the order

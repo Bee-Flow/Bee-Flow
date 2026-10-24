@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Boot Initializer — First-boot setup from INIT_* environment variables
  * 

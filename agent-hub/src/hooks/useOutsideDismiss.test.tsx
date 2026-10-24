@@ -66,6 +66,7 @@ describe.each([
         const onDismiss = vi.fn();
         render(<Impl enabled escape onDismiss={onDismiss} />);
         await flush();
+        // A bare click event on purpose: user.click would also fire mousedown, which dismisses.
         fireEvent.click(outside);
         fireEvent.pointerDown(outside);
         fireEvent.mouseUp(outside);

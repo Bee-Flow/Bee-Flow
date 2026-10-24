@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Characterization tests for the shared Gmail parsing helpers (H6 adoption
  * lock). extractTextBody was folded in VERBATIM from the byte-identical copies

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for the shared server-side data-binding collector
  * (appStudio/collectDataBindings.js).

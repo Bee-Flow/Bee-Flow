@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * core/datasets — VCF text parsing. Pure functions, no I/O.
  *
@@ -137,8 +138,8 @@ function parseDataLine(line) {
 
 /**
  * Genotype columns for one already-parsed line. Lazy by design — see header.
- * @returns {Array<{sample:string, value:string}>} raw per-sample strings plus
- *   the FORMAT key, or [] when the file carries no samples.
+ * @returns {{ format:string|null, samples:Array<{sample:string, value:string}> }} raw per-sample
+ *   strings plus the FORMAT key (null and no samples when the file carries none).
  */
 function parseGenotypes(parsedLine, samples) {
     const { cols } = parsedLine;
