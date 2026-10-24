@@ -9,6 +9,7 @@ import { cmsApi } from '../cmsApi';
 import { isRecord, revOf, storedRev, withRev } from './cmsRevisions';
 import type { CmsPageDoc, CmsPageIndexEntry, CmsSiteDoc } from './cmsPanelTypes';
 import type { BuilderTurn } from './useCmsPanelState';
+import { mutate, ApiError } from '../../../../api/mutate';
 
 /** The site as the server holds it right now: its chrome revision and its page index. */
 interface ServerSiteState {
@@ -90,25 +91,37 @@ export async function revertBuilderTurn(siteId: string, turn: BuilderTurn): Prom
             if (!now || INDEX_FIELDS.every(f => now[f] === entry[f])) continue;
             const patch: Record<string, unknown> = {};
             for (const f of INDEX_FIELDS) patch[f] = entry[f];
-            const metaRes = await authFetch(cmsApi.pageMeta(siteId, entry.id), {
+            try {
+                await mutate(cmsApi.pageMeta(siteId, entry.id), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(patch),
             });
-            if (!metaRes.ok) throw new Error('Failed to restore page settings');
+            } catch (err) {
+                if (!(err instanceof ApiError)) throw err;
+                throw new Error('Failed to restore page settings');
+            }
         }
         const nowOrder = serverSite.pages.map(p => p.id).join();
         if (preEntries.length && nowOrder !== preEntries.map(e => e.id).join()) {
-            const orderRes = await authFetch(cmsApi.pagesOrder(siteId), {
+            try {
+                await mutate(cmsApi.pagesOrder(siteId), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ orderedIds: preEntries.map(e => e.id) }),
             });
-            if (!orderRes.ok) throw new Error('Failed to restore page order');
+            } catch (err) {
+                if (!(err instanceof ApiError)) throw err;
+                throw new Error('Failed to restore page order');
+            }
         }
         if (pre.homepageId && pre.homepageId !== serverSite.homepageId) {
-            const homeRes = await authFetch(cmsApi.pageHomepage(siteId, pre.homepageId), { method: 'PUT' });
-            if (!homeRes.ok) throw new Error('Failed to restore the homepage');
+            try {
+                await mutate(cmsApi.pageHomepage(siteId, pre.homepageId), { method: 'PUT' });
+            } catch (err) {
+                if (!(err instanceof ApiError)) throw err;
+                throw new Error('Failed to restore the homepage');
+            }
         }
     }
     // 3. Restore each touched pre-existing page.

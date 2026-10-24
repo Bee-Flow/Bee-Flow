@@ -48,7 +48,8 @@ const { tokenizeText, restoreTokens } = require('../../privacy/piiDetection');
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
 function freshDlpRunner() {
-    delete require.cache[require.resolve('../dlpRunner')];
+    // dlpRunner's in-process state lives in the modules split out of it: drop all three.
+    for (const m of ['../dlpRunner', '../dlpTokenMaps', '../dlpTokenise']) delete require.cache[require.resolve(m)];
     return require('../dlpRunner');
 }
 

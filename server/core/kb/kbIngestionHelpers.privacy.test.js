@@ -87,7 +87,7 @@ require.cache[STORE_ID] = {
 
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /kbIngestionHelpers\.js$/.test(parent.filename)) {
+    if (parent && /kb(IngestionHelpers|Embed|Reingest|FileExtract|UrlFetch|DocLookup)\.js$/.test(parent.filename)) {
         if (request === './ingestPrivacy') return SHIELD_ID;
         if (request === '../../stores/knowledgeBases') return STORE_ID;
         if (request === './localKBIngest') return LOCAL_ID;

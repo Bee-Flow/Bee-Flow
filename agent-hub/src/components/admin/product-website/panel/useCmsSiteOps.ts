@@ -13,6 +13,7 @@ import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { ACTIVE_SITE_LS_KEY } from './helpers';
 import { logger } from '../../../../utils/logger';
+import { mutate, ApiError } from '../../../../api/mutate';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 
@@ -292,12 +293,16 @@ export default function useCmsSiteOps({
         const prevLive = liveSiteId;
         setLiveSiteId(siteId);
         try {
-            const res = await authFetch(cmsApi.siteLive(siteId), {
+            try {
+                await mutate(cmsApi.siteLive(siteId), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ live: true }),
             });
-            if (!res.ok) throw new Error(`Failed to set version live (${res.status})`);
+            } catch (err) {
+                if (!(err instanceof ApiError)) throw err;
+                throw new Error(`Failed to set version live (${err.status})`);
+            }
         } catch (err) {
             toast.error(messageOf(err, ''));
             setLiveSiteId(prevLive);

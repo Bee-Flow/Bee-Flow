@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
+import { mutate, ApiError } from '../../../../api/mutate';
 
 /**
  * What else comes along when parts are added to a Solution.
@@ -81,12 +82,17 @@ export function parseRelated(body: unknown): RelatedResult | null {
 
 export async function fetchRelated(projectId: string, items: RelatedRef[]): Promise<RelatedResult | null> {
     try {
-        const res = await authFetch(`${API_BASE}/api/projects/${encodeURIComponent(projectId)}/resources/related`, {
+        let res: Response;
+        try {
+            res = await mutate(`${API_BASE}/api/projects/${encodeURIComponent(projectId)}/resources/related`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ items: items.map(({ kind, id }) => ({ kind, id })) }),
         });
-        if (!res.ok) return null;
+        } catch (err) {
+            if (!(err instanceof ApiError)) throw err;
+            return null;
+        }
         return parseRelated(await res.json().catch(() => null));
     } catch {
         return null;

@@ -4,23 +4,12 @@
  * to the heading whose slug it names — or, failing that, to the first heading
  * whose letters and digits contain the fragment's (or the other way round),
  * because models write `#step-2-install` for a heading "Step 2: Installing".
- * slug.test.ts runs the web's own functions beside these.
+ * headingSlug and anchorKey are the web's own functions (generated copy of markdownRules.ts).
  */
 
-/** The web's slug: lower case, letters/digits/spaces/hyphens kept, spaces to hyphens. */
-export function headingSlug(text: string): string {
-    return text
-        .toLowerCase()
-        .replace(/[^\p{L}\p{N}\s-]/gu, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
-}
+import { anchorKey, headingSlug } from '../mirror/markdownRules';
 
-/** The web's fuzzy form of a fragment or a heading: `[a-z0-9]` only. */
-export function anchorKey(text: string): string {
-    return text.toLowerCase().replace(/[^a-z0-9]/g, '');
-}
+export { anchorKey, headingSlug };
 
 export interface AnchorHeading {
     slug: string;

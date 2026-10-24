@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { StatusMessage } from './chatModelTiers/tierTypes';
+import { mutate, ApiError } from '../../../api/mutate';
 
 interface LimitsConfigProps {
     onNavigateToTab?: (tab: string) => void;
@@ -71,12 +72,15 @@ const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
                 kbProvider: kbProvider === 'auto' ? null : kbProvider,
                 cpuRerankerEnabled,
             };
-            const res = await authFetch(`${API_BASE}/ai/config`, {
+            const res = await mutate(`${API_BASE}/ai/config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 setMessage({ type: 'success', text: t('admin_ai_config.limits_saved', 'Saved') });
                 fetchConfig();
             } else {

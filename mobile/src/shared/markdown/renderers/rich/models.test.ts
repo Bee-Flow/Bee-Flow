@@ -4,11 +4,7 @@
  * for a block type.
  */
 
-import fs from 'node:fs';
-
-import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
-
-import { DOCUMENT_CARD, linkCardKind, WEBPAGE_CARD } from '../links/linkCards';
+import { linkCardKind } from '../links/linkCards';
 import { mapsLinkFor, readEmbed, readMap } from '../map/mapModel';
 import { buttonOverlay, cellText, chartBars, readPage, rowCells } from '../page/pageModel';
 import { readResearch, sourceDomain } from '../research/researchModel';
@@ -110,13 +106,6 @@ describe('maps', () => {
 });
 
 describe('link cards', () => {
-    const WEB = fs.readFileSync(`${AGENT_HUB_SRC}/components/renderers/MarkdownRenderer.tsx`, 'utf8');
-
-    it('uses the web’s patterns', () => {
-        expect(WEB).toContain(`${String(WEBPAGE_CARD)}.test(href)`);
-        expect(WEB).toContain(`${String(DOCUMENT_CARD)}.test(href)`);
-    });
-
     it('cards webpages and Studio documents, nothing else', () => {
         expect(linkCardKind('/app/webpages/wp1')).toBe('webpage');
         expect(linkCardKind('/app/studio/webpages/wp_1')).toBe('webpage');

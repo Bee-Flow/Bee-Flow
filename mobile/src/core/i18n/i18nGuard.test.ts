@@ -155,7 +155,13 @@ export function findHardCoded(src: string): Finding[] {
 // The tree
 // ---------------------------------------------------------------------------
 
-const GENERATED_DIRS = new Set(['src/features/flow-editor/bindings/mirror', 'src/shared/expr/vendor']);
+// Generated copies: every mobile target of scripts/shared-mirror.manifest.json
+// (a file or a directory), plus the bindings mirror as a whole.
+const MIRROR_MANIFEST = JSON.parse(fs.readFileSync(path.join(MOBILE, '../scripts/shared-mirror.manifest.json'), 'utf8')) as { entries: { target: string }[] };
+const GENERATED = new Set([
+    'src/features/flow-editor/bindings/mirror',
+    ...MIRROR_MANIFEST.entries.map((e) => e.target).filter((t) => t.startsWith('mobile/')).map((t) => t.slice('mobile/'.length)),
+]);
 
 function* walk(dir: string): Generator<string> {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -163,11 +169,12 @@ function* walk(dir: string): Generator<string> {
         if (entry.isDirectory()) {
             // Generated copies (scripts/gen-shared-mirror.mjs: the web mapping
             // library under bindings/mirror, the expression engine under
-            // shared/expr/vendor) are bewaakt at their source in agent-hub and
-            // server; a literal there is the web's to fix, not a phone ledger line.
-            if (GENERATED_DIRS.has(path.relative(MOBILE, p))) continue;
+            // shared/expr/vendor, the feature mirrors) are guarded at their
+            // source in agent-hub and server; a literal there is the web's to
+            // fix, not a phone ledger line.
+            if (GENERATED.has(path.relative(MOBILE, p))) continue;
             if (entry.name !== 'node_modules') yield* walk(p);
-        } else if (/\.tsx?$/.test(entry.name) && !/\.(test|spec)\./.test(entry.name)) {
+        } else if (/\.tsx?$/.test(entry.name) && !/\.(test|spec)\./.test(entry.name) && !GENERATED.has(path.relative(MOBILE, p))) {
             yield p;
         }
     }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { mutate, ApiError } from '../../../api/mutate';
 
 /** One pending invitation, as GET /auth/invitations returns it. */
 export interface Invitation {
@@ -115,8 +116,11 @@ export default function useOrgInvitations(): OrgInvitations {
 
     const handleRevokeInvite = async (invitationId: string) => {
         try {
-            const res = await authFetch(`${API_BASE}/auth/invitations/${invitationId}`, { method: 'DELETE' });
-            if (res.ok) await fetchInvitations();
+            const res = await mutate(`${API_BASE}/auth/invitations/${invitationId}`, { method: 'DELETE' }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
+            });
+            if (res) await fetchInvitations();
         } catch (err) {
             console.error('Failed to revoke invitation:', err);
         }

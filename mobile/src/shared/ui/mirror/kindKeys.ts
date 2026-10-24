@@ -36,3 +36,20 @@ export const KIND_ALIASES: Readonly<Record<string, KindKey>> = Object.freeze({
     solutions: 'solution', bundle: 'solution',
     compliance_hub: 'compliance', gdpr: 'compliance', privacy: 'compliance',
 });
+
+/** The CSS variable each kind paints with (the phone reads the same table, minus the var()). */
+export const KIND_VARS: Readonly<Record<KindKey, string>> = Object.freeze({
+    automation: 'var(--type-trigger)',
+    datatable: 'var(--type-data)',
+    app: 'var(--kind-app)',
+    webpage: 'var(--kind-web)',
+    document: 'var(--kind-doc)',  // a printable artefact — rose (2026-09-15)
+    form: 'var(--type-pause)',
+    agent: 'var(--type-ai)',
+    skill: 'var(--kind-skill)',
+    kb: 'var(--kind-kb)',
+    meeting: 'var(--kind-meet)',
+    playbook: 'var(--kind-playbook)',  // a phased build the AI runs — emerald (2026-09-13)
+    solution: 'var(--text-secondary)', // a container, deliberately neutral
+    compliance: 'var(--kind-compliance)', // an area you administer — teal, retuned from --type-guard (2026-09-14)
+});

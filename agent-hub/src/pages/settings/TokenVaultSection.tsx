@@ -4,6 +4,7 @@ import useConfirm from '../../components/shared/useConfirm';
 
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { mutate, ApiError } from '../../api/mutate';
 
 /** One entry of GET /api/privacy/token-vault (server/stores/piiVaultStore.js). */
 interface VaultEntry {
@@ -82,8 +83,11 @@ const TokenVaultSection = () => {
         if (!ok) return;
         setBusyId(entry.id);
         try {
-            const res = await authFetch(`${API_BASE}/api/privacy/token-vault/${entry.id}`, { method: 'DELETE' });
-            if (res.ok) {
+            const res = await mutate(`${API_BASE}/api/privacy/token-vault/${entry.id}`, { method: 'DELETE' }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
+            });
+            if (res) {
                 setState((s: VaultState) => ({ ...s, entries: s.entries.filter((e: VaultEntry) => e.id !== entry.id), total: Math.max(0, s.total - 1) }));
             }
         } finally {
@@ -104,8 +108,11 @@ const TokenVaultSection = () => {
         if (!ok) return;
         setBusyId('__all__');
         try {
-            const res = await authFetch(`${API_BASE}/api/privacy/token-vault`, { method: 'DELETE' });
-            if (res.ok) { setOffset(0); await load(0, search); }
+            const res = await mutate(`${API_BASE}/api/privacy/token-vault`, { method: 'DELETE' }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
+            });
+            if (res) { setOffset(0); await load(0, search); }
         } finally {
             setBusyId(null);
         }

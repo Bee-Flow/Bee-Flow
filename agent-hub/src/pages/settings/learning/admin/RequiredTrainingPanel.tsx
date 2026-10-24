@@ -4,6 +4,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { errorMessage } from '../../../../utils/caughtError';
+import { mutate, ApiError } from '../../../../api/mutate';
 
 interface TrainingArea {
     id: string;
@@ -69,12 +70,17 @@ export default function RequiredTrainingPanel() {
     const save = async () => {
         setSaving(true); setSaved(false);
         try {
-            const res = await authFetch(`${API_BASE}/ai/learning/training-rules`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/ai/learning/training-rules`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ areas: draft }),
             });
-            if (!res.ok) throw new Error(String(res.status));
+            } catch (err) {
+                if (!(err instanceof ApiError)) throw err;
+                throw new Error(String(err.status));
+            }
             const body = await res.json();
             setState((s) => ({ ...s, areas: body.areas || {} }));
             setDraft(body.areas || {});

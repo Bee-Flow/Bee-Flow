@@ -29,7 +29,7 @@ type DesignerApi = ReturnType<typeof useAgentApi>;
 
 /** The state bag plus the helpers the three sections read next to it. */
 type SharedProps = DesignerSectionProps;
-const IdentitySection = IdentitySectionJs as unknown as ComponentType<SharedProps>;
+const IdentitySection = IdentitySectionJs;
 const ToolsSection = ToolsSectionJs;
 const BehaviorSection = BehaviorSectionJs;
 

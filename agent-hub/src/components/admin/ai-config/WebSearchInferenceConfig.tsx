@@ -3,6 +3,7 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
 import { getModelMeta, getModelDisplayName, type ModelEntry } from '../../../utils/modelMeta';
 import SearchableModelSelect from '../shared/SearchableModelSelect';
 import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
+import { mutate, ApiError } from '../../../api/mutate';
 
 const getRerankMethods = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) => [
     {
@@ -76,12 +77,15 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearch
     const handleSave = async () => {
         setSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/config/web-search-inference`, {
+            const res = await mutate(`${API_BASE}/ai/config/web-search-inference`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(config),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 setMessage({ type: 'success', text: t('admin_ai_config.limits_saved', 'Saved') });
                 fetchAll();
             } else {

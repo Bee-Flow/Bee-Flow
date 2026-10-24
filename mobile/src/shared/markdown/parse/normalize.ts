@@ -2,7 +2,7 @@
  * What the web does to an answer before it parses it, ported from the two
  * pre-passes in agent-hub/src/components/renderers/MarkdownRenderer.jsx
  * (`stripWrappingCodeBlock`, `stripDirectiveBlocks`). normalize.lockstep.test.ts
- * holds every pattern here to the web's own.
+ * re-exports the patterns from the generated mirror, so they are the web's own.
  *
  * Both exist because of what models write, not what people write:
  *
@@ -12,14 +12,10 @@
  *     meaning in GFM and would otherwise print as literal colons.
  */
 
-/** An opening ```markdown / ```md / ```text / ``` fence at the very start. */
-export const WRAPPING_FENCE_OPEN = /^\s*```(?:markdown|md|text)?\n/i;
-/** A closing fence at the very end. */
-export const WRAPPING_FENCE_CLOSE = /\n```\s*$/;
-/** `:::writing Title` and its siblings, which become `## Title`. */
-export const DIRECTIVE_OPEN = /^:::(writing|note|tip|warning|important|caution)[\t ]+(.+)$/gm;
-/** A bare `:::` closing line, which is dropped. */
-export const DIRECTIVE_CLOSE = /^:::[\t ]*$/gm;
+import { DIRECTIVE_CLOSE, DIRECTIVE_OPEN, WRAPPING_FENCE_CLOSE, WRAPPING_FENCE_OPEN } from '../mirror/markdownRules';
+
+// The patterns are the web's own (generated copy of markdownRules.ts).
+export { DIRECTIVE_CLOSE, DIRECTIVE_OPEN, WRAPPING_FENCE_CLOSE, WRAPPING_FENCE_OPEN };
 
 /**
  * Remove a fence that wraps the whole answer. The opening one is removed even

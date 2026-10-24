@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import type { AdminMessage, AdminOrganization, AskConfirm, OrgFormData } from './types';
+import { mutate, ApiError } from '../../../../api/mutate';
 
 const EMPTY_ORG: OrgFormData = {
     id: '', name: '', description: '', tagline: '', address: '', email: '', phone: '', website: '',
@@ -171,8 +172,11 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
         const formData = new FormData();
         formData.append('logo', file);
         try {
-            const res = await authFetch(`${API_BASE}/auth/organizations/${orgData.id}/logo`, { method: 'POST', body: formData });
-            if (res.ok) {
+            const res = await mutate(`${API_BASE}/auth/organizations/${orgData.id}/logo`, { method: 'POST', body: formData }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
+            });
+            if (res) {
                 const data = await res.json();
                 setOrgData(p => ({ ...p, logo: data.logo }));
                 setMessage({ type: 'success', text: 'Logo uploaded' });
@@ -192,8 +196,11 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
         const formData = new FormData();
         formData.append('logo', file);
         try {
-            const res = await authFetch(`${API_BASE}/auth/organizations/${orgData.id}/logo`, { method: 'POST', body: formData });
-            if (res.ok) {
+            const res = await mutate(`${API_BASE}/auth/organizations/${orgData.id}/logo`, { method: 'POST', body: formData }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
+            });
+            if (res) {
                 const data = await res.json();
                 setOrgData(p => ({ ...p, logo: data.logo }));
                 setMessage({ type: 'success', text: 'Logo uploaded' });

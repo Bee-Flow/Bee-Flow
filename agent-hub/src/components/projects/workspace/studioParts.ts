@@ -65,6 +65,6 @@ export interface DangerZoneProps {
     className?: string;
 }
 
-export const DangerZone = DangerZoneJsx as unknown as React.ComponentType<DangerZoneProps>;
+export const DangerZone = DangerZoneJsx;
 
 export const RequireTier = RequireTierJsx;

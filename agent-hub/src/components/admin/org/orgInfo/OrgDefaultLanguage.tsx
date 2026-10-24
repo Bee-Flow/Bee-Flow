@@ -2,6 +2,7 @@ import { Check, Info } from 'lucide-react';
 import { useId, useState, useEffect } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { mutate, ApiError } from '../../../../api/mutate';
 
 interface LocaleOption {
     code: string;
@@ -38,12 +39,16 @@ const OrgDefaultLanguage = () => {
         setSaved(false);
         setSaveFailed(false);
         try {
-            const res = await authFetch(`${API_BASE}/api/languages/org/default`, {
+            try {
+                await mutate(`${API_BASE}/api/languages/org/default`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ defaultLocale: code }),
             });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            } catch (err) {
+                if (!(err instanceof ApiError)) throw err;
+                throw new Error(`HTTP ${err.status}`);
+            }
             setSaved(true);
             setTimeout(() => setSaved(false), 2000);
         } catch {

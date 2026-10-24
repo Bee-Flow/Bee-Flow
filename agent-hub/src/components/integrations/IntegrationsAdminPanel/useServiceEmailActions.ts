@@ -4,6 +4,7 @@
 import { isTrustedOAuthOrigin } from '../../../lib/oauthMessageOrigin';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import type { AdminMessage } from './IntegrationsAdminPanel.types';
+import { mutate, ApiError } from '../../../api/mutate';
 
 interface UseServiceEmailActionsParams {
     setConnectingServiceEmail: (value: boolean) => void;
@@ -90,8 +91,11 @@ export default function useServiceEmailActions({
     const disconnectServiceEmail = async () => {
         setSavingServiceEmail(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/config/service-email/disconnect`, { method: 'POST' });
-            if (res.ok) {
+            const res = await mutate(`${API_BASE}/ai/config/service-email/disconnect`, { method: 'POST' }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
+            });
+            if (res) {
                 setHasServiceEmail(false);
                 setServiceEmailAddress('');
                 setShowTestEmail(false);

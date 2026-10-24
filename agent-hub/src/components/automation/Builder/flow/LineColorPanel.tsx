@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { applyCaseColor, applyPiiGroupColor, caseColorOf, resolvePiiGroupColors } from './edgeColorOps';
 import { autoCaseColor, EDGE_COLOR_KEYS, PII_GROUP_COLORS, resolveEdgeColor } from './edgeColors';
 import type { FlowDefinition } from './types';
+import type { EdgeColorMode } from './useEdgeColorMode';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
@@ -33,8 +34,8 @@ interface CaseRow {
 }
 
 interface LineColorPanelProps {
-    mode: string;
-    onModeChange: (m: string) => void;
+    mode: EdgeColorMode;
+    onModeChange: (m: EdgeColorMode) => void;
     definition: FlowDefinition | null;
     editable?: boolean;
     hasPiiData?: boolean;
@@ -93,7 +94,7 @@ export default function LineColorPanel({
                 className="flex items-center gap-0.5 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)]/90 shadow-sm px-1 py-0.5 text-[10px]"
             >
                 <span className="px-1 text-[var(--text-tertiary)]">Lines:</span>
-                {[['off', 'Off'], ['branches', 'Branches'], ['pii', 'PII']].map(([m, label]) => (
+                {([['off', 'Off'], ['branches', 'Branches'], ['pii', 'PII']] as [EdgeColorMode, string][]).map(([m, label]) => (
                     <button
                         key={m}
                         type="button"

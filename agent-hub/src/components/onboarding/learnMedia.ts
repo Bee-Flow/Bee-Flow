@@ -101,7 +101,7 @@ export function learnMediaBase(runtime: unknown = readRuntime()): string {
 function readRuntime(): unknown {
     try {
         return typeof window !== 'undefined'
-            ? (window as unknown as { __BEEFLOW_RUNTIME__?: unknown }).__BEEFLOW_RUNTIME__ ?? null
+            ? window.__BEEFLOW_RUNTIME__ ?? null
             : null;
     } catch {
         return null;

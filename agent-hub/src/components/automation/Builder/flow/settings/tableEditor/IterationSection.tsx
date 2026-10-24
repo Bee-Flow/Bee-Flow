@@ -6,8 +6,8 @@ import { FormRow } from '../formPrimitives';
 
 // Untyped JS component; its props are checked there.
 const ForEach = ForEachSection as unknown as ComponentType<Record<string, unknown>>;
-const Retry = RetrySection as unknown as ComponentType<Record<string, unknown>>;
-const retrySet = retryIsSet as unknown as (draft: Record<string, unknown>) => boolean;
+const Retry = RetrySection;
+const retrySet = retryIsSet;
 
 interface Props {
     stepType: 'table' | 'read_table';

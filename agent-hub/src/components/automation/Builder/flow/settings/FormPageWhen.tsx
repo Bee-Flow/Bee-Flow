@@ -13,7 +13,7 @@ interface Props {
 }
 
 // The builder is a JavaScript component whose props TypeScript infers from its defaults.
-const Builder = ConditionBuilder as unknown as ComponentType<Record<string, unknown>>;
+const Builder = ConditionBuilder;
 
 /**
  * "Only show this page when…": a condition on what the automation knows when

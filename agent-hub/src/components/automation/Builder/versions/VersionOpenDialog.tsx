@@ -5,10 +5,7 @@ import useTranslation from '../../../../hooks/useTranslation';
 import { useVersionDefinitionQuery } from '../../../../api/queries/automation/versions';
 
 // DiagramPane is JavaScript; say which props this read-only use passes.
-const DiagramPane = DiagramPaneJs as unknown as React.ComponentType<{
-    definition: Record<string, unknown>;
-    readOnly: boolean;
-}>;
+const DiagramPane = DiagramPaneJs;
 
 interface Props {
     automationId: string;

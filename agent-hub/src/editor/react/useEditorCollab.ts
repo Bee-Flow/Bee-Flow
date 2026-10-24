@@ -13,6 +13,7 @@
  * leaves the editor in its ordinary single-writer mode, so the caller's own
  * save path keeps working.
  */
+import type { EditorView } from '../engine/view';
 import { useEffect, useState, useEffectEvent } from 'react';
 import { bindEditor, type CollabBinding } from '../collab/binding';
 import type { CollabHandle } from '../collab/useCollab';
@@ -32,7 +33,7 @@ export function collabIsActive(handle: CollabHandle | null | undefined): boolean
     return handle.status === 'connecting';
 }
 
-export default function useEditorCollab(view: any, handle: CollabHandle | null | undefined): EditorCollabState {
+export default function useEditorCollab(view: EditorView | null, handle: CollabHandle | null | undefined): EditorCollabState {
     const [binding, setBinding] = useState<CollabBinding | null>(null);
     const ready = !!handle?.ready;
     const ydoc = handle?.ydoc || null;

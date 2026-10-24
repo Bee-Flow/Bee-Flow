@@ -7,24 +7,10 @@ import MarkdownRendererJs from '../../renderers/MarkdownRenderer';
 // destructured prop without a default as required. These are the props the
 // TypeScript monitoring views pass (same approach as blog/jsComponents.ts).
 
-export const Card = CardJs as unknown as ComponentType<{
-    title?: ReactNode;
-    icon?: LucideIcon;
-    style?: CSSProperties;
-    action?: ReactNode;
-    children?: ReactNode;
-}>;
+export const Card = CardJs;
 
-export const Empty = EmptyJs as unknown as ComponentType<{ text: ReactNode }>;
+export const Empty = EmptyJs;
 
-export const MetricCard = MetricCardJs as unknown as ComponentType<{
-    icon: LucideIcon;
-    label: ReactNode;
-    value: ReactNode;
-    color: string;
-    subtitle?: ReactNode;
-    delta?: number;
-    deltaLabel?: ReactNode;
-}>;
+export const MetricCard = MetricCardJs;
 
 export const MarkdownRenderer = MarkdownRendererJs;

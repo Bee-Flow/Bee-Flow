@@ -18,13 +18,7 @@ export type PatchConnector = (patch: Record<string, unknown>) => void;
 
 // Typed views of the .jsx editors, whose `= false` / `= []` defaults would mistype their props.
 const ActionParamsForm = ActionParamsFormJs;
-const ConnectorChainEditor = ConnectorChainEditorJs as unknown as ComponentType<{
-    connector: Connector;
-    onChange: PatchConnector;
-    availableFields: Array<{ sourcePath: string; key: string }>;
-    suggestions: ChainSuggestion[];
-    disabled?: boolean;
-}>;
+const ConnectorChainEditor = ConnectorChainEditorJs;
 
 interface AppToolFieldsProps {
     connector: Connector;

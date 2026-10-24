@@ -7,6 +7,7 @@ import Toggle from '../../components/shared/Toggle';
 import { piiCategoriesLocalized } from '../../config/piiCategories';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { mutate, ApiError } from '../../api/mutate';
 
 /** The user's own Privacy Shield config (GET /api/org-privacy-shield/user/me). */
 interface ConsumerShieldConfig {
@@ -106,12 +107,15 @@ const ConsumerPrivacySection = () => {
         setSaved(false);
         setSaveError(false);
         try {
-            const res = await authFetch(`${API_BASE}/api/org-privacy-shield/user/me`, {
+            const res = await mutate(`${API_BASE}/api/org-privacy-shield/user/me`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(config),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 setSaved(true);
                 setImplicitDefault(false); // now an explicit, stored choice
                 setTimeout(() => setSaved(false), 3000);

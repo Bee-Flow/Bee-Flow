@@ -2,13 +2,14 @@
  * Links the web draws as cards rather than as words: a webpage or a Studio
  * document the model just built (it is told to end its reply with
  * `[<name>](<url>)`). The patterns are the web's own, from MarkdownRenderer's
- * `a` component; linkCards.test.ts holds them to it.
+ * `a` component, run from the generated copy of markdownRules.ts.
  */
 
-export type LinkCardKind = 'webpage' | 'document';
+import { DOCUMENT_CARD, WEBPAGE_CARD } from '@/shared/markdown/mirror/markdownRules';
 
-export const WEBPAGE_CARD = /^\/app\/(?:studio\/)?webpages\/[a-zA-Z0-9_-]+$/;
-export const DOCUMENT_CARD = /^\/app\/studio\/documents\/[a-zA-Z0-9_-]+$/;
+export { DOCUMENT_CARD, WEBPAGE_CARD };
+
+export type LinkCardKind = 'webpage' | 'document';
 
 export function linkCardKind(href: string): LinkCardKind | null {
     if (WEBPAGE_CARD.test(href)) return 'webpage';

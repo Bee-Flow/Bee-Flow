@@ -9,6 +9,7 @@ import type { SessionSkill } from '../components/skills/sessionSkillState';
 import type { ConversationRow } from './useConversationMeta';
 import type { AgentLike, IdRef } from './useAgentHubData';
 import type { UseAgentHubActionsArgs } from './useAgentHubActions.types';
+import { mutate, ApiError } from '../api/mutate';
 
 // Navigation-level handlers of the hub: selecting agents and conversations,
 // entering direct chat, new chat / delete, search-result routing, favourites,
@@ -203,9 +204,11 @@ const useAgentHubActions = ({
                 console.error('Delete failed: no agentId available');
                 return false;
             }
-            const res = await authFetch(`${API_BASE}/agents/${agentId}/conversations/${convId}`, { method: 'DELETE' });
-            if (!res.ok) {
-                console.error('Delete failed with status:', res.status);
+            try {
+                await mutate(`${API_BASE}/agents/${agentId}/conversations/${convId}`, { method: 'DELETE' });
+            } catch (err) {
+                if (!(err instanceof ApiError)) throw err;
+                console.error('Delete failed with status:', err.status);
                 return false;
             }
             setConversations(prev => prev.filter(c => c.id !== convId));
@@ -263,10 +266,14 @@ const useAgentHubActions = ({
         const newFavs = wasFav ? favorites.filter(f => f !== id) : [...favorites, id];
         setFavorites(newFavs);
         try {
-            const res = await authFetch(`${API_BASE}/agents/${id}/favorite`, {
+            try {
+                await mutate(`${API_BASE}/agents/${id}/favorite`, {
                 method: wasFav ? 'DELETE' : 'PUT',
             });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            } catch (err) {
+                if (!(err instanceof ApiError)) throw err;
+                throw new Error(`HTTP ${err.status}`);
+            }
         } catch (e) {
             console.error('[AgentHub] Failed to toggle agent favorite:', e);
             setFavorites(favorites);
@@ -276,12 +283,15 @@ const useAgentHubActions = ({
     const handleUnpublishAgent = async (agentId: string) => {
         if (!(await confirm({ title: 'Unpublish this agent?', description: 'It will no longer be visible in the Agent Store, but its configuration will be preserved.', confirmLabel: 'Unpublish', destructive: true }))) return;
         try {
-            const res = await authFetch(`${API_BASE}/agents/${agentId}/publish`, {
+            const res = await mutate(`${API_BASE}/agents/${agentId}/publish`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ isPublished: false })
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 // If this was the currently selected agent, deselect it
                 if (selectedAgent?.id === agentId) {
                     setSelectedAgent(null);
@@ -326,12 +336,17 @@ const useAgentHubActions = ({
 
             // If no existing notebook, create one
             if (!nbId) {
-                const createRes = await authFetch(`${API_BASE}/api/notebooks`, {
+                let createRes: Response;
+                try {
+                    createRes = await mutate(`${API_BASE}/api/notebooks`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name: `Chat Notebook – ${new Date().toLocaleDateString()}` }),
                 });
-                if (!createRes.ok) throw new Error('Failed to create notebook');
+                } catch (err) {
+                    if (!(err instanceof ApiError)) throw err;
+                    throw new Error('Failed to create notebook');
+                }
                 const { notebook } = await createRes.json();
                 nbId = notebook.id;
             }

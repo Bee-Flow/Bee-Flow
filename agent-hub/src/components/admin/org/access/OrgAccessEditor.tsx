@@ -5,6 +5,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { messageOf } from '../../../../utils/caughtError';
 import type { AccessCapability, AccessData, AccessKindSection, AccessMessage } from './accessTypes';
+import { mutate, ApiError } from '../../../../api/mutate';
 
 /**
  * OrgAccessEditor — the super-admin "Organisation access" menu: which
@@ -75,8 +76,12 @@ export default function OrgAccessEditor({ orgId, onChanged }: OrgAccessEditorPro
         if (saveTimer.current) clearTimeout(saveTimer.current);
         saveTimer.current = setTimeout(async () => {
             try {
-                const res = await authFetch(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (!res.ok) throw new Error(t('admin_org.access_matrix_save_failed', 'Save failed'));
+                try {
+                    await mutate(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                } catch (err) {
+                    if (!(err instanceof ApiError)) throw err;
+                    throw new Error(t('admin_org.access_matrix_save_failed', 'Save failed'));
+                }
                 setMessage({ type: 'ok', text: t('admin_org.access_matrix_saved', 'Saved') });
                 onChanged?.();
             } catch (e) { setMessage({ type: 'error', text: messageOf(e, t('admin_org.access_matrix_save_failed', 'Save failed')) }); load(); }

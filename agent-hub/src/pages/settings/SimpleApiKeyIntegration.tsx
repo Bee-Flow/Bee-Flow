@@ -10,7 +10,7 @@
 // keep their bespoke JSX and use useUserSettingSave directly.
 
 import React, { useState } from 'react';
-import { IntegrationRow, ApiKeyField, DisconnectButton } from './IntegrationsSection';
+import { IntegrationRow, ApiKeyField, DisconnectButton } from './IntegrationPrimitives';
 import useUserSettingSave from '../../hooks/useUserSettingSave';
 // IntegrationRow / ApiKeyField / DisconnectButton are the shared primitives
 // exported from IntegrationsSection. The import is circular (that file also

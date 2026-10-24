@@ -76,10 +76,10 @@ export interface DiagramOverlaysProps {
 export default function DiagramOverlays(p: DiagramOverlaysProps) {
     const { t } = useTranslation();
     const { definition, allowEdgeEdits, handleArrange, shortCanvas, editingStepId } = p;
-    const AnyZoomStack = CanvasZoomStack as any;
-    const AnySouthBar = CanvasSouthBar as any;
-    const AnyPill = FloatingValidationPill as any;
-    const AnyLinePanel = LineColorPanel as any;
+    const AnyZoomStack = CanvasZoomStack;
+    const AnySouthBar = CanvasSouthBar;
+    const AnyPill = FloatingValidationPill;
+    const AnyLinePanel = LineColorPanel;
     return (
         <>
             {/* South-west zone (design 1a): the zoom stack — with "Wrap to fit"

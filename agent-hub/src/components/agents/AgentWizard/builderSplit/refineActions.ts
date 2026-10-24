@@ -10,6 +10,7 @@ import type { ModelTierMap } from '../../../../api/queries/modelTiers';
 import type { Skill } from '../../../../api/queries/skills';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { logger } from '../../../../utils/logger';
+import { mutate, ApiError } from '../../../../api/mutate';
 
 export interface RefineDeps {
     chat: ChatMessage[];
@@ -138,8 +139,11 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
             let undoVersionId: string | null = null;
             if (agent?.id) {
                 try {
-                    const snapRes = await authFetch(`${API_BASE}/versions/${agent.id}/pre-refine`, { method: 'POST' });
-                    if (snapRes.ok) {
+                    const snapRes = await mutate(`${API_BASE}/versions/${agent.id}/pre-refine`, { method: 'POST' }).catch((err: unknown) => {
+                        if (err instanceof ApiError) return null;
+                        throw err;
+                    });
+                    if (snapRes) {
                         const snap = await snapRes.json();
                         if (snap && typeof snap.id === 'string' && snap.id) undoVersionId = snap.id;
                     }
@@ -155,12 +159,15 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
                         attach.add(s.id); // reuse an existing skill
                     } else if (!s.id && s.name) {
                         try {
-                            const sres = await authFetch(`${API_BASE}/api/skills`, {
+                            const sres = await mutate(`${API_BASE}/api/skills`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ name: s.name, description: s.description || '', instructions: s.instructions || '', isShared: false, dynamicActivation: false, automationId: null }),
+                            }).catch((err: unknown) => {
+                                if (err instanceof ApiError) return null;
+                                throw err;
                             });
-                            if (sres.ok) {
+                            if (sres) {
                                 const created = await sres.json();
                                 if (created?.id) { setAllSkills(prev => [...(prev || []), created]); attach.add(created.id); }
                             }
@@ -255,7 +262,7 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
                     const r = updated.schedule;
                     const tz = r.timezone || (Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
                     const nextRunAt = computeScheduleNextRun(r, tz);
-                    const createRes = await authFetch(`${API_BASE}/api/cowork`, {
+                    const createRes = await mutate(`${API_BASE}/api/cowork`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -268,8 +275,11 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
                             timezone: r.timezone || (Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'),
                             nextRunAt,
                         }),
+                    }).catch((err: unknown) => {
+                        if (err instanceof ApiError) return null;
+                        throw err;
                     });
-                    if (createRes.ok) {
+                    if (createRes) {
                         await refreshAgentSchedules();
                         setChat(prev => [...prev, { role: 'system', content: `⏰ Created schedule "${r.title}" — ${r.repeatInterval}${r.timeOfDay ? ` at ${r.timeOfDay}` : ''}.` }]);
                     }

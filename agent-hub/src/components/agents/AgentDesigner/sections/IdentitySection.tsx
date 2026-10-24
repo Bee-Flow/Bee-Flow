@@ -5,6 +5,7 @@ import { toast } from '../../../shared/Toast';
 import VersionHistory from '../../VersionHistory';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { DesignerSectionProps } from './sectionProps';
+import { mutate, ApiError } from '../../../../api/mutate';
 
 export const IdentitySection = ({
   selectedAgent, name, setName, description, setDescription,
@@ -35,12 +36,15 @@ export const IdentitySection = ({
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) return;
     try {
-      const res = await authFetch(`${API_BASE}/agents/categories`, {
+      const res = await mutate(`${API_BASE}/agents/categories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newCategoryName.trim() })
+      }).catch((err: unknown) => {
+          if (err instanceof ApiError) return null;
+          throw err;
       });
-      if (res.ok) {
+      if (res) {
         const cat = await res.json();
         setAgentCategories(prev => [...prev, cat]);
         setCategoryId(cat.id);

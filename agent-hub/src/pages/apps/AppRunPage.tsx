@@ -17,7 +17,7 @@ import { studioAppsApi } from '../../components/admin/Studio/AppStudio/studioApp
 import EmptyState from '../../components/shared/EmptyState';
 import RequiredConnectionsBanner from '../../components/shared/RequiredConnectionsBanner';
 import useTranslation from '../../hooks/useTranslation';
-import { API_BASE, authFetch, isNextcloudEmbed } from '../../utils/helpers';
+import { isNextcloudEmbed } from '../../utils/helpers';
 import { rememberAppOpened } from './AppsHomePage';
 import type { AppDefinition } from '../../components/admin/Studio/AppStudio/inspector/appDefinition';
 import type { DataState } from '../../components/admin/Studio/AppStudio/runtime/DataContext';
@@ -25,29 +25,18 @@ import type { UserMenuViewer } from '../../components/admin/Studio/AppStudio/run
 import type { NavigateFn } from '../../components/admin/Studio/AppStudio/runtime/actionRunner/runnerContext';
 import type { ActionState, RunOpts, Vars } from '../../components/admin/Studio/AppStudio/runtime/actionRunner/core';
 import type { ShellDefinition, RuntimePayload, RuntimeLoadError, RunState, ConnectionsPreflightProps, RunBodyProps, RunSurfaceProps, AppRunPageProps } from './AppRunPage.types';
-import { logger } from '../../utils/logger';
+import { useDataConnectors } from '../../api/queries/apps';
 export type { ShellDefinition } from './AppRunPage.types';
 
 // Stands in for "this viewer has no role in this app" so role gating stays
 // closed instead of falling back to the ungated full view.
 const NO_ROLE = '__no_role__';
 
+const EMPTY_PROVIDERS: string[] = [];
+
 function ConnectionsPreflight({ appId }: ConnectionsPreflightProps) {
-    const [providers, setProviders] = useState<string[]>([]);
-    useEffect(() => {
-        let alive = true;
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(String(appId))}/data/connectors`);
-                if (!res.ok) return;
-                const body = await res.json().catch(() => null);
-                const list: { runAs?: string; integrationId?: string }[] = Array.isArray(body?.connectors) ? body.connectors : [];
-                const next = [...new Set(list.filter((c) => c.runAs === 'viewer' && c.integrationId).map((c) => c.integrationId as string))];
-                if (alive) setProviders(next);
-            } catch (err) { logger.debug('best-effort pre-flight — the banner just stays hidden', err); }
-        })();
-        return () => { alive = false; };
-    }, [appId]);
+    const providersQuery = useDataConnectors(appId);
+    const providers = providersQuery.data ?? EMPTY_PROVIDERS;
 
     if (providers.length === 0) return null;
     return (

@@ -2,21 +2,21 @@
  * What a Solution can hold, held to its two sources (textual lockstep): the
  * server's membership registry (projects/membership.js — which sections
  * exist, which kind each files as, which are movable) and the web's
- * Studio Solutions SECTIONS (admin/Studio/Solutions/solutionSections.ts: their
- * order, whose item is it) and SolutionContentTable BANDS (who touches what). Then the rules that read it.
+ * Studio Solutions tables (solutionSectionData.ts, generated into ../mirror: their
+ * order, whose item is it, and the content table's BANDS: who touches what). Then the rules that read it.
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 
+
 import { BANDS, bandOf, filedKeys, itemLabel, mayRemove, MOVABLE_SECTIONS, SECTIONS } from './sections';
 import type { ProjectResources } from './types';
+import { SECTION_DATA, SOLUTION_BANDS } from '../mirror/solutionSectionData';
 
 const REPO = path.resolve(__dirname, '../../../../..');
 const read = (rel: string) => fs.readFileSync(path.join(REPO, rel), 'utf8');
 const MEMBERSHIP = read('server/projects/membership.js');
-const WEB_SECTIONS = read('agent-hub/src/components/admin/Studio/Solutions/solutionSections.ts');
-const WEB_BANDS = read('agent-hub/src/components/admin/Studio/Solutions/SolutionContentTable.tsx');
 
 describe('the sections match the server registry', () => {
     // The phone's sections are a Solution's: a kind the registry keeps to
@@ -43,26 +43,16 @@ describe('the sections match the server registry', () => {
 });
 
 describe('the sections match the web', () => {
-    const web = [...WEB_SECTIONS.matchAll(/\{ key: '(\w+)'.*kind: '(\w+)', movable: (true|false), ownerFields: (null|\[[^\]]*\])/g)].map(
-        (m) => ({
-            key: m[1],
-            kind: m[2],
-            movable: m[3] === 'true',
-            ownerFields: m[4] === 'null' ? null : [...(m[4] as string).matchAll(/'(\w+)'/g)].map((f) => f[1]),
-        }),
-    );
-
     it('with the same owner fields per kind', () => {
-        expect(web).toHaveLength(SECTIONS.length);
-        expect(SECTIONS.map((s) => ({ key: s.key, kind: s.kind, movable: s.movable, ownerFields: s.ownerFields }))).toEqual(web);
+        expect(SECTIONS.map((s) => ({ key: s.key, kind: s.kind, movable: s.movable, ownerFields: s.ownerFields }))).toEqual(
+            SECTION_DATA.map(({ key, kind, movable, ownerFields }) => ({ key, kind, movable, ownerFields })),
+        );
     });
 
     it('in the same three bands', () => {
-        const bands = [...WEB_BANDS.matchAll(/\{ key: '(\w+)', labelKey: '[^']+', fallback: '[^']+', sections: \[([^\]]*)\] \}/g)].map((m) => ({
-            key: m[1],
-            sections: [...(m[2] as string).matchAll(/'(\w+)'/g)].map((s) => s[1]),
-        }));
-        expect(BANDS.map((b) => ({ key: b.key, sections: [...b.sections] }))).toEqual(bands);
+        expect(BANDS.map((b) => ({ key: b.key, sections: [...b.sections] }))).toEqual(
+            SOLUTION_BANDS.map((b) => ({ key: b.key, sections: b.sections })),
+        );
     });
 });
 

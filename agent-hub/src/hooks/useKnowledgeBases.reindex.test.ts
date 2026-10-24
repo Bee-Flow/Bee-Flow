@@ -1,4 +1,5 @@
-import { renderHook, act } from '@testing-library/react';
+import { act } from '@testing-library/react';
+import { renderHookWithClient } from '../test/render';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import useKnowledgeBases from './useKnowledgeBases';
 
@@ -48,7 +49,7 @@ describe('useKnowledgeBases — reindex status line', () => {
             }
             return { ok: true, status: 200, json: async () => ([]) };
         });
-        const { result } = renderHook(() => useKnowledgeBases());
+        const { result } = renderHookWithClient(() => useKnowledgeBases());
         act(() => { result.current.setSelectedKB({ id: 'kb1', name: 'Docs' }); });
         await act(async () => { await result.current.reindexKB(); });
         expect(result.current.reindexStatus).not.toMatch(/undefined/);
@@ -65,7 +66,7 @@ describe('useKnowledgeBases — reindex status line', () => {
             }
             return { ok: true, status: 200, json: async () => ([]) };
         });
-        const { result } = renderHook(() => useKnowledgeBases());
+        const { result } = renderHookWithClient(() => useKnowledgeBases());
         act(() => { result.current.setSelectedKB({ id: 'kb1', name: 'Docs' }); });
         await act(async () => { await result.current.reindexKB(); });
         expect(result.current.reindexStatus).toContain('3');

@@ -121,7 +121,7 @@ function useFindMatches(view: any, query: string, caseSensitive: boolean, tick: 
     // Start from the first match at or after the caret when the query changes.
     const runMatchesEffect = useEffectEvent(() => {
         const sel = view?.state?.selection;
-        setCurrent(matchIndexFrom(matches, isText(sel) ? (selRange(sel) as any).from : null));
+        setCurrent(matchIndexFrom(matches, isText(sel) ? selRange(sel).from : null));
         setNav((n) => n + 1);
     });
     useEffect(() => { return runMatchesEffect(); }, [query, caseSensitive]);

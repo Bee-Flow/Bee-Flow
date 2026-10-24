@@ -66,7 +66,7 @@ interface Props {
 export default function TableSourceField({ value, options: given, emptyText, placeholder, onChange, ariaLabel, id, invalid, onFocusField, previewSample }: Props) {
     const { t } = useTranslation();
     const { groups } = useVariablePickerContext();
-    const options = given ?? tableOptions(groups as unknown as GroupLike[]);
+    const options = given ?? tableOptions(groups);
     const path = pathOf(value);
     const listed = !!path && options.some(o => o.path === path);
     const [other, setOther] = useState(false);

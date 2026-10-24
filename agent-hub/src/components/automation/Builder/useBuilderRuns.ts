@@ -5,6 +5,12 @@ import { runWithCallerNotice } from './callerNotice';
 import { acknowledgeCallerNotice, fetchCallerNotice } from '../../../api/queries/automation/callerNotice';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { BuilderTab } from './useBuilderTabUrl';
+import type { Dispatch, SetStateAction } from 'react';
+import type useAutomationApi from '../../../hooks/useAutomationApi';
+import type useAutomationBuilderStream from '../../../hooks/useAutomationBuilderStream';
+import type useConfirm from '../../shared/useConfirm';
+import type useNdvState from './useNdvState';
+import type { FlowDefinition } from './flow/types';
 
 
 /** The live run's answer: a skip, a hand-off to the run history, or the finished run. */
@@ -18,22 +24,22 @@ interface LiveRunReply {
 }
 
 export interface UseBuilderRunsOptions {
-    api: any;
-    state: any;
-    effectiveDef: any;
+    api: ReturnType<typeof useAutomationApi>;
+    state: ReturnType<typeof useAutomationBuilderStream>['state'];
+    effectiveDef: FlowDefinition | null;
     executeStep: (stepId: string, opts?: any) => Promise<any>;
     watchActiveRun: (automationId: string) => () => void;
-    setRunResult: (run: any, steps: any) => void;
+    setRunResult: ReturnType<typeof useAutomationBuilderStream>['setRunResult'];
     settleRun: () => void;
     clearDryRun: () => void;
-    ensureAutomationCreated: (defForCreate?: any) => Promise<any>;
-    noteManagedRefusal: (e: any) => boolean;
+    ensureAutomationCreated: (defForCreate?: FlowDefinition | null) => Promise<string | undefined>;
+    noteManagedRefusal: (e: unknown) => boolean;
     setBusy: (busy: boolean) => void;
-    setError: (error: any) => void;
-    confirm: (opts: any) => Promise<boolean>;
+    setError: Dispatch<SetStateAction<string | null>>;
+    confirm: ReturnType<typeof useConfirm>['confirm'];
     setTab: (tab: BuilderTab) => void;
     ndvStepId: string | null;
-    openNdv: (id: string, density?: any) => void;
+    openNdv: ReturnType<typeof useNdvState>['openNdv'];
 }
 
 /**
@@ -170,7 +176,7 @@ export default function useBuilderRuns({
             const aid = await ensureAutomationCreated();
             if (!aid) { setError('Add a trigger and at least one step before running.'); return; }
             stopWatch = watchActiveRun(aid); // live progress while it runs
-            const r = await api.dryRun(aid, runBody(fromTrigger));
+            const r = await api.dryRun<LiveRunReply>(aid, runBody(fromTrigger));
             setRunResult(r.run, r.steps);
             toast.success('Dry-run complete — open a step to see its output.');
         }
@@ -179,7 +185,7 @@ export default function useBuilderRuns({
         // no run record is coming. Left running, `liveRunInFlight` stays true
         // and every ▶ Execute button is disabled for the rest of the session —
         // one of the mechanisms behind BFSF-360 ("Execute does nothing").
-        catch (e: any) { noteManagedRefusal(e); setError(e.message); settleRun(); }
+        catch (e: unknown) { noteManagedRefusal(e); setError((e as Error).message); settleRun(); }
         finally { stopWatch(); setBusy(false); }
     };
 
@@ -209,7 +215,7 @@ export default function useBuilderRuns({
             // The first run of an automation on the caller's own connections is held
             // for a one-time notice (callerNotice.ts); declining starts nothing.
             const started = await runWithCallerNotice<LiveRunReply>(
-                { run: api.run, getCallerNotice: fetchCallerNotice, ackCallerNotice: acknowledgeCallerNotice }, aid, { ...body, test: true }, confirm, t,
+                { run: api.run<LiveRunReply>, getCallerNotice: fetchCallerNotice, ackCallerNotice: acknowledgeCallerNotice }, aid, { ...body, test: true }, confirm, t,
             );
             if (started.declined) { clearDryRun(); return null; }
             const r = started.result;
@@ -232,7 +238,7 @@ export default function useBuilderRuns({
         }
         // Same as onDryRun: settle the live progress stub so a failed run-start
         // can't strand the builder in "running" forever (BFSF-360).
-        catch (e: any) { noteManagedRefusal(e); setError(e.message); settleRun(); throw e; }
+        catch (e: unknown) { noteManagedRefusal(e); setError((e as Error).message); settleRun(); throw e; }
         finally { stopWatch(); setBusy(false); }
     };
 

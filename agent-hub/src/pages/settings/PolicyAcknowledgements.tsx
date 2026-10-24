@@ -3,6 +3,7 @@ import { FileText, Check, ChevronDown, ChevronRight, Loader2 } from 'lucide-reac
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
 import { logger } from '../../utils/logger';
+import { mutate, ApiError } from '../../api/mutate';
 
 /**
  * Member-facing ISMS policy acknowledgements (ISO 27001 clause 7.3 awareness).
@@ -46,10 +47,13 @@ export default function PolicyAcknowledgements() {
     const confirm = async (slug: string) => {
         setBusySlug(slug);
         try {
-            const r = await authFetch(`${API_BASE}/api/compliance/iso/docs/${encodeURIComponent(slug)}/acknowledge`, {
+            const r = await mutate(`${API_BASE}/api/compliance/iso/docs/${encodeURIComponent(slug)}/acknowledge`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (r.ok) await refresh();
+            if (r) await refresh();
         } finally { setBusySlug(null); }
     };
 

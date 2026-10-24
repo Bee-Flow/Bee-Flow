@@ -3,9 +3,10 @@
 // IntegrationsAdminPanel.jsx; all bindings are threaded in as props.
 import { Check, Loader2, Settings } from 'lucide-react';
 import React from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { SearchSectionProps } from './adminPanel.types';
+import { mutate, ApiError } from '../../../api/mutate';
 
 export default function SearchSection({
     searchProvider, setSearchProvider,
@@ -44,12 +45,16 @@ export default function SearchSection({
                                         const val = e.target.value;
                                         setSearchProvider(val);
                                         try {
-                                            const res = await authFetch(`${API_BASE}/ai/config`, {
+                                            try {
+                                                await mutate(`${API_BASE}/ai/config`, {
                                                 method: 'POST',
                                                 headers: { 'Content-Type': 'application/json' },
                                                 body: JSON.stringify({ searchProvider: val }),
                                             });
-                                            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                                            } catch (err) {
+                                                if (!(err instanceof ApiError)) throw err;
+                                                throw new Error(`HTTP ${err.status}`);
+                                            }
                                             const labels: Record<string, string> = { 'disabled': 'Disabled', 'bing': 'Azure Bing Search', 'node-search': 'Cloud-only (Serper + provider APIs)', 'agent-search': 'Self-hosted Agent Search' };
                                             setMessage({ type: 'success', text: `Search provider set to ${labels[val] || val}` });
                                         } catch (e) {
@@ -93,12 +98,15 @@ export default function SearchSection({
                                             onClick={async () => {
                                                 setSavingBingKey(true);
                                                 try {
-                                                    const res = await authFetch(`${API_BASE}/ai/config`, {
+                                                    const res = await mutate(`${API_BASE}/ai/config`, {
                                                         method: 'POST',
                                                         headers: { 'Content-Type': 'application/json' },
                                                         body: JSON.stringify({ bingSearchKey, bingSearchMarket }),
+                                                    }).catch((err: unknown) => {
+                                                        if (err instanceof ApiError) return null;
+                                                        throw err;
                                                     });
-                                                    if (res.ok) {
+                                                    if (res) {
                                                         setHasBingSearchKey(!!bingSearchKey);
                                                         setBingSearchKey('');
                                                         setMessage({ type: 'success', text: bingSearchKey ? 'Bing Search settings saved' : 'Bing Search key removed' });
@@ -186,12 +194,15 @@ export default function SearchSection({
                                             onClick={async () => {
                                                 setSavingSerperKey(true);
                                                 try {
-                                                    const res = await authFetch(`${API_BASE}/ai/config`, {
+                                                    const res = await mutate(`${API_BASE}/ai/config`, {
                                                         method: 'POST',
                                                         headers: { 'Content-Type': 'application/json' },
                                                         body: JSON.stringify({ serperApiKey }),
+                                                    }).catch((err: unknown) => {
+                                                        if (err instanceof ApiError) return null;
+                                                        throw err;
                                                     });
-                                                    if (res.ok) {
+                                                    if (res) {
                                                         setHasSerperKey(!!serperApiKey);
                                                         setSerperApiKey('');
                                                         setMessage({ type: 'success', text: serperApiKey ? 'Serper API key saved' : 'Serper API key removed' });
@@ -345,12 +356,16 @@ export default function SearchSection({
                                         onClick={async () => {
                                             setSavingSearchDefaults(true);
                                             try {
-                                                const res = await authFetch(`${API_BASE}/ai/agent-search/defaults`, {
+                                                try {
+                                                    await mutate(`${API_BASE}/ai/agent-search/defaults`, {
                                                     method: 'PUT',
                                                     headers: { 'Content-Type': 'application/json' },
                                                     body: JSON.stringify(agentSearchDefaults),
                                                 });
-                                                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                                                } catch (err) {
+                                                    if (!(err instanceof ApiError)) throw err;
+                                                    throw new Error(`HTTP ${err.status}`);
+                                                }
                                                 setMessage({ type: 'success', text: 'Agent Search defaults saved' });
                                             } catch (e) {
                                                 setMessage({ type: 'error', text: 'Failed to save defaults' });

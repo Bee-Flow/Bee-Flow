@@ -20,29 +20,16 @@
 import type { Theme } from '@/core/theme/ThemeProvider';
 
 import type { IconName } from './icons/Icon';
-import { KIND_ALIASES, KIND_KEYS } from './mirror/kindKeys';
+import { KIND_ALIASES, KIND_KEYS, KIND_VARS } from './mirror/kindKeys';
 import type { KindKey } from './mirror/kindKeys';
 
 export { KIND_ALIASES, KIND_KEYS };
 export type { KindKey };
 
-/** The web's CSS variable per kind (kindColors.js KIND_VAR, without the `var()`). */
-export const KIND_TOKEN: Record<KindKey, string> = {
-    automation: '--type-trigger',
-    datatable: '--type-data',
-    app: '--kind-app',
-    webpage: '--kind-web',
-    document: '--kind-doc',
-    form: '--type-pause',
-    agent: '--type-ai',
-    skill: '--kind-skill',
-    kb: '--kind-kb',
-    meeting: '--kind-meet',
-    playbook: '--kind-playbook',
-    // A container, deliberately neutral.
-    solution: '--text-secondary',
-    compliance: '--kind-compliance',
-};
+/** The web's CSS variable per kind (kindColors.ts KIND_VAR, without the `var()`): derived from the generated table. */
+export const KIND_TOKEN = Object.fromEntries(
+    KIND_KEYS.map((k) => [k, KIND_VARS[k].replace(/^var\((.*)\)$/, '$1')]),
+) as Record<KindKey, string>;
 
 /** The glyph of each kind — the Lucide names the web's artboard draws. */
 export const KIND_ICON: Record<KindKey, IconName> = {

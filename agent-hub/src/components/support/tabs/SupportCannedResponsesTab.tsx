@@ -4,6 +4,7 @@ import { authFetch, API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { CannedResponse } from '../SupportInboxPanel.types';
 import { errorMessage } from '../../../utils/caughtError';
+import { mutate, ApiError } from '../../../api/mutate';
 
 const VARS = ['{{requester_name}}', '{{requester_email}}', '{{org_name}}', '{{thread_subject}}', '{{staff_first_name}}'];
 
@@ -38,8 +39,11 @@ export default function SupportCannedResponsesTab() {
     };
 
     const remove = async (id: string) => {
-        const res = await authFetch(`${API_BASE}/api/support/canned/${id}`, { method: 'DELETE' });
-        if (res.ok) await load();
+        const res = await mutate(`${API_BASE}/api/support/canned/${id}`, { method: 'DELETE' }).catch((err: unknown) => {
+            if (err instanceof ApiError) return null;
+            throw err;
+        });
+        if (res) await load();
     };
 
     return (

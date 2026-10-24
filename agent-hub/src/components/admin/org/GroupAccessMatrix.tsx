@@ -5,6 +5,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { messageOf } from '../../../utils/caughtError';
 import type { AccessCapability, AccessData, AccessKindSection, AccessMessage } from './access/accessTypes';
+import { mutate, ApiError } from '../../../api/mutate';
 
 /**
  * GroupAccessMatrix — the org "Access & Permissions" surface.
@@ -98,8 +99,12 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
         if (everyoneTimer.current) clearTimeout(everyoneTimer.current);
         everyoneTimer.current = setTimeout(async () => {
             try {
-                const res = await authFetch(orgWritePath, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ granted: [...nextSet] }) });
-                if (!res.ok) throw new Error(t('admin_org.access_matrix_save_failed', 'Save failed'));
+                try {
+                    await mutate(orgWritePath, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ granted: [...nextSet] }) });
+                } catch (err) {
+                    if (!(err instanceof ApiError)) throw err;
+                    throw new Error(t('admin_org.access_matrix_save_failed', 'Save failed'));
+                }
                 setMessage({ type: 'ok', text: t('admin_org.access_matrix_saved', 'Saved') });
             } catch (e) { setMessage({ type: 'error', text: messageOf(e, t('admin_org.access_matrix_save_failed', 'Save failed')) }); load(); }
         }, SAVE_DEBOUNCE_MS);
@@ -109,8 +114,12 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
         if (groupTimers.current[groupId]) clearTimeout(groupTimers.current[groupId]);
         groupTimers.current[groupId] = setTimeout(async () => {
             try {
-                const res = await authFetch(`${API_BASE}/auth/groups/${encodeURIComponent(groupId)}/access`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ granted: [...nextSet] }) });
-                if (!res.ok) throw new Error(t('admin_org.access_matrix_save_failed', 'Save failed'));
+                try {
+                    await mutate(`${API_BASE}/auth/groups/${encodeURIComponent(groupId)}/access`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ granted: [...nextSet] }) });
+                } catch (err) {
+                    if (!(err instanceof ApiError)) throw err;
+                    throw new Error(t('admin_org.access_matrix_save_failed', 'Save failed'));
+                }
                 setMessage({ type: 'ok', text: t('admin_org.access_matrix_saved', 'Saved') });
             } catch (e) { setMessage({ type: 'error', text: messageOf(e, t('admin_org.access_matrix_save_failed', 'Save failed')) }); load(); }
         }, SAVE_DEBOUNCE_MS);

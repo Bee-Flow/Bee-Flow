@@ -12,6 +12,7 @@ import { toast } from '../../../shared/Toast';
 import useConfirm from '../../../shared/useConfirm';
 import type { SupportAgent, SupportInbox, SupportKb } from './supportStudio.types';
 import { logger } from '../../../../utils/logger';
+import { mutate, ApiError } from '../../../../api/mutate';
 
 interface InboxesTabProps {
     inboxes?: SupportInbox[];
@@ -167,8 +168,11 @@ function InboxCard({ inbox, agents, kbs, selected, onSelect, onChanged }: InboxC
             destructive: true,
         });
         if (!ok) return;
-        const res = await authFetch(`${API_BASE}/api/support-inbox/inboxes/${inbox.id}`, { method: 'DELETE' });
-        if (res.ok) onChanged?.();
+        const res = await mutate(`${API_BASE}/api/support-inbox/inboxes/${inbox.id}`, { method: 'DELETE' }).catch((err: unknown) => {
+            if (err instanceof ApiError) return null;
+            throw err;
+        });
+        if (res) onChanged?.();
     };
 
     return (

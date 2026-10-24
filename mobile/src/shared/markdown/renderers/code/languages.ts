@@ -8,6 +8,8 @@
  * is shown capitalised, as on the web.
  */
 
+import { LANG_LABELS } from '@/shared/markdown/mirror/markdownRules';
+
 export const GRAMMAR_OF: Readonly<Record<string, string>> = {
     python: 'python',
     py: 'python',
@@ -39,15 +41,7 @@ export const GRAMMAR_OF: Readonly<Record<string, string>> = {
     md: 'markdown',
 };
 
-export const LANGUAGE_LABELS: Readonly<Record<string, string>> = {
-    python: 'Python', py: 'Python', javascript: 'JavaScript', js: 'JavaScript',
-    typescript: 'TypeScript', ts: 'TypeScript', jsx: 'JSX', tsx: 'TSX',
-    html: 'HTML', css: 'CSS', json: 'JSON', bash: 'Bash', sh: 'Shell',
-    sql: 'SQL', yaml: 'YAML', yml: 'YAML', markdown: 'Markdown', md: 'Markdown',
-    java: 'Java', cpp: 'C++', c: 'C', rust: 'Rust', go: 'Go', ruby: 'Ruby',
-    php: 'PHP', swift: 'Swift', kotlin: 'Kotlin', r: 'R', lua: 'Lua',
-    xml: 'XML', csv: 'CSV', toml: 'TOML', ini: 'INI', dockerfile: 'Dockerfile',
-};
+export const LANGUAGE_LABELS: Readonly<Record<string, string>> = LANG_LABELS;
 
 /** The header's name for a fence's language; '' for none (the header then says "Code"). */
 export function languageLabel(language: string): string {

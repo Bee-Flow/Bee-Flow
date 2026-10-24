@@ -7,6 +7,7 @@ import useConfirm from '../shared/useConfirm';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
 import { logger } from '../../utils/logger';
+import { mutate, ApiError } from '../../api/mutate';
 
 /**
  * The YouTrack issues attached to one support ticket.
@@ -230,8 +231,11 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
     const detach = async (issueId: string) => {
         if (!(await confirm({ title: `Detach ${issueId} from this ticket?`, description: 'The issue itself stays in YouTrack.', confirmLabel: 'Detach', destructive: true }))) return;
         try {
-            const res = await authFetch(`${API_BASE}/api/support/threads/${threadId}/issues/${issueId}`, { method: 'DELETE' });
-            if (res.ok) { await load(); onChanged?.(); }
+            const res = await mutate(`${API_BASE}/api/support/threads/${threadId}/issues/${issueId}`, { method: 'DELETE' }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
+            });
+            if (res) { await load(); onChanged?.(); }
         } catch (e) {
             setError(errorMessage(e));
         }

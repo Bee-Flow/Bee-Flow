@@ -19,11 +19,15 @@ const TEST_REPORT = web('TestReportRenderer.tsx');
 const PAGE = web('PageRenderer.tsx') + web('pageLayoutElements.tsx') + web('pageDataElements.tsx');
 const MERMAID = web('MermaidRenderer.tsx');
 
+// The web paints some of these in Tailwind arbitrary classes (`[border-image:linear-gradient(90deg,#8b5cf6,…)_1]`,
+// where a space is an underscore), others in style objects: compare with spaces and underscores left out.
+const bare = (text: string) => text.replace(/[\s_]/g, '');
+
 describe('research and test reports', () => {
     it('use the web’s gradients', () => {
-        expect(RESEARCH).toContain(`linear-gradient(90deg, ${BRAND_GRADIENT.join(', ')}, transparent)`);
-        expect(RESEARCH).toContain(`linear-gradient(135deg, ${HERO_GRADIENT[0]} 0%, ${HERO_GRADIENT[1]} 50%, ${HERO_GRADIENT[2]} 100%)`);
-        expect(PAGE).toContain(`linear-gradient(90deg, ${CARD_ACCENT.join(', ')})`);
+        expect(bare(RESEARCH)).toContain(bare(`linear-gradient(90deg, ${BRAND_GRADIENT.join(', ')}, transparent)`));
+        expect(bare(RESEARCH)).toContain(bare(`linear-gradient(135deg, ${HERO_GRADIENT[0]} 0%, ${HERO_GRADIENT[1]} 50%, ${HERO_GRADIENT[2]} 100%)`));
+        expect(bare(PAGE)).toContain(bare(`linear-gradient(90deg, ${CARD_ACCENT.join(', ')})`));
     });
 
     it.each(Object.entries(CALLOUT))('tints a %s callout as the web does', (variant, c) => {

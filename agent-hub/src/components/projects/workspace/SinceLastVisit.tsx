@@ -24,7 +24,7 @@ import { kindColorVar } from '../../shared/kindColors';
 import { canEditProject } from './types';
 import { Card, GhostButton, LoadingRow } from './workspaceUi';
 
-const VersionHistoryPanel = lazyWithReload(() => import('../../versions/VersionHistoryPanel')) as unknown as React.ComponentType<VersionHistoryPanelProps>;
+const VersionHistoryPanel = lazyWithReload(() => import('../../versions/VersionHistoryPanel'));
 
 type Glyph = React.ComponentType<{ className?: string; style?: React.CSSProperties; 'aria-hidden'?: boolean | 'true' }>;
 

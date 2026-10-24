@@ -12,7 +12,7 @@ import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
 
 import { CODE_PANEL, GITHUB_DARK, paintedScope } from './codeTheme';
 import { htmlToRuns, scopeKey } from './hljsHtml';
-import { GRAMMAR_OF, isCompactSnippet, LANGUAGE_LABELS, languageLabel } from './languages';
+import { GRAMMAR_OF, isCompactSnippet, languageLabel } from './languages';
 import { highlightDelay, highlightRuns } from './useHighlight';
 
 const WEB = fs.readFileSync(`${AGENT_HUB_SRC}/components/renderers/MarkdownRenderer.tsx`, 'utf8');
@@ -24,12 +24,6 @@ describe('lockstep with the web', () => {
         const imports = new Map([...WEB.matchAll(/^import (\w+) from 'highlight\.js\/lib\/languages\/(\w+)';$/gm)].map((m) => [m[1], m[2]]));
         const registered = [...WEB.matchAll(/hljs\.registerLanguage\('([\w-]+)', (\w+)\)/g)].map((m) => [m[1], imports.get(m[2] as string)]);
         expect(Object.entries(GRAMMAR_OF)).toEqual(registered);
-    });
-
-    it('labels languages as the web’s header does', () => {
-        const table = /const langLabels(?:: [^=]+)? = \{([\s\S]*?)\};/.exec(WEB)?.[1] ?? '';
-        const labels = Object.fromEntries([...table.matchAll(/(\w+): '([^']+)'/g)].map((m) => [m[1], m[2]]));
-        expect(LANGUAGE_LABELS).toEqual(labels);
     });
 
     it('paints the web’s panel', () => {

@@ -155,7 +155,9 @@ test('buildRunFilterWhere lists journey heads only, whatever else is filtered', 
 test('the org scope joins users LEFT — it reads a column, it does not decide who is in', () => {
     const fs = require('node:fs');
     const path = require('node:path');
-    const src = fs.readFileSync(path.join(__dirname, 'automationStore', 'runs.js'), 'utf8');
+    // runs.js and the files split out of it (the filter / stats / steps queries).
+    const src = ['runs.js', 'runsFilter.js', 'runsStats.js', 'runsSteps.js']
+        .map(f => fs.readFileSync(path.join(__dirname, 'automationStore', f), 'utf8')).join('\n');
 
     assert.match(src, /const ORG_SCOPE_JOIN = ' LEFT JOIN users u ON u\.id = a\.user_id';/,
         'an INNER join here silently narrows which runs the organisation may see');

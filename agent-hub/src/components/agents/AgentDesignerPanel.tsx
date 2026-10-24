@@ -8,6 +8,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { toast } from '../shared/Toast';
 import useConfirm from '../shared/useConfirm';
 import type { PanelAgent, AgentDesignerPanelProps } from './AgentDesignerPanel.types';
+import { mutate, ApiError } from '../../api/mutate';
 
 const AgentDesignerPanel = ({
     agent,
@@ -145,12 +146,15 @@ const AgentDesignerPanel = ({
 
     const handleCreateCategory = async (name: string) => {
         try {
-            const res = await authFetch(`${API_BASE}/agents/categories`, {
+            const res = await mutate(`${API_BASE}/agents/categories`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name })
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 const cat = await res.json();
                 setCategories(prev => [...prev, cat]);
                 // Auto-select the newly created category
@@ -242,12 +246,15 @@ const AgentDesignerPanel = ({
                     return;
                 }
             } else {
-                const res = await authFetch(`${API_BASE}/agents`, {
+                const res = await mutate(`${API_BASE}/agents`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
+                }).catch((err: unknown) => {
+                    if (err instanceof ApiError) return null;
+                    throw err;
                 });
-                if (res.ok) {
+                if (res) {
                     savedAgent = await res.json();
                 }
             }

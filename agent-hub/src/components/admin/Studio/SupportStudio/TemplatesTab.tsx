@@ -6,6 +6,7 @@ import Section from '../../../shared/Section';
 import FormField from '../../../shared/FormField';
 import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE } from './supportStyles';
 import type { CannedResponse } from '../../../support/SupportInboxPanel.types';
+import { mutate, ApiError } from '../../../../api/mutate';
 
 interface SupportTag {
     id: string;
@@ -51,8 +52,11 @@ function Tags() {
         setName(''); await load();
     };
     const remove = async (id: string) => {
-        const res = await authFetch(`${API_BASE}/api/support-inbox/tags/${id}`, { method: 'DELETE' });
-        if (res.ok) await load();
+        const res = await mutate(`${API_BASE}/api/support-inbox/tags/${id}`, { method: 'DELETE' }).catch((err: unknown) => {
+            if (err instanceof ApiError) return null;
+            throw err;
+        });
+        if (res) await load();
     };
 
     return (
@@ -102,8 +106,11 @@ function Canned() {
         setForm({ title: '', shortcut: '', body: '' }); setAdding(false); await load();
     };
     const remove = async (id: string) => {
-        const res = await authFetch(`${API_BASE}/api/support-inbox/canned/${id}`, { method: 'DELETE' });
-        if (res.ok) await load();
+        const res = await mutate(`${API_BASE}/api/support-inbox/canned/${id}`, { method: 'DELETE' }).catch((err: unknown) => {
+            if (err instanceof ApiError) return null;
+            throw err;
+        });
+        if (res) await load();
     };
 
     return (

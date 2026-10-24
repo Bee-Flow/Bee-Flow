@@ -10,7 +10,7 @@ import {
 import { API_BASE, authFetch } from '../../utils/helpers';
 // Circular on purpose, like SimpleApiKeyIntegration: the shared row
 // primitives are only read at render time.
-import { IntegrationRow, DisconnectButton } from './IntegrationsSection';
+import { IntegrationRow, DisconnectButton } from './IntegrationPrimitives';
 
 const MicrosoftLogo = () => (
     <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">

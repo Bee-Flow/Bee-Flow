@@ -42,7 +42,7 @@ import { ErrorText, LoadingRow, Notice, PrimaryButton, SecondaryButton } from '.
 
 /** A section in its own chunk, typed against the contract it must honour. */
 function tabChunk<P>(importer: () => Promise<{ default: React.ComponentType<P> }>): React.ComponentType<P> {
-    return lazyWithReload(importer) as unknown as React.ComponentType<P>;
+    return lazyWithReload(importer);
 }
 
 const ProjectChatsTab = tabChunk<ChatsTabProps>(() => import('./chat/ProjectChatsTab'));

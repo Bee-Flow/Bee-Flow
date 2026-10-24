@@ -5,6 +5,7 @@ import useConfirm from '../../shared/useConfirm';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { messageOf } from '../../../utils/caughtError';
 import { logger } from '../../../utils/logger';
+import { mutate, ApiError } from '../../../api/mutate';
 
 interface PairingCode {
     id: string;
@@ -82,8 +83,12 @@ const OrgNcPairingPanel = () => {
     const revoke = async (id: string) => {
         if (!(await confirm({ title: 'Revoke this pairing code?', description: 'Anyone who has it will no longer be able to use it.', confirmLabel: 'Revoke', destructive: true }))) return;
         try {
-            const res = await authFetch(`${API_BASE}/auth/admin/nc-bindings/pairing-codes/${id}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            try {
+                await mutate(`${API_BASE}/auth/admin/nc-bindings/pairing-codes/${id}`, { method: 'DELETE' });
+            } catch (err) {
+                if (!(err instanceof ApiError)) throw err;
+                throw new Error(`HTTP ${err.status}`);
+            }
             await reload();
         } catch (e) {
             setError(messageOf(e, 'Failed to revoke'));

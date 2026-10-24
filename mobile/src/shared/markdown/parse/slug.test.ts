@@ -1,34 +1,10 @@
 /**
- * Heading anchors. The web keeps both rules inline in MarkdownRenderer.jsx's
- * JSX, so the lockstep is textual: the same replace chain, character for
- * character.
+ * Heading anchors. headingSlug and anchorKey are the web's own functions
+ * (generated copy of agent-hub's markdownRules.ts, under ../mirror), so only
+ * their behaviour is tested here.
  */
 
-import fs from 'node:fs';
-
-import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
-
 import { anchorKey, findAnchor, headingSlug } from './slug';
-
-const WEB = fs.readFileSync(`${AGENT_HUB_SRC}/components/renderers/MarkdownRenderer.tsx`, 'utf8');
-
-describe('lockstep with the web', () => {
-    it('slugs a heading with the web’s replace chain', () => {
-        const chain = [
-            ".toLowerCase()",
-            ".replace(/[^\\p{L}\\p{N}\\s-]/gu, '')",
-            ".replace(/\\s+/g, '-')",
-            ".replace(/-+/g, '-')",
-            ".replace(/^-|-$/g, '');",
-        ];
-        const compact = WEB.replace(/\s*\n\s*/g, '');
-        expect(compact).toContain(chain.join(''));
-    });
-
-    it('matches fragments on the web’s [a-z0-9] key', () => {
-        expect(WEB).toContain(".toLowerCase().replace(/[^a-z0-9]/g, '')");
-    });
-});
 
 describe('headingSlug', () => {
     it('keeps letters in any script and joins words with hyphens', () => {

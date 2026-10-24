@@ -33,7 +33,9 @@ const NC_EVENTS = new Set(TRIGGER_SOURCES[0].events.map(e => e.id));
  */
 function promptSource() {
     assert.ok(TOOL_SCHEMAS, 'schemas module still exports TOOL_SCHEMAS');
-    return fs.readFileSync(path.join(__dirname, 'schemas.js'), 'utf8');
+    // The entries sit in schemasPart1..N.js (schemas.js only concatenates them).
+    return ['schemas.js', ...fs.readdirSync(__dirname).filter(f => /^schemasPart\d+\.js$/.test(f)).sort()]
+        .map(f => fs.readFileSync(path.join(__dirname, f), 'utf8')).join('\n');
 }
 
 /**

@@ -6,7 +6,7 @@ import type { FieldEditorProps } from './fieldEditor.types';
 import { INFO_MAX_LEN } from './fieldKinds';
 
 // A JavaScript component whose props TypeScript infers from their defaults.
-const TemplateField = TemplateFieldJs as unknown as ComponentType<Record<string, unknown>>;
+const TemplateField = TemplateFieldJs;
 
 /**
  * A text block: some words shown between the questions (instructions, a

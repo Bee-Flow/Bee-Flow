@@ -41,9 +41,7 @@ interface FrameworksHook {
 }
 
 // ScoreRing is plain JavaScript; these are the props it takes.
-const ScoreRing = ScoreRingJs as unknown as React.ComponentType<{
-    score?: number; size?: number; tone?: Tone; label?: string; testId?: string;
-}>;
+const ScoreRing = ScoreRingJs;
 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { mutate, ApiError } from '../../../api/mutate';
 
 /**
  * A role change the server refused with 'confirm_self_demotion': allowed, but
@@ -93,12 +94,15 @@ export default function useOrgMemberRoles({ fetchData, confirm }: UseOrgMemberRo
 
     const handleApproveUser = async (userId: string) => {
         try {
-            const res = await authFetch(`${API_BASE}/auth/users/${userId}`, {
+            const res = await mutate(`${API_BASE}/auth/users/${userId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'active', orgRole: 'user' }),
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) await fetchData();
+            if (res) await fetchData();
         } catch (err) {
             console.error('Failed to approve user:', err);
         }
@@ -107,8 +111,11 @@ export default function useOrgMemberRoles({ fetchData, confirm }: UseOrgMemberRo
     const handleRejectUser = async (userId: string) => {
         if (!(await confirm({ title: 'Reject and remove this user?', description: 'They can sign up again later.', confirmLabel: 'Reject', destructive: true }))) return;
         try {
-            const res = await authFetch(`${API_BASE}/auth/users/${userId}`, { method: 'DELETE' });
-            if (res.ok) await fetchData();
+            const res = await mutate(`${API_BASE}/auth/users/${userId}`, { method: 'DELETE' }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
+            });
+            if (res) await fetchData();
         } catch (err) {
             console.error('Failed to reject user:', err);
         }

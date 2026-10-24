@@ -122,6 +122,7 @@ const CREDENTIAL_UNCHANGED = [
 /** Files allowed to name the date field directly. */
 const MAY_SET_THE_DATE = new Set([
     'stores/user/users.js',   // the choke point itself
+    'stores/user/usersCreate.js', // the create half of the same choke point, split out of users.js
     OPAQUE_ROUTES,            // the documented exception: its credential is not a hash
 ]);
 

@@ -8,9 +8,9 @@ import { readOrgGroups, type OrgGroup } from '../api/queries/orgGroups';
 import { useCan } from '../components/licensing/Gate';
 import { RequireTier } from '../components/licensing/LicenseContext';
 import useTranslation from '../hooks/useTranslation';
-import { API_BASE, authFetch } from '../utils/helpers';
 import type { WebpageRow } from './webpages/webpageEditorTypes';
 import { logger } from '../utils/logger';
+import { useConfigChatModels } from '../api/queries/configModels';
 
 /**
  * The URL segment Studio's "New → Webpage" launcher navigates to
@@ -42,6 +42,8 @@ interface WebpagesPageInnerProps {
     onWebpageChange?: (id: string | null) => void;
 }
 
+const EMPTY_MODEL_TIERS: {} = {};
+
 function WebpagesPageInner({ user, onBack, initialWebpageId, onWebpageChange, embedded = false }: WebpagesPageInnerProps) {
     // Drive UI gating from the SAME unified entitlements snapshot the server's
     // requireCapability('webpages') enforces (EntitlementsContext) — so this
@@ -60,14 +62,9 @@ function WebpagesPageInner({ user, onBack, initialWebpageId, onWebpageChange, em
     }, []);
 
     /* ── Model tiers (shell-owned so the choice survives opening another page) ── */
-    const [modelTiers, setModelTiers] = useState<{}>({});
     const [selectedTier, setSelectedTier] = useState('fast');
-    useEffect(() => {
-        authFetch(`${API_BASE}/ai/config/chat-models`)
-            .then(r => r.ok ? r.json() : {})
-            .then(data => setModelTiers(data))
-            .catch(e => console.warn('[WebpagesPage] load model tiers failed', e));
-    }, []);
+    const modelTiersQuery = useConfigChatModels();
+    const modelTiers = modelTiersQuery.data ?? EMPTY_MODEL_TIERS;
 
     const [webpages, setWebpages] = useState<WebpageRow[]>([]);
     const [loading, setLoading] = useState(true);

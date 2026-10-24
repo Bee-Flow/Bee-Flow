@@ -1,30 +1,28 @@
 /**
- * The role and permission copy in roles.ts is the web's
- * (agent-hub/src/config/orgRoles.js), and the role ids are the server's
- * (server/config/orgRoles.json). Read as text: when either side changes,
- * port the change here rather than loosening this test.
+ * The role and permission copy in roles.ts is the web's (a generated copy of
+ * agent-hub/src/config/orgRoles.ts under ../mirror), and the role ids are the
+ * server's (server/config/orgRoles.json).
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { ORG_ROLE_IDS, PERMISSION_IDS } from './roles';
+import { ORG_ROLE_IDS, PERMISSION_IDS, permissionCopy, roleCopy } from './roles';
+import { ORG_ROLES, PERMISSION_CATALOG } from '../mirror/orgRoles';
+
 
 const REPO = path.resolve(__dirname, '../../../../..');
-const web = fs.readFileSync(path.join(REPO, 'agent-hub/src/config/orgRoles.ts'), 'utf8');
-
-/** From `export const NAME =` to its closing bracket at column 0. */
-function block(name: string, close: '};' | '];'): string {
-    // The declaration may carry a type annotation: `export const NAME: Type =`.
-    const start = web.search(new RegExp(`export const ${name}(?::[^=]+)? =`));
-    if (start < 0) throw new Error(`${name} not found in orgRoles.ts`);
-    return web.slice(start, web.indexOf(`\n${close}`, start));
-}
+const english = (_key: string, fallback: string) => fallback;
 
 describe('roles.ts in lockstep with the web and the server', () => {
     it('lists the web’s ORG_ROLES ids, in its order', () => {
-        const ids = [...block('ORG_ROLES', '];').matchAll(/\bid: '([^']+)'/g)].map((m) => m[1]);
-        expect([...ORG_ROLE_IDS]).toEqual(ids);
+        expect([...ORG_ROLE_IDS]).toEqual(ORG_ROLES.map((r) => r.id));
+    });
+
+    it('says each role the way the web does', () => {
+        for (const r of ORG_ROLES) {
+            expect(roleCopy(r.id, english)).toEqual({ name: r.name, description: r.description });
+        }
     });
 
     it('matches the server’s role model', () => {
@@ -36,7 +34,12 @@ describe('roles.ts in lockstep with the web and the server', () => {
     });
 
     it('carries copy for every PERMISSION_CATALOG id, in its order', () => {
-        const ids = [...block('PERMISSION_CATALOG', '};').matchAll(/^\s{4}(\w+): \{ label:/gm)].map((m) => m[1]);
-        expect(PERMISSION_IDS).toEqual(ids);
+        expect(PERMISSION_IDS).toEqual(Object.keys(PERMISSION_CATALOG));
+    });
+
+    it('says each permission the way the web does', () => {
+        for (const [id, c] of Object.entries(PERMISSION_CATALOG)) {
+            expect(permissionCopy(id, english)).toEqual({ id, label: c.label, description: c.desc });
+        }
     });
 });

@@ -70,7 +70,7 @@ interface PickerSelection {
     remove?: string[];
 }
 
-const ConnectorPicker = ConnectorPickerJs as unknown as ComponentType<{ connectors: Connector[]; onApply: (selection: PickerSelection) => void; onClose: () => void }>;
+const ConnectorPicker = ConnectorPickerJs;
 const useIntegrationCatalog = useIntegrationCatalogJs;
 
 function PickPrompt({ onPick, disabled }: { onPick: () => void; disabled?: boolean }) {

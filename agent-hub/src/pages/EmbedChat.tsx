@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import InputArea from '../components/chat/InputArea';
-import { API_BASE, authFetch } from '../utils/helpers';
+import { API_BASE } from '../utils/helpers';
 import { applyEmbedCustomization } from './embed/embedCustomization';
 import EmbedHeader from './embed/EmbedHeader';
 import EmbedMessages from './embed/EmbedMessages';
@@ -14,6 +14,7 @@ import type { EmbedAgent } from './embed/EmbedHeader';
 import type { ComposerAttachment } from '../components/chat/InputArea/useFileIntake';
 import type { ChatMessage } from '../hooks/useChatEngine/types';
 import { logger } from '../utils/logger';
+import { mutate, ApiError } from '../api/mutate';
 
 const getInitialTheme = () => {
     // 1. Check URL param (?theme=light or ?theme=dark) — allows iframe embedder to control
@@ -86,7 +87,9 @@ const EmbedChat = ({ agentId }: EmbedChatProps) => {
         setIsStreaming(true);
 
         try {
-            const response = await authFetch(`${API_BASE}/agents/${agentId}/chat/stream`, {
+            let response: Response;
+            try {
+                response = await mutate(`${API_BASE}/agents/${agentId}/chat/stream`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -103,8 +106,10 @@ const EmbedChat = ({ agentId }: EmbedChatProps) => {
                     ...visitor.turnFields(),
                 })
             });
-
-            if (!response.ok) throw new Error('Failed to send message');
+            } catch (apiErr) {
+                if (!(apiErr instanceof ApiError)) throw apiErr;
+                throw new Error('Failed to send message');
+            }
 
             const reader = (response.body as ReadableStream<Uint8Array>).getReader();
             const decoder = new TextDecoder();

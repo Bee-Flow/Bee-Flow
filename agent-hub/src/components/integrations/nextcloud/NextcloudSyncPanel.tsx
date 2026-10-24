@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Cloud, RefreshCw, Users, AlertTriangle, Check, Loader2 } from 'lucide-react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { mutate, ApiError } from '../../../api/mutate';
 
 // Theme tokens only, so every card, pill and control stays readable in the
 // dark themes (Tailwind 4 draws a bare `border` in currentColor).
@@ -102,7 +103,8 @@ const NextcloudSyncPanel = ({ user }: NextcloudSyncPanelProps) => {
         if (!config) return;
         setSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/auth/admin/${orgId}/nc-sync`, {
+            try {
+                await mutate(`${API_BASE}/auth/admin/${orgId}/nc-sync`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -112,7 +114,10 @@ const NextcloudSyncPanel = ({ user }: NextcloudSyncPanelProps) => {
                     newUserDefaultStatus: config.newUserDefaultStatus,
                 }),
             });
-            if (!res.ok) throw new Error('Save failed');
+            } catch (err) {
+                if (!(err instanceof ApiError)) throw err;
+                throw new Error('Save failed');
+            }
             setMessage({ type: 'ok', text: 'Settings saved' });
         } catch (e) {
             setMessage({ type: 'error', text: (e as Error).message });

@@ -9,7 +9,8 @@ import { toast } from '../../components/shared/Toast';
 import useConfirm from '../../components/shared/useConfirm';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatRelativeTime } from '../../utils/dateFormatters';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
+import { mutate, ApiError } from '../../api/mutate';
 
 /**
  * Settings → Memory.
@@ -55,12 +56,16 @@ const HEADING = 'mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest t
 const ROW_BUTTON = 'flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-50';
 
 async function saveUserSettings(patch: Record<string, boolean>): Promise<void> {
-    const res = await authFetch(`${API_BASE}/ai/user-settings`, {
+    try {
+        await mutate(`${API_BASE}/ai/user-settings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(patch),
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch (err) {
+        if (!(err instanceof ApiError)) throw err;
+        throw new Error(`HTTP ${err.status}`);
+    }
 }
 
 function CountValue({ status, count }: { status: StatsStatus; count: number | null }) {
@@ -194,8 +199,12 @@ export default function MemorySection({
         });
         if (!ok) return;
         try {
-            const res = await authFetch(`${API_BASE}/agents/memory/clear`, { method: 'POST' });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            try {
+                await mutate(`${API_BASE}/agents/memory/clear`, { method: 'POST' });
+            } catch (err) {
+                if (!(err instanceof ApiError)) throw err;
+                throw new Error(`HTTP ${err.status}`);
+            }
             toast.success(t('settings.memory_cleared', 'Your personal memories were deleted'));
             onRetryStats?.();
         } catch {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ArrowUp, MessageCircle, Calendar, Tag } from 'lucide-react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import useTranslation from '../../../hooks/useTranslation';
@@ -7,7 +7,7 @@ import beeFlowIcon from '../../../assets/BeeFlow-logo-Icon-2026.svg';
 import BuilderSplit from './BuilderSplit';
 import type { EditorAgent } from './builderSplit/editorTypes';
 import type { ModelTierMap } from '../../../hooks/useModelTierSelection';
-import { logger } from '../../../utils/logger';
+import { useConfigTiersForUser } from '../../../api/queries/configModels';
 
 // Landing-only wizard. The legacy "review/plan card" stage has been removed:
 // the landing flow now creates a placeholder agent and hands the first prompt
@@ -22,6 +22,8 @@ interface AgentWizardProps {
     onSwitchToManual: () => void;
 }
 
+const EMPTY_TIERS: ModelTierMap = {};
+
 export default function AgentWizard({ user, onClose, onPublished, onSwitchToManual }: AgentWizardProps) {
     const { t, locale } = useTranslation();
     const examples = [
@@ -34,20 +36,13 @@ export default function AgentWizard({ user, onClose, onPublished, onSwitchToManu
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [agent, setAgent] = useState<EditorAgent | null>(null);
-    const [tiers, setTiers] = useState<ModelTierMap>({});
     const [tier, setTier] = useState('fast');
     // The first prompt is handed to BuilderSplit which fires its own
     // /wizard/refine on mount — keeps the conversation in one place.
     const [pendingRefinement, setPendingRefinement] = useState<string | null>(null);
 
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/ai/config/tiers-for-user?taskType=direct_chat`);
-                if (res.ok) setTiers(await res.json());
-            } catch (err) { logger.debug('ignore', err); }
-        })();
-    }, []);
+    const tiersQuery = useConfigTiersForUser();
+    const tiers = tiersQuery.data ?? EMPTY_TIERS;
 
     const submitPromptInstant = async (text: string) => {
         const trimmed = (text || '').toString().trim();

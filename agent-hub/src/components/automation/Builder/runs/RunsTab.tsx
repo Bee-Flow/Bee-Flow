@@ -14,7 +14,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 
 const useRunStream = useRunStreamJs;
 // ExecutionView is plain JS whose defaults (`= null`) are all tsc can infer from.
-const ExecutionView = ExecutionViewJs as unknown as ComponentType<Record<string, unknown>>;
+const ExecutionView = ExecutionViewJs;
 
 type RunStateReport = (patch: { runId: string | null; stepId: string | null }, opts: { replace: boolean }) => void;
 

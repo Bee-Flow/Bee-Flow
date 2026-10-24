@@ -2,6 +2,7 @@ import React, { useState, useEffect, useEffectEvent } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import type { StatusMessage } from './chatModelTiers/tierTypes';
+import { mutate, ApiError } from '../../../api/mutate';
 
 interface EmbeddingProvider {
     id: string;
@@ -60,12 +61,15 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
     const handleSave = async () => {
         setSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/config`, {
+            const res = await mutate(`${API_BASE}/ai/config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(config)
+            }).catch((err: unknown) => {
+                if (err instanceof ApiError) return null;
+                throw err;
             });
-            if (res.ok) {
+            if (res) {
                 // A new model re-embeds the stored knowledge on the server
                 // (core/kb/embeddingMigration.js); say so, since search is
                 // keyword-only until it finishes.

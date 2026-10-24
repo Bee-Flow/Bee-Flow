@@ -6,15 +6,17 @@ import {
     deleteLayerFromDefinition, deleteLayerAndCalls,
     isLayerEmpty, renameLayer, countLayerRefs,
 } from './flow/flowletScope';
+import type useConfirm from '../../shared/useConfirm';
+import type { FlowDefinition } from './flow/types';
 
 export interface UseFlowletActionsOptions {
-    effectiveDef: any;
+    effectiveDef: FlowDefinition | null;
     scopeKey: string | null;
     setScopeKey: (key: string | null) => void;
-    ensureAutomationCreated: (defForCreate?: any) => Promise<any>;
-    onVisualEditRoot: (def: any) => void;
-    onSaveAutomation: (patch: any) => Promise<void>;
-    confirm: (opts: any) => Promise<boolean>;
+    ensureAutomationCreated: (defForCreate?: FlowDefinition | null) => Promise<string | undefined>;
+    onVisualEditRoot: (def: FlowDefinition) => void;
+    onSaveAutomation: (patch: Record<string, unknown>) => Promise<void>;
+    confirm: ReturnType<typeof useConfirm>['confirm'];
     readOnlyRef: MutableRefObject<boolean>;
 }
 
@@ -68,7 +70,7 @@ export default function useFlowletActions({
             return;
         }
         try { await onSaveAutomation({ title: nextTitle }); }
-        catch (e: any) { console.warn('[BuilderShell] rename failed:', e.message); }
+        catch (e: unknown) { console.warn('[BuilderShell] rename failed:', (e as Error).message); }
     };
 
     // Header scope descriptor + delete-flowlet action. refCount blocks the
@@ -81,7 +83,7 @@ export default function useFlowletActions({
         if (!layer) return null;
         return {
             key: scopeKey,
-            title: layer.title || scopeKey,
+            title: (layer.title as string | undefined) || scopeKey,
             refCount: countLayerRefs(effectiveDef, scopeKey),
             empty: isLayerEmpty(effectiveDef, scopeKey),
         };

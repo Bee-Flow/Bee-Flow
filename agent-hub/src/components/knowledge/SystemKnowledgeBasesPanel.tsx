@@ -3,6 +3,7 @@ import { BookOpen, CheckCircle2, Circle, Loader2, RefreshCw, ShieldCheck, Downlo
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
 import { logger } from '../../utils/logger';
+import { mutate, ApiError } from '../../api/mutate';
 
 interface SystemKb {
     id: string;
@@ -137,12 +138,16 @@ const SystemKnowledgeBasesPanel = () => {
                 const nextAllow = current.includes(item.betaFeatureId)
                     ? current
                     : [...current, item.betaFeatureId];
-                const putAllow = await authFetch(`${API_BASE}/auth/organizations/${orgId}/beta-features`, {
+                try {
+                    await mutate(`${API_BASE}/auth/organizations/${orgId}/beta-features`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ features: nextAllow }),
                 });
-                if (!putAllow.ok) throw new Error('Could not grant feature to organisation');
+                } catch (err) {
+                    if (!(err instanceof ApiError)) throw err;
+                    throw new Error('Could not grant feature to organisation');
+                }
             }
 
             // Flip the org-admin active subset (the toggle every user sees).
@@ -152,12 +157,16 @@ const SystemKnowledgeBasesPanel = () => {
             const active = new Set(Array.isArray(curJ.enabledBetaFeatures) ? curJ.enabledBetaFeatures : []);
             if (goingOn) active.add(item.betaFeatureId);
             else active.delete(item.betaFeatureId);
-            const put = await authFetch(`${API_BASE}/auth/me/active-features`, {
+            try {
+                await mutate(`${API_BASE}/auth/me/active-features`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ betaEnabled: Array.from(active) }),
             });
-            if (!put.ok) throw new Error('Save failed');
+            } catch (err) {
+                if (!(err instanceof ApiError)) throw err;
+                throw new Error('Save failed');
+            }
             await load();
         } catch (e) {
             setError((e as Error).message || 'Toggle failed');

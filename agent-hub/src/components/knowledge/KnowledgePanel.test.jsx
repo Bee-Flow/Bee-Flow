@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import { renderWithClient } from '../../test/render';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // One mock for the whole transport: KnowledgePanel, useKnowledgeBases and
@@ -52,7 +53,7 @@ describe('KnowledgePanel', () => {
      * still the thing it comes up as.
      */
     it('renders with an agentId and keeps the knowledge-panel container', async () => {
-        render(<KnowledgePanel agentId="agent-1" API_BASE="" />);
+        renderWithClient(<KnowledgePanel agentId="agent-1" API_BASE="" />);
         expect(await screen.findByTestId('knowledge-panel')).toBeInTheDocument();
     });
 
@@ -68,7 +69,7 @@ describe('KnowledgePanel', () => {
      * of some rendered element.
      */
     it('fires NO request to the legacy /agents/:id/knowledge endpoint', async () => {
-        render(<KnowledgePanel agentId="agent-1" API_BASE="" />);
+        renderWithClient(<KnowledgePanel agentId="agent-1" API_BASE="" />);
         await screen.findByTestId('knowledge-panel');
         // Let every mount effect in the hook settle before reading the log.
         await waitFor(() => expect(globalThis.__authFetch).toHaveBeenCalled());
@@ -90,7 +91,7 @@ describe('KnowledgePanel', () => {
      * greedy delete takes live markup with it.
      */
     it('keeps the e2e-documented kb-create-btn', async () => {
-        render(<KnowledgePanel agentId="agent-1" API_BASE="" />);
+        renderWithClient(<KnowledgePanel agentId="agent-1" API_BASE="" />);
         expect(await screen.findByTestId('kb-create-btn')).toBeInTheDocument();
     });
 });
