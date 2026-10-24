@@ -49,6 +49,7 @@ const studioAppDataStore = require('../stores/studioAppDataStore');
 const datatableSource = require('./datatableSource');
 const { readError } = require('./readError');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /**
  * A table reference is either an id (tbl_xxx) or a key (tasks) — authors write
@@ -114,7 +115,7 @@ function readPlan(ctx, table) {
             // need not be asked here.
             try {
                 require('../core/dataEngine/sources').kickStale(resolved.datatable, { reason: 'view' });
-            } catch (err) { log.debug('a background refresh is never a reason to fail a read', err); }
+            } catch (err) { bestEffort('appStudio/dataReadRunner:readPlan', err); /* a background refresh is never a reason to fail a read */ }
             return resolved;
         }).then((resolved) => ({
             tableMeta: resolved.tableMeta,

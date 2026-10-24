@@ -10,6 +10,7 @@ const log = require('../../telemetry/log');
 const {
     connectorError, isPlainObject, integrationIdsFor,
 } = require('./shared');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * The OAuth provider behind an integration id, used as buildUserAuth's
@@ -70,7 +71,7 @@ async function resolveViewerExecution(connector, { app, viewerId, deps }) {
             provider,
             resourceType: 'studio_app',
             resourceId: app.id,
-        }).catch(() => null);
+        }).catch((e) => fallback('appStudio/connectors/dispatch:resolveViewerExecution', e, null));
         if (grant?.available && grant.mode === 'delegated' && grant.effectiveUserId) {
             const grantorSession = await deps.buildUserSession(grant.effectiveUserId, app.organizationId || null, sessionOpts);
             return { userId: grant.effectiveUserId, session: grantorSession };
@@ -137,7 +138,7 @@ async function connectionError(connector, message, { userId, deps } = {}) {
             if (oauthProvider) {
                 hasCredential = !!(await deps.getProviderAuth(userId, oauthProvider))?.accessToken;
             }
-        } catch (err) { log.debug('fall back to the plain "connect it" message', err); }
+        } catch (err) { fallback('appStudio/connectors/dispatch:connectionError', err); /* fall back to the plain "connect it" message */ }
     }
 
     if (hasCredential) {

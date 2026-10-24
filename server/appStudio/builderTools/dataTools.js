@@ -172,7 +172,7 @@ async function applyUpsertDataset(draftWrap, args) {
         };
     } catch (e) {
         if (created) {
-            try { await studioAppDataStore.deleteDataset(row.id, draftWrap.appId, draftWrap.userId); } catch (err) { log.debug('best-effort', err); }
+            try { await studioAppDataStore.deleteDataset(row.id, draftWrap.appId, draftWrap.userId); } catch (err) { bestEffort('appStudio/builderTools/dataTools:applyUpsertDataset', err); /* best-effort */ }
         }
         return {
             error: `The dataset descriptor did not compile: ${e.message}`,
@@ -264,6 +264,7 @@ async function applyQueryData(draftWrap, args) {
 }
 
 const { applyListDocuments } = require('./documentListTool');
+const { bestEffort } = require('../../utils/bestEffort');
 
 module.exports = {
     applyListDocuments,

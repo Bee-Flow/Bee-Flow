@@ -13,6 +13,7 @@ const {
 const { providerFor, resolveViewerExecution, dispatchTool } = require('./dispatch');
 const { applyChainStep } = require('./chain');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 async function runIntegrationTool(connector, { app, viewerId, params, systemArgs, trace, deps }) {
     const tool = typeof connector.tool === 'string' ? connector.tool : '';
@@ -228,7 +229,7 @@ async function runRestConnector(connector, { app, params, deps }) {
         }
     }
     if (isPlainObject(connector.auth) && connector.auth.credentialProvider) {
-        const cred = await deps.getProviderAuth(app.userId, connector.auth.credentialProvider).catch(() => null);
+        const cred = await deps.getProviderAuth(app.userId, connector.auth.credentialProvider).catch((e) => fallback('appStudio/connectors/runners:runRestConnector', e, null));
         const token = cred?.accessToken || null;
         if (token) {
             if (connector.auth.type === 'header' && typeof connector.auth.header === 'string') headers[connector.auth.header] = token;

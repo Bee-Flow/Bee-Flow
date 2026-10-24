@@ -7,6 +7,7 @@
 'use strict';
 
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // ── Headless user session (mirrors core/webpageBridgeAuth.buildAuthorSession) ─
 // Duplicated rather than imported so connectors keep working if that module
@@ -26,13 +27,13 @@ async function defaultBuildUserSession(userId, fallbackOrgId = null, { include =
     const userStore = require('../../stores/userStore');
     const automationAuth = require('../../auth/automationAuth');
     const { resolveEnabledIntegrations } = require('../../core/integrations/enabledIntegrations');
-    const user = await userStore.getUser(userId).catch(() => null);
+    const user = await userStore.getUser(userId).catch((e) => fallback('appStudio/connectors/session:defaultBuildUserSession', e, null));
     const orgId = user?.organizationId || fallbackOrgId || null;
 
     let enabled = include;
     try {
         enabled = await resolveEnabledIntegrations(userId, orgId, { include });
-    } catch (err) { log.debug('best-effort — `include` alone still covers the dispatched tool', err); }
+    } catch (err) { fallback('appStudio/connectors/session:defaultBuildUserSession#2', err); /* best-effort — `include` alone still covers the dispatched tool */ }
 
     // `groups` rides along so viewer-mode grant resolution can honor
     // group-scoped lends (resolveConnectionForRun's runningUserGroups).

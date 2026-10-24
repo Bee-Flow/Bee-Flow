@@ -9,6 +9,7 @@
 const { baseNameOf, classify, folderOfRow } = require('./naming');
 const { descriptorIdOf, hasField } = require('./attachmentRows');
 const log = require('../../telemetry/log');
+const { isMissingTable } = require('../../utils/isMissingTable');
 
 /** Returns the phase state the later phases share: `{ files, refused, quotaHit }`. */
 async function redeemAttachments(app, model, { rows, attTable, fileField, viewer, poRe, materializeAttachment }) {
@@ -66,7 +67,7 @@ async function backfillFolders(app, model, attTable, files, { writeRecord, write
                 await writeRecord(app, model, attTable, { map: f.folder }, {
                     viewer: writeViewer(ctx), recordId: f.rowId,
                 });
-            } catch (err) { log.debug('a display column is never worth failing an intake for', err); }
+            } catch (err) { if (!isMissingTable(err)) throw err; log.debug('a display column is never worth failing an intake for', err); }
         }
     }
 }

@@ -23,6 +23,7 @@
 const usageStore = require('../stores/usageStore');
 const integrationActivityStore = require('../stores/integrationActivityStore');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /** app-level ∩ step-level (suffix-aware). Empty app list = no confinement. */
 function effectiveAllowlist(appDomains, stepDomains) {
@@ -135,8 +136,8 @@ async function executeBrowseStep(app, def, step, ctx, helpers) {
             model: null,
             prompt_tokens: 0, completion_tokens: 0, total_tokens: 0,
             duration_ms: Date.now() - t0,
-        }).catch(() => {});
-    } catch (err) { log.debug('billing must never break a step', err); }
+        }).catch((e) => bestEffort('appStudio/browseStep:executeBrowseStep', e));
+    } catch (err) { bestEffort('appStudio/browseStep:executeBrowseStep#2', err); /* billing must never break a step */ }
     try {
         integrationActivityStore.logIntegrationActivity({
             organization_id: app.organizationId || null,
@@ -152,7 +153,7 @@ async function executeBrowseStep(app, def, step, ctx, helpers) {
             duration_ms: Date.now() - t0,
             data_summary: JSON.stringify({ appId: app.id, actionId: ctx.actionId || null, taskHead: task.slice(0, 200), visitedUrls }),
         }).catch(() => {});
-    } catch (err) { log.debug('audit is best-effort', err); }
+    } catch (err) { bestEffort('appStudio/browseStep:executeBrowseStep#3', err); /* audit is best-effort */ }
 
     return {
         ok: true,

@@ -29,6 +29,7 @@
 const studioAppDataStore = require('../../stores/studioAppDataStore');
 const { buildServerScope, resolveBinding, coerceRecordId } = require('./shared');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // A document is a page of paper. The same cap the automation step and the
 // validator use, so "how many values may a document be filled with" has one
@@ -139,7 +140,7 @@ async function fillDocumentStep(app, model, step, ctx) {
     const { scanBuffer } = require('../../middleware/uploadGuard');
     const verdict = await scanBuffer(buffer);
     if (!verdict.clean) {
-        await storageStore.deleteFile(key).catch(() => {});
+        await storageStore.deleteFile(key).catch((e) => bestEffort('appStudio/actionExecutor/documentStep:fillDocumentStep', e));
         return { ok: false, error: 'The generated document failed a malware scan and was discarded' };
     }
 
@@ -160,7 +161,7 @@ async function fillDocumentStep(app, model, step, ctx) {
         await studioAppDataStore.setAttachmentScan(ledger.id, app.id, app.userId, { scanned: true, quarantined: false });
     } catch (e) {
         // Never orphan a blob behind a failed ledger write.
-        await storageStore.deleteFile(key).catch(() => {});
+        await storageStore.deleteFile(key).catch((e) => bestEffort('appStudio/actionExecutor/documentStep:fillDocumentStep#2', e));
         throw e;
     }
 

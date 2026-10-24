@@ -23,6 +23,7 @@ const { resolveLinkableDatatable, projectLinkedTable, describeLinkedTables, over
 const { canonicalizeDataModel, validateDataModel, emptyDataModel } = require('../dataModel');
 const { persistDataModel, dataModelPersistError } = require('./dataTools');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 function currentModel(draftWrap) {
     return (draftWrap.dataModel && typeof draftWrap.dataModel === 'object')
@@ -114,7 +115,7 @@ async function applyLinkDatatable(draftWrap, args, deps = {}) {
     try {
         draftWrap.linkedTables = await describeLinkedTables(draftWrap.dataModel, draftWrap.userId, deps);
         draftWrap.rowCounts = overlayLinkedRowCounts(draftWrap.rowCounts, draftWrap.linkedTables);
-    } catch (err) { log.debug('advisory', err); }
+    } catch (err) { fallback('appStudio/builderTools/linkTools:applyLinkDatatable', err); /* advisory */ }
     const saved = (draftWrap.dataModel.tables || []).find((t) => t.source && t.source.datatableId === datatable.id) || merged.table;
     const info = draftWrap.linkedTables instanceof Map ? draftWrap.linkedTables.get(saved.id) : null;
     const kind = require('../../core/dataEngine/sources').builderKindOf(datatable.managedKind);

@@ -13,6 +13,7 @@ const { validateAppDefinition } = require('../validate');
 const ops = require('../definitionOps');
 const { ensureAppName } = require('./appNaming');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * The default "Home" screen a new app starts with, still empty while the
@@ -124,7 +125,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
                     const u = await userStore.getUser(draftWrap.userId);
                     orgId = u?.organizationId || null;
                     if (orgId) draftWrap.orgId = orgId; // memoize
-                } catch (err) { log.debug('keep null', err); }
+                } catch (err) { fallback('appStudio/builderTools/persistence:persistDraft', err); /* keep null */ }
             }
             const row = await studioAppStore.createStudioApp({
                 userId: draftWrap.userId,
@@ -184,7 +185,7 @@ async function syncCardMeta(draftWrap) {
             icon: meta.icon || null,
         }, draftWrap.userId);
         draftWrap._syncedMetaKey = key;
-    } catch (err) { log.debug('card meta is cosmetic', err); }
+    } catch (err) { fallback('appStudio/builderTools/persistence:syncCardMeta', err); /* card meta is cosmetic */ }
 }
 
 module.exports = {

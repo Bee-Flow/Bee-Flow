@@ -91,6 +91,7 @@ function syncError(status, message, code) {
  * rather than two that drift.
  */
 const { nextRunFor: coreNextRunFor } = require('../core/scheduling/nextRun');
+const { bestEffort } = require('../utils/bestEffort');
 
 /**
  * The cadence floor for a connector kind. A mailbox may poll every 2 minutes;
@@ -226,7 +227,7 @@ function coerceForField(value, field) {
                 try {
                     const parsed = JSON.parse(value);
                     if (Array.isArray(parsed) || isPlainObject(parsed)) return parsed;
-                } catch (err) { log.debug('not JSON — fall through', err); }
+                } catch (err) { bestEffort('appStudio/connectorSync:coerceForField', err); /* not JSON — fall through */ }
             }
             return String(value);
         }
@@ -408,7 +409,7 @@ async function writeGrain(app, model, table, rows, { mode, keyField: keyPath, vi
             const ids = await deps.writeRecordBatch(app, model, table, rows.map(toValues), { viewer });
             inserted = ids.length;
             ids.forEach((id, i) => { recordIdByRowIndex[i] = id; });
-            await deps.setRowCount(app.id, table.key, inserted, app.userId).catch(() => {});
+            await deps.setRowCount(app.id, table.key, inserted, app.userId).catch((e) => bestEffort('appStudio/connectorSync:writeGrain', e));
         }
         return { inserted, updated, recordIdByRowIndex };
     }
@@ -667,7 +668,7 @@ async function syncConnector(app, model, connector, { reason = 'manual', force =
             }),
             error: err?.message || String(err),
             consecutiveErrors,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('appStudio/connectorSync:syncConnector', e));
         throw err;
     }
 }

@@ -30,6 +30,7 @@ const llmClient = require('../core/llm/llmClient');
 const usageStore = require('../stores/usageStore');
 const { usageLogFields } = require('../core/providers/usageNormalizer');
 const log = require('../telemetry/log');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 // ── Caps (defence-in-depth; the attachment quota is the real byte backstop) ──
 const MAX_KB_IDS = 10;
@@ -83,7 +84,7 @@ async function modelSupportsVision(modelId) {
         if (adapter && adapter !== baseAdapter && typeof adapter.supportsVision === 'function') {
             return !!adapter.supportsVision(modelId);
         }
-    } catch (err) { log.debug('not attached to a configured provider — fall back to the name', err); }
+    } catch (err) { bestEffort('appStudio/aiRuntime:modelSupportsVision', err); /* not attached to a configured provider — fall back to the name */ }
     return visionByModelName(modelId);
 }
 
@@ -120,7 +121,7 @@ function usageEntry(app, modelId, usage, t0, source) {
 
 function logUsage(app, modelId, usage, t0, source) {
     // Never let billing bookkeeping break a step (matches studioAppsRun).
-    try { usageStore.logUsage(usageEntry(app, modelId, usage, t0, source)).catch(() => {}); } catch (err) { log.debug('ignore', err); }
+    try { usageStore.logUsage(usageEntry(app, modelId, usage, t0, source)).catch((e) => bestEffort('appStudio/aiRuntime:logUsage', e)); } catch (err) { bestEffort('appStudio/aiRuntime:logUsage#2', err); /* ignore */ }
 }
 
 /**
@@ -159,7 +160,7 @@ async function resolveOwnerModel(app, tierName) {
 
     let modelId = tiers[resolved]?.modelId || null;
     if (!modelId) {
-        const globalConfig = await require('../core/aiAgent').getAIConfig().catch(() => null);
+        const globalConfig = await require('../core/aiAgent').getAIConfig().catch((e) => fallback('appStudio/aiRuntime:resolveOwnerModel', e, null));
         modelId = globalConfig?.model || null;
     }
     if (!modelId) {
@@ -536,7 +537,7 @@ async function groundWithKB(app, /** @type {{knowledgeBaseIds?: any, query?: any
     if (!kbIds.length) return { context: '', chunks: [] };
 
     const { quickKBSearch } = require('../core/agentRuntime/knowledgeSearch');
-    const chunks = await quickKBSearch(app.userId, kbIds, q, { topK }).catch(() => []);
+    const chunks = await quickKBSearch(app.userId, kbIds, q, { topK }).catch((e) => fallback('appStudio/aiRuntime:groundWithKB', e, []));
     if (!chunks || !chunks.length) return { context: '', chunks: [] };
 
     const context = chunks

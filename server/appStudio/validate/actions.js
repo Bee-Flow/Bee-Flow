@@ -149,7 +149,7 @@ function validateAction(id, action, path, ctx) {
             pushE({ code: 'action.url_invalid', severity: 'error', path: `${path}.url`, message: `Action "${id}" (open_url) needs a url string.`, hint: 'Provide an https:// URL.' });
         } else {
             let protocol = null;
-            try { protocol = new URL(action.url).protocol; } catch (err) { log.debug('unparseable', err); }
+            try { protocol = new URL(action.url).protocol; } catch (err) { fallback('appStudio/validate/actions:validateAction', err); /* unparseable */ }
             if (protocol === null) pushE({ code: 'action.url_invalid', severity: 'error', path: `${path}.url`, message: `Action "${id}" url ${JSON.stringify(action.url.slice(0, 80))} is not a valid URL.`, hint: 'Provide an absolute https:// URL.' });
             else if (protocol !== 'https:') pushE({ code: 'action.url_not_https', severity: 'error', path: `${path}.url`, message: `Action "${id}" url must use https (got ${protocol.replace(':', '')}).`, hint: 'Only https URLs may be opened from an app.' });
         }
@@ -392,6 +392,7 @@ const { MAX_APPROVAL_STAGES: STAGE_MAX, MAX_SEATS_PER_STAGE: STAGE_SEAT_MAX,
     MAX_TOTAL_SEATS: STAGE_TOTAL_MAX, MAX_STAGE_NAME_LEN: STAGE_NAME_MAX,
     MAX_STAGE_DESCRIPTION_LEN: STAGE_DESC_MAX,
     STAGE_RULES: STAGE_RULE_VALUES } = require('../../core/automationModel/approvalStages');
+const { fallback } = require('../../utils/bestEffort');
 function validateApprovalStages(field, value, path, ctx) {
     const { pushE } = ctx;
     if (!Array.isArray(value)) {

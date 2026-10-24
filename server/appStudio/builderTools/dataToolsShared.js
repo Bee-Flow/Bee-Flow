@@ -4,6 +4,7 @@ const { pickClosestId } = require('../../automation/validate/helpers');
 const { emptyDataModel } = require('../dataModel');
 const { persistDraft } = require('./persistence');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * The refusal every data tool gives for a LINKED table (source: datatable).
@@ -117,7 +118,7 @@ async function persistDataModel(draftWrap, nextModel, { rebase = null } = {}) {
             const counts = await studioAppDataStore.getRowCounts(draftWrap.appId, draftWrap.userId);
             const { overlayLinkedRowCounts } = require('../linkedTables');
             draftWrap.rowCounts = overlayLinkedRowCounts(rowCountsById(model, counts), draftWrap.linkedTables);
-        } catch (err) { log.debug('stale counts are advisory', err); }
+        } catch (err) { fallback('appStudio/builderTools/dataToolsShared:persistDataModel', err); /* stale counts are advisory */ }
         return { ok: true, version: res.version, model };
     } catch (e) {
         return { error: `Could not save the data model: ${e.message}` };

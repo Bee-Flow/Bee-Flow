@@ -13,6 +13,7 @@
 // inherits scheduling, watermarking, RLS-safe writes, runAs owner/viewer, the
 // viewer connect-prompt UI and the rate limits for free.
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const CONNECTOR_KINDS = Object.freeze(['integration_tool', 'automation', 'rest', 'mailbox']);
 
@@ -201,7 +202,7 @@ function integrationIdsFor(connector) {
     if (typeof connector?.integrationId === 'string' && connector.integrationId) ids.add(connector.integrationId);
 
     let resolveIntegration = null;
-    try { ({ resolveIntegration } = require('../../core/integrations/integrationToolMap')); } catch (err) { log.debug('optional', err); }
+    try { ({ resolveIntegration } = require('../../core/integrations/integrationToolMap')); } catch (err) { bestEffort('appStudio/connectors/shared:integrationIdsFor', err); /* optional */ }
 
     const addForTool = (tool) => {
         if (typeof tool !== 'string' || !tool) return;

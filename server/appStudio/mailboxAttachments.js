@@ -45,6 +45,7 @@ const {
 const { resolveMailboxIdentity } = require('./mailboxIdentity');
 const emailFetch = require('../services/email/fetch');
 const { viewerMayReadAttachment } = require('./attachmentAccess');
+const { bestEffort } = require('../utils/bestEffort');
 
 // The formats an LLM or a browser can
 // actually do something with. Everything else is refused rather than stored.
@@ -347,7 +348,7 @@ async function materializeAttachment(app, model, {
         await studioAppDataStore.setAttachmentScan(ledger.id, app.id, app.userId, { scanned: true, quarantined: false });
     } catch (err) {
         // Do not leave an orphan blob behind a failed ledger write.
-        await storageStore.deleteFile(key).catch(() => {});
+        await storageStore.deleteFile(key).catch((e) => bestEffort('appStudio/mailboxAttachments:materializeAttachment', e));
         throw err;
     }
 
@@ -520,7 +521,7 @@ async function storeDerivedFile(app, { buffer, name, recordId, fieldKey, allowAr
         });
         await studioAppDataStore.setAttachmentScan(ledger.id, app.id, app.userId, { scanned: true, quarantined: false });
     } catch (err) {
-        await storageStore.deleteFile(key).catch(() => {});
+        await storageStore.deleteFile(key).catch((e) => bestEffort('appStudio/mailboxAttachments:storeDerivedFile', e));
         throw err;
     }
     return studioDescriptor({ ...ledger, size: buffer.length }, { name: cleanName, mime });

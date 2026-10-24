@@ -27,6 +27,7 @@ const {
     MAILBOX_ATTACHMENT_TABLE_TEMPLATE,
     MAILBOX_TABLE_TEMPLATES,
 } = require('./mailboxTableTemplates');
+const { fallback } = require('../utils/bestEffort');
 
 const MAX_MAILBOX_ROWS = 200;
 // How many conversations one threaded run will expand in full. Each costs a
@@ -263,7 +264,7 @@ async function runMailboxConnector(connector, ctx = {}) {
                         _parentIndex: i,
                     });
                 }
-            } catch (err) { log.debug('One unreadable attachment list must not lose the whole batch — the message row is the valuable part.', err); }
+            } catch (err) { fallback('appStudio/mailboxConnector:runMailboxConnector', err); }
         }
     }
 

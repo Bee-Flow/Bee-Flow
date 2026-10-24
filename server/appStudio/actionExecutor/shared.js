@@ -10,6 +10,7 @@
 
 const { CURRENT_USER_KEYS, seedVariableDefaults } = require('../componentSpecs');
 const { tryEvaluate } = require('../../automation/expr');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Hygiene ceiling on how many column bindings one record write resolves. Far
 // above any real table (dataModel caps fields at 100) — just an abuse guard.
@@ -206,7 +207,7 @@ async function storeStudioAttachment({ app, step, ctx, scope, buffer, contentTyp
     const { scanBuffer } = require('../../middleware/uploadGuard');
     const verdict = await scanBuffer(buffer);
     if (!verdict.clean) {
-        await storageStore.deleteFile(key).catch(() => {});
+        await storageStore.deleteFile(key).catch((e) => bestEffort('appStudio/actionExecutor/shared:storeStudioAttachment', e));
         return { ok: false, error: 'The generated file failed a malware scan and was discarded' };
     }
 
@@ -225,7 +226,7 @@ async function storeStudioAttachment({ app, step, ctx, scope, buffer, contentTyp
         });
         await studioAppDataStore.setAttachmentScan(ledger.id, app.id, app.userId, { scanned: true, quarantined: false });
     } catch (e) {
-        await storageStore.deleteFile(key).catch(() => {});
+        await storageStore.deleteFile(key).catch((e) => bestEffort('appStudio/actionExecutor/shared:storeStudioAttachment#2', e));
         throw e;
     }
 

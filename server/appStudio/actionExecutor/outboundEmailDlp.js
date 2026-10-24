@@ -1,5 +1,6 @@
 // @typecheck
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Screen an outbound message against the org's privacy shield.
@@ -15,7 +16,7 @@ async function screenOutboundEmail(app, { text, subject }) {
         const orgId = app.organizationId || null;
         if (!orgId) return { blocked: false, outcome: 'skipped_no_org' };
 
-        const mode = await configStore.getConfig(`studio_app_email_dlp_${orgId}`).catch(() => null);
+        const mode = await configStore.getConfig(`studio_app_email_dlp_${orgId}`).catch((e) => fallback('appStudio/actionExecutor/outboundEmailDlp:screenOutboundEmail', e, null));
         // Default is scan-and-log. An org opts in to blocking deliberately.
         const shouldBlock = mode === 'block';
 

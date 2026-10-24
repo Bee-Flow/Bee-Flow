@@ -12,6 +12,7 @@ const { capStr } = require('./shared');
 const { persistDraft } = require('./persistence');
 const { rowCountsById } = require('./dataTools');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /** True when the draft is untouched — one empty screen, no actions, no tables. */
 function isFreshDraft(draftWrap) {
@@ -219,7 +220,7 @@ async function applyApplyTemplate(draftWrap, args) {
             draftWrap.def = def;
             draftWrap.version = app.definitionVersion;
         }
-    } catch (err) { log.debug('keep the current def — the route re-persists on the next mutation', err); }
+    } catch (err) { fallback('appStudio/builderTools/templateTools:applyApplyTemplate', err); /* keep the current def — the route re-persists on the next mutation */ }
     try {
         const studioAppDataStore = require('../../stores/studioAppDataStore');
         const dataMeta = await studioAppDataStore.getDataModel(draftWrap.appId, draftWrap.userId);
@@ -228,7 +229,7 @@ async function applyApplyTemplate(draftWrap, args) {
         draftWrap.rowCounts = rowCountsById(draftWrap.dataModel, dataMeta?.rowCounts);
         const datasetRows = await studioAppDataStore.listDatasets(draftWrap.appId, draftWrap.userId);
         draftWrap.datasetIds = (datasetRows || []).map((d) => ({ id: d.id, name: d.name }));
-    } catch (err) { log.debug('data side is advisory for the emit; tools re-read it next turn', err); }
+    } catch (err) { fallback('appStudio/builderTools/templateTools:applyApplyTemplate#2', err); /* data side is advisory for the emit; tools re-read it next turn */ }
 
     return {
         ok: true,

@@ -11,6 +11,7 @@
 const studioAppDataStore = require('../../stores/studioAppDataStore');
 const { LIMITS } = require('../componentSpecs');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // Hygiene caps on viewer-supplied form values flowing into automation inputs
 // (shared with routes/studioAppsRun.js, which also uses them for its own
@@ -362,7 +363,7 @@ async function runAutomationStep(app, step, ctx) {
         let approvalId = null;
         if (run.awaitingStepId) {
             approvalId = (await automationStore.getApprovalForRunStep(run.id, run.awaitingStepId, { pendingOnly: true })
-                .catch(() => null))?.id || null;
+                .catch((e) => fallback('appStudio/actionExecutor/automationBridge:runAutomationStep', e, null)))?.id || null;
         }
         return { ok: true, result: { runId: run.id, status: 'awaiting_approval', approvalId, output: null } };
     }

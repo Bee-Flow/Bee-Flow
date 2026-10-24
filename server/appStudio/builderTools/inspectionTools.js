@@ -14,6 +14,7 @@ const { pickClosestId } = require('../../automation/validate/helpers');
 const { canonicalComponentType } = require('./componentAliases');
 const { applyFindNodes } = require('./findNodesTool');
 const { INSPECT_CATALOG_MAX_COMPONENTS, INSPECT_CATALOG_MAX_STEPS } = require('./schemas');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * app_dry_run — pre-flight the app read-only (STATIC + DATA + asRole + ACTION
@@ -103,7 +104,7 @@ async function applyAppScreenshot(draftWrap, args) {
     let renderAppScreenshot;
     try {
         ({ renderAppScreenshot } = require('../../services/appStudioRender'));
-    } catch (err) { log.debug('not shipped in this build — guard below', err); }
+    } catch (err) { bestEffort('appStudio/builderTools/inspectionTools:applyAppScreenshot', err); /* not shipped in this build — guard below */ }
     if (typeof renderAppScreenshot !== 'function') {
         return { content: 'Screenshots are not available in this deployment (no render service) — rely on app_dry_run and continue building.' };
     }

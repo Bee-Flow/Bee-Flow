@@ -10,6 +10,7 @@ const { baseNameOf, classify, zipEntryPath, folderOf } = require('./naming');
 const { hasField, fileEntryAsAttachment } = require('./attachmentRows');
 const { MAX_ZIP_ENTRIES, MAX_ARCHIVE_DEPTH, MAX_ZIP_TOTAL_BYTES, MAX_TOTAL_FILES } = require('./limits');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 async function expandArchives(app, model, state, { attTable, fileField, poRe, writeRecord, writeViewer, ctx, mailbox }) {
     const { files } = state;
@@ -89,7 +90,7 @@ async function expandArchives(app, model, state, { attTable, fileField, poRe, wr
                     await writeRecord(app, model, attTable, { entries: entries.length }, {
                         viewer: writeViewer(ctx), recordId: zipFile.rowId,
                     });
-                } catch (err) { log.debug('a progress denominator is never worth failing an intake for', err); }
+                } catch (err) { bestEffort('appStudio/fileIntake/archives:expandArchives', err); /* a progress denominator is never worth failing an intake for */ }
             }
             let totalBytes = 0;
             for (const entry of entries) {

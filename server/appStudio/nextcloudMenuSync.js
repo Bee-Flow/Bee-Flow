@@ -52,6 +52,7 @@ const userStore = require('../stores/userStore');
 const configStore = require('../stores/configStore');
 const { signedConnectorHeaders } = require('../integrations/ncSigning');
 const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const HOOK_PATH = '/hooks/studio-menus';
 // A reconcile is one SaaS GET plus a couple of OCS calls — well under a second
@@ -173,7 +174,7 @@ function requestMenuSync(orgId, meta = {}) {
         return state.inflight;
     }
     if (!state.followUp) {
-        state.followUp = state.inflight.catch(() => {}).then(() => {
+        state.followUp = state.inflight.catch((e) => fallback('appStudio/nextcloudMenuSync:requestMenuSync', e)).then(() => {
             state.followUp = null;
             return requestMenuSync(orgId, meta);
         });
@@ -186,7 +187,7 @@ function requestMenuSync(orgId, meta = {}) {
  * (publish, rename, delete). The outcome still lands in the log.
  */
 function notifyMenuChange(orgId, meta = {}) {
-    requestMenuSync(orgId, meta).catch(() => { /* requestMenuSync never rejects */ });
+    requestMenuSync(orgId, meta).catch((e) => bestEffort('appStudio/nextcloudMenuSync:notifyMenuChange', e));
 }
 
 function _resetForTests() {
