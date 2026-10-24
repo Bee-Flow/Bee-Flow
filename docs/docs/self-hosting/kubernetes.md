@@ -92,7 +92,7 @@ spec:
 
 Sessions are stored in Postgres, so multiple server replicas work without sticky sessions or
 Redis. The guard needs a generous readiness window (it loads its model before `/ready` goes
-green) — and note it [fails closed](env.md#privacy-shield): chat is blocked while no guard replica
+green) — and note it [fails closed](env.md#service-to-service-sidecars): chat is blocked while no guard replica
 is ready, so run two replicas if a restart must not interrupt service.
 
 ### Token-signing secrets: leave these to the server

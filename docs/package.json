@@ -44,5 +44,9 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "overrides": {
+    "tinypool": "^2.2.0",
+    "serialize-javascript": "^7.1.4"
   }
 }

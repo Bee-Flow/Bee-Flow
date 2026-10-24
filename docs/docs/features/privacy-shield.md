@@ -317,7 +317,7 @@ of the score and shown as their own numbers.
 
 The origin of the lines is set by the administrator with
 `BEEFLOW_SERVER_LOCATION` (see
-[Environment variables](../self-hosting/env.md#where-your-data-went-egress-map)).
+[Environment variables](../self-hosting/env.md#service-to-service-sidecars)).
 Without it, the map shows the pins but draws no lines.
 
 ## Limits and caveats
