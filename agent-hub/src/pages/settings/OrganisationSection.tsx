@@ -54,14 +54,13 @@ const GoogleMapsRow = () => {
     return (
         <div>
             <button
-                className="w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors"
-                style={{ background: 'var(--bg-secondary)' }}
+                className="w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors [background:var(--bg-secondary)]"
                 onClick={() => setOpen(v => !v)}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
             >
                 <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0">
-                    <svg viewBox="0 0 24 24" fill="none" style={{ width: '18px', height: '18px' }}>
+                    <svg viewBox="0 0 24 24" fill="none" className="w-[18px] h-[18px]">
                         <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#EA4335" />
                         <circle cx="12" cy="9" r="2.5" fill="#fff" />
                     </svg>
@@ -73,21 +72,19 @@ const GoogleMapsRow = () => {
                     </p>
                 </div>
                 {hasKey && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0"
-                        style={{ background: 'rgba(5,150,105,0.1)', color: '#059669' }}>{t('settings.connected')}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0 [background:rgba(5,150,105,0.1)] [color:#059669]!">{t('settings.connected')}</span>
                 )}
                 <svg className="flex-shrink-0" style={{ color: 'var(--text-muted)', width: '13px', height: '13px', transition: 'transform 150ms', transform: open ? 'rotate(90deg)' : 'none' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
             </button>
             {open && (
-                <div className="px-5 pb-4 pt-2 space-y-2" style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-subtle)' }}>
+                <div className="px-5 pb-4 pt-2 space-y-2 [background:var(--bg-secondary)] [border-top:1px_solid_var(--border-subtle)]">
                     <div className="flex gap-2">
                         <input
                             type="password" value={key} onChange={e => setKey(e.target.value)}
                             placeholder={hasKey ? '••••••••••••••••' : t('org.integ_maps_desc')}
-                            className="flex-1 px-3 py-2 rounded-lg border outline-none text-[13px]"
-                            style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                            className="flex-1 px-3 py-2 rounded-lg border outline-none text-[13px] [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                             onKeyDown={e => e.key === 'Enter' && save()}
                         />
                         <button onClick={save} disabled={saving || !key.trim()}
@@ -236,8 +233,8 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
                         themselves (credentials, instance URLs, workflows). */}
                     {intTab === 'settings' && (
                         <div className="space-y-4">
-                            <div className="rounded-xl px-5 py-3 flex items-start gap-3" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
-                                <svg className="flex-shrink-0 mt-0.5" style={{ width: 16, height: 16, color: '#3b82f6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <div className="rounded-xl px-5 py-3 flex items-start gap-3 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
+                                <svg className="flex-shrink-0 mt-0.5 w-[16px] h-[16px] [color:#3b82f6]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 <p className="text-[12px] text-[var(--text-muted)]">
@@ -263,7 +260,7 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
                                         {showN8n && (
                                             <div style={{ borderBottom: showGoogleMaps ? '1px solid var(--border-subtle)' : 'none' }}>
                                                 <div className="flex items-center gap-3 px-5 py-3.5 bg-[var(--bg-secondary)]">
-                                                    <img src="/n8n-color.png" alt="n8n" style={{ width: '20px', height: '20px', objectFit: 'contain', flexShrink: 0 }} />
+                                                    <img src="/n8n-color.png" alt="n8n" className="w-[20px] h-[20px] [object-fit:contain] [flex-shrink:0]" />
                                                     <div className="flex-1">
                                                         <p className="text-[13px] font-medium text-[var(--text-primary)]">n8n</p>
                                                         <p className="text-[11px] text-[var(--text-muted)]">{t('org.integ_n8n_desc')}</p>

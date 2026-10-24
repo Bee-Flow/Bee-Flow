@@ -1,5 +1,6 @@
 import type { DragEvent as ReactDragEvent } from 'react';
 import type { StepPayload } from './ribbon/ribbonCategories';
+import { logger } from '../../../../utils/logger';
 
 /**
  * Drag-and-drop glue for adding steps to the canvas.
@@ -40,7 +41,7 @@ export function stepDragProps(payload?: StepDragPayload | null) {
             try {
                 event.dataTransfer.setData(STEP_DND_MIME, JSON.stringify(payload));
                 event.dataTransfer.effectAllowed = 'copyMove';
-            } catch (_) { /* dataTransfer is unavailable in some test envs */ }
+            } catch (err) { logger.debug('dataTransfer is unavailable in some test envs', err); }
         },
     };
 }

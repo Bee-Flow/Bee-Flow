@@ -35,8 +35,7 @@ export default function FileField({ field, value, disabled, onChange, onUpload, 
     if (value) {
         return (
             <div
-                className="flex items-center gap-2 px-2.5 py-1.5 text-sm border"
-                style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-primary)' }}
+                className="flex items-center gap-2 px-2.5 py-1.5 text-sm border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-primary)]!"
             >
                 <Paperclip size={14} style={{ color: 'var(--app-primary)' }} />
                 <span className="truncate flex-1 min-w-0">{value.filename}</span>
@@ -55,8 +54,7 @@ export default function FileField({ field, value, disabled, onChange, onUpload, 
 
     return (
         <label
-            className="flex items-center gap-2 px-2.5 py-1.5 text-sm border cursor-pointer"
-            style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-secondary)' }}
+            className="flex items-center gap-2 px-2.5 py-1.5 text-sm border cursor-pointer [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)]!"
         >
             {uploading ? <Loader2 size={14} className="animate-spin" /> : <Paperclip size={14} />}
             <span>{uploading ? 'Uploading…' : `Choose a file (max ${field.maxSizeMb} MB)`}</span>

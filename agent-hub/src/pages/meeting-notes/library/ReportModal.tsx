@@ -6,6 +6,7 @@ import useTranslation from '../../../hooks/useTranslation';
 import { reportMeetings } from '../lib/transcriptionsApi';
 import type { LibraryMeeting } from './MeetingRow';
 import { errorMessage } from '../../../utils/caughtError';
+import { logger } from '../../../utils/logger';
 
 interface ReportResult {
     report: string;
@@ -69,7 +70,7 @@ export default function ReportModal({ open, onClose, meetings = [] }: ReportModa
             await navigator.clipboard.writeText(result.report);
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
-        } catch (_) { /* clipboard unavailable */ }
+        } catch (err) { logger.debug('clipboard unavailable', err); }
     };
 
     return (
@@ -90,8 +91,7 @@ export default function ReportModal({ open, onClose, meetings = [] }: ReportModa
                     placeholder={t('meeting_notes.report_placeholder', 'Ask a question or describe the report you want…')}
                     rows={2}
                     disabled={busy}
-                    className="w-full resize-none px-3 py-2 rounded-xl text-sm border outline-none"
-                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                    className="w-full resize-none px-3 py-2 rounded-xl text-sm border outline-none [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                 />
 
                 {!result && !busy && (
@@ -134,7 +134,7 @@ export default function ReportModal({ open, onClose, meetings = [] }: ReportModa
                 </div>
 
                 {error && (
-                    <p className="text-sm" style={{ color: '#ef4444' }}>{error}</p>
+                    <p className="text-sm [color:#ef4444]!">{error}</p>
                 )}
 
                 {result && (
@@ -148,7 +148,7 @@ export default function ReportModal({ open, onClose, meetings = [] }: ReportModa
                             </p>
                         )}
                         {result.truncatedNotes > 0 && (
-                            <p className="text-[11px] mt-1" style={{ color: '#f59e0b' }}>
+                            <p className="text-[11px] mt-1 [color:#f59e0b]!">
                                 {t('meeting_notes.report_truncated_note', 'Some meetings were too long and were shortened for this report.')}
                             </p>
                         )}

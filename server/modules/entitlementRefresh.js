@@ -234,7 +234,7 @@ async function tick() {
         _health.lastTickDurationMs = Date.now() - startedAt;
         // Ride the CRL check on every entitlement tick too (own errors, never
         // fails the tick).
-        try { await crlTick(); } catch (_) { /* recorded in _health.lastCrlError */ }
+        try { await crlTick(); } catch (err) { log.debug('recorded in _health.lastCrlError', err); }
     }
 }
 
@@ -259,7 +259,7 @@ async function crlTick() {
         try {
             const stored = await configStore().getConfig(CRL_CURSOR_KEY);
             cursor = Number(stored) > 0 ? Number(stored) : 0;
-        } catch (_) { /* start from 0 */ }
+        } catch (err) { log.debug('start from 0', err); }
 
         // Page through the CRL; collect every revocation past the cursor.
         const revokedEntries = [];
@@ -306,7 +306,7 @@ async function crlTick() {
 
         // Full success — advance the cursor.
         if (since !== cursor) {
-            try { await configStore().setConfig(CRL_CURSOR_KEY, since); } catch (_) { /* retry next tick */ }
+            try { await configStore().setConfig(CRL_CURSOR_KEY, since); } catch (err) { log.debug('retry next tick', err); }
         }
         _health.crlCursor = since;
     } catch (e) {
@@ -358,3 +358,6 @@ function getHealth() {
 }
 
 module.exports = { start, stop, tick, crlTick, onLicenseChanged, getHealth, CRL_CURSOR_KEY };
+
+// The licence module cannot require us (it sits below modules/); we subscribe.
+require('../license').onServerLicenseChanged(onLicenseChanged);

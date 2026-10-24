@@ -160,7 +160,7 @@ class GoogleVertexProvider extends GoogleProvider {
                     ? JSON.parse(options.serviceAccountKey)
                     : options.serviceAccountKey;
                 clientConfig.googleAuthOptions = { credentials };
-            } catch (e) { /* ignore */ }
+            } catch (e) { log.debug('ignore', e); }
         }
 
         // We need a custom client for music (v1alpha), so we replicate parent logic
@@ -192,7 +192,7 @@ class GoogleVertexProvider extends GoogleProvider {
             await session.play();
 
             const timeout = setTimeout(() => {
-                try { session.close(); } catch (e) { /* ignore */ }
+                try { session.close(); } catch (e) { log.debug('ignore', e); }
             }, durationMs);
 
             for await (const message of session.receive()) {

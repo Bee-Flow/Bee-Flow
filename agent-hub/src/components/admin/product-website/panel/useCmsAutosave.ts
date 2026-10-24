@@ -10,6 +10,7 @@ import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { adoptRealignedOverrides } from './realignedOverrides';
 import { CONFLICT_CODE, SaveConflictError, noteSavedRev, revisionFor, storedRev, withRev } from './cmsRevisions';
+import { logger } from '../../../../utils/logger';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 
@@ -199,7 +200,7 @@ export default function useCmsAutosave({
             || !!saveTimerRef.current;
         const onBeforeUnload = (e: BeforeUnloadEvent) => {
             if (!hasUnsaved()) return undefined;
-            try { flushSaves(); } catch { /* browsers keep the request alive briefly on unload */ }
+            try { flushSaves(); } catch (err) { logger.debug('browsers keep the request alive briefly on unload', err); }
             e.preventDefault();
             e.returnValue = ''; // triggers the native "unsaved changes" prompt
             return '';

@@ -27,6 +27,7 @@ const { parseQueryArgs, shapeTableRow, pageDatasetRows, pageMeta, queryFailure, 
 const { persistDraft } = require('./persistence');
 const { isDatatableBacked } = require('../datatableSource');
 const { keyFromTitle } = require('../../core/dataEngine/sources/mirror/keys');
+const log = require('../../telemetry/log');
 
 /**
  * The refusal every data tool gives for a LINKED table (source: datatable).
@@ -149,7 +150,7 @@ async function persistDataModel(draftWrap, nextModel, { rebase = null } = {}) {
             const counts = await studioAppDataStore.getRowCounts(draftWrap.appId, draftWrap.userId);
             const { overlayLinkedRowCounts } = require('../linkedTables');
             draftWrap.rowCounts = overlayLinkedRowCounts(rowCountsById(model, counts), draftWrap.linkedTables);
-        } catch (_) { /* stale counts are advisory */ }
+        } catch (err) { log.debug('stale counts are advisory', err); }
         return { ok: true, version: res.version, model };
     } catch (e) {
         return { error: `Could not save the data model: ${e.message}` };
@@ -766,7 +767,7 @@ async function applyUpsertDataset(draftWrap, args) {
         };
     } catch (e) {
         if (created) {
-            try { await studioAppDataStore.deleteDataset(row.id, draftWrap.appId, draftWrap.userId); } catch (_) { /* best-effort */ }
+            try { await studioAppDataStore.deleteDataset(row.id, draftWrap.appId, draftWrap.userId); } catch (err) { log.debug('best-effort', err); }
         }
         return {
             error: `The dataset descriptor did not compile: ${e.message}`,

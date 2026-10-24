@@ -1,9 +1,9 @@
-import React from 'react';
 import { render, screen, fireEvent, cleanup, waitFor, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import RisksPage, { matchesFilter, sortRisks } from './RisksPage';
 import { severityOfScore } from './risks/RisksTable';
+import RisksPage, { matchesFilter, sortRisks } from './RisksPage';
 
 vi.mock('../../../../hooks/useTranslation', () => {
     const useTranslation = () => ({

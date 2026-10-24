@@ -40,6 +40,7 @@ const talkNotes = require('../core/meetingNotes/talkNotesSettings');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
 const { choice } = require('../core/http/schemaParts');
+const log = require('../telemetry/log');
 
 /** A real boolean, never the text "false" — which is true. */
 const bool = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) });
@@ -106,7 +107,7 @@ router.get('/user/me', requireAuth, async (req, res) => {
             const talk = require('../integrations/nextcloudTalkTools');
             recordingEnabled = (await talk.getTalkRecordingCapability(req.session, req.session.user.id)).recordingEnabled;
         }
-    } catch (_) { /* treat as not connected */ }
+    } catch (err) { log.debug('treat as not connected', err); }
     res.json({ ...config, nextcloudConnected, recordingEnabled });
 });
 

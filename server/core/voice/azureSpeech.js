@@ -137,7 +137,7 @@ async function transcribeWithAzureSpeech(inputPath, { language = 'nl', contextTe
                 const phraseList = sdk.PhraseListGrammar.fromRecognizer(transcriber);
                 String(contextTerms).split(/[,;\n]/).map(t => t.trim()).filter(Boolean)
                     .forEach(term => phraseList.addPhrase(term));
-            } catch (_) { /* PhraseListGrammar may not work with ConversationTranscriber */ }
+            } catch (err) { log.debug('PhraseListGrammar may not work with ConversationTranscriber', err); }
         }
 
         log.info(`[AzureSpeech] Transcribing (locale ${locale}, ~${durationSeconds}s audio, cap ${Math.round(overallMs / 60000)}m, watchdog ${Math.round(inactivityMs / 1000)}s)`);
@@ -157,7 +157,7 @@ async function transcribeWithAzureSpeech(inputPath, { language = 'nl', contextTe
 
             const trip = (reason) => {
                 if (settled) return;
-                try { transcriber.stopTranscribingAsync(() => {}, () => {}); } catch (_) {}
+                try { transcriber.stopTranscribingAsync(() => {}, () => {}); } catch (_) { log.debug('transcriber already stopped', _); }
                 if (rawSegments.length > 0) {
                     // Salvage: everything recognised so far becomes the result.
                     truncated = { reason, atSeconds: rawSegments[rawSegments.length - 1].end };
@@ -205,8 +205,8 @@ async function transcribeWithAzureSpeech(inputPath, { language = 'nl', contextTe
             );
         });
     } finally {
-        try { if (transcriber) transcriber.close(); } catch (_) {}
-        try { if (speechConfig.close) speechConfig.close(); } catch (_) {}
+        try { if (transcriber) transcriber.close(); } catch (_) { log.debug('transcriber already closed', _); }
+        try { if (speechConfig.close) speechConfig.close(); } catch (_) { log.debug('speech config already closed', _); }
         wav.cleanup();
     }
 

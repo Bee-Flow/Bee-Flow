@@ -1,9 +1,9 @@
-import { renderHook } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { renderHook } from '@testing-library/react';
 import React from 'react';
-import useAppDataSource, { MIN_REFRESH_MS } from './useAppDataSource';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DataProvider } from './DataContext';
+import useAppDataSource, { MIN_REFRESH_MS } from './useAppDataSource';
 
 /**
  * Auto-refresh is the difference between "an inbox" and "a report you reload by

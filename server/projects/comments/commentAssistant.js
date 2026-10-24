@@ -401,7 +401,7 @@ function makeCommentAssistant(deps = {}) {
             } catch (err) {
                 log.warn(`[ProjectComments] turn release failed for thread ${thread.id}; it expires on its own: ${err && err.message}`);
             }
-            try { shield().release(dlpConversationId); } catch (_) { /* nothing held */ }
+            try { shield().release(dlpConversationId); } catch (err) { log.debug('nothing held', err); }
             await announce(project.id, 'comment.ai.finished', userId, thread, status);
         }
         return { status };

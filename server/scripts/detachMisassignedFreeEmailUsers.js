@@ -38,6 +38,7 @@ const userStore = require(path.join(__dirname, '..', 'stores', 'userStore'));
 const freeEmailDomains = require(path.join(__dirname, '..', 'utils', 'freeEmailDomains'));
 
 const { parseOpsArgsOrExit } = require('./lib/opsArgs');
+const log = require('../telemetry/log');
 
 const ARGS = parseOpsArgsOrExit({ org: { type: 'string' }, since: { type: 'string' } },
     { usage: 'Usage: node server/scripts/detachMisassignedFreeEmailUsers.js [--apply] [--org <id>] [--since YYYY-MM-DD]' });
@@ -66,7 +67,7 @@ async function countUserRows(userId) {
             const n = rows[0]?.n || 0;
             if (n > 0) counts[table] = n;
             total += n;
-        } catch (_) { /* table may not exist — treat as zero */ }
+        } catch (err) { log.debug('table may not exist — treat as zero', err); }
     }
     return { counts, total };
 }
@@ -195,9 +196,9 @@ async function main() {
         try {
             const { syncSeatQuantityForOrg } = require(path.join(__dirname, '..', 'services', 'stripeService'));
             for (const orgId of affectedOrgs) {
-                try { await syncSeatQuantityForOrg(orgId); } catch (_) { /* best-effort */ }
+                try { await syncSeatQuantityForOrg(orgId); } catch (err) { log.debug('best-effort', err); }
             }
-        } catch (_) { /* stripe optional */ }
+        } catch (err) { log.debug('stripe optional', err); }
     }
 
     console.log('─'.repeat(78));

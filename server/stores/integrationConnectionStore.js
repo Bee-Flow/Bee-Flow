@@ -676,7 +676,7 @@ async function _mirrorWriteLegacy(row, secretObject) {
     for (const { prefix, field } of fields) {
         const val = secretObject[field];
         if (val === undefined || val === null || val === '') continue;
-        try { await configStore.setSecret(`${prefix}_user_${userId}`, String(val)); } catch (_) { /* best effort */ }
+        try { await configStore.setSecret(`${prefix}_user_${userId}`, String(val)); } catch (err) { log.debug('best effort', err); }
     }
 }
 
@@ -714,7 +714,7 @@ async function backfillFromLegacy() {
             );
             if (existing) continue;
             let orgId = null;
-            try { orgId = (await userStore.getUser(g.userId))?.organizationId || null; } catch (_) { /* sentinel */ }
+            try { orgId = (await userStore.getUser(g.userId))?.organizationId || null; } catch (err) { log.debug('sentinel', err); }
             await createConnection({
                 ownerUserId: g.userId, orgId, provider: g.provider, label: 'Default',
                 kind: g.kind, secretObject: g.fields, makeDefault: true, mirror: false,
@@ -784,3 +784,9 @@ module.exports = {
     // Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).
     initDB,
 };
+
+// configStore.getSecret falls back to a named connection for legacy per-user
+// keys. configStore is the lower module, so we register instead of it requiring us.
+// Also registered lazily by boot/lateBoundPorts.js; a test may stub configStore without the setter.
+const _configStore = require('./configStore');
+if (typeof _configStore.setLegacySecretResolver === 'function') _configStore.setLegacySecretResolver(getLegacySecretValue);

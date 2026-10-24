@@ -157,7 +157,7 @@ async function ingest(c, records) {
         try {
             const j = JSON.parse(body);
             for (const s of (j.status || [])) { failed += Number(s.failed) || 0; if (s.error) err = String(s.error); }
-        } catch (_) { /* non-JSON 200 body — treat as fully accepted */ }
+        } catch (err) { log.debug('non-JSON 200 body — treat as fully accepted', err); }
         if (failed > 0) {
             throw new Error(`ingest partial failure: ${failed}/${records.length} rejected (${err.slice(0, 150)})`);
         }
@@ -220,7 +220,7 @@ async function processUsagePush() {
         log.warn('[UsagePush] push failed (will retry):', e && e.message);
     } finally {
         if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (_) { /* best-effort */ }
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { log.debug('best-effort', err); }
             client.release();
         }
         // Only the pod that won the lock actually ran — record its liveness.

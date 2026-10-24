@@ -31,7 +31,7 @@ async function defaultBuildUserSession(userId, fallbackOrgId = null, { include =
     let enabled = include;
     try {
         enabled = await resolveEnabledIntegrations(userId, orgId, { include });
-    } catch { /* best-effort — `include` alone still covers the dispatched tool */ }
+    } catch (err) { log.debug('best-effort — `include` alone still covers the dispatched tool', err); }
 
     // `groups` rides along so viewer-mode grant resolution can honor
     // group-scoped lends (resolveConnectionForRun's runningUserGroups).
@@ -106,7 +106,7 @@ function defaultDeps() {
         executeTool: (...a) => require('../../core/tools/toolDispatcher').executeTool(...a),
         executeAutomation: (...a) => require('../../core/automationRunner').executeAutomation(...a),
         getAutomation: (...a) => require('../../stores/automationStore').getAutomation(...a),
-        deriveFinalOutput: (...a) => require('../actionExecutor').deriveFinalOutput(...a),
+        deriveFinalOutput: (...a) => require('../actionExecutor/automationBridge').deriveFinalOutput(...a),
         // getProviderAuth, NOT the raw store read: it refreshes a token with
         // less than five minutes left and refuses a credential that is revoked
         // or needs re-auth. A raw getCredential handed back a stale access

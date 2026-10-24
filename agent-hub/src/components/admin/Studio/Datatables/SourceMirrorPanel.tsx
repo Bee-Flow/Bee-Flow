@@ -10,6 +10,7 @@ import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { MirrorSync, SourceError } from './sourceMirrors';
 import type { MirrorHookTable, SourceMirror } from './useSourceMirror';
 import type { RelativeTimeInput } from '../../../../hooks/useRelativeTime';
+import { logger } from '../../../../utils/logger';
 
 /**
  * The source tab of a mirrored table — "Nextcloud" or "Spreadsheet" — as
@@ -155,7 +156,7 @@ export function SourceSyncStrip({ table, mirror, canWrite }: SourceSyncStripProp
             <StatusLine t={t} rel={rel} sync={sync} sourceName={sourceName} compact />
             {canWrite && (
                 <button type="button" disabled={busy || sync?.status === 'running'}
-                    onClick={async () => { setBusy(true); try { await mirror.refreshNow(); } catch { /* shown on the tab */ } finally { setBusy(false); } }}
+                    onClick={async () => { setBusy(true); try { await mirror.refreshNow(); } catch (err) { logger.debug('shown on the tab', err); } finally { setBusy(false); } }}
                     className="inline-flex items-center gap-1 underline disabled:opacity-50 text-[var(--text-primary)]">
                     <RefreshCw className={`w-3 h-3 ${busy ? 'animate-spin' : ''}`} aria-hidden="true" />
                     {t('datatables.nc_refresh_now', 'Refresh now')}

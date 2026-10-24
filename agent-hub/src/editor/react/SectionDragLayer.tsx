@@ -15,7 +15,7 @@
  * sits at their old index), to where the pointer is now, and asks `isLocked`
  * again; blocks that were changed or split up meanwhile are not moved.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useEffectEvent } from 'react';
 import { GripVertical } from 'lucide-react';
 import { mkTt } from './toolbarPrimitives.jsx';
 import useTranslation from '../../hooks/useTranslation';
@@ -63,7 +63,7 @@ export default function SectionDragLayer({ hostRef, viewRef, isLocked = null }: 
     return { dropIdx: items.length, lineTop: items.length ? items[items.length - 1].rect.bottom - origin : 0 };
   };
 
-  useEffect(() => {
+  const runBlockItemsEffect = useEffectEvent(() => {
     const host = hostRef.current;
     // Listen on the wrapper (host + left gutter) so moving onto the handle, which
     // sits in the gutter, doesn't clear the hover before it can be grabbed.
@@ -84,7 +84,8 @@ export default function SectionDragLayer({ hostRef, viewRef, isLocked = null }: 
     container.addEventListener('mousemove', onMove);
     container.addEventListener('mouseleave', onLeave);
     return () => { container.removeEventListener('mousemove', onMove); container.removeEventListener('mouseleave', onLeave); };
-  }, [hostRef, viewRef]);
+  });
+  useEffect(() => { return runBlockItemsEffect(); }, [hostRef, viewRef]);
 
   const startDrag = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     e.preventDefault();
@@ -146,7 +147,7 @@ export default function SectionDragLayer({ hostRef, viewRef, isLocked = null }: 
           aria-disabled={locked || undefined}
         >
           {hover.level
-            ? <span style={{ fontSize: 9, fontWeight: 700, lineHeight: 1, userSelect: 'none' }}>H{hover.level}≡</span>
+            ? <span className="[font-size:9px] [font-weight:700] [line-height:1] [user-select:none]">H{hover.level}≡</span>
             : <GripVertical className="w-3.5 h-3.5" strokeWidth={2} />}
         </div>
       )}

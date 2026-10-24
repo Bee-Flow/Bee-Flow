@@ -34,6 +34,7 @@
 
 const path = require('path');
 const { STORE_MODULES, collectStoreModules } = require('./storeModules');
+const telemetryLog = require('./telemetry/log');
 
 // Load env vars from project-root .env so npm run db:migrate / direct node calls
 // see DATABASE_URL / CORE_DATABASE_URL / MONITORING_DATABASE_URL.
@@ -150,11 +151,11 @@ if (require.main === module) {
         } else {
             console.log(`[migrate] ✅ ${report.succeeded.length} onderdelen gemigreerd en afgewacht, ${report.skipped.length} al in schema_migrations${force ? '' : ' (--force draait ze opnieuw)'}`);
         }
-        try { await require('./db').pool.end(); } catch (_) { /* exit regelt het */ }
+        try { await require('./db').pool.end(); } catch (err) { telemetryLog.debug('exit regelt het', err); }
         process.exit(report.failed.length > 0 ? 1 : 0);
     }).catch(async (err) => {
         console.error('[migrate] ❌ runner zelf faalde:', err.message);
-        try { await require('./db').pool.end(); } catch (_) { /* exit regelt het */ }
+        try { await require('./db').pool.end(); } catch (err) { telemetryLog.debug('exit regelt het', err); }
         process.exit(1);
     });
 }

@@ -7,6 +7,7 @@
  */
 
 const { UUID_RE, PROJECT_FILES_KIND, KB_COUNTS_SELECT } = require('./model');
+const log = require('../../telemetry/log');
 
 /**
  * @param {import('./model').KbCtx} ctx  the barrel's db handle, schema init,
@@ -229,7 +230,7 @@ function makeCatalogFns(ctx) {
                  WHERE knowledge_base_ids @> to_jsonb($1::text)`,
                     [id]
                 );
-            } catch (e) { /* projects table may not exist yet on first boot */ }
+            } catch (e) { log.debug('projects table may not exist yet on first boot', e); }
             await run('DELETE FROM knowledge_bases WHERE id = $1', [id]);
             return true;
         },

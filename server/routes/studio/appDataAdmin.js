@@ -50,7 +50,7 @@ async function updateDataset(req, res) {
         const dataset = await studioAppDataStore.updateDataset(req.params.datasetId, app.id, app.userId, updates);
         if (!dataset) return res.status(404).json({ error: 'Dataset not found' });
         // Descriptor/source edits change the query — drop stale cached results.
-        try { await studioAppDataStore.invalidateCache(req.params.datasetId); } catch { /* advisory */ }
+        try { await studioAppDataStore.invalidateCache(req.params.datasetId); } catch (err) { log.debug('advisory', err); }
         res.json({ success: true, dataset });
     } catch (err) { handleErr(res, err, 'datasets.update'); }
 }

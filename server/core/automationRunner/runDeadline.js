@@ -16,6 +16,7 @@
  */
 
 const { runTimeoutMsFor } = require('./runPolicy');
+const log = require('../../telemetry/log');
 
 /**
  * @returns {Promise<{ runResult, runErrorObj, runErrorMsg, runStatus, wasCancelled }>}
@@ -116,7 +117,7 @@ async function raceRunDag(deps, {
         // (dagDone), so we must NOT abort — that would falsely trip the §WS2.3
         // cancel re-check below.
         if (!dagDone) {
-            try { cancelController.abort(); } catch (_) { /* noop */ }
+            try { cancelController.abort(); } catch (err) { log.debug('noop', err); }
             await dagSettled;
         }
         if (timeoutTimer) clearTimeout(timeoutTimer);

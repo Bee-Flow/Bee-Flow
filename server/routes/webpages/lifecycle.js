@@ -49,7 +49,7 @@ function register(router) {
         // Flush as the SOURCE owner — they're the only one who can hold an
         // open SQLite handle. Best-effort: when the handle isn't loaded in
         // this server process the call rejects and we proceed regardless.
-        try { await webpageDbStore.flush(source.userId, sourceId); } catch (_) { /* not loaded or not the owner — fine */ }
+        try { await webpageDbStore.flush(source.userId, sourceId); } catch (err) { log.debug('not loaded or not the owner — fine', err); }
 
         const cloned = await webpageStore.cloneWebpage({ sourceId, newOwnerId: userId, newName: name });
         if (!cloned) return res.status(404).json({ error: 'Webpage not found' });
@@ -85,7 +85,7 @@ function register(router) {
         // purgeWebpageObjects (called inside deleteWebpage) wipes the RustFS
         // blob, so leaving a stale handle open would only confuse the next
         // access to the (now-deleted) webpage.
-        try { await webpageDbStore.invalidate(req.params.id); } catch (_) {}
+        try { await webpageDbStore.invalidate(req.params.id); } catch (_) { log.debug('no cached database handle to invalidate', _); }
         const result = await webpageStore.deleteWebpage(req.params.id, userId);
         if (!result) return res.status(404).json({ error: 'Webpage not found' });
 

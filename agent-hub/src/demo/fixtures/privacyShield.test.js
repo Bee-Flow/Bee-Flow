@@ -18,11 +18,11 @@
  * Run: cd agent-hub && npx vitest run src/demo/fixtures/privacyShield.test.js
  */
 import { describe, it, expect } from 'vitest';
-import { PII_CATEGORIES } from '../../config/piiCategories';
 import { DEMO_CAPABILITIES } from './common';
 import { ROUTES, createState, shieldDoc, _internals } from './privacyShield';
 import { LEGACY_ID, POLIS_ID, PROJECT_ID } from './privacyShieldOwnData';
 import { isSpecialCategory } from '../../components/admin/security/guardrails/orgShield/activity/specialCategories';
+import { PII_CATEGORIES } from '../../config/piiCategories';
 
 const VALID_CATEGORY_IDS = new Set(PII_CATEGORIES.map(c => c.id));
 const CUSTOM_ID = /^cdt_[0-9a-f]{10}$/;

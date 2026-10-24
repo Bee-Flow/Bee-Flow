@@ -105,8 +105,7 @@ function ArtifactRow({ text, timestamp, badge, onSeek }: { text?: string; timest
                 <button
                     type="button"
                     onClick={() => onSeek(seconds)}
-                    className="inline-flex items-center gap-1 mt-1 text-[11px] hover:text-[var(--accent-primary)] transition-colors"
-                    style={{ color: 'var(--text-muted)' }}
+                    className="inline-flex items-center gap-1 mt-1 text-[11px] hover:text-[var(--accent-primary)] transition-colors [color:var(--text-muted)]!"
                 >
                     <Clock className="w-3 h-3" />
                     {timestamp}

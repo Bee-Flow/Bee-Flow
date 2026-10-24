@@ -51,6 +51,7 @@
 
 const { maskEmail } = require('./mask');
 const { complianceSectionPath } = require('../../utils/appPaths');
+const log = require('../../telemetry/log');
 
 /**
  * Where the subject may be named and the scan never looks: bodies it cannot
@@ -566,7 +567,7 @@ async function run(orgId, request, {
             sources: sources.map(s => ({ kind: s.kind, count: s.count })),
             partial: state.partial,
         }, orgId);
-    } catch { /* audit is best-effort */ }
+    } catch (err) { log.debug('audit is best-effort', err); }
 
     return result;
 }

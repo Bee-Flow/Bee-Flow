@@ -172,8 +172,7 @@ const ConvRow = ({
                 </button>
                 {showMenu && (
                     <div
-                        className="absolute right-0 top-full mt-1 w-52 rounded-lg border shadow-xl overflow-hidden z-50"
-                        style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', animation: 'sidebarMenuIn .15s ease-out' }}
+                        className="absolute right-0 top-full mt-1 w-52 rounded-lg border shadow-xl overflow-hidden z-50 [background:var(--bg-primary)] [border-color:var(--border-subtle)] [animation:sidebarMenuIn_.15s_ease-out]"
                     >
                         <div className="p-1">
                             {/* Pin / Unpin */}

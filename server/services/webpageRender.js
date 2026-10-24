@@ -15,6 +15,7 @@ const { resolveFramework } = require('../integrations/webpageFramework');
 const { composeDoc } = require('../core/webpages/webpageThumbnailGenerator');
 const { composeReactDoc, buildStubBridgeScript } = require('./reactBundleServer');
 const { loadReactFiles } = require('./webpageReactFiles');
+const log = require('../telemetry/log');
 
 const VIEWPORTS = {
     desktop: { width: 1280, height: 800 },
@@ -91,7 +92,7 @@ async function captureWebpage({ webpageId, userId, viewport = 'desktop', fullPag
                     if ((t === 'error' || t === 'warning') && consoleErrors.length < MAX_DIAG_MSGS) {
                         consoleErrors.push(`[${t}] ${m.text()}`.slice(0, 300));
                     }
-                } catch (_) { /* ignore */ }
+                } catch (err) { log.debug('ignore', err); }
             });
             page.on('pageerror', (e) => {
                 if (pageErrors.length < MAX_DIAG_MSGS) pageErrors.push(String(e && e.message || e).slice(0, 300));
@@ -163,7 +164,7 @@ async function captureWebpage({ webpageId, userId, viewport = 'desktop', fullPag
             width = m2.width || width;
             height = m2.height || height;
         }
-    } catch (_) { /* sharp unavailable — keep raw PNG */ }
+    } catch (err) { log.debug('sharp unavailable — keep raw PNG', err); }
 
     return {
         pngBuffer,

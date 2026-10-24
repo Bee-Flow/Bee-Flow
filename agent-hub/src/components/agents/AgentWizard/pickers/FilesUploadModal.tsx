@@ -7,6 +7,7 @@ import { kbDocumentCount, uploadKbIdOf } from '../builderSplit/uploadKb';
 import { errorMessage } from '../../../../utils/caughtError';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { KnowledgeBaseRow } from '../builderSplit/useKnowledgeBases';
+import { logger } from '../../../../utils/logger';
 
 /** One document of the base (`GET /api/kb/:id/documents`). */
 interface KbDocument {
@@ -179,7 +180,7 @@ export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds
             setError(errorMessage(err));
             return null;
         }
-    }, [kbId, agentName, agent?.name, agent?.id, knowledgeBaseIds, onKnowledgeBaseIdsChange]);
+    }, [kbId, agentName, agent?.name, knowledgeBaseIds, onKnowledgeBaseIdsChange]);
 
     // Tells the parent the number this dialog shows, so the pill that opened
     // it shows the same one.
@@ -196,7 +197,7 @@ export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds
                 setDocs(list);
                 setTotal(Number.isFinite(data?.total) ? data.total : list.length);
             }
-        } catch (_) { /* ignore */ } finally { setLoading(false); }
+        } catch (err) { logger.debug('ignore', err); } finally { setLoading(false); }
     }, []);
 
     useEffect(() => { if (kbId) loadDocs(kbId); }, [kbId, loadDocs]);

@@ -5,6 +5,7 @@ import RegulatoryCalendar, { type CalendarItem } from '../shared/RegulatoryCalen
 import { PAGE_FRAME } from './audits/auditForms';
 import FrameworkCandidateCard, { OwnFrameworkCard } from './frameworks/FrameworkCandidateCard';
 import type { CandidateFramework } from './frameworks/FrameworkCandidateCard';
+import { logger } from '../../../../utils/logger';
 
 /**
  * FrameworksPage — "frameworks as a growing set + regulatory calendar"
@@ -95,7 +96,7 @@ export default function FrameworksPage(props: FrameworksPageProps) {
     const { t } = useTranslation();
     const fw: FrameworksApi = data.frameworks || {};
     const cal: NonNullable<FrameworksPageData['calendar']> = data.calendar || {};
-    const core: NonNullable<FrameworksPageData['core']> = data.core || {};
+    const core: NonNullable<FrameworksPageData['core']> = useMemo(() => data.core || {}, [data.core]);
     const list = fw.frameworks ?? null;
     const groups = useMemo(() => frameworkGroups(list), [list]);
     const milestones = cal.milestones ?? null;
@@ -112,13 +113,13 @@ export default function FrameworksPage(props: FrameworksPageProps) {
     }, [data, core]);
 
     const enable = async (id: string) => {
-        try { await fw.enable?.(id); await afterMutation(); } catch { /* the hook already toasted */ }
+        try { await fw.enable?.(id); await afterMutation(); } catch (err) { logger.debug('the hook already toasted', err); }
     };
     const disable = async (id: string) => {
-        try { await fw.disable?.(id); await afterMutation(); } catch { /* toasted by the hook */ }
+        try { await fw.disable?.(id); await afterMutation(); } catch (err) { logger.debug('toasted by the hook', err); }
     };
     const relevance = async (id: string, value: string) => {
-        try { await fw.setRelevance?.(id, value); } catch { /* toasted by the hook */ }
+        try { await fw.setRelevance?.(id, value); } catch (err) { logger.debug('toasted by the hook', err); }
     };
     const viewPlan = () => { if (typeof onNavigate === 'function') onNavigate(LICENSE_PATH); else navigate?.(LICENSE_PATH); };
 

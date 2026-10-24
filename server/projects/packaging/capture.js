@@ -48,6 +48,7 @@ const {
 const { toRefs, variablesInSteeringFields, splitIds, isRef } = require('../../core/packaging/pointers');
 const { sweepRawIds, isTableToken } = require('./idSweep');
 const { buildProjectGraph } = require('../graph');
+const log = require('../../telemetry/log');
 
 function clone(v) {
     try { return structuredClone(v); } catch { return JSON.parse(JSON.stringify(v ?? null)); }
@@ -290,7 +291,7 @@ async function captureWebpage(webpage, refs, warnings, opts = {}) {
     }
 
     let extraCount = 0;
-    try { extraCount = (await webpageStore.listExtraFiles(webpage.id) || []).length; } catch { /* best effort */ }
+    try { extraCount = (await webpageStore.listExtraFiles(webpage.id) || []).length; } catch (err) { log.debug('best effort', err); }
     if (extraCount) warnings.push(`"${webpage.name}" has ${extraCount} additional file(s), which this version does not carry.`);
     // A stage would run the page without them, so a pipeline release refuses
     // rather than ship a page that differs from Dev (extra files are P8).

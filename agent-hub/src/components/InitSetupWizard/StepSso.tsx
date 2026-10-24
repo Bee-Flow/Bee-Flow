@@ -24,7 +24,7 @@ const StepSso = ({ isAzure, msClientId, setMsClientId, msClientSecret, setMsClie
                 <span className="text-sm font-semibold text-[var(--text-primary)]">
                     {isAzure ? 'Azure AD / Entra ID SSO' : 'Microsoft SSO'}
                 </span>
-                <span className="text-xs px-2 py-0.5 ml-2 rounded-full" style={{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent-primary)' }}>{t('init_setup.step_sso_optional', 'Optional')}</span>
+                <span className="text-xs px-2 py-0.5 ml-2 rounded-full [background:rgba(99,102,241,0.1)] [color:var(--accent-primary)]!">{t('init_setup.step_sso_optional', 'Optional')}</span>
             </div>
         </div>
         <p className="text-xs mb-3 text-[var(--text-muted)]">

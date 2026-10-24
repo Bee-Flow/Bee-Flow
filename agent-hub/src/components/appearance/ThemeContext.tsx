@@ -6,12 +6,13 @@ import React, {
     useMemo,
     useRef,
     useState,
-} from 'react';
+    useEffectEvent } from 'react';
 import { API_BASE, authFetch, isDemoPath } from '../../utils/helpers';
 import WallpaperLayer from './WallpaperLayer';
 import { applyThemeToDocument } from '../theme/applyTheme';
 import type { PreviewMode, ThemeContextValue, ThemeOption, ThemeProviderProps, ThemeSettings, ThemeState } from './ThemeContext.types';
 import { messageOf } from '../../utils/caughtError';
+import { logger } from '../../utils/logger';
 
 /**
  * ThemeContext — single source of truth for the active theme + branding.
@@ -90,7 +91,7 @@ function writeBootstrap(theme: ThemeState) {
             glassGrain: theme.glassGrain,
             glassBorder: theme.glassBorder,
         }));
-    } catch (_) { /* quota, ignore */ }
+    } catch (err) { logger.debug('quota, ignore', err); }
 }
 
 function detectPreviewMode(): PreviewMode {
@@ -179,13 +180,14 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
     // the document, so admin/user changes propagate immediately without
     // touching individual components. The pure application function lives in
     // `theme/applyTheme.js` so it's scannable and unit-testable.
-    useLayoutEffect(() => {
+    const applyStateToDocument = useEffectEvent(() => {
         applyThemeToDocument(state);
         // In preview mode AND when running under an initialOverride (e.g. the
         // public embed) we MUST NOT touch the admin's bootstrap cache so the
         // saved baseline stays clean.
         if (!inPreview && !overrideRef.current) writeBootstrap(state);
-    }, [
+    });
+    useLayoutEffect(() => { applyStateToDocument(); }, [
         state.preset, state.accent, state.radiusScale, state.font,
         state.wallpaperUrl, state.wallpaperOverlay, state.glassIntensity,
         state.wallpaperPreset, state.glassTint, state.glassLens,
@@ -272,7 +274,7 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
                 { type: 'beeflow:theme:ready', version: 0 },
                 window.location.origin,
             );
-        } catch (_) { /* parent might not exist; harmless */ }
+        } catch (err) { logger.debug('parent might not exist; harmless', err); }
 
         let lastVersion = -1;
         const onMessage = (event: MessageEvent) => {

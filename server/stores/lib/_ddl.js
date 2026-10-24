@@ -2,8 +2,8 @@
 /**
  * stores/lib/_ddl.js — luide, geserialiseerde boot-DDL voor stores.
  *
- * WAAROM. De store-inits droegen ~250 `try { await exec(...) } catch (e) {}`
- * blokken met als commentaar "column already exists". Maar zo'n catch slikt
+ * WAAROM. De store-inits droegen ~250 `try { await exec(...) }`
+ * blokken met een lege catch en als commentaar "column already exists". Maar zo'n catch slikt
  * ÁLLES: de poolbrede statement_timeout van 30s (db.js), een afgebroken
  * lock-wait, een verbroken verbinding — elke fout las als "bestond al" en de
  * store meldde zich gezond terwijl het schema half af was. Deze helper draait

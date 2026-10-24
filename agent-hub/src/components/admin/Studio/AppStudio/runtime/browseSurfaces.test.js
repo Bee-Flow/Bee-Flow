@@ -1,8 +1,8 @@
 // @vitest-environment node
-import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { describe, it, expect } from 'vitest';
 
 /**
  * BOTH surfaces that run an app must wire the live-browse frame store.

@@ -175,6 +175,6 @@ async function resolveSharedWith(ownerId, orgId, attendees) {
     }
 }
 
-function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) {} }
+function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) { log.debug('file already gone', _); } }
 
 module.exports = { init, ingestTeamsMeeting, teamsSourceUri, rosterOf };

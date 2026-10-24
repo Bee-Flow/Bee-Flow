@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger';
 // Cross-surface navigation into the Learning Center.
 //
 // The lesson player is mounted at App level and outlives the settings page, so
@@ -19,7 +20,7 @@ let pending: LearningNavigateDetail | null = null;
 /** { view: 'overview'|'review'|'achievements'|'course', courseId? } */
 export function requestLearningNavigate(detail?: LearningNavigateDetail | null): void {
     pending = detail || null;
-    try { window.dispatchEvent(new CustomEvent(LEARNING_NAVIGATE_EVENT, { detail })); } catch (_) { /* no window */ }
+    try { window.dispatchEvent(new CustomEvent(LEARNING_NAVIGATE_EVENT, { detail })); } catch (err) { logger.debug('no window', err); }
 }
 
 /** The parked request, cleared on read. */

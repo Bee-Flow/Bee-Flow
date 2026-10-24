@@ -1,6 +1,6 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 // Tier selection fetches /ai/config/tiers-for-user — stub it out entirely.

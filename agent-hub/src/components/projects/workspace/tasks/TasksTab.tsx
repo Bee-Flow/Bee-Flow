@@ -34,6 +34,7 @@ import TasksToolbar, { type TasksView } from './TasksToolbar';
 import { todayKey } from './taskText';
 import { useTaskDialog, type NewTaskPreset } from './useTaskDialog';
 import './projectTasks.css';
+import { logger } from '../../../../utils/logger';
 
 type View = TasksView;
 const VIEW_KEY = 'projectTasksView';
@@ -136,7 +137,7 @@ export default function TasksTab(props: WorkspaceTabProps) {
     const [view, setView] = useState<View>(storedView);
     const filterKey = `projectTaskFilters:${projectId}:${me || ''}`;
     const [filters, setFilters] = useState<TaskFilters>(() => storedFilters(filterKey));
-    useEffect(() => { try { scopedStorage.setItem(filterKey, JSON.stringify(filters)); } catch { /* optional preference */ } }, [filterKey, filters]);
+    useEffect(() => { try { scopedStorage.setItem(filterKey, JSON.stringify(filters)); } catch (err) { logger.debug('optional preference', err); } }, [filterKey, filters]);
     const [sort, setSort] = useState<TaskSort>('due');
     const [fromMeeting, setFromMeeting] = useState(false);
     useOpenFromRoute(props.sub, query.data?.tasks, openTask);
@@ -150,7 +151,7 @@ export default function TasksTab(props: WorkspaceTabProps) {
     const quickCreate = async (columnId: string, title: string) => {
         try { await boardActions.create.mutateAsync({ columnId, title }); } catch (e) { onError(e); throw e; }
     };
-    const changeView = (next: View) => { setView(next); try { scopedStorage.setItem(VIEW_KEY, next); } catch { /* the choice just does not outlive the page */ } };
+    const changeView = (next: View) => { setView(next); try { scopedStorage.setItem(VIEW_KEY, next); } catch (err) { logger.debug('the choice just does not outlive the page', err); } };
     const open = all.filter(x => x.status !== 'done').length;
 
     // One state at a time under the toolbar: error, loading, empty project, no match, or the view.

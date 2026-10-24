@@ -3,6 +3,8 @@
  * parser; the counters it fills are read back by /api/admin/metrics.
  */
 
+const log = require('../telemetry/log');
+
 const UNMATCHED_ROUTE = '__unmatched__';
 
 function _normalizeRoute(req) {
@@ -38,7 +40,7 @@ function mountRequestTiming(app) {
                 if (typeof ct === 'string' && ct.includes('text/event-stream')) return;
                 const ms = Number(process.hrtime.bigint() - start) / 1e6;
                 httpMetrics.recordHttp({ method: req.method, route: _normalizeRoute(req), status: res.statusCode, ms });
-            } catch (_) { /* never break the response */ }
+            } catch (err) { log.debug('never break the response', err); }
         });
         next();
     });

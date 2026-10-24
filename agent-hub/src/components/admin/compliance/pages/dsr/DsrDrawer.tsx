@@ -19,6 +19,7 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import useNow from '../../../../../hooks/useNow';
 import { articleOf, channelOf, clockPropsOf, dueAtOf, isClosed, receivedAtOf, stateOf } from './dsrArticles';
 import DsrIdentity from './DsrIdentity';
 import { channelLabel, formatDateTime, shownEmailOf, typeLabel } from './DsrTable';
@@ -128,25 +129,20 @@ function DrawerBody({ request, busy, exportUrl, onFulfil, onReject, onExtend, on
     const lang = resolvedLocale || locale;
     const closed = isClosed(request);
     const state = stateOf(request);
-    const [summary, setSummary] = useState('');
+    const [summary, setSummary] = useState(request?.result_summary || '');
     const [rejecting, setRejecting] = useState(false);
     const [rejectReason, setRejectReason] = useState('');
     const [extending, setExtending] = useState(false);
     const [extendReason, setExtendReason] = useState('');
 
-    useEffect(() => {
-        setSummary(request?.result_summary || '');
-        setRejecting(false); setRejectReason('');
-        setExtending(false); setExtendReason('');
-    }, [request?.id]);
-
+    const now = useNow(60_000);
     const timelineRaw = useLazy(loadTimeline, request?.id);
     const discovery = useLazy(loadDiscovery, request?.id);
 
     const timeline = useMemo(() => {
         const rows = Array.isArray(timelineRaw) ? timelineRaw.map((r: unknown) => normaliseTimelineRow(t, r, orgUsers)).filter(Boolean) as TimelineRow[] : null;
-        return rows && rows.length ? rows : fallbackTimeline(t, request, Date.now(), orgUsers);
-    }, [timelineRaw, request, t, orgUsers]);
+        return rows && rows.length ? rows : fallbackTimeline(t, request, now, orgUsers);
+    }, [timelineRaw, request, t, orgUsers, now]);
 
     const chips = useMemo(() => discoveryChips(t, discovery), [discovery, t]);
     const read = useMemo(() => readDiscovery(discovery), [discovery]);

@@ -36,8 +36,7 @@ export default function CitationOverlay({ source, onClose }: CitationOverlayProp
             >
                 {/* Header */}
                 <div className="flex items-center gap-3 px-5 py-4 border-b border-[var(--border-subtle)]">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-                        style={{ background: 'var(--brand-gradient)' }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center [background:var(--brand-gradient)]">
                         <FileText className="w-4 h-4 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">

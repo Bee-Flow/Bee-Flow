@@ -14,8 +14,8 @@
  */
 import { render } from '@testing-library/react';
 import { describe, it, expect, afterEach } from 'vitest';
-import Steps from './Steps.jsx';
 import Integrations from './Integrations.jsx';
+import Steps from './Steps.jsx';
 
 const chapters = (items) => render(
     <Steps data={{ enabled: true, variant: 'chapters', title: 'T', items }} />,

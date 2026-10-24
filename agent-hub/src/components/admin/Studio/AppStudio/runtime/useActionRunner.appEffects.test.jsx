@@ -33,10 +33,10 @@ vi.mock('../../../../shared/Toast', () => {
 vi.mock('./components/AppModal', () => ({ openAppModal: vi.fn(), closeAppModal: vi.fn() }));
 vi.mock('./formContext', () => ({ resetAppForm: vi.fn() }));
 
+import { resetAppForm } from './formContext';
 import useActionRunner from './useActionRunner';
 import { authFetch } from '../../../../../utils/helpers';
 import toast from '../../../../shared/Toast';
-import { resetAppForm } from './formContext';
 
 const resp = (status, body, ok = status >= 200 && status < 300) => ({ ok, status, json: async () => body });
 

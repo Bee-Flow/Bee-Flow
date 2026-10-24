@@ -134,13 +134,8 @@ const LoginForm = ({
     inputClass, labelClass
 }: LoginFormProps) => {
     const { t } = useTranslation();
-    const [preferredMethod, setPreferredMethod] = useState<string | null>(null);
+    const [preferredMethod] = useState<string | null>(() => getCookie('bf_preferred_login') || null);
     const [showAllMethods, setShowAllMethods] = useState(false);
-
-    useEffect(() => {
-        const saved = getCookie('bf_preferred_login');
-        if (saved) setPreferredMethod(saved);
-    }, []);
 
     const handlePasswordLogin = (e: FormEvent<HTMLFormElement>) => {
         setCookie('bf_preferred_login', 'password');

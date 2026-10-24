@@ -134,7 +134,7 @@ router.post('/admin/nc-bindings/:id/approve', requireAuth, async (req, res) => {
         return res.status(409).json({ error: `Binding is ${row.status}` });
     }
     if (isExpired(row)) {
-        try { await userStore.expirePendingNcBindings(); } catch (_) { }
+        try { await userStore.expirePendingNcBindings(); } catch (_) { log.warn('could not expire pending Nextcloud bindings', _); }
         return res.status(410).json({ error: 'Pending binding expired' });
     }
 
@@ -339,7 +339,7 @@ router.delete('/admin/nc-bindings/org/:orgId', requireAuth, async (req, res) => 
 
     try {
         await userStore.logAccessAudit('org.nc_binding.remove', 'organization', orgId, freshUser.id, before, null, orgId);
-    } catch (_) { /* audit is best-effort */ }
+    } catch (err) { log.debug('audit is best-effort', err); }
 
     log.info(`[NcBindingRoutes] NC binding removed from org=${orgId} (was ncInstance=${before.ncInstanceId}) by super-admin ${freshUser.id}`);
     orgHealth.event('binding.removed', {

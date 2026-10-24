@@ -57,14 +57,14 @@ async function _acquire(pool) {
         return null;
     } catch (e) {
         log.warn('[ComplianceScheduler] could not take the sweep lock:', e.message);
-        if (client) { try { client.release(); } catch { /* already gone */ } }
+        if (client) { try { client.release(); } catch (err) { log.debug('already gone', err); } }
         return null;
     }
 }
 
 async function _release(client) {
-    try { await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch { /* best-effort: the session ends anyway */ }
-    try { client.release(); } catch { /* already released */ }
+    try { await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { log.debug('best-effort: the session ends anyway', err); }
+    try { client.release(); } catch (err) { log.debug('already released', err); }
 }
 
 async function _runAllOrgs(deps = null) {

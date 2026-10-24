@@ -27,6 +27,7 @@ import AppIcon from '../../icons/AppIcon';
 // iframe import; loading it here keeps font previews working for every
 // consumer of FontRow regardless of which module loads first.
 import '../../../marketing/self-hosted-fonts.css';
+import { logger } from '../../../utils/logger';
 
 /**
  * primitives.jsx — shared micro-widgets for the CMS admin panels.
@@ -57,14 +58,14 @@ export function CollapsibleCard({ title, defaultOpen = false, persistKey = null,
                 const stored = window.localStorage.getItem(storageKey);
                 if (stored === '1') return true;
                 if (stored === '0') return false;
-            } catch { /* storage unavailable — fall back to defaultOpen */ }
+            } catch (err) { logger.debug('storage unavailable — fall back to defaultOpen', err); }
         }
         return defaultOpen;
     });
     const toggle = () => {
         const next = !open;
         if (storageKey) {
-            try { window.localStorage.setItem(storageKey, next ? '1' : '0'); } catch { /* best-effort */ }
+            try { window.localStorage.setItem(storageKey, next ? '1' : '0'); } catch (err) { logger.debug('best-effort', err); }
         }
         setOpen(next);
     };

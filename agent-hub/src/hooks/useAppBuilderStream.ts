@@ -13,6 +13,7 @@ import type { AppBuilderSendOptions, BuilderToolDraft, AppBuilderStreamDeps, Use
 import { applyBuilderSnapshot, parseSendArgs, startBuilderAction } from './appBuilderStream/session';
 import { runBuilderTurn } from './appBuilderStream/turn';
 import type { RunTurnParams } from './appBuilderStream/turn';
+import { logger } from '../utils/logger';
 
 export type {
     AppBuilderDoneInfo,
@@ -169,9 +170,7 @@ export default function useAppBuilderStream({
                     sessionIdRef, setMessages, setSessionId, setLastValidation,
                     setPendingPlan, setCheckpoints, setTodos,
                 });
-            } catch {
-                // 404 = no session yet; anything else degrades to a fresh chat.
-            }
+            } catch (err) { logger.debug('404 = no session yet; anything else degrades to a fresh chat.', err); }
         })();
         return () => { alive = false; };
     }, [appId]);
@@ -285,7 +284,7 @@ export default function useAppBuilderStream({
      */
     const stop = useCallback(() => {
         if (!running) return;
-        try { abortRef.current?.abort(); } catch { /* already settled */ }
+        try { abortRef.current?.abort(); } catch (err) { logger.debug('already settled', err); }
         setRunning(false);
         setContinuation(null);
         setToolDraft(null);

@@ -173,7 +173,7 @@ async function runInputPiiGate({ messages, docShield, notebookId, modelId, send,
         // leaking them to the LLM as literal text. Idempotent.
         if (notebookId) {
             try { await require('../../../core/dlp/dlpRunner').getConversationTokenMapAsync(notebookId); }
-            catch (_) { /* hydration is best-effort */ }
+            catch (err) { log.debug('hydration is best-effort', err); }
         }
         if (orgPiiEnabled) {
             const { validateInputForPii } = require('../../../core/privacy/piiDetection');
@@ -193,7 +193,7 @@ async function runInputPiiGate({ messages, docShield, notebookId, modelId, send,
                     if (textPart) textPart.text = piiResult.tokenizedText;
                 }
                 piiTokenMap = piiResult.tokenMap;
-                try { require('../../../core/dlp/dlpRunner').mergeTokenMap(notebookId, piiResult.tokenMap); } catch (_) { /* non-fatal */ }
+                try { require('../../../core/dlp/dlpRunner').mergeTokenMap(notebookId, piiResult.tokenMap); } catch (err) { log.debug('non-fatal', err); }
                 log.warn(`[NotebookChat] 🔒 PII tokenized (${Object.keys(piiTokenMap).length} tokens)`);
 
                 // ── Surface the tokenisation to the client (parity w/ directChat) ──
@@ -258,7 +258,7 @@ function addTokenPreservation(messages, notebookId) {
             const _add = buildTokenPreservationAddendum(dlpRunner.getConversationTokenMap(notebookId));
             if (_add) messages[0].content += _add;
         }
-    } catch (_) { /* addendum is best-effort */ }
+    } catch (err) { log.debug('addendum is best-effort', err); }
 }
 
 /**

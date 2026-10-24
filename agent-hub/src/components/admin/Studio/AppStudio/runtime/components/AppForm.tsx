@@ -300,9 +300,8 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
                     clicks it, and nothing happens. */}
                 {submitError ? (
                     <p
-                        className="text-sm"
+                        className="text-sm [color:var(--error)]!"
                         role="alert"
-                        style={{ color: 'var(--error)' }}
                         data-app-submit-error="true"
                     >
                         {submitError}
@@ -321,14 +320,7 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
                                 disabled={pending || !node.onSubmit}
                                 title={node.onSubmit ? undefined : t('studio_apps_runtime.form.no_submit', 'This form has no submit action yet.')}
                                 data-app-submit-inert={node.onSubmit ? undefined : 'true'}
-                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium disabled:opacity-60"
-                                style={{
-                                    // The accent family, like AppButton's primary
-                                    // variant: a submit IS the call to action.
-                                    background: 'var(--app-accent, var(--app-primary))',
-                                    color: 'var(--app-accent-contrast, var(--app-primary-contrast))',
-                                    borderRadius: 'var(--app-radius)',
-                                }}
+                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium disabled:opacity-60 [background:var(--app-accent,var(--app-primary))] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! [border-radius:var(--app-radius)]"
                             >
                                 {pending ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : null}
                                 <span>{submitLabel}</span>
@@ -338,8 +330,7 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
                             <button
                                 type="button"
                                 onClick={handleReset}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm"
-                                style={{ color: 'var(--text-secondary)', borderRadius: 'var(--app-radius)' }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm [color:var(--text-secondary)]! [border-radius:var(--app-radius)]"
                             >
                                 <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
                                 <span>{t('studio_apps_runtime.form.reset', 'Reset')}</span>

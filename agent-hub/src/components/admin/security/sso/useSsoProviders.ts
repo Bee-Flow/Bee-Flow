@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { logger } from '../../../../utils/logger';
 
 export type SsoProviderId = 'nextcloud' | 'google' | 'microsoft';
 
@@ -74,7 +75,7 @@ function useServerUrl(): string {
                     const data = await res.json();
                     if (data.serverUrl) setServerUrl(data.serverUrl);
                 }
-            } catch (_) {}
+            } catch (err) { logger.debug('setup status unavailable, server URL stays unset', err); }
         })();
     }, []);
     return serverUrl;

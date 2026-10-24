@@ -143,7 +143,7 @@ async function handleSetupIntentFailed(setupIntent) {
         try {
             const portal = await stripeService.createPortalSession(customerId, portalUrl);
             if (portal?.url) portalUrl = portal.url;
-        } catch (_) { /* fall back */ }
+        } catch (err) { log.debug('fall back', err); }
 
         const { sendPaymentFailedEmail } = require('../../utils/emailService');
         await sendPaymentFailedEmail({

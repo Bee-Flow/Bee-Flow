@@ -23,8 +23,7 @@ function DoorLink({ icon, kind, label, name, onClick, t }: DoorLinkProps) {
         <button
             type="button"
             onClick={onClick}
-            className="w-full text-left flex items-center gap-3 rounded-xl px-3 py-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-            style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-default)', outlineColor: 'var(--accent-primary)' }}
+            className="w-full text-left flex items-center gap-3 rounded-xl px-3 py-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [background:var(--bg-primary)] [border:1px_solid_var(--border-default)] [outline-color:var(--accent-primary)]!"
         >
             <span style={tile}>{React.cloneElement(icon, { style: glyph, 'aria-hidden': 'true' })}</span>
             <span className="min-w-0 flex-1">
@@ -120,7 +119,7 @@ export default function DoneCard({ playbook, onNavigate, onBack, onResume = null
                 <div className="mt-5 flex justify-end gap-2">
                     {stopped && onResume ? (
                         <>
-                            <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-xs font-medium" style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }}>
+                            <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-xs font-medium [color:var(--text-secondary)]! [border:1px_solid_var(--border-default)]">
                                 {t('playbooks.done.back', 'Back to playbooks')}
                             </button>
                             <button type="button" onClick={onResume} disabled={busy} data-testid="playbook-resume" className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-xs font-semibold disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}>

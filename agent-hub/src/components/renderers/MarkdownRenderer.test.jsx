@@ -16,8 +16,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 
 // Heavy leaf renderers are irrelevant here — mock them out so jsdom doesn't
 // pull mermaid/vega.

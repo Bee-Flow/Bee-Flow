@@ -79,8 +79,7 @@ export default function ServicesSection({
                                     setTimeout(() => setMessage(null), 3000);
                                 }}
                                 disabled={savingLinkedIn || !linkedinClientId.trim() || !linkedinClientSecret.trim()}
-                                className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
-                                style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                                className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                             >
                                 {savingLinkedIn ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                                 {t('integ.services_save', 'Save')}
@@ -145,8 +144,7 @@ export default function ServicesSection({
                                     setTimeout(() => setMessage(null), 3000);
                                 }}
                                 disabled={savingWithings || !withingsClientId.trim() || !withingsClientSecret.trim()}
-                                className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
-                                style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                                className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                             >
                                 {savingWithings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                                 {t('integ.services_save', 'Save')}
@@ -256,8 +254,7 @@ export default function ServicesSection({
                                         setTimeout(() => setMessage(null), 3000);
                                     }}
                                     disabled={savingAzureDoc || (!azureDocEndpoint.trim() && !azureDocKey.trim())}
-                                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
-                                    style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                                 >
                                     {savingAzureDoc ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                                     {t('integ.services_save', 'Save')}
@@ -318,8 +315,7 @@ export default function ServicesSection({
                                         setTimeout(() => setMessage(null), 3000);
                                     }}
                                     disabled={savingAzureEmbed || (!azureEmbedEndpoint.trim() && !azureEmbedKey.trim())}
-                                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
-                                    style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                                 >
                                     {savingAzureEmbed ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                                     {t('integ.services_save', 'Save')}
@@ -330,8 +326,7 @@ export default function ServicesSection({
                                 <select
                                     value={azureEmbedModel}
                                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAzureEmbedModel(e.target.value)}
-                                    className="px-3 py-1.5 rounded-lg text-sm border outline-none"
-                                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                    className="px-3 py-1.5 rounded-lg text-sm border outline-none [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                                 >
                                     <option value="text-embedding-3-small">{t('integ.services_text_embedding_3_small_1536_dims', 'text-embedding-3-small (1536 dims)')}</option>
                                     <option value="text-embedding-3-large">{t('integ.services_text_embedding_3_large_3072_dims', 'text-embedding-3-large (3072 dims)')}</option>

@@ -13,6 +13,7 @@
  * breaks the chat (the card just falls back to the emoji tile).
  */
 
+const { featureModule } = require('../featureModules');
 const crypto = require('crypto');
 const webpageStore = require('../../stores/webpageStore');
 const log = require('../../telemetry/log');
@@ -75,7 +76,7 @@ async function renderThumbnail({ userId, webpageId }) {
 
     const doc = composeDoc(slots.html, slots.css, slots.js);
 
-    const browserProvider = require('../../services/browserProvider');
+    const browserProvider = featureModule('services/browserProvider');
     try {
         const fullShot = await browserProvider.withContext(
             {

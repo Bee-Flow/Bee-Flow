@@ -112,8 +112,7 @@ export default function VoiceprintEnrollModal({ open, onClose, limits, onEnrolle
         >
             <div className="flex flex-col gap-5">
                 <div
-                    className="rounded-xl px-5 py-4 text-[15px] leading-relaxed"
-                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
+                    className="rounded-xl px-5 py-4 text-[15px] leading-relaxed [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)] [color:var(--text-primary)]!"
                 >
                     {paragraphs.map((p, i) => (
                         <p
@@ -127,7 +126,7 @@ export default function VoiceprintEnrollModal({ open, onClose, limits, onEnrolle
                 </div>
 
                 <div className="flex flex-col items-center gap-3">
-                    <div className="relative flex items-center justify-center" style={{ height: 120 }}>
+                    <div className="relative flex items-center justify-center h-[120px]">
                         {recording && (
                             <span
                                 aria-hidden

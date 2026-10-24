@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import useNow from '../../../hooks/useNow';
 import useTranslation from '../../../hooks/useTranslation';
 
 /** Premium inline audio player with optional album art */
@@ -11,6 +12,7 @@ interface AudioPlayerInlineProps {
 
 export default function AudioPlayerInline({ src, albumArt, title, subtitle }: AudioPlayerInlineProps) {
     const { t } = useTranslation();
+    const stamp = useNow(60_000);
     const audioRef = useRef<HTMLAudioElement>(null);
     const [playing, setPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
@@ -55,7 +57,7 @@ export default function AudioPlayerInline({ src, albumArt, title, subtitle }: Au
     // Pulsing animation for album art
     const [pulse, setPulse] = useState(false);
     useEffect(() => {
-        if (!playing) { setPulse(false); return; }
+        if (!playing) return;
         const iv = setInterval(() => setPulse((p: boolean) => !p), 800);
         return () => clearInterval(iv);
     }, [playing]);
@@ -63,11 +65,7 @@ export default function AudioPlayerInline({ src, albumArt, title, subtitle }: Au
     const hasArt = !!albumArt;
 
     return (
-        <div className="rounded-2xl overflow-hidden max-w-md shadow-xl"
-            style={{
-                background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-                border: '1px solid rgba(255,255,255,0.08)',
-            }}>
+        <div className="rounded-2xl overflow-hidden max-w-md shadow-xl [background:linear-gradient(135deg,#1a1a2e_0%,#16213e_50%,#0f3460_100%)] [border:1px_solid_rgba(255,255,255,0.08)]">
             <audio
                 ref={audioRef}
                 src={src}
@@ -84,7 +82,7 @@ export default function AudioPlayerInline({ src, albumArt, title, subtitle }: Au
                         style={{
                             background: hasArt ? 'transparent' : 'linear-gradient(135deg, #e94560, #c23616)',
                             boxShadow: playing
-                                ? `0 4px 20px rgba(233,69,96,${pulse ? 0.5 : 0.25})`
+                                ? `0 4px 20px rgba(233,69,96,${playing && pulse ? 0.5 : 0.25})`
                                 : '0 4px 15px rgba(233,69,96,0.2)',
                             transition: 'box-shadow 0.8s ease',
                         }}>
@@ -95,8 +93,7 @@ export default function AudioPlayerInline({ src, albumArt, title, subtitle }: Au
                         )}
                     </div>
                     {playing && (
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
-                            style={{ background: '#e94560', boxShadow: '0 0 8px rgba(233,69,96,0.5)' }}>
+                        <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center [background:#e94560] [box-shadow:0_0_8px_rgba(233,69,96,0.5)]">
                             <div className="flex items-end gap-[1px] h-2">
                                 {[1,2,3].map((i: number) => (
                                     <div key={i} className="w-[2px] rounded-full bg-white"
@@ -122,8 +119,7 @@ export default function AudioPlayerInline({ src, albumArt, title, subtitle }: Au
                     {/* Progress bar */}
                     <div className="flex items-center gap-2">
                         <span className="text-[10px] font-mono text-gray-400 w-8 text-right">{fmt(currentTime)}</span>
-                        <div className="flex-1 h-1.5 rounded-full cursor-pointer group relative"
-                            style={{ background: 'rgba(255,255,255,0.08)' }}
+                        <div className="flex-1 h-1.5 rounded-full cursor-pointer group relative [background:rgba(255,255,255,0.08)]"
                             onClick={seek}>
                             <div className="h-full rounded-full transition-all duration-100"
                                 style={{
@@ -187,9 +183,8 @@ export default function AudioPlayerInline({ src, albumArt, title, subtitle }: Au
                 </div>
 
                 {/* Download */}
-                <a href={src} download={`ai-audio-${Date.now()}.mp3`}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all duration-200"
-                    style={{ color: '#e94560', background: 'rgba(233,69,96,0.1)', border: '1px solid rgba(233,69,96,0.2)' }}
+                <a href={src} download={`ai-audio-${stamp}.mp3`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all duration-200 [color:#e94560]! [background:rgba(233,69,96,0.1)] [border:1px_solid_rgba(233,69,96,0.2)]"
                     onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.background = 'rgba(233,69,96,0.2)'; }}
                     onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.background = 'rgba(233,69,96,0.1)'; }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>

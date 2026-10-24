@@ -10,6 +10,7 @@
 import { API_BASE } from '../../../utils/helpers';
 import type { SeriesPoint } from './analytics/window';
 import type { StatField, XYRow } from './analytics/ui.types';
+import { logger } from '../../../utils/logger';
 
 /** Range and filter params shared by every data call. */
 export interface AnalyticsRequestOpts {
@@ -152,7 +153,7 @@ export async function analyticsFetch(url: string, opts: RequestInit = {}): Promi
     const res = await fetch(url, { credentials: 'include', ...opts });
     const text = await res.text();
     let json: AnalyticsResponse = null;
-    try { json = text ? JSON.parse(text) : null; } catch { /* non-JSON */ }
+    try { json = text ? JSON.parse(text) : null; } catch (err) { logger.debug('non-JSON', err); }
     if (!res.ok) {
         const err: Error & { status?: number } = new Error(json?.error || `Request failed (${res.status})`);
         err.status = res.status;

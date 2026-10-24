@@ -44,6 +44,7 @@ import {
     type CollabProviderOptions, type CollabStatus, type SyncResponse,
 } from './providerSupport';
 import { FRAGMENT_NAME } from './ySchema';
+import { logger } from '../../utils/logger';
 
 export { REMOTE_ORIGIN, type CollabHttp, type CollabKind, type CollabProviderOptions, type CollabStatus } from './providerSupport';
 
@@ -125,9 +126,9 @@ export class CollabProvider {
 
     private emit() {
         this.version += 1;
-        for (const fn of this.listeners) { try { fn(); } catch { /* one listener must not stop the rest */ } }
+        for (const fn of this.listeners) { try { fn(); } catch (err) { logger.debug('one listener must not stop the rest', err); } }
     }
-    private warn(message: string) { try { this.opts.onWarn?.(message); } catch { /* noop */ } }
+    private warn(message: string) { try { this.opts.onWarn?.(message); } catch (err) { logger.debug('noop', err); } }
 
     private setStatus(next: CollabStatus, error?: string) {
         if (error !== undefined) this.lastError = error;
@@ -255,7 +256,7 @@ export class CollabProvider {
         try {
             const missing = Y.encodeStateAsUpdate(this.ydoc, fromBase64(serverSv));
             if (hasContent(missing)) this.sender.catchUp(missing, Y.encodeStateVector(this.ydoc));
-        } catch { /* a bad state vector only costs the catch-up */ }
+        } catch (err) { logger.debug('a bad state vector only costs the catch-up', err); }
     }
 
     /* ── outgoing (sender.ts) ─────────────────────────────── */

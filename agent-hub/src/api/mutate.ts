@@ -17,15 +17,14 @@
 import type { AuthFetchOptions } from '../utils/helpers';
 import { API_BASE, authFetch } from '../utils/helpers';
 import { ApiError } from './client';
+import { logger } from '../utils/logger';
 
 /** The server's error text from a non-2xx body, or `HTTP <status>`. */
 async function errorText(res: Response): Promise<{ message: string; body: unknown }> {
     let body: unknown = null;
     try {
         body = await res.json();
-    } catch {
-        /* not JSON */
-    }
+    } catch (err) { logger.debug('not JSON', err); }
     const b = body as { error?: unknown; message?: unknown } | null;
     const fromBody =
         (typeof b?.error === 'string' && b.error) ||

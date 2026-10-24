@@ -132,8 +132,7 @@ function ExpandedFlowlet({ id, step, summary, runStep, refCount, onOpenLayer, on
                 {refCount > 1 && (
                     <span
                         title={`This flowlet is used in ${refCount} places — changes here apply to all of them.`}
-                        className="shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-                        style={{ background: 'color-mix(in srgb, var(--warning) 16%, transparent)', color: 'var(--warning)' }}
+                        className="shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold [background:color-mix(in_srgb,var(--warning)_16%,transparent)] [color:var(--warning)]!"
                     >
                         <Users size={10} /> {refCount}
                     </span>

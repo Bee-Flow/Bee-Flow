@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState } from 'react';
 // No tier picker here: the welcome screen renders the composer as `children`,
 // and the composer owns that control. The import was dead.
 import { ALL_PROMPTS, WELCOME_MESSAGES } from '../../utils/prompts';
@@ -15,24 +15,20 @@ interface Props {
 const DirectChatWelcome = ({ tiers, selectedTier, onTierChange, onPromptClick, children }: Props) => {
     const { t } = useTranslation();
 
-    const welcomeMsg = useMemo(() => {
+    const [welcomeMsg] = useState(() => {
         // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- picks which welcome message to show, not a secret
         return WELCOME_MESSAGES[Math.floor(Math.random() * WELCOME_MESSAGES.length)];
-    }, []);
+    });
 
-    const prompts = useMemo(() => {
+    const [prompts] = useState(() => {
         // Randomly pick 3 prompts from the list of 100
         // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- picks which sample prompts to show, not a secret
         return [...ALL_PROMPTS].sort(() => 0.5 - Math.random()).slice(0, 3);
-    }, []);
+    });
 
     return (
         <div className="flex flex-col items-center justify-center p-4 sm:p-8 max-w-4xl mx-auto w-full">
-            <h1 className="text-center" style={{
-                fontSize: 'clamp(20px, 5vw, 32px)', fontWeight: 600,
-                color: 'var(--text-primary)', marginBottom: '20px',
-                letterSpacing: '-0.02em'
-            }}>
+            <h1 className="text-center [font-size:clamp(20px,5vw,32px)]! [font-weight:600] [color:var(--text-primary)]! [margin-bottom:20px] [letter-spacing:-0.02em]">
                 {t(welcomeMsg.i18nKey, welcomeMsg.text)}
             </h1>
 

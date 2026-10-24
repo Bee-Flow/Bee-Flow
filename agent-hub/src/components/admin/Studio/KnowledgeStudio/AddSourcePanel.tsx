@@ -56,17 +56,15 @@ export default function AddSourcePanel({ canManage = false, onCreate, onUpload, 
 
     return (
         <div
-            className="overflow-hidden text-[12px]"
-            style={{ borderRadius: 12, background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-popover)' }}
+            className="overflow-hidden text-[12px] [border-radius:12px] [background:var(--bg-card)] [border:1px_solid_var(--border-default)] [box-shadow:var(--shadow-popover)]"
             data-testid="kb-add-source"
         >
-            <div className="px-3.5 py-3 font-semibold" style={{ borderBottom: '1px solid var(--border-default)', color: 'var(--text-primary)' }}>
+            <div className="px-3.5 py-3 font-semibold [border-bottom:1px_solid_var(--border-default)] [color:var(--text-primary)]">
                 {openKind ? (
                     <button
                         type="button"
                         onClick={close}
-                        className="inline-flex items-center gap-1.5 focus-visible:outline focus-visible:outline-2 rounded"
-                        style={{ outlineColor: 'var(--accent-primary)' }}
+                        className="inline-flex items-center gap-1.5 focus-visible:outline focus-visible:outline-2 rounded [outline-color:var(--accent-primary)]!"
                     >
                         <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
                         {t(sourceKind(openKind).labelKey, sourceKind(openKind).labelFallback)}
@@ -79,7 +77,7 @@ export default function AddSourcePanel({ canManage = false, onCreate, onUpload, 
             )}
 
             {!openKind ? (
-                <div className="p-2.5 grid gap-1.5" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                <div className="p-2.5 grid gap-1.5 [grid-template-columns:1fr_1fr]">
                     {ADD_SOURCE_KINDS.map(kind => (
                         <KindButton
                             key={kind}
@@ -143,7 +141,7 @@ export function AutomationSignpost({ t, kbName = '', onNavigate = null, sources 
                  * the card explains a mechanism while staying silent about the
                  * instances of it sitting in the list right below.
                  */
-                <div className="rounded-[10px] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
+                <div className="rounded-[10px] overflow-hidden [border:1px_solid_var(--border-default)]">
                     {automationSources.map((src, i) => (
                         <div
                             key={src.id}
@@ -195,8 +193,7 @@ function KindButton({ t, kind, disabled, reason, onClick }: KindButtonProps) {
             onClick={onClick}
             data-testid={`kb-add-kind-${kind}`}
             data-disabled={disabled ? 'true' : 'false'}
-            className="w-full flex items-center gap-2 px-2.5 py-2.5 rounded-[10px] text-left disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
-            style={{ border: '1px solid var(--border-default)', color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)' }}
+            className="w-full flex items-center gap-2 px-2.5 py-2.5 rounded-[10px] text-left disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 [border:1px_solid_var(--border-default)] [color:var(--text-primary)]! [outline-color:var(--accent-primary)]!"
         >
             <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: meta.tint ? kindColorVar(meta.tint) : 'var(--text-secondary)' }} aria-hidden="true" />
             {t(meta.labelKey, meta.labelFallback)}
@@ -315,8 +312,7 @@ export function DatatableForm({ t, busy, onSubmit }: FormProps) {
                     value={datatableId}
                     onChange={(e) => pickTable(e.target.value)}
                     data-testid="kb-datatable-select"
-                    className="px-2.5 py-2 rounded-lg text-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
-                    style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)' }}
+                    className="px-2.5 py-2 rounded-lg text-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 [background:var(--bg-card)] [border-color:var(--border-default)] [color:var(--text-primary)]! [outline-color:var(--accent-primary)]!"
                 >
                     <option value="">{t('knowledge.datatable.pick', 'Pick a table…')}</option>
                     {tables.map(x => (
@@ -326,7 +322,7 @@ export function DatatableForm({ t, busy, onSubmit }: FormProps) {
             </label>
 
             {loadError && (
-                <p style={{ color: 'var(--warning-ink, var(--warning))', fontSize: 11 }}>
+                <p className="[color:var(--warning-ink,var(--warning))] [font-size:11px]">
                     {t('knowledge.datatable.load_failed', 'Could not load your tables.')}
                 </p>
             )}
@@ -367,7 +363,7 @@ export function DatatableForm({ t, busy, onSubmit }: FormProps) {
                             </button>
                         ))}
                     </div>
-                    <p style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>
+                    <p className="[color:var(--text-tertiary)] [font-size:11px]">
                         {t('knowledge.datatable.columns_hint', 'Every column you include dilutes the ones that answer questions. Leave out what nobody would ask about.')}
                     </p>
                 </fieldset>
@@ -380,15 +376,14 @@ export function DatatableForm({ t, busy, onSubmit }: FormProps) {
                         value={titleColumn}
                         onChange={(e) => setTitleColumn(e.target.value)}
                         data-testid="kb-datatable-title"
-                        className="px-2.5 py-2 rounded-lg text-xs border"
-                        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                        className="px-2.5 py-2 rounded-lg text-xs border [background:var(--bg-card)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                     >
                         {columns.map(key => <option key={key} value={key}>{key}</option>)}
                     </select>
                 </label>
             )}
 
-            <p style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>
+            <p className="[color:var(--text-tertiary)] [font-size:11px]">
                 {t('knowledge.datatable.consequence', 'Rows you can read become searchable for everyone who can see this knowledge base — the table\u2019s own row permissions do not follow them here.')}
             </p>
 
@@ -471,8 +466,7 @@ export function MeetingTagForm({ t, busy, onSubmit }: FormProps) {
                     list="kb-meeting-tags"
                     data-testid="kb-meeting-tag"
                     placeholder={t('knowledge.meeting.tag_placeholder', 'e.g. sales')}
-                    className="px-2.5 py-2 rounded-lg text-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
-                    style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)' }}
+                    className="px-2.5 py-2 rounded-lg text-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 [background:var(--bg-card)] [border-color:var(--border-default)] [color:var(--text-primary)]! [outline-color:var(--accent-primary)]!"
                 />
                 <datalist id="kb-meeting-tags">
                     {vocabulary.map(v => <option key={v.tag} value={v.tag} />)}
@@ -506,7 +500,7 @@ export function MeetingTagForm({ t, busy, onSubmit }: FormProps) {
                 </div>
             </fieldset>
 
-            <p style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>
+            <p className="[color:var(--text-tertiary)] [font-size:11px]">
                 {t('knowledge.meeting.consequence', 'Everyone who can see this knowledge base will be able to read these summaries — including people who cannot open the meetings themselves. Transcripts never go in.')}
             </p>
 
@@ -636,8 +630,7 @@ export function UploadFilesForm({ t, busy, onUpload }: UploadFormProps) {
                 type="button"
                 onClick={() => inputRef.current?.click()}
                 disabled={busy}
-                className="flex flex-col items-center gap-1.5 py-6 rounded-[10px] disabled:opacity-50"
-                style={{ border: '1px dashed var(--border-default)', color: 'var(--text-secondary)' }}
+                className="flex flex-col items-center gap-1.5 py-6 rounded-[10px] disabled:opacity-50 [border:1px_dashed_var(--border-default)] [color:var(--text-secondary)]"
             >
                 {busy ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <UploadIcon className="w-4 h-4" aria-hidden="true" />}
                 {t('knowledge.form.choose_files', 'Choose files')}

@@ -29,17 +29,17 @@ const HISTORY_MAX = 5;
  */
 async function subjectIds() {
     const ids = [];
-    try { const iid = await hubClient().getInstallId(); if (iid) ids.push(iid); } catch (_) { /* not connected */ }
+    try { const iid = await hubClient().getInstallId(); if (iid) ids.push(iid); } catch (err) { log.debug('not connected', err); }
     try {
         const active = await licenseStore().getActiveLicenseForServer();
         if (active && active.id && !ids.includes(active.id)) ids.push(active.id);
-    } catch (_) { /* unlicensed */ }
+    } catch (err) { log.debug('unlicensed', err); }
     try {
         const history = await configStore().getConfig(LICENSE_ID_HISTORY_KEY);
         for (const id of (Array.isArray(history) ? history : [])) {
             if (id && !ids.includes(id)) ids.push(id);
         }
-    } catch (_) { /* no history */ }
+    } catch (err) { log.debug('no history', err); }
     return ids;
 }
 

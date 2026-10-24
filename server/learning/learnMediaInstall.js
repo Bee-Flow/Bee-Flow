@@ -45,6 +45,7 @@ const { pipeline } = require('node:stream/promises');
 
 const { openUrl, streamToFile } = require('./learnMediaDownload');
 const { validatePin, resolveBase } = require('./learnMediaPin');
+const telemetryLog = require('../telemetry/log');
 
 const ALLOWED_EXTS = Object.freeze(['.mp4', '.vtt', '.jpg', '.webp', '.json']);
 const MAX_PACK_BYTES = 4 * 1024 ** 3;
@@ -314,7 +315,7 @@ function cleanStaleTemp(target, maxAgeMs = STALE_TEMP_MS, now = Date.now()) {
         const full = path.join(target, name);
         try {
             if (now - fs.lstatSync(full).mtimeMs > maxAgeMs) fs.rmSync(full, { recursive: true, force: true });
-        } catch { /* gone already */ }
+        } catch (err) { telemetryLog.debug('gone already', err); }
     }
 }
 

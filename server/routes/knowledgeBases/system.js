@@ -15,6 +15,7 @@ const kbStore = require('../../stores/knowledgeBases');
 const userStore = require('../../stores/userStore');
 const { requireAuth, resolveUserOrgIds } = require('../../auth');
 const { getUserId } = require('./shared');
+const log = require('../../telemetry/log');
 
 // ── System-managed KBs (Bee Flow-provided content) ─────────────────
 // Lightweight status endpoint so the admin dashboard can show what's
@@ -39,7 +40,7 @@ router.get('/system', requireAuth, async (req, res) => {
         try {
             const all = await userStore.getAllOrganizations();
             if (Array.isArray(all) && all.length > 0) orgId = all[0].id;
-        } catch (_) { /* no orgs */ }
+        } catch (err) { log.debug('no orgs', err); }
     }
 
     // The org's real-world active set = intersection of super-admin
@@ -49,8 +50,8 @@ router.get('/system', requireAuth, async (req, res) => {
     let orgAllowed = new Set();
     let orgActive = new Set();
     if (orgId) {
-        try { orgAllowed = new Set(await getOrgBetaFeatures(orgId)); } catch (_) { /* */ }
-        try { orgActive = new Set(await userStore.getOrgEnabledBetaFeatures(orgId)); } catch (_) { /* */ }
+        try { orgAllowed = new Set(await getOrgBetaFeatures(orgId)); } catch (_) { log.warn('org beta features lookup failed, treating as none', _); }
+        try { orgActive = new Set(await userStore.getOrgEnabledBetaFeatures(orgId)); } catch (_) { log.warn('org enabled beta features lookup failed, treating as none', _); }
     }
 
     const all = await kbStore.listSystemKBs();

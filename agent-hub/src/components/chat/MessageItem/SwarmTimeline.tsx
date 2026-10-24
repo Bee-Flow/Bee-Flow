@@ -175,11 +175,7 @@ export default function SwarmTimeline({ swarm }: { swarm?: SwarmTimelineSwarm | 
 
     return (
         <div
-            className="mb-3 rounded-xl border overflow-hidden"
-            style={{
-                background: 'rgba(16, 185, 129, .05)',
-                borderColor: 'rgba(16, 185, 129, .25)',
-            }}
+            className="mb-3 rounded-xl border overflow-hidden [background:rgba(16,185,129,.05)] [border-color:rgba(16,185,129,.25)]"
         >
             {/* Progress strip */}
             <div className="h-1 bg-[var(--bg-tertiary)] overflow-hidden">
@@ -192,8 +188,7 @@ export default function SwarmTimeline({ swarm }: { swarm?: SwarmTimelineSwarm | 
             {/* Header */}
             <div className="flex items-center gap-2 px-3 pt-2.5">
                 <span
-                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'rgba(16, 185, 129, .15)' }}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 [background:rgba(16,185,129,.15)]"
                     aria-hidden="true"
                 >
                     {isPending

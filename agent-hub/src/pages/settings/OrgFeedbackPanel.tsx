@@ -131,10 +131,7 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
     ];
 
     const refreshBtn = (
-        <button onClick={fetchData} title={t('org.feedback_refresh')} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8,
-            border: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)', cursor: 'pointer', color: 'var(--text-muted)',
-        }}>
+        <button onClick={fetchData} title={t('org.feedback_refresh')} className="[display:flex] [align-items:center] [justify-content:center] w-[30px] h-[30px] [border-radius:8px] [border:1px_solid_var(--border-subtle)] [background:var(--bg-secondary)] [cursor:pointer] [color:var(--text-muted)]">
             <RefreshCw style={{ width: 13, height: 13, animation: loading ? 'spin 1s linear infinite' : 'none' }} />
         </button>
     );
@@ -171,13 +168,13 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
             />
 
             <Card>
-                <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div className="[display:flex] [gap:6px] [margin-bottom:12px] [flex-wrap:wrap] [align-items:center]">
                     <FilterChipBar value={filter} onChange={(v) => { setFilter(v); setPageNum(0); }} options={FILTER_CHIPS} />
-                    <div style={{ flex: 1 }} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 8, background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
+                    <div className="[flex:1]" />
+                    <div className="[display:flex] [align-items:center] [gap:6px] [padding:5px_10px] [border-radius:8px] [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]">
                         <Search style={{ width: 12, height: 12, color: 'var(--text-muted)' }} />
                         <input value={search} onChange={e => { setSearch(e.target.value); setPageNum(0); }} placeholder={t('org.feedback_search_placeholder')}
-                            style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-primary)', width: 160 }} />
+                            className="[background:transparent] [border:none] [outline:none] [font-size:12px] [color:var(--text-primary)] w-[160px]" />
                     </div>
                 </div>
 
@@ -189,22 +186,22 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
                     const hasConvo = !!snapshot && snapshot.length > 0;
                     const isUp = item.rating === 'up';
                     return (
-                        <div key={item.id || i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                            <div onClick={() => setExpanded(isExpanded ? null : item.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 2px', cursor: 'pointer', transition: 'background 0.12s' }}
+                        <div key={item.id || i} className="[border-bottom:1px_solid_var(--border-subtle)]">
+                            <div onClick={() => setExpanded(isExpanded ? null : item.id)} className="[display:flex] [align-items:center] [gap:10px] [padding:10px_2px] [cursor:pointer] [transition:background_0.12s]"
                                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
                                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                                <span style={{ fontSize: 18, width: 28, textAlign: 'center', flexShrink: 0 }}>{isUp ? '👍' : '👎'}</span>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{item.user_id || t('org.feedback_anonymous')}</span>
-                                        {item.source && <span style={{ padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{item.source}</span>}
+                                <span className="[font-size:18px] w-[28px] [text-align:center] [flex-shrink:0]">{isUp ? '👍' : '👎'}</span>
+                                <div className="[flex:1] min-w-[0]">
+                                    <div className="[display:flex] [align-items:center] [gap:6px] [flex-wrap:wrap]">
+                                        <span className="[font-size:12px] [font-weight:600] [color:var(--text-primary)]">{item.user_id || t('org.feedback_anonymous')}</span>
+                                        {item.source && <span className="[padding:1px_6px] [border-radius:4px] [font-size:10px] [font-weight:600] [background:var(--bg-tertiary)] [color:var(--text-muted)]">{item.source}</span>}
                                         {(item.agent_name || item.agent_id) && (
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: `${C.blue}15`, color: C.blue }} title={item.agent_id || ''}>
                                                 <Bot style={{ width: 9, height: 9 }} />{item.agent_name || (item.agent_id?.length > 20 ? item.agent_id.slice(0, 20) + '…' : item.agent_id)}
                                             </span>
                                         )}
                                         {item.model && (
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }} title={item.model}>
+                                            <span className="[display:flex] [align-items:center] [gap:3px] [padding:1px_6px] [border-radius:4px] [font-size:10px] [font-weight:600] [background:var(--bg-tertiary)] [color:var(--text-secondary)]" title={item.model}>
                                                 <Cpu style={{ width: 9, height: 9 }} />{shortModel(item.model)}
                                             </span>
                                         )}
@@ -221,20 +218,20 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
                                         </div>
                                     )}
                                 </div>
-                                <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>{fmtTime(item.created_at)}</span>
+                                <span className="[font-size:11px] [color:var(--text-muted)] [flex-shrink:0]">{fmtTime(item.created_at)}</span>
                                 <ChevronRight style={{ width: 14, height: 14, color: 'var(--text-muted)', transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
                             </div>
 
                             {isExpanded && (
-                                <div style={{ padding: '10px 12px 14px 38px', background: 'var(--bg-tertiary)', borderRadius: '0 0 8px 8px' }}>
-                                    <div style={{ display: 'flex', gap: 12, marginBottom: 10, flexWrap: 'wrap', fontSize: 11, color: 'var(--text-muted)' }}>
-                                        {item.conversation_id && <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><ExternalLink style={{ width: 10, height: 10 }} />Conv: {item.conversation_id.slice(0, 16)}…</span>}
+                                <div className="[padding:10px_12px_14px_38px] [background:var(--bg-tertiary)] [border-radius:0_0_8px_8px]">
+                                    <div className="[display:flex] [gap:12px] [margin-bottom:10px] [flex-wrap:wrap] [font-size:11px] [color:var(--text-muted)]">
+                                        {item.conversation_id && <span className="[display:flex] [align-items:center] [gap:4px]"><ExternalLink style={{ width: 10, height: 10 }} />Conv: {item.conversation_id.slice(0, 16)}…</span>}
                                         {item.message_id && <span>Msg: {item.message_id.slice(0, 16)}…</span>}
                                     </div>
                                     {item.comment && (
                                         <div style={{ marginBottom: 10, padding: '10px 14px', borderRadius: 10, background: isUp ? `${C.green}10` : `${C.rose}10`, border: `1px solid ${isUp ? C.green : C.rose}25` }}>
                                             <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4, color: isUp ? C.green : C.rose }}>{t('org.feedback_user_feedback')}</div>
-                                            <div style={{ fontSize: 13, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{item.comment}</div>
+                                            <div className="[font-size:13px] [color:var(--text-primary)] [white-space:pre-wrap] [line-height:1.5]">{item.comment}</div>
                                         </div>
                                     )}
                                     {hasConvo ? (
@@ -242,7 +239,7 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
                                             <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8, color: C.blue, display: 'flex', alignItems: 'center', gap: 5 }}>
                                                 <MessageSquare style={{ width: 11, height: 11 }} />{t('org.feedback_conversation')} ({snapshot.length})
                                             </div>
-                                            <div style={{ maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                            <div className="max-h-[360px] [overflow-y:auto] [display:flex] [flex-direction:column] [gap:6px]">
                                                 {(() => {
                                                     let prevAssistantModel: string | null = null;
                                                     return snapshot.map((msg, mi) => {
@@ -257,7 +254,7 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
                                                         return (
                                                             <div key={mi} style={{ display: 'flex', justifyContent: isUserMsg ? 'flex-end' : 'flex-start' }}>
                                                                 <div style={{ maxWidth: '85%', padding: '8px 12px', borderRadius: 12, background: isUserMsg ? 'var(--bg-secondary)' : 'var(--bg-primary)', border: `1px solid ${isUserMsg ? 'var(--border-subtle)' : `${C.blue}25`}` }}>
-                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4, flexWrap: 'wrap' }}>
+                                                                    <div className="[display:flex] [align-items:center] [gap:5px] [margin-bottom:4px] [flex-wrap:wrap]">
                                                                         {isUserMsg ? <User style={{ width: 10, height: 10, color: 'var(--text-muted)' }} /> : <Bot style={{ width: 10, height: 10, color: C.blue }} />}
                                                                         <span style={{ fontSize: 10, fontWeight: 600, color: isUserMsg ? 'var(--text-muted)' : C.blue }}>{isUserMsg ? t('org.feedback_role_user') : t('org.feedback_role_ai')}</span>
                                                                         {turnModel && (
@@ -267,13 +264,13 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
                                                                             </span>
                                                                         )}
                                                                         {duration && (
-                                                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }} title={t('org.feedback_response_time')}>
+                                                                            <span className="[display:inline-flex] [align-items:center] [gap:3px] [padding:1px_6px] [border-radius:4px] [font-size:10px] [font-weight:600] [background:var(--bg-tertiary)] [color:var(--text-secondary)]" title={t('org.feedback_response_time')}>
                                                                                 <Clock style={{ width: 9, height: 9 }} />{duration}
                                                                             </span>
                                                                         )}
                                                                     </div>
-                                                                    <div style={{ fontSize: 13, color: 'var(--text-primary)', wordBreak: 'break-word', lineHeight: 1.6 }} className="prose prose-sm dark:prose-invert max-w-none">
-                                                                        {isUserMsg ? <span style={{ whiteSpace: 'pre-wrap' }}>{truncated}</span> : <MarkdownRenderer content={truncated} />}
+                                                                    <div className="prose prose-sm dark:prose-invert max-w-none [font-size:13px] [color:var(--text-primary)] [word-break:break-word] [line-height:1.6]">
+                                                                        {isUserMsg ? <span className="[white-space:pre-wrap]">{truncated}</span> : <MarkdownRenderer content={truncated} />}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -283,9 +280,9 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
                                             </div>
                                         </div>
                                     ) : (
-                                        <div style={{ padding: 14, borderRadius: 10, textAlign: 'center', background: 'var(--bg-primary)', border: '1px dashed var(--border-subtle)' }}>
+                                        <div className="[padding:14px] [border-radius:10px] [text-align:center] [background:var(--bg-primary)] [border:1px_dashed_var(--border-subtle)]">
                                             <MessageSquare style={{ width: 18, height: 18, color: 'var(--text-muted)', margin: '0 auto 4px' }} />
-                                            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('org.feedback_no_conversation')}</div>
+                                            <div className="[font-size:12px] [color:var(--text-muted)]">{t('org.feedback_no_conversation')}</div>
                                         </div>
                                     )}
                                 </div>
@@ -295,9 +292,9 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
                 })}
 
                 {totalPages > 1 && (
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 12, alignItems: 'center' }}>
+                    <div className="[display:flex] [justify-content:center] [gap:6px] [margin-top:12px] [align-items:center]">
                         <button onClick={() => setPageNum(p => Math.max(0, p - 1))} disabled={pageNum === 0} style={pagBtn(pageNum === 0)}>←</button>
-                        <span style={{ fontSize: 12, color: 'var(--text-muted)', padding: '0 8px' }}>{pageNum + 1} / {totalPages}</span>
+                        <span className="[font-size:12px] [color:var(--text-muted)] [padding:0_8px]">{pageNum + 1} / {totalPages}</span>
                         <button onClick={() => setPageNum(p => Math.min(totalPages - 1, p + 1))} disabled={pageNum >= totalPages - 1} style={pagBtn(pageNum >= totalPages - 1)}>→</button>
                     </div>
                 )}

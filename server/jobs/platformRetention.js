@@ -31,6 +31,8 @@
 
 'use strict';
 
+const telemetryLog = require('../telemetry/log');
+
 const LEDGER_PRUNE_LOCK_KEY = 0xBEEF111;
 // Accepted / rejected / stale AI suggestions on documents (stores/documentSuggestionStore.js).
 const DOCUMENT_SUGGESTION_RETENTION_DAYS = 30;
@@ -88,7 +90,7 @@ async function _pruneScanLedger(d) {
         d.log.warn('[platformRetention] scan-ledger prune failed:', e.message);
     } finally {
         if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LEDGER_PRUNE_LOCK_KEY]); } catch (_) { /* best-effort */ }
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LEDGER_PRUNE_LOCK_KEY]); } catch (err) { telemetryLog.debug('best-effort', err); }
             client.release();
         }
     }

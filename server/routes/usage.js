@@ -6,6 +6,7 @@ const { resolveUserOrgIds } = require('../auth');
 const { computeCostSplit } = require('../core/llm/modelCosts');
 const { validate } = require('../core/http/validate');
 const { worded, queryOf, choice, wholeNumber } = require('../core/http/schemaParts');
+const log = require('../telemetry/log');
 
 // ── What the usage dashboards may ask ────────────────────────────────
 // Every route below reads its filters through buildRequestFilters (plus a
@@ -63,7 +64,7 @@ async function getCustomerMarkup(req) {
             const plan = await userStore.getPlan(sub.plan_id);
             return Number(plan?.markup_percent) || 0;
         }
-    } catch (_) { /* fall through */ }
+    } catch (err) { log.debug('fall through', err); }
     return 0;
 }
 
@@ -315,7 +316,7 @@ router.get('/summary', async (req, res) => {
         const azSvcStore = require('../stores/azureServiceUsageStore');
         const azSummary = await azSvcStore.getAzureServiceSummary(req.usageFilters);
         azure_services_total_cost = azSummary?.total_cost || 0;
-    } catch (_) {}
+    } catch (_) { log.warn('Azure service usage summary failed, reporting zero cost', _); }
     const fullPayload = {
         ...(summary || { total_calls: 0, total_tokens: 0, total_estimated_cost: 0, total_prompt_tokens: 0, total_completion_tokens: 0 }),
         total_input_cost,

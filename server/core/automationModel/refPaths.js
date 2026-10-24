@@ -12,6 +12,8 @@
  * a quoted key hid a whole placeholder.
  */
 
+const log = require('../../telemetry/log');
+
 const {
     parsePath, readPath, formatPath, canonicalPath, scanTemplate, replaceTemplate, parseExpr,
 } = require('../../shared/expr/index.mjs');
@@ -226,7 +228,7 @@ function suggestExprSpelling(src, opts) {
     if (asPath) candidates.push(asPath);
     for (const c of candidates) {
         if (c === src) continue;
-        try { parseExpr(c, opts); return c.trim(); } catch { /* next */ }
+        try { parseExpr(c, opts); return c.trim(); } catch (err) { log.debug('next', err); }
     }
     return null;
 }

@@ -142,7 +142,7 @@ export default function WebpageChat({
     return (
         <div className="flex flex-col h-full bg-[var(--vsc-editor-bg)] text-[var(--vsc-fg)]">
             <div className="shrink-0 px-3 py-1.5 border-b flex items-center gap-2 border-[var(--vsc-border)]">
-                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--vsc-fg-muted)', letterSpacing: '0.06em' }}>
+                <span className="text-[11px] font-semibold uppercase tracking-wider [color:var(--vsc-fg-muted)]! [letter-spacing:0.06em]">
                     {t('webpages.chat.title', 'AI Chat')}
                 </span>
                 {copyToast && (
@@ -206,8 +206,7 @@ export default function WebpageChat({
             <div ref={containerRef} className="flex-1 overflow-y-auto custom-scrollbar px-3 py-3 space-y-3">
                 {messages.length === 0 && (
                     <div className="flex flex-col items-center justify-start h-full text-center py-8 px-2">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
-                             style={{ background: 'var(--brand-gradient)' }}>
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 [background:var(--brand-gradient)]">
                             <span className="text-lg">🌐</span>
                         </div>
                         <p className="text-xs font-medium text-[var(--text-primary)]">
@@ -223,12 +222,7 @@ export default function WebpageChat({
                                     type="button"
                                     onClick={() => onSend(text, [])}
                                     disabled={isLoading}
-                                    className="flex items-start gap-2 px-2.5 py-1.5 rounded-md text-[11px] text-left border transition-colors hover:bg-[var(--vsc-hover-bg)] disabled:opacity-50"
-                                    style={{
-                                        borderColor: 'var(--vsc-border)',
-                                        color: 'var(--text-secondary)',
-                                        background: 'var(--vsc-editor-bg)',
-                                    }}
+                                    className="flex items-start gap-2 px-2.5 py-1.5 rounded-md text-[11px] text-left border transition-colors hover:bg-[var(--vsc-hover-bg)] disabled:opacity-50 [border-color:var(--vsc-border)] [color:var(--text-secondary)]! [background:var(--vsc-editor-bg)]!"
                                 >
                                     <span>{text}</span>
                                 </button>
@@ -293,17 +287,12 @@ export default function WebpageChat({
             <div className="shrink-0 px-2 py-2 border-t border-[var(--vsc-border)]">
                 {attachedSelection && (
                     <div
-                        className="mb-1.5 flex items-start gap-1.5 px-2 py-1 rounded-md text-[11px]"
-                        style={{
-                            background: 'color-mix(in srgb, var(--accent-primary) 10%, transparent)',
-                            border: '1px solid color-mix(in srgb, var(--accent-primary) 35%, transparent)',
-                            color: 'var(--text-primary)',
-                        }}
+                        className="mb-1.5 flex items-start gap-1.5 px-2 py-1 rounded-md text-[11px] [background:color-mix(in_srgb,var(--accent-primary)_10%,transparent)] [border:1px_solid_color-mix(in_srgb,var(--accent-primary)_35%,transparent)] [color:var(--text-primary)]!"
                         title={t('webpages.chat.selection_hint', "This selection will be sent with your next message so the AI knows what you mean by 'this'.")}
                     >
                         <MousePointer2 size={11} className="mt-0.5 shrink-0 text-[var(--accent-primary)]" />
                         <div className="flex-1 min-w-0">
-                            <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'var(--accent-primary)', opacity: 0.85 }}>
+                            <div className="text-[10px] uppercase tracking-wider font-semibold [color:var(--accent-primary)]! [opacity:0.85]">
                                 {t('webpages.chat.selection_from_preview', 'Selection from preview')}{attachedSelection.tagName ? ` · <${attachedSelection.tagName}>` : ''}
                             </div>
                             <div className="truncate">

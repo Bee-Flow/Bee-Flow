@@ -231,7 +231,7 @@ export default function AppApprovalList({ node }: NodeProps<ApprovalListProps>) 
         return <Frame><div className="flex items-center gap-2 py-2 text-sm text-[var(--text-tertiary)]"><Loader2 size={14} className="animate-spin" /> {t('studio_apps_runtime.approvals.loading', 'Loading approvals…')}</div></Frame>;
     }
     if (error) {
-        return <Frame><div className="py-2 text-sm" style={{ color: 'var(--error)' }}>{error}</div></Frame>;
+        return <Frame><div className="py-2 text-sm [color:var(--error)]!">{error}</div></Frame>;
     }
     if (!rows.length) {
         return <Frame><div className="py-2 text-sm text-[var(--text-tertiary)]">{emptyText}</div></Frame>;
@@ -239,7 +239,7 @@ export default function AppApprovalList({ node }: NodeProps<ApprovalListProps>) 
 
     return (
         <Frame>
-            <div className="divide-y" style={{ borderColor: 'var(--border-default, rgba(0,0,0,0.08))' }}>
+            <div className="divide-y [border-color:var(--border-default,rgba(0,0,0,0.08))]">
                 {rows.map((row) => (
                     <div key={row.id}>
                         <RowLine row={row} open={openId === row.id} onOpen={showDetails ? () => openRow(row) : null} />
@@ -260,7 +260,7 @@ interface FrameProps {
 function Frame({ children }: FrameProps) {
     const { t } = useTranslation();
     return (
-        <div className="rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border-default, rgba(0,0,0,0.08))', background: 'var(--bg-primary, transparent)' }} data-component="approval_list">
+        <div className="rounded-lg border px-3 py-2 [border-color:var(--border-default,rgba(0,0,0,0.08))] [background:var(--bg-primary,transparent)]" data-component="approval_list">
             <div className="flex items-center gap-1.5 mb-1 text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">
                 <ShieldCheck size={12} aria-hidden="true" /> {t('studio_apps_runtime.approvals.title', 'Approvals')}
             </div>
@@ -320,7 +320,7 @@ function DetailPanel({ detail, onDecide }: DetailPanelProps) {
         return <div className="pb-2 pl-6 text-[12px] text-[var(--text-tertiary)]">{t('studio_apps_runtime.approvals.loading_detail', 'Loading…')}</div>;
     }
     if (detail.error && !detail.approval) {
-        return <div className="pb-2 pl-6 text-[12px]" style={{ color: 'var(--error)' }}>{detail.error}</div>;
+        return <div className="pb-2 pl-6 text-[12px] [color:var(--error)]!">{detail.error}</div>;
     }
     const { approval, canDecide } = detail;
     if (!approval) return null;
@@ -337,7 +337,7 @@ function DetailPanel({ detail, onDecide }: DetailPanelProps) {
                 </div>
             )}
             {approval.detailsMd && (
-                <div className="rounded-md px-3 py-2 text-[13px]" style={{ background: 'var(--bg-secondary, rgba(0,0,0,0.03))' }}>
+                <div className="rounded-md px-3 py-2 text-[13px] [background:var(--bg-secondary,rgba(0,0,0,0.03))]">
                     <FormRichText>{approval.detailsMd}</FormRichText>
                 </div>
             )}
@@ -356,7 +356,7 @@ function DetailPanel({ detail, onDecide }: DetailPanelProps) {
                     ))}
                 </div>
             )}
-            {detail.error && <div className="text-[12px]" style={{ color: 'var(--error)' }}>{detail.error}</div>}
+            {detail.error && <div className="text-[12px] [color:var(--error)]!">{detail.error}</div>}
             {approval.status === 'pending' ? (
                 canDecide ? (
                     <ApprovalDecisionControls fields={approval.fields} onDecide={onDecide} />

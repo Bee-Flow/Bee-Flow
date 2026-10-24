@@ -99,7 +99,7 @@ async function setOrgSubscription(orgId, data) {
         }
         // Bust the PAYG hot-path cache so the next usage event sees the new
         // plan / customer / status immediately instead of waiting for TTL.
-        try { require('../usageStore').invalidatePaygCache(orgId, null); } catch (_) { /* circular-load safe */ }
+        try { require('../usage/payg').invalidatePaygCache(orgId, null); } catch (err) { log.debug('circular-load safe', err); }
         return true;
     } catch (e) { log.error('[UserStore] setOrgSubscription error:', e); return false; }
 }
@@ -257,7 +257,7 @@ async function setConsumerSubscription(userId, data) {
                     data.payment_status || 'none', data.billing_cycle_start || now,
                     data.trial_end_date || null, now, now]);
         }
-        try { require('../usageStore').invalidatePaygCache(null, userId); } catch (_) { /* circular-load safe */ }
+        try { require('../usage/payg').invalidatePaygCache(null, userId); } catch (err) { log.debug('circular-load safe', err); }
         return true;
     } catch (e) { log.error('[UserStore] setConsumerSubscription error:', e); return false; }
 }
@@ -343,7 +343,7 @@ async function setOrgSubscriptionWithLock(orgId, payload) {
         }
         await client.query('COMMIT');
     } catch (e) {
-        try { await client.query('ROLLBACK'); } catch (_) { /* ignore */ }
+        try { await client.query('ROLLBACK'); } catch (err) { log.debug('ignore', err); }
         throw e;
     } finally {
         client.release();
@@ -374,7 +374,7 @@ async function setOrgSubscriptionRespectingOverride(orgId, fullUpdate, strippedU
             await client.query('COMMIT');
         }
     } catch (e) {
-        try { await client.query('ROLLBACK'); } catch (_) { /* ignore */ }
+        try { await client.query('ROLLBACK'); } catch (err) { log.debug('ignore', err); }
         throw e;
     } finally {
         client.release();
@@ -406,7 +406,7 @@ async function setConsumerSubscriptionRespectingOverride(userId, fullUpdate, str
             await client.query('COMMIT');
         }
     } catch (e) {
-        try { await client.query('ROLLBACK'); } catch (_) { /* ignore */ }
+        try { await client.query('ROLLBACK'); } catch (err) { log.debug('ignore', err); }
         throw e;
     } finally {
         client.release();

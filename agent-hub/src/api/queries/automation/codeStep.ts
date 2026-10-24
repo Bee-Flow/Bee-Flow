@@ -11,6 +11,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { readEventStream } from '../../../utils/sseStream';
 import { apiClient, ApiError } from '../../client';
+import { logger } from '../../../utils/logger';
 
 export type CodeParamType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array';
 
@@ -315,7 +316,7 @@ export async function streamCodeAssist(req: AssistRequest, onEvent: (e: AssistEv
     });
     if (!res.ok) {
         let message = '';
-        try { message = str(obj(await res.json()).error) || ''; } catch { /* not JSON */ }
+        try { message = str(obj(await res.json()).error) || ''; } catch (err) { logger.debug('not JSON', err); }
         throw new ApiError(message || `HTTP ${res.status}`, { status: res.status });
     }
     await readEventStream(res.body as ReadableStream, (event: string, data: unknown) => {

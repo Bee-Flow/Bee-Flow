@@ -20,6 +20,7 @@
 
 const { getAll, getOne } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
+const log = require('../../../telemetry/log');
 
 const POLICY_SLUG = 'information-security-policy';
 const ORG_ADMIN_ROLES = ['org_admin', 'admin'];
@@ -98,7 +99,7 @@ module.exports = {
                 LIMIT 1
             `, [orgId]);
             if (r) lastReview = { held_at: r.held_at, attendees_count: Number(r.attendees_count) || 0 };
-        } catch { /* register absent — the signal is optional */ }
+        } catch (err) { log.debug('register absent — the signal is optional', err); }
 
         const evidence = {
             policy_slug: POLICY_SLUG,

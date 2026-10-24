@@ -20,6 +20,7 @@ const _cache = new Map(); // orgKey → { ids, ts }
 const CACHE_TTL_MS = 60_000;
 
 const { hasSupportPerms: _hasSupport } = require('../support/staffAccess');
+const log = require('../telemetry/log');
 
 async function _eligibleStaffForOrg(orgId) {
     const key = orgId || '__global__';
@@ -37,7 +38,7 @@ async function _eligibleStaffForOrg(orgId) {
         try {
             const perms = await getUserPermissions(u.id, isSuper ? { isAdmin: true } : null);
             if (_hasSupport(perms)) ids.push(u.id);
-        } catch { /* skip on lookup failure */ }
+        } catch (err) { log.debug('skip on lookup failure', err); }
     }
     // Stable order so the round-robin cursor is meaningful across calls.
     ids.sort();
@@ -51,7 +52,7 @@ async function _userGroups(userId) {
         if (!u) return [];
         if (Array.isArray(u.groups)) return u.groups;
         if (typeof u.groups === 'string') { try { return JSON.parse(u.groups || '[]'); } catch { return []; } }
-    } catch { /* ignore */ }
+    } catch (err) { log.debug('ignore', err); }
     return [];
 }
 

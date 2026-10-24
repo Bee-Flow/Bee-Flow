@@ -1,6 +1,7 @@
 import { useReactFlow, useStoreApi, type FitViewOptions } from '@xyflow/react';
 import { useCallback, useMemo } from 'react';
 import { furniturePadding } from './furnitureFit';
+import { logger } from '../../../../utils/logger';
 
 /**
  * The canvas's own fits, clear of its furniture (flow/furnitureFit.ts).
@@ -34,7 +35,7 @@ export function useFurnitureFit() {
     }, [store]);
     const mountOptions = useMemo(() => withFurniture({ duration: 0 }), [withFurniture]);
     const fit = useCallback((options?: FitViewOptions) => {
-        try { void rf.fitView(withFurniture(options)); } catch { /* canvas gone */ }
+        try { void rf.fitView(withFurniture(options)); } catch (err) { logger.debug('canvas gone', err); }
     }, [rf, withFurniture]);
     return { fit, mountOptions };
 }

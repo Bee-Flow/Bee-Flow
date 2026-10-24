@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 // Sender validation for OAuth popup callback messages.
 //
 // The callback pages post their result to window.opener. Without an origin
@@ -10,7 +11,7 @@ export function trustedOAuthOrigins(apiBase?: string): string[] {
     let apiOrigin = window.location.origin;
     try {
         apiOrigin = new URL(apiBase || '', window.location.origin).origin;
-    } catch { /* keep the SPA origin */ }
+    } catch (err) { logger.debug('keep the SPA origin', err); }
     return Array.from(new Set([apiOrigin, window.location.origin]));
 }
 

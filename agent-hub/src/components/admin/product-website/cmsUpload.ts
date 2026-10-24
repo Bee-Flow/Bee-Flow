@@ -1,4 +1,5 @@
 import { API_BASE, getSessionToken } from '../../../utils/helpers';
+import { logger } from '../../../utils/logger';
 
 /**
  * Upload to the CMS with real progress.
@@ -47,7 +48,7 @@ export function uploadCmsFile(file: File, { path = 'upload', onProgress, signal 
         xhr.ontimeout = () => reject(new Error('Upload timed out'));
         xhr.onload = () => {
             let data: { error?: string; url?: string; key?: string } = {};
-            try { data = JSON.parse(xhr.responseText); } catch { /* non-JSON body, e.g. a proxy error page */ }
+            try { data = JSON.parse(xhr.responseText); } catch (err) { logger.debug('non-JSON body, e.g. a proxy error page', err); }
             if (xhr.status >= 200 && xhr.status < 300 && data.url) {
                 resolve({ key: data.key || '', url: data.url });
                 return;

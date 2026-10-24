@@ -53,7 +53,7 @@ const DirectChatConfig = () => {
         <div className="p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style={{ background: 'rgba(99, 102, 241, 0.15)' }}>
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl [background:rgba(99,102,241,0.15)]">
                         💬
                     </div>
                     <div>
@@ -76,8 +76,7 @@ const DirectChatConfig = () => {
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSystemPrompt(e.target.value)}
                         placeholder={t('admin_ai_config.direct_prompt_placeholder', 'You are a helpful AI assistant. Respond thoughtfully and concisely.')}
                         rows={8}
-                        className="w-full px-4 py-3 rounded-lg border outline-none focus:border-[var(--accent-primary)] resize-y font-mono text-sm leading-relaxed"
-                        style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', minHeight: '120px' }}
+                        className="w-full px-4 py-3 rounded-lg border outline-none focus:border-[var(--accent-primary)] resize-y font-mono text-sm leading-relaxed [background:var(--bg-tertiary)] [border-color:var(--border-default)]! [color:var(--text-primary)]! min-h-[120px]"
                     />
                     <p className="text-xs mt-1.5 text-[var(--text-muted)]">
                         {t('admin_ai_config.direct_prompt_hint', 'This prompt defines the AI personality for Direct Chat. The current date and available tools are appended automatically. Leave empty to use the default.')}

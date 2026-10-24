@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { logger } from '../../../utils/logger';
 
 /**
  * How much is currently running or scheduled, shown as a badge on the Cowork
@@ -22,7 +23,7 @@ export function useActiveCoworkCount(currentPage: string | undefined): number {
                 const data = await res.json();
                 const schedules: Array<{ isActive?: boolean }> = Array.isArray(data?.schedules) ? data.schedules : [];
                 setActiveCoworkCount(schedules.filter(s => s.isActive).length);
-            } catch { /* silent */ }
+            } catch (err) { logger.debug('silent', err); }
         };
         load();
         return () => { cancelled = true; };

@@ -46,7 +46,7 @@ async function getOrCreateSigningKey(orgId, { store = configStore } = {}) {
     try {
         const existing = await store.getSecret(key);
         if (existing && typeof existing === 'string' && existing.length >= 32) return existing;
-    } catch (_) { /* fall through to create */ }
+    } catch (err) { log.debug('fall through to create', err); }
     // Lazy path. createOrganization pre-generates this; if we get here, it
     // means the pre-generation step failed or this org pre-dates that fix.
     // Log a warning so the discrepancy surfaces in logs.

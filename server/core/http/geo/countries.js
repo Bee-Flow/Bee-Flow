@@ -13,6 +13,8 @@
 
 'use strict';
 
+const log = require('../../../telemetry/log');
+
 const EU_EEA_COUNTRIES = new Set([
     'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR',
     'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL',
@@ -42,7 +44,7 @@ const COUNTRY_NAMES = {
 let _display = null;
 try {
     _display = new Intl.DisplayNames(['en'], { type: 'region', fallback: 'none' });
-} catch { /* a Node without full ICU: the table above still answers */ }
+} catch (err) { log.debug('a Node without full ICU: the table above still answers', err); }
 
 /** ISO-2 → English name; the code itself when unknown; null for no code. */
 function countryName(code) {
@@ -53,7 +55,7 @@ function countryName(code) {
         try {
             const name = _display.of(cc);
             if (name) return name;
-        } catch { /* not a region code */ }
+        } catch (err) { log.debug('not a region code', err); }
     }
     return cc;
 }

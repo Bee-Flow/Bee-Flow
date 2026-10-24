@@ -12,6 +12,7 @@ import { entryHref, entryName } from './AppInputFile';
 import { descriptorKey, firstDescriptor, friendlyError, materializeEntry, type FileEntry } from './fileLoading';
 import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
+import { logger } from '../../../../../../utils/logger';
 
 export { firstDescriptor };
 
@@ -232,7 +233,7 @@ export default function AppFilePreview({ node }: NodeProps<FilePreviewProps>) {
                             downloadUrl = URL.createObjectURL(await src.blob());
                             sourceRef.current = downloadUrl;
                         }
-                    } catch { /* the picture is still worth showing */ }
+                    } catch (err) { logger.debug('the picture is still worth showing', err); }
                 }
 
                 setState({

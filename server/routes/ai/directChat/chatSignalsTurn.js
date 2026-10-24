@@ -25,6 +25,7 @@
  */
 
 const chatSignals = require('../../../core/privacy/chatSignals');
+const log = require('../../../telemetry/log');
 
 /** The marker and the switch the composer sent; anything else reads as absent. */
 function _fromBody(req) {
@@ -89,7 +90,7 @@ function countDirectTurn({ req, userId, chatSignal, config }) {
             allowlistedHosts: hosts,
             dryRun: false,
         });
-    } catch (_) { /* counting never touches the turn */ }
+    } catch (err) { log.debug('counting never touches the turn', err); }
     return undefined;
 }
 
@@ -114,7 +115,7 @@ function countFixedTurn({ req, userId, surface = 'direct', outcome = 'unscanned'
             allowlistedHosts: [],
             dryRun: false,
         });
-    } catch (_) { /* counting never touches the turn */ }
+    } catch (err) { log.debug('counting never touches the turn', err); }
     return undefined;
 }
 

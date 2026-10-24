@@ -26,7 +26,7 @@ export function LicenceLock({ children, upgradeUrl, t }: LicenceLockProps) {
                     href={upgradeUrl || 'https://beeflow.nl/pricing'}
                     target="_blank"
                     rel="noreferrer"
-                    style={{ color: '#3b82f6' }}
+                    className="[color:#3b82f6]"
                 >
                     {t('license.upgrade_at_beeflow', 'Upgrade at beeflow.nl')}
                 </a>

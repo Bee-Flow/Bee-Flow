@@ -29,7 +29,7 @@ export function FillHeader({ fillTemplate, parameterizing, showSettings, setShow
                 </h2>
                 <p className="text-xs flex items-center gap-1.5 text-[var(--text-muted)]">
                     {parameterizing ? (
-                        <><span className="w-3 h-3 border-2 border-t-transparent rounded-full animate-spin inline-block" style={{ borderColor: 'var(--accent-primary)', borderTopColor: 'transparent' }} /> {t('templates.detecting_parameters', 'Detecting parameters...')}</>
+                        <><span className="w-3 h-3 border-2 border-t-transparent rounded-full animate-spin inline-block [border-color:var(--accent-primary)]! [border-top-color:transparent]!" /> {t('templates.detecting_parameters', 'Detecting parameters...')}</>
                     ) : (
                         <>{fillTemplate.parameters.length !== 1 ? t('templates.parameter_count_plural', '{count} parameters', { count: fillTemplate.parameters.length }) : t('templates.parameter_count', '{count} parameter', { count: fillTemplate.parameters.length })} · {fillTemplate.fileName}</>
                     )}
@@ -37,7 +37,7 @@ export function FillHeader({ fillTemplate, parameterizing, showSettings, setShow
             </div>
 
             {/* Tab Switcher */}
-            <div className="flex gap-1 p-0.5 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+            <div className="flex gap-1 p-0.5 rounded-lg [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
                 <button
                     onClick={() => setShowSettings(false)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${!showSettings ? 'bg-[var(--accent-primary)] text-white shadow-sm' : 'text-[var(--text-secondary)]'}`}
@@ -91,7 +91,7 @@ export function FillSidebar({ fillTemplate, parameterizing, selectedNoteIds, set
                     {fillTemplate.parameters.length === 0 && (
                         parameterizing ? (
                             <div className="flex items-center gap-2 py-2">
-                                <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent-primary)', borderTopColor: 'transparent' }} />
+                                <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin [border-color:var(--accent-primary)]! [border-top-color:transparent]!" />
                                 <p className="text-xs text-[var(--text-secondary)]">{t('templates.analyzing_document', 'AI is analyzing the document and detecting parameters...')}</p>
                             </div>
                         ) : (
@@ -106,7 +106,7 @@ export function FillSidebar({ fillTemplate, parameterizing, selectedNoteIds, set
                 <div className="flex items-center justify-between mb-2">
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{t('templates.meeting_notes_context', 'Meeting Notes Context')}</h3>
                     {selectedNoteIds.length > 0 && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full" style={{ background: 'color-mix(in srgb, var(--accent-primary) 14%, transparent)', color: 'var(--accent-primary)' }}>
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full [background:color-mix(in_srgb,var(--accent-primary)_14%,transparent)] [color:var(--accent-primary)]!">
                             {t('templates.notes_selected', '{count} selected', { count: selectedNoteIds.length })}
                         </span>
                     )}

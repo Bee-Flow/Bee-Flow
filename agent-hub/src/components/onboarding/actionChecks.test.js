@@ -3,9 +3,9 @@
 // verdict logic against the real API row shapes (rowToAutomation /
 // coworkStore.getSchedules).
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // The generated checks' shipped path goes through the network (fetchState →
 // evaluate), so the endpoint layer is stubbed and driven per test. Nothing else
@@ -18,7 +18,6 @@ vi.mock('../../utils/helpers', () => ({
         : { ok: false, status: 404, json: async () => ({}) })),
 }));
 
-import { authFetch } from '../../utils/helpers';
 import {
     evaluateAutomationFirst, evaluateCoworkFirst, evaluateAgentCreated,
     evaluateKbWithDoc, evaluateHiveMaster, applicableCriteria, ACTION_CHECKS,
@@ -26,6 +25,7 @@ import {
     isVerifiable, getActionCheck, runActionCheck,
 } from './actionChecks';
 import { GENERATED_ACTION_CHECKS } from './generated/actionChecks';
+import { authFetch } from '../../utils/helpers';
 
 beforeEach(() => { routes.clear(); vi.mocked(authFetch).mockClear(); });
 

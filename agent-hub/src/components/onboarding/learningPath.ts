@@ -9,12 +9,13 @@
 import scopedStorage from '../../utils/scopedStorage';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import type { LessonUser } from './lessons.types';
+import { logger } from '../../utils/logger';
 
 export const LEARNING_PATH_KEY = 'learningPath';
 export const PATH_VALUES = new Set<string>(['everyday', 'builder', 'admin', 'skipped', '']);
 
 function withUser(user: LessonUser | null | undefined): void {
-    try { if (user?.id) scopedStorage.setCurrentUser(user.id); } catch (_) { /* ignore */ }
+    try { if (user?.id) scopedStorage.setCurrentUser(user.id); } catch (err) { logger.debug('ignore', err); }
 }
 
 export function readLearningPath(user: LessonUser | null | undefined): string {
@@ -34,7 +35,7 @@ export function mirrorLearningPath(user: LessonUser | null | undefined, value: s
     try {
         withUser(user);
         scopedStorage.setItem(LEARNING_PATH_KEY, value);
-    } catch (_) { /* preference only */ }
+    } catch (err) { logger.debug('preference only', err); }
 }
 
 export async function saveLearningPath(user: LessonUser | null | undefined, value: string): Promise<void> {
@@ -46,5 +47,5 @@ export async function saveLearningPath(user: LessonUser | null | undefined, valu
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ learningPath: value }),
         });
-    } catch (_) { /* local mirror already written */ }
+    } catch (err) { logger.debug('local mirror already written', err); }
 }

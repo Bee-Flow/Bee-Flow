@@ -23,6 +23,7 @@
  */
 const { isSideEffect } = require('../sideEffectMap');
 const { listTriggerSources } = require('./index');
+const log = require('../../telemetry/log');
 
 const AUTO_PREFIX = 'auto.';
 const AUTO_SUFFIX = '.changed';
@@ -172,7 +173,7 @@ function deriveEventDef(eventId) {
     let integrationId = null;
     try {
         integrationId = require('../../core/integrations/integrationToolMap').resolveIntegration(tool)?.integration || null;
-    } catch { /* name-based capability still works for MCP */ }
+    } catch (err) { log.debug('name-based capability still works for MCP', err); }
     const capability = capabilityForTool(tool, integrationId);
     if (!capability) return null;   // nothing to re-check ⇒ refuse to poll
     return autoEventDef(tool, capability);
@@ -192,10 +193,10 @@ function deriveProviders(toolDefs = [], { labels = new Map(), mcpServerIds = nul
     let declaredIds = new Set();
     try {
         declaredIds = new Set(listTriggerSources({ includeHidden: true }).map(s => s.id));
-    } catch { /* derive for everything */ }
+    } catch (err) { log.debug('derive for everything', err); }
 
     let resolveIntegration = null;
-    try { ({ resolveIntegration } = require('../../core/integrations/integrationToolMap')); } catch { /* optional */ }
+    try { ({ resolveIntegration } = require('../../core/integrations/integrationToolMap')); } catch (err) { log.debug('optional', err); }
 
     const knownServers = mcpServerIds instanceof Set ? mcpServerIds : null;
 

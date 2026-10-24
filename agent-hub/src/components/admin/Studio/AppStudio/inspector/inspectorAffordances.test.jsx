@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { describeAction, actionOptions } from './actionLabels';
 import MultiInspector from './MultiInspector';
-import { KNOB_LABELS, STYLE_KNOBS, knobLabel } from './styleKnobMeta';
 import { TabsInspector } from './panels/TabsInspector';
+import { KNOB_LABELS, STYLE_KNOBS, knobLabel } from './styleKnobMeta';
 
 /**
  * The inspector's own affordances: what a control is CALLED, what a delete

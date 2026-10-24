@@ -28,8 +28,7 @@ export default function ConflictDialog({ open, onLoadLatest, onOverwrite, onDism
                     <button
                         type="button"
                         onClick={onOverwrite}
-                        className="rounded-lg px-4 py-2 text-sm hover:bg-[var(--bg-card-hover)]"
-                        style={{ color: 'var(--text-primary)', background: 'var(--bg-tertiary)' }}
+                        className="rounded-lg px-4 py-2 text-sm hover:bg-[var(--bg-card-hover)] [color:var(--text-primary)]! [background:var(--bg-tertiary)]!"
                     >
                         {t('app_studio.header.conflict_overwrite', 'Overwrite with mine')}
                     </button>

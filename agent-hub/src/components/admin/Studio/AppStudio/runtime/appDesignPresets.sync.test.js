@@ -4,8 +4,8 @@
  * lint:shared-mirror catches a stale copy). This test checks the data against
  * the server's design spec and the house colour rule.
  */
-import { describe, it, expect } from 'vitest';
 import { createRequire } from 'module';
+import { describe, it, expect } from 'vitest';
 import { APP_DESIGN_PRESETS } from './appDesignPresets';
 
 const require = createRequire(import.meta.url);

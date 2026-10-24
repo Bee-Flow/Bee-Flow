@@ -16,6 +16,7 @@
 
 'use strict';
 
+require('../../boot/featureModules'); // core looks feature modules up by name (core/featureModules.js)
 const { test, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
 const { installResolveStub } = require('../../testUtils/stubRequire');

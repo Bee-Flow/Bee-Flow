@@ -29,8 +29,7 @@ function InputsEditor({ wf, wfs }: { wf: N8nWorkflow; wfs: N8nWorkflows }) {
                                 placeholder={t('settings.n8n.input_name_placeholder', 'name')} className="flex-1 px-1.5 py-0.5 text-[11px] rounded border bg-transparent outline-none"
                                 style={FIELD_STYLE} />
                             <select value={inp.type} onChange={e => wfs.updateInput(wf.id, idx, { type: e.target.value })}
-                                className="px-1 py-0.5 text-[11px] rounded border bg-transparent outline-none"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', background: 'var(--bg-primary)' }}>
+                                className="px-1 py-0.5 text-[11px] rounded border bg-transparent outline-none [border-color:var(--border-default)] [color:var(--text-primary)]! [background:var(--bg-primary)]!">
                                 {INPUT_TYPES.map(inputType => <option key={inputType} value={inputType}>{inputType}</option>)}
                             </select>
                             <input type="text" value={inp.description} onChange={e => wfs.updateInput(wf.id, idx, { description: e.target.value })}
@@ -106,7 +105,7 @@ export default function WorkflowRow({ wf, wfs }: { wf: N8nWorkflow; wfs: N8nWork
                     <div className="text-sm font-medium truncate flex items-center gap-1.5 text-[var(--text-primary)]">
                         {wf.name}
                         {wf.allowKbIngestion && (
-                            <span className="text-[9px] px-1 py-0.5 rounded font-medium flex-shrink-0" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }} title={t('settings.n8n.kb_enabled_title', 'Enabled for KB ingestion')}>📚 {t('settings.n8n.kb_badge', 'KB')}</span>
+                            <span className="text-[9px] px-1 py-0.5 rounded font-medium flex-shrink-0 [background:rgba(59,130,246,0.1)] [color:#3b82f6]!" title={t('settings.n8n.kb_enabled_title', 'Enabled for KB ingestion')}>📚 {t('settings.n8n.kb_badge', 'KB')}</span>
                         )}
                     </div>
                     <div className="text-[11px] truncate text-[var(--text-muted)]">

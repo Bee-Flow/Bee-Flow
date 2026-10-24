@@ -11,8 +11,8 @@
  * Run: cd agent-hub && npx vitest run src/editor/engine/tables.merged.test.js
  */
 import { describe, it, expect } from 'vitest';
-import { createState, applyTransform } from './state.js';
 import { textSelection, cellSelection, pos } from './selection.js';
+import { createState, applyTransform } from './state.js';
 import * as Tbl from './tables';
 
 const cell = (text, attrs = null) => ({

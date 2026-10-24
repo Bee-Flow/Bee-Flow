@@ -615,7 +615,7 @@ async function deleteDirectConversation(id, userId) {
     // Drop any cached DLP state for this conversation. Also unscoped by id (it
     // nulls pii_token_map on BOTH conversation tables), hence likewise gated on
     // the ownership check above.
-    try { require('../../core/dlp/dlpRunner').clearConversationState(id); } catch (_) { /* module not loaded yet */ }
+    try { require('../../core/dlp/dlpRunner').clearConversationState(id); } catch (err) { log.debug('module not loaded yet', err); }
     return rowCount > 0;
 }
 

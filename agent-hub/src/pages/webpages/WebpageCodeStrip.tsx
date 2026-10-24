@@ -168,7 +168,7 @@ function FileChip({ t, file, active, dirty, onOpen }: FileChipProps) {
             }}
         >
             <span className="font-mono">{file.name}</span>
-            <span style={{ opacity: 0.75 }}>{label}</span>
+            <span className="[opacity:0.75]">{label}</span>
             {dirty && (
                 <span
                     className="w-1.5 h-1.5 rounded-full bg-[var(--vsc-fg-muted)]"
@@ -262,15 +262,14 @@ function Legend({ t, marksState, readOnly, stale }: LegendProps) {
     // het ONTBREKEN van markeringen zegt niets over de pagina.
     if (!marksState.available) {
         return (
-            <span className="flex items-center gap-1.5 flex-wrap" style={{ color: 'var(--warning-ink, #8a5a00)' }}>
+            <span className="flex items-center gap-1.5 flex-wrap [color:var(--warning-ink,#8a5a00)]">
                 <AlertTriangle size={11} />
                 {t('webpages.code.legend_unavailable',
                     'The Studio links in this code could not be worked out, so nothing is highlighted. This page may still have links.')}
                 <button
                     type="button"
                     onClick={marksState.reload}
-                    className="underline inline-flex items-center gap-1"
-                    style={{ color: 'inherit' }}
+                    className="underline inline-flex items-center gap-1 [color:inherit]"
                 >
                     <RefreshCw size={10} /> {t('webpages.retry', 'Try again')}
                 </button>
@@ -368,8 +367,7 @@ export default function WebpageCodeStrip({
 
     return (
         <div
-            className="shrink-0 px-3 py-1.5 flex flex-col gap-1"
-            style={{ borderBottom: '1px solid var(--vsc-border)', background: 'var(--vsc-sidebar-bg)' }}
+            className="shrink-0 px-3 py-1.5 flex flex-col gap-1 [border-bottom:1px_solid_var(--vsc-border)] [background:var(--vsc-sidebar-bg)]"
             data-testid="webpage-code-strip"
         >
             <div className="flex items-center gap-1.5 flex-wrap">

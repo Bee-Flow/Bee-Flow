@@ -242,15 +242,12 @@ const InitSetupWizard = ({ onComplete }: { onComplete: () => void }) => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 relative"
-            style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
+        <div className="min-h-screen flex items-center justify-center p-4 relative [background:linear-gradient(160deg,var(--bg-primary)_0%,var(--bg-secondary)_50%,var(--bg-tertiary)_100%)]">
 
             {/* Background */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute w-[500px] h-[500px] rounded-full opacity-[0.07]"
-                    style={{ background: 'radial-gradient(circle, var(--accent-primary), transparent 70%)', top: '-5%', left: '-10%', animation: 'pulse 4s ease-in-out infinite' }} />
-                <div className="absolute w-80 h-80 rounded-full opacity-[0.05]"
-                    style={{ background: 'radial-gradient(circle, var(--accent-secondary), transparent 70%)', bottom: '5%', right: '-5%', animation: 'pulse 5s ease-in-out infinite 1.5s' }} />
+                <div className="absolute w-[500px] h-[500px] rounded-full opacity-[0.07] [background:radial-gradient(circle,var(--accent-primary),transparent_70%)] [top:-5%] [left:-10%] [animation:pulse_4s_ease-in-out_infinite]" />
+                <div className="absolute w-80 h-80 rounded-full opacity-[0.05] [background:radial-gradient(circle,var(--accent-secondary),transparent_70%)] [bottom:5%] [right:-5%] [animation:pulse_5s_ease-in-out_infinite_1.5s]" />
             </div>
 
             {/* Recovery Key Modal — must be acknowledged: no backdrop/Escape exit. */}
@@ -273,8 +270,7 @@ const InitSetupWizard = ({ onComplete }: { onComplete: () => void }) => {
                             <h3 className="text-lg font-bold text-[var(--text-primary)]">{t('init_setup.init_setup_wizard_save_your_recovery_key', 'Save Your Recovery Key')}</h3>
                             <p className="text-sm mt-1 text-[var(--text-muted)]">{t('init_setup.init_setup_wizard_store_this_securely_it_s_your_only', 'Store this securely — it\'s your only recovery option.')}</p>
                         </div>
-                        <div className="p-4 rounded-xl font-mono text-sm text-center break-all select-all cursor-text"
-                            style={{ background: 'var(--bg-primary)', border: '2px dashed var(--border-default)', color: 'var(--text-primary)' }}>
+                        <div className="p-4 rounded-xl font-mono text-sm text-center break-all select-all cursor-text [background:var(--bg-primary)] [border:2px_dashed_var(--border-default)] [color:var(--text-primary)]!">
                             {recoveryKey}
                         </div>
                         <div className="flex gap-3">
@@ -332,8 +328,7 @@ const InitSetupWizard = ({ onComplete }: { onComplete: () => void }) => {
 
                     {/* Error */}
                     {error && (
-                        <div className="mb-4 p-3 rounded-xl text-sm flex items-center gap-2"
-                            style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}>
+                        <div className="mb-4 p-3 rounded-xl text-sm flex items-center gap-2 [background:rgba(239,68,68,0.1)] [color:#ef4444]! [border:1px_solid_rgba(239,68,68,0.2)]">
                             ⚠️ {error}
                         </div>
                     )}

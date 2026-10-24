@@ -151,7 +151,7 @@ router.put('/organizations/:orgId/beta-features', requireOrgAdmin('orgId'), vali
         if (trimmed.length !== current.length) {
             await userStore.setOrgEnabledBetaFeatures(orgId, trimmed);
         }
-    } catch (e) { /* non-fatal */ }
+    } catch (e) { log.debug('non-fatal', e); }
     res.json({ success: true, features: updatedFeatures });
 });
 
@@ -332,7 +332,7 @@ async function resolveActiveFeaturesContext(req) {
                 category: 'Custom integrations',
             }));
         }
-    } catch (_) { /* fail-soft — never break the panel */ }
+    } catch (err) { log.debug('fail-soft — never break the panel', err); }
 
     return {
         orgId,
@@ -538,7 +538,7 @@ async function writeOrgAccessGrants(orgId, granted, actorId) {
     // of them for "All members" on any unrelated toggle; keep them as stored.
     // Their own surfaces (the MCP library) grant and revoke them.
     let storedIntegrations = [];
-    try { storedIntegrations = await userStore.getOrgEnabledIntegrations(orgId); } catch (_) { /* nothing to keep */ }
+    try { storedIntegrations = await userStore.getOrgEnabledIntegrations(orgId); } catch (err) { log.debug('nothing to keep', err); }
     const keptCustom = (Array.isArray(storedIntegrations) ? storedIntegrations : [])
         .filter(id => typeof id === 'string' && id.startsWith('custom:') && !buckets.integration.includes(id));
     await userStore.setOrgEnabledIntegrations(orgId, [...buckets.integration, ...keptCustom]); // NC bypasses; MCP included

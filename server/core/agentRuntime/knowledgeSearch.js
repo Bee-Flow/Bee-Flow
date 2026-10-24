@@ -45,7 +45,7 @@ async function filterSystemKBsForUser(kbIds, userId, session) {
     const enabled = new Set();
     for (const slug of referencedSlugs) {
         try { if (await userHasBetaFeature(userId, slug, session || null)) enabled.add(slug); }
-        catch (_) { /* treat as disabled on failure */ }
+        catch (err) { log.debug('treat as disabled on failure', err); }
     }
     const denied = new Set(
         rows

@@ -180,8 +180,7 @@ export default function AppCalendar({ node }: NodeProps<CalendarProps>) {
                             data-app-calendar-event="true"
                             onClick={() => fireRow(row)}
                             disabled={!clickable}
-                            className="w-full flex items-center gap-3 border px-2.5 py-1.5 text-left disabled:cursor-default"
-                            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)' }}
+                            className="w-full flex items-center gap-3 border px-2.5 py-1.5 text-left disabled:cursor-default [background:var(--bg-card)] [border-color:var(--border-default)] [border-radius:var(--app-radius)]"
                         >
                             <span className="text-xs tabular-nums shrink-0 text-[var(--text-muted)]">
                                 {day.toLocaleDateString()}
@@ -231,15 +230,13 @@ export default function AppCalendar({ node }: NodeProps<CalendarProps>) {
                 <div className="flex items-center gap-1">
                     <button
                         type="button" onClick={() => step(-1)} aria-label={isWeek ? t('studio_apps_runtime.calendar.previous_week', 'Previous week') : t('studio_apps_runtime.calendar.previous_month', 'Previous month')}
-                        className="inline-flex items-center px-1.5 py-1 border"
-                        style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-secondary)' }}
+                        className="inline-flex items-center px-1.5 py-1 border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)]"
                     >
                         <ChevronLeft className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>
                     <button
                         type="button" onClick={() => step(1)} aria-label={isWeek ? t('studio_apps_runtime.calendar.next_week', 'Next week') : t('studio_apps_runtime.calendar.next_month', 'Next month')}
-                        className="inline-flex items-center px-1.5 py-1 border"
-                        style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-secondary)' }}
+                        className="inline-flex items-center px-1.5 py-1 border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)]"
                     >
                         <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>
@@ -282,8 +279,7 @@ export default function AppCalendar({ node }: NodeProps<CalendarProps>) {
                                 <button
                                     type="button"
                                     onClick={() => setExpandedDay(expandedDay === key ? null : key)}
-                                    className="text-[11px] px-1 text-left underline decoration-dotted focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--text-secondary)]"
-                                    style={{ color: 'var(--text-secondary)' }}
+                                    className="text-[11px] px-1 text-left underline decoration-dotted focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--text-secondary)] [color:var(--text-secondary)]!"
                                     aria-expanded={expandedDay === key}
                                 >
                                     {t('studio_apps_runtime.calendar.more', '+{n} more', { n: entries.length - MAX_CHIPS_PER_DAY })}

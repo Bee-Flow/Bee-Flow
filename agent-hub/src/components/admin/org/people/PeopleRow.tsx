@@ -42,8 +42,7 @@ export default function PeopleRow({ user, orgChips = [], onEdit, onResetMfa, onD
             data-testid="people-row"
         >
             <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium text-white flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium text-white flex-shrink-0 [background:linear-gradient(135deg,var(--accent-primary),var(--accent-secondary))]"
                 aria-hidden="true"
             >
                 {initial}

@@ -1,5 +1,6 @@
 import { dataErrorFromResponse, makeDataError } from './dataErrors';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import { logger } from '../../../../../utils/logger';
 
 /**
  * App Studio runtime — the read coalescer.
@@ -159,7 +160,7 @@ function disableBatching(appId: string, why: string): void {
     // between "the server is older than the app shell" and a mystery.
     console.info(`[AppData] batching off for ${appId} — ${why}. Falling back to one request per binding.`);
     for (const listener of supportListeners) {
-        try { listener(); } catch { /* a listener must not break the fetch path */ }
+        try { listener(); } catch (err) { logger.debug('a listener must not break the fetch path', err); }
     }
 }
 

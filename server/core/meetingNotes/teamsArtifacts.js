@@ -26,6 +26,7 @@ const { pipeline } = require('stream/promises');
 const { parseTeamsVtt } = require('./teamsVtt');
 
 const { lazyDeps } = require('./lazyDeps');
+const log = require('../../telemetry/log');
 
 /** Collaborators; tests swap them through init(). */
 const { deps, init } = lazyDeps({
@@ -204,7 +205,7 @@ async function downloadRecordingToFile(session, { meetingId, recordingId, destPa
     try {
         await pipeline(Readable.fromWeb(/** @type {any} */ (response.body)), limiter, fs.createWriteStream(destPath));
     } catch (err) {
-        try { fs.unlinkSync(destPath); } catch (_) {}
+        try { fs.unlinkSync(destPath); } catch (_) { log.debug('partial download already gone', _); }
         if (err?.code === 'recording_too_large') throw err;
         throw codedError(`Recording download failed: ${err.message}`, 'download_failed', 502);
     }

@@ -1,3 +1,4 @@
+import { logger } from './logger';
 // One clipboard helper: the async Clipboard API first, `execCommand('copy')`
 // on a throwaway textarea when that API is missing (plain HTTP, older
 // browsers, some embedded iframes).
@@ -45,7 +46,7 @@ export async function copyText(text: string, opts: CopyTextOptions = {}): Promis
         try {
             await navigator.clipboard.writeText(text);
             return;
-        } catch { /* fall through to the legacy copy */ }
+        } catch (err) { logger.debug('fall through to the legacy copy', err); }
     }
     legacyCopy(text, focus, failMessage);
 }

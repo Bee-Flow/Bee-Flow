@@ -1,7 +1,7 @@
-import React from 'react';
-import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { FileText } from 'lucide-react';
+import React from 'react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import SlashMenu from './SlashMenu.jsx';
 
 const items = [

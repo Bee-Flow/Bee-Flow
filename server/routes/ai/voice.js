@@ -653,7 +653,7 @@ router.post(
         } catch (err) {
             log.error('[Voice turn] error:', err);
             send('error', { message: err.message || 'Voice turn failed' });
-            try { res.end(); } catch (_) { /* noop */ }
+            try { res.end(); } catch (_) { log.debug('response already closed', _); }
         }
     }
 );

@@ -303,7 +303,7 @@ router.patch('/:id/publish', validate({ body: PublishBody }), async (req, res) =
                 orgId: agent.organization_id || 'default',
                 agentId: agent.id,
             });
-        } catch (_) { /* compliance bus is best-effort */ }
+        } catch (err) { log.debug('compliance bus is best-effort', err); }
     }
 
     res.json({ success: true, isPublished, sharedGroups: cleanedGroups });

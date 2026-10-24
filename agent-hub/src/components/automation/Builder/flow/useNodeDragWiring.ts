@@ -107,7 +107,7 @@ export function useNodeDragWiring({
             }
         }
         return wired;
-    }, []);
+    }, [nodeOpsRef]);
 
     const onNodeDrag = useCallback((event: MouseEvent | TouchEvent, node: Node) => {
         if (!editable || structuralEditsBlocked) return;
@@ -126,7 +126,7 @@ export function useNodeDragWiring({
         const bounds = wrapperRef.current?.getBoundingClientRect();
         const point = dragClientPoint(event);
         if (bounds && point) setDropHintPos({ x: point.x - bounds.left, y: point.y - bounds.top });
-    }, [editable, structuralEditsBlocked, rf, edges, definition, hasInline]);
+    }, [editable, structuralEditsBlocked, rf, edges, definition, hasInline, wrapperRef]);
 
     /**
      * Release: hand the wiring to commitNodePositions so the new position and
@@ -149,7 +149,7 @@ export function useNodeDragWiring({
             const { definition: def, onDefinitionChange: emit } = nodeOpsRef.current;
             emit?.(seedPositions(applyPendingConnect(def, node?.id)));
         }, 0);
-    }, [nodeDropTarget, editable, structuralEditsBlocked, applyPendingConnect]);
+    }, [nodeDropTarget, editable, structuralEditsBlocked, applyPendingConnect, nodeOpsRef]);
 
     const commitNodePositions = useCallback((changes: NodePositionChange[]) => {
         // Pick out position changes that finished (drag-stop emits one with

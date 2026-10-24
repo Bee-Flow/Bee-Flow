@@ -18,6 +18,7 @@ const { nextScheduledRunAt } = require('../holidays');
 // scheduler runs" can never drift apart.
 const { DEFAULT_SCHEDULE_TZ } = require('../triggerColumns');
 const { isObject, validatePosition } = require('./helpers');
+const log = require('../../telemetry/log');
 
 /**
  * The schedule checks, shared by the primary trigger and every additional
@@ -155,7 +156,7 @@ if (scope === 'root' && deliverableEvents && trigger.kind === 'app_event') {
         // pipeline (pending live validation). Surface that precisely so the
         // user isn't surprised; keep it a non-blocking warning.
         let pushPending = false;
-        try { pushPending = prov === 'nextcloud' && require('../deliverableEvents').isPushPending(prov, ev); } catch { /* fall back to generic */ }
+        try { pushPending = prov === 'nextcloud' && require('../deliverableEvents').isPushPending(prov, ev); } catch (err) { log.debug('fall back to generic', err); }
         const message = pushPending
             ? `Trigger event "${prov}.${ev}" has no producer (Nextcloud exposes no webhook for it and there is no poller) — it will activate but will never fire.`
             : `Trigger event "${prov}.${ev}" has no delivery path on this install — it will activate but may never fire.`;
@@ -170,12 +171,12 @@ if (scope === 'root' && deliverableEvents && trigger.kind === 'app_event') {
 if (scope === 'root' && trigger.kind === 'app_event'
     && trigger.appEvent?.provider && trigger.appEvent?.event) {
     let known = null;
-    try { known = require('../triggerSources').getTriggerSource(trigger.appEvent.provider); } catch { /* advisory only */ }
+    try { known = require('../triggerSources').getTriggerSource(trigger.appEvent.provider); } catch (err) { log.debug('advisory only', err); }
     if (known === null) {
         // Registry unavailable is indistinguishable from "not declared"
         // here, so only warn when we positively loaded a registry.
         let registryLoaded = false;
-        try { registryLoaded = require('../triggerSources').listTriggerSources().length > 0; } catch { /* stay quiet */ }
+        try { registryLoaded = require('../triggerSources').listTriggerSources().length > 0; } catch (err) { log.debug('stay quiet', err); }
         if (registryLoaded) {
             pushW({
                 code: 'trigger.app_event_unknown_provider', severity: 'warning',

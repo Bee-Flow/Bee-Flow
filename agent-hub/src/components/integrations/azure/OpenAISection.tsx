@@ -29,8 +29,8 @@ export default function OpenAISection({ azureEndpoint, setAzureEndpoint, azureAp
             saved={saved}
         >
             {/* Status overview */}
-            <div className="flex items-center gap-3 px-4 py-3 rounded-lg" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg" style={{ background: 'linear-gradient(135deg, rgba(0,120,212,0.2), rgba(0,153,255,0.2))' }}>
+            <div className="flex items-center gap-3 px-4 py-3 rounded-lg [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg [background:linear-gradient(135deg,rgba(0,120,212,0.2),rgba(0,153,255,0.2))]">
                     🔷
                 </div>
                 <div className="flex-1">
@@ -70,7 +70,7 @@ export default function OpenAISection({ azureEndpoint, setAzureEndpoint, azureAp
             />
 
             <p className="text-[11px] text-[var(--text-muted)]">
-                {t('azure.get_from_portal')} <a href="https://portal.azure.com" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: '#0078D4' }}>portal.azure.com</a>
+                {t('azure.get_from_portal')} <a href="https://portal.azure.com" target="_blank" rel="noopener noreferrer" className="underline [color:#0078D4]">portal.azure.com</a>
             </p>
         </SectionCard>
     );

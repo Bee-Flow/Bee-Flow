@@ -1,4 +1,4 @@
-import { Fragment, Suspense, lazy, type ReactNode } from 'react';
+import { Fragment, useState, Suspense, lazy, type ReactNode } from 'react';
 import {
     assetSrc, formatPostDate, indexHref, label, postHref,
     type BlogPostFull, type BlogPostPayload, type BlogPostSummary,
@@ -26,10 +26,11 @@ function NeighbourLink({ post, basePath, caption, rel }: { post: BlogPostSummary
 }
 
 function PostHead({ blog, post }: { blog: BlogPostPayload; post: BlogPostFull }) {
+    const [now] = useState(() => Date.now());
     const { labels, basePath, locale } = blog;
     const date = formatPostDate(post.publishedAt, locale);
     const isDraft = post.status === 'draft';
-    const isScheduled = post.status === 'scheduled' && !!post.publishedAt && Date.parse(post.publishedAt) > Date.now();
+    const isScheduled = post.status === 'scheduled' && !!post.publishedAt && Date.parse(post.publishedAt) > now;
     return (
         <div className="container blog-post-head">
             <a className="blog-back" href={basePath}>

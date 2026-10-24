@@ -1,4 +1,5 @@
 import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { logger } from '../../../../utils/logger';
 
 /**
  * Drill-down filter state for the analytics dashboard.
@@ -99,7 +100,7 @@ export function decodeFilters(str: string | null | undefined): AnalyticsFilters 
         if (idx <= 0) continue;
         const key = part.slice(0, idx);
         if (!FILTER_LABELS[key]) continue;
-        try { out[key] = decodeURIComponent(part.slice(idx + 1)); } catch { /* skip malformed */ }
+        try { out[key] = decodeURIComponent(part.slice(idx + 1)); } catch (err) { logger.debug('skip malformed', err); }
     }
     return out;
 }

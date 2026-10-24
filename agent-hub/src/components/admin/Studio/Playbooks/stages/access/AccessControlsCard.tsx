@@ -35,7 +35,7 @@ export default function AccessControlsCard({
 }: AccessControlsCardProps) {
     // Or set it
     return (
-        <section className="rounded-xl p-3 space-y-3" style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card)' }}>
+        <section className="rounded-xl p-3 space-y-3 [border:1px_solid_var(--border-default)] [background:var(--bg-card)]">
             <div>
                 <span className="block text-[11px] font-medium mb-1.5 text-[var(--text-secondary)]">{t('playbooks.access.audience', 'Who can open the app')}</span>
                 <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={t('playbooks.access.audience', 'Who can open the app')}>
@@ -84,7 +84,7 @@ export default function AccessControlsCard({
                 ICON is instance-wide; the audience above still decides
                 who may open it. */}
             {audienceKind && audienceKind !== 'private' && (
-                <label className="flex cursor-pointer items-start gap-2 rounded-lg px-2.5 py-2" style={{ border: '1px solid var(--border-default)', background: 'var(--bg-primary)' }}>
+                <label className="flex cursor-pointer items-start gap-2 rounded-lg px-2.5 py-2 [border:1px_solid_var(--border-default)] [background:var(--bg-primary)]">
                     <input
                         type="checkbox"
                         checked={!!plan.nextcloudMenu}
@@ -127,8 +127,7 @@ export default function AccessControlsCard({
                                     <select
                                         value={plan.byGroup[g.id] || ''}
                                         onChange={(e) => setGroupRole(g.id, e.target.value)}
-                                        className="h-7 rounded-lg px-2 text-[11px] shrink-0"
-                                        style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+                                        className="h-7 rounded-lg px-2 text-[11px] shrink-0 [background:var(--bg-primary)] [border:1px_solid_var(--border-default)] [color:var(--text-primary)]!"
                                         aria-label={t('playbooks.access.role_for', 'Role for {name}', { name: g.name })}
                                     >
                                         <option value="">{t('playbooks.access.role_none_words', 'No access')}</option>
@@ -154,8 +153,7 @@ export default function AccessControlsCard({
                             <input
                                 value={peopleQuery}
                                 onChange={(e) => setPeopleQuery(e.target.value)}
-                                className="h-7 w-[160px] rounded-lg pl-7 pr-2 text-[11px]"
-                                style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+                                className="h-7 w-[160px] rounded-lg pl-7 pr-2 text-[11px] [background:var(--bg-primary)] [border:1px_solid_var(--border-default)] [color:var(--text-primary)]!"
                                 placeholder={t('playbooks.access.people_search', 'Find someone…')}
                                 aria-label={t('playbooks.access.people_search', 'Find someone…')}
                                 data-testid="playbook-access-people-search"
@@ -182,8 +180,7 @@ export default function AccessControlsCard({
                                     <select
                                         value={roleKey}
                                         onChange={(e) => setMemberRole(u.id, e.target.value)}
-                                        className="h-7 rounded-lg px-2 text-[11px] shrink-0"
-                                        style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+                                        className="h-7 rounded-lg px-2 text-[11px] shrink-0 [background:var(--bg-primary)] [border:1px_solid_var(--border-default)] [color:var(--text-primary)]!"
                                         aria-label={t('playbooks.access.role_for', 'Role for {name}', { name: u.name || u.email })}
                                     >
                                         <option value="">{t('playbooks.access.role_none_words', 'No access')}</option>

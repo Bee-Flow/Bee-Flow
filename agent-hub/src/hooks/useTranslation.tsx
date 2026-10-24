@@ -17,6 +17,7 @@ import {
     I18N_CACHE_PREFIX,
     I18N_LOCALES_CACHE_KEY,
 } from '../utils/storageMigrations';
+import { logger } from '../utils/logger';
 
 /*
  * EN_DEFAULTS is loaded ASYNCHRONOUSLY, on purpose. The static import put the
@@ -108,7 +109,7 @@ async function fetchAvailableLocaleCodes(apiBase: string): Promise<string[] | nu
                 return parsed.codes;
             }
         }
-    } catch { /* fall through */ }
+    } catch (err) { logger.debug('fall through', err); }
     try {
         const res = await fetch(`${apiBase}/api/languages/public/locales`);
         if (!res.ok) return null;
@@ -116,7 +117,7 @@ async function fetchAvailableLocaleCodes(apiBase: string): Promise<string[] | nu
         const codes: string[] = Array.isArray(list)
             ? list.map((l: { code?: string }) => l.code).filter((c: string | undefined): c is string => !!c)
             : [];
-        try { localStorage.setItem(LOCALES_CACHE_KEY, JSON.stringify({ codes, at: Date.now() })); } catch { /* quota */ }
+        try { localStorage.setItem(LOCALES_CACHE_KEY, JSON.stringify({ codes, at: Date.now() })); } catch (err) { logger.debug('quota', err); }
         return codes;
     } catch {
         return null;
@@ -171,7 +172,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
         // plain object under `data` is applied — JSON validity alone doesn't
         // make it a catalogue.
         let cached = null;
-        try { cached = localStorage.getItem(stringsCacheKey(loc)); } catch { /* storage unavailable */ }
+        try { cached = localStorage.getItem(stringsCacheKey(loc)); } catch (err) { logger.debug('storage unavailable', err); }
         if (cached) {
             try {
                 const parsed = JSON.parse(cached);
@@ -179,7 +180,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
                     setStrings(parsed.data);
                     loadedLocaleRef.current = loc;
                 }
-            } catch { /* corrupt entry — fetch it cold */ }
+            } catch (err) { logger.debug('corrupt entry — fetch it cold', err); }
         }
 
         // Skip the server round-trip if the org doesn't have this locale —
@@ -206,7 +207,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
                         data,
                         timestamp: Date.now(),
                     }));
-                } catch { /* quota */ }
+                } catch (err) { logger.debug('quota', err); }
             }
         } catch (err) {
             console.warn('[i18n] Failed to load translations:', err instanceof Error ? err.message : err);
@@ -233,10 +234,10 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
                 const data = await res.json();
                 setStrings(data);
                 loadedLocaleRef.current = loc;
-                try { localStorage.setItem(stringsCacheKey(loc), JSON.stringify({ data, timestamp: Date.now() })); } catch { /* quota */ }
+                try { localStorage.setItem(stringsCacheKey(loc), JSON.stringify({ data, timestamp: Date.now() })); } catch (err) { logger.debug('quota', err); }
                 return;
             }
-        } catch { /* handled below: fall through to the authenticated endpoint */ }
+        } catch (err) { logger.debug('handled below: fall through to the authenticated endpoint', err); }
         // Network error (not a 404) — try authenticated endpoint after login resolves.
         loadStrings(loc);
     }, [loadStrings]);
@@ -249,7 +250,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     useEffect(() => { probeBrowserLocale(); }, []);
 
     // Post-auth: check for org default locale
-    useEffect(() => {
+    const runDemoLangEffect = useEffectEvent(() => {
         if (!hasStoredLocale.current && !demoLang) {
             authFetch(`${API_BASE}/api/languages/user/locales`)
                 .then(r => r.json())
@@ -264,7 +265,8 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
                 })
                 .catch(e => console.warn('[useTranslation] org-default locale probe failed', e));
         }
-    }, []);
+    });
+    useEffect(() => { return runDemoLangEffect(); }, []);
 
     useEffect(() => {
         if (locale !== loadedLocaleRef.current) {

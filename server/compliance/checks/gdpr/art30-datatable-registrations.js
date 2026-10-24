@@ -30,6 +30,7 @@
  */
 
 const complianceStore = require('../../../stores/complianceStore');
+const log = require('../../../telemetry/log');
 
 const LAWFUL_BASES = Object.freeze(['consent', 'contract', 'legal_obligation', 'vital_interests', 'public_task', 'legitimate_interests']);
 const DEFAULT_REVIEW_DAYS = 180;
@@ -245,7 +246,7 @@ module.exports = {
         try {
             const meta = await deps.getTableMeta({ kind: row.scope_kind, id: row.scope_id }, row.id);
             fields = (meta && meta.fields) || [];
-        } catch { /* an unreadable table still has a registration to judge */ }
+        } catch (err) { log.debug('an unreadable table still has a registration to judge', err); }
         let outside = null;
         if (Number(row.retention_days) > 0 && row.retention_field) {
             try { outside = await deps.countOutside(row, { fields }); } catch { outside = null; }

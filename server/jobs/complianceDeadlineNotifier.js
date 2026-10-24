@@ -250,7 +250,7 @@ async function _sweepDpia(d, orgId, nowMs) {
                 complianceSectionPath('dpia'),
             );
         }
-    } catch { /* table absent on fresh installs */ }
+    } catch (err) { log.debug('table absent on fresh installs', err); }
 }
 
 // ── 5. Regulatory calendar ───────────────────────────────────────────────
@@ -261,7 +261,7 @@ async function _relevantFrameworkIds(d, orgId) {
             const entries = await d.frameworkPolicy.resolve(orgId);
             return new Set((entries || []).filter(e => e.enabled && e.relevance !== 'not_relevant').map(e => e.id));
         }
-    } catch { /* fall through */ }
+    } catch (err) { log.debug('fall through', err); }
     return null; // unknown → every milestone counts
 }
 

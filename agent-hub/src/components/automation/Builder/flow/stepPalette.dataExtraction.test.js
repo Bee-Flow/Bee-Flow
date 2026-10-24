@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { AI_ITEMS, AI_STEP, DATA_EXTRACTION, buildStepGroups, buildSearchResults, itemForKey } from './stepPalette';
 import { nodeDefaultLabel, nodeLabel, nodeDesc, stepFamily } from './nodeDefs';
 import { sectionKeyForKind, originKeysFor } from './ribbonOrigin';
+import { AI_ITEMS, AI_STEP, DATA_EXTRACTION, buildStepGroups, buildSearchResults, itemForKey } from './stepPalette';
 
 /**
  * The Extract data step's place in the palette: the AI family's second

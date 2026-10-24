@@ -119,12 +119,13 @@ function useWebpageEditor({ loaded, user, orgGroups = [], selectedTier = 'fast',
     // Mark a primary slot dirty when the user types into Monaco. SSE-driven
     // updates (AI edits from chat events) bypass these so they don't mistakenly
     // mark already-saved content as dirty.
+    const { changeExtraContent } = extras;
     const edits = useMemo(() => ({
         html: (v: string) => { setHtml(v); markPrimaryDirty('html'); },
         css: (v: string) => { setCss(v); markPrimaryDirty('css'); },
         js: (v: string) => { setJs(v); markPrimaryDirty('js'); },
-        extra: (path: string, content: string) => { extras.changeExtraContent(path, content); markExtraDirty(path); },
-    }), [markPrimaryDirty, markExtraDirty, extras.changeExtraContent]);
+        extra: (path: string, content: string) => { changeExtraContent(path, content); markExtraDirty(path); },
+    }), [markPrimaryDirty, markExtraDirty, changeExtraContent]);
     const idePaneRef = useSaveShortcut(flushNow);
 
     // Only the COUNT of versions, for the badge in the header; the list itself
@@ -254,7 +255,7 @@ export default function WebpageEditorPage(props: WebpageEditorPageProps) {
                 type="file"
                 multiple
                 accept="image/*,.svg,.woff,.woff2,.ttf,.otf,.ico,.mp3,.mp4,.webm"
-                style={{ display: 'none' }}
+                className="[display:none]"
                 onChange={(e) => {
                     Array.from(e.target.files || []).forEach(f => fileActions.handleAssetUpload(f, 'assets'));
                     e.target.value = '';
@@ -263,7 +264,7 @@ export default function WebpageEditorPage(props: WebpageEditorPageProps) {
 
             {/* Errors from file/asset handlers (upload, create, delete, rename). */}
             {error && (
-                <div className="shrink-0 px-4 py-2 text-xs flex items-center gap-2" style={{ background: 'rgba(239,68,68,0.1)', color: '#991b1b' }} role="alert">
+                <div className="shrink-0 px-4 py-2 text-xs flex items-center gap-2 [background:rgba(239,68,68,0.1)] [color:#991b1b]!" role="alert">
                     <AlertCircle className="w-3.5 h-3.5" /> {error}
                     <button onClick={() => setError(null)} className="ml-auto" aria-label={t('webpages.dismiss_error', 'Dismiss error')}><X className="w-3 h-3" /></button>
                 </div>

@@ -10,6 +10,7 @@ import RunExecutionView from '../../../automation/Builder/RunExecutionView';
 import type { ApprovalField } from '../Approvals/ApprovalDecisionControls';
 import type { DiagramDefinition, DiagramStep } from '../../../automation/Builder/flow/diagramPaneTypes';
 import type { ErrorInfoLike } from './runLogSentence';
+import { logger } from '../../../../utils/logger';
 
 /** The definition snapshot the run ran: its triggers, and the steps whose approval asks questions. */
 interface RunDefinition extends DiagramDefinition {
@@ -110,7 +111,7 @@ export default function ExecutionView({
             const d = await api.getRunSteps(runId) as { steps?: StepRow[]; definition?: RunDefinition | null };
             setSteps(d.steps || []);
             setDefinition(d.definition || null);
-        } catch { /* keep the last good data */ }
+        } catch (err) { logger.debug('keep the last good data', err); }
     }, [api, runId]);
     const loadSteps = useCallback(() => {
         if (stepsTimerRef.current) return; // one fetch per 750ms window

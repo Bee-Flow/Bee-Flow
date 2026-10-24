@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useEffectEvent } from 'react';
 import type { MutableRefObject, RefObject } from 'react';
 import type { ChatMessage } from '../../hooks/useChatEngine/types';
 
@@ -14,7 +14,7 @@ export function useEmbedAutoScroll(
         messagesEndRef.current?.scrollIntoView({ behavior });
     };
 
-    useEffect(() => {
+    const runMessagesContainerRefEffect = useEffectEvent(() => {
         // Force-scroll when user just sent a message
         if (shouldForceScrollRef.current) {
             shouldForceScrollRef.current = false;
@@ -35,5 +35,6 @@ export function useEmbedAutoScroll(
         } else {
             scrollToBottom('smooth');
         }
-    }, [messages]);
+    });
+    useEffect(() => { return runMessagesContainerRefEffect(); }, [messages]);
 }

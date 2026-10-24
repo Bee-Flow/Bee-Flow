@@ -98,8 +98,7 @@ export default function WebpagePickerPopover({ anchorRef, open, onClose, onSelec
                         placeholder={t('webpages.picker.search', 'Search webpages…')}
                         value={search}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
-                        className="w-full pl-7 pr-2 py-1.5 text-xs rounded-lg border outline-none"
-                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', borderColor: 'var(--border-subtle)' }}
+                        className="w-full pl-7 pr-2 py-1.5 text-xs rounded-lg border outline-none [background:var(--bg-secondary)] [color:var(--text-primary)]! [border-color:var(--border-subtle)]"
                     />
                 </div>
             </div>

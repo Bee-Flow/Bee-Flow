@@ -46,7 +46,7 @@ export default function AddLanguageModal({ available, onAdd, onClose }: AddLangu
                     />
                 </div>
 
-                <div className="max-h-56 overflow-y-auto space-y-1 mb-4" style={{ scrollbarWidth: 'thin' }}>
+                <div className="max-h-56 overflow-y-auto space-y-1 mb-4 [scrollbar-width:thin]">
                     {filtered.map(l => (
                         <button key={l.code} onClick={() => onAdd(l.code, l.name)} className="w-full px-3 py-2 rounded-lg text-left text-sm flex items-center justify-between hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-primary)]">
                             <span>{l.name}</span>

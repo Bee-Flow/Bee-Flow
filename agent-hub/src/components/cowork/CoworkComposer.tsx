@@ -143,8 +143,7 @@ export default function CoworkComposer({
             data-testid="cowork-composer"
             data-tour="cowork-composer"
             data-cowork-mode="cowork"
-            className="chat-composer relative flex flex-col rounded-2xl border transition-all focus-within:ring-2 focus-within:ring-[var(--accent-primary)]/35 ring-1 ring-[var(--accent-primary)]/40"
-            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-subtle)' }}
+            className="chat-composer relative flex flex-col rounded-2xl border transition-all focus-within:ring-2 focus-within:ring-[var(--accent-primary)]/35 ring-1 ring-[var(--accent-primary)]/40 [background:var(--bg-card)] [border-color:var(--border-subtle)]"
         >
             <div className={`${isMobile ? 'px-2' : 'px-4'} pt-3 pb-1`}>
                 <textarea

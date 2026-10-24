@@ -48,6 +48,7 @@ const { isPrivateHostname, safeFetch, isPrivateAddressError } = require('../util
 const { HTTP_RESPONSE_CAP, readBodyBounded } = require('./httpResponseLimits');
 const { acquireSlot } = require('./codeSandboxSlots');
 const log = require('../telemetry/log');
+const telemetryLog = require('../telemetry/log');
 
 let ivm = null;
 let ivmLoadError = null;
@@ -477,7 +478,7 @@ async function runCode({ code, inputs = {}, limits = {}, bridges = {}, mode = 'l
         cpuWatch = setInterval(() => {
             try {
                 if (!isolate.isDisposed && isolate.cpuTime > cpuBudgetNs) { cpuExceeded = true; isolate.dispose(); }
-            } catch (_) { /* disposed between the check and the read */ }
+            } catch (err) { telemetryLog.debug('disposed between the check and the read', err); }
         }, CPU_WATCH_INTERVAL_MS);
         const result = await script.run(context, { timeout: lim.cpuMs, promise: true, copy: true });
         return { result, logs, http: { calls: httpCalls }, ...(testCalls ? { calls: testCalls } : {}) };
@@ -494,10 +495,10 @@ async function runCode({ code, inputs = {}, limits = {}, bridges = {}, mode = 'l
         if (wallTimer) clearTimeout(wallTimer);
         if (cpuWatch) clearInterval(cpuWatch);
         releaseSlot();
-        try { if (script) script.release(); } catch {}
-        try { if (bootScript) bootScript.release(); } catch {}
-        try { if (context) context.release(); } catch {}
-        try { if (!isolate.isDisposed) isolate.dispose(); } catch {}
+        try { if (script) script.release(); } catch (err) { log.debug('script already released', err); }
+        try { if (bootScript) bootScript.release(); } catch (err) { log.debug('boot script already released', err); }
+        try { if (context) context.release(); } catch (err) { log.debug('context already released', err); }
+        try { if (!isolate.isDisposed) isolate.dispose(); } catch (err) { log.debug('isolate already disposed', err); }
     }
 }
 

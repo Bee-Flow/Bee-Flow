@@ -29,6 +29,7 @@ import type { ProjectsRoute } from './AgentHub/ProjectsView';
 import type { StudioRoute } from './AgentHub/studioRouteProps';
 import type { SessionSkill } from './components/skills/sessionSkillState';
 import type { AgentHubProps } from './AgentHub.types';
+import { logger } from './utils/logger';
 
 declare global {
     interface Window {
@@ -399,7 +400,7 @@ const AgentHub = ({
                     modelTierKeys: Object.keys(modelTiers || {}),
                 },
             };
-        } catch (_) { /* ignore */ }
+        } catch (err) { logger.debug('ignore', err); }
     }, [user, selectedTier, modelTiers]);
 
     // Sidebar-row conversation bookkeeping: project filing/sharing, rename,

@@ -31,6 +31,7 @@ const stripeIpLimiter = perUserRateLimit({
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../auth/permissions');
+const log = require('../../telemetry/log');
 
 // Robustly resolve the caller's organization id. The session user object
 // doesn't always carry `organizationId`/`orgId` (membership can come via
@@ -44,10 +45,10 @@ async function resolveOrgIdForUser(req) {
         try {
             const orgIds = await resolveUserOrgIds(req); // null = super-admin
             if (orgIds && orgIds.size > 0) orgId = Array.from(orgIds)[0];
-        } catch (_) { /* fall through */ }
+        } catch (err) { log.debug('fall through', err); }
     }
     if (!orgId && user.id) {
-        try { const full = await userStore.getUser(user.id); orgId = full?.organizationId || null; } catch (_) { /* ignore */ }
+        try { const full = await userStore.getUser(user.id); orgId = full?.organizationId || null; } catch (err) { log.debug('ignore', err); }
     }
     return orgId;
 }

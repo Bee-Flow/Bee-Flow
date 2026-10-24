@@ -25,13 +25,11 @@ const InstructionsEditor = React.memo(React.forwardRef<HTMLTextAreaElement, Inst
     // (e.g., wizard refine response or version restore). Don't blow away
     // in-flight keystrokes — only sync when the prop genuinely differs from
     // the last committed value.
-    const lastInitialRef = useRef(initialValue);
-    useEffect(() => {
-        if (initialValue !== lastInitialRef.current) {
-            lastInitialRef.current = initialValue;
-            setValue(initialValue || '');
-        }
-    }, [initialValue]);
+    const [lastInitial, setLastInitial] = useState(initialValue);
+    if (initialValue !== lastInitial) {
+        setLastInitial(initialValue);
+        setValue(initialValue || '');
+    }
 
     // Single source of debouncing lives in the parent (queueSave 350 ms). A
     // second debounce here just produced out-of-order saves on rapid typing —
@@ -40,7 +38,7 @@ const InstructionsEditor = React.memo(React.forwardRef<HTMLTextAreaElement, Inst
     const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
         const next = e.target.value;
         setValue(next);
-        lastInitialRef.current = next;
+        setLastInitial(next);
         onCommitRef.current?.(next);
     };
 

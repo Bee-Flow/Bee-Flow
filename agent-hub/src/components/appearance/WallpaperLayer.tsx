@@ -46,7 +46,7 @@ function GlassLensFilter() {
             width="0"
             height="0"
             aria-hidden="true"
-            style={{ position: 'absolute', pointerEvents: 'none', width: 0, height: 0 }}
+            className="[position:absolute] [pointer-events:none] w-[0] h-[0]"
         >
             <defs>
                 <filter id="glass-lens" x="-10%" y="-10%" width="120%" height="120%">

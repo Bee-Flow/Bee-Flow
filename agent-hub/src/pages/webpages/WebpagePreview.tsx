@@ -73,8 +73,7 @@ function PreviewOverlay({ kind, label }: { kind: 'busy' | 'empty'; label?: strin
     const { t } = useTranslation();
     if (kind === 'busy') {
         return (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none"
-                 style={{ background: '#fff', color: '#475569' }}>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none [background:#fff] [color:#475569]">
                 <RefreshCw className="w-5 h-5 animate-spin" />
                 <span className="text-sm">{label}</span>
             </div>
@@ -83,11 +82,10 @@ function PreviewOverlay({ kind, label }: { kind: 'busy' | 'empty'; label?: strin
     // Nothing built yet and nothing streaming — a friendly hint beats a blank
     // white iframe that reads as broken.
     return (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none px-6 text-center"
-             style={{ background: '#fff', color: '#94a3b8' }}>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none px-6 text-center [background:#fff] [color:#94a3b8]!">
             <span className="text-2xl">🌐</span>
-            <span className="text-sm font-medium" style={{ color: '#475569' }}>{t('webpages.preview_empty_title', 'Nothing to preview yet')}</span>
-            <span className="text-xs" style={{ maxWidth: 280 }}>{t('webpages.preview_empty_text', 'Ask the AI in the chat to build something — the preview will appear here as it works.')}</span>
+            <span className="text-sm font-medium [color:#475569]!">{t('webpages.preview_empty_title', 'Nothing to preview yet')}</span>
+            <span className="text-xs max-w-[280px]">{t('webpages.preview_empty_text', 'Ask the AI in the chat to build something — the preview will appear here as it works.')}</span>
         </div>
     );
 }

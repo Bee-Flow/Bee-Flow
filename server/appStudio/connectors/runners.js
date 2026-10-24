@@ -11,6 +11,7 @@ const {
 } = require('./shared');
 const { providerFor, resolveViewerExecution, dispatchTool } = require('./dispatch');
 const { applyChainStep } = require('./chain');
+const log = require('../../telemetry/log');
 
 async function runIntegrationTool(connector, { app, viewerId, params, systemArgs, trace, deps }) {
     const tool = typeof connector.tool === 'string' ? connector.tool : '';
@@ -172,7 +173,7 @@ async function readCappedBody(resp, ac) {
             chunks.push(chunk);
         }
     } finally {
-        try { await reader.cancel(); } catch { /* already closed/aborted */ }
+        try { await reader.cancel(); } catch (err) { log.debug('already closed/aborted', err); }
     }
     return Buffer.concat(chunks).toString('utf8');
 }

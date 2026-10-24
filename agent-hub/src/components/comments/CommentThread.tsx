@@ -15,6 +15,7 @@ import {
     type CommentAiMode, type CommentAiPolicy, type CommentAiResult, type CommentTarget, type CommentThread as Thread,
 } from '../../api/queries/comments';
 import { useTranslation } from '../../hooks/useTranslation';
+import useNow from '../../hooks/useNow';
 import { formatMessageTime } from '../projects/workspace/chat/messageGroups';
 import type { MentionCandidate } from '../projects/workspace/chat/mentions';
 import { ErrorText, GhostButton, SELECT_CLASS } from '../projects/workspace/workspaceUi';
@@ -255,6 +256,7 @@ function ReplyArea({ props, error, setError, showError }: {
 export default function CommentThread(props: CommentThreadProps) {
     const { t, locale } = useTranslation();
     const { thread } = props;
+    const now = useNow(30000);
     const [error, setError] = useState<string | null>(null);
     const showError: ShowError = (e, fallback) => setError(commentErrorText(t, e, fallback));
 
@@ -269,7 +271,7 @@ export default function CommentThread(props: CommentThreadProps) {
         >
             <AnchorQuote anchor={thread.anchor} state={props.state} targetType={thread.targetType} onJump={props.onJump} />
             <ThreadComments props={props} showError={showError} />
-            {thread.aiMode === 'auto' && thread.autoPausedUntil && Date.parse(thread.autoPausedUntil) > Date.now() && (
+            {thread.aiMode === 'auto' && thread.autoPausedUntil && Date.parse(thread.autoPausedUntil) > now && (
                 <p className="m-0 text-[11px] text-[var(--text-tertiary)]" data-testid="comment-ai-paused">
                     {t('comments.ai_paused', 'After feedback, the AI will not join this thread on its own until {time}. Mention @ai to ask it.', {
                         time: formatMessageTime(thread.autoPausedUntil, locale),

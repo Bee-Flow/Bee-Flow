@@ -229,7 +229,7 @@ export default function FrameworkCandidateCard({ framework, now, busy = false, o
             {/* The name wraps (never "NIS2 · Cybersecuri…"); when it needs the room the status chip moves under it. */}
             <div className="flex items-center gap-x-2 gap-y-1 flex-wrap min-w-0">
                 <span className="flex items-center gap-2 min-w-0">
-                    <Icon size={14} className="text-[var(--text-secondary)] shrink-0" aria-hidden="true" />
+                    {React.createElement(Icon, { size: 14, className: "text-[var(--text-secondary)] shrink-0", "aria-hidden": true })}
                     <span className="font-semibold" data-testid="fw-name">{t(framework.name_key, framework.name || framework.id)}</span>
                 </span>
                 {recommended && (

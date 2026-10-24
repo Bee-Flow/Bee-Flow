@@ -157,7 +157,7 @@ export default function SuggestedTestForm({
     onCancel?: (() => void) | null;
 }) {
     const expect = (suggestion && suggestion.expect) || EMPTY_EXPECT;
-    const wrote: Record<string, string> = (suggestion && suggestion.wrote) || {};
+    const wrote: Record<string, string> = useMemo(() => (suggestion && suggestion.wrote) || {}, [suggestion]);
     // Welk model het voorstel schreef. Reist mee naar de opslag, zodat de rij
     // later nog kan zeggen wie hem opstelde.
     const suggestedBy = (suggestion && typeof suggestion.suggestedBy === 'string')
@@ -233,8 +233,7 @@ export default function SuggestedTestForm({
 
             {aiWroteSomething ? (
                 <div data-testid="agent-tests-suggest-source" data-source="ai"
-                    className="flex items-start gap-2 text-[12px] rounded-lg px-3 py-2"
-                    style={{ background: 'color-mix(in srgb, var(--accent) 8%, transparent)' }}>
+                    className="flex items-start gap-2 text-[12px] rounded-lg px-3 py-2 [background:color-mix(in_srgb,var(--accent)_8%,transparent)]">
                     <Sparkles size={14} aria-hidden="true" className="mt-0.5 flex-shrink-0 text-[var(--accent)]" />
                     <span className="text-[var(--text-secondary)]">
                         {t('agent_studio.test.suggest_by_ai', 'An AI read that answer and proposed what this test should expect. Read it before you save — it becomes what the test guards.')}

@@ -96,7 +96,7 @@ async function buildPromptWithMemory({ agent, agentId, userId, userMessage, user
 async function hydrateTokenVault(conversation, d) {
     if (!conversation?.id) return;
     try { await d.dlpRunner().getConversationTokenMapAsync(conversation.id); }
-    catch (_) { /* hydration is best-effort */ }
+    catch (err) { log.debug('hydration is best-effort', err); }
 }
 
 /** GUARDRAILS (before KB search — block early). */

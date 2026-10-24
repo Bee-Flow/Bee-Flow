@@ -118,7 +118,7 @@ async function getModelsForProvider(providerId, forceRefresh = false) {
                     _modelCache.set(providerId, { models, timestamp: now }); // keep in-memory in sync
                     return registerIfLocal(models);
                 }
-            } catch (_) { /* fall through */ }
+            } catch (err) { log.debug('fall through', err); }
         }
         const cached = _modelCache.get(providerId);
         // Fresh: only without Redis (with Redis, the shared entry above is the
@@ -174,7 +174,7 @@ async function _discover(provider) {
         _modelCache.set(providerId, { models, timestamp: now });
         const r = getRedis();
         if (r) {
-            try { await r.set(`bf:mcache:${providerId}`, JSON.stringify(models), 'EX', MODEL_CACHE_TTL); } catch (_) { }
+            try { await r.set(`bf:mcache:${providerId}`, JSON.stringify(models), 'EX', MODEL_CACHE_TTL); } catch (_) { log.debug('shared model cache write failed, the in-memory cache still serves', _); }
         }
         log.info(`[ModelCache] Cached ${models.length} models for ${provider.name}`);
     } else {

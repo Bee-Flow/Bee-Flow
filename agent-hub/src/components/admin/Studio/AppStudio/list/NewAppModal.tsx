@@ -223,12 +223,7 @@ function NewAppModal({ open, onClose, onCreated }: NewAppModalProps) {
                     onChange={(e) => setName(e.target.value)}
                     placeholder={t('studio_apps_bi.list.name_placeholder', 'e.g. Vacation requests')}
                     maxLength={120}
-                    className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2"
-                    style={{
-                        borderColor: 'var(--border-subtle)',
-                        background: 'var(--bg-primary)',
-                        color: 'var(--text-primary)',
-                    }}
+                    className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 [border-color:var(--border-subtle)] [background:var(--bg-primary)] [color:var(--text-primary)]!"
                 />
             </div>
 

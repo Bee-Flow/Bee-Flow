@@ -514,7 +514,7 @@ async function issueVerificationToken({ userId, displayName, email, organization
     const audit = async (action, details) => {
         try {
             await userStore.logAccessAudit(action, 'user', userId, userId, null, { email, ...details }, organizationId || null);
-        } catch (_) { /* best-effort */ }
+        } catch (err) { log.debug('best-effort', err); }
     };
     const failed = (reason) => {
         const error = String(reason || 'unknown error').slice(0, 200);

@@ -385,7 +385,7 @@ function htmlAttributeText(html) {
             const scheme = name === 'href' ? /^(mailto|tel):/i.exec(value) : null;
             if (!scheme) { out.push(...urlParameterValues(value)); continue; }
             let target = value.slice(scheme[0].length);
-            try { target = decodeURIComponent(target); } catch { /* keep as written */ }
+            try { target = decodeURIComponent(target); } catch (err) { log.debug('keep as written', err); }
             if (scheme[1].toLowerCase() === 'mailto') target = target.split('?')[0];
             if (target) out.push(target);
             continue;

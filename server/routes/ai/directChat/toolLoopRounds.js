@@ -63,7 +63,7 @@ function resetStreamedOutput(turn) {
  * persistence and is separated from the follow-up text in the live view.
  */
 function closeVisibleRound(turn) {
-    try { turn.streamContentFlush(); } catch (_) { /* best-effort */ }
+    try { turn.streamContentFlush(); } catch (err) { log.debug('best-effort', err); }
     turn.displaySegments.onRoundEnd(turn.fullContent);
     turn.fullContent = '';
 }

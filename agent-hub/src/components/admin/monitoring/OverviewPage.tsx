@@ -62,9 +62,9 @@ export function OverviewPage({
     }, [byModel, costPerModel, t]);
 
     return (
-        <div style={{ animation: 'fadeIn 0.3s ease' }}>
+        <div className="[animation:fadeIn_0.3s_ease]">
             {/* ── KPI Cards ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '1.5rem' }}>
+            <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))] [gap:14px] [margin-bottom:1.5rem]">
                 <MetricCard
                     icon={Zap} label={t('admin_monitoring.overview_total_calls', 'Total Calls')} color={COLORS.primary}
                     value={fmt(summary?.total_calls || 0)}
@@ -99,7 +99,7 @@ export function OverviewPage({
             </div>
             {/* ── Cache & reasoning row (only render if either is non-zero) ── */}
             {((summary?.total_cached_tokens || 0) > 0 || (summary?.total_reasoning_tokens || 0) > 0) && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '1.5rem' }}>
+                <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))] [gap:14px] [margin-bottom:1.5rem]">
                     <MetricCard
                         icon={Database} label={t('admin_monitoring.overview_cached_tokens', 'Cached Tokens')} color={COLORS.green}
                         value={fmt(summary?.total_cached_tokens || 0)}
@@ -116,7 +116,7 @@ export function OverviewPage({
             )}
 
             {/* ── Timeline Charts ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '1.25rem' }}>
+            <div className="[display:grid] [grid-template-columns:1fr_1fr] [gap:14px] [margin-bottom:1.25rem]">
                 <Card title={t('admin_monitoring.overview_token_trend', 'Token Trend')} icon={TrendingUp}>
                     <SvgAreaChart
                         data={timeline} yKey="total_tokens" color={COLORS.primary}
@@ -138,17 +138,17 @@ export function OverviewPage({
             </div>
 
             {/* ── Two columns: Top Models + Top Agents ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '1.25rem' }}>
+            <div className="[display:grid] [grid-template-columns:1fr_1fr] [gap:14px] [margin-bottom:1.25rem]">
                 <Card title={t('admin_monitoring.overview_top_models', 'Top Models')} icon={Cpu}>
                     {byModel.length === 0 ? <Empty text={t('admin_monitoring.overview_no_model_data', 'No model data')} /> : byModel.slice(0, 5).map((m, i) => (
-                        <div key={i} onClick={() => onSelectModel?.(m)} style={{ cursor: 'pointer' }}>
+                        <div key={i} onClick={() => onSelectModel?.(m)} className="[cursor:pointer]">
                             <ModelRow model={m} index={i} maxTokens={Math.max(...byModel.map(m => m.total_tokens || 0), 1)} cost={costPerModel[m.model]} />
                         </div>
                     ))}
                 </Card>
                 <Card title={t('admin_monitoring.overview_top_agents', 'Top Agents')} icon={Bot}>
                     {byAgent.length === 0 ? <Empty text={t('admin_monitoring.overview_no_agent_data', 'No agent data')} /> : byAgent.slice(0, 5).map((a, i) => (
-                        <div key={i} onClick={() => onSelectAgent?.(a)} style={{ cursor: 'pointer' }}>
+                        <div key={i} onClick={() => onSelectAgent?.(a)} className="[cursor:pointer]">
                             <AgentRow agent={a} index={i} />
                         </div>
                     ))}
@@ -156,7 +156,7 @@ export function OverviewPage({
             </div>
 
             {/* ── Cost Breakdown + Tools ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            <div className="[display:grid] [grid-template-columns:1fr_1fr] [gap:14px]">
                 {/* Cost donut */}
                 <Card
                     title={t('admin_monitoring.overview_cost_breakdown', 'Cost Breakdown')}
@@ -177,10 +177,10 @@ export function OverviewPage({
                     {donutItems.length === 0 ? (
                         <Empty text={t('admin_monitoring.overview_no_cost_data', 'No cost data: configure model pricing in AI Config')} />
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div className="[display:flex] [flex-direction:column] [gap:12px]">
                             <DonutChart items={donutItems} centerLabel={t('admin_monitoring.overview_total', 'Total')} centerValue={fmtCost(totalCost)} />
                             {modelsWithCost.length < byModel.length && (
-                                <div style={{ fontSize: '11px', color: 'var(--text-muted, #666)', padding: '6px 0' }}>
+                                <div className="[font-size:11px] [color:var(--text-muted,#666)] [padding:6px_0]">
                                     ℹ️ {byModel.length - modelsWithCost.length > 1 ? t('admin_monitoring.overview_no_cost_models', '{n} models without cost data', { n: byModel.length - modelsWithCost.length }) : t('admin_monitoring.overview_no_cost_model', '{n} model without cost data', { n: byModel.length - modelsWithCost.length })}
                                 </div>
                             )}
@@ -191,16 +191,10 @@ export function OverviewPage({
                 {/* Tool usage */}
                 <Card title={t('admin_monitoring.overview_tool_usage', 'Tool Usage')} icon={Wrench}>
                     {tools.length === 0 ? <Empty text={t('admin_monitoring.overview_no_tool_calls', 'No tool calls recorded')} /> : (
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <div className="[display:flex] [gap:8px] [flex-wrap:wrap]">
                             {tools.slice(0, 15).map((t, i) => (
-                                <div key={i} style={{
-                                    padding: '6px 12px', borderRadius: '20px', fontSize: '12px',
-                                    background: 'var(--bg-tertiary, rgba(255,255,255,0.04))',
-                                    border: '1px solid var(--border-default, rgba(255,255,255,0.06))',
-                                    color: 'var(--text-secondary, #aaa)',
-                                    display: 'flex', alignItems: 'center', gap: '6px',
-                                }}>
-                                    <span style={{ fontWeight: 600, color: 'var(--text-primary, #fff)' }}>{t.tool_name}</span>
+                                <div key={i} className="[padding:6px_12px] [border-radius:20px] [font-size:12px] [background:var(--bg-tertiary,rgba(255,255,255,0.04))] [border:1px_solid_var(--border-default,rgba(255,255,255,0.06))] [color:var(--text-secondary,#aaa)] [display:flex] [align-items:center] [gap:6px]">
+                                    <span className="[font-weight:600] [color:var(--text-primary,#fff)]">{t.tool_name}</span>
                                     <span style={{
                                         background: COLORS.primary + '20', color: COLORS.primary,
                                         padding: '1px 6px', borderRadius: '10px', fontSize: '10px', fontWeight: 700,

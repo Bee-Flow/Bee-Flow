@@ -12,6 +12,7 @@ import { projectErrorText } from './projectErrorText';
 import { DEFAULT_PROJECT_COLOR, DEFAULT_PROJECT_ICON, projectTileStyle } from './projectVisuals';
 import { StudioSectionHeader } from './studioParts';
 import { ErrorText, PrimaryButton, SecondaryButton } from './workspaceUi';
+import { logger } from '../../../utils/logger';
 
 interface CreateDraft {
     name: string;
@@ -97,7 +98,7 @@ export default function ProjectCreateForm({ onCancel, onCreated }: {
                 kind: 'workspace',
             });
             onCreated?.(created);
-        } catch { /* the mutation's error is rendered below */ }
+        } catch (err) { logger.debug('the mutation\'s error is rendered below', err); }
     };
 
     return (

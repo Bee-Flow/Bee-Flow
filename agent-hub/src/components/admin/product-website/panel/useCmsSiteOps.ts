@@ -12,6 +12,7 @@ import type { AuthFetchOptions } from '../../../../utils/helpers.types';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { ACTIVE_SITE_LS_KEY } from './helpers';
+import { logger } from '../../../../utils/logger';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 
@@ -46,7 +47,7 @@ export default function useCmsSiteOps({
         }
         activeSiteIdRef.current = newSiteId;
         setActiveSiteId(newSiteId);
-        try { localStorage.setItem(ACTIVE_SITE_LS_KEY, newSiteId); } catch { /* ignore */ }
+        try { localStorage.setItem(ACTIVE_SITE_LS_KEY, newSiteId); } catch (err) { logger.debug('ignore', err); }
     }, [flushSaves, activeSiteIdRef, builderRunningRef, saveTimerRef, setActiveSiteId]);
 
     const refreshSites = useCallback(async () => {
@@ -234,7 +235,7 @@ export default function useCmsSiteOps({
                 } else {
                     activeSiteIdRef.current = null;
                     setActiveSiteId(null);
-                    try { localStorage.removeItem(ACTIVE_SITE_LS_KEY); } catch { /* ignore */ }
+                    try { localStorage.removeItem(ACTIVE_SITE_LS_KEY); } catch (err) { logger.debug('ignore', err); }
                 }
             }
         } catch (err) { toast.error(`Failed to delete site: ${errorMessage(err)}`); }
@@ -258,7 +259,7 @@ export default function useCmsSiteOps({
             saveTimerRef.current = null;
         }
         if (inFlightSaveRef.current) {
-            try { await inFlightSaveRef.current; } catch { /* surfaced already */ }
+            try { await inFlightSaveRef.current; } catch (err) { logger.debug('surfaced already', err); }
             inFlightSaveRef.current = null;
         }
         await flushSaves();

@@ -135,13 +135,12 @@ export default function ActionStep({ step, user, saved, onState, onLaunch }: Act
             <div className="text-[15px] font-semibold leading-5 text-[var(--text-primary)]">
                 {t(step.titleKey, step.titleFallback)}
             </div>
-            <div className="leading-[18px]" style={{ color: 'var(--text-secondary)', textWrap: 'pretty' }}>
+            <div className="leading-[18px] [color:var(--text-secondary)] [text-wrap:pretty]">
                 {t(step.instructionKey, step.instructionFallback)}
             </div>
             {!finished && step.launch?.navigateTo && (
                 <button type="button" onClick={() => onLaunch?.((step.launch as { navigateTo: string }).navigateTo)}
-                    className="self-start inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] font-medium whitespace-nowrap transition-colors hover:bg-[var(--bg-tertiary)]"
-                    style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
+                    className="self-start inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] font-medium whitespace-nowrap transition-colors hover:bg-[var(--bg-tertiary)] [border:1px_solid_var(--border-default)] [background:var(--bg-card)]! [color:var(--text-primary)]!">
                     <ExternalLink style={{ width: 13, height: 13 }} aria-hidden="true" />
                     {t(step.launch.labelKey, step.launch.labelFallback || 'Open the app')}
                 </button>
@@ -164,7 +163,7 @@ export default function ActionStep({ step, user, saved, onState, onLaunch }: Act
                                 <div className="font-medium" style={{ color: ok || current ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                                     {t(c.labelKey, c.labelFallback)}
                                     {c.optional && (
-                                        <span className="ml-1.5 uppercase font-semibold" style={{ fontSize: 10, letterSpacing: '.04em', color: 'var(--text-tertiary)' }}>
+                                        <span className="ml-1.5 uppercase font-semibold [font-size:10px] [letter-spacing:.04em] [color:var(--text-tertiary)]">
                                             {t('learn.action.optional', 'optional')}
                                         </span>
                                     )}
@@ -181,7 +180,7 @@ export default function ActionStep({ step, user, saved, onState, onLaunch }: Act
                         </div>
                     );
                 })}
-                <div className="flex items-center gap-1.5 text-[11px] flex-wrap" style={{ padding: '8px 12px', borderTop: '1px solid var(--border-default)', color: 'var(--text-tertiary)', background: 'var(--bg-secondary)' }}>
+                <div className="flex items-center gap-1.5 text-[11px] flex-wrap [padding:8px_12px] [border-top:1px_solid_var(--border-default)] [color:var(--text-tertiary)]! [background:var(--bg-secondary)]">
                     {finished ? (
                         <><ShieldCheck style={{ width: 11, height: 11, color: 'var(--learn-complete)' }} aria-hidden="true" />
                             <span className="text-[var(--learn-complete-ink)]">

@@ -87,7 +87,7 @@ async function installDependencies(componentPath, id) {
     try {
         const pkg = JSON.parse(fs.readFileSync(path.join(componentPath, 'package.json'), 'utf8'));
         hasDeps = Object.keys(pkg.dependencies || {}).length > 0;
-    } catch { /* no package.json → nothing to do */ }
+    } catch (err) { log.debug('no package.json → nothing to do', err); }
     if (!hasDeps) return { installed: true, blocked: [] };
 
     await new Promise((resolve) => {

@@ -10,8 +10,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn(), isDemoMode: () => false }));
 
-import { authFetch } from '../../../utils/helpers';
 import { uploadAudio, getTranscription } from './transcriptionsApi';
+import { authFetch } from '../../../utils/helpers';
 
 /** A proxy rejection: HTML body, so `res.json()` throws. */
 const proxyRejection = (status) => ({

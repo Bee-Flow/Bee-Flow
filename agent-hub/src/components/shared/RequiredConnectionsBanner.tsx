@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useEffectEvent } from 'react';
 import { settingsPathForTab } from '../../authedApp/settingsRoutes';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { AlertCircle } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
+import { logger } from '../../utils/logger';
 
 /**
  * RequiredConnectionsBanner — recipient pre-flight for a shared resource. Shows
@@ -32,7 +33,8 @@ const RequiredConnectionsBanner = ({ resourceType, resourceId, providers, purpos
     const [required, setRequired] = useState<RequiredConnection[]>([]);
     const list = (providers || []).filter(Boolean);
 
-    useEffect(() => {
+    const listKey = list.join(',');
+    const runListEffect = useEffectEvent(() => {
         let alive = true;
         (async () => {
             if (!resourceId || list.length === 0) return;
@@ -42,10 +44,11 @@ const RequiredConnectionsBanner = ({ resourceType, resourceId, providers, purpos
                 if (!res.ok) return;
                 const data = await res.json();
                 if (alive) setRequired(data.requiresConnection || []);
-            } catch (_) { /* silent */ }
+            } catch (err) { logger.debug('silent', err); }
         })();
         return () => { alive = false; };
-    }, [resourceType, resourceId, list.join(',')]);
+    });
+    useEffect(() => { return runListEffect(); }, [resourceType, resourceId, listKey]);
 
     if (required.length === 0) return null;
 

@@ -45,6 +45,7 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { notebookApi } from './notebookApi';
 import { errorStatus, errorBodyRecord } from '../../../../utils/caughtError';
+import { logger } from '../../../../utils/logger';
 
 export type SaveState = 'idle' | 'saving' | 'error' | 'conflict';
 
@@ -347,7 +348,7 @@ export default function useDocumentAutosave({
             if (skipRef.current) return;
             const unsaved = (saveState !== 'idle' && saveState !== 'conflict') || dirtyRef.current;
             if (!unsaved) return;
-            try { editorRef.current?.flush?.(); } catch { /* unload path */ }
+            try { editorRef.current?.flush?.(); } catch (err) { logger.debug('unload path', err); }
             e.preventDefault();
             e.returnValue = '';
         };

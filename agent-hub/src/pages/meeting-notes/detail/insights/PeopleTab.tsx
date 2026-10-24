@@ -88,8 +88,7 @@ function SpeakerRow({ stat, color, isViewer, onSeek, expanded, onToggle, t }: Sp
                     {formatSpeakerLabel(stat.speakerId)}
                     {isViewer && (
                         <span
-                            className="ml-1.5 px-1 py-px rounded text-[9px] font-semibold align-middle"
-                            style={{ background: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)', color: 'var(--accent-primary)' }}
+                            className="ml-1.5 px-1 py-px rounded text-[9px] font-semibold align-middle [background:color-mix(in_srgb,var(--accent-primary)_15%,transparent)] [color:var(--accent-primary)]!"
                         >
                             {t('meeting_notes.insights_you', 'you')}
                         </span>

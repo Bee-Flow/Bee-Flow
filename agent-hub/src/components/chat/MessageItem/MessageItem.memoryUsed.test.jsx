@@ -2,8 +2,8 @@ import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect } from 'vitest';
 
-import { normalizeLoadedMessages } from '../../../utils/messageShape';
 import MessageItem from './index';
+import { normalizeLoadedMessages } from '../../../utils/messageShape';
 
 // A reloaded direct-chat assistant message: the server sends no `id`.
 const persisted = {

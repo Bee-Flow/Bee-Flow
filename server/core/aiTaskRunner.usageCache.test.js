@@ -12,6 +12,7 @@
  *
  * Run: node --test core/aiTaskRunner.usageCache.test.js
  */
+require('../boot/featureModules'); // core looks feature modules up by name (core/featureModules.js)
 const { test, after } = require('node:test');
 const assert = require('node:assert');
 const { installResolveStub } = require('../testUtils/stubRequire');

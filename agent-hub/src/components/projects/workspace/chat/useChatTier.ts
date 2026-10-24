@@ -7,6 +7,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useModelTiersQuery, type ModelTierMap } from '../../../../api/queries/modelTiers';
 import scopedStorage from '../../../../utils/scopedStorage';
 import { DEPTH_TIER_KEYS } from '../../../licensing/tierMeta';
+import { logger } from '../../../../utils/logger';
 
 const STORAGE_KEY = 'projectChatTier';
 
@@ -26,7 +27,7 @@ export function useChatTier(): ChatTier | null {
     );
     const onChange = useCallback((tier: string) => {
         setPicked(tier);
-        try { scopedStorage.setItem(STORAGE_KEY, tier); } catch { /* the pick just does not outlive the page */ }
+        try { scopedStorage.setItem(STORAGE_KEY, tier); } catch (err) { logger.debug('the pick just does not outlive the page', err); }
     }, []);
     if (!Object.keys(tiers).length) return null;
     // A remembered tier that is no longer offered gives way to the default.

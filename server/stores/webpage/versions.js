@@ -10,6 +10,7 @@ const { initDB } = require('./schema');
 const { SLOTS, VERSIONED_SLOTS, CONTENT_TYPES, keyFor, sha256 } = require('./shared');
 const { readAllSlots, copySlotToVersion } = require('./storage');
 const { assertWebpageWrite } = require('./bridgeGrants');
+const log = require('../../telemetry/log');
 
 // ── Version Control ─────────────────────────────────────────────────
 
@@ -186,7 +187,7 @@ async function createVersion(userId, webpageId, summary = 'Auto-save', hashes = 
         for (const vid of ids) {
             for (const slot of VERSIONED_SLOTS) {
                 const k = keyFor(userId, webpageId, slot, vid);
-                try { await storageStore.deleteFile(k); } catch (_) {}
+                try { await storageStore.deleteFile(k); } catch (_) { log.warn('version object could not be deleted from storage', _); }
             }
         }
     }
@@ -383,7 +384,7 @@ async function deleteVersion(userId, versionId, webpageId = null, { managedWrite
     // Delete the version's RustFS objects (text slots + the snapshotted DB)
     for (const slot of VERSIONED_SLOTS) {
         const k = keyFor(userId, r.webpage_id, slot, versionId);
-        try { await storageStore.deleteFile(k); } catch (_) {}
+        try { await storageStore.deleteFile(k); } catch (_) { log.warn('version object could not be deleted from storage', _); }
     }
     return true;
 }

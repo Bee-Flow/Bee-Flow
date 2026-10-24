@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import AppInputSelect, { optionsFromRows } from './AppInputSelect';
 import AppForm from './AppForm';
+import AppInputSelect, { optionsFromRows } from './AppInputSelect';
 import { RuntimeProvider, DEFAULT_RUNTIME } from '../RuntimeContext';
 
 /**

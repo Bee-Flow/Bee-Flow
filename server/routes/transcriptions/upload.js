@@ -162,7 +162,7 @@ router.post('/', requireAuth, upload.single('audio'), validate({ body: UploadBod
         });
 
         // Audio was persisted up front (savedAudioPath); clean up the temp upload.
-        try { if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (_) {}
+        try { if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (_) { log.warn('temp upload could not be removed', _); }
 
         await finishUpload({
             transcriptionId, userId, userOrgId, transcribed, analysis, provider: transcribed.provider, placeholderTitle,
@@ -170,7 +170,7 @@ router.post('/', requireAuth, upload.single('audio'), validate({ body: UploadBod
     } catch (err) {
         log.error('[Transcriptions] Transcribe error:', err.message);
         let failure = null;
-        try { if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (_) {}
+        try { if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (_) { log.warn('temp upload could not be removed', _); }
         try {
             if (transcriptionId) {
                 // Already responded 202: flip the note to 'failed' with the reason

@@ -5,8 +5,8 @@
 // or removed course fails the build instead of silently breaking a path.
 
 import { describe, it, expect } from 'vitest';
-import { LEARNING_PATHS, getLearningPath, orderCoursesForPath } from './learningPaths';
 import { COURSES } from './courses';
+import { LEARNING_PATHS, getLearningPath, orderCoursesForPath } from './learningPaths';
 
 const byIds = (ids) => ids.map((id) => ({ id }));
 

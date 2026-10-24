@@ -22,6 +22,7 @@
 
 const usageStore = require('../stores/usageStore');
 const integrationActivityStore = require('../stores/integrationActivityStore');
+const log = require('../telemetry/log');
 
 /** app-level ∩ step-level (suffix-aware). Empty app list = no confinement. */
 function effectiveAllowlist(appDomains, stepDomains) {
@@ -135,7 +136,7 @@ async function executeBrowseStep(app, def, step, ctx, helpers) {
             prompt_tokens: 0, completion_tokens: 0, total_tokens: 0,
             duration_ms: Date.now() - t0,
         }).catch(() => {});
-    } catch { /* billing must never break a step */ }
+    } catch (err) { log.debug('billing must never break a step', err); }
     try {
         integrationActivityStore.logIntegrationActivity({
             organization_id: app.organizationId || null,
@@ -151,7 +152,7 @@ async function executeBrowseStep(app, def, step, ctx, helpers) {
             duration_ms: Date.now() - t0,
             data_summary: JSON.stringify({ appId: app.id, actionId: ctx.actionId || null, taskHead: task.slice(0, 200), visitedUrls }),
         }).catch(() => {});
-    } catch { /* audit is best-effort */ }
+    } catch (err) { log.debug('audit is best-effort', err); }
 
     return {
         ok: true,

@@ -22,12 +22,14 @@ export default function TeamsAdminPanel({ user }: { user?: { organizationId?: st
     const orgId = user?.organizationId || null;
     const query = useTeamsNotesOrgSettings(orgId);
     const save = useSaveTeamsNotesOrgSettings(orgId);
-    const [cfg, setCfg] = useState<TeamsNotesSettings>({ autoImport: false, autoRecordConfig: false, language: 'nl', lookbackHours: 24 });
+    const [cfg, setCfg] = useState<TeamsNotesSettings>(() => ({ autoImport: false, autoRecordConfig: false, language: 'nl', lookbackHours: 24, ...query.data }));
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string | undefined } | null>(null);
 
-    useEffect(() => {
+    const [prevData, setPrevData] = useState(query.data);
+    if (prevData !== query.data) {
+        setPrevData(query.data);
         if (query.data) setCfg((prev) => ({ ...prev, ...query.data }));
-    }, [query.data]);
+    }
 
     if (!orgId) return null;
     const busy = save.isPending;

@@ -325,8 +325,7 @@ function Speakers({ model, check, colorFor, perPersonEnabled, onEditSpeakers, t 
 
             {showGap && (
                 <div
-                    className="flex flex-col gap-1.5 rounded-lg border px-2 py-1.5 mt-0.5"
-                    style={{ background: 'color-mix(in srgb, var(--accent-primary) 6%, transparent)', borderColor: 'var(--border-default)' }}
+                    className="flex flex-col gap-1.5 rounded-lg border px-2 py-1.5 mt-0.5 [background:color-mix(in_srgb,var(--accent-primary)_6%,transparent)] [border-color:var(--border-default)]"
                     data-testid="extracted-speaker-gap"
                 >
                     <p className="text-xs text-[var(--text-secondary)]">

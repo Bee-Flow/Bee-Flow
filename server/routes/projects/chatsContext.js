@@ -173,7 +173,7 @@ function makeChatsContext(deps = {}) {
         for (const id of unique) {
             try {
                 if (await ctx.getProjectRole(id, projectId)) kept.push(id);
-            } catch (_) { /* unknown is not a member */ }
+            } catch (err) { log.debug('unknown is not a member', err); }
         }
         return kept;
     }

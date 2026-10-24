@@ -94,7 +94,7 @@ export default function RealtimeSection({ scope, onDrill }: SectionProps) {
 
     if (loading && !payload) {
         return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="[display:flex] [flex-direction:column] [gap:14px]">
                 <SkeletonGrid count={4} height={78} />
                 <Skeleton height={140} />
                 <Skeleton height={240} />
@@ -115,7 +115,7 @@ export default function RealtimeSection({ scope, onDrill }: SectionProps) {
     const onlineNow = active.payload?.visitors ?? active.payload?.x ?? null;
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="[display:flex] [flex-direction:column] [gap:14px]">
             <StatGrid>
                 <StatTile icon={Activity} label={t('cms_site.analytics.realtime.online', 'Online now')} color={ACCENT}
                     value={onlineNow != null ? fmt(onlineNow) : '—'}
@@ -138,7 +138,7 @@ export default function RealtimeSection({ scope, onDrill }: SectionProps) {
                 />
             </Card>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+            <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(280px,1fr))] [gap:12px]">
                 <Card title={t('cms_site.analytics.realtime.pages', 'Pages being read')} icon={FileText}>
                     <BarList rows={urls} onDrill={(v) => onDrill('path', v)}
                         emptyText={t('cms_site.analytics.realtime.no_pages', 'Nobody on the site right now.')} />
@@ -157,14 +157,14 @@ export default function RealtimeSection({ scope, onDrill }: SectionProps) {
                 {events.length === 0 ? (
                     <Empty text={t('cms_site.analytics.realtime.no_activity', 'No activity yet. Open your published site in another tab to see it appear here.')} />
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 380, overflowY: 'auto' }}>
+                    <div className="[display:flex] [flex-direction:column] [gap:5px] max-h-[380px] [overflow-y:auto]">
                         {events.slice(0, 60).map((e, i) => (
                             <ActivityRow key={`${e.sessionId}-${e.createdAt}-${i}`} event={e} onDrill={onDrill} />
                         ))}
                     </div>
                 )}
                 {custom.length > 0 && (
-                    <p style={{ fontSize: 11, color: 'var(--text-muted, #777)', margin: '10px 0 0' }}>
+                    <p className="[font-size:11px] [color:var(--text-muted,#777)] [margin:10px_0_0]">
                         {t('cms_site.analytics.realtime.interactions', '{n} of these are interactions, not just page loads.', { n: fmt(custom.length) })}
                     </p>
                 )}
@@ -198,10 +198,10 @@ function ActivityRow({ event: e, onDrill }: { event: RealtimeEvent; onDrill?: Dr
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}
             >{e.urlPath || '/'}</button>
-            <span style={{ fontSize: 11, color: 'var(--text-muted, #888)', flexShrink: 0 }}>
+            <span className="[font-size:11px] [color:var(--text-muted,#888)] [flex-shrink:0]">
                 {[e.browser, e.os, e.country].filter(Boolean).join(' · ')}
             </span>
-            <span style={{ fontSize: 11, color: 'var(--text-muted, #777)', flexShrink: 0, minWidth: 62, textAlign: 'right' }}>
+            <span className="[font-size:11px] [color:var(--text-muted,#777)] [flex-shrink:0] min-w-[62px] [text-align:right]">
                 {fmtAgo(e.createdAt, undefined, t)}
             </span>
         </div>
@@ -211,7 +211,7 @@ function ActivityRow({ event: e, onDrill }: { event: RealtimeEvent; onDrill?: Dr
 function LiveDot() {
     const { t } = useTranslation();
     return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-muted, #888)' }}>
+        <span className="[display:inline-flex] [align-items:center] [gap:6px] [font-size:11px] [color:var(--text-muted,#888)]">
             <span style={{
                 width: 7, height: 7, borderRadius: 99, background: ACCENT, display: 'inline-block',
                 animation: 'bf-analytics-pulse 1.6s ease-in-out infinite',

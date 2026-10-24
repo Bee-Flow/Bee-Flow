@@ -6,6 +6,7 @@
 
 const ncClient = require('../nextcloudClient');
 const { XMLParser } = require('fast-xml-parser');
+const log = require('../../telemetry/log');
 
 const MAX_TEXT_BYTES = 200 * 1024;          // 200 KB cap on file reads
 const REQUEST_TIMEOUT_MS = ncClient.REQUEST_TIMEOUT_MS;
@@ -95,7 +96,7 @@ async function ensureParentFolders(ncFetch, root, filePath) {
     for (const seg of segs) {
         if (!seg) continue;
         acc += `/${seg}`;
-        try { await ncFetch(joinDavPath(root, acc), { method: 'MKCOL' }); } catch (_) { /* best-effort */ }
+        try { await ncFetch(joinDavPath(root, acc), { method: 'MKCOL' }); } catch (err) { log.debug('best-effort', err); }
     }
 }
 

@@ -111,6 +111,7 @@
  */
 
 'use strict';
+const { featureModule } = require('../featureModules');
 const logger = require('../../telemetry/log');
 
 /** De log-prefix, zodat een ops-regel het pad noemt. */
@@ -280,7 +281,7 @@ async function collectWebpageUsage(webpageId, deps = {}) {
 async function reconcileWebpageUsage(webpageId, deps = {}) {
     const log = deps.log || console;
     if (!webpageId) return { ok: false, reason: 'no-id', written: 0 };
-    const usageSync = deps.usageSync || require('../../automation/datatableUsageSync');
+    const usageSync = deps.usageSync || featureModule('automation/datatableUsageSync');
     // Zie regel 3 in de kop: het getal waaraan een pass merkt dat er tijdens
     // zijn lezing is opgeruimd. Vóór de eerste await gelezen, dus elke purge
     // die daarna komt verhoogt hem.
@@ -429,7 +430,7 @@ async function purgeWebpageUsage(webpageId, deps = {}) {
     // al een ander getal zien, ook als de purge hieronder even duurt.
     _purgeEpoch.set(webpageId, (_purgeEpoch.get(webpageId) || 0) + 1);
     try {
-        const usageSync = deps.usageSync || require('../../automation/datatableUsageSync');
+        const usageSync = deps.usageSync || featureModule('automation/datatableUsageSync');
         return await usageSync.purgeUsageFor('webpage', webpageId, { label: LABEL });
     } catch (e) {
         // De verwijdering zelf is al gebeurd; hier alsnog gooien zou de

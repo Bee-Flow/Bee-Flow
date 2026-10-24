@@ -156,7 +156,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
             </div>
 
             {error && (
-                <div className="text-xs mt-1.5 flex items-start gap-1.5" style={{ color: '#dc2626' }}>
+                <div className="text-xs mt-1.5 flex items-start gap-1.5 [color:#dc2626]!">
                     <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" /><span>{error}</span>
                 </div>
             )}
@@ -203,8 +203,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
                     <button
                         onClick={attach}
                         disabled={attaching}
-                        className="px-2.5 py-1 rounded text-xs font-medium disabled:opacity-60"
-                        style={{ background: 'var(--accent-primary)', color: 'white' }}
+                        className="px-2.5 py-1 rounded text-xs font-medium disabled:opacity-60 [background:var(--accent-primary)] [color:white]!"
                     >
                         {attaching ? 'Attaching…' : `Attach ${picked.size} issue${picked.size === 1 ? '' : 's'}`}
                     </button>
@@ -236,7 +235,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
                     </div>
 
                     {blocked && (
-                        <div className="rounded px-2 py-1.5 text-xs flex items-start gap-1.5" style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626' }}>
+                        <div className="rounded px-2 py-1.5 text-xs flex items-start gap-1.5 [background:rgba(239,68,68,0.1)] [color:#dc2626]!">
                             <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                             <span><strong>{blocked.error}</strong> {blocked.detail}</span>
                         </div>
@@ -246,8 +245,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
                         <button
                             onClick={create}
                             disabled={submitting || !summary.trim()}
-                            className="px-2.5 py-1 rounded text-xs font-medium disabled:opacity-60"
-                            style={{ background: 'var(--accent-primary)', color: 'white' }}
+                            className="px-2.5 py-1 rounded text-xs font-medium disabled:opacity-60 [background:var(--accent-primary)] [color:white]!"
                         >
                             {submitting ? 'Creating…' : 'Create and attach'}
                         </button>

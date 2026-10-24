@@ -255,12 +255,12 @@ async function announceExpiredApproval(ap) {
     const recipients = new Set([ap.ownerId]);
     if (Array.isArray(ap.approvers) && ap.approvers.length) {
         try { for (const id of await panelRecipientIds(ap.approvers)) recipients.add(id); }
-        catch { /* owner alone still hears about it */ }
+        catch (err) { log.debug('owner alone still hears about it', err); }
         if (ap.finalApproverUserId) recipients.add(ap.finalApproverUserId);
     } else if (ap.assigneeUserId) recipients.add(ap.assigneeUserId);
     else if (ap.assigneeGroupId) {
         try { for (const id of (await groupMemberIds(ap.assigneeGroupId)).ids) recipients.add(id); }
-        catch { /* owner alone still hears about it */ }
+        catch (err) { log.debug('owner alone still hears about it', err); }
     }
     // Run-less rows (app, deployment) have no run to close.
     const isRunless = (ap.source || 'run') !== 'run';
@@ -360,11 +360,11 @@ async function owedRecipientIds(ap) {
                     if (!voted.has(id)) recipients.add(id);
                 }
             }
-        } catch { /* fall through to the caller's fallback */ }
+        } catch (err) { log.debug('fall through to the caller\'s fallback', err); }
     } else if (ap.assigneeUserId) recipients.add(ap.assigneeUserId);
     else if (ap.assigneeGroupId) {
         try { for (const id of (await groupMemberIds(ap.assigneeGroupId)).ids) recipients.add(id); }
-        catch { /* fall through to the owner */ }
+        catch (err) { log.debug('fall through to the owner', err); }
     }
     return recipients;
 }
@@ -433,7 +433,7 @@ async function remindAndEscalateDueApprovals() {
         if (ap.escalateToUserId) targets.add(ap.escalateToUserId);
         else if (ap.escalateToGroupId) {
             try { for (const id of (await groupMemberIds(ap.escalateToGroupId)).ids) targets.add(id); }
-            catch { /* owner hears below */ }
+            catch (err) { log.debug('owner hears below', err); }
         }
         targets.add(ap.ownerId);
         // The escalation target has never been asked — a fresh request to

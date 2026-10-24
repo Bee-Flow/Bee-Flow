@@ -56,6 +56,7 @@ const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
 const { z, typeError } = require('../utils/zod');
 const { worded, choice } = require('../core/http/schemaParts');
+const log = require('../telemetry/log');
 
 // ─── What a caller may send ─────────────────────────────────────
 
@@ -225,7 +226,7 @@ async function resolveSerperKey(req) {
     try {
         const k = await configStore.getSecret('serper_api_key');
         if (k) return k;
-    } catch (_) { /* fall through */ }
+    } catch (err) { log.debug('fall through', err); }
     return process.env.SERPER_API_KEY || null;
 }
 

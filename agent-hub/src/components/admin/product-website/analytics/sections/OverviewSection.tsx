@@ -74,7 +74,7 @@ export default function OverviewSection({ scope, onDrill }: SectionProps) {
 
     if (loading && !overview) {
         return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="[display:flex] [flex-direction:column] [gap:14px]">
                 <SkeletonGrid count={5} height={78} />
                 <Skeleton height={240} />
                 <SkeletonGrid count={2} height={200} min={320} />
@@ -105,7 +105,7 @@ export default function OverviewSection({ scope, onDrill }: SectionProps) {
     };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="[display:flex] [flex-direction:column] [gap:14px]">
             {partial.length > 0 && (
                 <ErrorNote
                     onRetry={load}
@@ -137,7 +137,7 @@ export default function OverviewSection({ scope, onDrill }: SectionProps) {
                         : <Empty text={t('cms_site.analytics.overview.no_traffic', 'No traffic in this period.')} />}
             </Card>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}>
+            <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))] [gap:12px]">
                 <Card title={t('cms_site.analytics.overview.top_pages', 'Top pages')} action={
                     <DrillHint show={!!overview.pages?.length} />
                 }>
@@ -197,7 +197,7 @@ function Composition({ overview, onDrill }: { overview: NonNullable<AnalyticsRes
 
     return (
         <Card title={t('cms_site.analytics.overview.who', 'Who visited')} icon={Layers}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="[display:flex] [flex-direction:column] [gap:16px]">
                 {strips.map(s => {
                     const top = s.rows.slice(0, 5);
                     const rest = s.rows.slice(5).reduce((a, r) => a + (r.y || 0), 0);
@@ -207,20 +207,16 @@ function Composition({ overview, onDrill }: { overview: NonNullable<AnalyticsRes
                     ];
                     return (
                         <div key={s.key}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #888)', marginBottom: 6 }}>
+                            <div className="[font-size:11px] [font-weight:700] [color:var(--text-muted,#888)] [margin-bottom:6px]">
                                 {s.label}
                             </div>
                             <SplitBar segments={segments} legend height={10} />
                             {onDrill && (
-                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                                <div className="[display:flex] [gap:6px] [flex-wrap:wrap] [margin-top:6px]">
                                     {top.filter(r => r.x).map(r => (
                                         <button key={r.x} onClick={() => onDrill(s.dim, r.x)}
                                             title={t('cms_site.analytics.overview.filter_by', 'Filter the dashboard by {value}', { value: r.x })}
-                                            style={{
-                                                fontSize: 10, padding: '2px 7px', borderRadius: 6, cursor: 'pointer',
-                                                background: 'transparent', color: 'var(--text-muted, #888)',
-                                                border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
-                                            }}>
+                                            className="[font-size:10px] [padding:2px_7px] [border-radius:6px] [cursor:pointer] [background:transparent] [color:var(--text-muted,#888)] [border:1px_solid_var(--border-subtle,rgba(255,255,255,0.1))]">
                                             {t('cms_site.analytics.overview.filter_chip', 'filter: {value}', { value: r.x })}
                                         </button>
                                     ))}
@@ -238,6 +234,6 @@ function DrillHint({ show }: { show: boolean }) {
     const { t } = useTranslation();
     if (!show) return null;
     return (
-        <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{t('cms_site.analytics.overview.drill_hint', 'click a row to filter')}</span>
+        <span className="[font-size:10px] [color:var(--text-muted,#777)]">{t('cms_site.analytics.overview.drill_hint', 'click a row to filter')}</span>
     );
 }

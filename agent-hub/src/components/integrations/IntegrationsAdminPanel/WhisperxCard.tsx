@@ -12,9 +12,9 @@ export default function WhisperxCard({ transcriptionProvider, whisperxUrl, setWh
             <div className="px-6 py-4 border-b border-[var(--border-subtle)]">
                 <h3 className="font-semibold flex items-center gap-2 text-[var(--text-primary)]">
                     {t('integ.transcription_whisperx', '🏠 WhisperX')}
-                    <span className="text-xs px-2 py-0.5 rounded-full font-normal" style={{ background: '#0ea5e918', color: '#0ea5e9' }}>{t('integ.transcription_self_hosted', 'Self-hosted')}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-normal [background:#0ea5e918] [color:#0ea5e9]!">{t('integ.transcription_self_hosted', 'Self-hosted')}</span>
                     {transcriptionProvider === 'whisperx' && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.transcription_active', 'Active')}</span>}
-                    {hasWhisperxUrl && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>{t('integ.transcription_url_saved', 'URL saved 🔒')}</span>}
+                    {hasWhisperxUrl && <span className="text-xs px-2 py-0.5 rounded-full [background:var(--bg-primary)] [color:var(--text-muted)]! [border:1px_solid_var(--border-subtle)]">{t('integ.transcription_url_saved', 'URL saved 🔒')}</span>}
                 </h3>
                 <p className="text-xs mt-0.5 text-[var(--text-muted)]">{t('integ.transcription_point_beeflow_at_your_own_whisperx_or', 'Point BeeFlow at your own WhisperX or Faster-Whisper server. Audio never leaves your network.')}</p>
             </div>
@@ -73,15 +73,14 @@ export default function WhisperxCard({ transcriptionProvider, whisperxUrl, setWh
                             setTimeout(() => setMessage(null), 3000);
                         }}
                         disabled={savingWhisperx || (!whisperxUrl.trim() && !whisperxToken.trim())}
-                        className="mt-3 px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
-                        style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                        className="mt-3 px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                     >
                         {savingWhisperx ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                         {t('integ.transcription_save_server_config', 'Save server config')}
                     </button>
                 </div>
                 {/* Capabilities */}
-                <div className="rounded-xl p-4" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
+                <div className="rounded-xl p-4 [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]">
                     <p className="text-sm font-medium mb-2 text-[var(--text-primary)]">{t('integ.transcription_capabilities', 'Capabilities')}</p>
                     <ul className="text-xs space-y-1 text-[var(--text-muted)]">
                         <li>{t('integ.transcription_speaker_diarization_2', '✅ Speaker diarization')}</li>
@@ -93,9 +92,9 @@ export default function WhisperxCard({ transcriptionProvider, whisperxUrl, setWh
                     </ul>
                 </div>
                 {/* Setup guide */}
-                <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
+                <div className="rounded-xl p-4 space-y-3 [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]">
                     <p className="text-sm font-medium text-[var(--text-primary)]">{t('integ.transcription_quick_setup_with_docker', 'Quick setup with Docker')}</p>
-                    <pre className="text-xs rounded-lg p-3 overflow-x-auto" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{`docker run -d \\
+                    <pre className="text-xs rounded-lg p-3 overflow-x-auto [background:var(--bg-secondary)] [color:var(--text-secondary)]! [font-family:monospace]">{`docker run -d \\
 --name whisperx \\
 --gpus all \\
 -p 9000:9000 \\

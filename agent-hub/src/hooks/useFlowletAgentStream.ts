@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { readEventStream } from '../api/readEventStream';
 import { API_BASE, authFetch } from '../utils/helpers';
+import { logger } from '../utils/logger';
 
 /**
  * SSE hook for the standalone "build / refine a layer with AI" agent
@@ -88,7 +89,7 @@ export default function useFlowletAgentStream(): UseFlowletAgentStreamReturn {
     const abortRef = useRef<AbortController | null>(null);
 
     const cancel = useCallback(() => {
-        if (abortRef.current) { try { abortRef.current.abort(); } catch { /* already gone */ } }
+        if (abortRef.current) { try { abortRef.current.abort(); } catch (err) { logger.debug('already gone', err); } }
         setState(s => ({ ...s, running: false }));
     }, []);
 
@@ -97,7 +98,7 @@ export default function useFlowletAgentStream(): UseFlowletAgentStreamReturn {
     const send = useCallback(async (
         { automationId, instruction, mode = 'create', layerKey = null, title = null }: FlowletAgentRequest,
     ): Promise<FlowletAgentOutcome> => {
-        if (abortRef.current) { try { abortRef.current.abort(); } catch { /* already gone */ } }
+        if (abortRef.current) { try { abortRef.current.abort(); } catch (err) { logger.debug('already gone', err); } }
         const ac = new AbortController();
         abortRef.current = ac;
         setState({ ...EMPTY, running: true, mode, activeKey: layerKey || null });

@@ -73,7 +73,7 @@ async function loggedInRequester(req, userId, r) {
             if (!r.name) r.name = nameOf(user);
             r.orgRole = r.orgRole || user.orgRole || null;
         }
-    } catch {}
+    } catch (err) { log.debug('requester lookup failed, the thread keeps the supplied details', err); }
     if (!r.email) {
         r.email = `user-${userId}@noemail.beeflow.local`;
     }
@@ -94,7 +94,7 @@ async function anonymousRequester(r) {
             if (!r.orgId) r.orgId = match.organizationId || null;
             if (!r.name) r.name = nameOf(match);
         }
-    } catch {}
+    } catch (err) { log.debug('requester lookup by email failed, the thread keeps the supplied details', err); }
 }
 
 /** Compute SLA due dates from the org/global policy (best-effort). */

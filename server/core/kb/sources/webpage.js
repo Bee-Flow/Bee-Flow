@@ -28,6 +28,7 @@
 
 const { guardedFetch } = require('../fetchGuard');
 const { readTextOrThrowOversize, kbWebPageMaxBytes, kbSitemapMaxBytes } = require('../../http/httpResponseLimits');
+const log = require('../../../telemetry/log');
 
 /** A crawl source will not walk more than this, whatever its config says. */
 const MAX_CRAWL_PAGES = 500;
@@ -128,7 +129,7 @@ async function fetch(item, stored, _ctx, _deps) {
     // Keep whichever validator the server gave us, so the NEXT pass can ask.
     const nextValidator = res.headers.get('etag') || res.headers.get('last-modified') || null;
     let hostname = item.url;
-    try { hostname = new URL(resolvedUrl).hostname; } catch (_) { /* keep the raw url */ }
+    try { hostname = new URL(resolvedUrl).hostname; } catch (err) { log.debug('keep the raw url', err); }
 
     return {
         content,
@@ -161,7 +162,7 @@ async function sitemapPages(entryUrl, maxPages, ctx) {
             const text = await robots.text();
             for (const m of text.matchAll(/^\s*Sitemap:\s*(\S+)/gim)) candidates.push(m[1]);
         }
-    } catch (_) { /* no robots.txt is normal */ }
+    } catch (err) { log.debug('no robots.txt is normal', err); }
 
     const urls = [];
     const seenMaps = new Set();

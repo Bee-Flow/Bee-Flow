@@ -122,12 +122,12 @@ export default function PerformanceSection({ scope, onDrill }: PerformanceSectio
     }, [payload, win]);
 
     if (vitals.loading) {
-        return <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}><Skeleton height={180} /><Skeleton height={220} /></div>;
+        return <div className="[display:flex] [flex-direction:column] [gap:14px]"><Skeleton height={180} /><Skeleton height={220} /></div>;
     }
     if (vitals.error) return <ErrorNote message={vitals.error} onRetry={vitals.reload} />;
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="[display:flex] [flex-direction:column] [gap:14px]">
             {!measured && <NotMeasured />}
 
             {measured && (
@@ -135,7 +135,7 @@ export default function PerformanceSection({ scope, onDrill }: PerformanceSectio
                     percentile={percentile} onPercentile={setPercentile} />
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+            <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))] [gap:12px]">
                 {graded.map(g => <VitalMeter key={g.id} metric={g} />)}
             </div>
 
@@ -152,7 +152,7 @@ export default function PerformanceSection({ scope, onDrill }: PerformanceSectio
                         height={180}
                         emptyText={t('cms_site.analytics.performance.trend_empty', 'Not enough samples to draw a trend yet.')}
                     />
-                    <p style={{ fontSize: 11, color: 'var(--text-muted, #777)', margin: '10px 0 0' }}>
+                    <p className="[font-size:11px] [color:var(--text-muted,#777)] [margin:10px_0_0]">
                         {t('cms_site.analytics.performance.gaps', 'Gaps are periods with no samples — not periods where the site was instant.')}
                     </p>
                 </Card>
@@ -160,7 +160,7 @@ export default function PerformanceSection({ scope, onDrill }: PerformanceSectio
 
             {measured && <PerPage payload={payload} onDrill={onDrill} />}
 
-            <div style={{ fontSize: 11, color: 'var(--text-muted, #777)', display: 'flex', gap: 7, alignItems: 'flex-start' }}>
+            <div className="[font-size:11px] [color:var(--text-muted,#777)] [display:flex] [gap:7px] [align-items:flex-start]">
                 <Gauge style={{ width: 13, height: 13, marginTop: 1, flexShrink: 0, color: ACCENT }} />
                 <span>
                     {t('cms_site.analytics.performance.footnote', 'Web vitals ride along with the standard tracker — no extra script, and nothing about the visitor beyond browser timings. They are reported when someone leaves the page or after ten seconds on it, so they lag the pageview slightly.')}{' '}
@@ -187,8 +187,8 @@ function Verdict({ graded, worst, sampleCount, percentile, onPercentile }: Verdi
     const allGood = worst.length === 0;
     return (
         <Card title={t('cms_site.analytics.performance.verdict', 'Verdict')} icon={Wrench} action={
-            <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{t('cms_site.analytics.performance.samples', '{n} samples', { n: fmt(sampleCount) })}</span>
+            <div className="[display:flex] [gap:5px] [align-items:center]">
+                <span className="[font-size:10px] [color:var(--text-muted,#777)]">{t('cms_site.analytics.performance.samples', '{n} samples', { n: fmt(sampleCount) })}</span>
                 {['p50', 'p75', 'p95'].map(p => (
                     <button key={p} onClick={() => onPercentile(p)} style={{
                         fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
@@ -200,29 +200,29 @@ function Verdict({ graded, worst, sampleCount, percentile, onPercentile }: Verdi
             </div>
         }>
             {allGood ? (
-                <p style={{ fontSize: 13, color: 'var(--text-secondary, #ccc)', margin: 0 }}>
+                <p className="[font-size:13px] [color:var(--text-secondary,#ccc)] [margin:0]">
                     {rich(t('cms_site.analytics.performance.all_good', "All five Core Web Vitals are in Google's {good} band for this period. Nothing to fix."), {
                         good: <strong style={{ color: GOOD }}>{t('cms_site.analytics.performance.all_good_word', 'good')}</strong>,
                     })}
                 </p>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary, #ccc)', margin: 0 }}>
+                <div className="[display:flex] [flex-direction:column] [gap:10px]">
+                    <p className="[font-size:13px] [color:var(--text-secondary,#ccc)] [margin:0]">
                         {t('cms_site.analytics.performance.fix_order', 'Fix in this order — worst band first, then furthest past its threshold.')}
                     </p>
                     {worst.map((g, i) => (
-                        <div key={g.id} style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
+                        <div key={g.id} className="[display:flex] [gap:10px] [align-items:baseline]">
                             <span style={{
                                 width: 18, height: 18, borderRadius: 5, flexShrink: 0, display: 'inline-flex',
                                 alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800,
                                 background: `${g.band.color}22`, color: g.band.color,
                             }}>{i + 1}</span>
-                            <span style={{ fontSize: 12 }}>
-                                <strong style={{ color: 'var(--text-primary, #fff)' }}>{g.name}</strong>{' '}
+                            <span className="[font-size:12px]">
+                                <strong className="[color:var(--text-primary,#fff)]">{g.name}</strong>{' '}
                                 <span style={{ color: g.band.color, fontWeight: 700 }}>
                                     {formatValue(g.value, g.unit)}
                                 </span>
-                                <span style={{ color: 'var(--text-muted, #888)' }}>
+                                <span className="[color:var(--text-muted,#888)]">
                                     {' '}{t('cms_site.analytics.performance.target', '— target {target}. Usually {fix}.', { target: formatValue(g.bands[0], g.unit), fix: t(g.fixKey, g.fix) })}
                                 </span>
                             </span>
@@ -243,13 +243,9 @@ function VitalMeter({ metric }: { metric: GradedMetric }) {
     const pos = measured ? Math.min(1, value / (bands[1] * 1.5)) * 100 : 0;
 
     return (
-        <div style={{
-            background: 'var(--bg-secondary, #1a1a2e)',
-            border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
-            borderRadius: 12, padding: '14px 16px',
-        }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary, #fff)' }}>{metric.label}</span>
+        <div className="[background:var(--bg-secondary,#1a1a2e)] [border:1px_solid_var(--border-subtle,rgba(255,255,255,0.08))] [border-radius:12px] [padding:14px_16px]">
+            <div className="[display:flex] [align-items:baseline] [justify-content:space-between] [gap:8px]">
+                <span className="[font-size:13px] [font-weight:800] [color:var(--text-primary,#fff)]">{metric.label}</span>
                 <span style={{
                     fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em',
                     padding: '2px 7px', borderRadius: 5,
@@ -258,7 +254,7 @@ function VitalMeter({ metric }: { metric: GradedMetric }) {
                     border: measured ? 'none' : '1px solid var(--border-subtle, rgba(255,255,255,0.12))',
                 }}>{t(b.labelKey, b.label)}</span>
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted, #888)', marginBottom: 8 }}>{metric.name}</div>
+            <div className="[font-size:11px] [color:var(--text-muted,#888)] [margin-bottom:8px]">{metric.name}</div>
 
             <div style={{
                 fontSize: measured ? 24 : 13, fontWeight: measured ? 800 : 600, lineHeight: 1.3,
@@ -268,8 +264,8 @@ function VitalMeter({ metric }: { metric: GradedMetric }) {
             </div>
 
             {/* Threshold track: good | needs work | poor, with a marker where we sit. */}
-            <div style={{ position: 'relative', marginTop: 10 }}>
-                <div style={{ display: 'flex', height: 5, borderRadius: 99, overflow: 'hidden', gap: 1 }}>
+            <div className="[position:relative] [margin-top:10px]">
+                <div className="[display:flex] h-[5px] [border-radius:99px] [overflow:hidden] [gap:1px]">
                     <div style={{ flex: bands[0], background: measured ? `${GOOD}55` : `${GOOD}22` }} />
                     <div style={{ flex: bands[1] - bands[0], background: measured ? `${MEH}55` : `${MEH}22` }} />
                     <div style={{ flex: bands[1] * 0.5, background: measured ? `${POOR}55` : `${POOR}22` }} />
@@ -281,7 +277,7 @@ function VitalMeter({ metric }: { metric: GradedMetric }) {
                     }} />
                 )}
             </div>
-            <div style={{ fontSize: 10, color: 'var(--text-muted, #777)', marginTop: 6 }}>
+            <div className="[font-size:10px] [color:var(--text-muted,#777)] [margin-top:6px]">
                 {t('cms_site.analytics.performance.thresholds', 'good ≤ {good} · poor > {poor}', { good: formatValue(bands[0], unit), poor: formatValue(bands[1], unit) })}
             </div>
         </div>
@@ -297,9 +293,9 @@ function PerPage({ payload, onDrill }: { payload: PerformancePayload | null; onD
 
     return (
         <Card title={t('cms_site.analytics.performance.slowest', 'Slowest pages')} icon={Gauge} action={
-            <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{t('cms_site.analytics.performance.slowest_hint', 'LCP p75 · click to filter')}</span>
+            <span className="[font-size:10px] [color:var(--text-muted,#777)]">{t('cms_site.analytics.performance.slowest_hint', 'LCP p75 · click to filter')}</span>
         }>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="[display:flex] [flex-direction:column] [gap:8px]">
                 {[...pages]
                     .sort((a, b) => (Number(b.p75) || 0) - (Number(a.p75) || 0))
                     .slice(0, 10)
@@ -312,14 +308,11 @@ function PerPage({ payload, onDrill }: { payload: PerformancePayload | null; onD
                                     display: 'block', width: '100%', textAlign: 'left', padding: 0,
                                     background: 'transparent', border: 'none', cursor: p.name ? 'pointer' : 'default',
                                 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 3 }}>
-                                    <span style={{
-                                        fontSize: 12, color: 'var(--text-primary, #fff)', overflow: 'hidden',
-                                        textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                    }}>{p.name || t('cms_site.analytics.common.unknown', 'Unknown')}</span>
+                                <div className="[display:flex] [justify-content:space-between] [gap:10px] [margin-bottom:3px]">
+                                    <span className="[font-size:12px] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{p.name || t('cms_site.analytics.common.unknown', 'Unknown')}</span>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: b.color, flexShrink: 0 }}>
                                         {formatValue(v, 'ms')}
-                                        <span style={{ color: 'var(--text-muted, #777)', fontWeight: 500 }}>
+                                        <span className="[color:var(--text-muted,#777)] [font-weight:500]">
                                             {' '}· {fmt(p.count || 0)}
                                         </span>
                                     </span>
@@ -341,11 +334,7 @@ function PerPage({ payload, onDrill }: { payload: PerformancePayload | null; onD
 function NotMeasured() {
     const { t } = useTranslation();
     return (
-        <div style={{
-            display: 'flex', gap: 9, alignItems: 'flex-start', padding: '12px 15px',
-            borderRadius: 10, background: 'rgba(245,158,11,0.08)',
-            border: '1px solid rgba(245,158,11,0.25)', fontSize: 12, color: '#fcd34d',
-        }}>
+        <div className="[display:flex] [gap:9px] [align-items:flex-start] [padding:12px_15px] [border-radius:10px] [background:rgba(245,158,11,0.08)] [border:1px_solid_rgba(245,158,11,0.25)] [font-size:12px] [color:#fcd34d]">
             <Gauge style={{ width: 14, height: 14, marginTop: 1, flexShrink: 0 }} />
             <span>
                 <strong>{t('cms_site.analytics.performance.unmeasured_title', 'No web-vitals samples in this period.')}</strong>{' '}

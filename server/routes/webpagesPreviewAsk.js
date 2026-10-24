@@ -132,7 +132,7 @@ async function dispatchAskTool(ask, toolCall) {
     const { send, shieldGate } = ask;
     const toolName = toolCall.function?.name || toolCall.name;
     let toolArgs = {};
-    try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (_) {}
+    try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (_) { log.debug('tool arguments are not valid JSON, call the tool with none', _); }
 
     send('tool_call', { id: toolCall.id, name: toolName, args: toolArgs });
     const refusal = await shieldGate.refuse(toolName, toolArgs);
@@ -229,7 +229,7 @@ async function runAskRounds(ask, llm, messages) {
             state.fullContent = '';
             state.streamToolCalls = [];
             await adapter.stream(apiKey, apiUrl, modelId, messages, { maxTokens, temperature }, state.callback);
-        } catch (_) { /* best-effort */ }
+        } catch (err) { log.debug('best-effort', err); }
     }
     return { rounds, truncated };
 }
@@ -316,12 +316,12 @@ async function ask(req, res) {
 
         send('done', { rounds, truncated, prompt_tokens: usageAcc.total().prompt_tokens, completion_tokens: usageAcc.total().completion_tokens });
         stopHeartbeat();
-        try { res.end(); } catch (_) { /* already closed */ }
+        try { res.end(); } catch (err) { log.debug('already closed', err); }
     } catch (err) {
         log.error(`[WebpagesPreview/ai/ask] ${err.message}`);
         send('error', { error: err.message });
         stopHeartbeat();
-        try { res.end(); } catch (_) { /* already closed */ }
+        try { res.end(); } catch (err) { log.debug('already closed', err); }
     }
 }
 

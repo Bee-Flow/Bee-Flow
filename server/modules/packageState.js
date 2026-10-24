@@ -20,6 +20,7 @@
 'use strict';
 
 const path = require('path');
+const telemetryLog = require('../telemetry/log');
 
 const _wired = Object.create(null);
 /** Called once by the packageLoader barrel with { name: () => module }. */
@@ -71,7 +72,7 @@ function _healthOf(moduleId) {
 }
 
 function _logSystem(moduleId, msg) {
-    try { logBuffer().append(moduleId, 'system', [msg]); } catch (_) {}
+    try { logBuffer().append(moduleId, 'system', [msg]); } catch (_) { telemetryLog.debug('log buffer unavailable, the line is dropped', _); }
 }
 
 // ── Trust-root key resolvers (overridable in tests) ───────────────────────

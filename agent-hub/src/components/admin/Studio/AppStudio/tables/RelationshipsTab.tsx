@@ -227,7 +227,7 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }: CanvasP
 
     return (
         <div className="flex gap-3 min-h-[24rem]">
-            <div className="relative flex-1 rounded-lg border" style={{ borderColor: 'var(--border-default)', height: '26rem' }}>
+            <div className="relative flex-1 rounded-lg border [border-color:var(--border-default)] h-[26rem]">
                 <ReactFlow
                     nodes={nodes}
                     edges={edges}
@@ -247,8 +247,7 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }: CanvasP
                 <button
                     type="button"
                     onClick={() => setPositions(layoutTables(tables))}
-                    className="absolute right-2 top-2 z-10 inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs"
-                    style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+                    className="absolute right-2 top-2 z-10 inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs [border-color:var(--border-default)] [background:var(--bg-secondary)] [color:var(--text-secondary)]!"
                 >
                     <LayoutGrid className="h-3.5 w-3.5" aria-hidden="true" /> {tr('studio_apps_tables.rel.rearrange', 'Re-arrange')}
                 </button>
@@ -268,8 +267,7 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }: CanvasP
                         <label className="flex flex-col gap-1">
                             <span className="text-xs font-medium text-[var(--text-secondary)]">{tr('studio_apps_tables.rel.column_name', 'Column name')}</span>
                             <input
-                                className="w-full rounded-md border px-2 py-1.5 text-sm"
-                                style={{ borderColor: 'var(--border-default)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                                className="w-full rounded-md border px-2 py-1.5 text-sm [border-color:var(--border-default)] [background:var(--bg-tertiary)] [color:var(--text-primary)]!"
                                 value={selected.fieldName}
                                 disabled={disabled}
                                 aria-label={tr('studio_apps_tables.rel.column_name', 'Column name')}
@@ -284,8 +282,7 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }: CanvasP
                         <label className="flex flex-col gap-1">
                             <span className="text-xs font-medium text-[var(--text-secondary)]">{tr('studio_apps_tables.rel.points_at', 'Points at')}</span>
                             <select
-                                className="w-full rounded-md border px-2 py-1.5 text-sm"
-                                style={{ borderColor: 'var(--border-default)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                                className="w-full rounded-md border px-2 py-1.5 text-sm [border-color:var(--border-default)] [background:var(--bg-tertiary)] [color:var(--text-primary)]!"
                                 value={selected.toTableId || ''}
                                 disabled={disabled}
                                 aria-label={tr('studio_apps_tables.rel.related_table', 'Related table')}
@@ -323,8 +320,7 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }: CanvasP
                 )}
 
                 {dangling.length ? (
-                    <p className="flex items-start gap-1.5 rounded-md border px-2 py-1.5 text-xs"
-                        style={{ borderColor: 'rgba(217, 119, 6, 0.4)', background: 'rgba(217, 119, 6, 0.1)', color: '#d97706' }}>
+                    <p className="flex items-start gap-1.5 rounded-md border px-2 py-1.5 text-xs [border-color:rgba(217,119,6,0.4)] [background:rgba(217,119,6,0.1)] [color:#d97706]!">
                         <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                         <span>
                             {dangling.length === 1
@@ -335,8 +331,7 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }: CanvasP
                 ) : null}
 
                 {error ? (
-                    <p role="alert" className="flex items-start gap-1.5 rounded-md border px-2 py-1.5 text-xs"
-                        style={{ borderColor: 'color-mix(in srgb, var(--error) 40%, transparent)', background: 'color-mix(in srgb, var(--error) 10%, transparent)', color: 'var(--error)' }}>
+                    <p role="alert" className="flex items-start gap-1.5 rounded-md border px-2 py-1.5 text-xs [border-color:color-mix(in_srgb,var(--error)_40%,transparent)] [background:color-mix(in_srgb,var(--error)_10%,transparent)] [color:var(--error)]!">
                         <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                         <span>{error}</span>
                     </p>

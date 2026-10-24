@@ -100,8 +100,7 @@ export default function TestQuestionCard({ kbId = null, disabled = false }: Test
 
     return (
         <div
-            className="flex flex-col gap-2 px-3.5 py-3 text-[12px]"
-            style={{ borderRadius: 12, background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)' }}
+            className="flex flex-col gap-2 px-3.5 py-3 text-[12px] [border-radius:12px] [background:var(--bg-card)] [border:1px_solid_var(--border-default)] [box-shadow:var(--shadow-sm)]"
             data-testid="kb-test-question"
         >
             <div className="flex items-center gap-2 font-semibold text-[var(--text-primary)]">
@@ -120,15 +119,13 @@ export default function TestQuestionCard({ kbId = null, disabled = false }: Test
                     data-testid="kb-ask-input"
                     placeholder={t('knowledge.ask.placeholder', 'e.g. How long is a quote valid?')}
                     aria-label={t('knowledge.ask.label', 'Ask this knowledge base a question')}
-                    className="flex-1 min-w-0 px-2.5 py-2 rounded-lg text-xs border disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
-                    style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)' }}
+                    className="flex-1 min-w-0 px-2.5 py-2 rounded-lg text-xs border disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 [background:var(--bg-card)] [border-color:var(--border-default)] [color:var(--text-primary)]! [outline-color:var(--accent-primary)]!"
                 />
                 <button
                     type="submit"
                     disabled={!ready || busy || !question.trim()}
                     data-testid="kb-ask-submit"
-                    className="px-2.5 rounded-lg text-xs font-semibold disabled:opacity-50 inline-flex items-center gap-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                    style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)', outlineColor: 'var(--accent-primary)' }}
+                    className="px-2.5 rounded-lg text-xs font-semibold disabled:opacity-50 inline-flex items-center gap-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [background:var(--accent-primary)] [color:var(--accent-primary-fg)]! [outline-color:var(--accent-primary)]!"
                 >
                     {busy && <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />}
                     {t('knowledge.ask.submit', 'Ask')}
@@ -136,7 +133,7 @@ export default function TestQuestionCard({ kbId = null, disabled = false }: Test
             </form>
 
             {error && (
-                <p role="alert" style={{ color: 'var(--error)', fontSize: 11 }}>{error}</p>
+                <p role="alert" className="[color:var(--error)] [font-size:11px]">{error}</p>
             )}
 
             {/* The citations, the moment they land — before the answer. */}
@@ -146,7 +143,7 @@ export default function TestQuestionCard({ kbId = null, disabled = false }: Test
 
             {/* Nothing found is an answer, drawn as one. */}
             {askedAndEmpty && !busy && !error && (
-                <p data-testid="kb-ask-empty" style={{ color: 'var(--text-secondary)', fontSize: 11 }}>
+                <p data-testid="kb-ask-empty" className="[color:var(--text-secondary)] [font-size:11px]">
                     {t('knowledge.ask.nothing_found', 'Nothing in this knowledge base matched that question. That is a result: the sources here do not cover it yet.')}
                 </p>
             )}
@@ -155,8 +152,7 @@ export default function TestQuestionCard({ kbId = null, disabled = false }: Test
                 <div
                     data-testid="kb-ask-answer"
                     aria-live="polite"
-                    className="whitespace-pre-wrap"
-                    style={{ color: 'var(--text-primary)', fontSize: 12, lineHeight: 1.5 }}
+                    className="whitespace-pre-wrap [color:var(--text-primary)] [font-size:12px] [line-height:1.5]"
                 >
                     {answer}
                 </div>
@@ -171,7 +167,7 @@ export default function TestQuestionCard({ kbId = null, disabled = false }: Test
                     onToggle={(e) => setOpenPassages(e.currentTarget.open)}
                     data-testid="kb-ask-passages"
                 >
-                    <summary className="cursor-pointer" style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>
+                    <summary className="cursor-pointer [color:var(--text-tertiary)] [font-size:11px]">
                         {t('knowledge.ask.passages', 'Passages found ({n})', { n: sources.length })}
                     </summary>
                     <ul className="flex flex-col gap-2 mt-2">
@@ -182,7 +178,7 @@ export default function TestQuestionCard({ kbId = null, disabled = false }: Test
                 </details>
             )}
 
-            <p style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>
+            <p className="[color:var(--text-tertiary)] [font-size:11px]">
                 {t('knowledge.ask.hint', 'This is how you check the right source is found, before an agent uses it.')}
             </p>
 
@@ -213,20 +209,20 @@ function PassageRow({ source, best, t }: PassageRowProps) {
     return (
         <li className="flex flex-col gap-1" data-testid="kb-ask-passage">
             <div className="flex items-baseline gap-1.5 min-w-0">
-                <span className="truncate font-medium" style={{ color: 'var(--text-primary)', fontSize: 11 }}>
+                <span className="truncate font-medium [color:var(--text-primary)] [font-size:11px]">
                     {source.title}
                 </span>
                 {page && (
-                    <span style={{ color: 'var(--text-tertiary)', fontSize: 10 }}>
+                    <span className="[color:var(--text-tertiary)] [font-size:10px]">
                         {t('notebooks.page_short', 'p. {n}', { n: page })}
                     </span>
                 )}
                 {source.sourceName && (
-                    <span className="truncate" style={{ color: 'var(--text-tertiary)', fontSize: 10 }}>· {source.sourceName}</span>
+                    <span className="truncate [color:var(--text-tertiary)] [font-size:10px]">· {source.sourceName}</span>
                 )}
             </div>
             <RelevanceBar score={source.score} best={best} />
-            <p className="line-clamp-2" style={{ color: 'var(--text-secondary)', fontSize: 10 }}>
+            <p className="line-clamp-2 [color:var(--text-secondary)] [font-size:10px]">
                 {(source.content || '').replace(/^#{1,6}\s+/gm, '').trim().slice(0, 180)}
             </p>
             {linked && (
@@ -265,27 +261,25 @@ function CitationPanel({ source, t, onClose }: CitationPanelProps) {
     return (
         <div
             data-testid="kb-ask-citation"
-            className="flex flex-col gap-1.5 px-2.5 py-2 rounded-lg"
-            style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}
+            className="flex flex-col gap-1.5 px-2.5 py-2 rounded-lg [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]"
         >
             <div className="flex items-start gap-2">
-                <span className="font-medium min-w-0 truncate" style={{ color: 'var(--text-primary)', fontSize: 11 }}>
+                <span className="font-medium min-w-0 truncate [color:var(--text-primary)] [font-size:11px]">
                     {source.title}{page ? ` · ${t('notebooks.page_short', 'p. {n}', { n: page })}` : ''}
                 </span>
                 <button
                     type="button"
                     onClick={onClose}
                     aria-label={t('knowledge.ask.close_passage', 'Close passage')}
-                    className="ml-auto shrink-0 rounded focus-visible:outline focus-visible:outline-2"
-                    style={{ color: 'var(--text-tertiary)', outlineColor: 'var(--accent-primary)' }}
+                    className="ml-auto shrink-0 rounded focus-visible:outline focus-visible:outline-2 [color:var(--text-tertiary)] [outline-color:var(--accent-primary)]!"
                 >
                     <X className="w-3 h-3" aria-hidden="true" />
                 </button>
             </div>
             {source.section && (
-                <span style={{ color: 'var(--text-tertiary)', fontSize: 10 }}>{source.section}</span>
+                <span className="[color:var(--text-tertiary)] [font-size:10px]">{source.section}</span>
             )}
-            <p className="whitespace-pre-wrap" style={{ color: 'var(--text-secondary)', fontSize: 11, maxHeight: 240, overflowY: 'auto' }}>
+            <p className="whitespace-pre-wrap [color:var(--text-secondary)] [font-size:11px] max-h-[240px] [overflow-y:auto]">
                 {source.content || t('knowledge.ask.no_passage', 'This passage is no longer available.')}
             </p>
         </div>

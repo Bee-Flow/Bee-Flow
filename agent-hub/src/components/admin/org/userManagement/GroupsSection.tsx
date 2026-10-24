@@ -30,11 +30,11 @@ export default function GroupsSection({ groups, organizations, users, canManageU
                                 <div key={group.id} className="p-4 rounded-xl border group hover:border-[var(--accent-primary)] bg-[var(--bg-secondary)] border-[var(--border-default)]">
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139, 92, 246, 0.15)' }}><Shield className="w-5 h-5 text-purple-400" /></div>
+                                            <div className="w-10 h-10 rounded-lg flex items-center justify-center [background:rgba(139,92,246,0.15)]"><Shield className="w-5 h-5 text-purple-400" /></div>
                                             <div><h4 className="font-semibold text-[var(--text-primary)]">{group.name}</h4><p className="text-sm text-[var(--text-muted)]">{group.description}</p></div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(139, 92, 246, 0.12)', color: '#a78bfa' }}>
+                                            <span className="text-xs px-2 py-0.5 rounded-full font-medium [background:rgba(139,92,246,0.12)] [color:#a78bfa]!">
                                                 {users.filter(u => (u.groups || []).includes(group.id)).length === 1 ? t('admin_org.groups_section_member_one', '1 member') : t('admin_org.groups_section_members', '{count} members', { count: users.filter(u => (u.groups || []).includes(group.id)).length })}
                                             </span>
                                             <div className="flex items-center gap-2 opacity-100 xl:opacity-0 xl:group-hover:opacity-100">
@@ -67,11 +67,11 @@ export default function GroupsSection({ groups, organizations, users, canManageU
                                     <div key={group.id} className="p-4 rounded-xl border group hover:border-[var(--accent-primary)] ml-4 bg-[var(--bg-secondary)] border-[var(--border-default)]">
                                         <div className="flex items-start justify-between">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139, 92, 246, 0.15)' }}><Shield className="w-5 h-5 text-purple-400" /></div>
+                                                <div className="w-10 h-10 rounded-lg flex items-center justify-center [background:rgba(139,92,246,0.15)]"><Shield className="w-5 h-5 text-purple-400" /></div>
                                                 <div><h4 className="font-semibold text-[var(--text-primary)]">{group.name}</h4><p className="text-sm text-[var(--text-muted)]">{group.description}</p></div>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(139, 92, 246, 0.12)', color: '#a78bfa' }}>
+                                                <span className="text-xs px-2 py-0.5 rounded-full font-medium [background:rgba(139,92,246,0.12)] [color:#a78bfa]!">
                                                     {users.filter(u => (u.groups || []).includes(group.id)).length === 1 ? t('admin_org.groups_section_member_one', '1 member') : t('admin_org.groups_section_members', '{count} members', { count: users.filter(u => (u.groups || []).includes(group.id)).length })}
                                                 </span>
                                                 <div className="flex items-center gap-2 opacity-100 xl:opacity-0 xl:group-hover:opacity-100">

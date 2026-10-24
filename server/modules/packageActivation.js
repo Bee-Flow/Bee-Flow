@@ -48,7 +48,7 @@ async function _quarantine(moduleId, version, reason) {
     log.error(`[Modules] QUARANTINE ${moduleId}@${version}: ${reason}`);
     _logSystem(moduleId, `quarantined: ${reason}`);
     await deactivate(moduleId, { persist: true });
-    try { await packageStore().setQuarantined(moduleId, version, { error: reason }); } catch (_) {}
+    try { await packageStore().setQuarantined(moduleId, version, { error: reason }); } catch (_) { log.warn('could not mark the module version as quarantined', _); }
     await moduleAudit().emit('platform.module.quarantine', moduleId, null, { version, reason });
 }
 
@@ -113,7 +113,7 @@ function _composeHandler(entry) {
             const timer = setTimeout(() => {
                 _recordCrash(entry.moduleId, 'timeout', new Error(`request deadline ${REQUEST_TIMEOUT_MS}ms exceeded: ${url}`));
                 if (!res.headersSent) {
-                    try { res.status(503).json({ error: 'module_timeout' }); } catch (_) { /* raced a write */ }
+                    try { res.status(503).json({ error: 'module_timeout' }); } catch (err) { log.debug('raced a write', err); }
                 }
             }, REQUEST_TIMEOUT_MS);
             if (typeof timer.unref === 'function') timer.unref();
@@ -205,7 +205,7 @@ async function activate(moduleId, version, {
     const conflicts = [];
     for (const c of projected.capDescriptors) {
         let existing = null;
-        try { existing = registry().getCapability(c.id); } catch (_) { /* registry not ready */ }
+        try { existing = registry().getCapability(c.id); } catch (err) { log.debug('registry not ready', err); }
         if (existing && existing.moduleId !== moduleId) conflicts.push(c.id);
     }
     if (conflicts.length) {
@@ -304,7 +304,11 @@ async function activate(moduleId, version, {
     if (persist) {
         // Merge with any existing settings so entitlement survives a re-activate.
         let existing = null;
-        try { existing = await store().getState(moduleId); } catch (_) {}
+        let existingRead = true;
+        try { existing = await store().getState(moduleId); } catch (err) {
+            existingRead = false;
+            log.warn('module state lookup failed, keeping the stored settings as they are', err);
+        }
         const settings = {
             remote: true,
             manifest: _manifestSummary(manifest),
@@ -314,7 +318,9 @@ async function activate(moduleId, version, {
             grantedPermissions: grantedPermissions
                 || (existing && existing.settings && existing.settings.grantedPermissions) || null,
         };
-        await store().setImported(moduleId, { actorId, version, settings });
+        // Without the stored row, an entitlement or grant not passed in would be written as null: skip that write.
+        const wouldDropStored = !existingRead && (!entitlement || !grantedPermissions);
+        if (!wouldDropStored) await store().setImported(moduleId, { actorId, version, settings });
         await packageStore().setActive(moduleId, version, { manifest: _manifestSummary(manifest), kid, packageSha256: sha256, actorId, source });
     }
 

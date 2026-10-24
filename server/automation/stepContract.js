@@ -16,6 +16,8 @@
  * from stores and routes.
  */
 
+const log = require('../telemetry/log');
+
 function isObject(v) { return v && typeof v === 'object' && !Array.isArray(v); }
 
 // Walk a graph's steps, descending into loop bodies and parallel branches —
@@ -84,7 +86,7 @@ function stepContract(definition) {
 function requiredIntegrations(definition) {
     if (!isObject(definition)) return [];
     let resolveIntegration = null;
-    try { ({ resolveIntegration } = require('../core/integrations/integrationToolMap')); } catch { /* optional */ }
+    try { ({ resolveIntegration } = require('../core/integrations/integrationToolMap')); } catch (err) { log.debug('optional', err); }
     const ids = new Set();
     const addTool = (tool) => {
         if (typeof tool !== 'string' || !tool) return;

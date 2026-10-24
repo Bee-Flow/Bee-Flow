@@ -99,7 +99,7 @@ export function MeetingProcessingBody({ t, failed, reason, audioGone, canRetry, 
             <AlertTriangle className="w-10 h-10" style={{ color: 'var(--error)' }} aria-hidden="true" />
             <p className="text-lg font-semibold text-[var(--text-primary)]">{t('meetings.failed_title', 'Transcription failed')}</p>
             {reason ? (
-                <p className="text-sm max-w-md" style={{ color: 'var(--error)' }}>{reason}</p>
+                <p className="text-sm max-w-md [color:var(--error)]!">{reason}</p>
             ) : null}
             <p className="text-sm max-w-md text-[var(--text-tertiary)]">
                 {audioGone
@@ -133,8 +133,7 @@ export function RegenerateOfferBanner({ t, regenerating, onRegenerate, onDismiss
 }) {
     return (
         <div
-            className="mx-4 sm:mx-6 mt-3 flex items-center justify-between gap-3 px-3 py-2 rounded-lg border text-xs"
-            style={{ background: 'color-mix(in srgb, var(--accent-primary) 6%, var(--bg-secondary))', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+            className="mx-4 sm:mx-6 mt-3 flex items-center justify-between gap-3 px-3 py-2 rounded-lg border text-xs [background:color-mix(in_srgb,var(--accent-primary)_6%,var(--bg-secondary))] [border-color:var(--border-default)] [color:var(--text-secondary)]!"
             role="status"
         >
             <span>{t('meeting_notes.regenerate_after_rename', 'Speakers updated. Regenerate the summary with the new names?')}</span>

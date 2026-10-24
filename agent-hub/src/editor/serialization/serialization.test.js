@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { markdownToAst } from './mdToAst';
-import { astToMarkdown } from './astToMd';
 import { astToHtml } from './astToHtml.js';
+import { astToMarkdown } from './astToMd';
+import { markdownToAst } from './mdToAst';
 import { decodeFromAttr } from './util';
 import { nodeEq } from '../model/nodes.js';
 

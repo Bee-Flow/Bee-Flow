@@ -450,7 +450,7 @@ function makeStageHandlers(d) {
         try {
             const user = await d.userStore.getUser(stage.runAsUserId);
             if (user) runAs = { userId: stage.runAsUserId, name: user.name || user.displayName || user.email || null };
-        } catch { /* the id is enough */ }
+        } catch (err) { log.debug('the id is enough', err); }
         res.json({
             stage: stage.stage,
             projectId: stage.projectId,

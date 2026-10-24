@@ -306,8 +306,7 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
                             onChange={(e) => commitDesign({ font: e.target.value })}
                             disabled={disabled}
                             aria-label={t('studio_apps_insp.theme.typeface', 'Typeface')}
-                            className="w-full border px-2 py-1.5 text-sm outline-none focus:border-[var(--app-primary)] disabled:opacity-50"
-                            style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', borderRadius: '6px', color: 'var(--text-primary)' }}
+                            className="w-full border px-2 py-1.5 text-sm outline-none focus:border-[var(--app-primary)] disabled:opacity-50 [background:var(--bg-primary)] [border-color:var(--border-default)]! [border-radius:6px] [color:var(--text-primary)]!"
                         >
                             {DESIGN_ENUMS.font.map((v) => (
                                 <option key={v} value={v}>{fontLabels(t)[v] || v}</option>

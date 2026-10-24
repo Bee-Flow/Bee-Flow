@@ -7,6 +7,7 @@
  */
 
 const { azureModelFor } = require('../providers/azureDeployments');
+const log = require('../../telemetry/log');
 const {
     isMistralServedModel,
     mistralCacheReadRatio,
@@ -102,7 +103,7 @@ function getRegionalUplift(model) {
     try {
         const { isEuServedModel, euUpliftApplies, EU_RESIDENCY_UPLIFT } = require('../providers/openaiModels');
         if (isEuServedModel(model) && euUpliftApplies(model)) return EU_RESIDENCY_UPLIFT;
-    } catch (_) { /* registry unavailable — bill at the list rate */ }
+    } catch (err) { log.debug('registry unavailable — bill at the list rate', err); }
     // Mistral's regional endpoints (api.eu / api.us) cost 1.1× on every model.
     const mistral = mistralRegionalUplift(model);
     if (mistral !== 1) return mistral;

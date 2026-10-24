@@ -13,6 +13,7 @@ import scopedStorage from '../../utils/scopedStorage';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { isEphemeralLessonId } from './lessons';
 import type { LessonProgressEntry, LessonUser, ProgressMap, StepOrigin, StepState } from './lessons.types';
+import { logger } from '../../utils/logger';
 
 export const LEARNING_PROGRESS_KEY = 'learningProgress';
 
@@ -21,7 +22,7 @@ const hasWindow = (): boolean => typeof window !== 'undefined';
 // Point scopedStorage at the active user before any read/write (it namespaces
 // keys as beeflow:{userId}:learningProgress).
 function withUser(user: LessonUser | null | undefined): void {
-    try { if (user?.id) scopedStorage.setCurrentUser(user.id); } catch (_) { /* ignore */ }
+    try { if (user?.id) scopedStorage.setCurrentUser(user.id); } catch (err) { logger.debug('ignore', err); }
 }
 
 // Read the local progress map: { [lessonId]: { completedAt } }.
@@ -89,7 +90,7 @@ function writeLocal(user: LessonUser | null | undefined, map: ProgressMap): void
     try {
         withUser(user);
         scopedStorage.setJSON(LEARNING_PROGRESS_KEY, map);
-    } catch (_) { /* ignore quota */ }
+    } catch (err) { logger.debug('ignore quota', err); }
 }
 
 async function syncProgress(merged: ProgressMap): Promise<void> {
@@ -99,7 +100,7 @@ async function syncProgress(merged: ProgressMap): Promise<void> {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ [LEARNING_PROGRESS_KEY]: merged }),
         });
-    } catch (_) { /* local mirror already written */ }
+    } catch (err) { logger.debug('local mirror already written', err); }
 }
 
 // Mark a lesson complete: merge into the local map, then best-effort sync the
@@ -165,7 +166,7 @@ export async function fetchLearningProgress(user: LessonUser | null | undefined)
                 return map;
             }
         }
-    } catch (_) { /* fall through to local */ }
+    } catch (err) { logger.debug('fall through to local', err); }
     return readLearningProgress(user);
 }
 
@@ -181,6 +182,6 @@ export async function resetLearningProgress(user: LessonUser | null | undefined)
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ learningProgressReset: true }),
         });
-    } catch (_) { /* local already cleared */ }
+    } catch (err) { logger.debug('local already cleared', err); }
     return {};
 }

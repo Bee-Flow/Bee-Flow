@@ -12,6 +12,7 @@
  * DB-free: same monkeypatch harness as integrationTools.notebooks.test.js.
  */
 
+require('../../boot/featureModules'); // core looks feature modules up by name (core/featureModules.js)
 const assert = require('assert');
 
 // ── Patch destructure-at-load deps BEFORE requiring the module under test ──

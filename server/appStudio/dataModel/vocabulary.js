@@ -15,7 +15,8 @@
 'use strict';
 
 const core = require('../../core/dataEngine/dataModel/vocabulary');
-// connectors.js has no top-level requires of its own, so there is no cycle.
-const { CONNECTOR_KINDS, _MAX_CONNECTOR_ROWS: MAX_CONNECTOR_ROWS } = require('../connectors');
+// The constants live in connectors/shared (a leaf); connectors.js re-exports
+// them, so requiring connectors.js from here would close the import cycle.
+const { CONNECTOR_KINDS, MAX_CONNECTOR_ROWS } = require('../connectors/shared');
 
 module.exports = { ...core, CONNECTOR_KINDS, MAX_CONNECTOR_ROWS };

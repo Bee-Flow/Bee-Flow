@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { ArrowUpRight, BadgeCheck, Check, Copy, Globe, Settings2, ShieldCheck, Timer } from 'lucide-react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import { logger } from '../../../../../utils/logger';
 
 /** The public route App.jsx mounts before any auth handling. */
 export const PUBLIC_DSR_PATH = '/privacy/requests';
@@ -28,7 +29,7 @@ async function copyText(text: string): Promise<boolean> {
             await navigator.clipboard.writeText(text);
             return true;
         }
-    } catch { /* fall through */ }
+    } catch (err) { logger.debug('fall through', err); }
     return false;
 }
 

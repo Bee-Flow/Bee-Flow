@@ -87,7 +87,7 @@ async function buildCatalogForUser(userId, session) {
         let permittedSet = null;
         try {
             permittedSet = await getUserPermittedApps({ userId, session, isAdmin: !!session?.isAdmin });
-        } catch (_) { /* null → fail closed below */ }
+        } catch (err) { log.debug('null → fail closed below', err); }
 
         const apps = TOOL_REGISTRY.map(entry => {
             const tools = loadTools(entry);

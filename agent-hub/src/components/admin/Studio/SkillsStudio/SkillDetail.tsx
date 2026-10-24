@@ -407,7 +407,7 @@ function MethodTab({ draft, patch, readOnly, refOptions, onOpenRef, picker, lega
     return (
         <div className="flex flex-col gap-[18px] min-w-0">
             {empty && !readOnly && <FillInCard onFillIn={onFillIn} drafting={drafting} t={t} />}
-            <div className="grid gap-3.5" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            <div className="grid gap-3.5 [grid-template-columns:1fr_1fr]">
                 <TextCard
                     label={t('skills_studio.what', 'What this skill does')}
                     value={draft.description}
@@ -429,7 +429,7 @@ function MethodTab({ draft, patch, readOnly, refOptions, onOpenRef, picker, lega
                 />
             </div>
 
-            <div className="grid gap-3.5 min-w-0" style={{ gridTemplateColumns: 'minmax(0,1fr) 380px' }}>
+            <div className="grid gap-3.5 min-w-0 [grid-template-columns:minmax(0,1fr)_380px]">
                 <SkillStepEditor
                     steps={draft.steps}
                     readOnly={readOnly}
@@ -484,8 +484,7 @@ function UsedByNote({ usage, unchecked = [], t }: UsedByNoteProps) {
     if (incomplete) {
         return (
             <p
-                className="mt-auto px-3 py-2.5 rounded-[10px] text-[11px] leading-4 m-0"
-                style={{ background: 'var(--bg-secondary)', color: 'var(--warning-ink, var(--warning))' }}
+                className="mt-auto px-3 py-2.5 rounded-[10px] text-[11px] leading-4 m-0 [background:var(--bg-secondary)] [color:var(--warning-ink,var(--warning))]!"
                 data-testid="skill-usedby-note"
                 data-incomplete="true"
             >

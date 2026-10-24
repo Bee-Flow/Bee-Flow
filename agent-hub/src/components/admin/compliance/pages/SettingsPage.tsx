@@ -11,6 +11,7 @@ import SettingsGroup, { type MemberValue, type SettingsValue } from './settings/
 import { groupProgress, type SettingsForm } from './settings/settingsLayout';
 import type { SettingsGroupDef } from './settings/settingsFields.types';
 import type { OrgUser } from './accessAuditLabels';
+import { logger } from '../../../../utils/logger';
 
 /**
  * SettingsPage — the compliance settings form, grouped per framework.
@@ -188,7 +189,7 @@ export default function SettingsPage({ data = {}, isMobile = false, setLeaveGuar
         try {
             await core.saveSettings?.(buildSettingsBody(submitted));
             setSaved(submitted);
-        } catch { /* the hook owns the error toast */ }
+        } catch (err) { logger.debug('the hook owns the error toast', err); }
         finally { setSaving(false); }
     };
 

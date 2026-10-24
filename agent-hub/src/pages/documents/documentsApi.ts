@@ -1,6 +1,7 @@
 import { API_BASE, authFetch } from '../../utils/helpers';
 import type { LibraryFilters } from './documentQueries';
 import type { NewDocumentInput } from './library/useLibrary';
+import { logger } from '../../utils/logger';
 
 /**
  * Client for /api/studio-documents.
@@ -28,7 +29,7 @@ interface ApiError extends Error {
 
 async function asJson(res: Response, fallback: string) {
     let body = null;
-    try { body = await res.json(); } catch { /* empty or non-JSON body */ }
+    try { body = await res.json(); } catch (err) { logger.debug('empty or non-JSON body', err); }
     if (!res.ok) {
         const err: ApiError = new Error((body && body.error) || fallback);
         err.status = res.status;
@@ -194,7 +195,7 @@ export async function previewDeckDraft(id: string, draft: { bodyHtml?: string; s
     });
     if (!res.ok) {
         let body = null;
-        try { body = await res.json(); } catch { /* not JSON */ }
+        try { body = await res.json(); } catch (err) { logger.debug('not JSON', err); }
         const err: ApiError = new Error((body && body.error) || 'Could not render the presentation');
         err.status = res.status;
         err.code = body && body.code;
@@ -230,7 +231,7 @@ export async function fetchRendered(id: string, versionId: string | null | undef
     const res = await authFetch(`${BASE}/${encodeURIComponent(id)}/${format}${revision}`);
     if (!res.ok) {
         let body = null;
-        try { body = await res.json(); } catch { /* the error body may be bytes */ }
+        try { body = await res.json(); } catch (err) { logger.debug('the error body may be bytes', err); }
         const err: ApiError = new Error((body && body.error) || (format === 'pptx' ? 'Failed to build the presentation' : 'Failed to render the PDF'));
         err.status = res.status;
         err.code = body && body.code;

@@ -85,5 +85,5 @@ export function useInviteToken({ setInviteToken, setInviteInfo, setSignupData, s
             }
         };
         run();
-    }, []);
+    }, [setError, setInviteInfo, setInviteToken, setSignupData, setSignupMode]);
 }

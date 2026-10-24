@@ -90,7 +90,7 @@ function noEditorAccess({ t, onNavigate }: HubMainContentProps) {
         <div className="flex flex-col items-center justify-center h-full gap-3 p-8 text-center">
             <p className="text-base font-semibold text-[var(--text-primary)]">{t('app.agent_hub_no_editor_access_title', 'No access to the Agent Editor')}</p>
             <p className="text-sm max-w-md text-[var(--text-muted)]">{t('app.agent_hub_no_editor_access_body', "You don't have permission to edit agents. Contact an administrator if you need access.")}</p>
-            <button onClick={() => onNavigate('agents')} className="px-3 py-1.5 rounded-md text-sm font-medium" style={{ background: 'var(--accent-primary)', color: 'white' }}>{t('agent_studio.header.back_to_agents', 'Back to Agents')}</button>
+            <button onClick={() => onNavigate('agents')} className="px-3 py-1.5 rounded-md text-sm font-medium [background:var(--accent-primary)] [color:white]!">{t('agent_studio.header.back_to_agents', 'Back to Agents')}</button>
         </div>
     );
 }

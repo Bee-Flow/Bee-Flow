@@ -23,13 +23,12 @@ function DiscoveredList({ wfs }: { wfs: N8nWorkflows }) {
                             </div>
                         </div>
                         {alreadyAdded ? (
-                            <span className="text-xs font-medium flex items-center gap-1 shrink-0" style={{ color: '#10b981' }}>
+                            <span className="text-xs font-medium flex items-center gap-1 shrink-0 [color:#10b981]!">
                                 <Check className="w-3.5 h-3.5" /> {t('settings.n8n.added', 'Added')}
                             </span>
                         ) : (
                             <button onClick={() => wfs.addWorkflow(dw)}
-                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-80 shrink-0"
-                                style={{ background: 'var(--accent-primary)', color: 'white' }}>
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-80 shrink-0 [background:var(--accent-primary)] [color:white]!">
                                 <Plus className="w-3 h-3" /> {t('settings.n8n.add', 'Add')}
                             </button>
                         )}
@@ -59,8 +58,7 @@ function ConfiguredList({ wfs }: { wfs: N8nWorkflows }) {
                     {t('settings.n8n.workflows_enabled', 'Workflows ({enabled}/{total} enabled)', { enabled: workflows.filter(w => w.enabled).length, total: workflows.length })}
                 </h4>
                 <button onClick={wfs.saveWorkflows} disabled={wfs.saving}
-                    className="px-2.5 py-1 rounded-lg text-xs font-medium transition-all disabled:opacity-50"
-                    style={{ background: 'var(--accent-primary)', color: 'white' }}>
+                    className="px-2.5 py-1 rounded-lg text-xs font-medium transition-all disabled:opacity-50 [background:var(--accent-primary)] [color:white]!">
                     {wfs.saving ? t('settings.n8n.saving', 'Saving...') : t('settings.n8n.save_all', 'Save All')}
                 </button>
             </div>
@@ -91,8 +89,7 @@ export default function N8nWorkflowsTab({ configured, wfs }: { configured: boole
                     <input
                         type="text" value={wfs.wfSearch} onChange={e => wfs.setWfSearch(e.target.value)}
                         placeholder={t('settings.n8n.search_workflows', 'Search workflows...')}
-                        className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)]"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                        className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                     />
                 </div>
                 <button

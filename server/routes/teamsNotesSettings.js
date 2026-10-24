@@ -16,6 +16,7 @@ const { requireAuth, isOrgAdminForOrg: isOrgAdmin } = require('../auth/permissio
 const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
 const teamsNotes = require('../core/meetingNotes/teamsNotesSettings');
+const log = require('../telemetry/log');
 
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
@@ -42,7 +43,7 @@ router.get('/user/me', requireAuth, async (req, res) => {
     let credential = null;
     try {
         credential = await require('../stores/automationCredentialStore').getCredential(userId, 'microsoft');
-    } catch (_) { /* no stored credential */ }
+    } catch (err) { log.debug('no stored credential', err); }
     res.json({ ...config, connection: teamsNotes.deriveConnectionStatus({ session: req.session, credential }) });
 });
 

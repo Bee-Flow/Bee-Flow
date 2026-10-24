@@ -5,7 +5,7 @@
 // the person confirms.
 
 import { Loader2, Mic, Sparkles } from 'lucide-react';
-import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState, useEffectEvent } from 'react';
 import {
     useCreateTasksBatch, useImproveMeetingTasks, useMeetingTaskSuggestions, useProjectTasksQuery, useUpdateTask,
     type MeetingTaskImprovement, type MeetingTaskSuggestion, type ProjectTask, type TaskInput,
@@ -176,14 +176,15 @@ function Suggestions({ projectId, meetingId, currentUser, onClose, onCreated }: 
         }),
     });
     const asked = useRef<string | null>(null);
-    useEffect(() => {
+    const runImproveNowEffect = useEffectEvent(() => {
         // Anything not finished in the notes: new items to expand, and tasks already made that can be improved.
         const open = suggestions.some(s => !s.done);
         if (!query.data || !open || asked.current === meetingId) return;
         asked.current = meetingId;
         improveNow();
         // Once per meeting, when its items arrive: `improveNow` is a fresh function each render and must not restart this.
-    }, [query.data, suggestions, meetingId]);
+    });
+    useEffect(() => { return runImproveNowEffect(); }, [query.data, suggestions, meetingId]);
 
     const chosen = suggestions.filter(s => rows[s.itemId]?.selected && !s.createdTaskId && rows[s.itemId].title.trim());
     /** Tasks that already exist, ticked to be improved. */

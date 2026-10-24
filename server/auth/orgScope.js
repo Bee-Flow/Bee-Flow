@@ -41,6 +41,7 @@
  */
 
 const userStore = require('../stores/userStore');
+const log = require('../telemetry/log');
 
 // A fresh Set per call, never a shared constant: callers treat the result as
 // theirs, and one that narrowed a shared Set would narrow it for everyone.
@@ -118,7 +119,7 @@ async function orgScope(req, { strict = false } = {}) {
     // Only a complete read is memoised: caching a degraded one would let the
     // first, lenient caller decide the answer for a later `strict` caller that
     // exists precisely to refuse it.
-    if (req && !identityError) { try { req._orgScope = scope; } catch (_) { /* frozen req */ } }
+    if (req && !identityError) { try { req._orgScope = scope; } catch (err) { log.debug('frozen req', err); } }
     return scope;
 }
 

@@ -20,6 +20,7 @@
 
 const frameworks = require('../../frameworks');
 const frameworkPolicy = require('../../frameworkPolicy');
+const log = require('../../../telemetry/log');
 
 const FAIL_AFTER_DAYS = 365;
 
@@ -28,7 +29,7 @@ async function _activeFrameworks(orgId) {
         const regs = await frameworkPolicy.activeRegulations(orgId || 'default');
         const list = [...regs].map(code => frameworks.byRegulation(code)).filter(Boolean);
         if (list.length) return { list, scope: 'active' };
-    } catch { /* the policy could not be read: judge the whole catalogue */ }
+    } catch (err) { log.debug('the policy could not be read: judge the whole catalogue', err); }
     return { list: frameworks.listBuiltin(), scope: 'catalogue' };
 }
 

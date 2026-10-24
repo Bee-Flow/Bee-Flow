@@ -204,7 +204,7 @@ export default function DsrTable({
 }: DsrTableProps) {
     const { t, resolvedLocale, locale } = useTranslation();
     const lang = resolvedLocale || locale;
-    const now = useNow();
+    const now = useNow(60_000);
     const columns = useMemo((): TableColumn[] => DSR_COLUMNS.map(c => ({
         id: c.id,
         width: c.width,

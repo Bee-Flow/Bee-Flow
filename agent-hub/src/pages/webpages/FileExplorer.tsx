@@ -89,7 +89,7 @@ function InlineInput({ depth, initial = '', placeholder, onCommit, onCancel }: I
     };
     return (
         <div className="flex items-center gap-1 py-0.5" style={{ paddingLeft: 4 + depth * 10 }}>
-            <span style={{ width: 12 }} />
+            <span className="w-[12px]" />
             <input
                 autoFocus
                 value={value}
@@ -103,7 +103,7 @@ function InlineInput({ depth, initial = '', placeholder, onCommit, onCancel }: I
                 className="flex-1 text-[12px] px-1 py-0.5 rounded outline-none"
                 style={{ background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)', border: `1px solid ${error ? '#dc2626' : 'var(--vsc-accent)'}` }}
             />
-            {error && <span className="text-[10px] pr-1" style={{ color: '#dc2626' }} title={error}>!</span>}
+            {error && <span className="text-[10px] pr-1 [color:#dc2626]!" title={error}>!</span>}
         </div>
     );
 }
@@ -114,8 +114,7 @@ function ActionIcon({ Icon, title, onClick }: ActionIconProps) {
             type="button"
             title={title}
             onClick={(e) => { e.stopPropagation(); onClick(e); }}
-            className="p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ color: 'var(--vsc-fg-muted)' }}
+            className="p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity [color:var(--vsc-fg-muted)]"
             onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--vsc-fg)')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--vsc-fg-muted)')}
         >
@@ -174,8 +173,8 @@ function FileNode({ node, depth, activePath, onFileSelect, actions }: FileNodePr
                 color: isActive ? 'var(--vsc-fg)' : 'var(--vsc-fg-muted)',
             }}
         >
-            <span style={{ width: 12 }} />
-            <Icon size={12} />
+            <span className="w-[12px]" />
+            {React.createElement(Icon, { size: 12 })}
             <span className="flex-1 truncate">{node.name}</span>
             {actions && (
                 <span className="flex items-center pr-1">
@@ -314,11 +313,11 @@ export default function FileExplorer({
             onDragLeave={(e) => { if (e.currentTarget === e.target) setIsDragOver(false); }}
             onDrop={onDrop}
         >
-            <input ref={fileInputRef} type="file" multiple accept="image/*,.svg,.woff,.woff2,.ttf,.otf,.ico,.mp3,.mp4,.webm" style={{ display: 'none' }} onChange={onFilePicked} />
+            <input ref={fileInputRef} type="file" multiple accept="image/*,.svg,.woff,.woff2,.ttf,.otf,.ico,.mp3,.mp4,.webm" className="[display:none]" onChange={onFilePicked} />
 
             {/* Explorer header + toolbar */}
             <div className="flex items-center justify-between px-3 py-1.5">
-                <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: 'var(--vsc-fg-muted)', letterSpacing: '0.1em' }}>{t('webpages.explorer.title', 'Explorer')}</span>
+                <span className="text-[10px] font-bold tracking-widest uppercase [color:var(--vsc-fg-muted)]! [letter-spacing:0.1em]">{t('webpages.explorer.title', 'Explorer')}</span>
                 {interactive && (
                     <span className="flex items-center gap-0.5">
                         <ActionIconStatic Icon={FilePlus} title={t('webpages.explorer.new_file', 'New file')} onClick={() => startCreate('file', '')} />
@@ -374,15 +373,14 @@ export default function FileExplorer({
             </div>
 
             {tree.length === 0 && !creating && interactive && (
-                <div className="px-3 py-3 text-[11px]" style={{ color: 'var(--vsc-fg-muted)', opacity: 0.7 }}>
+                <div className="px-3 py-3 text-[11px] [color:var(--vsc-fg-muted)]! [opacity:0.7]">
                     {t('webpages.explorer.empty', 'No extra files yet. Use the buttons above to add a file, folder, or image — or just ask the AI.')}
                 </div>
             )}
 
             {/* Drag-over overlay */}
             {isDragOver && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                     style={{ background: 'color-mix(in srgb, var(--vsc-accent) 12%, transparent)', border: '2px dashed var(--vsc-accent)' }}>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none [background:color-mix(in_srgb,var(--vsc-accent)_12%,transparent)] [border:2px_dashed_var(--vsc-accent)]">
                     <span className="text-[12px] font-medium text-[var(--vsc-accent)]">{t('webpages.explorer.drop_hint', 'Drop images to upload')}</span>
                 </div>
             )}
@@ -390,8 +388,7 @@ export default function FileExplorer({
             {confirmDialog}
             {/* Copy/rename toast */}
             {toast && (
-                <div className="absolute bottom-2 left-2 right-2 px-2 py-1 rounded text-[11px] flex items-center gap-1"
-                     style={{ background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)', border: '1px solid var(--vsc-border)' }}>
+                <div className="absolute bottom-2 left-2 right-2 px-2 py-1 rounded text-[11px] flex items-center gap-1 [background:var(--vsc-editor-bg)] [color:var(--vsc-fg)]! [border:1px_solid_var(--vsc-border)]">
                     <Check size={11} style={{ color: 'var(--vsc-accent)' }} /> {toast}
                 </div>
             )}
@@ -405,8 +402,7 @@ function ActionIconStatic({ Icon, title, onClick }: ActionIconStaticProps) {
             type="button"
             title={title}
             onClick={onClick}
-            className="p-1 rounded transition-colors"
-            style={{ color: 'var(--vsc-fg-muted)' }}
+            className="p-1 rounded transition-colors [color:var(--vsc-fg-muted)]"
             onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--vsc-fg)'; e.currentTarget.style.background = 'var(--vsc-hover-bg)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--vsc-fg-muted)'; e.currentTarget.style.background = 'transparent'; }}
         >

@@ -12,6 +12,7 @@ const { MASK_VALUES } = require('./httpAuth');
 // The shared path grammar (pure, no engine module): how a binding root is read.
 const { scanTemplate, formatPath } = require('./expr');
 const { refHead, findRefPaths, tryParseExpr } = require('../automationModel/refPaths');
+const log = require('../../telemetry/log');
 
 const RUNNER_INTERVAL_MS = 60_000;
 const POLLING_INTERVAL_MS = 30_000;
@@ -171,7 +172,7 @@ function enrichNextcloudError(toolName, err, rawText) {
         err.ncError = { code: c.code, category: c.category, remediation: c.remediation };
         err.errorClass = c.errorClass;
         err.message = `${c.message} — ${c.remediation}`;
-    } catch (_) { /* never let classification break the run */ }
+    } catch (err) { log.debug('never let classification break the run', err); }
     return err;
 }
 

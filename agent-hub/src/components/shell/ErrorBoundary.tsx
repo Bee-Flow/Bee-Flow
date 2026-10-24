@@ -1,6 +1,7 @@
 import React from 'react';
 import { reportClientError } from '../../utils/clientErrorReporter';
 import useTranslation from '../../hooks/useTranslation';
+import { logger } from '../../utils/logger';
 
 /**
  * Two boundaries in one file:
@@ -34,62 +35,33 @@ function RootFallback({ error, info, onReload, onReset }: RootFallbackProps) {
     return (
         <div
             role="alert"
-            style={{
-                minHeight: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '24px',
-                background: 'var(--bg-primary, #fff)',
-                color: 'var(--text-primary, #111)',
-            }}
+            className="min-h-[100vh] [display:flex] [align-items:center] [justify-content:center] [padding:24px] [background:var(--bg-primary,#fff)] [color:var(--text-primary,#111)]"
         >
-            <div style={{ maxWidth: '540px', width: '100%' }}>
-                <div style={{ fontSize: '32px', marginBottom: '8px' }}>⚠️</div>
-                <h1 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '8px' }}>
+            <div className="max-w-[540px] w-[100%]">
+                <div className="[font-size:32px] [margin-bottom:8px]">⚠️</div>
+                <h1 className="[font-size:20px] [font-weight:600] [margin-bottom:8px]">
                     {t('error.something_went_wrong', 'Something went wrong')}
                 </h1>
-                <p style={{ fontSize: '14px', color: 'var(--text-secondary, #555)', marginBottom: '16px' }}>
+                <p className="[font-size:14px] [color:var(--text-secondary,#555)] [margin-bottom:16px]">
                     {t('error.app_crashed', "The app hit an unexpected error and couldn't continue. Reloading usually fixes it.")}
                 </p>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                <div className="[display:flex] [gap:8px] [margin-bottom:16px]">
                     <button
                         onClick={onReload}
-                        style={{
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            background: 'var(--text-primary, #111)',
-                            color: 'var(--bg-primary, #fff)',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            fontWeight: 500,
-                        }}
+                        className="[padding:8px_16px] [border-radius:8px] [background:var(--text-primary,#111)] [color:var(--bg-primary,#fff)] [border:none] [cursor:pointer] [font-size:14px] [font-weight:500]"
                     >
                         {t('error.reload_page', 'Reload page')}
                     </button>
                     <button
                         onClick={onReset}
-                        style={{
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            background: 'transparent',
-                            color: 'var(--text-primary, #111)',
-                            border: '1px solid var(--border-default, #ccc)',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                        }}
+                        className="[padding:8px_16px] [border-radius:8px] [background:transparent] [color:var(--text-primary,#111)] [border:1px_solid_var(--border-default,#ccc)] [cursor:pointer] [font-size:14px]"
                     >
                         {t('error.try_again', 'Try again')}
                     </button>
                 </div>
-                <details style={{ fontSize: '12px', color: 'var(--text-tertiary, #888)' }}>
-                    <summary style={{ cursor: 'pointer' }}>{t('error.details', 'Error details')}</summary>
-                    <pre style={{
-                        marginTop: '8px', padding: '8px',
-                        background: 'var(--bg-tertiary, #f4f4f4)', borderRadius: '4px',
-                        overflow: 'auto', maxHeight: '240px', fontSize: '11px',
-                    }}>
+                <details className="[font-size:12px] [color:var(--text-tertiary,#888)]">
+                    <summary className="[cursor:pointer]">{t('error.details', 'Error details')}</summary>
+                    <pre className="[margin-top:8px] [padding:8px] [background:var(--bg-tertiary,#f4f4f4)] [border-radius:4px] [overflow:auto] max-h-[240px] [font-size:11px]">
                         {String(error?.message || error)}
                         {error?.stack ? `\n\n${error.stack}` : ''}
                         {info?.componentStack ? `\n\nComponent stack:${info.componentStack}` : ''}
@@ -127,7 +99,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     }
 
     handleReload = () => {
-        try { window.location.reload(); } catch (_) { /* ignore */ }
+        try { window.location.reload(); } catch (err) { logger.debug('ignore', err); }
     };
 
     handleReset = () => {
@@ -154,28 +126,14 @@ function MessageFallback({ onCopy }: { onCopy: React.MouseEventHandler<HTMLButto
 
         <div
             role="alert"
-            className="my-2 px-3 py-2 rounded-lg text-sm"
-            style={{
-                background: 'var(--bg-tertiary, rgba(255,0,0,0.05))',
-                border: '1px solid var(--border-default, rgba(255,0,0,0.15))',
-                color: 'var(--text-secondary, #555)',
-            }}
+            className="my-2 px-3 py-2 rounded-lg text-sm [background:var(--bg-tertiary,rgba(255,0,0,0.05))] [border:1px_solid_var(--border-default,rgba(255,0,0,0.15))] [color:var(--text-secondary,#555)]!"
         >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="[display:flex] [align-items:center] [gap:8px]">
                 <span>⚠️</span>
                 <span>{t('error.message_render_failed', 'This message failed to render.')}</span>
                 <button
                     onClick={onCopy}
-                    style={{
-                        marginLeft: 'auto',
-                        fontSize: '11px',
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        background: 'transparent',
-                        border: '1px solid var(--border-default, #ccc)',
-                        cursor: 'pointer',
-                        color: 'inherit',
-                    }}
+                    className="[margin-left:auto] [font-size:11px] [padding:2px_8px] [border-radius:4px] [background:transparent] [border:1px_solid_var(--border-default,#ccc)] [cursor:pointer] [color:inherit]"
                     title={t('error.copy_raw_title', 'Copy raw message JSON')}
                 >
                     {t('error.copy_raw', 'Copy raw')}
@@ -212,7 +170,7 @@ export class MessageErrorBoundary extends React.Component<MessageErrorBoundaryPr
         try {
             const raw = JSON.stringify(this.props.msg || {}, null, 2);
             navigator.clipboard?.writeText(raw);
-        } catch (_) { /* ignore */ }
+        } catch (err) { logger.debug('ignore', err); }
     };
 
     render() {

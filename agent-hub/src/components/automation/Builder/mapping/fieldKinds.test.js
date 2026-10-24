@@ -79,7 +79,7 @@ describe('describeField', () => {
 
     it('uses t() when given, with the English as the fallback argument', () => {
         const seen = [];
-        const t = (key, en, params) => { seen.push(key); return `NL:${en}`; };
+        const t = (key, en) => { seen.push(key); return `NL:${en}`; };
         const d = describeField({ key: 'x', path: 'p', sample: 'hi' }, null, t);
         expect(d.word).toBe('NL:text');
         expect(seen).toContain('automations.kind.text');

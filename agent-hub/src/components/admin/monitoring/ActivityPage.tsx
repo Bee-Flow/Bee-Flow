@@ -56,25 +56,18 @@ export function ActivityPage({ recent, modelCosts, filterSources, filterModels }
     }, [recent]);
 
     return (
-        <div style={{ animation: 'fadeIn 0.3s ease' }}>
+        <div className="[animation:fadeIn_0.3s_ease]">
             <Card>
                 {/* Filter row */}
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div className="[display:flex] [gap:8px] [margin-bottom:14px] [flex-wrap:wrap] [align-items:center]">
                     {/* Search */}
-                    <div style={{
-                        display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 10px',
-                        borderRadius: '8px', background: 'var(--bg-primary, #0f0f1a)',
-                        border: '1px solid var(--border-default, rgba(255,255,255,0.08))', flex: '0 1 200px',
-                    }}>
+                    <div className="[display:flex] [align-items:center] [gap:6px] [padding:5px_10px] [border-radius:8px] [background:var(--bg-primary,#0f0f1a)] [border:1px_solid_var(--border-default,rgba(255,255,255,0.08))] [flex:0_1_200px]">
                         <Search style={{ width: 12, height: 12, color: 'var(--text-muted, #888)' }} />
                         <input
                             value={search}
                             onChange={e => { setSearch(e.target.value); setPageNum(0); }}
                             placeholder={t('admin_monitoring.activity_search', 'Search calls...')}
-                            style={{
-                                background: 'transparent', border: 'none', outline: 'none', fontSize: '12px',
-                                color: 'var(--text-primary, #fff)', width: '100%',
-                            }}
+                            className="[background:transparent] [border:none] [outline:none] [font-size:12px] [color:var(--text-primary,#fff)] w-[100%]"
                         />
                     </div>
 
@@ -104,27 +97,21 @@ export function ActivityPage({ recent, modelCosts, filterSources, filterModels }
                         </select>
                     </div>
 
-                    <div style={{ flex: 1 }} />
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted, #888)' }}>
+                    <div className="[flex:1]" />
+                    <span className="[font-size:11px] [color:var(--text-muted,#888)]">
                         {filtered.length === 1 ? t('admin_monitoring.activity_count_one', '{n} call', { n: filtered.length }) : t('admin_monitoring.activity_count_other', '{n} calls', { n: filtered.length })}
                     </span>
                 </div>
 
                 {/* Table Header */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '110px 1fr 1fr 70px 80px 90px 70px 24px',
-                    gap: '8px', padding: '8px 8px', marginBottom: '2px',
-                    fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-                    letterSpacing: '0.05em', color: 'var(--text-muted, #666)',
-                }}>
+                <div className="[display:grid] [grid-template-columns:110px_1fr_1fr_70px_80px_90px_70px_24px] [gap:8px] [padding:8px_8px] [margin-bottom:2px] [font-size:10px] [font-weight:700] [text-transform:uppercase] [letter-spacing:0.05em] [color:var(--text-muted,#666)]">
                     <span>{t('admin_monitoring.col_time', 'Time')}</span>
                     <span>{t('admin_monitoring.col_source_agent', 'Source / Agent')}</span>
                     <span>{t('admin_monitoring.col_model', 'Model')}</span>
-                    <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_tokens', 'Tokens')}</span>
-                    <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_latency', 'Latency')}</span>
-                    <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_cost', 'Cost')}</span>
-                    <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_type', 'Type')}</span>
+                    <span className="[text-align:right]">{t('admin_monitoring.col_tokens', 'Tokens')}</span>
+                    <span className="[text-align:right]">{t('admin_monitoring.col_latency', 'Latency')}</span>
+                    <span className="[text-align:right]">{t('admin_monitoring.col_cost', 'Cost')}</span>
+                    <span className="[text-align:right]">{t('admin_monitoring.col_type', 'Type')}</span>
                     <span></span>
                 </div>
 
@@ -148,13 +135,13 @@ export function ActivityPage({ recent, modelCosts, filterSources, filterModels }
                                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary, rgba(255,255,255,0.05))'}
                                 onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'var(--bg-tertiary, rgba(255,255,255,0.02))'}
                             >
-                                <span style={{ fontSize: '11px', color: 'var(--text-muted, #888)' }}>
+                                <span className="[font-size:11px] [color:var(--text-muted,#888)]">
                                     {fmtTime(r.created_at)}
                                 </span>
-                                <div style={{ overflow: 'hidden' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <div className="[overflow:hidden]">
+                                    <div className="[display:flex] [align-items:center] [gap:5px]">
                                         <src.icon style={{ width: 12, height: 12, color: src.color, flexShrink: 0 }} />
-                                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary, #fff)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <span className="[font-size:12px] [font-weight:600] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">
                                             {r.agent_name || src.label}
                                         </span>
                                     </div>
@@ -165,7 +152,7 @@ export function ActivityPage({ recent, modelCosts, filterSources, filterModels }
                                 <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.green, textAlign: 'right' }}>
                                     {fmt(r.total_tokens)}
                                 </span>
-                                <span style={{ fontSize: '11px', color: 'var(--text-muted, #888)', textAlign: 'right' }}>
+                                <span className="[font-size:11px] [color:var(--text-muted,#888)] [text-align:right]">
                                     {fmtDuration(r.duration_ms)}
                                 </span>
                                 <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.amber, textAlign: 'right' }}>
@@ -188,12 +175,7 @@ export function ActivityPage({ recent, modelCosts, filterSources, filterModels }
 
                             {/* Expanded detail */}
                             {isExpanded && (
-                                <div style={{
-                                    padding: '8px 16px 12px 32px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
-                                    gap: '10px', background: 'var(--bg-tertiary, rgba(255,255,255,0.02))',
-                                    borderRadius: '0 0 8px 8px', marginBottom: '4px',
-                                    fontSize: '11px',
-                                }}>
+                                <div className="[padding:8px_16px_12px_32px] [display:grid] [grid-template-columns:1fr_1fr_1fr] [gap:10px] [background:var(--bg-tertiary,rgba(255,255,255,0.02))] [border-radius:0_0_8px_8px] [margin-bottom:4px] [font-size:11px]">
                                     <DetailItem label={t('admin_monitoring.activity_detail_prompt_tokens', 'Prompt Tokens')} value={fmt(r.prompt_tokens)} color={COLORS.blue} />
                                     <DetailItem label={t('admin_monitoring.activity_detail_completion_tokens', 'Completion Tokens')} value={fmt(r.completion_tokens)} color={COLORS.amber} />
                                     <DetailItem label={t('admin_monitoring.activity_detail_total_tokens', 'Total Tokens')} value={fmt(r.total_tokens)} color={COLORS.green} />
@@ -212,9 +194,9 @@ export function ActivityPage({ recent, modelCosts, filterSources, filterModels }
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '14px', alignItems: 'center' }}>
+                    <div className="[display:flex] [justify-content:center] [gap:6px] [margin-top:14px] [align-items:center]">
                         <button onClick={() => setPageNum(p => Math.max(0, p - 1))} disabled={pageNum === 0} style={paginationBtn}>←</button>
-                        <span style={{ fontSize: '12px', color: 'var(--text-muted, #888)', padding: '0 8px' }}>
+                        <span className="[font-size:12px] [color:var(--text-muted,#888)] [padding:0_8px]">
                             {pageNum + 1} / {totalPages}
                         </span>
                         <button onClick={() => setPageNum(p => Math.min(totalPages - 1, p + 1))} disabled={pageNum >= totalPages - 1} style={paginationBtn}>→</button>
@@ -234,7 +216,7 @@ interface DetailItemProps {
 function DetailItem({ label, value, color }: DetailItemProps) {
     return (
         <div>
-            <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted, #888)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' }}>{label}</div>
+            <div className="[font-size:10px] [font-weight:600] [color:var(--text-muted,#888)] [text-transform:uppercase] [letter-spacing:0.04em] [margin-bottom:2px]">{label}</div>
             <div style={{ fontSize: '12px', fontWeight: 600, color: color || 'var(--text-primary, #fff)', wordBreak: 'break-all' }}>{value}</div>
         </div>
     );

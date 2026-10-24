@@ -27,6 +27,7 @@ const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
 const { z, typeError } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
+const log = require('../telemetry/log');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -167,7 +168,7 @@ router.post('/reset', requireAuth, validate({ body: NoBody }), async (req, res) 
 function _invalidateGuardCache(userId) {
     try {
         require('../core/integrations/ncScopeGuard').invalidateScopeCache(userId);
-    } catch (_) { /* guard cache is 15s anyway */ }
+    } catch (err) { log.debug('guard cache is 15s anyway', err); }
 }
 
 // ── Resource discovery for the pickers ──────────────────────────────────────

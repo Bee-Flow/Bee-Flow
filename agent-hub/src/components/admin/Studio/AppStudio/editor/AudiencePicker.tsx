@@ -262,7 +262,7 @@ function GroupPicker({ directory, selectedGroups, onToggle, incomplete }: { dire
                 </ul>
             )}
             {incomplete && directory.groups.length > 0 ? (
-                <p className="mt-2 text-xs" style={{ color: '#b45309' }}>
+                <p className="mt-2 text-xs [color:#b45309]!">
                     {t('studio_apps_edit.audience.select_one', 'Select at least one group, or choose a different audience.')}
                 </p>
             ) : null}

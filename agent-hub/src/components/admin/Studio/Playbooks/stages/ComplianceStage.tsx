@@ -235,7 +235,7 @@ export default function ComplianceStage({ playbook = null, phase, dispatch, t, p
                 </>
             )}
             actions={onNavigate ? (
-                <button type="button" onClick={() => onNavigate(CENTER_PATH)} className="inline-flex items-center gap-1 text-[11px] font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" style={{ color: 'var(--type-ai)', outlineColor: 'var(--accent-primary)' }} data-testid="playbook-compliance-open">
+                <button type="button" onClick={() => onNavigate(CENTER_PATH)} className="inline-flex items-center gap-1 text-[11px] font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [color:var(--type-ai)]! [outline-color:var(--accent-primary)]!" data-testid="playbook-compliance-open">
                     {t('playbooks.compliance.open_center', 'Compliance Center')}<ExternalLink className="w-3 h-3" aria-hidden="true" />
                 </button>
             ) : null}
@@ -284,7 +284,7 @@ export default function ComplianceStage({ playbook = null, phase, dispatch, t, p
                                     </p>
                                 )}
                                 {art.modelFailed && (
-                                    <p className="mt-1" style={{ fontSize: 11, color: 'var(--text-tertiary)' }} data-testid="playbook-compliance-model-note">
+                                    <p className="mt-1 [font-size:11px] [color:var(--text-tertiary)]" data-testid="playbook-compliance-model-note">
                                         {t('playbooks.compliance.model_note', 'The AI reviewer could not be reached — what you see is what the rules alone found.')}
                                     </p>
                                 )}
@@ -293,8 +293,7 @@ export default function ComplianceStage({ playbook = null, phase, dispatch, t, p
                                 type="button"
                                 onClick={recheck}
                                 disabled={rechecking}
-                                className="shrink-0 inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-medium disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                                style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-default)', outlineColor: 'var(--accent-primary)' }}
+                                className="shrink-0 inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-medium disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [color:var(--text-secondary)]! [border:1px_solid_var(--border-default)] [outline-color:var(--accent-primary)]!"
                                 data-testid="playbook-compliance-recheck"
                             >
                                 {rechecking
@@ -324,8 +323,7 @@ export default function ComplianceStage({ playbook = null, phase, dispatch, t, p
                         <button
                             type="button"
                             onClick={() => setShowLow((v) => !v)}
-                            className="inline-flex items-center gap-1.5 text-[11px] font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                            style={{ color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}
+                            className="inline-flex items-center gap-1.5 text-[11px] font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!"
                             aria-expanded={showLow}
                             data-testid="playbook-compliance-notes-toggle"
                         >

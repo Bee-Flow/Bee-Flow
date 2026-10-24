@@ -89,8 +89,7 @@ export default function SkillsOverview({
             <div className="flex-1 min-h-0 overflow-y-auto">
                 <div
                     role="row"
-                    className="grid gap-3 px-4 py-2 border-b border-[var(--border-default)] text-[10px] uppercase tracking-[.08em] font-semibold text-[var(--text-tertiary)]"
-                    style={{ gridTemplateColumns: '1fr 130px 150px 110px' }}
+                    className="grid gap-3 px-4 py-2 border-b border-[var(--border-default)] text-[10px] uppercase tracking-[.08em] font-semibold text-[var(--text-tertiary)] [grid-template-columns:1fr_130px_150px_110px]"
                 >
                     <span>{t('skills_studio.overview.col_skill', 'Skill')}</span>
                     <span>{t('skills_studio.overview.col_usedby', 'Used by')}</span>
@@ -110,8 +109,7 @@ export default function SkillsOverview({
                     <p
                         role="status"
                         data-testid="skills-overview-error"
-                        className="text-xs px-4 py-6 m-0"
-                        style={{ color: 'var(--warning-ink, var(--warning))' }}
+                        className="text-xs px-4 py-6 m-0 [color:var(--warning-ink,var(--warning))]!"
                     >
                         {t('skills_studio.err_list', 'Could not load the skills.')}
                     </p>
@@ -231,8 +229,7 @@ function OverviewRow({ skill, summary, onOpen, onImprove, rel, t }: OverviewRowP
             role="row"
             data-testid="skills-overview-row"
             data-skill-id={skill.id}
-            className="grid gap-3 items-center px-4 py-2.5 border-b border-[var(--border-default)] hover:bg-[var(--bg-secondary)] transition"
-            style={{ gridTemplateColumns: '1fr 130px 150px 110px' }}
+            className="grid gap-3 items-center px-4 py-2.5 border-b border-[var(--border-default)] hover:bg-[var(--bg-secondary)] transition [grid-template-columns:1fr_130px_150px_110px]"
         >
             <button
                 type="button"

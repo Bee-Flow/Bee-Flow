@@ -82,7 +82,7 @@ const StepTiers = ({ tierConfig, updateTier, euTierConfig, updateEuTier, isAzure
                 <div className="flex items-center gap-2 mb-1">
                     <span className="text-lg">🇪🇺</span>
                     <span className="text-sm font-semibold text-[var(--text-primary)]">{t('init_setup.step_tiers_eu_chat_model_tiers', 'EU Chat Model Tiers')}</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,51,153,0.1)', color: '#003399' }}>{t('init_setup.step_tiers_optional', 'Optional')}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full [background:rgba(0,51,153,0.1)] [color:#003399]!">{t('init_setup.step_tiers_optional', 'Optional')}</span>
                 </div>
                 <p className="text-xs text-[var(--text-muted)]">
                     {t('init_setup.step_tiers_eu_hosted_models_for_organizations', 'EU-hosted models for organizations with EU privacy mode enabled.')}

@@ -9,6 +9,7 @@ import { FormRichText } from './fields/FormRichText';
 import { valuesWithPrefill } from './prefill';
 import { collectErrors, fieldError, groupBlocks, initialValues, isDisplayField, submissionValues, typicalDurationText, visibleNames } from './formRules';
 import type { FormErrorHandler, FormEndingViewProps, FormExportBarProps, FormFieldDef, FormValue, FormValues, FormWaitingViewProps, PublicFormRendererProps, SubmitError } from './PublicFormRenderer.types';
+import { logger } from '../../utils/logger';
 
 // The importers reach these through this module.
 export { FormRichText, initialValues };
@@ -54,7 +55,7 @@ function fieldErrorsOf(err: unknown): Record<string, string> | null {
 export default function PublicFormRenderer({ form, onSubmit = null, onUpload = null, onSearchApp = null, preview = false, showSuccess = true, downloadHref = null, onOpenInNotebooks = null, prefill = null }: PublicFormRendererProps) {
     const { t } = useTranslation();
     const fields = useMemo(() => form?.fields || [], [form?.fields]);
-    const theme = form?.theme || {};
+    const theme = useMemo(() => form?.theme || {}, [form?.theme]);
     const [values, setValues] = useState<FormValues>(() => valuesWithPrefill(fields, prefill));
     const [errors, setErrors] = useState<Record<string, string | null>>({});
     // A new set of saved answers (picking a scenario) fills the form again.
@@ -150,8 +151,7 @@ export default function PublicFormRenderer({ form, onSubmit = null, onUpload = n
             className="w-full flex flex-col"
         >
             <div
-                className="border px-6 py-6 flex flex-col gap-5"
-                style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', background: 'var(--bg-card, var(--bg-secondary))' }}
+                className="border px-6 py-6 flex flex-col gap-5 [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:var(--bg-card,var(--bg-secondary))]"
             >
                 <header className="flex flex-col gap-1.5">
                     <h1 className="text-xl font-semibold text-[var(--text-primary)]">{form.title}</h1>
@@ -177,20 +177,19 @@ export default function PublicFormRenderer({ form, onSubmit = null, onUpload = n
 
                 {/* Honeypot — hidden from people AND from assistive tech, so
                     only an indiscriminate bot fills it in. */}
-                <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, overflow: 'hidden' }}>
+                <div aria-hidden="true" className="[position:absolute] [left:-9999px] w-[1px] h-[1px] [overflow:hidden]">
                     <label htmlFor="website_url">{t('forms.honeypot_label', 'Leave this field empty')}</label>
                     <input id="website_url" name="website_url" type="text" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHoneypot(e.target.value)} />
                 </div>
 
                 {formError ? (
-                    <p className="text-sm" role="alert" style={{ color: '#ef4444' }}>{formError}</p>
+                    <p className="text-sm [color:#ef4444]!" role="alert">{formError}</p>
                 ) : null}
 
                 <button
                     type="submit"
                     disabled={preview || busy}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium disabled:opacity-60"
-                    style={{ background: 'var(--app-primary)', color: 'var(--app-primary-contrast)', borderRadius: 'var(--app-radius)' }}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium disabled:opacity-60 [background:var(--app-primary)] [color:var(--app-primary-contrast)]! [border-radius:var(--app-radius)]"
                 >
                     {busy ? <Loader2 size={15} className="animate-spin" /> : null}
                     {form.submitLabel}
@@ -243,21 +242,14 @@ export function FormWaitingView({ theme = null, progress = null, note = null, la
         <div style={style} className="w-full" data-testid="form-waiting" role="status" aria-live="polite">
             <style>{WAITING_KEYFRAMES}</style>
             <div
-                className="flex flex-col gap-4 px-6 py-8 border"
-                style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', background: 'var(--bg-card, var(--bg-secondary))' }}
+                className="flex flex-col gap-4 px-6 py-8 border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:var(--bg-card,var(--bg-secondary))]"
             >
                 <div className="flex items-start gap-4">
                     {/* A ring rather than a bare spinner: it reads as a process
                         that is running, not as a page that failed to load. */}
                     <span
                         aria-hidden="true"
-                        className="flex-shrink-0 mt-0.5"
-                        style={{
-                            width: 34, height: 34, borderRadius: '999px',
-                            border: '2px solid var(--app-primary-soft)',
-                            borderTopColor: 'var(--app-primary)',
-                            animation: 'bf-form-spin 900ms linear infinite',
-                        }}
+                        className="flex-shrink-0 mt-0.5 w-[34px] h-[34px] [border-radius:999px] [border:2px_solid_var(--app-primary-soft)] [border-top-color:var(--app-primary)] [animation:bf-form-spin_900ms_linear_infinite]"
                     />
                     <div className="min-w-0 flex flex-col gap-1">
                         {context.length ? (
@@ -292,15 +284,10 @@ export function FormWaitingView({ theme = null, progress = null, note = null, la
                     along it is — a percentage here would be a lie. */}
                 <span
                     aria-hidden="true"
-                    className="block w-full overflow-hidden"
-                    style={{ height: 3, borderRadius: 999, background: 'var(--app-primary-soft)' }}
+                    className="block w-full overflow-hidden h-[3px] [border-radius:999px] [background:var(--app-primary-soft)]"
                 >
                     <span
-                        className="block h-full"
-                        style={{
-                            width: '38%', borderRadius: 999, background: 'var(--app-primary)',
-                            animation: 'bf-form-sweep 1.6s ease-in-out infinite',
-                        }}
+                        className="block h-full w-[38%] [border-radius:999px] [background:var(--app-primary)] [animation:bf-form-sweep_1.6s_ease-in-out_infinite]"
                     />
                 </span>
             </div>
@@ -373,10 +360,7 @@ function FormExportBar({ text, title, onDownloadAs, onSaveToNotebook, onSaveAsWe
             await navigator.clipboard.writeText(text);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
-        } catch {
-            // Denied permission or an insecure context — there is nothing
-            // useful to do beyond leaving the button as it was.
-        }
+        } catch (err) { logger.debug('Denied permission or an insecure context — there is nothing useful to do beyond leaving the button as it was.', err); }
     };
 
     /**

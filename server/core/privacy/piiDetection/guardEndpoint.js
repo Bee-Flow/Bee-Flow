@@ -5,6 +5,7 @@
  */
 
 const configStore = require('../../../stores/configStore');
+const log = require('../../../telemetry/log');
 
 // ── Guard service endpoint resolution ────────────────────────────────────
 // Resolved at request time so an admin installing the guard from the
@@ -29,7 +30,7 @@ async function getGuardEndpoint() {
         if (url) {
             apiKey = await configStore.getSecret('pii_guard_api_key') || '';
         }
-    } catch (_) { /* fall through to env */ }
+    } catch (err) { log.debug('fall through to env', err); }
     if (!url) {
         url = process.env.PII_SERVICE_URL || null;
         apiKey = process.env.PII_SERVICE_API_KEY || process.env.SERVICES_API_KEY || '';

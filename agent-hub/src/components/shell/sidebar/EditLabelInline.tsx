@@ -40,9 +40,8 @@ const EditLabelInline = ({ label, onSave, onCancel, t }: EditLabelInlineProps) =
                     type="color"
                     value={color}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setColor(e.target.value)}
-                    className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent"
+                    className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent [-webkit-appearance:none]"
                     title={t('sidebar.pick_color', 'Pick a color')}
-                    style={{ WebkitAppearance: 'none' }}
                 />
                 <input
                     ref={inputRef}

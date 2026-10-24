@@ -101,8 +101,7 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
                                             build on it. */}
                                         {tpl.source === 'captured' ? (
                                             <span
-                                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium shrink-0"
-                                                style={{ background: 'color-mix(in srgb, var(--accent-primary) 12%, transparent)', color: 'var(--accent-primary)' }}
+                                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium shrink-0 [background:color-mix(in_srgb,var(--accent-primary)_12%,transparent)] [color:var(--accent-primary)]!"
                                                 title={(tpl.version ?? 0) > 1
                                                     ? t('studio_apps_bi.list.own_title_version', 'Made from one of your own apps — version {version}', { version: tpl.version })
                                                     : t('studio_apps_bi.list.own_title', 'Made from one of your own apps')}

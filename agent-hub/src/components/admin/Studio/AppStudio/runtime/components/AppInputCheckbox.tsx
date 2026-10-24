@@ -43,12 +43,11 @@ export default function AppInputCheckbox({ node }: NodeProps<CheckboxProps>) {
                     aria-required={required || undefined}
                     aria-invalid={error ? true : undefined}
                     aria-describedby={error ? `${id}-error` : undefined}
-                    className="h-4 w-4"
-                    style={{ accentColor: 'var(--app-primary)' }}
+                    className="h-4 w-4 [accent-color:var(--app-primary)]"
                 />
                 <span>
                     {label}
-                    {required ? <span aria-hidden="true" style={{ color: 'var(--error)' }}> *</span> : null}
+                    {required ? <span aria-hidden="true" className="[color:var(--error)]"> *</span> : null}
                 </span>
             </label>
         </Field>

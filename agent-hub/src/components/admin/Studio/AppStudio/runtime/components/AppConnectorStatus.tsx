@@ -207,8 +207,7 @@ export default function AppConnectorStatus({ node }: AppConnectorStatusProps) {
                         type="button"
                         onClick={refresh}
                         disabled={syncing}
-                        className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm disabled:opacity-60"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                        className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm disabled:opacity-60 [border-color:var(--border-default)] [color:var(--text-primary)]!"
                     >
                         <RefreshCw className={`w-3.5 h-3.5${syncing ? ' animate-spin' : ''}`} aria-hidden="true" />
                         {t('studio_apps_runtime.connector.check_now', 'Check now')}

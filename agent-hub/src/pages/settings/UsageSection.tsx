@@ -17,6 +17,7 @@ import RangeControl, { defaultRange } from './usage/RangeControl';
 import OverviewTab from './usage/OverviewTab';
 import type { StarterModel } from '../../components/admin/ai-config/ProviderCards/local/runtimeTypes';
 import type { DropdownOption } from './PreferencesSection.types';
+import { logger } from '../../utils/logger';
 
 /* ── Report tabs ─────────────────────────────────────────────────────────── */
 // Safety & Integrations moved to Settings → Organisation → Privacy Shield →
@@ -36,7 +37,7 @@ interface ReportTabBarProps {
 }
 
 const ReportTabBar = ({ active, onChange, t: translate, tabs = REPORT_TABS }: ReportTabBarProps) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4, borderBottom: '1px solid var(--border-default, var(--border-subtle))' }}>
+    <div className="[display:flex] [align-items:center] [gap:4px] [border-bottom:1px_solid_var(--border-default,var(--border-subtle))]">
         {tabs.map(tab => {
             const Icon = tab.icon;
             const isActive = active === tab.id;
@@ -67,7 +68,7 @@ interface FilterPillProps {
 }
 
 const FilterPill = ({ icon: Icon, value, onChange, options, placeholder }: FilterPillProps) => (
-    <div style={{ position: 'relative' }}>
+    <div className="[position:relative]">
         <div style={{
             display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 8,
             background: value ? 'var(--accent-primary)' : 'var(--bg-primary)',
@@ -75,10 +76,7 @@ const FilterPill = ({ icon: Icon, value, onChange, options, placeholder }: Filte
             fontSize: 12, fontWeight: 500, color: value ? '#fff' : 'var(--text-secondary)', transition: 'all 0.15s ease',
         }}>
             {Icon && <Icon style={{ width: 12, height: 12, flexShrink: 0 }} />}
-            <select value={value || ''} onChange={(e) => onChange(e.target.value || null)} style={{
-                background: 'transparent', border: 'none', outline: 'none', color: 'inherit', fontSize: 12, fontWeight: 500,
-                cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', minWidth: 60, paddingRight: 14,
-            }}>
+            <select value={value || ''} onChange={(e) => onChange(e.target.value || null)} className="[background:transparent] [border:none] [outline:none] [color:inherit] [font-size:12px] [font-weight:500] [cursor:pointer] [appearance:none] [-webkit-appearance:none] min-w-[60px] [padding-right:14px]">
                 <option value="">{placeholder}</option>
                 {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
@@ -134,13 +132,13 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
     const [activeReport, setActiveReport] = useState(() =>
         REPORT_TABS.some(tab => tab.id === initialReport) ? initialReport : 'overview');
 
-    useEffect(() => {
+    const [prevInitialReport, setPrevInitialReport] = useState(initialReport);
+    if (prevInitialReport !== initialReport) {
+        setPrevInitialReport(initialReport);
         if (initialReport && REPORT_TABS.some(tab => tab.id === initialReport)) setActiveReport(initialReport);
-    }, [initialReport]);
+    }
 
-    useEffect(() => {
-        if (!canSeeAdvancedUsage && activeReport !== 'overview') setActiveReport('overview');
-    }, [canSeeAdvancedUsage, activeReport]);
+    if (!canSeeAdvancedUsage && activeReport !== 'overview') setActiveReport('overview');
 
     // Subscription (customer-view header: plan, billing, cost cap).
     const [subscription, setSubscription] = useState<Record<string, unknown> | null>(null);
@@ -157,7 +155,7 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
                 if (!subRes.ok) return;
                 const sub = await subRes.json();
                 if (!cancelled) setSubscription(sub);
-            } catch (_) { /* non-fatal */ }
+            } catch (err) { logger.debug('non-fatal', err); }
         })();
         return () => { cancelled = true; };
     }, []);
@@ -179,7 +177,7 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
                     setModelTierMap(buildModelTierMap(tiers));
                     setModelTiers(tiers && typeof tiers === 'object' ? tiers : {});
                 }
-            } catch (_) { /* non-fatal — falls back to model-only badges */ }
+            } catch (err) { logger.debug('non-fatal — falls back to model-only badges', err); }
         })();
         return () => { cancelled = true; };
     }, []);
@@ -268,7 +266,7 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
     const isPanelTab = activeReport === 'feedback' || activeReport === 'terminations';
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 24 }}>
+        <div className="[display:flex] [flex-direction:column] [gap:16px] [padding-bottom:24px]">
             {/* Page header + global range control */}
             <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="min-w-0 flex-1">
@@ -285,9 +283,9 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
                 display: isPanelTab ? 'none' : 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
                 padding: '6px 10px', borderRadius: 10, background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)',
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginRight: 2 }}>
+                <div className="[display:flex] [align-items:center] [gap:4px] [margin-right:2px]">
                     <Filter style={{ width: 12, height: 12, color: 'var(--text-muted)' }} />
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('usage.filters')}</span>
+                    <span className="[font-size:10px] [font-weight:700] [color:var(--text-muted)] [text-transform:uppercase] [letter-spacing:0.05em]">{t('usage.filters')}</span>
                 </div>
                 <FilterPill icon={Users} value={filterUser} onChange={setFilterUser} options={userOptions} placeholder={t('usage.all_users')} />
                 <FilterPill icon={Bot} value={filterAgent} onChange={setFilterAgent} options={agentOptions} placeholder={t('usage.all_agents')} />
@@ -297,18 +295,18 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
                 )}
                 <FilterPill icon={Activity} value={filterSource} onChange={setFilterSource} options={sourceOptions} placeholder={t('usage.all_sources')} />
                 {hasFilters && (
-                    <button onClick={clearFilters} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 6, border: 'none', background: 'var(--bg-tertiary)', fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', cursor: 'pointer' }}>
+                    <button onClick={clearFilters} className="[display:flex] [align-items:center] [gap:4px] [padding:4px_8px] [border-radius:6px] [border:none] [background:var(--bg-tertiary)] [font-size:10px] [font-weight:600] [color:var(--text-muted)] [cursor:pointer]">
                         <X style={{ width: 10, height: 10 }} /> {t('usage.clear')}
                     </button>
                 )}
             </div>
 
             {loading && !isPanelTab ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
-                        {[1, 2, 3, 4].map(i => <div key={i} style={{ height: 80, borderRadius: 12, background: 'var(--bg-tertiary)', animation: 'pulse 1.5s ease-in-out infinite' }} />)}
+                <div className="[display:flex] [flex-direction:column] [gap:12px]">
+                    <div className="[display:grid] [grid-template-columns:repeat(4,1fr)] [gap:10px]">
+                        {[1, 2, 3, 4].map(i => <div key={i} className="h-[80px] [border-radius:12px] [background:var(--bg-tertiary)] [animation:pulse_1.5s_ease-in-out_infinite]" />)}
                     </div>
-                    <div style={{ height: 90, borderRadius: 12, background: 'var(--bg-tertiary)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                    <div className="h-[90px] [border-radius:12px] [background:var(--bg-tertiary)] [animation:pulse_1.5s_ease-in-out_infinite]" />
                 </div>
             ) : (
                 <>

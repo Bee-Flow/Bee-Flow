@@ -4,6 +4,7 @@
  * automation film expects the app film to be in the same mode.
  */
 import scopedStorage from '../../../utils/scopedStorage';
+import { logger } from '../../../utils/logger';
 
 export const PRESENTER_KEY = 'automations.canvas.presenter';
 
@@ -18,9 +19,7 @@ export function readPresenter(): boolean {
 export function writePresenter(on: boolean): void {
     try {
         scopedStorage.setItem(PRESENTER_KEY, on ? '1' : '0');
-    } catch {
-        // Storage refused — the toggle still holds for this session.
-    }
+    } catch (err) { logger.debug('Storage refused — the toggle still holds for this session.', err); }
     notifyPresenter(on);
 }
 
@@ -36,5 +35,5 @@ export function subscribePresenter(cb: EventListener): () => void {
 
 export function notifyPresenter(on: boolean): void {
     if (typeof window === 'undefined') return;
-    try { window.dispatchEvent(new CustomEvent(PRESENTER_EVENT, { detail: !!on })); } catch { /* no CustomEvent — nothing listens */ }
+    try { window.dispatchEvent(new CustomEvent(PRESENTER_EVENT, { detail: !!on })); } catch (err) { logger.debug('no CustomEvent — nothing listens', err); }
 }

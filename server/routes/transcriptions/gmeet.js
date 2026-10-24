@@ -56,7 +56,7 @@ async function resolveGmeetSession(req) {
     try {
         const automationCredentialStore = require('../../stores/automationCredentialStore');
         cred = await automationCredentialStore.getCredential(userId, 'google');
-    } catch (_) { /* vault unavailable → session-only */ }
+    } catch (err) { log.debug('vault unavailable → session-only', err); }
     const connection = deriveConnectionStatus({ session: req.session, credential: cred });
 
     if (req.session.oauthProvider === 'google' && req.session.accessToken) {
@@ -156,7 +156,7 @@ router.get('/gmeet-meetings', requireAuth, validate({ query: NO_QUERY }), async 
         try {
             const t = await transcriptionStore.getTranscriptionByMeetMeetingCode(m.meetingCode, userId);
             if (t) importedNoteId = t.id;
-        } catch (_) { /* ignore */ }
+        } catch (err) { log.debug('ignore', err); }
 
         let status;
         if (importedNoteId) status = 'imported';
@@ -310,12 +310,12 @@ router.get('/gmeet-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
                 if (rec.recordingName) recordingState = 'available';
                 else if (rec.notReady) recordingState = 'processing';
             }
-        } catch (_) { /* best-effort — leave 'none' */ }
+        } catch (err) { log.debug('best-effort — leave \'none\'', err); }
         let importedNoteId = null;
         try {
             const t = await transcriptionStore.getTranscriptionByMeetMeetingCode(m.meetingCode, userId);
             if (t) importedNoteId = t.id;
-        } catch (_) { /* ignore */ }
+        } catch (err) { log.debug('ignore', err); }
         items.push({
             eventId: m.eventId,
             meetingCode: m.meetingCode,
@@ -362,7 +362,7 @@ router.post('/from-gmeet', requireAuth, validate({ body: FromGmeetBody, query: N
         try {
             const recent = await listRecentlyEndedMeetMeetings({ session, lookbackHours: 24 * 7 });
             meeting = recent.find(m => (event_id && m.eventId === event_id) || (meetingCode && m.meetingCode === meetingCode)) || null;
-        } catch (_) { /* best-effort — a code-only import can still proceed */ }
+        } catch (err) { log.debug('best-effort — a code-only import can still proceed', err); }
         if (meeting && !meetingCode) meetingCode = meeting.meetingCode;
         if (!meetingCode) {
             const e = gmeetError('Provide a Google Meet link, meeting code or calendar event id of a recently ended meeting', 'bad_request');

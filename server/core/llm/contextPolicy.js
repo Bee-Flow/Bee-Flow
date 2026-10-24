@@ -30,7 +30,7 @@
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
 
-const CONFIG_KEY_PREFIX = 'org_ai_context_';
+const { AI_CONTEXT_CONFIG_KEY_PREFIX: CONFIG_KEY_PREFIX } = require('../../stores/lib/orgConfigKeyPrefixes');
 const CACHE_TTL_MS = 30_000;
 
 /**

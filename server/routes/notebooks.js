@@ -209,7 +209,7 @@ router.delete('/:id/conversation', requireAuth, asViewer, async (req, res) => {
     // member's private chat, and one person starting over must not leave
     // the others' histories unreadable.
     if (!req.notebook.projectId) {
-        try { require('../core/dlp/dlpRunner').clearConversationState(req.params.id); } catch (_) { /* best-effort */ }
+        try { require('../core/dlp/dlpRunner').clearConversationState(req.params.id); } catch (err) { log.debug('best-effort', err); }
     }
     res.json({ success: true });
 });
@@ -335,7 +335,7 @@ router.delete('/:id', requireAuth, asOwner, async (req, res) => {
     log.info(`[Notebooks] deleted ${req.params.id} (${result.sources} sources, ${result.kbs} auto-KBs)`);
     // Drop the in-process PII token map (the row's pii_token_map goes away with
     // the cascading notebook delete; this clears the cached copy + flag).
-    try { require('../core/dlp/dlpRunner').clearConversationState(req.params.id); } catch (_) { /* best-effort */ }
+    try { require('../core/dlp/dlpRunner').clearConversationState(req.params.id); } catch (err) { log.debug('best-effort', err); }
 
     res.json({ success: true });
 });

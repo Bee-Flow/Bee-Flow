@@ -206,7 +206,7 @@ async function resolveSharedWith(ownerId, attendees) {
     }
 }
 
-function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) {} }
+function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) { log.debug('file already gone', _); } }
 
 module.exports = {
     ingestGmeetRecording,

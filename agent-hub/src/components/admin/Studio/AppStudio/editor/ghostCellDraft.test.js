@@ -31,7 +31,7 @@ describe('projectGhostCell', () => {
         // Not typed yet, or an id nobody has: the active screen's last section.
         expect(projectGhostCell({ ...open, parentId: null }, DEF, 'scr_a').sectionId).toBe('sec_a2');
         expect(projectGhostCell({ ...open, parentId: 'cmp_unknown' }, DEF, 'scr_a').sectionId).toBe('sec_a2');
-        const t = (key, en, params) => `⟦${key}⟧`;
+        const t = (key) => `⟦${key}⟧`;
         expect(projectGhostCell(open, DEF, 'scr_a', t).caption).toBe('⟦app_studio.builder.draft.typing⟧');
     });
 

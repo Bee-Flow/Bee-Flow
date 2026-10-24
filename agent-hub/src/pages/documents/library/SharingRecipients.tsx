@@ -23,14 +23,16 @@ export default function SharingRecipients({ value, directory, loading, pending, 
     const [tab, setTab] = useState<Tab>('groups');
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(0);
+    const { sharedGroups, sharedUserIds } = value;
     const entries = useMemo(() => (['groups', 'users'] as const).flatMap((kind): Recipient[] => {
         const field = kind === 'groups' ? 'sharedGroups' : 'sharedUserIds';
-        const selected = new Set(value[field]);
+        const keys = field === 'sharedGroups' ? sharedGroups : sharedUserIds;
+        const selected = new Set(keys);
         const available = directory?.[kind] || [];
         const known = new Set(available.map((p) => p.id));
-        const missing = loading ? [] : value[field].filter((key) => !known.has(key)).map((key) => ({ id: key, name: t('documents.sharing.unavailable', 'Unavailable ({id})', { id: key }) }));
+        const missing = loading ? [] : keys.filter((key) => !known.has(key)).map((key) => ({ id: key, name: t('documents.sharing.unavailable', 'Unavailable ({id})', { id: key }) }));
         return [...available, ...missing].map((p) => ({ ...p, kind, field, selected: selected.has(p.id) }));
-    }), [directory, value.sharedGroups, value.sharedUserIds, loading, t]);
+    }), [directory, sharedGroups, sharedUserIds, loading, t]);
     const selected = entries.filter((p) => p.selected);
     const query = search.trim().toLocaleLowerCase();
     const results = entries.filter((p) => (tab === 'selected' ? p.selected : p.kind === tab) && p.name.toLocaleLowerCase().includes(query));

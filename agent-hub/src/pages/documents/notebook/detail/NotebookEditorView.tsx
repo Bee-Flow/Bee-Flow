@@ -9,7 +9,7 @@
  * offered. While the notebook is co-edited the page sends no saves of its
  * own: the live session is the save.
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState , useLayoutEffect } from 'react';
 import { BookOpen, History, ListTree, MessagesSquare } from 'lucide-react';
 import RichTextEditorJs from '../../../../editor/react/RichTextEditor.jsx';
 import CollabPresence from '../../../../editor/react/CollabPresence';
@@ -39,6 +39,7 @@ import { isEmptyDocument, useMarkNotebookSeen, useNotebookShortcuts } from './no
 import { useImportFile } from './useImportFile';
 import type { NotebookEditorHandle } from './editorHandle';
 import { errorMessage } from '../../../../utils/caughtError';
+import { logger } from '../../../../utils/logger';
 
 export interface NotebookEditorViewProps {
     data: NotebookDetailData;
@@ -87,7 +88,9 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
     const { modelTiers, selectedTier, setSelectedTier } = useModelTiers();
     const { signRequestConfigured, nextcloudConfigured } = useExportTargets();
     const docRef = useRef(doc.autosave.documentContent);
-    docRef.current = doc.autosave.documentContent;
+    useLayoutEffect(() => {
+        docRef.current = doc.autosave.documentContent;
+    });
 
     const chat = useNotebookChat({
         notebookId: nb.id,
@@ -121,7 +124,7 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
     const openVersions = useCallback(() => {
         // Typing inside the save debounce becomes a save first, so the
         // history (and a restore) starts from what is on screen.
-        try { editorRef.current?.flush?.(); } catch { /* the save path reports */ }
+        try { editorRef.current?.flush?.(); } catch (err) { logger.debug('the save path reports', err); }
         setPanel((p) => (p === 'versions' ? null : 'versions'));
     }, [editorRef]);
     const toggleComments = useCallback(() => {

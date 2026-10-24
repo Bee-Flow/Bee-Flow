@@ -19,7 +19,7 @@
  */
 
 const { run, getOne, getAll } = require('../db');
-const userStore = require('../stores/userStore');
+const { logSubscriptionAudit } = require('../stores/user/audit');
 const log = require('../telemetry/log');
 
 function parseJSON(s, fallback) {
@@ -376,7 +376,7 @@ async function logLicenseAudit(action, targetId, changedBy, oldValues, newValues
         targetId = 'system';
     }
     try {
-        await userStore.logSubscriptionAudit(action, 'license', targetId, changedBy, oldValues, newValues);
+        await logSubscriptionAudit(action, 'license', targetId, changedBy, oldValues, newValues);
     } catch (e) {
         log.error('[License Store] Audit log error:', e.message);
     }

@@ -21,6 +21,7 @@ const { isOrgAdminForOrg: isOrgAdmin } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
 const { worded, choice } = require('../core/http/schemaParts');
+const log = require('../telemetry/log');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -86,7 +87,7 @@ router.get('/user/me', requireAuth, async (req, res) => {
     try {
         const credStore = require('../stores/automationCredentialStore');
         credential = await credStore.getCredential(req.session.user.id, 'google');
-    } catch (_) { /* treat as no stored credential */ }
+    } catch (err) { log.debug('treat as no stored credential', err); }
     const connection = gmeetNotes.deriveConnectionStatus({ session: req.session, credential });
     res.json({ ...config, connection });
 });

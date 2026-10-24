@@ -103,8 +103,7 @@ function Sheet({ open, onClose, title, subtitle, isMobile, children, anchorClass
         return (
             <Modal open onClose={onClose} variant="bare" size="auto" placement="bottom" zIndex={1100} label={title}>
                 <div
-                    className="rounded-t-3xl border-t p-4 pb-6 shadow-2xl max-h-[85vh] overflow-y-auto custom-scrollbar"
-                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)' }}
+                    className="rounded-t-3xl border-t p-4 pb-6 shadow-2xl max-h-[85vh] overflow-y-auto custom-scrollbar [background:var(--bg-primary)] [border-color:var(--border-default)]!"
                 >
                     {body}
                 </div>
@@ -255,8 +254,7 @@ export default function CoworkOptionsBar({
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => onWhenChange({ ...when, presetId: 'custom', date: e.target.value })}
                                 aria-label={t('cowork.when.date_aria', 'Date')}
                                 data-testid="cowork-when-date"
-                                className="px-2.5 py-2 rounded-lg border bg-[var(--bg-card)] text-[12px] text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
-                                style={{ borderColor: 'var(--border-subtle)' }}
+                                className="px-2.5 py-2 rounded-lg border bg-[var(--bg-card)] text-[12px] text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)] [border-color:var(--border-subtle)]!"
                             />
                             <input
                                 type="time"
@@ -264,8 +262,7 @@ export default function CoworkOptionsBar({
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => onWhenChange({ ...when, presetId: 'custom', time: e.target.value })}
                                 aria-label={t('cowork.when.time_aria', 'Time')}
                                 data-testid="cowork-when-time"
-                                className="px-2.5 py-2 rounded-lg border bg-[var(--bg-card)] text-[12px] text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
-                                style={{ borderColor: 'var(--border-subtle)' }}
+                                className="px-2.5 py-2 rounded-lg border bg-[var(--bg-card)] text-[12px] text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)] [border-color:var(--border-subtle)]!"
                             />
                         </div>
                     )}

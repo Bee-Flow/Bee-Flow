@@ -164,8 +164,7 @@ function ActionItemRow({ item, editing, draft, onDraftChange, onToggle, onStartE
                             if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
                         }}
                         aria-label={t('meetings.edit_action_item', 'Edit action item')}
-                        className="w-full px-2 py-1 rounded text-sm border outline-none"
-                        style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                        className="w-full px-2 py-1 rounded text-sm border outline-none [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                     />
                 ) : (
                     <button

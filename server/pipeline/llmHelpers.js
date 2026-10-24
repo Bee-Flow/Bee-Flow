@@ -4,6 +4,7 @@
  */
 
 const { getAIConfig, getProviderForModel } = require('../core/aiAgent');
+const log = require('../telemetry/log');
 
 /**
  * Call the LLM with a system prompt, messages, and optional tools.
@@ -65,12 +66,12 @@ function extractJSON(text) {
     if (!text) return null;
     const codeBlockMatch = text.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
     if (codeBlockMatch) {
-        try { return JSON.parse(codeBlockMatch[1]); } catch { }
+        try { return JSON.parse(codeBlockMatch[1]); } catch (err) { log.debug('fenced block is not valid JSON, try the next strategy', err); }
     }
-    try { return JSON.parse(text); } catch { }
+    try { return JSON.parse(text); } catch (err) { log.debug('text is not valid JSON, try the next strategy', err); }
     const objMatch = text.match(/\{[\s\S]*\}/);
     if (objMatch) {
-        try { return JSON.parse(objMatch[0]); } catch { }
+        try { return JSON.parse(objMatch[0]); } catch (err) { log.debug('brace-matched text is not valid JSON', err); }
     }
     return null;
 }
@@ -90,14 +91,14 @@ function extractComponentFromResponse(text) {
             if (parsed.id && parsed.name && parsed.code) {
                 return parsed;
             }
-        } catch { }
+        } catch (err) { log.debug('candidate is not valid JSON, try the next match', err); }
     }
 
     // Try the full text as JSON
     try {
         const parsed = JSON.parse(text);
         if (parsed.id && parsed.name && parsed.code) return parsed;
-    } catch { }
+    } catch (err) { log.debug('text is not valid JSON', err); }
 
     return null;
 }

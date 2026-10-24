@@ -19,7 +19,7 @@ interface NcOnboardingPendingProps {
 const NcOnboardingPending = ({ orgName, onRefresh }: NcOnboardingPendingProps) => {
     const { t } = useTranslation();
     return (
-        <div className="h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
+        <div className="h-screen flex items-center justify-center p-4 [background:linear-gradient(160deg,var(--bg-primary)_0%,var(--bg-secondary)_50%,var(--bg-tertiary)_100%)]">
             <div className="w-full max-w-md">
                 <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border text-center bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                     <div className="w-20 h-20 mx-auto mb-5 rounded-full overflow-hidden shadow-xl ring-4 ring-[var(--border-subtle)]">
@@ -34,8 +34,7 @@ const NcOnboardingPending = ({ orgName, onRefresh }: NcOnboardingPendingProps) =
                     </p>
                     <button
                         onClick={onRefresh}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
-                        style={{ background: 'var(--accent-primary)', color: 'white' }}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors [background:var(--accent-primary)] [color:white]!"
                     >
                         <RefreshCw className="w-4 h-4" /> {t('integ.nc_onboarding_pending_refresh', 'Refresh')}
                     </button>

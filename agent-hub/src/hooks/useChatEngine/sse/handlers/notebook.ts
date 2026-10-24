@@ -1,4 +1,5 @@
 import type { SseHandlerMap } from '../handlerTypes';
+import { logger } from '../../../../utils/logger';
 
 /**
  * Editor surfaces fed through the notebook callbacks (notebook, slides,
@@ -76,7 +77,7 @@ export const notebookHandlers: SseHandlerMap = {
             window.dispatchEvent(new CustomEvent('beeflow:document-updated', {
                 detail: { documentId: data.documentId, name: data.name, url: data.url },
             }));
-        } catch (_) {}
+        } catch (err) { logger.debug('DOM event dispatch failed, editor refreshes on next load', err); }
     },
 
     // An uploaded Excel was imported as a spreadsheet document: open it in the
@@ -104,6 +105,6 @@ export const notebookHandlers: SseHandlerMap = {
             window.dispatchEvent(new CustomEvent('beeflow:document-suggestions', {
                 detail: { documentId: data.documentId, batchId: data.batchId, count: data.count },
             }));
-        } catch (_) {}
+        } catch (err) { logger.debug('DOM event dispatch failed, editor refreshes on next load', err); }
     },
 };

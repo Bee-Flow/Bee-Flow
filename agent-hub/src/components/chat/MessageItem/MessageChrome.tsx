@@ -28,11 +28,7 @@ export function AssistantAvatar({ avatar }: { avatar?: string | null }) {
         <div
             data-testid="assistant-avatar"
             aria-hidden="true"
-            className="w-[26px] h-[26px] rounded-lg flex-shrink-0 grid place-items-center overflow-hidden text-[13px] leading-none select-none"
-            style={{
-                background: 'color-mix(in srgb, var(--type-ai) 14%, transparent)',
-                color: 'var(--type-ai)',
-            }}
+            className="w-[26px] h-[26px] rounded-lg flex-shrink-0 grid place-items-center overflow-hidden text-[13px] leading-none select-none [background:color-mix(in_srgb,var(--type-ai)_14%,transparent)] [color:var(--type-ai)]!"
         >
             {isImageAvatar(avatar) ? (
                 <img src={resolveAvatarSrc(avatar) as string} alt="" className="w-full h-full object-cover" />

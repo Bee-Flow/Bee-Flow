@@ -42,6 +42,9 @@ const _claims = new Map();
 /** normalised tokenKey → number of live entries using it */
 const _tokenKeys = new Map();
 let _lastRefresh = 0;
+// Filled by orgShield.js when it loads (setOrgShieldResolver): the registry
+// must not require orgShield, which sits above it.
+let _orgResolver = null;
 /** @type {Promise<boolean>|null} */
 let _refreshing = null;
 
@@ -212,13 +215,14 @@ async function refreshAll({ force = false } = {}) {
     _refreshing = (async () => {
         try {
             const configStore = require('../../../stores/configStore');
-            const { resolveOrgShield } = require('../orgShield');
+            const resolveOrgShield = _orgResolver;
+            if (!resolveOrgShield) throw new Error('no org shield resolver registered (orgShield.js not loaded)');
             const prefix = 'org_privacy_shield_';
             const keys = typeof configStore.listKeysWithPrefix === 'function'
                 ? await configStore.listKeysWithPrefix(prefix)
                 : Object.keys(await configStore.getAllConfig() || {}).filter(k => k.startsWith(prefix));
             for (const key of keys) {
-                try { await resolveOrgShield(key.slice(prefix.length)); } catch (_) { /* one bad row must not stop the rest */ }
+                try { await resolveOrgShield(key.slice(prefix.length)); } catch (err) { log.debug('one bad row must not stop the rest', err); }
             }
             return true;
         } catch (err) {
@@ -229,6 +233,11 @@ async function refreshAll({ force = false } = {}) {
         }
     })();
     return _refreshing;
+}
+
+/** orgShield.js hands over resolveOrgShield here so refreshAll can re-sync every org. */
+function setOrgShieldResolver(fn) {
+    _orgResolver = typeof fn === 'function' ? fn : null;
 }
 
 /** Test seam: forget everything. */
@@ -252,6 +261,7 @@ module.exports = {
     isCustomTokenKey,
     digestFor,
     refreshAll,
+    setOrgShieldResolver,
     _resetRegistry,
     TOMBSTONE_MS,
     REFRESH_MIN_MS,

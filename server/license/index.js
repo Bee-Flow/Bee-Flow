@@ -20,30 +20,31 @@
  */
 
 const store = require('./store');
+const { getMaxSeatsForOrg } = require('./seats');
 const verify = require('./verify');
 const tiers = require('./tiers');
 const adminIssuance = require('./adminIssuance');
-const { tierFromPlanName } = require('./issuance');
+const { tierFromPlanName } = require('./tierResolution');
+const log = require('../telemetry/log');
 
 const COMMUNITY_FALLBACK = 'community';
 
-// Lazy-required to avoid circular import (userStore is heavy and pulls in
-// DB init that depends on this module being loadable first).
+// Lazy-required to avoid circular import (DB init depends on this module being
+// loadable first). Only the subscription queries are needed, so this takes
+// stores/user/subscriptions rather than the userStore facade, which reaches
+// back into the licence module through the plan and trial services.
 let _userStore = null;
 function getUserStore() {
-    if (!_userStore) _userStore = require('../stores/userStore');
+    if (!_userStore) _userStore = require('../stores/user/subscriptions');
     return _userStore;
 }
 
-// Lazy-required to break the betaFeatures ↔ license import cycle: betaFeatures
-// already lazy-requires this module via _licenseModule(), so resolving it at
-// module-load time here would deadlock during boot. Used by
-// getOrgGrantedFeatures to map the org's subscription-led beta allow-list back
-// to the licence features those compound betas carry.
-let _beta = null;
+// The static beta catalogue (betaCatalog.js has no dependencies; betaFeatures.js
+// itself sits above the licence module). Used by getOrgGrantedFeatures to map
+// the org's subscription-led beta allow-list back to the licence features
+// those compound betas carry.
 function getBetaModule() {
-    if (!_beta) _beta = require('../core/entitlements/betaFeatures');
-    return _beta;
+    return require('../core/entitlements/betaCatalog');
 }
 
 // ── Server-wide licence override ────────────────────────────────────────
@@ -318,7 +319,7 @@ async function getOrgGrantedFeatures(organizationId) {
             for (const f of compound) {
                 if (allowSet === null || allowSet.has(f.id)) set.add(f.licenseFeature);
             }
-        } catch (_) { /* benign — preserve existing behaviour */ }
+        } catch (err) { log.debug('benign — preserve existing behaviour', err); }
     }
     return [...set];
 }
@@ -567,10 +568,19 @@ async function _noteServerLicenseReplaced(newLicenseId) {
         if (prev && prev.id && prev.id !== newLicenseId) {
             await require('../modules/subjects').recordSupersededLicenseId(prev.id);
         }
-    } catch (_) { /* best effort */ }
+    } catch (err) { log.debug('best effort', err); }
+}
+// Listeners for a changed server licence. modules/entitlementRefresh registers
+// itself (modules sit above the licence module, so it is not required from
+// here); nobody registered yet means nothing booted that cares.
+const _serverLicenseListeners = [];
+function onServerLicenseChanged(listener) {
+    if (typeof listener === 'function' && !_serverLicenseListeners.includes(listener)) _serverLicenseListeners.push(listener);
 }
 function _nudgeEntitlementRefresh() {
-    try { require('../modules/entitlementRefresh').onLicenseChanged(); } catch (_) { /* not booted */ }
+    for (const listener of _serverLicenseListeners) {
+        try { listener(); } catch (err) { log.debug('not booted', err); }
+    }
 }
 
 async function activateLicense({ token, organizationId = null, userId = null, activatedBy = null, scope: explicitScope = null }) {
@@ -695,24 +705,6 @@ async function activateLicense({ token, organizationId = null, userId = null, ac
 }
 
 /**
- * Return the seat cap from the active license metadata, or null when no
- * active license is present or the license does not set a cap. Useful for
- * enforcing per-license seat limits on user creation.
- */
-async function getMaxSeatsForOrg(organizationId) {
-    if (!organizationId) return null;
-    const lic = await store.getActiveLicenseForOrg(organizationId);
-    if (!lic) return null;
-    if (lic.refreshStatus === 'expired' || lic.refreshStatus === 'revoked') return null;
-    if (lic.expiresAt && new Date(lic.expiresAt).getTime() <= Date.now()) return null;
-    const raw = lic.metadata && lic.metadata.max_seats;
-    if (raw == null) return null;
-    const n = Number(raw);
-    if (!Number.isFinite(n) || n <= 0) return null;
-    return n;
-}
-
-/**
  * Deactivate (mark expired) the currently active license for the given scope.
  *
  * Passing `scope: 'server'` (or `organizationId` and `userId` both falsy
@@ -756,6 +748,7 @@ module.exports = {
     // mutation
     activateLicense,
     deactivateLicenseForScope,
+    onServerLicenseChanged,
     bumpServerLicenseVersion, // exposed for tests + manual cache busting
     // helpers (exposed for tests)
     resolveTierFromSubscription,

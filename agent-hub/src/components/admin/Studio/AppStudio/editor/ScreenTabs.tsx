@@ -186,12 +186,7 @@ export default function ScreenTabs({ onCommit, inline = false }: ScreenTabsProps
                                         else if (e.key === 'Escape') setRenamingId(null);
                                     }}
                                     aria-label={t('app_studio.screens.name_aria', 'Screen name')}
-                                    className="mx-0.5 my-0.5 w-32 rounded border px-2 py-0.5 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                                    style={{
-                                        background: 'var(--bg-secondary)',
-                                        borderColor: 'var(--editor-accent)',
-                                        color: 'var(--text-primary)',
-                                    }}
+                                    className="mx-0.5 my-0.5 w-32 rounded border px-2 py-0.5 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] [background:var(--bg-secondary)] [border-color:var(--editor-accent)] [color:var(--text-primary)]!"
                                 />
                             ) : (
                                 <>

@@ -8,6 +8,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import { toast } from '../shared/Toast';
 import useConfirm from '../shared/useConfirm';
 import type { SessionSkillView, SkillsPopoverProps } from './SkillsPopover.types';
+import { logger } from '../../utils/logger';
 export type { SkillsPopoverProps } from './SkillsPopover.types';
 
 export const SKILL_CAP = 5;
@@ -52,6 +53,7 @@ export default function SkillsPopover({
         setSessionSkills(Array.isArray(directSessionSkills) ? directSessionSkills : []);
     }, [directSessionSkills]);
 
+    const closePopover = useEffectEvent(() => setOpen(false));
     useEffect(() => {
         if (!open) return;
         const close = (e: PointerEvent) => {
@@ -60,7 +62,7 @@ export default function SkillsPopover({
             const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
             const clickedInside = root.contains(e.target as Node | null) || path.includes(root);
             if (clickedInside) return;
-            setOpen(false);
+            closePopover();
         };
         // Capture phase + composedPath support prevents false "outside click"
         // closes when events originate from/through shadow DOM.
@@ -120,7 +122,7 @@ export default function SkillsPopover({
             if (!res.ok) return;
             const data = await res.json();
             setSessionSkills(Array.isArray(data.skills) ? data.skills : []);
-        } catch (_) { /* ignore */ }
+        } catch (err) { logger.debug('ignore', err); }
     };
 
     // The trigger's onClick used to be the only way in, so it carried the
@@ -254,8 +256,7 @@ export default function SkillsPopover({
 
             {open && (
                 <div
-                    className="absolute bottom-full left-0 mb-2 w-80 rounded-xl border shadow-2xl overflow-hidden z-50"
-                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', animation: 'appsOverlayIn .15s ease-out' }}
+                    className="absolute bottom-full left-0 mb-2 w-80 rounded-xl border shadow-2xl overflow-hidden z-50 [background:var(--bg-secondary)] [border-color:var(--border-subtle)] [animation:appsOverlayIn_.15s_ease-out]"
                 >
                     <div className="px-4 py-3 border-b border-[var(--border-subtle)]">
                         <div className="flex items-center justify-between mb-1">
@@ -275,8 +276,7 @@ export default function SkillsPopover({
                             onChange={e => setSearch(e.target.value)}
                             placeholder={t('agent_skills.search', 'Search skills…')}
                             autoFocus
-                            className="w-full px-3 py-1.5 text-sm rounded-lg border outline-none transition-colors focus:border-[var(--accent-primary)]"
-                            style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+                            className="w-full px-3 py-1.5 text-sm rounded-lg border outline-none transition-colors focus:border-[var(--accent-primary)] [background:var(--bg-tertiary)] [border-color:var(--border-subtle)]! [color:var(--text-primary)]!"
                         />
                     </div>
 
@@ -471,8 +471,7 @@ export default function SkillsPopover({
                                                 <button
                                                     onClick={() => handleDeleteSessionSkill(skill.id)}
                                                     disabled={deleting}
-                                                    className="p-1 rounded hover:bg-red-500/15 hover:text-red-500 transition-colors disabled:opacity-50"
-                                                    style={{ color: 'var(--text-tertiary)' }}
+                                                    className="p-1 rounded hover:bg-red-500/15 hover:text-red-500 transition-colors disabled:opacity-50 [color:var(--text-tertiary)]!"
                                                     title={t('skills.delete_from_conversation', 'Delete from this conversation')}
                                                 >
                                                     {deleting ? <RefreshCw size={11} className="animate-spin" /> : <Trash2 size={11} />}

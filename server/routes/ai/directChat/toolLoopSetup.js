@@ -59,8 +59,7 @@ function addTokenPreservationAddendum(turn) {
             const add = buildTokenPreservationAddendum(convMap);
             if (add) volatileMessage.content += add;
         }
-    } catch (_) { /* addendum is best-effort; missing it just means the model may
-                    meta-comment on placeholders, not a runtime failure */ }
+    } catch (err) { log.debug('addendum is best-effort; missing it just means the model may meta-comment on placeholders, not a runtime failure', err); }
 }
 
 /**

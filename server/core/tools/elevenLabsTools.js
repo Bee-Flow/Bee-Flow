@@ -165,7 +165,7 @@ function _logUsage(source, model, promptLen) {
             total_tokens: promptLen,
             source,
         });
-    } catch (e) { /* ignore */ }
+    } catch (e) { log.debug('ignore', e); }
 }
 
 // ─── Executor ───────────────────────────────────────────────────

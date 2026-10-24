@@ -77,12 +77,10 @@ export default function UserMenu({ viewer, onExit = null, collapsed = false, dir
                 aria-label={t('studio_apps_runtime.user_menu.account', 'Account: {name}', {
                     name: viewer.name || viewer.email || t('studio_apps_runtime.user_menu.viewer', 'viewer'),
                 })}
-                className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm min-w-0 app-nav-hover"
-                style={{ color: 'var(--text-secondary)' }}
+                className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm min-w-0 app-nav-hover [color:var(--text-secondary)]!"
             >
                 <span
-                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold shrink-0"
-                    style={{ background: 'var(--app-primary-soft)', color: 'var(--app-primary)' }}
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold shrink-0 [background:var(--app-primary-soft)] [color:var(--app-primary)]!"
                     aria-hidden="true"
                 >
                     {initialsOf(viewer)}
@@ -97,7 +95,7 @@ export default function UserMenu({ viewer, onExit = null, collapsed = false, dir
                     role="menu"
                     className={`app-nav-popup absolute z-40 w-56 rounded-lg border py-1 shadow-xl ${popPosition}`}
                 >
-                    <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <div className="px-3 py-2 border-b [border-color:var(--border-subtle)]!">
                         <div className="text-sm font-medium truncate text-[var(--text-primary)]">
                             {viewer.name || viewer.email}
                         </div>
@@ -106,8 +104,7 @@ export default function UserMenu({ viewer, onExit = null, collapsed = false, dir
                         ) : null}
                         {roleBadge ? (
                             <span
-                                className="mt-1.5 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide"
-                                style={{ background: 'var(--app-primary-soft)', color: 'var(--app-primary)' }}
+                                className="mt-1.5 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide [background:var(--app-primary-soft)] [color:var(--app-primary)]!"
                             >
                                 {roleBadge}
                             </span>
@@ -118,8 +115,7 @@ export default function UserMenu({ viewer, onExit = null, collapsed = false, dir
                             type="button"
                             role="menuitem"
                             onClick={() => { setOpen(false); onExit(); }}
-                            className="flex w-full items-center px-3 py-1.5 text-sm text-left app-nav-hover"
-                            style={{ color: 'var(--text-primary)' }}
+                            className="flex w-full items-center px-3 py-1.5 text-sm text-left app-nav-hover [color:var(--text-primary)]!"
                         >
                             {t('studio_apps_runtime.user_menu.all_apps', 'All apps')}
                         </button>

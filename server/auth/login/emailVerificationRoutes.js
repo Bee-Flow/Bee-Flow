@@ -62,7 +62,7 @@ router.get('/verify-email/:token', async (req, res) => {
         log.info(`[Auth] Email verified for user ${user.id}`);
         try {
             await userStore.logAccessAudit('user.email_verified', 'user', user.id, user.id, null, { email: user.email }, user.organizationId || null);
-        } catch (_) { /* best-effort */ }
+        } catch (err) { log.debug('best-effort', err); }
 
         // Welcome email (once) — now that the account is active.
         if (user.email) {
@@ -121,7 +121,7 @@ router.post('/resend-verification', resendVerificationIpLimiter, resendVerificat
             .catch(e => log.warn('[Auth] resend verification email failed:', e.message));
         try {
             await userStore.logAccessAudit('user.verification_resent', 'user', user.id, user.id, null, { email: user.email }, user.organizationId || null);
-        } catch (_) { /* best-effort */ }
+        } catch (err) { log.debug('best-effort', err); }
         return respond();
     } catch (err) {
         log.error('[Auth] resend-verification error:', err.message);

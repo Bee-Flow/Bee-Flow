@@ -1,6 +1,6 @@
-import React from 'react';
 import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import SoaPage from './SoaPage';
 import { resolveTab, tabsOf } from '../sections';

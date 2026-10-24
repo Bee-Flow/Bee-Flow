@@ -182,7 +182,7 @@ function ActivityRow({ n, row, entry, result, t }: ActivityRowProps) {
             <div className="px-1 pb-1.5 pl-9 flex flex-col gap-1.5">
                 {/* The reason in words first; the payload is for when the words are not enough. */}
                 {row.error && (
-                    <div className="rounded-md px-2 py-1.5" style={{ background: 'color-mix(in srgb, var(--warning) 10%, transparent)', color: 'var(--text-primary)' }}>
+                    <div className="rounded-md px-2 py-1.5 [background:color-mix(in_srgb,var(--warning)_10%,transparent)] [color:var(--text-primary)]">
                         {row.error}
                     </div>
                 )}

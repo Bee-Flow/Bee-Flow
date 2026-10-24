@@ -184,7 +184,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
         // Hydrate the notebook's persisted PII token map (keyed by notebookId)
         // BEFORE any tokenization this turn, so doc/KB/message tokens reuse tokens
         // minted on earlier turns and survive a server restart. Idempotent.
-        try { await dlpRunner.getConversationTokenMapAsync(notebookId); } catch (_) { /* best-effort */ }
+        try { await dlpRunner.getConversationTokenMapAsync(notebookId); } catch (err) { log.debug('best-effort', err); }
         // Resolve the Privacy Shield ONCE — respect-the-shield: tokenization
         // only runs when it is enabled. The RESOLVED shape, never the stored
         // org document: a personal account (no org) has only a user-level

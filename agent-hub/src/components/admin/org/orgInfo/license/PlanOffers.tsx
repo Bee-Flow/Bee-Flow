@@ -67,8 +67,7 @@ function CheckoutPlanCard({ plan, checkoutLoading, onCheckout }: Omit<CheckoutPr
                     <button
                         onClick={() => onCheckout(plan.id)}
                         disabled={checkoutLoading === plan.id || !plan.has_stripe_price}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
-                        style={{ background: '#3b82f6' }}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 [background:#3b82f6]"
                     >
                         {checkoutLoading === plan.id ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -142,8 +141,7 @@ function PaidUpgradePlanCard({ plan, checkoutLoading, onCheckout }: Omit<Checkou
                         <button
                             onClick={() => onCheckout(plan.id)}
                             disabled={checkoutLoading === plan.id}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
-                            style={{ background: '#3b82f6' }}
+                            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 [background:#3b82f6]"
                         >
                             {checkoutLoading === plan.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
                             {t('org.subscribe', 'Subscribe')}

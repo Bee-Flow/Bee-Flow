@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { describe, it, expect } from 'vitest';
 
 import { NODE_DEFS, NODE_TYPE_KEYS, NODE_FAMILIES, FAMILY_EXEMPT, stepFamily } from './nodeDefs';
 import {

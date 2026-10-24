@@ -1,6 +1,6 @@
+import { render } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render } from '@testing-library/react';
 import useCmsHead from './useCmsHead';
 
 const resolveAssetUrl = (k) => (k?.startsWith('cms/') ? `/api/cms/asset/${k}` : k);

@@ -45,7 +45,7 @@
 const configStore = require('../stores/configStore');
 const { COURSES } = require('./courseCatalog');
 
-const CONFIG_KEY_PREFIX = 'org_training_gates_';
+const { TRAINING_GATES_CONFIG_KEY_PREFIX: CONFIG_KEY_PREFIX } = require('../stores/lib/orgConfigKeyPrefixes');
 const CACHE_TTL_MS = 30_000;
 
 /**

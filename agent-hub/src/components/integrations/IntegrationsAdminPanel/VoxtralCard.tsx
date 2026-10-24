@@ -10,14 +10,14 @@ export default function VoxtralCard({ transcriptionProvider }: Pick<Transcriptio
             <div className="px-6 py-4 border-b flex items-center justify-between border-[var(--border-subtle)]">
                 <div>
                     <h3 className="font-semibold flex items-center gap-2 text-[var(--text-primary)]">
-                        {t('integ.transcription_voxtral', '⚡ Voxtral')} <span className="text-xs px-2 py-0.5 rounded-full font-normal" style={{ background: '#f59e0b18', color: '#f59e0b' }}>{t('integ.transcription_mistral_cloud', 'Mistral Cloud')}</span>
+                        {t('integ.transcription_voxtral', '⚡ Voxtral')} <span className="text-xs px-2 py-0.5 rounded-full font-normal [background:#f59e0b18] [color:#f59e0b]!">{t('integ.transcription_mistral_cloud', 'Mistral Cloud')}</span>
                         {transcriptionProvider === 'voxtral' && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.transcription_active', 'Active')}</span>}
                     </h3>
                     <p className="text-xs mt-0.5 text-[var(--text-muted)]">{t('integ.transcription_uses_mistral_s', 'Uses Mistral\'s')} <code>voxtral-mini-latest</code> {t('integ.transcription_model_fast_and_accurate_with_speaker', 'model. Fast and accurate with speaker diarization.')}</p>
                 </div>
             </div>
             <div className="p-6 space-y-3">
-                <div className="rounded-xl p-4" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
+                <div className="rounded-xl p-4 [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]">
                     {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                     <p className="text-sm font-medium mb-1 text-[var(--text-primary)]">{t('integ.transcription_mistral_api_key', 'Mistral API Key')}</p>
                     <p className="text-xs text-[var(--text-muted)]">
@@ -26,7 +26,7 @@ export default function VoxtralCard({ transcriptionProvider }: Pick<Transcriptio
                         <strong>{t('integ.transcription_admin_ai_config_api_keys_mistral', 'Admin → AI Config → API Keys → Mistral')}</strong>{t('integ.transcription_no_additional_setup_needed_here', '. No additional setup needed here.')}
                     </p>
                 </div>
-                <div className="rounded-xl p-4" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
+                <div className="rounded-xl p-4 [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]">
                     <p className="text-sm font-medium mb-2 text-[var(--text-primary)]">{t('integ.transcription_capabilities', 'Capabilities')}</p>
                     <ul className="text-xs space-y-1 text-[var(--text-muted)]">
                         <li>{t('integ.transcription_speaker_diarization_who_said_what', '✅ Speaker diarization (who said what)')}</li>

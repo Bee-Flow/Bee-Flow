@@ -14,6 +14,7 @@ import useProjectStream, { type ProjectStreamReady, type ProjectStreamStatus } f
 import { apiClient } from '../../../api/client';
 import { changeKeys } from '../../../api/queries/projectChanges';
 import { projectKeys } from '../../../api/queries/projects';
+import { logger } from '../../../utils/logger';
 
 export type ProjectLiveHandler = (kind: string, event: ProjectLiveEvent) => void;
 
@@ -273,7 +274,7 @@ export function ProjectLiveProvider({ projectId, currentUserId, enabled = true, 
         for (const key of keysForEvent(projectId, kind)) qc.invalidateQueries({ queryKey: key });
         if (affectsActivity(kind, event)) qc.invalidateQueries({ queryKey: projectKeys.activity(projectId) });
         for (const handler of handlers.current) {
-            try { handler(kind, event); } catch { /* one panel's bug must not stop the others */ }
+            try { handler(kind, event); } catch (err) { logger.debug('one panel\'s bug must not stop the others', err); }
         }
     }, [projectId, qc, trackPeople]);
 
@@ -293,7 +294,8 @@ export function ProjectLiveProvider({ projectId, currentUserId, enabled = true, 
 
     // The stream starts at "now": what happened since the lists in the cache were read (a quick return to a
     // project within their staleTime) is not replayed, so those lists are read again.
-    const mountedAt = useRef(Date.now());
+    const [firstMountedAt] = useState(() => Date.now());
+    const mountedAt = useRef(firstMountedAt);
     const onReady = useCallback((ready: ProjectStreamReady) => {
         if (!projectId || ready.reconnect) return;
         qc.invalidateQueries({

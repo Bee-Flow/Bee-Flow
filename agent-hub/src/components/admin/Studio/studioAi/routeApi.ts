@@ -1,6 +1,7 @@
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { KIND_KEYS } from '../../../shared/kindColors';
 import { isAbortError } from '../../../../utils/caughtError';
+import { logger } from '../../../../utils/logger';
 
 /** Het antwoord van het endpoint: onvertrouwde invoer, dus elk veld is nog `unknown`. */
 interface PayloadBody {
@@ -151,7 +152,7 @@ export async function routeDescription(text: string, { signal }: { signal?: Abor
 
     if (!res || !res.ok) {
         let payload: PayloadBody | null = null;
-        try { payload = await res.json(); } catch { /* geen JSON — status beslist */ }
+        try { payload = await res.json(); } catch (err) { logger.debug('geen JSON — status beslist', err); }
         return errorFrom(res?.status, payload);
     }
 

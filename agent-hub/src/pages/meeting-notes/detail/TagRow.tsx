@@ -60,8 +60,7 @@ export default function TagRow({ tags = [], canEdit = false, onAddTag, onRemoveT
                     autoFocus
                     placeholder={t('meetings.add_tag_placeholder', 'Add tag…')}
                     aria-label={t('meetings.add_tag', 'Add tag')}
-                    className="px-2 py-0.5 rounded-full border outline-none"
-                    style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                    className="px-2 py-0.5 rounded-full border outline-none [background:var(--bg-card)] [border-color:var(--border-default)] [color:var(--text-primary)]"
                 />
             ) : (
                 canEdit && (

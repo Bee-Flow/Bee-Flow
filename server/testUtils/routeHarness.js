@@ -34,6 +34,7 @@
 
 const http = require('node:http');
 const express = require('express');
+const log = require('../telemetry/log');
 
 const USER = { id: 'u1', organizationId: 'org1', role: 'user', email: 'u1@example.test' };
 
@@ -151,7 +152,7 @@ function serve(path, router, { user = USER, session = {} } = {}) {
         const res = await fetch(`http://127.0.0.1:${server.address().port}${url}`, { method, headers: h, body: payload });
         const text = await res.text();
         let json = null;
-        try { json = JSON.parse(text); } catch { /* not JSON */ }
+        try { json = JSON.parse(text); } catch (err) { log.debug('response body is not JSON, kept as text', err); }
         return { status: res.status, body: json, text, headers: res.headers };
     }
 

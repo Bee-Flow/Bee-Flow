@@ -1,11 +1,10 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { markdownToAst } from '../serialization/mdToAst';
-import { astToMarkdown } from '../serialization/astToMd';
-import { createState, applyTransform } from './state.js';
-import { textSelection, pos } from './selection.js';
-import { insertText, setMarkAttrs } from './transforms.js';
 import { runInputRules } from './inputRules.js';
+import { textSelection, pos } from './selection.js';
+import { createState, applyTransform } from './state.js';
+import { insertText, setMarkAttrs } from './transforms.js';
+import { markdownToAst } from '../serialization/mdToAst';
 
 // Simulate typing a trigger char: insertText then runInputRules.
 function type(state, ch) {
@@ -15,7 +14,6 @@ function type(state, ch) {
   });
 }
 const start = (md, offset) => ({ ...createState(markdownToAst(md)), selection: textSelection(pos([0], offset)) });
-const toMd = (s) => astToMarkdown(s.doc).trim();
 
 describe('input rules', () => {
   it('# + space → heading 1', () => {

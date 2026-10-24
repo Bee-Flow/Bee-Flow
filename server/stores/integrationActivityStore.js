@@ -177,7 +177,7 @@ async function _claimAndEmitTransferSignal(orgId, signalKey, payload) {
         // module scope here would create a boot cycle via runner → checks.
         const events = require('../compliance/events');
         events.emit(events.EVENTS.EXTERNAL_TRANSFER_DETECTED, payload);
-    } catch (_) { /* compliance bus is best-effort */ }
+    } catch (err) { log.debug('compliance bus is best-effort', err); }
 }
 
 /**

@@ -8,12 +8,12 @@
  * Run: cd agent-hub && npx vitest run src/editor/engine/dataloss.test.js
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { markdownToAst } from '../serialization/mdToAst';
-import { astToHtml } from '../serialization/astToHtml.js';
-import { createState } from './state.js';
 import { textSelection, pos } from './selection.js';
+import { createState } from './state.js';
 import { insertText } from './transforms.js';
 import { EditorView } from './view';
+import { astToHtml } from '../serialization/astToHtml.js';
+import { markdownToAst } from '../serialization/mdToAst';
 
 let views = [];
 const make = (md, opts = {}) => {

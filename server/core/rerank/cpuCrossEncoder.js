@@ -67,7 +67,7 @@ async function getPipeline() {
                 if (env.backends?.onnx?.wasm) {
                     env.backends.onnx.wasm.numThreads = CPU_RERANK_WASM_THREADS;
                 }
-            } catch (_) { /* older versions: ignore */ }
+            } catch (err) { log.debug('older versions: ignore', err); }
 
             const ranker = await withTimeout(
                 pipeline('text-classification', CPU_RERANK_MODEL_ID, { dtype: 'q8' }),
@@ -183,7 +183,7 @@ async function warmup() {
         if (out.length > 0) {
             log.info('[CpuRerank] Warmup complete — first user query will be fast.');
         }
-    } catch (_) { /* fail-open */ }
+    } catch (err) { log.debug('fail-open', err); }
 }
 
 module.exports = {

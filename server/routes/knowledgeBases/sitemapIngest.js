@@ -137,10 +137,10 @@ router.post('/:id/ingest/sitemap', requireAuth, requirePermission('manage_knowle
         if (matches) {
             matches.forEach(line => {
                 const smUrl = line.replace(/^sitemap:\s*/i, '').trim();
-                try { sitemapUrls.add(new URL(smUrl, baseUrl).href); } catch { }
+                try { sitemapUrls.add(new URL(smUrl, baseUrl).href); } catch (err) { log.debug('not a valid sitemap URL, skipped', err); }
             });
         }
-    } catch { }
+    } catch (err) { log.debug('robots.txt unavailable, fall back to the default sitemap locations', err); }
 
     const allPageUrls = new Set();
     const visitedSitemaps = new Set();

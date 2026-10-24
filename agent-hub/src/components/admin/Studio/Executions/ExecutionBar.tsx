@@ -5,6 +5,7 @@ import { enteredTriggerLabel, errorClassLabel, runTitle, triggerLabel, type RunD
 import { formatDuration, formatRelative, formatExpiry } from '../AutomationsStudio/historyUtils';
 import { RunStatusBadge, DryRunBadge } from '../AutomationsStudio/RunStatusBits';
 import type { RunLogRow } from './runLogSentence';
+import { logger } from '../../../../utils/logger';
 
 /** The run the bar describes: a log row, plus the lineage and pause fields only the single-run read carries. */
 export type ExecutionRun = RunLogRow & {
@@ -72,7 +73,7 @@ export default function ExecutionBar({ run, definition = null, onBack, onRetry, 
             url.searchParams.set('view', 'runs');
             url.searchParams.set('run', run.id);
             navigator.clipboard?.writeText(url.toString());
-        } catch { /* clipboard blocked */ }
+        } catch (err) { logger.debug('clipboard blocked', err); }
     };
 
     return (

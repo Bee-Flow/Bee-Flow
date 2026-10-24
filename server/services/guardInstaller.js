@@ -153,7 +153,7 @@ async function getStatus() {
         }
         result.url = await configStore.getConfig('pii_guard_url') || null;
         result.lastError = await configStore.getConfig('pii_guard_last_error') || null;
-    } catch (_) { /* configStore may not be ready */ }
+    } catch (err) { log.debug('configStore may not be ready', err); }
 
     // Mid-transition states are owned exclusively by _inFlight; trust them.
     if (result.status === STATUS.INSTALLING || result.status === STATUS.UNINSTALLING) {
@@ -607,7 +607,7 @@ async function _doInstall({ apiKey, model }) {
                 logTail = Buffer.isBuffer(logBuf) ? logBuf.toString('utf8') : String(logBuf);
                 // strip docker log multiplex framing (8-byte headers)
                 logTail = logTail.replace(/[\x00-\x08\x0B-\x1F]/g, '').slice(-3000);
-            } catch (_) { /* container may already be gone */ }
+            } catch (err) { log.debug('container may already be gone', err); }
         }
 
         const fullError = logTail

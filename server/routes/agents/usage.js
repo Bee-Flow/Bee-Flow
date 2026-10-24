@@ -71,7 +71,7 @@ function _sharedGroups(agent) {
         try {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed)) return { groups: parsed.filter(Boolean), readable: true };
-        } catch (_) { /* falls through to unreadable */ }
+        } catch (err) { log.debug('falls through to unreadable', err); }
     }
     return { groups: [], readable: false };
 }

@@ -372,7 +372,7 @@ async function resolveLayerAgentModel({ userOrgId = null, userId = null } = {}) 
     try {
         const m = await resolveModelForTierName('thinking', { userOrgId, userId });
         if (m) return m;
-    } catch (_) { /* fall through */ }
+    } catch (err) { log.debug('fall through', err); }
     try {
         return await resolveModelForTierName('fast', { userOrgId, userId });
     } catch (_) {

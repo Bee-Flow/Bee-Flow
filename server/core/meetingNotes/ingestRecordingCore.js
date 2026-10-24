@@ -354,7 +354,7 @@ async function persistAudioCopy(filePath, userId, ext) {
     const audioPath = path.join(savedDir, savedBase);
     try { fs.copyFileSync(filePath, audioPath); }
     catch (e) {
-        // Was `catch (_) {}` with no log at all: the note then quietly got an
+        // Was an empty catch with no log at all: the note then quietly got an
         // empty audio_path and nobody knew until a replay failed.
         log.error(`[IngestCore] local audio copy failed (${audioPath}): ${e.message}`);
     }
@@ -402,7 +402,7 @@ async function resolveOwnerDefaultTemplate(userId, orgId) {
         let groupIds = [];
         if (u) {
             if (Array.isArray(u.groups)) groupIds = u.groups;
-            else { try { groupIds = JSON.parse(u.groups || '[]'); } catch (_) { /* ignore */ } }
+            else { try { groupIds = JSON.parse(u.groups || '[]'); } catch (err) { log.debug('ignore', err); } }
         }
         return await summaryTemplateStore.resolveDefaultTemplate({ userId, orgIds: orgId ? [orgId] : [], groupIds });
     } catch (_) {

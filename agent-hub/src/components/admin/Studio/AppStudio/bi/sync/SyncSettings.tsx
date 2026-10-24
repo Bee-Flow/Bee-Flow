@@ -136,7 +136,7 @@ function lastRunText(saved: boolean | undefined, status: SyncStatus | null, t: R
 function RunOutcome({ runResult }: { runResult: RunResult }) {
     const { t } = useTranslation();
     return (
-        <p className="flex items-start gap-1.5 text-xs" style={{ color: '#10b981' }}>
+        <p className="flex items-start gap-1.5 text-xs [color:#10b981]!">
             <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             <span>
                 {runResult.alreadyRunning
@@ -205,8 +205,7 @@ export default function SyncSettings({ connector, sync, tableName, actions, appI
             {runResult ? <RunOutcome runResult={runResult} /> : null}
 
             {status?.lastError && !runResult ? (
-                <p role="alert" className="flex items-start gap-1.5 rounded-md border px-2 py-1.5 text-xs"
-                    style={{ borderColor: 'rgba(217, 119, 6, 0.4)', background: 'rgba(217, 119, 6, 0.1)', color: '#d97706' }}>
+                <p role="alert" className="flex items-start gap-1.5 rounded-md border px-2 py-1.5 text-xs [border-color:rgba(217,119,6,0.4)] [background:rgba(217,119,6,0.1)] [color:#d97706]!">
                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                     <span>{t('studio_apps_bi.sync.last_failed', 'The last refresh failed: {error}', { error: status.lastError })}</span>
                 </p>

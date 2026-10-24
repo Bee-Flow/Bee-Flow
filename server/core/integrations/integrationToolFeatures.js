@@ -191,7 +191,7 @@ async function addNextcloudTools({ userId, session, userOrgId, isAppOn, addTools
             try {
                 const ncClient = D.nextcloudClient();
                 isConnectorUser = !!(await ncClient.resolveNcBinding(session, userId));
-            } catch (_) { /* store unavailable — fall through to URL/app-password */ }
+            } catch (err) { log.debug('store unavailable — fall through to URL/app-password', err); }
         }
         // A user who saved their own app password may also carry a per-user
         // Nextcloud URL (Settings → Connections), which makes NC reachable even
@@ -221,11 +221,11 @@ async function addNextcloudTools({ userId, session, userOrgId, isAppOn, addTools
             // confusing refusal.
             const ncScope = await resolveNcScope({ userId, orgId: userOrgId });
             scopeOn = (id) => ncScope[id]?.mode !== 'off';
-        } catch (_) { /* Layer 2 still enforces — keep offering */ }
+        } catch (err) { log.debug('Layer 2 still enforces — keep offering', err); }
         for (const [appId, toolset] of NEXTCLOUD_FAMILIES) {
             if (scopeOn(appId) && isAppOn(appId)) addTools(T[toolset]);
         }
-    } catch (e) { /* ignore — credentials missing or store unavailable */ }
+    } catch (e) { log.debug('ignore — credentials missing or store unavailable', e); }
 }
 
 /** The org id the `automations` capability is resolved against. */

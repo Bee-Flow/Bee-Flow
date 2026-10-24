@@ -206,8 +206,7 @@ const KnowledgePanel = ({ API_BASE, strictKnowledge = false, onStrictKnowledgeCh
                                             </span>
                                         )}
                                         <button onClick={kb.reindexKB} disabled={kb.reindexing || kb.kbDocs.length === 0}
-                                            className="text-[10px] px-2 py-0.5 rounded-full font-medium transition-all hover:bg-amber-500/15 disabled:opacity-40"
-                                            style={{ background: 'rgba(245,158,11,0.08)', color: 'rgb(245,158,11)' }}
+                                            className="text-[10px] px-2 py-0.5 rounded-full font-medium transition-all hover:bg-amber-500/15 disabled:opacity-40 [background:rgba(245,158,11,0.08)]! [color:rgb(245,158,11)]!"
                                             title={t('knowledge.knowledge_re_fetch_urls_and_re_embed_all', 'Re-fetch URLs and re-embed all documents with current model')}>
                                             {kb.reindexing ? '⏳ Re-indexing...' : '🔄 Re-index'}
                                         </button>
@@ -241,20 +240,20 @@ const KnowledgePanel = ({ API_BASE, strictKnowledge = false, onStrictKnowledgeCh
                                         <div className="mb-2 p-2 rounded-lg border flex flex-wrap gap-1.5 items-center border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                                             <input type="text" placeholder={t('knowledge.knowledge_sender', 'Sender')} value={kb.kbDocsFilters.sender}
                                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => kb.setKbDocsFilters((f: KbDocFilters) => ({ ...f, sender: e.target.value }))}
-                                                className="px-2 py-1 rounded text-[11px] border" style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }} />
+                                                className="px-2 py-1 rounded text-[11px] border [background:var(--bg-primary)] [border-color:var(--border-subtle)] [color:var(--text-primary)]!" />
                                             <input type="date" value={kb.kbDocsFilters.dateFrom}
                                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => kb.setKbDocsFilters((f: KbDocFilters) => ({ ...f, dateFrom: e.target.value }))}
-                                                className="px-2 py-1 rounded text-[11px] border" style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }} />
+                                                className="px-2 py-1 rounded text-[11px] border [background:var(--bg-primary)] [border-color:var(--border-subtle)] [color:var(--text-primary)]!" />
                                             <input type="date" value={kb.kbDocsFilters.dateTo}
                                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => kb.setKbDocsFilters((f: KbDocFilters) => ({ ...f, dateTo: e.target.value }))}
-                                                className="px-2 py-1 rounded text-[11px] border" style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }} />
+                                                className="px-2 py-1 rounded text-[11px] border [background:var(--bg-primary)] [border-color:var(--border-subtle)] [color:var(--text-primary)]!" />
                                             <label className="flex items-center gap-1 text-[11px] text-[var(--text-primary)]">
                                                 <input type="checkbox" checked={kb.kbDocsFilters.hasAttachment}
                                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => kb.setKbDocsFilters((f: KbDocFilters) => ({ ...f, hasAttachment: e.target.checked }))} />
                                                 {t('knowledge.knowledge_has_attachment', 'Has attachment')}
                                             </label>
                                             <button onClick={() => kb.fetchKBDocs(selectedKB.id, { offset: 0 })}
-                                                className="px-2 py-1 rounded text-[11px] font-medium" style={{ background: 'var(--accent-primary)', color: '#fff' }}>
+                                                className="px-2 py-1 rounded text-[11px] font-medium [background:var(--accent-primary)] [color:#fff]!">
                                                 {t('knowledge.knowledge_apply', 'Apply')}
                                             </button>
                                             <button onClick={() => { const cleared = { sender: '', threadId: '', hasAttachment: false, dateFrom: '', dateTo: '' }; kb.setKbDocsFilters(cleared); kb.fetchKBDocs(selectedKB.id, { offset: 0, filters: cleared }); }}

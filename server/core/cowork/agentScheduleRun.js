@@ -62,7 +62,7 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
         // the same chat thread.
         if (result?.conversationId && result.conversationId !== task.conversationId) {
             try { await store.updateTask(task.id, { conversationId: result.conversationId }); }
-            catch (_) { /* non-fatal */ }
+            catch (err) { log.debug('non-fatal', err); }
         }
 
         await store.markCompleted(task.id, truncated);
@@ -81,7 +81,7 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
                 message: truncated,
                 link: shape.link,
             });
-        } catch (_) { /* non-fatal */ }
+        } catch (err) { log.debug('non-fatal', err); }
 
         // Schedule advance — same rules as legacy tasks.
         if (isRepeating(task) && !manual) {

@@ -28,6 +28,7 @@ const { resolveTriggerPayload } = execution;
 const { automationForRun } = require('./definitionForRun');
 const { runTriggerOnly } = require('./partialTriggerRun');
 const { runVarsFor, isManagedAutomation } = require('./stageVars');
+const log = require('../../telemetry/log');
 
 // The init seam for what a partial run hands its synthetic to and seeds its
 // replay from. Production never sets it; a test captures the synthetic here
@@ -345,7 +346,7 @@ async function runPartialInLayer(automation, { layerKey, layer }, stepId, { mode
                 error: null,
                 secretValues: [],
             });
-        } catch (_) { /* best-effort */ }
+        } catch (err) { log.debug('best-effort', err); }
         await automationStore.updateRun(run.id, {
             status: 'success',
             startedAt: nowIso,

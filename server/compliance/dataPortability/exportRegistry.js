@@ -348,7 +348,7 @@ async function heldCounts(orgId, { db } = {}) {
         const row = await getOne(combined, _paramsFor(combined, orgId));
         for (const k of EXPORT_KINDS) counts[k.kind] = _num(row?.[k.kind]);
         return { counts, errors };
-    } catch { /* fall through to per-kind */ }
+    } catch (err) { log.debug('fall through to per-kind', err); }
     for (const k of EXPORT_KINDS) {
         try {
             const row = await getOne(k.heldCountSql, _paramsFor(k.heldCountSql, orgId));

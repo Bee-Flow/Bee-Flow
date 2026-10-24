@@ -59,8 +59,7 @@ export default function ModuleLogsDialog({ module, onClose }: ModuleLogsDialogPr
                         value={level}
                         onChange={(e) => setLevel(e.target.value)}
                         aria-label={t('modules.logs_level_all')}
-                        className="text-xs rounded-lg border px-2 py-1 outline-none"
-                        style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', borderColor: 'var(--border-default)' }}
+                        className="text-xs rounded-lg border px-2 py-1 outline-none [background:var(--bg-primary)] [color:var(--text-primary)]! [border-color:var(--border-default)]"
                     >
                         <option value="">{t('modules.logs_level_all')}</option>
                         {LEVELS.map((l: string) => <option key={l} value={l}>{l}</option>)}

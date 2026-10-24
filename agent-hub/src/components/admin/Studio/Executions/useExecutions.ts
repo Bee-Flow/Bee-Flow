@@ -5,6 +5,7 @@ import scopedStorage from '../../../../utils/scopedStorage';
 import type { RunQuery } from '../../../../hooks/useAutomationApi';
 import type { NowRunningFacets } from '../Runs/nowRunning';
 import type { RunLogRow } from './runLogSentence';
+import { logger } from '../../../../utils/logger';
 
 // Date-range chip → hours (0 = all time).
 export const RANGE_HOURS: Record<string, number> = { '24h': 24, '7d': 168, '30d': 720, all: 0 };
@@ -140,7 +141,7 @@ export default function useExecutions({ scope, automationId, stepId, runScope = 
     const setFilters = useCallback((updater: ExecutionFilters | ((prev: ExecutionFilters) => ExecutionFilters)) => {
         setFiltersState(prev => {
             const next = typeof updater === 'function' ? updater(prev) : updater;
-            try { scopedStorage.setItem(`runsFilters.${scope}`, JSON.stringify(next)); } catch { /* quota */ }
+            try { scopedStorage.setItem(`runsFilters.${scope}`, JSON.stringify(next)); } catch (err) { logger.debug('quota', err); }
             return next;
         });
     }, [scope]);
@@ -218,7 +219,7 @@ export default function useExecutions({ scope, automationId, stepId, runScope = 
             });
             cursorRef.current = res.nextCursor || null;
             setHasMore(!!res.nextCursor);
-        } catch { /* keep current page on a paging error */ }
+        } catch (err) { logger.debug('keep current page on a paging error', err); }
         finally { if (myReq === reqIdRef.current) setLoadingMore(false); }
     }, [fetchPage, queryFor, loadingMore]);
 

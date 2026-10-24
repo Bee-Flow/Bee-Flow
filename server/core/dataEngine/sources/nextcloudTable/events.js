@@ -34,6 +34,7 @@ const { resolveLinker } = require('./linkerAuth');
 const ncApi = require('./ncApi');
 const { mirrorRowFromNc, fieldsByIdOf } = require('./rows');
 const { buildRelationIndexes } = require('./relations');
+const log = require('../../../../telemetry/log');
 
 const PG = { dialect: 'pg' };
 const EVENTS = new Set(['tables.row.added', 'tables.row.updated', 'tables.row.deleted']);
@@ -73,7 +74,7 @@ async function onTablesEvent({ orgId, event, payload }) {
             out.patched += 1;
             await datatableStore.markSourceStale(mirror.id, null).catch(() => {});
         } catch (e) {
-            try { await fallback(mirror, 'event'); out.kicked += 1; } catch { /* the schedule will */ }
+            try { await fallback(mirror, 'event'); out.kicked += 1; } catch (err) { log.debug('the schedule will', err); }
         }
     }
 
@@ -81,7 +82,7 @@ async function onTablesEvent({ orgId, event, payload }) {
     // that may be wrong.
     try {
         for (const mirror of mirrors) await staleDependents(mirror);
-    } catch { /* best-effort */ }
+    } catch (err) { log.debug('best-effort', err); }
     return out;
 }
 

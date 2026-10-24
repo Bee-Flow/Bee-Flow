@@ -51,8 +51,7 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
     // Seed the org form when the my-organization section opens. This used to run
     // as a `setTimeout(..., 0)` from inside the render path, so it re-fired on
     // every render until the state landed.
-    useEffect(() => {
-        if (activeSection !== 'my-organization' || !myOrg || orgData.id === myOrg.id) return;
+    if (activeSection === 'my-organization' && myOrg && orgData.id !== myOrg.id) {
         setOrgData({
             id: myOrg.id,
             name: myOrg.name || '',
@@ -69,7 +68,7 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
             defaultGroups: myOrg.defaultGroups || [],
             allowSignup: !!myOrg.allowSignup,
         });
-    }, [activeSection, myOrg?.id, orgData.id]);
+    }
 
     const openAddOrg = () => {
         setOrgData(EMPTY_ORG);

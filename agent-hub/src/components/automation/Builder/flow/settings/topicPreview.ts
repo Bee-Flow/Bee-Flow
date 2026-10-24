@@ -19,6 +19,7 @@ import { parseExpr, evaluate } from '@shared/expr/engine.mjs';
 import {
     TOPIC_HOST_SPEC, topicCallsOf, normalizeTopicText, makeTopicHost,
 } from '@shared/expr/topics.mjs';
+import { logger } from '../../../../../utils/logger';
 
 /** The preview endpoint's ceiling (server/routes/ai/automationBuilder/topicPreview.js). */
 export const MAX_PREVIEW_TEXTS = 25;
@@ -65,7 +66,7 @@ export function planTopicPreview(
             try {
                 const text = normalizeTopicText(evaluate(call.args[0], scope));
                 if (text) own.add(text);
-            } catch { /* the row's own problem; it counts as no match */ }
+            } catch (err) { logger.debug('the row\'s own problem; it counts as no match', err); }
         }
         const added = [...own].filter((t) => !texts.has(t));
         if (texts.size + added.length > MAX_PREVIEW_TEXTS) break;

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supportInboxApi } from '../../api/supportInboxApi';
 import { errorMessage } from '../../utils/caughtError';
 import type { CannedResponse, SupportThread, ThreadPatch } from './SupportInboxPanel.types';
+import { logger } from '../../utils/logger';
 
 interface RefreshDeps {
     selectedId: string | null;
@@ -112,7 +113,7 @@ export function useSupportReplyComposer({ selectedId, fetchThread, fetchThreads 
             try {
                 const res = await supportInboxApi.canned();
                 if (res.ok) { const d = await res.json(); setCannedResponses(d.responses || []); }
-            } catch {}
+            } catch (err) { logger.warn('canned responses load failed', err); }
         })();
     }, []);
 

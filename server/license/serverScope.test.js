@@ -81,7 +81,7 @@ const LICENSE_DIR = path.sep + path.join('license');
 Module._resolveFilename = function (request, parent, ...rest) {
     if (parent && parent.filename && parent.filename.includes(LICENSE_DIR + path.sep)) {
         if (request === './store') return path.join(__dirname, '__fake_store_server__.js');
-        if (request === '../stores/userStore') return path.join(__dirname, '__fake_user_store_server__.js');
+        if (request === '../stores/user/subscriptions') return path.join(__dirname, '__fake_user_store_server__.js');
     }
     return origResolve.call(this, request, parent, ...rest);
 };

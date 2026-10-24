@@ -17,18 +17,7 @@ export function IconTrigger({ open, unreadCount, onToggle }: { open: boolean; un
         >
             <Bell className="w-[18px] h-[18px]" strokeWidth={1.75} />
             {unreadCount > 0 && (
-                <span style={{
-                    position: 'absolute',
-                    top: 1, right: 1,
-                    minWidth: 14, height: 14,
-                    borderRadius: 7, padding: '0 3px',
-                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                    color: '#fff',
-                    fontSize: 9, fontWeight: 700,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    lineHeight: 1,
-                    boxShadow: '0 2px 4px rgba(220,38,38,0.3)',
-                }}>
+                <span className="[position:absolute] [top:1px] [right:1px] min-w-[14px] h-[14px] [border-radius:7px] [padding:0_3px] [background:linear-gradient(135deg,#ef4444,#dc2626)] [color:#fff] [font-size:9px] [font-weight:700] [display:flex] [align-items:center] [justify-content:center] [line-height:1] [box-shadow:0_2px_4px_rgba(220,38,38,0.3)]">
                     {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
             )}
@@ -52,17 +41,7 @@ export function RowTrigger({ open, unreadCount, onToggle }: { open: boolean; unr
                 {t('notifications.title', 'Notifications')}
             </span>
             {unreadCount > 0 && (
-                <span style={{
-                    marginLeft: 'auto',
-                    minWidth: 18, height: 18,
-                    borderRadius: 9, padding: '0 5px',
-                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                    color: '#fff',
-                    fontSize: 10, fontWeight: 700,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    lineHeight: 1,
-                    boxShadow: '0 2px 4px rgba(220,38,38,0.3)',
-                }}>
+                <span className="[margin-left:auto] min-w-[18px] h-[18px] [border-radius:9px] [padding:0_5px] [background:linear-gradient(135deg,#ef4444,#dc2626)] [color:#fff] [font-size:10px] [font-weight:700] [display:flex] [align-items:center] [justify-content:center] [line-height:1] [box-shadow:0_2px_4px_rgba(220,38,38,0.3)]">
                     {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
             )}
@@ -86,36 +65,15 @@ export function ResultModal({ modal, onClose, onDiscuss }: {
     return (
         <div
             onClick={onClose}
-            style={{
-                position: 'fixed', inset: 0, zIndex: 2000,
-                background: 'rgba(0,0,0,0.5)',
-                backdropFilter: 'blur(4px)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 24,
-                animation: 'resultModalBgIn 0.2s ease',
-            }}
+            className="[position:fixed] [inset:0] [z-index:2000] [background:rgba(0,0,0,0.5)] [backdrop-filter:blur(4px)] [display:flex] [align-items:center] [justify-content:center] [padding:24px] [animation:resultModalBgIn_0.2s_ease]"
         >
             <div
                 onClick={(e) => e.stopPropagation()}
-                style={{
-                    width: '100%', maxWidth: 720, maxHeight: '85vh',
-                    background: 'var(--bg-card, #ffffff)',
-                    borderRadius: 20,
-                    boxShadow: '0 25px 80px rgba(0,0,0,0.25), 0 8px 24px rgba(0,0,0,0.12)',
-                    display: 'flex', flexDirection: 'column',
-                    overflow: 'hidden',
-                    animation: 'resultModalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                    border: '1px solid var(--border-subtle, rgba(0,0,0,0.06))',
-                }}
+                className="w-[100%] max-w-[720px] max-h-[85vh] [background:var(--bg-card,#ffffff)] [border-radius:20px] [box-shadow:0_25px_80px_rgba(0,0,0,0.25),0_8px_24px_rgba(0,0,0,0.12)] [display:flex] [flex-direction:column] [overflow:hidden] [animation:resultModalIn_0.25s_cubic-bezier(0.16,1,0.3,1)] [border:1px_solid_var(--border-subtle,rgba(0,0,0,0.06))]"
             >
                 <ResultModalHeader modal={modal} onClose={onClose} onDiscuss={onDiscuss} />
 
-                <div style={{
-                    flex: 1, overflowY: 'auto',
-                    padding: '20px 24px',
-                    fontSize: 14, lineHeight: 1.7,
-                    color: 'var(--text-primary, #0f172a)',
-                }}>
+                <div className="[flex:1] [overflow-y:auto] [padding:20px_24px] [font-size:14px] [line-height:1.7] [color:var(--text-primary,#0f172a)]">
                     <MarkdownRenderer content={modal.content} />
                 </div>
             </div>
@@ -130,56 +88,27 @@ function ResultModalHeader({ modal, onClose, onDiscuss }: {
 }) {
     const { t } = useTranslation();
     return (
-        <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '16px 20px',
-            borderBottom: '1px solid var(--border-subtle, rgba(0,0,0,0.06))',
-            background: 'var(--bg-secondary, rgba(0,0,0,0.02))',
-        }}>
-            <div style={{
-                width: 36, height: 36, borderRadius: 10,
-                background: 'var(--bg-secondary, rgba(0,0,0,0.04))',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: '1px solid var(--border-subtle, rgba(0,0,0,0.08))',
-                flexShrink: 0,
-            }}>
+        <div className="[display:flex] [align-items:center] [gap:10px] [padding:16px_20px] [border-bottom:1px_solid_var(--border-subtle,rgba(0,0,0,0.06))] [background:var(--bg-secondary,rgba(0,0,0,0.02))]">
+            <div className="w-[36px] h-[36px] [border-radius:10px] [background:var(--bg-secondary,rgba(0,0,0,0.04))] [display:flex] [align-items:center] [justify-content:center] [border:1px_solid_var(--border-subtle,rgba(0,0,0,0.08))] [flex-shrink:0]">
                 <Bot style={{ width: 18, height: 18, color: 'var(--text-primary, #0f172a)' }} />
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{
-                    fontSize: 15, fontWeight: 700,
-                    color: 'var(--text-primary, #0f172a)',
-                    lineHeight: 1.3,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>
+            <div className="[flex:1] min-w-[0]">
+                <div className="[font-size:15px] [font-weight:700] [color:var(--text-primary,#0f172a)] [line-height:1.3] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">
                     {modal.title}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted, #94a3b8)', fontWeight: 500, marginTop: 2 }}>
+                <div className="[font-size:11px] [color:var(--text-muted,#94a3b8)] [font-weight:500] [margin-top:2px]">
                     {modal.category === 'cowork' ? 'Cowork result' : 'Automation result'}
                 </div>
             </div>
             <button
                 onClick={onDiscuss}
-                style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '8px 14px', borderRadius: 10,
-                    fontSize: 13, fontWeight: 600,
-                    border: 'none', cursor: 'pointer',
-                    background: 'var(--text-primary, #0f172a)',
-                    color: 'var(--bg-primary, #fff)',
-                    flexShrink: 0,
-                }}
+                className="[display:flex] [align-items:center] [gap:6px] [padding:8px_14px] [border-radius:10px] [font-size:13px] [font-weight:600] [border:none] [cursor:pointer] [background:var(--text-primary,#0f172a)] [color:var(--bg-primary,#fff)] [flex-shrink:0]"
             >
                 {t('notifications.discuss_in_chat', '💬 Discuss in Chat')}
             </button>
             <button
                 onClick={onClose}
-                style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    padding: 6, borderRadius: 8,
-                    color: 'var(--text-muted, #94a3b8)',
-                    flexShrink: 0,
-                }}
+                className="[background:none] [border:none] [cursor:pointer] [padding:6px] [border-radius:8px] [color:var(--text-muted,#94a3b8)] [flex-shrink:0]"
             >
                 <X style={{ width: 18, height: 18 }} />
             </button>

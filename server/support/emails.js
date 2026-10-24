@@ -243,7 +243,7 @@ async function _recordAuditEvent({ threadId, kind, errorMsg }) {
                 payload: { kind, error: errorMsg.slice(0, 500) },
             });
         }
-    } catch {}
+    } catch (err) { log.debug('failure audit write failed, nothing more to report', err); }
 }
 
 /**

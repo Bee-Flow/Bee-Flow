@@ -7,8 +7,7 @@ export function SupportFollowupBanner({ thread, onClear }: { thread: SupportThre
     const { t } = useTranslation();
     if (!thread.followup_needed_at) return null;
     return (
-        <div className="px-4 py-2 border-b flex items-center justify-between gap-3"
-            style={{ borderColor: 'var(--border-default)', background: 'rgba(245,158,11,0.10)' }}>
+        <div className="px-4 py-2 border-b flex items-center justify-between gap-3 [border-color:var(--border-default)]! [background:rgba(245,158,11,0.10)]">
             <div className="flex items-start gap-2 min-w-0 text-xs">
                 <BellRing className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: '#b45309' }} />
                 <span className="text-[var(--text-primary)]">
@@ -30,8 +29,7 @@ export function SupportEmailFailureBanner({ messages }: { messages: SupportMessa
     if (!failed) return null;
     const err = failed.email_send_status?.error || 'Unknown error';
     return (
-        <div className="px-4 py-2 border-b text-xs flex items-start gap-2"
-            style={{ background: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.35)', color: '#92400e' }}>
+        <div className="px-4 py-2 border-b text-xs flex items-start gap-2 [background:rgba(245,158,11,0.10)] [border-color:rgba(245,158,11,0.35)]! [color:#92400e]!">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
             <div>
                 <div className="font-medium">{t('support.support_inbox_outbound_email_failed_for_one_of_the', 'Outbound email failed for one of the messages in this thread.')}</div>
@@ -67,7 +65,7 @@ export function SupportActivityLog({ activity, showActivity, setShowActivity }: 
                     {activity.length === 0 && <div className="opacity-60">{t('support.support_inbox_no_events_recorded_yet', 'No events recorded yet.')}</div>}
                     {activity.map(ev => (
                         <div key={ev.id} className="flex items-baseline gap-2">
-                            <span style={{ color: 'var(--text-secondary)', minWidth: 84 }}>{formatRelative(ev.created_at)}</span>
+                            <span className="[color:var(--text-secondary)] min-w-[84px]">{formatRelative(ev.created_at)}</span>
                             <span><strong>{ev.actor_kind}{ev.actor_user_id ? ` (${ev.actor_user_id.slice(0, 8)})` : ''}</strong> — {ev.action}{ev.payload && Object.keys(ev.payload).length ? `: ${JSON.stringify(ev.payload).slice(0, 120)}` : ''}</span>
                         </div>
                     ))}

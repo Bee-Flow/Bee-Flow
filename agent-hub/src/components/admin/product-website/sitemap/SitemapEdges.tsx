@@ -36,7 +36,7 @@ function EdgeLine({ ends, onClick, ...visible }: {
 }) {
     const { sx, sy, ex, ey } = ends;
     return (
-        <g onClick={onClick} style={{ cursor: 'pointer' }}>
+        <g onClick={onClick} className="[cursor:pointer]">
             <line x1={sx} y1={sy} x2={ex} y2={ey}
                 stroke="transparent" strokeWidth={12} />
             <line x1={sx} y1={sy} x2={ex} y2={ey} {...visible} />
@@ -54,7 +54,7 @@ export default function SitemapEdges(props: SitemapEdgesProps) {
         <svg
             width={canvasWidth}
             height={canvasHeight}
-            style={{ position: 'absolute', left: 0, top: 0 }}
+            className="[position:absolute] [left:0] [top:0]"
         >
             <defs>
                 <marker id="sm-arrow-nav" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">

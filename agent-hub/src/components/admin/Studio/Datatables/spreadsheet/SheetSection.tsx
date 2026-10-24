@@ -82,7 +82,7 @@ export default function SheetSection({ t, s, describe, mark, onChange }: SheetSe
             {columns.length > 0 && (
                 <ul className="space-y-1.5" role="list" aria-label={t('datatables.ss_columns_list', 'Columns of {sheet}', { sheet: sheetLabel })}>
                     {columns.map((c) => (
-                        <li key={c.col} className="grid gap-2 items-center" style={{ gridTemplateColumns: 'minmax(0,1fr) 150px' }}>
+                        <li key={c.col} className="grid gap-2 items-center [grid-template-columns:minmax(0,1fr)_150px]">
                             <span className="min-w-0 flex flex-col gap-0.5">
                                 <span className="inline-flex items-center gap-1.5 min-w-0 text-xs">
                                     <ColumnKindIcon kind={columnTypeKind(c.type)} size={12} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
@@ -186,8 +186,7 @@ function HeaderRowStepper({ t, sheet, value, onSettle }: HeaderRowStepperProps) 
             <input type="number" min={HEADER_ROW_MIN} max={HEADER_ROW_MAX} value={draft}
                 onChange={(e) => { const n = parseInt(e.target.value, 10); setDraft(Number.isInteger(n) ? clamp(n) : e.target.value); }}
                 aria-label={`${label} — ${sheet}`}
-                className="w-12 px-1.5 py-0.5 rounded border text-center text-xs"
-                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
+                className="w-12 px-1.5 py-0.5 rounded border text-center text-xs [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!" />
             <button type="button" onClick={() => setDraft(d => clamp((Number(d) || 1) + 1))} aria-label={t('datatables.ss_header_inc', 'One row down')}
                 className="p-0.5 rounded border border-[var(--border-default)] text-[var(--text-secondary)]">
                 <Plus className="w-3 h-3" aria-hidden="true" />
@@ -205,14 +204,14 @@ interface PreviewProps {
 
 function Preview({ t, sheet, rows }: PreviewProps) {
     return (
-        <div className="overflow-x-auto rounded-lg" style={{ border: '1px solid var(--border-default)', background: 'var(--bg-primary)' }}>
+        <div className="overflow-x-auto rounded-lg [border:1px_solid_var(--border-default)] [background:var(--bg-primary)]">
             <table className="text-[11px] w-full">
                 <caption className="sr-only">{t('datatables.ss_preview_caption', 'First rows of {sheet}', { sheet })}</caption>
                 <tbody>
                     {rows.map((r, i) => (
                         <tr key={i} style={i === 0 ? { fontWeight: 600, color: 'var(--text-primary)' } : { color: 'var(--text-secondary)' }}>
                             {(r || []).map((v, j) => (i === 0
-                                ? <th key={j} scope="col" className="px-2 py-1 text-left whitespace-nowrap max-w-[160px] truncate" style={{ borderBottom: '1px solid var(--border-default)' }}>{previewText(v)}</th>
+                                ? <th key={j} scope="col" className="px-2 py-1 text-left whitespace-nowrap max-w-[160px] truncate [border-bottom:1px_solid_var(--border-default)]">{previewText(v)}</th>
                                 : <td key={j} className="px-2 py-1 whitespace-nowrap max-w-[160px] truncate">{previewText(v)}</td>))}
                         </tr>
                     ))}

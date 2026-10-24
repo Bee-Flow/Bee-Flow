@@ -104,7 +104,7 @@ export default function IdeCenter(p: IdeCenterProps) {
             )}
 
             {/* Preview — always visible, full height when no editor is open */}
-            <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <div className="[flex:1] min-h-[0] [overflow:hidden]">
                 <WebpagePreview
                     webpageId={selected?.id}
                     html={p.html} css={p.css} js={p.js}

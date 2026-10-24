@@ -69,7 +69,7 @@ function useGrantMutations(d: CanUseTabDeps, catalogApps: Loose) {
         });
         setToolsConfig(kept);
         patchConfig({ tools: kept });
-    }, [patchConfig, catalogApps]);
+    }, [stateRef, catalogApps, setToolsConfig, patchConfig]);
 
     // Must this app be named explicitly before a curated agent gets anything
     // of it? (`requiresGrant` from the catalog.) The two mutations below ADD
@@ -85,11 +85,11 @@ function useGrantMutations(d: CanUseTabDeps, catalogApps: Loose) {
     const onChangeConfirm = useCallback((appId: Loose, confirm: Loose) => {
         writeTools(setAppConfirm(stateRef.current.config?.tools ?? null, appId, confirm,
             { requiresGrant: requiresGrantOf(appId) }));
-    }, [writeTools, requiresGrantOf]);
+    }, [writeTools, stateRef, requiresGrantOf]);
     const onChangeActAs = useCallback((appId: Loose, actAs: Loose) => {
         writeTools(setAppActAs(stateRef.current.config?.tools ?? null, appId, actAs,
             { requiresGrant: requiresGrantOf(appId) }));
-    }, [writeTools, requiresGrantOf]);
+    }, [writeTools, stateRef, requiresGrantOf]);
 
     // What the tool chooser yields: ONE save for both gates. The chooser
     // serves the app-level list (`enabledIntegrations`) and the action-level
@@ -104,7 +104,7 @@ function useGrantMutations(d: CanUseTabDeps, catalogApps: Loose) {
             return;
         }
         patchConfig({ tools });
-    }, [patchConfig]);
+    }, [patchConfig, setEnabledIntegrations, setToolsConfig]);
     return { onChangeConfirm, onChangeActAs, onCommitTools };
 }
 
@@ -128,7 +128,7 @@ function useOpenChooser(d: CanUseTabDeps) {
             setToolChooserAppId(request.appId || null);
             setToolChooserOpen(true);
         }
-    }, []);
+    }, [setActiveTab, setKnowledgeOpen, setSkillPickerOpen, setToolChooserAppId, setToolChooserOpen]);
 }
 
 /** The rows of the knowledge and skills cards: pure, see canUse/canUseFacts.ts. */

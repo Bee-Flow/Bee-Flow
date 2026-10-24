@@ -2,6 +2,7 @@
 // `/api` is part of the path, not of API_BASE (see documentsApi.js).
 
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { logger } from '../../../utils/logger';
 
 const BASE = `${API_BASE}/api/studio-documents`;
 
@@ -47,7 +48,7 @@ function tabQuery(tabId?: string) {
 
 async function asJson<T>(res: Response, fallback: string): Promise<T> {
     let body: any = null;
-    try { body = await res.json(); } catch { /* empty or non-JSON body */ }
+    try { body = await res.json(); } catch (err) { logger.debug('empty or non-JSON body', err); }
     if (!res.ok) throw new SheetApiError((body && body.error) || fallback, res.status, body?.code);
     if (body === null) throw new SheetApiError(fallback, res.status, 'not_json');
     return body as T;

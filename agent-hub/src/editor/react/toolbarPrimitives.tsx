@@ -185,7 +185,7 @@ export function Item({ icon: Icon, label, onClick, active, danger, disabled, spi
 }
 
 export function MenuDivider() {
-  return <div className="my-1 h-px" style={{ background: 'var(--border-subtle)' }} />;
+  return <div className="my-1 h-px [background:var(--border-subtle)]" />;
 }
 
 export function MenuLabel({ children }: { children: React.ReactNode }) {
@@ -193,7 +193,7 @@ export function MenuLabel({ children }: { children: React.ReactNode }) {
 }
 
 export function BubbleDivider() {
-  return <div className="w-px h-4 mx-0.5 shrink-0" style={{ background: 'var(--border-subtle)' }} />;
+  return <div className="w-px h-4 mx-0.5 shrink-0 [background:var(--border-subtle)]" />;
 }
 
 /* ── shared menu bodies (same in the toolbar and the bubble) ─────────────── */
@@ -247,7 +247,7 @@ export function ColorFontPanel({ editor, t, onDone }: { editor: EditorFacade; t?
   const currentColor = editor.getAttributes('textStyle').color || null;
   const currentFont = editor.getAttributes('textStyle').fontFamily || null;
   return (
-    <div className="p-2.5" style={{ minWidth: 208 }}>
+    <div className="p-2.5 min-w-[208px]">
       <MenuLabel>{tt('notebooks.text_color', 'Text color')}</MenuLabel>
       <div className="grid grid-cols-8 gap-1 mb-1.5">
         {PALETTE.map((c) => (
@@ -259,7 +259,7 @@ export function ColorFontPanel({ editor, t, onDone }: { editor: EditorFacade; t?
           <input type="color" value={currentColor || '#000000'} onChange={(e: React.ChangeEvent<HTMLInputElement>) => chain().setColor(e.target.value).run()} className="w-5 h-5 rounded cursor-pointer border-0 bg-transparent p-0" />
           {tt('notebooks.custom', 'Custom')}
         </label>
-        <button onMouseDown={(e: React.MouseEvent) => { e.preventDefault(); chain().unsetColor().run(); }} className="text-[10px]" style={{ color: 'var(--text-muted)' }}>✕ {tt('notebooks.reset', 'Reset')}</button>
+        <button onMouseDown={(e: React.MouseEvent) => { e.preventDefault(); chain().unsetColor().run(); }} className="text-[10px] [color:var(--text-muted)]!">✕ {tt('notebooks.reset', 'Reset')}</button>
       </div>
       <MenuLabel>{tt('notebooks.highlight', 'Highlight')}</MenuLabel>
       <div className="grid grid-cols-8 gap-1 mb-1.5">

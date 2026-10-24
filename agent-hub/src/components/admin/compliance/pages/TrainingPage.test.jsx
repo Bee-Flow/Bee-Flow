@@ -2,8 +2,8 @@ import { render, screen, cleanup, waitFor, within, act } from '@testing-library/
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import TrainingPage, { OBLIGATION_KINDS } from './TrainingPage';
 import { attestationDueAt, needsAttestation } from './trainingAttestation';
+import TrainingPage, { OBLIGATION_KINDS } from './TrainingPage';
 
 vi.mock('../../../../hooks/useTranslation', () => {
     const useTranslation = () => ({

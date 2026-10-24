@@ -74,7 +74,7 @@ async function getUserPermissions(userId, session = null) {
                 return cached.perms;
             }
         }
-    } catch (_) { /* cache miss — resolve from DB */ }
+    } catch (err) { log.debug('cache miss — resolve from DB', err); }
     _metrics.recordCache('permissions', false);
 
     try {
@@ -91,7 +91,7 @@ async function getUserPermissions(userId, session = null) {
         if (Array.isArray(user.groups)) {
             groupIds = user.groups;
         } else {
-            try { groupIds = JSON.parse(user.groups || '[]'); } catch (_) { }
+            try { groupIds = JSON.parse(user.groups || '[]'); } catch (_) { log.debug('user.groups is not valid JSON, treat as no group membership', _); }
         }
 
         const allGroups = await userStore.getAllGroups();
@@ -217,7 +217,7 @@ async function getUserPermissions(userId, session = null) {
             } else {
                 _permCache.set(userId, { perms: result, ts: Date.now() });
             }
-        } catch (_) { /* cache write failure is non-fatal */ }
+        } catch (err) { log.debug('cache write failure is non-fatal', err); }
 
         return result;
     } catch (err) {

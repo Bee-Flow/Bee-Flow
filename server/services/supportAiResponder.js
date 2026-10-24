@@ -389,7 +389,7 @@ async function _maybeAutoAssign(threadId) {
         try {
             const inbox = await require('../stores/supportInboxStore').getInbox(thread.inbox_id);
             sharedGroups = Array.isArray(inbox?.shared_groups) ? inbox.shared_groups : [];
-        } catch { /* default open */ }
+        } catch (err) { log.debug('default open', err); }
     }
     const { pickNextAssignee } = require('./supportAutoAssigner');
     const next = await pickNextAssignee(thread.organization_id || null, { sharedGroups });
@@ -585,7 +585,7 @@ async function runAiAutoResponder(threadId, opts = {}) {
             await _escalate(threadId, `ai_error: ${outerErr.message}`, {
                 systemMessage: `AI auto-responder crashed (${outerErr.message}). Escalated to staff.`,
             });
-        } catch {}
+        } catch (err) { log.warn('escalation after an AI responder crash failed', err); }
         settled = true;
         return null;
     } finally {
@@ -599,7 +599,7 @@ async function runAiAutoResponder(threadId, opts = {}) {
                         systemMessage: 'AI auto-responder exited unexpectedly. Escalated to staff.',
                     });
                 }
-            } catch {}
+            } catch (err) { log.warn('escalation after an unexpected AI responder exit failed', err); }
         }
     }
 }

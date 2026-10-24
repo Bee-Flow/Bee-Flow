@@ -261,7 +261,7 @@ async function composeCowork({ brief, agents = [], timezone = 'Europe/Amsterdam'
                 ...usageLogFields(usage),
                 duration_ms: Date.now() - callStart,
             }).catch(() => { /* bookkeeping only */ });
-        } catch (_) { /* bookkeeping only */ }
+        } catch (err) { log.debug('bookkeeping only', err); }
 
         const parsed = parseJsonObject(response?.content || '');
         if (!parsed?.value) throw new Error('model returned no JSON object');

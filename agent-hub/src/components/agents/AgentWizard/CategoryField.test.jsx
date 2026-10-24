@@ -9,8 +9,8 @@
  *
  * Run: cd agent-hub && npx vitest run src/components/admin/AgentWizard/CategoryField.test.jsx
  */
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import CategoryField from './CategoryField';
 
 const t = (key, fallback, params) => {

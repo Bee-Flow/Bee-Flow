@@ -230,8 +230,7 @@ function CardField({ field, row }: CardFieldProps) {
     if (field.slot === 'chip') {
         return (
             <span
-                className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums"
-                style={{ background: 'var(--app-primary-soft, var(--bg-tertiary))', color: 'var(--text-primary)' }}
+                className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums [background:var(--app-primary-soft,var(--bg-tertiary))] [color:var(--text-primary)]!"
                 title={title}
                 data-app-kanban-field={field.key}
             >
@@ -285,8 +284,7 @@ function CardBody({ row, titleKey, subtitleKey, badgeKey, badgeToneMap, cardFiel
             ) : null}
             {badge != null && badge !== '' && !toneHit ? (
                 <span
-                    className="inline-flex items-center rounded-full px-1.5 py-0.5 mt-1.5 text-[11px] font-medium"
-                    style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+                    className="inline-flex items-center rounded-full px-1.5 py-0.5 mt-1.5 text-[11px] font-medium [background:var(--bg-tertiary)] [color:var(--text-secondary)]!"
                 >
                     {displayValue(badge)}
                 </span>
@@ -644,8 +642,7 @@ export default function AppKanban({ node }: NodeProps<KanbanProps>) {
                     <button
                         type="button"
                         onClick={() => toggleCollapsed(column.value)}
-                        className="text-[11px] px-1 rounded app-focusable"
-                        style={{ color: 'var(--text-muted)' }}
+                        className="text-[11px] px-1 rounded app-focusable [color:var(--text-muted)]!"
                         aria-expanded={!isCollapsed}
                         data-app-kanban-collapse={column.value}
                     >
@@ -711,8 +708,7 @@ export default function AppKanban({ node }: NodeProps<KanbanProps>) {
                     lanes.map((lane) => (
                         <div key={lane.value} data-app-kanban-swimlane={lane.value}>
                             <div
-                                className="flex items-center gap-1.5 px-1.5 py-1 mt-1 border-t"
-                                style={{ borderColor: 'var(--border-subtle, var(--border-default))' }}
+                                className="flex items-center gap-1.5 px-1.5 py-1 mt-1 border-t [border-color:var(--border-subtle,var(--border-default))]!"
                             >
                                 {lane.color && ROLE_COLORS[lane.color] ? (
                                     <span className="h-2 w-2 rounded-full shrink-0" style={{ background: ROLE_COLORS[lane.color] }} aria-hidden="true" />
@@ -763,13 +759,7 @@ export default function AppKanban({ node }: NodeProps<KanbanProps>) {
                     {activeRow ? (
                         <div
                             data-app-kanban-overlay="true"
-                            className="border px-2.5 py-2 select-none cursor-grabbing"
-                            style={{
-                                background: 'var(--bg-card)',
-                                borderColor: 'var(--accent-primary, #0F766E)',
-                                borderRadius: 'var(--radius-md, 8px)',
-                                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
-                            }}
+                            className="border px-2.5 py-2 select-none cursor-grabbing [background:var(--bg-card)] [border-color:var(--accent-primary,#0F766E)] [border-radius:var(--radius-md,8px)] [box-shadow:0_8px_24px_rgba(0,0,0,0.25)]"
                         >
                             <CardBody
                                 row={activeRow}

@@ -1,7 +1,7 @@
 // Small hooks of the message column: what the reader has not seen yet, and
 // fetching a thread's first message when it is older than the loaded page.
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject, useEffectEvent } from 'react';
 import { newestSeq, useLoadOlderMessages, type TeamChatMessage, type TeamChatMessages } from '../../../../api/queries/projectChats';
 import useStickToBottom from '../../../../hooks/useStickToBottom';
 import { mainConversation, type MessageGroup } from './messageGroups';
@@ -18,7 +18,11 @@ export function useUnseenCount(mainMessages: TeamChatMessage[], atBottom: boolea
     const newest = newestSeq(mainMessages);
     // The newest message the reader has had the chance to see.
     const [seen, setSeen] = useState(newest);
-    useEffect(() => { if (atBottom) setSeen(newest); }, [atBottom, newest]);
+    const [prevAtBottomDeps, setPrevAtBottomDeps] = useState([atBottom, newest]);
+    if (prevAtBottomDeps[0] !== atBottom || prevAtBottomDeps[1] !== newest) {
+        setPrevAtBottomDeps([atBottom, newest]);
+        if (atBottom) setSeen(newest);
+    }
     if (atBottom) return 0;
     return mainMessages.filter(m => m.seq > seen && !m.deleted && !(m.authorKind === 'user' && m.authorUserId === currentUserId)).length;
 }
@@ -30,13 +34,16 @@ export function useOnOwnSend(groups: MessageGroup[], onNew: () => void): void {
     const signature = sendingIds.join('|');
     const before = useRef<Set<string>>(new Set());
     const latest = useRef(onNew);
-    latest.current = onNew;
-    // Layout effect: the new bubble is in the DOM, so scrolling to the bottom includes it.
     useLayoutEffect(() => {
+        latest.current = onNew;
+    });
+    // Layout effect: the new bubble is in the DOM, so scrolling to the bottom includes it.
+    const runSendingIdsEffect = useEffectEvent(() => {
         const fresh = sendingIds.some(id => !before.current.has(id));
         before.current = new Set(sendingIds);
         if (fresh) latest.current();
-    }, [signature]);
+    });
+    useLayoutEffect(() => { return runSendingIdsEffect(); }, [signature]);
 }
 
 export type ThreadRootState = 'found' | 'loading' | 'missing';

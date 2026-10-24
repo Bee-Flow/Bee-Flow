@@ -80,7 +80,7 @@ const GmailPicker = ({ isOpen, onClose, onFilesSelected, apiBase = '' }: Props) 
                         style={{ color: '#202124', maxWidth: '200px' }}>
                         {formatFrom(msg.from)}
                     </span>
-                    <span className="text-xs flex-shrink-0" style={{ color: '#5f6368' }}>
+                    <span className="text-xs flex-shrink-0 [color:#5f6368]!">
                         {formatRelativeDate(msg.date, { todayShowsTime: true })}
                     </span>
                 </div>
@@ -88,7 +88,7 @@ const GmailPicker = ({ isOpen, onClose, onFilesSelected, apiBase = '' }: Props) 
                     style={{ color: '#202124' }}>
                     {msg.subject}
                 </div>
-                <div className="text-xs truncate mt-0.5" style={{ color: '#5f6368' }}>
+                <div className="text-xs truncate mt-0.5 [color:#5f6368]!">
                     {msg.snippet}
                 </div>
             </div>

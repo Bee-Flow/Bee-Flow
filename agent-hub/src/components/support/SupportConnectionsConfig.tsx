@@ -268,8 +268,7 @@ export default function SupportConnectionsConfig() {
                     <button
                         onClick={saveYt}
                         disabled={ytSaving}
-                        className="px-3 py-1.5 rounded text-sm font-medium disabled:opacity-60"
-                        style={{ background: 'var(--accent-primary)', color: 'white' }}
+                        className="px-3 py-1.5 rounded text-sm font-medium disabled:opacity-60 [background:var(--accent-primary)] [color:white]!"
                     >
                         {ytSaving ? 'Saving…' : 'Save connection'}
                     </button>
@@ -360,8 +359,7 @@ export default function SupportConnectionsConfig() {
                     <button
                         onClick={() => saveChat({ enabled: !chat?.enabled })}
                         disabled={chatSaving || (!chat?.configured && !hook.trim())}
-                        className="px-3 py-1.5 rounded text-sm font-medium disabled:opacity-60"
-                        style={{ background: 'var(--accent-primary)', color: 'white' }}
+                        className="px-3 py-1.5 rounded text-sm font-medium disabled:opacity-60 [background:var(--accent-primary)] [color:white]!"
                     >
                         {chatSaving ? 'Saving…' : chat?.enabled ? 'Turn notifications off' : 'Turn notifications on'}
                     </button>

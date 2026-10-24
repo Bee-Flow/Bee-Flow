@@ -17,13 +17,7 @@ export default function AppVersionBanner({ onReload }: { onReload: () => void })
     const { t } = useTranslation();
     return (
         <div
-            className="shrink-0 mx-4 mt-3 flex items-center gap-3 border px-3 py-2 text-sm"
-            style={{
-                borderColor: 'var(--app-primary)',
-                background: 'var(--app-primary-soft)',
-                color: 'var(--text-primary)',
-                borderRadius: 'var(--app-radius)',
-            }}
+            className="shrink-0 mx-4 mt-3 flex items-center gap-3 border px-3 py-2 text-sm [border-color:var(--app-primary)] [background:var(--app-primary-soft)] [color:var(--text-primary)]! [border-radius:var(--app-radius)]"
             role="status"
             data-app-version-banner="true"
         >
@@ -32,8 +26,7 @@ export default function AppVersionBanner({ onReload }: { onReload: () => void })
             <button
                 type="button"
                 onClick={onReload}
-                className="px-2.5 py-1 text-xs font-medium border"
-                style={{ borderColor: 'var(--app-primary)', color: 'var(--app-primary)', borderRadius: 'var(--app-radius)' }}
+                className="px-2.5 py-1 text-xs font-medium border [border-color:var(--app-primary)] [color:var(--app-primary)]! [border-radius:var(--app-radius)]"
             >
                 {t('studio_apps_runtime.version_banner.reload', 'Reload')}
             </button>

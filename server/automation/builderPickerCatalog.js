@@ -169,25 +169,25 @@ async function buildAppEventProvidersFor({ userId, session, apps, userToolNames,
             const inboxes = await d.listInboxes(orgId);
             supportOk = Array.isArray(inboxes) && inboxes.length > 0;
         }
-    } catch (_) { /* fail closed */ }
+    } catch (err) { log.debug('fail closed', err); }
 
     // Meeting Notes is a composite capability (licence + beta + module); the
     // provider declares `availability: {kind:'check', check:'meeting_notes'}`.
     let meetingNotesOk = false;
     try {
         meetingNotesOk = await d.hasFeature(userId, 'meeting_notes', session) === true;
-    } catch (_) { /* fail closed */ }
+    } catch (err) { log.debug('fail closed', err); }
 
     // msgraph is webhook-only: without a public base URL it can never fire.
     let publicBaseUrl = false;
-    try { publicBaseUrl = !!d.publicBaseUrl(); } catch (_) { /* fail closed */ }
+    try { publicBaseUrl = !!d.publicBaseUrl(); } catch (err) { log.debug('fail closed', err); }
 
     // MCP servers have no TOOL_REGISTRY row; resolve them from the same
     // userToolNames authority plus a per-user credential check.
     let availableMcpServerIds = new Set();
     try {
         availableMcpServerIds = await d.availableMcpServerIds(userToolNames, userId);
-    } catch (_) { /* fail closed — no MCP providers */ }
+    } catch (err) { log.debug('fail closed — no MCP providers', err); }
 
     // Integrations with no trigger declaration still expose their read-only
     // list tools as watchable sources.
@@ -196,7 +196,7 @@ async function buildAppEventProvidersFor({ userId, session, apps, userToolNames,
         const labels = new Map((apps || []).map(a => [a.id, a.label]));
         derivedProviders = require('./triggerSources/autoDerive')
             .deriveProviders(userToolDefs || [], { labels, mcpServerIds: availableMcpServerIds });
-    } catch (_) { /* declared providers only */ }
+    } catch (err) { log.debug('declared providers only', err); }
 
     return buildAppEventProviders({
         availableAppIds,

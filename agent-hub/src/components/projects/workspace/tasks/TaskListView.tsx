@@ -12,6 +12,7 @@ import type { useChatPeople } from '../chat/chatPeople';
 import { sortTasks, type TaskSort } from './taskFilters';
 import TaskRow from './TaskRow';
 import { statusLabel } from './taskText';
+import { logger } from '../../../../utils/logger';
 
 /** Done starts folded once it holds more than this many tasks. */
 const DONE_FOLD_FROM = 6;
@@ -27,7 +28,7 @@ function useFolded(projectId: string): [Folded, (status: TaskStatus, folded: boo
     });
     const set = (status: TaskStatus, value: boolean) => setFolded(prev => {
         const next = { ...prev, [status]: value };
-        try { scopedStorage.setItem(key, JSON.stringify(next)); } catch { /* the choice just does not outlive the page */ }
+        try { scopedStorage.setItem(key, JSON.stringify(next)); } catch (err) { logger.debug('the choice just does not outlive the page', err); }
         return next;
     });
     return [folded, set];

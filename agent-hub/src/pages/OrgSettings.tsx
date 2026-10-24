@@ -71,7 +71,7 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }: OrgSett
         return (
             <div className="h-full flex items-center justify-center bg-[var(--bg-primary)]">
                 <div className="text-center p-8 rounded-2xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'rgba(239, 68, 68, 0.1)' }}>
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center [background:rgba(239,68,68,0.1)]">
                         <ShieldOff className="w-8 h-8" style={{ color: 'rgb(239, 68, 68)' }} />
                     </div>
                     <h2 className="text-xl font-bold mb-2 text-[var(--text-primary)]">{t('admin.access_denied_title', 'Access Denied')}</h2>

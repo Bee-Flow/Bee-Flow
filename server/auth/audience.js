@@ -11,6 +11,7 @@
 
 const userStore = require('../stores/userStore');
 const { resolveUserOrgIds } = require('./permissions');
+const log = require('../telemetry/log');
 
 function _parseSharedGroups(value) {
     if (Array.isArray(value)) return value;
@@ -68,7 +69,7 @@ async function resolveUserGroups(userId) {
         if (typeof user.groups === 'string') {
             try { return JSON.parse(user.groups || '[]'); } catch (_) { return []; }
         }
-    } catch (_) { /* tolerate */ }
+    } catch (err) { log.debug('tolerate', err); }
     return [];
 }
 

@@ -1,13 +1,13 @@
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
-import { editor, editors, editorValue, editorWithValue, typeInEditor } from '../../../../test/refEditor';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { extractFormState, buildPatch } from './settings/formState';
-import { describeNode } from '../mapping/upstream';
+import { editorWithValue, typeInEditor } from '../../../../test/refEditor';
 import scopedStorage from '../../../../utils/scopedStorage';
+import { describeNode } from '../mapping/upstream';
 
 vi.mock('../../../../hooks/useAutomationApi', () => ({
     default: () => ({ listFormPages: vi.fn(async () => ({ forms: [] })), createFormPage: vi.fn(), rotateFormPage: vi.fn() }),

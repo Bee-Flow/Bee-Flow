@@ -124,7 +124,7 @@ function makeSettingsHandlers(d) {
         const groups = await cleanGroups(d, ctx.stage.organizationId || shape.organization_id || null, sharedGroups);
         const ok = await d.agentStore.setAgentPublished(shape.id, publishing, shape.owner_id, groups);
         if (!ok) throw new HttpError(500, 'audience_failed', 'The audience could not be changed.');
-        if (publishing) { try { d.emitAgentPublished(shape); } catch { /* the compliance bus is best effort */ } }
+        if (publishing) { try { d.emitAgentPublished(shape); } catch (err) { log.debug('the compliance bus is best effort', err); } }
         return { isPublished: publishing, ...(groups !== undefined ? { sharedGroups: groups } : {}) };
     }
 

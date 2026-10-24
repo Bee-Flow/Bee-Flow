@@ -8,6 +8,7 @@ import type { AutomationBuilderInitial, AutomationBuilderSendOptions, Automation
 import { handle } from './automationBuilder/reducer';
 import { finalizeStreaming, questionsPlanIdOf } from './automationBuilder/streamHelpers';
 import useRunControls from './automationBuilder/useRunControls';
+import { logger } from '../utils/logger';
 
 export type { AutomationBuilderSendOptions, AutomationBuilderInitial, AutomationBuilderState, BuilderWebSearchStatus } from './automationBuilder/types';
 
@@ -147,7 +148,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
 
     const send = useCallback(async ({ message, answers = null, targetAutomationId, modelTier = 'auto', workMode, alwaysPlanLarge, pauseAfterStep, approvedPlanId = null, selectedStepId = null, timezone, history, attachments = [], webSearchEnabled = true, disabledMedia = {}, canvasScope = null, resume = false, seedMetadata = null }: AutomationBuilderSendOptions) => {
         if (abortRef.current) {
-            try { abortRef.current.abort(); } catch {}
+            try { abortRef.current.abort(); } catch (err) { logger.debug('previous request already finished', err); }
         }
         const ac = new AbortController();
         abortRef.current = ac;
@@ -279,7 +280,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
      */
     const stop = useCallback(() => {
         if (abortRef.current) {
-            try { abortRef.current.abort(); } catch { /* already settled */ }
+            try { abortRef.current.abort(); } catch (err) { logger.debug('already settled', err); }
             abortRef.current = null;
         }
         setState(s => (s.running

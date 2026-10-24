@@ -21,8 +21,8 @@ vi.mock('../../../../utils/helpers', () => ({
     }),
 }));
 
-import { READ } from '../canUse/canUseFacts';
 import useAgentConceptFacts from './useAgentConceptFacts';
+import { READ } from '../canUse/canUseFacts';
 
 const PERSONA = { who: 'A colleague.', mode: 'fields', language: 'nl' };
 

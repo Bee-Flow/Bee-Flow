@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { STATUS_COLORS, CHART_SERIES } from '../../../../constants/palette';
 import { autoCaseColor, dominantPiiGroup, EDGE_COLOR_KEYS, PII_GROUP_COLORS, resolveEdgeColor } from './edgeColors';
+import { STATUS_COLORS, CHART_SERIES } from '../../../../constants/palette';
 
 describe('edgeColors', () => {
     it('resolves exactly the eight palette keys, nothing else', () => {

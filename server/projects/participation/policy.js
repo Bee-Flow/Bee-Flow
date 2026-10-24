@@ -34,8 +34,10 @@
 
 const log = require('../../telemetry/log');
 
-const CONFIG_KEY_PREFIX = 'org_ai_participation_';
-const USER_KEY_PREFIX = 'user_ai_participation_';
+const {
+    AI_PARTICIPATION_CONFIG_KEY_PREFIX: CONFIG_KEY_PREFIX,
+    USER_AI_PARTICIPATION_KEY_PREFIX: USER_KEY_PREFIX,
+} = require('../../stores/lib/orgConfigKeyPrefixes');
 const CACHE_TTL_MS = 30_000;
 
 const SENSITIVITIES = Object.freeze(['conservative', 'balanced', 'eager']);

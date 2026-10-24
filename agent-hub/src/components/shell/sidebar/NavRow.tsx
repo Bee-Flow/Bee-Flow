@@ -79,11 +79,7 @@ const NavRow = ({
                 {kbd && <kbd className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded-md bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[10px] font-medium text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)] transition-colors">{kbd}</kbd>}
                 {typeof badge === 'number' && badge > 0 && (
                     <span
-                        className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-md tabular-nums"
-                        style={{
-                            background: 'color-mix(in srgb, var(--accent-primary) 12%, transparent)',
-                            color: 'var(--accent-primary)',
-                        }}
+                        className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-md tabular-nums [background:color-mix(in_srgb,var(--accent-primary)_12%,transparent)] [color:var(--accent-primary)]!"
                     >
                         {badge}
                     </span>

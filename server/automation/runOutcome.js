@@ -25,6 +25,8 @@
  * an outcome must never take a run down.
  */
 
+const log = require('../telemetry/log');
+
 const OUTCOME_CODES = Object.freeze([
     'success', 'stopped_at', 'waiting_approval', 'waiting_form', 'waiting_confirm', 'cancelled',
 ]);
@@ -415,7 +417,7 @@ async function resolveRunOutcome(input, deps = {}) {
                     ? (deps.nameOfUser ? await deps.nameOfUser(seat.userId) : null)
                     : (deps.nameOfGroup ? await deps.nameOfGroup(seat.groupId) : null);
                 if (name) waitingOn.push(name);
-            } catch (_) { /* a name we cannot read is left out, not guessed */ }
+            } catch (err) { log.debug('a name we cannot read is left out, not guessed', err); }
         }
     }
     try {

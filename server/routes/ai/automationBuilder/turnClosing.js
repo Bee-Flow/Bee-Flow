@@ -199,7 +199,7 @@ async function closeTurn(turn) {
                 ...(catalogOrder ? { catalogOrder } : {}),
                 updatedAt: new Date().toISOString(),
             }, { trimBlock: HISTORY_EVICT_BLOCK });
-        } catch (_) { /* non-fatal */ }
+        } catch (err) { log.debug('non-fatal', err); }
     }
 
     if (usageTotals.rounds > 0) {

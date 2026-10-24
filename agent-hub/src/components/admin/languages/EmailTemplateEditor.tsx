@@ -6,6 +6,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../hooks/useTranslation';
 import { LANGUAGES_API, getLanguages, sendLanguagesJson } from '../../../api/languages';
 import { errorMessage } from '../../../utils/caughtError';
+import { logger } from '../../../utils/logger';
 
 // Structured-field editor for the verification + welcome emails, per locale.
 // Fields are plain text rendered into the branded shell; a live preview shows
@@ -87,7 +88,7 @@ function useEmailTemplates(locale: string) {
                 setSaved(true);
                 setTimeout(() => setSaved(false), 2000);
             }
-        } catch { /* ignore */ }
+        } catch (err) { logger.debug('ignore', err); }
         setSaving(false);
     };
 
@@ -190,13 +191,12 @@ function EmailPreview({ html }: { html: string }) {
     return (
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
             <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5 px-1 text-[var(--text-muted)]">{t('admin_languages.live_preview', 'Live preview')}</div>
-            <div className="flex-1 rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border-default)', background: '#f5f5f5' }}>
+            <div className="flex-1 rounded-xl border overflow-hidden [border-color:var(--border-default)] [background:#f5f5f5]">
                 <iframe
                     title={t('admin_languages.email_preview', 'Email preview')}
                     srcDoc={html}
                     sandbox=""
-                    className="w-full h-full"
-                    style={{ border: 'none', background: '#f5f5f5' }}
+                    className="w-full h-full [border:none] [background:#f5f5f5]"
                 />
             </div>
         </div>
@@ -262,7 +262,7 @@ export default function EmailTemplateEditor({ locale }: { locale: string }) {
 
             <div className="flex-1 flex gap-4 overflow-hidden min-h-0">
                 {/* Left: fields form */}
-                <div className="flex-1 flex flex-col overflow-y-auto pr-1 min-w-0" style={{ scrollbarWidth: 'thin' }}>
+                <div className="flex-1 flex flex-col overflow-y-auto pr-1 min-w-0 [scrollbar-width:thin]">
                     {/* Variable hint chips */}
                     {variables.length > 0 && (
                         <div className="flex items-center gap-1.5 flex-wrap mb-3">

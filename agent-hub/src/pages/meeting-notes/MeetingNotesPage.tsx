@@ -207,8 +207,7 @@ function MeetingNotesInner({ user, onBack, initialMeetingId = null, onNavigate =
 
     const notice = fallbackNotice && (
         <div
-            className="flex items-center justify-between gap-3 px-4 py-2 text-xs border-b"
-            style={{ background: 'color-mix(in srgb, var(--accent-primary) 8%, var(--bg-secondary))', borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+            className="flex items-center justify-between gap-3 px-4 py-2 text-xs border-b [background:color-mix(in_srgb,var(--accent-primary)_8%,var(--bg-secondary))] [border-color:var(--border-subtle)]! [color:var(--text-secondary)]!"
             role="status"
         >
             <span>

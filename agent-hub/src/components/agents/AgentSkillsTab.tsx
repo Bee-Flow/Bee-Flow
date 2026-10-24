@@ -103,8 +103,7 @@ export default function AgentSkillsTab({ user, attachedSkillIds = [], onChangeAt
                     onChange={e => setSearch(e.target.value)}
                     placeholder={t('agent_skills.search', 'Search skills…')}
                     aria-label={t('agent_skills.search', 'Search skills…')}
-                    className="w-full pl-9 pr-3 py-2 text-[13px] rounded-lg border outline-none transition-colors focus:border-[var(--accent-primary)]"
-                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+                    className="w-full pl-9 pr-3 py-2 text-[13px] rounded-lg border outline-none transition-colors focus:border-[var(--accent-primary)] [background:var(--bg-secondary)] [border-color:var(--border-subtle)]! [color:var(--text-primary)]!"
                 />
             </div>
 

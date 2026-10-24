@@ -267,7 +267,7 @@ router.post('/n8n/test', requireOrgAdminForN8n, validate({ body: N8nConfigBody }
                 const arr = data.data || data;
                 activeWebhookCount = Array.isArray(arr) ? arr.length : null;
             }
-        } catch (_) { /* non-fatal */ }
+        } catch (err) { log.debug('non-fatal', err); }
 
         res.json({ ok: true, activeWebhookCount });
     } catch (err) {
@@ -337,7 +337,7 @@ router.get('/n8n/diagnostics', requireAuth, async (req, res) => {
         toolsThatWillBeInjected = (tools || [])
             .map(t => t.function?.name)
             .filter(n => n && (n.startsWith('n8n_workflow_') || n.startsWith('n8n_execution_') || n.startsWith('n8n_run_')));
-    } catch (_) { /* non-fatal — if integrationTools throws we still return the gate trace */ }
+    } catch (err) { log.debug('non-fatal — if integrationTools throws we still return the gate trace', err); }
 
     const blockingReason =
         !organizationId ? 'no_organization' :

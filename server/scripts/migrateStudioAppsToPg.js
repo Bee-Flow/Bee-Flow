@@ -47,6 +47,7 @@ const SPOT_CHECK_ROWS = 20;
 // column is materialized as a plain column carrying the values SQLite already
 // computed (frozen, but never wrong) and flagged in the report.
 const { translateComputedExpr } = require('../appStudio/computedDialect');
+const telemetryLog = require('../telemetry/log');
 
 function qi(name) {
     return '"' + String(name).replace(/"/g, '""') + '"';
@@ -247,8 +248,8 @@ async function _migrateOne(deps, appRow, opts = {}) {
         if (opts.dryRun) result.status = 'dry-run-ok';
         return result;
     } finally {
-        if (db) { try { db.close(); } catch (_) { /* best effort */ } }
-        if (localPath) { try { await fsp.unlink(localPath); } catch (_) { /* temp file */ } }
+        if (db) { try { db.close(); } catch (err) { telemetryLog.debug('best effort', err); } }
+        if (localPath) { try { await fsp.unlink(localPath); } catch (err) { telemetryLog.debug('temp file', err); } }
     }
 }
 

@@ -6,6 +6,7 @@
 
 import { Building2, MoreHorizontal, PauseCircle, Search, Users } from 'lucide-react';
 import React, { useRef, useState } from 'react';
+import useNow from '../../../../hooks/useNow';
 import type { ProjectRole } from '../../../../api/queries/projects';
 import {
     useDeleteProjectChat, useTeamChatAiPolicy, useUpdateProjectChat, type TeamChat, type TeamChatPatch,
@@ -58,8 +59,10 @@ function AgentSelect({ chat, agents, onChange }: { chat: TeamChat; agents: Agent
 }
 
 /** "Paused" while "not helpful" feedback holds the AI back in an Auto chat. */
-export function AutoPausedChip({ chat, now = Date.now() }: { chat: TeamChat; now?: number }) {
+export function AutoPausedChip({ chat, now: nowProp }: { chat: TeamChat; now?: number }) {
     const { t, locale } = useTranslation();
+    const clock = useNow(30000);
+    const now = nowProp ?? clock;
     const until = chat.autoPausedUntil ? Date.parse(chat.autoPausedUntil) : NaN;
     if (chat.aiMode !== 'auto' || !Number.isFinite(until) || until <= now) return null;
     const when = new Date(until).toLocaleString(locale, { weekday: 'short', hour: '2-digit', minute: '2-digit' });

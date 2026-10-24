@@ -1,5 +1,5 @@
 import { Building, MapPin, Phone, FileText, ArrowLeft, ArrowRight, User } from 'lucide-react';
-import React from 'react';
+import React, { useEffect, useEffectEvent } from 'react';
 import type { SignupData } from './signupValidation';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -43,11 +43,12 @@ const SignupStepOrg = ({ signupData, setSignupData, signupOrgs, handleSignupNext
     ];
 
     // Auto-select if only one type is available
-    React.useEffect(() => {
+    const runAccountTypesEffect = useEffectEvent(() => {
         if (accountTypes.length === 1 && signupData.signupType !== accountTypes[0].id) {
             setSignupData(p => ({ ...p, signupType: accountTypes[0].id }));
         }
-    }, [accountTypes.length]);
+    });
+    useEffect(() => { return runAccountTypesEffect(); }, [accountTypes.length]);
 
     return (
         <form onSubmit={e => { e.preventDefault(); embedded ? onAdvance?.() : (handleSignupNext as () => void)(); }} className="space-y-4">

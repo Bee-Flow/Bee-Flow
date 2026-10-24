@@ -116,7 +116,7 @@ async function tick() {
 function recordRun(status, durationMs) {
     try {
         require('../telemetry/metrics').recordJobRun({ job: 'saved_audio_backfill', status, durationMs });
-    } catch (_) { /* telemetry is optional */ }
+    } catch (err) { log.debug('telemetry is optional', err); }
 }
 
 function start() {

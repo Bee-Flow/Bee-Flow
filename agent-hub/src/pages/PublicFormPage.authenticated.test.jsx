@@ -1,7 +1,7 @@
-import userEvent from '@testing-library/user-event';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 /**
  * Who the visitor is, and what that changes on the closing page.

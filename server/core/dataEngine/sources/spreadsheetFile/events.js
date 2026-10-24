@@ -49,6 +49,7 @@
 
 const datatableStore = require('../../../../stores/datatableStore');
 const { KIND } = require('./index');
+const log = require('../../../../telemetry/log');
 
 const PROVIDER = 'nextcloud_files';
 const FILE_EVENTS = new Set(['file.changed', 'file.new', 'file.deleted', 'file.renamed', 'file.restored', 'file.copied']);
@@ -76,7 +77,7 @@ async function onFileEvent({ orgId, event, payload, actorUserId = null }) {
             }
             await stale(mirror, 'event');
             out.kicked += 1;
-        } catch { /* the ticker will */ }
+        } catch (err) { log.debug('the ticker will', err); }
     }
     return out;
 }
@@ -161,7 +162,7 @@ async function onProviderHint({ provider, userId }) {
         try {
             await stale(mirror, 'event');
             out.kicked += 1;
-        } catch { /* the ticker will */ }
+        } catch (err) { log.debug('the ticker will', err); }
     }
     return out;
 }

@@ -83,7 +83,7 @@ async function modelSupportsVision(modelId) {
         if (adapter && adapter !== baseAdapter && typeof adapter.supportsVision === 'function') {
             return !!adapter.supportsVision(modelId);
         }
-    } catch { /* not attached to a configured provider — fall back to the name */ }
+    } catch (err) { log.debug('not attached to a configured provider — fall back to the name', err); }
     return visionByModelName(modelId);
 }
 
@@ -120,7 +120,7 @@ function usageEntry(app, modelId, usage, t0, source) {
 
 function logUsage(app, modelId, usage, t0, source) {
     // Never let billing bookkeeping break a step (matches studioAppsRun).
-    try { usageStore.logUsage(usageEntry(app, modelId, usage, t0, source)).catch(() => {}); } catch { /* ignore */ }
+    try { usageStore.logUsage(usageEntry(app, modelId, usage, t0, source)).catch(() => {}); } catch (err) { log.debug('ignore', err); }
 }
 
 /**

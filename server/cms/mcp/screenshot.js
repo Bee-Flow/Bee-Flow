@@ -142,7 +142,7 @@ async function withHardTimeout(promise, ms) {
 // consent.js). A fresh browser context has none, so every screenshot would carry
 // the banner over the bottom of the page. Declining in advance keeps the banner out
 // of the picture, and keeps the render from starting any consent-gated tracking.
-const CONSENT_INIT_SCRIPT = "try { window.localStorage.setItem('cookie_consent', 'declined'); } catch (e) { /* storage blocked */ }";
+const CONSENT_INIT_SCRIPT = "try { window.localStorage.setItem('cookie_consent', 'declined'); } catch (e) { console.debug('storage blocked', e); }";
 
 /** Is this URL on the fake origin (exact origin match, not a string prefix)? */
 function isFakeOrigin(href) {
@@ -172,7 +172,7 @@ async function captureWithBrowser({ serve, url, viewport, fullPage, offsetY }, b
             page.on('console', (m) => {
                 try {
                     if (m.type() === 'error' && consoleErrors.length < 5) consoleErrors.push(m.text().slice(0, 200));
-                } catch (_) { /* diagnostics only */ }
+                } catch (err) { log.debug('diagnostics only', err); }
             });
             await page.route((u) => isFakeOrigin(u.href), async (route) => {
                 const req = route.request();

@@ -48,7 +48,7 @@ export function DetailDrawer({ detail, modelCosts, costPerModel, recent, onClose
                         >
                             {type === 'model' ? 'Model Details' : 'Agent Details'}
                         </div>
-                        <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary, #fff)' }}>
+                        <div className="[font-size:18px] [font-weight:700] [color:var(--text-primary,#fff)]">
                             {type === 'model' ? data.model : data.agent_name || 'Unknown'}
                         </div>
                     </div>

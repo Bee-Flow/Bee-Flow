@@ -84,7 +84,7 @@ function createSigningSecret(opts) {
                 durable = true;
                 return cachedSecret;
             }
-        } catch (_) { /* first run */ }
+        } catch (err) { log.debug('first run', err); }
 
         cachedSecret = crypto.randomBytes(32);
         try {

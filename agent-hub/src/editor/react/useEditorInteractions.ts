@@ -8,6 +8,7 @@ import { blockRect, selectionRect, selectionText } from './editorDom';
 import { buildInsertItems, type InsertItem } from './insertItems';
 import { SHORTCUT_COMMANDS, type ShortcutAction } from './shortcuts';
 import type { EditorSync } from './useEditorSync';
+import { logger } from '../../utils/logger';
 
 /** Where the Ask-AI portal opens: the selection, or a fixed spot without one. */
 function askAnchor(): { top: number; left: number } {
@@ -15,7 +16,7 @@ function askAnchor(): { top: number; left: number } {
   try {
     const dsel = window.getSelection();
     if (dsel && dsel.rangeCount) { const r = dsel.getRangeAt(0).getBoundingClientRect(); anchor = { top: r.top, left: r.left }; }
-  } catch { /* noop */ }
+  } catch (err) { logger.debug('noop', err); }
   return anchor;
 }
 
@@ -37,7 +38,7 @@ export default function useEditorInteractions(s: EditorShared, props: BeeEditorP
       if (n.has(info.ordinal)) n.delete(info.ordinal); else n.add(info.ordinal);
       return n;
     });
-  }, []);
+  }, [setHiddenHeaders, viewRef]);
 
   /* link editing: an inline popover instead of the browser's prompt dialog */
   const openLinkEditor = useCallback(() => {
@@ -55,7 +56,7 @@ export default function useEditorInteractions(s: EditorShared, props: BeeEditorP
       doc: view.state.doc,
       selection: sel,
     });
-  }, []);
+  }, [editableRef, setLinkEdit, viewRef]);
   /** Run a link transform on the selection captured when the editor opened (while it still applies). */
   const withLinkSelection = useCallback((fn: (state: EditorState) => EditorState) => {
     const view = viewRef.current;
@@ -64,16 +65,16 @@ export default function useEditorInteractions(s: EditorShared, props: BeeEditorP
     view.focus();
     const same = captured && captured.doc === view.state.doc;
     view.dispatch((st: EditorState) => fn(same ? { ...st, selection: captured.selection } : st), { kind: 'format' });
-  }, []);
-  const closeLinkEditor = useCallback(() => { setLinkEdit(null); viewRef.current?.focus(); }, []);
+  }, [linkEditRef, viewRef]);
+  const closeLinkEditor = useCallback(() => { setLinkEdit(null); viewRef.current?.focus(); }, [setLinkEdit, viewRef]);
   const applyLinkHref = useCallback((href: string) => {
     withLinkSelection((st) => applyLink(st, href));
     setLinkEdit(null);
-  }, [withLinkSelection]);
+  }, [setLinkEdit, withLinkSelection]);
   const removeLinkHere = useCallback(() => {
     withLinkSelection((st) => removeLink(st));
     setLinkEdit(null);
-  }, [withLinkSelection]);
+  }, [setLinkEdit, withLinkSelection]);
 
   /* keyboard shortcuts (catalogue in shortcuts.ts; the sheet reads the same list) */
   runShortcutRef.current = (action: string) => {
@@ -155,7 +156,7 @@ export default function useEditorInteractions(s: EditorShared, props: BeeEditorP
     if (!m) { setSlash(null); return; }
     const r = dsel.getRangeAt(0).getBoundingClientRect();
     setSlash({ query: m[1], rect: { top: r.bottom, left: r.left }, matchLen: m[1].length + 1 });
-  }, []);
+  }, [hostRef, viewRef]);
 
   useEffect(() => {
     const onSel = () => detectSlash();

@@ -200,7 +200,7 @@ async function graphFetch(path, session, options = {}) {
         try {
             const parsed = JSON.parse(errorBody);
             errorMsg = parsed.error?.message || errorMsg;
-        } catch (_) {}
+        } catch (_) { log.debug('error body is not JSON, keep the status-based message', _); }
         throw new Error(errorMsg);
     }
 

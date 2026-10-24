@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import useAutomationApi from '../../../../hooks/useAutomationApi';
+import { logger } from '../../../../utils/logger';
 
 /** How the updates are arriving: SSE, the 5 s polling fallback, or not at all. */
 export type RunStreamState = 'live' | 'polling' | 'paused';
@@ -83,7 +84,7 @@ export default function useRunStream({ enabled = true, automationId = null, onEv
                     }
                 }
                 firstPoll = false;
-            } catch { /* keep polling */ }
+            } catch (err) { logger.debug('keep polling', err); }
             if (!stopped) timer = setTimeout(pollTick, 5000);
         };
 

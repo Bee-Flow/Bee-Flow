@@ -69,7 +69,7 @@ async function readDataDigest(d, playbook, tableArt) {
                 .filter((v) => typeof v.value === 'string' && v.value.trim());
             if (!values.length || values.length > DIGEST_VALUES) continue;
             columns.push({ key: f.key, name: f.name || f.key, values });
-        } catch { /* one unreadable column is not a reason to give up on the rest */ }
+        } catch (err) { log.debug('one unreadable column is not a reason to give up on the rest', err); }
     }
     return columns.length ? { tableName: tableArt.datatableName || null, columns } : null;
 }

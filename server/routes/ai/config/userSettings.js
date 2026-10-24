@@ -154,13 +154,13 @@ router.get('/user-settings', requireAuth, async (req, res) => {
         try {
             const { hydrateGoogleSessionFromVault } = require('../../../auth/googleSessionHydration');
             await hydrateGoogleSessionFromVault(req.session);
-        } catch (_) { /* non-fatal — the flags just stay false */ }
+        } catch (err) { log.debug('non-fatal — the flags just stay false', err); }
     }
     if (!req.session.oauthProvider && userId) {
         try {
             const { hydrateMicrosoftSessionFromVault } = require('../../../auth/microsoftSessionHydration');
             await hydrateMicrosoftSessionFromVault(req.session);
-        } catch (_) { /* non-fatal — the flags just stay false */ }
+        } catch (err) { log.debug('non-fatal — the flags just stay false', err); }
     }
 
     const isGoogleUser = req.session.oauthProvider === 'google';
@@ -175,7 +175,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
             const automationCredentialStore = require('../../../stores/automationCredentialStore');
             const rows = await automationCredentialStore.listProvidersForUser(userId);
             hasMicrosoftConnection = rows.some(r => r.provider === 'microsoft' && r.status === 'active');
-        } catch (_) { /* non-fatal — Outlook just stays SSO-gated */ }
+        } catch (err) { log.debug('non-fatal — Outlook just stays SSO-gated', err); }
     }
     const enabledApps = await configStore.getConfig(`enabled_apps_user_${userId}`);
 
@@ -205,7 +205,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
             const { resolveOrgIntegrations } = require('../../../core/integrations/enabledIntegrations');
             orgEnabledIntegrations = await resolveOrgIntegrations(homeOrgId);
         }
-    } catch (e) { /* ignore — null means "no org restriction" */ }
+    } catch (e) { log.debug('ignore — null means "no org restriction"', e); }
 
     // Check n8n config for org (uses group-based fallback for super-admins)
     let hasN8nConfig = false;
@@ -215,7 +215,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
             const n8nKey = await configStore.getSecret(`n8n_api_key_org_${n8nOrgId}`);
             hasN8nConfig = !!(n8nUrl && n8nKey);
         }
-    } catch (e) { /* ignore */ }
+    } catch (e) { log.debug('ignore', e); }
 
     // Check org privacy shield for disableSearchOnUpload + EU mode
     let disableSearchOnUpload = false;
@@ -232,7 +232,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
                 orgEuModeForced = true;
             }
         }
-    } catch (e) { /* ignore */ }
+    } catch (e) { log.debug('ignore', e); }
 
     // Personal EU mode preference — the Privacy Shield panel
     // (user_privacy_shield_${userId}) is the canonical store. We still
@@ -265,21 +265,21 @@ router.get('/user-settings', requireAuth, async (req, res) => {
     // readServerProgress so the legacy intro-tour flag is lazily migrated into a
     // real getting-started entry (same view the achievements endpoints use).
     let learningProgress = {};
-    try { learningProgress = await readServerProgress(userId); } catch (_) { /* empty on failure */ }
+    try { learningProgress = await readServerProgress(userId); } catch (err) { log.debug('empty on failure', err); }
 
     // Learning path (v2): the role/goal the learner picked on the Learning
     // Center home ('everyday' | 'builder' | 'admin' | 'skipped'). A preference,
     // not progress — stored beside the blob, never inside it (the progress
     // sanitizer whitelists lesson ids and would drop it).
     let learningPath = '';
-    try { learningPath = (await configStore.getConfig(`learning_path_user_${userId}`)) || ''; } catch (_) { /* optional */ }
+    try { learningPath = (await configStore.getConfig(`learning_path_user_${userId}`)) || ''; } catch (err) { log.debug('optional', err); }
 
     // Check if EU models are configured at all (admin must set these up)
     let hasEuModelsConfigured = false;
     try {
         const euTiers = await configStore.getConfig('chat_model_tiers_eu') || {};
         hasEuModelsConfigured = Object.values(euTiers).some(t => t?.modelId?.trim());
-    } catch (_) {}
+    } catch (_) { log.debug('EU tier lookup failed, treating EU models as not configured', _); }
 
     res.json({
         hasFirefliesKey: !!(await configStore.getSecret(`fireflies_api_key_user_${userId}`)),

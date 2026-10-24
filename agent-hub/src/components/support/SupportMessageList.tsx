@@ -27,7 +27,7 @@ export default function SupportMessageList({ messages }: { messages: SupportMess
                             <span className="font-medium text-[var(--text-secondary)]">
                                 {m.author_display || m.author_kind}
                             </span>
-                            {m.internal_note && <span className="px-1.5 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.2)', color: '#b45309' }}>{t('support.support_inbox_internal_note', 'internal note')}</span>}
+                            {m.internal_note && <span className="px-1.5 py-0.5 rounded [background:rgba(245,158,11,0.2)] [color:#b45309]">{t('support.support_inbox_internal_note', 'internal note')}</span>}
                             <span className="ml-auto">{formatRelative(m.created_at)}</span>
                         </div>
                         {m.body_html ? (

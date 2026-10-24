@@ -251,7 +251,7 @@ function createNextcloudPollers(ctx) {
                 const items = Array.isArray(result?.events) ? result.events : [];
 
                 let cursor = { firedIds: [] };
-                try { if (sub.lastCursor) cursor = JSON.parse(sub.lastCursor) || cursor; } catch { /* ignore */ }
+                try { if (sub.lastCursor) cursor = JSON.parse(sub.lastCursor) || cursor; } catch (err) { log.debug('ignore', err); }
                 const fired = new Set(Array.isArray(cursor.firedIds) ? cursor.firedIds : []);
 
                 const events = [];

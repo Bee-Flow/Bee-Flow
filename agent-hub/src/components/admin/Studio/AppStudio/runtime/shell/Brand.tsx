@@ -16,8 +16,7 @@ export default function Brand({ definition }: { definition?: Pick<AppDefinition,
                 <img src={logoUrl} alt={meta.name || 'App'} className="h-6 max-w-[120px] object-contain" />
             ) : (
                 <span
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md shrink-0"
-                    style={{ background: 'var(--app-primary-soft)', color: 'var(--app-primary)' }}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md shrink-0 [background:var(--app-primary-soft)] [color:var(--app-primary)]"
                 >
                     <AppIcon name={meta.icon || 'LayoutGrid'} className="w-4 h-4" />
                 </span>

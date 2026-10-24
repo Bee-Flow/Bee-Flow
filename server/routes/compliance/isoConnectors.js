@@ -26,6 +26,7 @@ const { resolveOrgId } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const log = require('../../telemetry/log');
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
@@ -59,7 +60,7 @@ router.get('/iso/connectors', requireAuth, requirePermission('admin_compliance')
         let snapshots = 0;
         if (cfg?.enabled) {
             try { snapshots = (await isoEvidenceStore.listLatestSnapshots(orgId, c.id)).length; }
-            catch { /* count stays 0 */ }
+            catch (err) { log.debug('count stays 0', err); }
         }
         out.push({
             id: c.id,

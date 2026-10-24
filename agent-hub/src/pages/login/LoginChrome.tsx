@@ -6,14 +6,10 @@ import { useTranslation } from '../../hooks/useTranslation';
 /** Animated background shapes behind the card. */
 export const LoginBackdrop = () => (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute w-[500px] h-[500px] rounded-full opacity-[0.07]"
-            style={{ background: 'radial-gradient(circle, var(--accent-primary), transparent 70%)', top: '-5%', left: '-10%', animation: 'pulse 4s ease-in-out infinite' }} />
-        <div className="absolute w-80 h-80 rounded-full opacity-[0.05]"
-            style={{ background: 'radial-gradient(circle, var(--accent-secondary), transparent 70%)', bottom: '5%', right: '-5%', animation: 'pulse 5s ease-in-out infinite 1.5s' }} />
-        <div className="absolute w-48 h-48 rounded-full opacity-[0.04]"
-            style={{ background: 'radial-gradient(circle, var(--accent-primary), transparent 70%)', top: '60%', left: '15%', animation: 'pulse 6s ease-in-out infinite 0.8s' }} />
-        <div className="absolute w-32 h-32 rounded-full opacity-[0.06]"
-            style={{ background: 'radial-gradient(circle, var(--accent-secondary), transparent 70%)', top: '15%', right: '30%', animation: 'pulse 7s ease-in-out infinite 2s' }} />
+        <div className="absolute w-[500px] h-[500px] rounded-full opacity-[0.07] [background:radial-gradient(circle,var(--accent-primary),transparent_70%)] [top:-5%] [left:-10%] [animation:pulse_4s_ease-in-out_infinite]" />
+        <div className="absolute w-80 h-80 rounded-full opacity-[0.05] [background:radial-gradient(circle,var(--accent-secondary),transparent_70%)] [bottom:5%] [right:-5%] [animation:pulse_5s_ease-in-out_infinite_1.5s]" />
+        <div className="absolute w-48 h-48 rounded-full opacity-[0.04] [background:radial-gradient(circle,var(--accent-primary),transparent_70%)] [top:60%] [left:15%] [animation:pulse_6s_ease-in-out_infinite_0.8s]" />
+        <div className="absolute w-32 h-32 rounded-full opacity-[0.06] [background:radial-gradient(circle,var(--accent-secondary),transparent_70%)] [top:15%] [right:30%] [animation:pulse_7s_ease-in-out_infinite_2s]" />
     </div>
 );
 
@@ -33,8 +29,7 @@ export const LanguagePicker = ({ availableLocales, locale, setLocale }: Language
                 <select
                     value={locale}
                     onChange={(e) => setLocale(e.target.value)}
-                    className="appearance-none bg-transparent text-xs font-medium text-[var(--text-secondary)] cursor-pointer pr-4 outline-none"
-                    style={{ minWidth: '2rem' }}
+                    className="appearance-none bg-transparent text-xs font-medium text-[var(--text-secondary)] cursor-pointer pr-4 outline-none min-w-[2rem]"
                 >
                     {availableLocales.map(l => (
                         <option key={l.code} value={l.code} className="bg-[var(--bg-secondary)]">

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import EN_DEFAULTS from '../../../../i18n/en-defaults';
 import { outcomeLabel, whatHappened, triggerLabel, runTitle, errorClassLabel, runIdFromText, enteredTriggerLabel } from './runLanguage';
+import EN_DEFAULTS from '../../../../i18n/en-defaults';
 
 /**
  * The runs UI speaks in sentences, not machine words — and every status the

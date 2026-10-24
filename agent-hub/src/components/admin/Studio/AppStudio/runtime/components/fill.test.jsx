@@ -7,9 +7,9 @@ import AppContainer from './AppContainer';
 import AppDataGrid from './AppDataGrid';
 import AppFileGallery from './AppFileGallery';
 import AppKanban from './AppKanban';
-import AppTimeline from './AppTimeline';
 import AppList from './AppList';
 import AppRecordDetail from './AppRecordDetail';
+import AppTimeline from './AppTimeline';
 import { RuntimeProvider, DEFAULT_RUNTIME } from '../RuntimeContext';
 
 /**

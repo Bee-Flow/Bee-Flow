@@ -1,3 +1,4 @@
+import { logger } from './logger';
 // Client-side image downscale for chat uploads.
 // Sweet spot: 1568px longest edge (~1.15 MP) at JPEG q=0.92 — Claude's "no further
 // downscale" tier and a sane upper bound for GPT-4o / Gemini token budgets. PNG is
@@ -21,9 +22,7 @@ async function loadBitmap(file: File): Promise<ImageBitmap | (HTMLImageElement &
     if (typeof createImageBitmap === 'function') {
         try {
             return await createImageBitmap(file);
-        } catch {
-            // Fall through to <img> path
-        }
+        } catch (err) { logger.debug('Fall through to <img> path', err); }
     }
     const url = URL.createObjectURL(file);
     try {
@@ -75,9 +74,7 @@ function makeCanvas(width: number, height: number) {
     if (typeof OffscreenCanvas === 'function') {
         try {
             return new OffscreenCanvas(width, height);
-        } catch {
-            // Fall through to DOM canvas
-        }
+        } catch (err) { logger.debug('Fall through to DOM canvas', err); }
     }
     const canvas = document.createElement('canvas');
     canvas.width = width;

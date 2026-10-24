@@ -39,7 +39,7 @@ async function reapStuckAutomations() {
                         title: `⚠️ Automation failed: ${a.title}`,
                         message: `The automation could not complete after ${REAPER_MAX_ATTEMPTS} attempts and was paused. Open it to inspect the last run.`,
                     });
-                } catch (_) { /* non-fatal */ }
+                } catch (err) { log.debug('non-fatal', err); }
             }
         }
     } catch (e) {
@@ -60,7 +60,7 @@ async function reapStuckAutomations() {
                     status: 'error', errorClass: 'ApprovalExpired',
                     error: 'Approval expired — no decision was made before the deadline.',
                 });
-            } catch (_) { /* telemetry must never break the reaper */ }
+            } catch (err) { log.debug('telemetry must never break the reaper', err); }
         }
         // Flip the durable approval rows and TELL people. Expiry used to be
         // silent: the run died, and neither the owner nor the assignee heard
@@ -117,7 +117,7 @@ async function reapStuckAutomations() {
                     status: 'error', errorClass: 'FormExpired',
                     error: 'Form expired — the next page was never submitted.',
                 });
-            } catch (_) { /* telemetry must never break the reaper */ }
+            } catch (err) { log.debug('telemetry must never break the reaper', err); }
         }
     } catch (e) {
         log.error('[AutomationRunner] reapExpiredFormWaits error:', e.message);
@@ -135,7 +135,7 @@ async function reapStuckAutomations() {
                     status: 'error', errorClass: 'RunnerDied',
                     error: 'Run stopped heartbeating — the worker crashed or was killed.',
                 });
-            } catch (_) { /* telemetry must never break the reaper */ }
+            } catch (err) { log.debug('telemetry must never break the reaper', err); }
         }
     } catch (e) {
         log.error('[AutomationRunner] reapStuckRuns error:', e.message);

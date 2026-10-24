@@ -1,8 +1,8 @@
 // @vitest-environment node
-import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { describe, it, expect } from 'vitest';
 
 /**
  * The Compliance Center is token-only (redesign, Sep 2026): every colour is a

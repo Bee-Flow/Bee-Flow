@@ -32,6 +32,8 @@
  * Non-mutating; returns a new value tree when truncation kicks in.
  */
 
+const log = require('../../telemetry/log');
+
 const DEFAULT_MAX_BYTES = 256 * 1024; // 256 KB per payload
 const TRUNCATED_MARKER = '__truncated__';
 // Key on the sentinel naming the kept full copy. A sibling of the marker, never
@@ -84,7 +86,7 @@ function shapePreview(value, opts = {}) {
                 if (typeof v !== 'string' || v.length <= level.chars) return v;
                 const parsed = parseJsonText(v);
                 if (parsed !== undefined) {
-                    try { return JSON.stringify(walk(parsed, path, depth)); } catch { /* fall through */ }
+                    try { return JSON.stringify(walk(parsed, path, depth)); } catch (err) { log.debug('fall through', err); }
                 }
                 return `${v.slice(0, level.chars)}…`;
             }
@@ -104,7 +106,7 @@ function shapePreview(value, opts = {}) {
             const result = { preview, previewCut: cut };
             const bytes = Buffer.byteLength(JSON.stringify(result), 'utf8');
             if (bytes <= maxBytes) return result;
-        } catch { /* a cycle or a getter that throws: try coarser, then give up */ }
+        } catch (err) { log.debug('a cycle or a getter that throws: try coarser, then give up', err); }
     }
     return null;
 }

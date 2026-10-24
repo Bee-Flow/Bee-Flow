@@ -66,7 +66,7 @@ async function fetchPageForSource(url) {
     }
 
     let hostname = url;
-    try { hostname = new URL(resolvedUrl).hostname; } catch (_) { /* keep the raw url */ }
+    try { hostname = new URL(resolvedUrl).hostname; } catch (err) { log.debug('keep the raw url', err); }
     return { content, title: title || hostname, resolvedUrl };
 }
 

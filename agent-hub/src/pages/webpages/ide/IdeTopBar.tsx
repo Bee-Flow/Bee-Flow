@@ -23,8 +23,7 @@ export default function IdeTopBar(p: IdeTopBarProps) {
     const { t } = useTranslation();
     const { devMode, hideHoistedActions } = p;
     return (
-        <div className="flex items-center justify-between px-3 py-1.5 shrink-0 gap-2"
-             style={{ borderBottom: '1px solid var(--vsc-border)', background: 'var(--vsc-sidebar-bg)' }}>
+        <div className="flex items-center justify-between px-3 py-1.5 shrink-0 gap-2 [border-bottom:1px_solid_var(--vsc-border)] [background:var(--vsc-sidebar-bg)]">
             <div className="flex items-center gap-3 min-w-0">
                 <span className="text-[11px] shrink-0 text-[var(--vsc-fg-muted)]">
                     {devMode ? t('webpages.ide.view_developer', 'Developer view') : t('webpages.preview.title', 'Preview')}

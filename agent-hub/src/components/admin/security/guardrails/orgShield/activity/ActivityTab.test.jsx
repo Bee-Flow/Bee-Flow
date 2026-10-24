@@ -51,8 +51,8 @@ vi.mock('../../../../../licensing/LicenseContext', () => ({
     }),
 }));
 
-import OrgShieldEditor from '../OrgShieldEditor';
 import { authFetch } from '../../../../../../utils/helpers';
+import OrgShieldEditor from '../OrgShieldEditor';
 
 const ORG_ID = 'org-alpha';
 const SHIELD = {

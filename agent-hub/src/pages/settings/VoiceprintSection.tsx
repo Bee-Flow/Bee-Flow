@@ -103,7 +103,7 @@ export default function VoiceprintSection() {
                             : t('voiceprint.row_none_desc', 'Takes about half a minute: you read a short text aloud.'))}
                 >
                     {enrolled
-                        ? <span className="flex items-center gap-1.5 text-[12px] font-medium" style={{ color: '#16a34a' }}><Check className="w-4 h-4" />{t('voiceprint.status_ready', 'Active')}</span>
+                        ? <span className="flex items-center gap-1.5 text-[12px] font-medium [color:#16a34a]!"><Check className="w-4 h-4" />{t('voiceprint.status_ready', 'Active')}</span>
                         : null}
                 </Row>
                 {coverMembers > 0 && (
@@ -142,8 +142,7 @@ export default function VoiceprintSection() {
                             type="button"
                             onClick={remove}
                             disabled={busy}
-                            className="px-3 py-1.5 rounded-lg text-[13px] font-medium text-white disabled:opacity-40"
-                            style={{ background: '#ef4444' }}
+                            className="px-3 py-1.5 rounded-lg text-[13px] font-medium text-white disabled:opacity-40 [background:#ef4444]"
                         >
                             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : t('voiceprint.delete_confirm_yes', 'Delete')}
                         </button>

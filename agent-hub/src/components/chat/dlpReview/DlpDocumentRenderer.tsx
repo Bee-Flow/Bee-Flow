@@ -46,8 +46,7 @@ function TableBlock({ block, spans, onAddSpan, onRemoveSpan }: BlockProps<TableB
                         {row.map((cell, ci) => (
                             <td
                                 key={ci}
-                                className="border px-2 py-1 align-top"
-                                style={{ borderColor: 'var(--border-subtle)' }}
+                                className="border px-2 py-1 align-top [border-color:var(--border-subtle)]"
                             >
                                 <DlpHighlightedText
                                     text={cell.value}

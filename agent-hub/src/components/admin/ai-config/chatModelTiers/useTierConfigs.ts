@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { CustomTier, StatusMessage, TierConfig } from './tierTypes';
 import { flash } from './tierTypes';
 import { getAiConfig, postAiConfig } from '../../../../api/aiConfig';
+import { logger } from '../../../../utils/logger';
 
 const initialTiers = (): TierConfig => ({
     fast: { modelId: '', label: 'Fast' },
@@ -38,7 +39,7 @@ async function readCustomSave(customRes: Response, setCustomTiers: (tiers: Custo
         const j = customRes.ok ? await customRes.json() : null;
         if (j && Array.isArray(j.warnings) && j.warnings.length > 0) warn = ' (' + j.warnings.join('; ') + ')';
         if (j && Array.isArray(j.tiers)) setCustomTiers(j.tiers);
-    } catch (_) { /* ignore */ }
+    } catch (err) { logger.debug('ignore', err); }
     return warn;
 }
 

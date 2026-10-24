@@ -10,6 +10,7 @@ import ConfirmDialog from '../../../../shared/ConfirmDialog';
 import toast from '../../../../shared/Toast';
 import type { TableColumn } from '../inspector/aiFieldMatching';
 import type { RowsField, RowsTable, RecordWriteError, RowsTabProps } from './RowsTab.types';
+import { logger } from '../../../../../utils/logger';
 
 export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = false }: RowsTabProps) {
     const { t } = useTranslation();
@@ -66,7 +67,7 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
             for (const target of targets) {
                 if (!target) continue;
                 let page: { records: RowRecord[] } = { records: [] };
-                try { page = await listRecords(appId, target, { limit: PAGE_SIZE }); } catch { /* an unreadable target just offers nothing */ }
+                try { page = await listRecords(appId, target, { limit: PAGE_SIZE }); } catch (err) { logger.debug('an unreadable target just offers nothing', err); }
                 if (cancelled) return;
                 setRelationRows((cur) => (cur[target] ? cur : { ...cur, [target]: page.records }));
             }
@@ -259,8 +260,7 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
 
             {fieldsUnsaved ? (
                 <p
-                    className="flex items-start gap-1.5 rounded-md border px-2 py-1.5 text-xs"
-                    style={{ borderColor: 'rgba(217, 119, 6, 0.4)', background: 'rgba(217, 119, 6, 0.1)', color: '#d97706' }}
+                    className="flex items-start gap-1.5 rounded-md border px-2 py-1.5 text-xs [border-color:rgba(217,119,6,0.4)] [background:rgba(217,119,6,0.1)] [color:#d97706]!"
                 >
                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                     <span>{t('studio_apps_tables.rows.unsaved_columns', 'You changed the columns but haven’t saved yet — these rows still show the saved ones. Save the table to see the change here.')}</span>

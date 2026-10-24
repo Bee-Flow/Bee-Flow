@@ -9,9 +9,9 @@
  * site says. Reading the fallback and calling it fixed proves nothing.
  */
 import { describe, it, expect } from 'vitest';
-import EN from '../../../../i18n/en-defaults';
 import { nOf, pluralKey } from './plural';
 import { sublineFor } from './sourceKinds';
+import EN from '../../../../i18n/en-defaults';
 
 const t = (key, fallback, params = {}) =>
     String(EN[key] ?? fallback).replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? `{${k}}`));

@@ -26,6 +26,7 @@ import useConfirm from '../../../shared/useConfirm';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { AppUserLike } from '../../../projects/workspace/types';
 import type { PlaybookOptions, StageProps, PlaybookRunProps } from './PlaybookRun.types';
+import { logger } from '../../../../utils/logger';
 
 /**
  * One open playbook — the film. Left, the PhaseRail; right, the stage of
@@ -178,7 +179,7 @@ export default function PlaybookRun({ playbookId, user = null, onBack, onNavigat
     const toggleAutopilot = () => {
         const on = !autopilot;
         setAutopilot(on);
-        try { setItem(AUTOPILOT_KEY, on ? '1' : '0'); } catch { /* storage is a convenience */ }
+        try { setItem(AUTOPILOT_KEY, on ? '1' : '0'); } catch (err) { logger.debug('storage is a convenience', err); }
     };
 
     if (loading && !playbook) {
@@ -214,7 +215,7 @@ export default function PlaybookRun({ playbookId, user = null, onBack, onNavigat
 
     return (
         <div className="h-full flex flex-col overflow-hidden bg-[var(--bg-primary)]" data-testid="playbook-run" data-presenter={presenter ? '1' : undefined}>
-            <header className="flex items-center gap-3 px-4 shrink-0" style={{ height: 52, borderBottom: '1px solid var(--border-default)', background: 'var(--bg-card)' }}>
+            <header className="flex items-center gap-3 px-4 shrink-0 h-[52px] [border-bottom:1px_solid_var(--border-default)] [background:var(--bg-card)]">
                 <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-xs font-medium h-8 px-2 rounded-lg text-[var(--text-secondary)]" aria-label={t('playbooks.bar.back', 'Back to playbooks')}>
                     <ArrowLeft className="w-4 h-4" aria-hidden="true" />
                 </button>
@@ -234,7 +235,7 @@ export default function PlaybookRun({ playbookId, user = null, onBack, onNavigat
                     </div>
                 </div>
                 {presenter && (
-                    <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full" style={{ background: 'color-mix(in srgb, var(--type-ai) 12%, transparent)', color: 'var(--type-ai)' }}>
+                    <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full [background:color-mix(in_srgb,var(--type-ai)_12%,transparent)] [color:var(--type-ai)]!">
                         <Presentation className="w-3 h-3" aria-hidden="true" />{t('playbooks.bar.presenter', 'Presenter')}
                     </span>
                 )}
@@ -252,14 +253,14 @@ export default function PlaybookRun({ playbookId, user = null, onBack, onNavigat
                     </button>
                 )}
                 {!complete && (
-                    <button type="button" onClick={onStop} disabled={busy} data-testid="playbook-bar-stop" className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-[10px] text-xs font-medium disabled:opacity-50" style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }}>
+                    <button type="button" onClick={onStop} disabled={busy} data-testid="playbook-bar-stop" className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-[10px] text-xs font-medium disabled:opacity-50 [color:var(--text-secondary)]! [border:1px_solid_var(--border-default)]">
                         <Square className="w-3.5 h-3.5" aria-hidden="true" />{t('playbooks.bar.stop', 'Stop')}
                     </button>
                 )}
             </header>
 
             {notice && (
-                <div role="status" className="text-xs px-4 py-1.5" style={{ background: 'color-mix(in srgb, var(--warning) 12%, transparent)', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-default)' }}>{notice}</div>
+                <div role="status" className="text-xs px-4 py-1.5 [background:color-mix(in_srgb,var(--warning)_12%,transparent)] [color:var(--text-primary)]! [border-bottom:1px_solid_var(--border-default)]">{notice}</div>
             )}
 
             <div className="flex-1 min-h-0 flex">
@@ -268,8 +269,7 @@ export default function PlaybookRun({ playbookId, user = null, onBack, onNavigat
                         <button
                             type="button"
                             onClick={() => setRailOpen(railCollapsed)}
-                            className="inline-flex items-center justify-center rounded-lg"
-                            style={{ width: 24, height: 24, color: 'var(--text-tertiary)' }}
+                            className="inline-flex items-center justify-center rounded-lg w-[24px] h-[24px] [color:var(--text-tertiary)]"
                             aria-label={railCollapsed ? t('playbooks.rail.expand', 'Show the phases') : t('playbooks.rail.collapse', 'Hide the phases')}
                             data-testid="playbook-rail-toggle"
                         >
@@ -306,7 +306,7 @@ export default function PlaybookRun({ playbookId, user = null, onBack, onNavigat
                             />
                         )}
                         {autoCountdown !== null && (
-                            <div className="absolute right-4 bottom-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs" style={{ background: 'var(--bg-card)', border: '1px solid var(--type-ai)', color: 'var(--text-primary)', boxShadow: 'var(--shadow-md)' }} role="status" data-testid="playbook-autopilot-countdown">
+                            <div className="absolute right-4 bottom-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs [background:var(--bg-card)] [border:1px_solid_var(--type-ai)] [color:var(--text-primary)]! [box-shadow:var(--shadow-md)]" role="status" data-testid="playbook-autopilot-countdown">
                                 <Zap className="w-3.5 h-3.5" style={{ color: 'var(--type-ai)' }} aria-hidden="true" />
                                 {t('playbooks.bar.autopilot_in', 'Autopilot continues in {n} s', { n: autoCountdown })}
                                 <button type="button" onClick={() => continueNow(undefined)} className="font-semibold text-[var(--type-ai)]" data-testid="playbook-autopilot-now">{t('playbooks.bar.autopilot_now', 'Continue now')}</button>
@@ -318,8 +318,8 @@ export default function PlaybookRun({ playbookId, user = null, onBack, onNavigat
                         the person reads the next brief (measured 2026-09-14: the card
                         covered the table it was asking about). */}
                     {showHandoff && (
-                        <div className="shrink-0 flex justify-center overflow-y-auto" style={{ padding: '12px 24px 16px', borderTop: '1px solid var(--border-default)', background: 'var(--bg-primary)', maxHeight: '48%' }}>
-                            <div className="w-full" style={{ maxWidth: 760 }}>
+                        <div className="shrink-0 flex justify-center overflow-y-auto [padding:12px_24px_16px] [border-top:1px_solid_var(--border-default)] [background:var(--bg-primary)] max-h-[48%]">
+                            <div className="w-full max-w-[760px]">
                                 <HandoffCard
                                     key={`${active.key}:${active.status}:${next ? next.key : ''}`}
                                     phase={active}
@@ -345,7 +345,7 @@ export default function PlaybookRun({ playbookId, user = null, onBack, onNavigat
             </div>
             {confirmDialog}
             {error && !notice && (
-                <div role="alert" className="text-xs px-4 py-1.5 flex items-center justify-between" style={{ background: 'color-mix(in srgb, var(--error) 10%, transparent)', color: 'var(--text-primary)', borderTop: '1px solid var(--border-default)' }}>
+                <div role="alert" className="text-xs px-4 py-1.5 flex items-center justify-between [background:color-mix(in_srgb,var(--error)_10%,transparent)] [color:var(--text-primary)]! [border-top:1px_solid_var(--border-default)]">
                     <span>{error.message}</span>
                     <button type="button" className="underline" onClick={() => reload()}>{t('playbooks.reload', 'Reload')}</button>
                 </div>

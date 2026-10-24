@@ -1,12 +1,13 @@
 import { ArrowRight, ArrowUpRight, ChevronDown, ChevronUp } from 'lucide-react';
-import { useEffect, useRef } from 'react';
-import type { SyntheticEvent } from 'react';
+import { createElement, useEffect, useRef } from 'react';
+import type { ComponentType, SyntheticEvent } from 'react';
 import { affectedProjects } from './AffectedProjects';
 import {
     isOpen, otherFrameworkRefs, articleForRegulation, resolveRemediation, formatRunAt, rowKeyOf, subjectLabel,
     type CheckRecord,
 } from './checkSort';
 import { FindingStateChip, type FindingStateView } from './FindingDecision';
+import useNow from '../../../../../hooks/useNow';
 import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
 import { TableRow, TableCell, type TableColumn } from '../../../../shared/DataTable';
 import { TONES, toneOfCheckStatus, glyphOfCheckStatus } from '../../../../shared/statusTone';
@@ -144,6 +145,7 @@ export function CheckCard({
     testId = undefined,
 }: CheckCardProps) {
     const { t, locale } = useTranslation();
+    const clock = useNow(60_000);
     const status = check.status;
     const open = isOpen(status);
     const na = status === 'not_applicable';
@@ -153,7 +155,7 @@ export function CheckCard({
     const title = checkTitle(check, t);
     const subject = check.scope_id ? subjectLabel(check) : null;
     const article = articleForRegulation(check, regulation);
-    const runAt = formatRunAt(check.run_at ?? check.last_run_at ?? lastRunAt, { now: now ?? Date.now(), locale });
+    const runAt = formatRunAt(check.run_at ?? check.last_run_at ?? lastRunAt, { now: now ?? clock, locale });
     return (
         <button
             type="button"
@@ -163,7 +165,7 @@ export function CheckCard({
             data-status={status || undefined}
             className={`w-full text-left min-h-[44px] flex items-center gap-2.5 ${na ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-primary)]'}`}
         >
-            <Glyph size={16} aria-hidden="true" style={{ color: TONES[tone].ink, flexShrink: 0 }} data-testid={testId ? `${testId}-glyph` : undefined} />
+            {createElement(Glyph as ComponentType<Record<string, unknown>>, { size: 16, "aria-hidden": "true", style: { color: TONES[tone].ink, flexShrink: 0 }, "data-testid": testId ? `${testId}-glyph` : undefined })}
             <span className="flex-1 min-w-0 flex flex-col gap-0.5">
                 <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0">
                     <span className="text-[12px] font-medium break-words min-w-0" data-testid={testId ? `${testId}-title` : undefined}>{title}</span>
@@ -215,6 +217,7 @@ export default function CheckRow({
     testId = undefined,
 }: CheckRowProps) {
     const { t, locale } = useTranslation();
+    const clock = useNow(60_000);
     const rootRef = useRef<HTMLSpanElement>(null);
 
     const status = check.status;
@@ -228,7 +231,7 @@ export default function CheckRow({
     const article = articleForRegulation(check, regulation);
     const rem = open ? resolveRemediation(check.remediationLink) : null;
     const action = rem && canOpenLink(rem) && typeof onOpenLink === 'function' ? compactRemediation(rem, t) : null;
-    const runAt = formatRunAt(check.run_at ?? check.last_run_at ?? lastRunAt, { now: now ?? Date.now(), locale });
+    const runAt = formatRunAt(check.run_at ?? check.last_run_at ?? lastRunAt, { now: now ?? clock, locale });
     const cells = Object.fromEntries((columns || []).map((c) => [c.id, c]));
     // A per-subject row names what it is about: the agent, automation or
     // project (current name, resolved by the server).
@@ -266,7 +269,7 @@ export default function CheckRow({
             <TableCell column={cells.glyph} className="flex items-center">
                 {/* The anchor for scrollIntoView sits INSIDE the row: TableRow does not forward a ref. */}
                 <span ref={rootRef} className="inline-flex" data-testid={testId ? `${testId}-anchor` : undefined}>
-                    <Glyph size={16} aria-hidden="true" style={{ color: TONES[tone].ink, flexShrink: 0 }} data-testid={testId ? `${testId}-glyph` : undefined} />
+                    {createElement(Glyph as ComponentType<Record<string, unknown>>, { size: 16, "aria-hidden": "true", style: { color: TONES[tone].ink, flexShrink: 0 }, "data-testid": testId ? `${testId}-glyph` : undefined })}
                 </span>
             </TableCell>
             <TableCell column={cells.check} className="flex flex-col gap-0.5">

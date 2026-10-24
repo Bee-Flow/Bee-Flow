@@ -163,8 +163,7 @@ export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = f
                     onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
                     aria-label={t('studio_apps_edit.plan_card.plan_title', 'Plan title')}
                     placeholder={t('studio_apps_edit.plan_card.untitled_plan', 'Untitled plan')}
-                    className="w-full bg-transparent text-sm font-semibold outline-none disabled:opacity-60"
-                    style={{ color: 'var(--text-primary)' }}
+                    className="w-full bg-transparent text-sm font-semibold outline-none disabled:opacity-60 [color:var(--text-primary)]!"
                 />
                 {draft.summary ? (
                     <p className="leading-relaxed text-[var(--text-tertiary)]">{draft.summary}</p>

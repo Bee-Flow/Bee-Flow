@@ -7,6 +7,7 @@ import beeFlowIcon from '../../../assets/BeeFlow-logo-Icon-2026.svg';
 import BuilderSplit from './BuilderSplit';
 import type { EditorAgent } from './builderSplit/editorTypes';
 import type { ModelTierMap } from '../../../hooks/useModelTierSelection';
+import { logger } from '../../../utils/logger';
 
 // Landing-only wizard. The legacy "review/plan card" stage has been removed:
 // the landing flow now creates a placeholder agent and hands the first prompt
@@ -44,7 +45,7 @@ export default function AgentWizard({ user, onClose, onPublished, onSwitchToManu
             try {
                 const res = await authFetch(`${API_BASE}/ai/config/tiers-for-user?taskType=direct_chat`);
                 if (res.ok) setTiers(await res.json());
-            } catch (_) { /* ignore */ }
+            } catch (err) { logger.debug('ignore', err); }
         })();
     }, []);
 

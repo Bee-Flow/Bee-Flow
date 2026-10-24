@@ -49,8 +49,7 @@ export default function CustomTierCard({
                             value={tier.icon || ''}
                             onChange={e => updateCustomTier(tier.id, { icon: e.target.value.slice(0, 4) })}
                             maxLength={4}
-                            className="w-12 text-center text-xl px-1 py-1 rounded-lg border outline-none"
-                            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                            className="w-12 text-center text-xl px-1 py-1 rounded-lg border outline-none [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                             title={t('admin_ai_config.custom_icon_title', 'Icon or emoji')}
                         />
                         <div className="flex-1 min-w-0">
@@ -59,8 +58,7 @@ export default function CustomTierCard({
                                 value={tier.label || ''}
                                 onChange={e => renameCustomTier(tier.id, e.target.value)}
                                 placeholder={t('admin_ai_config.custom_name_placeholder', 'Tier name')}
-                                className="w-full text-sm font-semibold px-2 py-1 rounded-lg border outline-none"
-                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                className="w-full text-sm font-semibold px-2 py-1 rounded-lg border outline-none [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                             />
                             <p className="text-[10px] mt-0.5 font-mono text-[var(--text-muted)]">{tier.id}</p>
                         </div>
@@ -82,8 +80,7 @@ export default function CustomTierCard({
                         value={tier.description || ''}
                         onChange={e => updateCustomTier(tier.id, { description: e.target.value })}
                         placeholder={t('admin_ai_config.custom_desc_placeholder', 'Short description (shown in tier picker)')}
-                        className="w-full text-xs px-3 py-2 mb-3 rounded-lg border outline-none"
-                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                        className="w-full text-xs px-3 py-2 mb-3 rounded-lg border outline-none [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                     />
 
                     <SearchableModelSelect
@@ -131,8 +128,7 @@ export default function CustomTierCard({
                                 value={tier.maxTokens !== undefined ? tier.maxTokens : CUSTOM_TIER_DEFAULTS.maxTokens}
                                 onChange={e => updateCustomTier(tier.id, { maxTokens: parseInt(e.target.value) || CUSTOM_TIER_DEFAULTS.maxTokens })}
                                 min={256} max={131072} step={256}
-                                className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm"
-                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                             />
                         </div>
                         <div className="flex-1 min-w-[180px]">
@@ -142,8 +138,7 @@ export default function CustomTierCard({
                                 value={tier.temperature !== undefined ? tier.temperature : CUSTOM_TIER_DEFAULTS.temperature}
                                 onChange={e => updateCustomTier(tier.id, { temperature: parseFloat(e.target.value) || CUSTOM_TIER_DEFAULTS.temperature })}
                                 min={0} max={2} step={0.1}
-                                className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm"
-                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                             />
                         </div>
                         {reasoningCapable(tier.modelId) && (
@@ -163,8 +158,7 @@ export default function CustomTierCard({
                                         reasoningEffort: stampedEfforts || e.target.value !== 'none' ? e.target.value : undefined,
                                     })}
                                     disabled={isGpt5Pro(tier.modelId)}
-                                    className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm disabled:opacity-60"
-                                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                    className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm disabled:opacity-60 [background:var(--bg-secondary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                                 >
                                     {isGpt5Pro(tier.modelId) ? (
                                         <option value="high">{t('admin_ai_config.tier_eff_pro_locked', 'High (pro: locked)')}</option>
@@ -200,8 +194,7 @@ export default function CustomTierCard({
                                 <select
                                     value={tier.verbosity || 'medium'}
                                     onChange={e => updateCustomTier(tier.id, { verbosity: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm"
-                                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                    className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                                 >
                                     <option value="low">{t('admin_ai_config.tier_verb_low', 'Low: concise')}</option>
                                     <option value="medium">{t('admin_ai_config.tier_verb_medium_custom', 'Medium: balanced')}</option>
@@ -259,8 +252,7 @@ export default function CustomTierCard({
                                                 }}
                                                 min={1024} max={64000} step={1024}
                                                 placeholder="10000"
-                                                className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm"
-                                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                                className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                                             />
                                             <p className="text-[10px] mt-1 text-[var(--text-muted)]">
                                                 {t('admin_ai_config.tier_budget_hint', 'Tokens reserved for thinking. Must be < Max Tokens.')}

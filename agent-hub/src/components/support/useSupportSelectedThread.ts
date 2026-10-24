@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supportInboxApi } from '../../api/supportInboxApi';
 import { errorMessage } from '../../utils/caughtError';
 import type { SupportEvent, SupportMessage, SupportThread } from './SupportInboxPanel.types';
+import { logger } from '../../utils/logger';
 
 /** The open thread with its messages and its activity log, reloaded whenever the selection changes. */
 export function useSupportSelectedThread(selectedId: string | null) {
@@ -39,7 +40,7 @@ export function useSupportSelectedThread(selectedId: string | null) {
                 const data = await res.json();
                 setActivity(Array.isArray(data?.events) ? data.events : []);
             }
-        } catch {}
+        } catch (err) { logger.warn('thread activity load failed', err); }
     }, [selectedId]);
 
     useEffect(() => {

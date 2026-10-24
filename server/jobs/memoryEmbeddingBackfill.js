@@ -250,7 +250,7 @@ async function getBackfillStatus() {
                    FROM user_memories WHERE status = 'active'`,
             );
             embedded = r?.n || 0;
-        } catch (_) { /* column not created yet */ }
+        } catch (err) { log.debug('column not created yet', err); }
     }
     return {
         activeDim: dim,
@@ -311,7 +311,7 @@ async function runOnce({ dryRun = false } = {}) {
     } finally {
         if (client) {
             try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); }
-            catch (_) { /* best-effort */ }
+            catch (err) { log.debug('best-effort', err); }
             client.release();
         }
         if (acquired) recordJobRun({ job: 'memory_embedding_backfill', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });

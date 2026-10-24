@@ -33,7 +33,7 @@ const { safeFetch } = require('../../utils/ssrfGuard');
 
 // The one target that is refused in every mode — shared with the Nextcloud
 // guard so there is a single list of metadata hostnames in the product.
-const { isMetadataHost } = require('../../integrations/nextcloudTarget');
+const { isMetadataHost } = require('../../utils/nextcloudTarget');
 
 /**
  * Deployment-level escape hatch, defaulting CLOSED.

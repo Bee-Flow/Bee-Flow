@@ -76,7 +76,7 @@ async function assembleTurnPrompt({
         // a run_automation naming an automation the owner does not have is
         // refused when it is written, not at finalize.
         draftWrap._ownedAutomations = new Map((rows || []).map((a) => [a.id, { isActive: !!a.isActive }]));
-    } catch (_) { /* prompt renders the empty-state line */ }
+    } catch (err) { log.debug('prompt renders the empty-state line', err); }
 
     // Owner's designed documents — rendered into the same note, and for the
     // same reason: the core tool menu has no list tools, so a document a
@@ -89,7 +89,7 @@ async function assembleTurnPrompt({
         // The keyed list for the tool-time check: a fill_document naming a
         // document the owner does not have is refused when it is written.
         draftWrap._documents = documentRows;
-    } catch (_) { /* prompt renders the empty-state line; the gate stays permissive */ }
+    } catch (err) { log.debug('prompt renders the empty-state line; the gate stays permissive', err); }
 
     const sys = buildSystemPrompt({
         toolset: profile.toolset === 'core' ? 'core' : 'full',

@@ -18,6 +18,7 @@ const { getOne, getAll, run, getClient } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
 const { parseJSONObject: parseJSON } = require('./lib/json');
+const log = require('../telemetry/log');
 
 const initDB = makeStoreInit('PlaybookStore', async () => {
     const res = await runDdl('playbookStore', [
@@ -132,7 +133,7 @@ async function savePhases(id, userId, { phases, currentPhase, status, title } = 
         const saved = await getPlaybook(id, userId);
         return { ok: true, version: nextVersion, playbook: saved };
     } catch (e) {
-        try { await client.query('ROLLBACK'); } catch { /* already rolled back */ }
+        try { await client.query('ROLLBACK'); } catch (err) { log.debug('already rolled back', err); }
         throw e;
     } finally {
         client.release();

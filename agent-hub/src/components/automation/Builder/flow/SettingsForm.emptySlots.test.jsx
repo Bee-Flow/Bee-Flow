@@ -1,9 +1,9 @@
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import React from 'react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
-import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import scopedStorage from '../../../../utils/scopedStorage';
+import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 
 /**
  * "1 field still empty" — the footer pill (artboard 2b).

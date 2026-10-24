@@ -10,6 +10,7 @@
 const fsp = require('fs/promises');
 const path = require('path');
 const Database = require('better-sqlite3');
+const log = require('../../telemetry/log');
 
 /**
  * @param {any} deps  handles (the engine's Map), maybeEvict (from the
@@ -99,7 +100,7 @@ function createHandleLoader({ handles, maybeEvict, dbKey, workDir, storage, runQ
         // self-contained — no -wal/-shm to upload — but a process killed mid-write
         // may have left stragglers.
         for (const ext of ['', '-journal', '-wal', '-shm']) {
-            try { await fsp.unlink(localPath + ext); } catch (_) {}
+            try { await fsp.unlink(localPath + ext); } catch (_) { log.debug('local file absent', _); }
         }
         await downloadIfExists(ownerId, id, localPath);
 
@@ -117,15 +118,15 @@ function createHandleLoader({ handles, maybeEvict, dbKey, workDir, storage, runQ
                 [id, ownerId]
             );
             persistedSha = String(res?.rows?.[0]?.db_sha256 || '');
-        } catch (_) {}
+        } catch (_) { log.warn('persisted sha lookup failed, treating it as unknown', _); }
 
         const db = new Database(localPath);
         // DELETE journaling keeps everything in a single .db file at rest — no
         // sidecar files to track between request lifetimes. This is strictly
         // single-process per entity (the handle Map enforces it), so we don't
         // need WAL's concurrent-reader benefit.
-        try { db.pragma('journal_mode = DELETE'); } catch (_) {}
-        try { db.pragma('foreign_keys = ON'); } catch (_) {}
+        try { db.pragma('journal_mode = DELETE'); } catch (_) { log.warn('could not set journal_mode', _); }
+        try { db.pragma('foreign_keys = ON'); } catch (_) { log.warn('could not enable foreign_keys', _); }
 
         const entry = {
             db,

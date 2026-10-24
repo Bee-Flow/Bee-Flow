@@ -26,6 +26,7 @@ import type { ProjectContextPillProject } from '../../../chat/ProjectContextPill
 import type { AutomationRowProps } from './AutomationRow';
 import type { Point } from '../map/studioMap.types';
 import type { RowPropsFn, AutomationsOverviewProps, NewFolderDialogProps, LifecycleChipProps, OutcomeChipProps, TriggerGlyphProps, SortHeadProps, ListViewProps, NameCellProps, ListRowProps, CardsViewProps, CardProps, BoardViewProps } from './AutomationsOverview.types';
+import { logger } from '../../../../utils/logger';
 
 /**
  * "All automations" — the landing in the right pane when nothing is open.
@@ -80,11 +81,11 @@ const COLUMN = 'mx-auto w-full max-w-[110rem]';
 
 function readStored(key: string, allowed: readonly string[], fallback: string) {
     let v: string | null = null;
-    try { v = scopedStorage.getItem(key); } catch (_) { /* storage best-effort */ }
+    try { v = scopedStorage.getItem(key); } catch (err) { logger.debug('storage best-effort', err); }
     return v !== null && allowed.includes(v) ? v : fallback;
 }
 function store(key: string, value: string) {
-    try { scopedStorage.setItem(key, value); } catch (_) { /* storage best-effort */ }
+    try { scopedStorage.setItem(key, value); } catch (err) { logger.debug('storage best-effort', err); }
 }
 
 export default function AutomationsOverview({

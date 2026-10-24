@@ -40,6 +40,7 @@ import { toast } from '../components/shared/Toast';
 import useConfirm from '../components/shared/useConfirm';
 import { API_BASE, authFetch, mutate } from '../api/mutate';
 import { errorMessage } from '../utils/caughtError';
+import { logger } from '../utils/logger';
 
 /** A knowledge base row. Consumers render more of it than this hook reads. */
 export interface KnowledgeBase {
@@ -229,7 +230,7 @@ export default function useKnowledgeBases({
             try {
                 const res = await authFetch(`${API_BASE}/api/integrations/gdrive/status`);
                 if (res.ok) { const d = await res.json(); setDriveConnected(!!d.connected); }
-            } catch { /* ignore */ }
+            } catch (err) { logger.debug('ignore', err); }
         })();
     }, [enableDrive]);
 
@@ -239,7 +240,7 @@ export default function useKnowledgeBases({
             try {
                 const res = await authFetch(`${API_BASE}/ai/config`);
                 if (res.ok) { const d = await res.json(); setUseAzureKB(!!d.useAzureDocProcessing); }
-            } catch { /* ignore */ }
+            } catch (err) { logger.debug('ignore', err); }
         })();
     }, [enableAzureInfo]);
 

@@ -15,6 +15,7 @@ const { toContextBias, identifySpeakerNames, applySpeakerNames } = require('../.
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, NO_QUERY } = require('./schemas');
+const log = require('../../telemetry/log');
 
 // ── Wat een sprekerbewerking mag dragen ─────────────────────────────
 //
@@ -195,7 +196,7 @@ router.post('/:id/reidentify-speakers', requireAuth, validate({ body: Reidentify
     const roster = suppliedRoster.length ? suppliedRoster : (transcription.attendees || []);
 
     let userName = null;
-    try { const { getUser } = require('../../stores/userStore'); const u = await getUser(userId); userName = u?.firstName || u?.displayName || null; } catch (_) {}
+    try { const { getUser } = require('../../stores/userStore'); const u = await getUser(userId); userName = u?.firstName || u?.displayName || null; } catch (_) { log.debug('user lookup failed, the user name is omitted', _); }
 
     // The stored speakers rows carry the speaking-time stats the model uses
     // to tell real participants from short diarization fragments.

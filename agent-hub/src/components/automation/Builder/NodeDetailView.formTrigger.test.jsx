@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, cleanup, act, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import userEvent from '@testing-library/user-event';
 import { ndvProps } from './ndv/ndvTestProps';
 
 const { api } = vi.hoisted(() => ({

@@ -53,7 +53,7 @@ export default function IncidentCreateModal({ open, kind = 'breach', busy = fals
     const { t } = useTranslation();
     const [draft, setDraft] = useState(freshDraft);
     const hintId = useId();
-    const now = useNow();
+    const now = useNow(60_000);
     // Every opening starts from "now": a modal left open over lunch must not record the morning.
     const [seenOpen, setSeenOpen] = useState(open);
     if (seenOpen !== open) {

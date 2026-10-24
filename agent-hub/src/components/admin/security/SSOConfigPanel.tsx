@@ -49,7 +49,7 @@ function SsoSidebar({ navItems, activeTab, onSelect, providers }: SidebarProps) 
             </div>
 
             {/* Overall Status */}
-            <div className="mt-auto p-4 border-t" style={{ borderColor: 'var(--border-default)' }}>
+            <div className="mt-auto p-4 border-t [border-color:var(--border-default)]!">
                 <p className="text-xs text-muted mb-2">{t('admin_security.sso_configured_providers', 'Configured providers')}</p>
                 <div className="flex gap-2 flex-wrap">
                     {Object.entries(providers).filter(([_, v]) => v.enabled).map(([key]) => (
@@ -88,9 +88,7 @@ const SSOConfigPanel = () => {
     // If a non-Community deep link / stale state lands on an enterprise
     // provider tab that's now hidden, fall back to Nextcloud so the enterprise
     // config form never renders on Community.
-    useEffect(() => {
-        if (!navItems.some(n => n.id === activeTab)) setActiveTab('nextcloud');
-    }, [navItems, activeTab]);
+    if (activeTab !== 'nextcloud' && !navItems.some(n => n.id === activeTab)) setActiveTab('nextcloud');
 
     if (loading) {
         return (

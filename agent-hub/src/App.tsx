@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { lazyWithI18n } from './utils/lazyWithReload';
 import { shouldWarmAuthedApp } from './utils/warmup';
+import { logger } from './utils/logger';
 /* ── The marketing/app split ──────────────────────────────────────────────
    This module is the PUBLIC router shell: the marketing site, the embeds and
    the handful of anonymous pages. The entire authenticated product lives in
@@ -49,7 +50,7 @@ import type { CmsState, CmsSiteResponse } from './App.types';
    shows through as white. AuthedApp.jsx carries its own copy — importing
    across the boundary would defeat the split. */
 function AppBackdrop() {
-    return <div style={{ background: '#06090F', minHeight: '100vh' }} />;
+    return <div className="[background:#06090F] min-h-[100vh]" />;
 }
 
 // Root wrapper — handles embed route before App's hooks
@@ -73,7 +74,7 @@ function AppRoutes() {
            chunk arrived. Transparent, because the embedder controls the frame's
            background and we should not paint over it. */
         return (
-            <Suspense fallback={<div style={{ minHeight: '100vh' }} />}>
+            <Suspense fallback={<div className="min-h-[100vh]" />}>
                 <EmbedChat agentId={chatMatch[1]} />
             </Suspense>
         );
@@ -113,7 +114,7 @@ function AppRoutes() {
             // the normal login if they are not signed in. `replace` so Back
             // does not bounce them straight out again.
             window.location.replace(`/app/forms/${formMatch[1]}`);
-            return <div style={{ minHeight: '100vh' }} />;
+            return <div className="min-h-[100vh]" />;
         }
     }
     // Public Studio-app pages (`publicAccess` on the app definition). Anonymous
@@ -125,7 +126,7 @@ function AppRoutes() {
         const publicAppMatch = window.location.pathname.match(/^\/p\/([a-f0-9]{24,64})\/?$/);
         if (publicAppMatch) {
             return (
-                <Suspense fallback={<div style={{ minHeight: '100vh' }} />}>
+                <Suspense fallback={<div className="min-h-[100vh]" />}>
                     <PublicAppPage token={publicAppMatch[1]} />
                 </Suspense>
             );
@@ -144,7 +145,7 @@ function AppRoutes() {
     const DSR_PATHS = ['/privacy/requests', '/privacy/requests/', '/dsr', '/dsr/', '/dsr/verify', '/dsr/verify/'];
     if (DSR_PATHS.includes(window.location.pathname)) {
         return (
-            <Suspense fallback={<div style={{ minHeight: '100vh' }} />}>
+            <Suspense fallback={<div className="min-h-[100vh]" />}>
                 <DsrRequestPage />
             </Suspense>
         );
@@ -215,7 +216,7 @@ function resolveInitialLocale() {
     try {
         const params = new URLSearchParams(window.location.search);
         let stored: string | null = null;
-        try { stored = localStorage.getItem('beeflow_locale'); } catch { /* ignore */ }
+        try { stored = localStorage.getItem('beeflow_locale'); } catch (err) { logger.debug('ignore', err); }
         const parsed = parseCmsPath(window.location.pathname) || { locale: null };
         return (parsed.locale
             || params.get('locale')
@@ -263,7 +264,7 @@ function RootPathGate() {
         // stored key lets the marketing language switcher persist across
         // page-to-page navigation, where nav links carry no ?locale.
         let storedLocale: string | null = null;
-        try { storedLocale = localStorage.getItem('beeflow_locale'); } catch { /* ignore */ }
+        try { storedLocale = localStorage.getItem('beeflow_locale'); } catch (err) { logger.debug('ignore', err); }
         // Path-based routing: `/about` → slug "about", `/nl/about` → locale
         // "nl" + slug "about", `/` → the homepage. The legacy `?slug=` query
         // param still wins if present so old links keep working.
@@ -410,7 +411,7 @@ function RootPathGate() {
            the black first frame in the Lighthouse filmstrip. `transparent` keeps
            whatever the document background already is, so on a server-rendered
            page the visitor sees the page, not a colour. */
-        return <div style={{ background: 'transparent', minHeight: '100vh' }} />;
+        return <div className="[background:transparent] min-h-[100vh]" />;
     }
     if (cms === false) {
         // CMS-managed site is off, OR this slug has no page. At "/" show the

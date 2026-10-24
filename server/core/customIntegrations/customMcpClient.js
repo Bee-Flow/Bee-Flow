@@ -25,9 +25,9 @@
  */
 
 const ssrfGuard = require('./ssrfGuard');
-// Cycle-safe: the runner's top-level requires only ssrfGuard; it requires
-// this module lazily inside its execute path.
-const { scrubSecrets: scrubSecretValues } = require('../../integrations/customIntegrationRunner');
+// The secret scrubber lives in the feature's runner; looked up on use
+// (core/featureModules.js), which also keeps the cycle with the runner lazy.
+const { featureModule } = require('../featureModules');
 const log = require('../../telemetry/log');
 
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes, same as mcpManager
@@ -201,7 +201,7 @@ function scrubSecrets(text, secretObject) {
     const values = (secretObject && typeof secretObject === 'object')
         ? Object.values(secretObject)
         : [];
-    return scrubSecretValues(out, values);
+    return featureModule('integrations/customIntegrationRunner').scrubSecrets(out, values);
 }
 
 /** Truncate to MAX_RESULT_CHARS, marker included in the budget. */
@@ -382,7 +382,7 @@ async function discoverTools(integration, { secretObject = null } = {}) {
         throw new Error(scrubSecrets(err && err.message ? err.message : String(err), secretObject));
     } finally {
         if (client) {
-            try { await client.close(); } catch (_) { /* best effort */ }
+            try { await client.close(); } catch (err) { log.debug('best effort', err); }
         }
     }
 }

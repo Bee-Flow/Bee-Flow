@@ -33,6 +33,7 @@ const {
 const { validateBinding } = require('./bindings');
 const { containsSendEmail, KIND_CHECKS } = require('./stepKindChecks');
 const { DATASET_QUERY_OUTPUTS, KIND_CHECKS: DATA_KIND_CHECKS } = require('./stepDataChecks');
+const log = require('../../telemetry/log');
 
 // ---------------------------------------------------------------------------
 // Actions
@@ -148,7 +149,7 @@ function validateAction(id, action, path, ctx) {
             pushE({ code: 'action.url_invalid', severity: 'error', path: `${path}.url`, message: `Action "${id}" (open_url) needs a url string.`, hint: 'Provide an https:// URL.' });
         } else {
             let protocol = null;
-            try { protocol = new URL(action.url).protocol; } catch { /* unparseable */ }
+            try { protocol = new URL(action.url).protocol; } catch (err) { log.debug('unparseable', err); }
             if (protocol === null) pushE({ code: 'action.url_invalid', severity: 'error', path: `${path}.url`, message: `Action "${id}" url ${JSON.stringify(action.url.slice(0, 80))} is not a valid URL.`, hint: 'Provide an absolute https:// URL.' });
             else if (protocol !== 'https:') pushE({ code: 'action.url_not_https', severity: 'error', path: `${path}.url`, message: `Action "${id}" url must use https (got ${protocol.replace(':', '')}).`, hint: 'Only https URLs may be opened from an app.' });
         }

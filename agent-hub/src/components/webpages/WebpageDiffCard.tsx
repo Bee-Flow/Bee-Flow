@@ -39,14 +39,12 @@ export default function WebpageDiffCard({ file, diff }: WebpageDiffCardProps) {
 
     return (
         <div
-            className="my-1.5 rounded-lg border text-[12px]"
-            style={{ borderColor: 'var(--vsc-border, var(--border-subtle))', background: 'var(--vsc-sidebar-bg, var(--bg-secondary))' }}
+            className="my-1.5 rounded-lg border text-[12px] [border-color:var(--vsc-border,var(--border-subtle))] [background:var(--vsc-sidebar-bg,var(--bg-secondary))]"
         >
             <button
                 type="button"
                 onClick={() => setOpen((o: boolean) => !o)}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left"
-                style={{ color: 'var(--vsc-fg, var(--text-primary))' }}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left [color:var(--vsc-fg,var(--text-primary))]!"
             >
                 <ChevronRight
                     size={12}
@@ -70,8 +68,7 @@ export default function WebpageDiffCard({ file, diff }: WebpageDiffCardProps) {
             </button>
             {open && diff?.hunks && diff.hunks.length > 0 && (
                 <div
-                    className="border-t font-mono text-[11px] overflow-x-auto"
-                    style={{ borderColor: 'var(--vsc-border, var(--border-subtle))', background: 'var(--vsc-editor-bg, var(--bg-primary))' }}
+                    className="border-t font-mono text-[11px] overflow-x-auto [border-color:var(--vsc-border,var(--border-subtle))]! [background:var(--vsc-editor-bg,var(--bg-primary))]"
                 >
                     {diff.hunks.map((h: DiffHunk, i: number) => {
                         const sigil = h.type === 'add' ? '+' : h.type === 'remove' ? '-' : h.type === 'gap' ? ' ' : ' ';

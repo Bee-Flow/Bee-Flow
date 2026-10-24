@@ -9,10 +9,10 @@
  * Run: cd agent-hub && npx vitest run src/editor/engine/multiblock.test.js
  */
 import { describe, it, expect } from 'vitest';
-import { markdownToAst } from '../serialization/mdToAst';
-import { createState, applyTransform } from './state.js';
 import { textSelection, pos } from './selection.js';
+import { createState, applyTransform } from './state.js';
 import { toggleList, setMarkAttrs } from './transforms.js';
+import { markdownToAst } from '../serialization/mdToAst';
 
 const FOUR = 'one\n\ntwo\n\nthree\n\nfour';
 

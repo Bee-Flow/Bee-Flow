@@ -8,6 +8,7 @@ import { nOf } from '../../components/admin/Studio/KnowledgeStudio/plural';
 import useConfirm from '../../components/shared/useConfirm';
 import useTranslation from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { logger } from '../../utils/logger';
 
 /*
  * Het soort-label reist als SLEUTEL (`labelKey`), met het Engels ernaast als
@@ -83,7 +84,7 @@ function SourceCard({ source, onDelete, onRetry, onCancel }: SourceCardProps) {
                         {t(meta.labelKey, meta.label)}
                     </span>
                     {isProcessing && (
-                        <span className="flex items-center gap-0.5 text-[9px] font-medium" style={{ color: '#92400e' }}>
+                        <span className="flex items-center gap-0.5 text-[9px] font-medium [color:#92400e]!">
                             <Loader2 className="w-2.5 h-2.5 animate-spin" /> {t('webpages.knowledge.processing', 'Processing…')}
                         </span>
                     )}
@@ -93,13 +94,13 @@ function SourceCard({ source, onDelete, onRetry, onCancel }: SourceCardProps) {
                         </span>
                     )}
                     {isError && (
-                        <span className="flex items-center gap-0.5 text-[9px] font-medium" style={{ color: '#991b1b' }} title={source.error || ''}>
+                        <span className="flex items-center gap-0.5 text-[9px] font-medium [color:#991b1b]!" title={source.error || ''}>
                             <AlertCircle className="w-2.5 h-2.5" /> {t('common.error', 'Error')}
                         </span>
                     )}
                 </div>
                 {isError && source.error && (
-                    <div className="text-[9px] mt-1 truncate" style={{ color: '#991b1b' }} title={source.error}>
+                    <div className="text-[9px] mt-1 truncate [color:#991b1b]!" title={source.error}>
                         {source.error}
                     </div>
                 )}
@@ -151,7 +152,7 @@ export default function WebpageSources({ webpageId, sources, onSourcesChange }: 
             if (!res.ok) return;
             const { sources: fresh } = await res.json();
             onSourcesChange(fresh || []);
-        } catch (_) {}
+        } catch (err) { logger.warn('sources refresh failed', err); }
     }, [webpageId, onSourcesChange]);
 
     // Adaptive polling: when any source is still processing (or has no terminal
@@ -322,12 +323,10 @@ export default function WebpageSources({ webpageId, sources, onSourcesChange }: 
                             value={urlInput}
                             onChange={(e) => setUrlInput(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleAddUrl()}
-                            className="flex-1 px-2 py-1 text-[11px] rounded border outline-none"
-                            style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                            className="flex-1 px-2 py-1 text-[11px] rounded border outline-none [border-color:var(--border-subtle)] [background:var(--bg-primary)] [color:var(--text-primary)]!"
                         />
                         <button onClick={handleAddUrl} disabled={submitting}
-                                className="px-2 py-1 rounded-md text-[10px] font-medium disabled:opacity-50"
-                                style={{ background: 'var(--accent-primary)', color: 'white' }}>
+                                className="px-2 py-1 rounded-md text-[10px] font-medium disabled:opacity-50 [background:var(--accent-primary)] [color:white]!">
                             {t('common.add', 'Add')}
                         </button>
                     </div>
@@ -340,27 +339,24 @@ export default function WebpageSources({ webpageId, sources, onSourcesChange }: 
                             placeholder={t('webpages.knowledge.ph_name', "Name (e.g. 'Brand guidelines')")}
                             value={textName}
                             onChange={(e) => setTextName(e.target.value)}
-                            className="w-full px-2 py-1 text-[11px] rounded border outline-none"
-                            style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                            className="w-full px-2 py-1 text-[11px] rounded border outline-none [border-color:var(--border-subtle)] [background:var(--bg-primary)] [color:var(--text-primary)]!"
                         />
                         <textarea
                             placeholder={t('webpages.knowledge.ph_text', 'Paste text content…')}
                             value={textInput}
                             onChange={(e) => setTextInput(e.target.value)}
                             rows={4}
-                            className="w-full px-2 py-1 text-[11px] rounded border outline-none resize-none"
-                            style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                            className="w-full px-2 py-1 text-[11px] rounded border outline-none resize-none [border-color:var(--border-subtle)] [background:var(--bg-primary)] [color:var(--text-primary)]!"
                         />
                         <button onClick={handleAddText} disabled={submitting || !textInput.trim()}
-                                className="w-full px-2 py-1 rounded-md text-[10px] font-medium disabled:opacity-50"
-                                style={{ background: 'var(--accent-primary)', color: 'white' }}>
+                                className="w-full px-2 py-1 rounded-md text-[10px] font-medium disabled:opacity-50 [background:var(--accent-primary)] [color:white]!">
                             {t('webpages.knowledge.add_to_knowledge', 'Add to knowledge')}
                         </button>
                     </div>
                 )}
 
                 {error && (
-                    <div className="mt-2 text-[10px] p-1.5 rounded" style={{ background: 'rgba(239,68,68,0.1)', color: '#991b1b' }}>
+                    <div className="mt-2 text-[10px] p-1.5 rounded [background:rgba(239,68,68,0.1)] [color:#991b1b]!">
                         {error}
                     </div>
                 )}

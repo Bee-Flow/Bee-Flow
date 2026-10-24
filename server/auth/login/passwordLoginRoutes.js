@@ -81,7 +81,7 @@ function dummyPasswordHash() {
 async function burnPasswordCompare(password) {
     try {
         await passwords.verify(String(password ?? ''), await dummyPasswordHash());
-    } catch (_) { /* the result is discarded — only the elapsed time matters */ }
+    } catch (err) { log.debug('the result is discarded — only the elapsed time matters', err); }
 }
 
 // Admin/User login with username/password

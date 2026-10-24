@@ -35,7 +35,7 @@ export default function useEditorViewLifecycle(s: EditorShared, props: BeeEditor
     }
   }, [content, refreshChrome, collab.bound]);
 
-  useEffect(() => { viewRef.current?.setEditable(effectiveEditable); }, [effectiveEditable, s.viewInst]);
+  useEffect(() => { viewRef.current?.setEditable(effectiveEditable); }, [effectiveEditable, s.viewInst, viewRef]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -47,7 +47,7 @@ export default function useEditorViewLifecycle(s: EditorShared, props: BeeEditor
     // user with "Begin met schrijven…".
     const fallback = placeholder || t('notebooks.placeholder', 'Start writing… Type $formula$ for math, :emoji: for emoji, or use the toolbar.');
     host.style.setProperty('--bf-placeholder', `"${fallback.replace(/"/g, '\\"')}"`);
-  }, [placeholder, t]);
+  }, [hostRef, placeholder, t]);
 
   /* image upload: the caller's uploader (onUploadImage), else the notebook's endpoint */
   const uploadImage = useCallback(async (file: File) => {
@@ -66,12 +66,12 @@ export default function useEditorViewLifecycle(s: EditorShared, props: BeeEditor
       console.error('[BeeEditor] image upload failed', errorName(err) || 'Error');
       setUploadError(true);
     }
-  }, []);
+  }, [notebookIdRef, onUploadImageRef, setUploadError, viewRef]);
   useEffect(() => {
     if (!uploadError) return undefined;
     const timer = setTimeout(() => setUploadError(false), 6000);
     return () => clearTimeout(timer);
-  }, [uploadError]);
+  }, [setUploadError, uploadError]);
 
   return { uploadImage };
 }

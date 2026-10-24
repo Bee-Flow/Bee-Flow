@@ -4,6 +4,7 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
 import useConfirm from '../../shared/useConfirm';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { messageOf } from '../../../utils/caughtError';
+import { logger } from '../../../utils/logger';
 
 interface PairingCode {
     id: string;
@@ -94,7 +95,7 @@ const OrgNcPairingPanel = () => {
             await navigator.clipboard.writeText(code);
             setJustCopiedId(id);
             setTimeout(() => setJustCopiedId((curr: string | null) => curr === id ? null : curr), 1500);
-        } catch (_) { /* clipboard denied — ignore */ }
+        } catch (err) { logger.debug('clipboard denied — ignore', err); }
     };
 
     const fmtCountdown = (expiresAt: string | undefined) => {
@@ -107,7 +108,7 @@ const OrgNcPairingPanel = () => {
     };
 
     return (
-        <div className="rounded-xl p-5 mb-4" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+        <div className="rounded-xl p-5 mb-4 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
             <div className="flex items-start gap-3 mb-4">
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-[color-mix(in_srgb,var(--warning)_12%,transparent)]">
                     <ServerCog className="w-5 h-5 text-[var(--warning-ink)]" />
@@ -153,7 +154,7 @@ const OrgNcPairingPanel = () => {
             ) : (
                 <ul className="space-y-2">
                     {codes.map((c: PairingCode) => (
-                        <li key={c.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
+                        <li key={c.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]">
                             <code className="text-[15px] font-mono font-semibold tracking-wider text-[var(--text-primary)]">
                                 {c.code}
                             </code>

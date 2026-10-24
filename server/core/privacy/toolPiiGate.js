@@ -53,6 +53,7 @@
 const { _tokenCategoryKey } = require('./piiDetection/tokenizer');
 const { isCustomTypeId } = require('./customTypes/ids');
 const log = require('../../telemetry/log');
+const telemetryLog = require('../../telemetry/log');
 
 const DEFAULT_THRESHOLD = 0.7;
 
@@ -277,7 +278,7 @@ async function refuseToolCall({ toolName, args, shield, logEvent = null, tag = '
     if (logEvent) {
         try {
             logEvent({ violation_type: 'pii', violation_categories: gate.labels.join(', '), direction: 'output', action_taken: 'tool_blocked' });
-        } catch (_) { /* auditing never decides a tool call */ }
+        } catch (err) { telemetryLog.debug('auditing never decides a tool call', err); }
     }
     return refusal;
 }
@@ -294,7 +295,7 @@ async function stripToolResultForModel(content, { toolName, shield, logEvent = n
         if (logEvent) {
             try {
                 logEvent({ violation_type: 'pii', violation_categories: r.redactedLabels.join(', '), direction: 'input', action_taken: 'tool_result_redacted' });
-            } catch (_) { /* auditing never decides a tool call */ }
+            } catch (err) { telemetryLog.debug('auditing never decides a tool call', err); }
         }
     }
     return r.text;

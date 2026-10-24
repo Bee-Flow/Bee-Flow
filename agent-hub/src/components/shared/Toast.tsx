@@ -121,6 +121,7 @@ export function Toaster() {
     const timers = useRef<Map<number, number>>(new Map());
 
     useEffect(() => {
+        const timerMap = timers.current;
         const commit = (next: ToastItem[]) => { itemsRef.current = next; setItems(next); };
         const clearTimer = (id: number) => {
             const t = timers.current.get(id);
@@ -173,8 +174,8 @@ export function Toaster() {
         return () => {
             window.removeEventListener(EVENT, onAdd);
             window.removeEventListener('beeflow:toast:dismiss', onDismiss);
-            timers.current.forEach((t) => window.clearTimeout(t));
-            timers.current.clear();
+            timerMap.forEach((t) => window.clearTimeout(t));
+            timerMap.clear();
         };
     }, []);
 

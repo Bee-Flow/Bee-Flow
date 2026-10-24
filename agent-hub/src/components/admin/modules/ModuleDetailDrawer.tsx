@@ -147,7 +147,7 @@ export default function ModuleDetailDrawer({ module, health = null, actions, onC
                                 </div>
                             )}
                             {pendingRestart && (
-                                <div className="text-xs px-3 py-2 rounded-lg flex items-center gap-2" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
+                                <div className="text-xs px-3 py-2 rounded-lg flex items-center gap-2 [background:rgba(245,158,11,0.12)] [color:#f59e0b]!">
                                     <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> {t('modules.badge_restart_required')}
                                 </div>
                             )}
@@ -158,8 +158,7 @@ export default function ModuleDetailDrawer({ module, health = null, actions, onC
                         <button
                             onClick={primary.run}
                             disabled={busy}
-                            className="mt-3 px-4 py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
-                            style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                            className="mt-3 px-4 py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                             data-testid="drawer-primary-action"
                         >
                             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <primary.Icon className="w-3.5 h-3.5" />}

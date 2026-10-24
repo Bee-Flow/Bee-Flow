@@ -8,6 +8,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { logger } from '../../../utils/logger';
 
 const BASE = `${API_BASE}/api/automation`;
 
@@ -113,7 +114,7 @@ async function failure(res: { status: number; json: () => Promise<unknown> }): P
         // sends the code itself in `error` ('feature_locked', 'feature_disabled').
         code = str(body.code) || (/^[a-z_]+$/.test(error) ? error : null);
         message = body.code ? error || null : null;
-    } catch { /* no body */ }
+    } catch (err) { logger.debug('no body', err); }
     return new PeopleRequestError(res.status, code, message);
 }
 

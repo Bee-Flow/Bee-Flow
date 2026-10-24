@@ -25,6 +25,7 @@
 const { z, typeError } = require('../../utils/zod');
 const { HttpError } = require('../../core/http/errors');
 const { fieldDiff, describeChange, isLayoutOnlyChange, stepIdsOf } = require('../../automation/diffSummary');
+const telemetryLog = require('../../telemetry/log');
 
 const MAX_NAME = 80;
 const NAME_TEXT = `name is the milestone name (at most ${MAX_NAME} characters), or null to clear it.`;
@@ -42,7 +43,7 @@ async function defaultResolveNames({ agent = [] }) {
         try {
             const a = await getAgent(id);
             if (a && typeof a.name === 'string' && a.name.trim()) out.agent[id] = a.name.trim();
-        } catch { /* a name is a nicety; the id stays */ }
+        } catch (err) { telemetryLog.debug('a name is a nicety; the id stays', err); }
     }
     return out;
 }

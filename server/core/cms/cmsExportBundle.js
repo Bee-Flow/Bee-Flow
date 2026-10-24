@@ -232,7 +232,7 @@ async function restoreAssets(assets, { overwrite = false } = {}) {
             try {
                 await storageStore.headFile(asset.key);
                 exists = true;
-            } catch (_) { /* miss → write it */ }
+            } catch (err) { log.debug('miss → write it', err); }
             if (exists && !overwrite) { reused++; continue; }
 
             const contentType = asset.contentType || guessContentType(asset.key);

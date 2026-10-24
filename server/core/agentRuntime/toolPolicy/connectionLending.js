@@ -13,6 +13,7 @@
 'use strict';
 
 const { actionsOfApp, _index } = require('./appIndex');
+const log = require('../../../telemetry/log');
 
 /** The connection provider an app id draws credentials from (for lend grants). */
 function _providerForApp(appId) {
@@ -24,7 +25,7 @@ function _providerForApp(appId) {
             const p = providerForTool(n);
             if (p) return p;
         }
-    } catch (_) { /* fall through */ }
+    } catch (err) { log.debug('fall through', err); }
     return appId;
 }
 

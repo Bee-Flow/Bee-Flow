@@ -13,6 +13,7 @@
 import type { AuthFetchOptions } from '../utils/helpers';
 import { API_BASE, authFetch } from '../utils/helpers';
 import { errorStatus, isAbortError } from '../utils/caughtError';
+import { logger } from '../utils/logger';
 
 export interface ApiErrorInit {
     status?: number;
@@ -91,7 +92,7 @@ async function attempt<T>(method: string, path: string, opts: AttemptOptions = {
     const res: Response = await authFetch(url, init);
     if (!res.ok) {
         let parsed: any = null;
-        try { parsed = await res.json(); } catch { /* not JSON */ }
+        try { parsed = await res.json(); } catch (err) { logger.debug('not JSON', err); }
         throw new ApiError(parsed?.error || `HTTP ${res.status}`, { status: res.status, body: parsed });
     }
     if (res.status === 204) return null;
@@ -218,7 +219,7 @@ export function createJsonResource(base = '', options: JsonResourceOptions = {})
     async function once<T>(url: string, init: JsonResourceInit): Promise<T> {
         const res: Response = await authFetch(url, toFetchInit(init));
         let parsed: Record<string, unknown> | null = null;
-        try { parsed = await res.json(); } catch { /* empty or non-JSON body */ }
+        try { parsed = await res.json(); } catch (err) { logger.debug('empty or non-JSON body', err); }
         if (res.ok) return parsed as T;
         const err = new Error((parsed?.error as string) || errorText(res.status)) as JsonResourceError;
         err.status = res.status;

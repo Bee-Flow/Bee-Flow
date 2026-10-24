@@ -171,8 +171,7 @@ export default function QuizStep({ step, lessonId, saved, onState }: QuizStepPro
         <div>
             <div className="flex items-start gap-3 mb-3">
                 <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                    style={{ background: 'color-mix(in srgb, var(--accent-primary) 14%, transparent)' }}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 [background:color-mix(in_srgb,var(--accent-primary)_14%,transparent)]"
                     aria-hidden="true"
                 >
                     {step.icon || '❓'}
@@ -253,8 +252,7 @@ export default function QuizStep({ step, lessonId, saved, onState }: QuizStepPro
                         type="button"
                         onClick={check}
                         disabled={selected.size === 0 || checking}
-                        className="px-4 py-2 rounded-lg text-[13px] font-semibold inline-flex items-center gap-2 transition-opacity disabled:opacity-40"
-                        style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg, #fff)' }}
+                        className="px-4 py-2 rounded-lg text-[13px] font-semibold inline-flex items-center gap-2 transition-opacity disabled:opacity-40 [background:var(--accent-primary)] [color:var(--accent-primary-fg,#fff)]!"
                     >
                         {checking
                             ? (<><Loader2 className="w-4 h-4 animate-spin" /> {t('learn.quiz.checking', 'Checking…')}</>)
@@ -263,7 +261,7 @@ export default function QuizStep({ step, lessonId, saved, onState }: QuizStepPro
                                 : t('learn.quiz.check', 'Check answer')}
                     </button>
                 ) : (
-                    <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold" style={{ color: '#15803d' }}>
+                    <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold [color:#15803d]!">
                         <Check className="w-4 h-4" /> {t('learn.quiz.passed', 'Nice — continue below.')}
                     </span>
                 )}

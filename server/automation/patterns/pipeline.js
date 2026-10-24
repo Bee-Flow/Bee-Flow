@@ -133,7 +133,7 @@ function automationShape(a, appOfTool) {
     if (typeof trig.appEvent?.provider === 'string') apps.push(trig.appEvent.provider);
     for (const s of Array.isArray(def.steps) ? def.steps : []) {
         if (typeof s?.tool === 'string' && s.tool) {
-            try { apps.push(appOfTool(s.tool)); } catch (_) { /* an unknown tool names no app */ }
+            try { apps.push(appOfTool(s.tool)); } catch (err) { log.debug('an unknown tool names no app', err); }
         }
     }
     return { title: a?.title, triggerKind: trig.kind || a?.triggerType || null, apps: uniq(apps.map(String)) };

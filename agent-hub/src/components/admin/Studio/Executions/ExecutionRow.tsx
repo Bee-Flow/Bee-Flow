@@ -13,6 +13,7 @@ import { enteredTriggerLabel, runTitle } from './runLanguage';
 import { runLogSentence, sentenceTooltip } from './runLogSentence';
 import type { RunLogRow } from './runLogSentence';
 import { messageOf } from '../../../../utils/caughtError';
+import { logger } from '../../../../utils/logger';
 
 /**
  * The log's columns by the list's OWN width (@container/runlog, set by
@@ -75,7 +76,7 @@ function copyRunLink(runId: string) {
         url.searchParams.set('run', runId);
         url.searchParams.delete('step');
         navigator.clipboard?.writeText(url.toString());
-    } catch { /* clipboard blocked: nothing useful to do */ }
+    } catch (err) { logger.debug('clipboard blocked: nothing useful to do', err); }
 }
 
 type MenuItem = { label: string; icon: React.ReactNode; onClick: () => void; danger?: boolean };

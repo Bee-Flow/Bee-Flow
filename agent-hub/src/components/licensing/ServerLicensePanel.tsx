@@ -5,6 +5,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import useConfirm from '../shared/useConfirm';
 import { messageOf } from '../../utils/caughtError';
+import { logger } from '../../utils/logger';
 
 interface ServerLicenseRecord {
     tier?: string;
@@ -121,7 +122,7 @@ export default function ServerLicensePanel() {
                 body: JSON.stringify({ token, scope: 'server' }),
             });
             let data: LicenseActionResponse = {};
-            try { data = await r.json(); } catch { /* ignore */ }
+            try { data = await r.json(); } catch (err) { logger.debug('ignore', err); }
             if (!r.ok) {
                 const code = data.code || data.error;
                 const msg = data.message || data.error || `HTTP ${r.status}`;
@@ -153,7 +154,7 @@ export default function ServerLicensePanel() {
             const r = await authFetch(`${API_BASE}/api/license/deactivate?scope=server`, { method: 'DELETE' });
             if (!r.ok && r.status !== 404) {
                 let data: LicenseActionResponse = {};
-                try { data = await r.json(); } catch { /* ignore */ }
+                try { data = await r.json(); } catch (err) { logger.debug('ignore', err); }
                 throw new Error(data.error || `HTTP ${r.status}`);
             }
             await reload();
@@ -178,7 +179,7 @@ export default function ServerLicensePanel() {
         <div className="space-y-5">
             {/* Heading */}
             <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.10)', color: '#10b981' }}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center [background:rgba(16,185,129,0.10)] [color:#10b981]">
                     <Globe className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
@@ -230,13 +231,13 @@ export default function ServerLicensePanel() {
                     billing — make that explicit so an operator isn't surprised
                     that orgs still need their own subscription. */}
                 {isServerScope && !isGoverning && (
-                    <div className="mt-3 p-2.5 rounded-lg text-xs" style={{ background: 'rgba(59,130,246,0.08)', color: 'var(--text-secondary)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                    <div className="mt-3 p-2.5 rounded-lg text-xs [background:rgba(59,130,246,0.08)] [color:var(--text-secondary)]! [border:1px_solid_rgba(59,130,246,0.2)]">
                         {t('admin.server_license.not_governing', 'This licence is recorded but does not cover organisations on this deployment — each organisation still needs its own subscription.')}
                     </div>
                 )}
 
                 {actionError && (
-                    <div className="flex items-start gap-2 mt-3 p-2.5 rounded-lg text-xs" style={{ background: 'rgba(239,68,68,0.08)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.2)' }}>
+                    <div className="flex items-start gap-2 mt-3 p-2.5 rounded-lg text-xs [background:rgba(239,68,68,0.08)] [color:#dc2626]! [border:1px_solid_rgba(239,68,68,0.2)]">
                         <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                         <div className="flex-1">{actionError}</div>
                         <button onClick={() => setActionError(null)} className="opacity-70 hover:opacity-100"><X className="w-3.5 h-3.5" /></button>
@@ -257,8 +258,7 @@ export default function ServerLicensePanel() {
                             </button>
                             <button
                                 onClick={handleDeactivate}
-                                className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                                style={{ background: 'rgba(239,68,68,0.10)', color: '#dc2626' }}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold [background:rgba(239,68,68,0.10)] [color:#dc2626]!"
                                 disabled={!!busy}
                             >
                                 {busy === 'deactivate'
@@ -284,8 +284,7 @@ export default function ServerLicensePanel() {
                             value={tokenInput}
                             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setTokenInput(e.target.value)}
                             placeholder={t('admin.server_license.token_placeholder', 'Paste licence JWT or admin blob (beeflow-admin-v1.…)')}
-                            className="w-full h-24 rounded-md px-2 py-1.5 text-xs font-mono"
-                            style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
+                            className="w-full h-24 rounded-md px-2 py-1.5 text-xs font-mono [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)] [color:var(--text-primary)]!"
                         />
                         <div className="flex items-center justify-end gap-2 mt-2">
                             <button
@@ -310,7 +309,7 @@ export default function ServerLicensePanel() {
             </div>
 
             {/* Warning panel */}
-            <div className="rounded-xl border p-4 text-xs" style={{ background: 'rgba(245,158,11,0.06)', borderColor: 'rgba(245,158,11,0.25)', color: 'var(--text-secondary)' }}>
+            <div className="rounded-xl border p-4 text-xs [background:rgba(245,158,11,0.06)] [border-color:rgba(245,158,11,0.25)] [color:var(--text-secondary)]!">
                 <div className="flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#f59e0b' }} />
                     <div>

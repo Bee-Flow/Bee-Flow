@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { plansFor } from '../../components/billing/planModel';
 import { getPublicPlans } from './loginRequests';
 import type { SignupData } from './signupValidation';
+import { logger } from '../../utils/logger';
 
 /**
  * Plans offered during signup, filtered to the chosen account type. Public
@@ -20,7 +21,7 @@ export function useSignupPlans(signupMode: boolean, signupData: SignupData) {
                 if (!res.ok) return;
                 const data: { plans?: unknown } = await res.json();
                 setPublicPlans(Array.isArray(data?.plans) ? data.plans : []);
-            } catch { /* plan step is optional: signup proceeds without it */ }
+            } catch (err) { logger.debug('plan step is optional: signup proceeds without it', err); }
         })();
         return () => ac.abort();
     }, [signupMode]);

@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { summariseData } from '../flow/dataSummary';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { logger } from '../../../../utils/logger';
 
 /**
  * Collapsible, searchable JSON tree with hover-revealed "copy path"
@@ -86,10 +87,7 @@ export default function JsonTree({
             setCopied(true);
             if (copiedTimer.current) clearTimeout(copiedTimer.current);
             copiedTimer.current = setTimeout(() => setCopied(false), 1400);
-        } catch {
-            // Clipboard is blocked in non-secure contexts (and unserialisable
-            // values throw) — silent is better than a red banner here.
-        }
+        } catch (err) { logger.debug('Clipboard is blocked in non-secure contexts (and unserialisable values throw) — silent is better than a red banner here.', err); }
     }, [value]);
 
     return (

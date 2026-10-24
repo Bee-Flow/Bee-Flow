@@ -1,3 +1,4 @@
+import { logger } from '../../../../../utils/logger';
 /**
  * App Studio runtime — shared SSE-over-POST reader.
  *
@@ -34,6 +35,6 @@ export async function parseSseStream<E = unknown>(response: Response, onEvent: (
         }
     } finally {
         // Release the lock so an aborted fetch's body can be GC'd promptly.
-        try { reader.releaseLock(); } catch { /* already released */ }
+        try { reader.releaseLock(); } catch (err) { logger.debug('already released', err); }
     }
 }

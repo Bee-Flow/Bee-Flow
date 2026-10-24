@@ -67,7 +67,7 @@ const SimpleApiKeyIntegration = ({
                 saving={saving}
                 hint={hint}
             />
-            {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
+            {error && <p className="text-[11px] [color:#dc2626]!">{error}</p>}
             {connected && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
         </IntegrationRow>
     );

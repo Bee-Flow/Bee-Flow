@@ -9,6 +9,7 @@ import { studioAppsApi } from '../../admin/Studio/AppStudio/studioAppsApi';
 import { makeCanUse } from '../../admin/Studio/studioApps';
 import type { RecentItem } from '../../../utils/studioRecentSources.types';
 import type { PublishedApp, PublishedForm } from './sidebarNav';
+import { logger } from '../../../utils/logger';
 
 type Check = (id: string) => boolean;
 
@@ -127,7 +128,7 @@ export function useStudioSectionData({ currentPage, canUseCapability, hasLicense
                 setHasForms(forms.length > 0);
                 writeNavHas('forms', forms.length > 0);
                 formsLoadedRef.current = true;
-            } catch { /* the row still opens the directory */ }
+            } catch (err) { logger.debug('the row still opens the directory', err); }
         })();
         return () => { cancelled = true; };
     }, [currentPage, canSeeForms]);
@@ -169,10 +170,7 @@ export function useStudioSectionData({ currentPage, canUseCapability, hasLicense
             // 403s or times out stays retryable on the very next hover instead
             // of going quiet for a minute.
             sectionFetchedAtRef.current[sectionId] = Date.now();
-        } catch {
-            // A section whose list is unreachable simply offers no shortcuts;
-            // its row still opens the section itself.
-        } finally {
+        } catch (err) { logger.debug('A section whose list is unreachable simply offers no shortcuts; its row still opens the section itself.', err); } finally {
             sectionInFlightRef.current.delete(sectionId);
         }
     }, []);

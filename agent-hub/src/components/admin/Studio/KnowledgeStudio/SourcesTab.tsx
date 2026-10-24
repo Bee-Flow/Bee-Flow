@@ -76,27 +76,24 @@ export default function SourcesTab({
     return (
         <div className="flex flex-col gap-3 min-h-0" data-testid="kb-tab-sources">
             <div className="flex items-center gap-2 text-[12px]">
-                <label className="relative block shrink-0" style={{ width: 260 }}>
+                <label className="relative block shrink-0 w-[260px]">
                     <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-tertiary)]" aria-hidden="true" />
                     <input
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder={t('knowledge.sources.search', 'Search sources…')}
                         aria-label={t('knowledge.sources.search_label', 'Search this knowledge base’s sources')}
-                        className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
-                        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)' }}
+                        className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 [background:var(--bg-card)] [border-color:var(--border-default)] [color:var(--text-primary)]! [outline-color:var(--accent-primary)]!"
                     />
                 </label>
                 {summary && <span className="text-[var(--text-tertiary)]">{summary}</span>}
             </div>
 
             <div
-                className="overflow-hidden text-[12px]"
-                style={{ borderRadius: 12, background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)' }}
+                className="overflow-hidden text-[12px] [border-radius:12px] [background:var(--bg-card)] [border:1px_solid_var(--border-default)] [box-shadow:var(--shadow-sm)]"
             >
                 <div
-                    className="grid gap-3 px-3.5 py-2 text-[10px] font-semibold uppercase"
-                    style={{ gridTemplateColumns: '1fr 150px 160px 32px', letterSpacing: '.08em', color: 'var(--text-tertiary)', borderBottom: '1px solid var(--border-default)' }}
+                    className="grid gap-3 px-3.5 py-2 text-[10px] font-semibold uppercase [grid-template-columns:1fr_150px_160px_32px] [letter-spacing:.08em] [color:var(--text-tertiary)]! [border-bottom:1px_solid_var(--border-default)]"
                 >
                     <span>{t('knowledge.sources.col_source', 'Source')}</span>
                     <span>{t('knowledge.sources.col_refresh', 'Refresh')}</span>
@@ -136,8 +133,7 @@ export default function SourcesTab({
             </div>
 
             <p
-                className="flex items-center gap-2 px-3 py-2 rounded-lg"
-                style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontSize: 12 }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg [background:var(--bg-secondary)] [color:var(--text-secondary)] [font-size:12px]"
             >
                 <ShieldCheck className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                 {t('knowledge.sources.privacy_note', 'Whoever may see this knowledge base also sees what the AI quotes from it. Sources containing personal data are marked by Privacy Shield automatically.')}
@@ -187,8 +183,7 @@ function SourceRow({ t, rel, source, last, canManage, onOpen, onRefresh, onRenam
             <button
                 type="button"
                 onClick={onOpen}
-                className="flex items-center gap-2.5 min-w-0 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 rounded"
-                style={{ outlineColor: 'var(--accent-primary)' }}
+                className="flex items-center gap-2.5 min-w-0 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 rounded [outline-color:var(--accent-primary)]!"
             >
                 <span
                     className="w-7 h-7 rounded-lg grid place-items-center shrink-0"
@@ -233,8 +228,7 @@ function SourceRow({ t, rel, source, last, canManage, onOpen, onRefresh, onRenam
                             aria-haspopup="menu"
                             aria-expanded={menuOpen}
                             aria-label={t('knowledge.sources.row_menu', 'Actions for {name}', { name: source.name })}
-                            className="p-1 rounded focus-visible:outline focus-visible:outline-2"
-                            style={{ color: 'var(--text-tertiary)', outlineColor: 'var(--accent-primary)' }}
+                            className="p-1 rounded focus-visible:outline focus-visible:outline-2 [color:var(--text-tertiary)] [outline-color:var(--accent-primary)]!"
                         >
                             <Ellipsis className="w-3.5 h-3.5" aria-hidden="true" />
                         </button>

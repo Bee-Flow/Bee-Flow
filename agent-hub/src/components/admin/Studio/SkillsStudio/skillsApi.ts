@@ -17,6 +17,7 @@
  */
 import { createJsonResource } from '../../../../api/client';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { logger } from '../../../../utils/logger';
 
 /** One graded step of a test run. */
 export interface SkillTestStepResult {
@@ -86,7 +87,7 @@ async function readNamedSse(response: Response, onEvent: SkillTestEventHandler |
             }
         }
     } finally {
-        try { reader.releaseLock(); } catch { /* already released */ }
+        try { reader.releaseLock(); } catch (err) { logger.debug('already released', err); }
     }
 }
 
@@ -157,7 +158,7 @@ export const skillsApi = {
             // A failure BEFORE the stream opens still answers JSON, so the
             // reason survives — "add steps first" beats an empty result list.
             let body = null;
-            try { body = await res.json(); } catch { /* non-JSON */ }
+            try { body = await res.json(); } catch (err) { logger.debug('non-JSON', err); }
             const err: Error & { status?: number; code?: string | null } = new Error(body?.error || `Request failed (${res.status})`);
             err.status = res.status;
             err.code = body?.code || null;

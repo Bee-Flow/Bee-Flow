@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { UploadOutcome } from './RecorderContext';
+import { logger } from '../../../utils/logger';
 
 function pickMimeType() {
     if (typeof MediaRecorder === 'undefined') return 'audio/webm';
@@ -60,7 +61,7 @@ export default function useAudioRecorder({ onStopped }: UseAudioRecorderArgs = {
         if (rafRef.current) cancelAnimationFrame(rafRef.current);
         rafRef.current = 0;
         if (audioCtxRef.current) {
-            try { audioCtxRef.current.close(); } catch (_) { /* ignore */ }
+            try { audioCtxRef.current.close(); } catch (err) { logger.debug('ignore', err); }
             audioCtxRef.current = null;
         }
         if (streamRef.current) {
@@ -138,7 +139,7 @@ export default function useAudioRecorder({ onStopped }: UseAudioRecorderArgs = {
                     rafRef.current = requestAnimationFrame(tick);
                 };
                 rafRef.current = requestAnimationFrame(tick);
-            } catch (_) { /* level meter optional */ }
+            } catch (err) { logger.debug('level meter optional', err); }
 
             setState('recording');
             setElapsed(0);
@@ -159,14 +160,14 @@ export default function useAudioRecorder({ onStopped }: UseAudioRecorderArgs = {
         if (!recorder) return;
         setState('stopping');
         if (recorder.state !== 'inactive') {
-            try { recorder.stop(); } catch (_) { /* ignore */ }
+            try { recorder.stop(); } catch (err) { logger.debug('ignore', err); }
         }
     }, []);
 
     const pause = useCallback(() => {
         const recorder = recorderRef.current;
         if (recorder && recorder.state === 'recording') {
-            try { recorder.pause(); setState('paused'); } catch (_) { /* ignore */ }
+            try { recorder.pause(); setState('paused'); } catch (err) { logger.debug('ignore', err); }
             clearInterval(timerRef.current as NodeJS.Timeout);
             timerRef.current = null;
         }
@@ -175,7 +176,7 @@ export default function useAudioRecorder({ onStopped }: UseAudioRecorderArgs = {
     const resume = useCallback(() => {
         const recorder = recorderRef.current;
         if (recorder && recorder.state === 'paused') {
-            try { recorder.resume(); setState('recording'); } catch (_) { /* ignore */ }
+            try { recorder.resume(); setState('recording'); } catch (err) { logger.debug('ignore', err); }
             timerRef.current = setInterval(() => setElapsed((t) => t + 1), 1000);
         }
     }, []);
@@ -184,7 +185,7 @@ export default function useAudioRecorder({ onStopped }: UseAudioRecorderArgs = {
         const recorder = recorderRef.current;
         if (recorder && recorder.state !== 'inactive') {
             recorder.onstop = null;
-            try { recorder.stop(); } catch (_) { /* ignore */ }
+            try { recorder.stop(); } catch (err) { logger.debug('ignore', err); }
         }
         cleanupAudio();
         setState('idle');

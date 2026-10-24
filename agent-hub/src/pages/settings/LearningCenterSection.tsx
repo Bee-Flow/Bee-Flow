@@ -61,6 +61,7 @@ import type { SettingsUser } from './shell/settingsShellTypes';
 import type { LearningNavTarget } from './learning/learning.types';
 import type { StudioSectionHeaderTab } from '../../components/projects/workspace/studioParts';
 import type { CertificateRecord, LearningCenterSectionProps } from './LearningCenterSection.types';
+import { logger } from '../../utils/logger';
 /**
  * LearningCenterSection — "Bee Flow Academy", redesigned (handoff "Learning
  * Center.dc.html", Sep 2026): the same shell as Compliance — a 300px rail, a
@@ -176,7 +177,7 @@ export default function LearningCenterSection({ user }: LearningCenterSectionPro
                     mirrorPath(data.learningPath);
                     setPath(data.learningPath);
                 }
-            } catch (_) { /* keep the local seed */ }
+            } catch (err) { logger.debug('keep the local seed', err); }
         })();
         return () => { cancelled = true; };
     }, [user?.id]);
@@ -280,7 +281,7 @@ export default function LearningCenterSection({ user }: LearningCenterSectionPro
 
     const onPickPath = useCallback(async (pathId: string) => {
         setPath(pathId);
-        try { await saveLearningPath(user, pathId); } catch (_) { /* mirrored locally */ }
+        try { await saveLearningPath(user, pathId); } catch (err) { logger.debug('mirrored locally', err); }
     }, [user]);
 
     const onReset = useCallback(async () => {
@@ -288,7 +289,7 @@ export default function LearningCenterSection({ user }: LearningCenterSectionPro
         setCompletedMap({});
         setMasteredMap({});
         setProgressMap({});
-        try { await resetLearningProgress(user); } catch (_) { /* best-effort */ }
+        try { await resetLearningProgress(user); } catch (err) { logger.debug('best-effort', err); }
         loadAchievements();
     }, [user, loadAchievements]);
 
@@ -298,7 +299,7 @@ export default function LearningCenterSection({ user }: LearningCenterSectionPro
             const issued = await issueCertificate(cert.certificateId, { makePublic: false });
             setCertModal(issued);
             await loadAchievements();
-        } catch (_) { /* surfaced by the disabled state; user can retry */ }
+        } catch (err) { logger.debug('surfaced by the disabled state; user can retry', err); }
         finally { setBusyCertId(null); }
     }, [loadAchievements]);
 
@@ -311,7 +312,7 @@ export default function LearningCenterSection({ user }: LearningCenterSectionPro
             const updated = await issueCertificate(certModal.certificateId, { makePublic });
             setCertModal(updated);
             await loadAchievements();
-        } catch (_) { /* keep current modal state */ }
+        } catch (err) { logger.debug('keep current modal state', err); }
         finally { setBusyCertId(null); }
     }, [certModal, loadAchievements]);
 

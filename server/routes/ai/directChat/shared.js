@@ -11,6 +11,8 @@
  * not be primed with tool noise (it otherwise hallucinates code blocks in
  * tool-heavy chats). Each line is capped so the whole thing stays tiny.
  */
+const log = require('../../../telemetry/log');
+
 function buildTitleTranscript(savedMessages) {
     if (!Array.isArray(savedMessages)) return '';
     const lines = [];
@@ -130,7 +132,7 @@ function _resolveChatProblemsThrottled(orgId) {
             'chat.provider_error',
             'chat.budget_exhausted',
         ]);
-    } catch (_) { /* must never break chat */ }
+    } catch (err) { log.debug('must never break chat', err); }
 }
 
 module.exports = {

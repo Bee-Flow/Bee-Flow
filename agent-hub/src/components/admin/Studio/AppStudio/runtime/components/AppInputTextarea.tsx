@@ -137,8 +137,7 @@ export default function AppInputTextarea({ node }: NodeProps<InputTextareaProps>
                 {open ? (
                     <ul
                         data-app-snippets="true"
-                        className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto border shadow-lg"
-                        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)' }}
+                        className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto border shadow-lg [background:var(--bg-card)] [border-color:var(--border-default)] [border-radius:var(--app-radius)]"
                     >
                         {matches.map((row, i) => (
                             <li key={i}>

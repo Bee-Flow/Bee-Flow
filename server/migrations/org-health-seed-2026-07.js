@@ -42,6 +42,7 @@
 const { run, exec } = require('../db');
 const orgHealthStore = require('../stores/orgHealthStore');
 const { CODES } = require('../services/orgHealth');
+const log = require('../telemetry/log');
 
 const SOURCE = 'migration:org-health-seed-2026-07';
 const SEED_META = JSON.stringify({ reason: 'seeded from pre-existing state' });
@@ -76,9 +77,9 @@ async function up() {
     // Self-sufficient: guarantee the organizations columns we filter on exist
     // even if this fires before userStore.initDB() on a first boot (harmless
     // duplicates of the initDB ALTERs; a fresh DB has no orgs to seed anyway).
-    try { await exec(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "registration_source" TEXT`); } catch (e) { }
-    try { await exec(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "nc_onboarding_completed_at" TIMESTAMPTZ`); } catch (e) { }
-    try { await exec(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "nc_new_user_default_status" TEXT DEFAULT 'active'`); } catch (e) { }
+    try { await exec(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "registration_source" TEXT`); } catch (e) { log.warn('registration_source column could not be added', e); }
+    try { await exec(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "nc_onboarding_completed_at" TIMESTAMPTZ`); } catch (e) { log.warn('nc_onboarding_completed_at column could not be added', e); }
+    try { await exec(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "nc_new_user_default_status" TEXT DEFAULT 'active'`); } catch (e) { log.warn('nc_new_user_default_status column could not be added', e); }
 
     const noSubscriptionRow =
         `NOT EXISTS (SELECT 1 FROM organization_subscriptions os WHERE os.organization_id = o.id)`;

@@ -51,8 +51,8 @@ vi.mock('./SummaryTemplatesSection', () => ({ default: () => <div data-testid="s
 vi.mock('./VoiceprintSection', () => ({ default: () => <div data-testid="voiceprint" /> }));
 vi.mock('./AiParticipationSection', () => ({ default: ({ enabled }) => <div data-testid="ai-participation" data-enabled={String(enabled)} /> }));
 
-import LicenseContext from '../../components/licensing/LicenseContext';
 import PreferencesSection from './PreferencesSection';
+import LicenseContext from '../../components/licensing/LicenseContext';
 import { authFetch } from '../../utils/helpers';
 import scopedStorage from '../../utils/scopedStorage';
 

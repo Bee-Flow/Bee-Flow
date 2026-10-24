@@ -1,12 +1,12 @@
 import { ChevronDown, Lock, Plus, Sparkles, type LucideIcon } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
-import { createFormAutomation, groupStudioApps, studioLockHint } from './studioApps';
+import { createFormAutomation, groupStudioApps, studioLockHint } from './studioGates';
 import { useTrainingGates, trainingLockHint, type TrainingLock } from '../../../hooks/useTrainingGates';
 import { useTranslation, type TranslateFn } from '../../../hooks/useTranslation';
 import AnchoredMenu from '../../shared/AnchoredMenu';
 import { kindColorVar, kindIcon, kindTint } from '../../shared/kindColors';
 import { toast } from '../../shared/Toast';
-import type { StudioCreateEntry } from './studioRegistry';
+import type { StudioCreateEntry } from './studioSections';
 
 /**
  * NewMenu — the ONE "New" menu (Studio Home artboard 1b, "overal hetzelfde").
@@ -341,7 +341,7 @@ export function NewMenuButton({
                     <Plus className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden="true" />
                     {text}
                 </button>
-                <span aria-hidden="true" className="w-px self-stretch" style={{ background: 'color-mix(in srgb, var(--accent-primary-fg) 25%, transparent)' }} />
+                <span aria-hidden="true" className="w-px self-stretch [background:color-mix(in_srgb,var(--accent-primary-fg)_25%,transparent)]" />
                 <button
                     type="button"
                     onClick={toggle}

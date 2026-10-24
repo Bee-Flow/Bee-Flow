@@ -146,7 +146,7 @@ function applySessionBridge(app, deps = {}) {
                     const { resolveBestTierForRequest } = deps.licenseMiddleware || require('../license/middleware');
                     const resolution = await resolveBestTierForRequest(req);
                     req.session._bridgeTier = resolution.tier;
-                } catch (_e) { /* non-fatal */ }
+                } catch (err) { defaultLog.debug('non-fatal', err); }
             }
         }
         next();

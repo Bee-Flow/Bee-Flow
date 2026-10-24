@@ -124,7 +124,7 @@ async function revokeProviderCredential(userId, provider) {
             { provider, provider_revoke_ok: providerResult.ok },
             cred.orgId || null,
         );
-    } catch (_) { /* non-fatal */ }
+    } catch (err) { log.debug('non-fatal', err); }
 
     return { found: true, deleted, providerRevokeAttempted: !!revokeToken, providerRevokeOk: providerResult.ok };
 }

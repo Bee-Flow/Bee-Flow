@@ -98,7 +98,7 @@ async function ingest(c, stream, records) {
         try {
             const j = JSON.parse(body);
             for (const s of (j.status || [])) { failed += Number(s.failed) || 0; if (s.error) err = String(s.error); }
-        } catch (_) { /* non-JSON 200 — treat as accepted */ }
+        } catch (err) { log.debug('non-JSON 200 — treat as accepted', err); }
         if (failed > 0) {
             throw new Error(`ingest partial failure on ${stream}: ${failed}/${records.length} rejected (${err.slice(0, 150)})`);
         }
@@ -150,7 +150,7 @@ async function processOpsPush() {
         log.warn('[OpsPush] push failed (will retry):', e && e.message);
     } finally {
         if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (_) { /* best-effort */ }
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { log.debug('best-effort', err); }
             client.release();
         }
         if (acquired) recordJobRun({ job: 'ops_push', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });

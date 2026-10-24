@@ -19,6 +19,7 @@
 // Both functions are async but never reject.
 
 import { APP_BUILD_SHA } from './appVersion';
+import { logger } from './logger';
 
 declare global {
     interface Window {
@@ -204,7 +205,7 @@ async function removeIds(ids: number[]) {
             tx.onerror = resolve;
         });
         db.close();
-    } catch { /* best effort */ }
+    } catch (err) { logger.debug('best effort', err); }
 }
 
 // ── Network send ──────────────────────────────────────────────────────
@@ -225,7 +226,7 @@ async function postOnce(payload: ErrorPayload, { keepalive = true }: { keepalive
 
 export async function reportClientError(label: string, error?: ErrorLike | null, info?: ErrorInfo | null) {
     try { console.error(`[ErrorBoundary:${label}]`, error, info?.componentStack || ''); }
-    catch { /* console may be sandboxed */ }
+    catch (err) { logger.debug('console may be sandboxed', err); }
     const payload = buildPayload(label, error, info);
     try {
         await postOnce(payload);

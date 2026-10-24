@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import EditorToolbar from './EditorToolbar.jsx';
 import { mkTt } from './toolbarPrimitives.jsx';
 

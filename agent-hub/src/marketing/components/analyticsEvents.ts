@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * Automatic interaction tracking for published CMS sites.
  *
@@ -42,7 +43,7 @@ function track(name: string, data: Record<string, unknown>) {
         const fn = typeof window !== 'undefined' && window.umami && window.umami.track;
         if (typeof fn !== 'function') return;   // tracker absent → no consent → no-op
         window.umami?.track?.(name, data);
-    } catch { /* analytics must never break the page */ }
+    } catch (err) { logger.debug('analytics must never break the page', err); }
 }
 
 function clean(str: string | null, max: number = MAX_LABEL) {
@@ -112,7 +113,7 @@ function trackLink(href: string | null, label: string, block: { block?: string; 
     }
     if (!isSameHost(href)) {
         let host = '';
-        try { host = new URL(href, window.location.href).host; } catch { /* ignore */ }
+        try { host = new URL(href, window.location.href).host; } catch (err) { logger.debug('ignore', err); }
         track('outbound_click', { href: safe, host, label, ...block });
         return true;
     }

@@ -60,7 +60,7 @@ async function resolveViewerExecution(connector, { app, viewerId, deps }) {
         });
         const names = new Set((resolved?.tools || []).map((t) => t?.function?.name).filter(Boolean));
         if (names.has(connector.tool)) return { userId: viewerId, session };
-    } catch { /* fall through to the grant check */ }
+    } catch (err) { log.debug('fall through to the grant check', err); }
 
     if (provider) {
         const grant = await deps.resolveConnectionForRun({
@@ -137,7 +137,7 @@ async function connectionError(connector, message, { userId, deps } = {}) {
             if (oauthProvider) {
                 hasCredential = !!(await deps.getProviderAuth(userId, oauthProvider))?.accessToken;
             }
-        } catch { /* fall back to the plain "connect it" message */ }
+        } catch (err) { log.debug('fall back to the plain "connect it" message', err); }
     }
 
     if (hasCredential) {

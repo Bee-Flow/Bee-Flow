@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import React, { createRef } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import RefTokenInput from './RefTokenInput';
 import { editorValue, typeInEditor } from '../../../../test/refEditor';
 

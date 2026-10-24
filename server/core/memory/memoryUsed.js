@@ -10,6 +10,8 @@
  * (GET /agents/memory?ids=), which no longer returns a deleted memory.
  */
 
+const log = require('../../telemetry/log');
+
 const PREVIEW_CHARS = 120;
 
 /**
@@ -45,7 +47,7 @@ function persistedMemoryUsed(items) {
 /** Emit `memory_used` once, only for a non-empty list. Never throws. */
 function emitMemoryUsed(send, items) {
     if (typeof send !== 'function' || !Array.isArray(items) || items.length === 0) return;
-    try { send('memory_used', { items }); } catch (_) { /* never block the chat on an event */ }
+    try { send('memory_used', { items }); } catch (err) { log.debug('never block the chat on an event', err); }
 }
 
 module.exports = { memoryUsedItems, persistedMemoryUsed, emitMemoryUsed, PREVIEW_CHARS };

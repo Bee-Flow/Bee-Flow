@@ -82,8 +82,8 @@ async function audit(verb, integrationId, actorUserId, orgId, oldValues, newValu
 }
 
 async function invalidate(orgId) {
-    try { entitlements().registry.invalidateCustomIntegrationCache(orgId); } catch (_) { /* best effort */ }
-    try { await entitlements().invalidateForOrg(orgId); } catch (_) { /* best effort */ }
+    try { entitlements().registry.invalidateCustomIntegrationCache(orgId); } catch (err) { log.debug('best effort', err); }
+    try { await entitlements().invalidateForOrg(orgId); } catch (err) { log.debug('best effort', err); }
 }
 
 async function orgGroups(orgId) {
@@ -214,7 +214,7 @@ function shapeInstalled(row, { orgList, groups, grants, policy }) {
     const discovered = Array.isArray(mcp.discoveredTools) ? mcp.discoveredTools : [];
     const tools = discovered.map(t => ({ ...t, enabled: allow ? allow.has(t.name) : true }));
     let host = null;
-    try { host = new URL(mcp.url).hostname; } catch (_) { /* shown as unknown */ }
+    try { host = new URL(mcp.url).hostname; } catch (err) { log.debug('shown as unknown', err); }
     const auth = authOfRow(row);
     const verdict = checkUrl(policy, mcp.url);
     const capId = capIdOf(row.id);
@@ -253,7 +253,7 @@ async function listServerWide(orgId, orgList, groups) {
     try {
         const snap = await entitlements().resolveEntitlements({ userId: null, orgId });
         available = new Set((snap.orgAvailable && snap.orgAvailable.integration) || []);
-    } catch (_) { /* nothing is available when the resolver is down */ }
+    } catch (err) { log.debug('nothing is available when the resolver is down', err); }
     return servers.map(s => {
         const capId = `mcp:${s.id}`;
         const tools = Array.isArray(s.tools_cache) ? s.tools_cache : [];
@@ -588,7 +588,7 @@ async function uninstall({ orgId, row, actorUserId }) {
     await removeEverything(orgId, row);
     const d = libraryDefinition(row);
     let host = null;
-    try { host = new URL(d.mcp.url).hostname; } catch (_) { /* unknown */ }
+    try { host = new URL(d.mcp.url).hostname; } catch (err) { log.debug('unknown', err); }
     await audit('uninstall', row.id, actorUserId, orgId, { name: row.name, host, status: row.status }, null);
     return { removed: true };
 }

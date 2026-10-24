@@ -9,6 +9,7 @@ import type { RepeatingSuggestion } from '../../../../api/queries/automation/rep
 import type { ProjectContextPillProject } from '../../../chat/ProjectContextPill';
 import type { AutomationRowProps } from './AutomationRow';
 import type { AutomationRecord, RunIdSet } from './overviewModel';
+import { logger } from '../../../../utils/logger';
 
 // The run history pulls in the whole run viewer: keep it out of the start screen's chunk.
 const ExecutionsPanel = lazyWithI18n(() => import('../Executions/ExecutionsPanel'));
@@ -82,7 +83,7 @@ export default function AutomationsLauncher({
     const activeTab = chosen ?? 'overview';
     const selectTab = (id: string) => {
         setChosen(id);
-        try { scopedStorage.setItem(TAB_KEY, id); } catch (_) { /* storage best-effort */ }
+        try { scopedStorage.setItem(TAB_KEY, id); } catch (err) { logger.debug('storage best-effort', err); }
     };
 
     return (

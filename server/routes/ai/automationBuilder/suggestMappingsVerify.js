@@ -28,6 +28,7 @@ const {
     parseExpr, evaluate, scanTemplate, parseJsonText, stepInto, stepMatch,
 } = require('../../../automation/expr');
 const { interpolateTemplate } = require('../../../automation/bind');
+const log = require('../../../telemetry/log');
 
 const MAX_TEMPLATE_CHARS = 1000;
 const MAX_EXPR_CHARS = 400;
@@ -244,7 +245,7 @@ function jsonOf(v, ctx) {
     if (v === null || typeof v !== 'object') return JSON.stringify(v);
     if (!ctx.json.has(v)) {
         let s = null;
-        try { s = JSON.stringify(v); } catch { /* not serialisable: equal to nothing */ }
+        try { s = JSON.stringify(v); } catch (err) { log.debug('not serialisable: equal to nothing', err); }
         ctx.json.set(v, s);
     }
     return ctx.json.get(v);

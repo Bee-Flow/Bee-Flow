@@ -9,8 +9,8 @@
 
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import KnowledgeWriteFields from './knowledgeWriteEditors';
 import { extractFormState, buildPatch } from './formState';
+import KnowledgeWriteFields from './knowledgeWriteEditors';
 import { knowledgeWriteSummary } from '../nodeSummaries';
 
 const STEP = {

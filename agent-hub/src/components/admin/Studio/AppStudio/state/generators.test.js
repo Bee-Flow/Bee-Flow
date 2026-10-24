@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { ID_RE } from './definitionOps';
 import { buildFormForTable, buildGridForTable } from './generators';
-import { collectIds, ID_RE } from './definitionOps';
 import { APP_COMPONENT_TYPES } from '../runtime/componentRegistry';
 
 // A table exercising every writable field type + a computed (read-only) field.
@@ -26,7 +26,7 @@ const DATA_GRID_FORMATS = new Set(['text', 'number', 'date', 'badge', 'link', 'b
 
 describe('buildFormForTable', () => {
     it('builds a valid form subtree with one input per writable field', () => {
-        const { node, actions } = buildFormForTable(TABLE);
+        const { node } = buildFormForTable(TABLE);
 
         expect(node.type).toBe('form');
         expect(Array.isArray(node.children)).toBe(true);

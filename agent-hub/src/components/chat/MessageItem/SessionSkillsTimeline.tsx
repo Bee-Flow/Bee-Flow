@@ -176,11 +176,7 @@ export default function SessionSkillsTimeline({
 
     return (
         <div
-            className="mb-3 rounded-xl border overflow-hidden"
-            style={{
-                background: 'rgba(245, 158, 11, .05)',
-                borderColor: 'rgba(245, 158, 11, .25)',
-            }}
+            className="mb-3 rounded-xl border overflow-hidden [background:rgba(245,158,11,.05)] [border-color:rgba(245,158,11,.25)]"
         >
             {/* Progress strip */}
             <div className="h-1 bg-[var(--bg-tertiary)] overflow-hidden">
@@ -193,8 +189,7 @@ export default function SessionSkillsTimeline({
             {/* Header — bootstrap intro OR a compact summary */}
             <div className="flex items-center gap-2 px-3 pt-2.5">
                 <span
-                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'rgba(245,158,11,.15)' }}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 [background:rgba(245,158,11,.15)]"
                     aria-hidden="true"
                 >
                     {isPending

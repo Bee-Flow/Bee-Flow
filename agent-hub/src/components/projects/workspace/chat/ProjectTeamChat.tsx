@@ -230,6 +230,9 @@ function TeamChatView({ chat, projectId, project, role, currentUser, onBack, onN
         wasAnswering.current = live.ai.answering;
     }, [live.ai.answering, clearNotice]);
 
+    const projectColor = project?.color;
+    const projectIconName = project?.icon;
+    const hasProject = !!project;
     const base = useMemo<BaseMessageContext>(() => ({
         currentUserId: me, isProjectOwner: role === 'owner', canPost: canPost && !chat.archived,
         nameOf: names.nameOf, avatarOf: names.avatarOf, colorOf: names.colorOf, assistantName: names.assistantName, mentionTokens: names.tokens,
@@ -238,11 +241,11 @@ function TeamChatView({ chat, projectId, project, role, currentUser, onBack, onN
             [m.threadId ? { kind: 'thread', id: m.threadId, chatId: chat.id } : { kind: 'chat', id: chat.id }],
             excerptOf(m.content, 120), m.content,
         ) : undefined, refTitle: names.refTitle, onOpenRef: onOpenItem,
-        aiTone: aiToneFor(project?.color), aiIcon: project ? projectIcon(project.icon) : undefined, onRetry: sender.retry, onDiscard: sender.discard,
+        aiTone: aiToneFor(projectColor), aiIcon: hasProject ? projectIcon(projectIconName) : undefined, onRetry: sender.retry, onDiscard: sender.discard,
         onShowAiSettings: onNavigate ? () => onNavigate('settings/preferences') : undefined,
         highlight: searchOpen && search.query.trim() ? { query: search.query.trim(), activeMessageId: search.activeId } : undefined,
         editRequest,
-    }), [me, role, canPost, chat.archived, chat.id, project?.color, project?.icon, names, sender.retry, sender.discard, onNavigate, onOpenItem, onCreateTask,
+    }), [me, role, canPost, chat.archived, chat.id, projectColor, projectIconName, hasProject, names, sender.retry, sender.discard, onNavigate, onOpenItem, onCreateTask,
         searchOpen, search.query, search.activeId, editRequest]);
     // Inside a thread there is no second thread and no quoting.
     const threadBase = useMemo<BaseMessageContext>(() => ({ ...base, onReply: undefined, onOpenThread: undefined }), [base]);

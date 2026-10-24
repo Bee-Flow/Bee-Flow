@@ -91,7 +91,7 @@ async function fetchPage(url) {
             bytes += value.byteLength;
             html += decoder.decode(value, { stream: true });
             if (bytes >= PAGE_BYTE_CAP) {
-                try { await reader.cancel(); } catch (_) {}
+                try { await reader.cancel(); } catch (_) { log.debug('reader already closed', _); }
                 break;
             }
         }
@@ -269,7 +269,7 @@ async function executeNodeSearchTool(toolName, args) {
     if (!query) return { error: 'query is required' };
 
     let defaults = {};
-    try { defaults = (await configStore.getConfig('agent_search_defaults')) || {}; } catch (_) {}
+    try { defaults = (await configStore.getConfig('agent_search_defaults')) || {}; } catch (_) { log.debug('no stored search defaults, use the built-in ones', _); }
 
     const searchMode = ['web', 'web_fast', 'kb', 'auto'].includes(mode) ? mode : (defaults.mode || 'web');
     if (searchMode === 'kb' || searchMode === 'auto') {

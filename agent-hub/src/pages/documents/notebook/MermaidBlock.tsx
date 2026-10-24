@@ -9,7 +9,7 @@
  * - Smooth fade-in animation on render
  * - SVG export for PDF/Word
  */
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useEffectEvent } from 'react';
 import mermaid from 'mermaid';
 import type { MermaidConfig, RenderResult } from 'mermaid';
 import { Code, Eye, Maximize2, X, Download, Copy, Check, Loader2 } from 'lucide-react';
@@ -274,7 +274,7 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }: Me
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     // Render the mermaid diagram
-    useEffect(() => {
+    const runTEffect = useEffectEvent(() => {
         if (!containerRef.current || !code?.trim() || showCode) return;
 
         mermaid.initialize(MERMAID_CONFIG);
@@ -330,11 +330,13 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }: Me
                 containerRef.current.innerHTML = '';
             }
         };
-    }, [code, showCode]);
+    });
+    useEffect(() => { return runTEffect(); }, [code, showCode]);
 
     // Render fullscreen version
     useEffect(() => {
         if (!fullscreen || !fullscreenContainerRef.current || !code?.trim()) return;
+        const fullscreenEl = fullscreenContainerRef.current;
 
         mermaid.initialize({ ...MERMAID_CONFIG, fontSize: 18 });
 
@@ -358,9 +360,7 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }: Me
         renderFullscreen();
 
         return () => {
-            if (fullscreenContainerRef.current) {
-                fullscreenContainerRef.current.innerHTML = '';
-            }
+            fullscreenEl.innerHTML = '';
         };
     }, [fullscreen, code]);
 
@@ -458,7 +458,7 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }: Me
 
                 {/* ── Code Editor ── */}
                 {showCode ? (
-                    <div style={{ padding: '14px 16px' }}>
+                    <div className="[padding:14px_16px]">
                         <textarea
                             ref={textareaRef}
                             value={code || ''}
@@ -473,8 +473,8 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }: Me
                     <div className="mermaid-diagram-area">
                         {error ? (
                             <div className="mermaid-error">
-                                <div style={{ fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span style={{ fontSize: '14px' }}>⚠️</span> {t('notebooks.mermaid_error_title', 'Diagram Error')}
+                                <div className="[font-weight:600] [margin-bottom:4px] [display:flex] [align-items:center] [gap:6px]">
+                                    <span className="[font-size:14px]">⚠️</span> {t('notebooks.mermaid_error_title', 'Diagram Error')}
                                 </div>
                                 <div style={{ opacity: 0.8, fontFamily: "'Fira Code', monospace", fontSize: '11px', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
                                     {error}
@@ -489,7 +489,7 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }: Me
                                 {!ready && (
                                     <div className="mermaid-skeleton">
                                         <Loader2 size={20} className="mermaid-skeleton-spinner" style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-primary)' }} />
-                                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>{t('notebooks.mermaid_rendering', 'Rendering diagram…')}</span>
+                                        <span className="[font-size:12px] [color:var(--text-muted)] [margin-top:8px]">{t('notebooks.mermaid_rendering', 'Rendering diagram…')}</span>
                                     </div>
                                 )}
                                 <div
@@ -512,36 +512,24 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }: Me
                 <div className="mermaid-fullscreen-overlay" onClick={() => setFullscreen(false)}>
                     <div className="mermaid-fullscreen-modal" onClick={e => e.stopPropagation()}>
                         <div className="mermaid-fullscreen-header">
-                            <span className="mermaid-block-title" style={{ color: '#f8fafc' }}>
-                                <span className="mermaid-block-icon" style={{ background: 'rgba(59,130,246,0.3)', color: '#93c5fd' }}>
+                            <span className="mermaid-block-title [color:#f8fafc]">
+                                <span className="mermaid-block-icon [background:rgba(59,130,246,0.3)] [color:#93c5fd]">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" />
                                     </svg>
                                 </span>
                                 {t('notebooks.mermaid_fullscreen_title', 'Diagram — Fullscreen')}
                             </span>
-                            <div style={{ display: 'flex', gap: '6px' }}>
+                            <div className="[display:flex] [gap:6px]">
                                 <button
                                     onClick={handleDownloadSVG}
-                                    style={{
-                                        display: 'flex', alignItems: 'center', gap: '5px',
-                                        padding: '6px 14px', borderRadius: '20px',
-                                        background: 'rgba(255,255,255,0.08)',
-                                        border: '1px solid rgba(255,255,255,0.12)',
-                                        color: '#cbd5e1', cursor: 'pointer', fontSize: '12px', fontWeight: 500,
-                                    }}
+                                    className="[display:flex] [align-items:center] [gap:5px] [padding:6px_14px] [border-radius:20px] [background:rgba(255,255,255,0.08)] [border:1px_solid_rgba(255,255,255,0.12)] [color:#cbd5e1] [cursor:pointer] [font-size:12px] [font-weight:500]"
                                 >
                                     <Download size={13} /> SVG
                                 </button>
                                 <button
                                     onClick={() => setFullscreen(false)}
-                                    style={{
-                                        display: 'flex', alignItems: 'center',
-                                        padding: '6px 8px', borderRadius: '10px',
-                                        background: 'rgba(255,255,255,0.08)',
-                                        border: '1px solid rgba(255,255,255,0.12)',
-                                        color: '#cbd5e1', cursor: 'pointer',
-                                    }}
+                                    className="[display:flex] [align-items:center] [padding:6px_8px] [border-radius:10px] [background:rgba(255,255,255,0.08)] [border:1px_solid_rgba(255,255,255,0.12)] [color:#cbd5e1] [cursor:pointer]"
                                 >
                                     <X size={16} />
                                 </button>
@@ -550,13 +538,7 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }: Me
                         <div className="mermaid-fullscreen-content">
                             <div
                                 ref={fullscreenContainerRef}
-                                style={{
-                                    width: '100%',
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    minHeight: '300px',
-                                }}
+                                className="w-[100%] [display:flex] [justify-content:center] [align-items:center] min-h-[300px]"
                             />
                         </div>
                     </div>

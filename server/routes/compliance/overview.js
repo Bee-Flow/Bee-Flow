@@ -146,7 +146,7 @@ router.get('/report.pdf', requireAuth, requirePermission('admin_compliance'), as
         try {
             const ev = await complianceStore.getEvidenceHistory(orgId, r.check_id, 1);
             evidenceHash = ev?.[0]?.hash || null;
-        } catch { /* best-effort */ }
+        } catch (err) { log.debug('best-effort', err); }
         rows.push({
             regulation: r.regulation,
             article: r.article,

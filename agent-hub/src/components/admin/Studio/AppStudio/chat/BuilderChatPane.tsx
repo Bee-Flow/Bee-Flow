@@ -60,11 +60,7 @@ function PaneHeader() {
     return (
         <div className="flex shrink-0 items-center gap-2 border-b px-3 py-2 border-[var(--border-default)]">
             <span
-                className="flex h-7 w-7 items-center justify-center rounded-lg"
-                style={{
-                    background: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)',
-                    color: 'var(--accent-primary)',
-                }}
+                className="flex h-7 w-7 items-center justify-center rounded-lg [background:color-mix(in_srgb,var(--accent-primary)_15%,transparent)] [color:var(--accent-primary)]"
             >
                 <Sparkles size={14} aria-hidden="true" />
             </span>

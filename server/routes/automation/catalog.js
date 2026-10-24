@@ -35,9 +35,7 @@ function resolveCodeStepGate() {
     try {
         const sandbox = require('../../automation/codeSandbox');
         if (typeof sandbox.isAvailable === 'function' && sandbox.isAvailable()) return { enabled: true, reason: null };
-    } catch (_) {
-        // The module itself would not load: the step cannot run here either.
-    }
+    } catch (err) { log.debug('The module itself would not load: the step cannot run here either.', err); }
     return { enabled: false, reason: 'runtime' };
 }
 
@@ -80,7 +78,7 @@ router.get('/catalog', async (req, res) => {
     // Trigger output field/sample catalog — useUpstreamVariables reads this
     // to expose `trigger.output.*` variables in the binding picker.
     let triggerOutputs = {};
-    try { triggerOutputs = require('../../automation/builderTools').buildTriggerOutputsCatalog(); } catch (_) { /* keep empty */ }
+    try { triggerOutputs = require('../../automation/builderTools').buildTriggerOutputsCatalog(); } catch (err) { log.debug('keep empty', err); }
 
     // Dynamic app_event provider list — availability derives ONLY from the
     // strict getIntegrationTools result above (same fail-closed authority
@@ -177,7 +175,7 @@ router.get('/catalog/form-pick-sources', async (req, res) => {
     let userToolNames = new Set();
     try {
         ({ userToolNames } = await loadUserTools(req, req.session.user.id));
-    } catch (_) { /* a tools module that will not load: every source reads unavailable */ }
+    } catch (err) { log.debug('a tools module that will not load: every source reads unavailable', err); }
     res.json({ sources: buildFormPickSources(userToolNames) });
 });
 

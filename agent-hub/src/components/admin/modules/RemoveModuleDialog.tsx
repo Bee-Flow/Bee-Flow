@@ -44,8 +44,7 @@ export default function RemoveModuleDialog({ module, busy, onCancel, onConfirm }
                     <button
                         onClick={onConfirm}
                         disabled={busy}
-                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
-                        style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.35)' }}
+                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:rgba(239,68,68,0.12)] [color:#ef4444]! [border:1px_solid_rgba(239,68,68,0.35)]"
                     >
                         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                         {t('modules.remove_confirm_cta')}

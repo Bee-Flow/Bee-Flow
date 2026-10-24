@@ -189,7 +189,7 @@ async function logRawUsage({ agent, agentId, userId, modelToUse, messageMetadata
             organization_id: agent.organization_id || null,
             conversation_id: conversation?.id || null,
         });
-    } catch (e) { /* ignore usage errors */ }
+    } catch (e) { log.debug('ignore usage errors', e); }
 }
 
 module.exports = { buildRawRequestBody, fetchRawStream, applySseFrame, logRawUsage };

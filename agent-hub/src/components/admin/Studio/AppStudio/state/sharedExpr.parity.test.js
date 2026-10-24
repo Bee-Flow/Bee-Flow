@@ -1,10 +1,10 @@
-import path from 'node:path';
 import { createRequire } from 'node:module';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, it, expect } from 'vitest';
-import { evaluate as evalEsm, parseExpr as parseEsm } from '@shared/expr/engine.mjs';
 import { SCOPE, CASES, REJECT, HOST_SCORES, HOST_CASES, HOST_REJECT } from '@shared/expr/corpus.mjs';
+import { evaluate as evalEsm, parseExpr as parseEsm } from '@shared/expr/engine.mjs';
 import { makeTopicHost, TOPIC_HOST_SPEC } from '@shared/expr/topics.mjs';
+import { describe, it, expect } from 'vitest';
 
 // Parity guarantee: the browser build (ESM engine, imported via @shared) and
 // the server runtime (CJS re-export of the same shared module) must evaluate

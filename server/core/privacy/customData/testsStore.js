@@ -33,6 +33,7 @@
  */
 
 const { HttpError } = require('../../http/errors');
+const telemetryLog = require('../../../telemetry/log');
 
 const TYPE_ID_RX = /^cdt_[0-9a-f]{10}$/;
 const SENTENCE_ID_RX = /^[A-Za-z0-9_.:-]{1,40}$/;
@@ -260,7 +261,7 @@ function createTestsStore({ configStore = null, log = null } = {}) {
         try {
             const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
             if (isPlainObject(parsed)) return parsed;
-        } catch (_) { /* fall through */ }
+        } catch (err) { telemetryLog.debug('fall through', err); }
         logger().warn('[CustomDataTests] stored test sets could not be read; treating them as empty');
         return null;
     }

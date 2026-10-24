@@ -26,6 +26,7 @@
  */
 const configStore = require('../../stores/configStore');
 const { limitedChat } = require('../llm/providerLimiter');
+const log = require('../../telemetry/log');
 
 const DATA_EXTRACTION_MODEL_KEY = 'data_extraction_model';
 
@@ -85,9 +86,7 @@ async function resolveDataExtractionModel({ userOrgId = null, userId = null } = 
     let configured = null;
     try {
         configured = await configStore.getConfig(DATA_EXTRACTION_MODEL_KEY);
-    } catch (_) {
-        // A config-store hiccup must never fail an automation step: next fallback.
-    }
+    } catch (err) { log.debug('A config-store hiccup must never fail an automation step: next fallback.', err); }
     // The config key decides on its own; the tier map and the global config
     // are only read when it is empty, so a configured extraction model never
     // costs a tier lookup.
@@ -98,18 +97,14 @@ async function resolveDataExtractionModel({ userOrgId = null, userId = null } = 
         const { getUserTierMap } = require('../llm/modelResolver');
         const tiers = await getUserTierMap({ userOrgId, userId });
         fastTierModelId = tiers && tiers.fast ? tiers.fast.modelId : null;
-    } catch (_) {
-        // Same stance: fall through to the global default.
-    }
+    } catch (err) { log.debug('Same stance: fall through to the global default.', err); }
     if (nonBlank(fastTierModelId)) return dataExtractionModelFor({ configured: null, fastTierModelId, globalModelId: null });
 
     let globalModelId = null;
     try {
         const globalConfig = await require('../aiAgent').getAIConfig();
         globalModelId = globalConfig ? globalConfig.model : null;
-    } catch (_) {
-        // Nothing left to fall back to; the caller reports it.
-    }
+    } catch (err) { log.debug('Nothing left to fall back to; the caller reports it.', err); }
     return dataExtractionModelFor({ configured: null, fastTierModelId: null, globalModelId });
 }
 

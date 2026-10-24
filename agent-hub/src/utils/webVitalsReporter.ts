@@ -27,6 +27,7 @@ import { APP_BUILD_SHA } from './appVersion';
 import { isPublicMarketingPath } from './cmsPublicRouting';
 import { API_BASE } from './helpers';
 import { consentAccepted } from '../marketing/components/consent';
+import { logger } from './logger';
 
 // Must be absolute against API_BASE — when the SPA runs inside the
 // Nextcloud iframe, a bare `/api/...` resolves to NC's domain rather
@@ -59,7 +60,7 @@ function send(metric: Metric): void {
             const ok = navigator.sendBeacon(ENDPOINT, new Blob([body], { type: 'application/json' }));
             if (ok) return;
         }
-    } catch { /* fall through to fetch */ }
+    } catch (err) { logger.debug('fall through to fetch', err); }
 
     try {
         if (typeof fetch === 'function') {
@@ -71,7 +72,7 @@ function send(metric: Metric): void {
                 keepalive: true,
             }).catch(() => {});
         }
-    } catch { /* best effort */ }
+    } catch (err) { logger.debug('best effort', err); }
 }
 
 let started = false;

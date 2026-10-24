@@ -256,21 +256,10 @@ function ImageElement({ el, pathBase, fullWidth }: ElementProps & { fullWidth: b
 
             {lightboxOpen && el.src ? (
                 <div
-                    className="content-el-lightbox"
+                    className="content-el-lightbox [position:fixed] [inset:0] [z-index:9999] [display:flex] [align-items:center] [justify-content:center] [padding:24px] [background:rgba(0,0,0,0.85)] [cursor:zoom-out]"
                     role="dialog"
                     aria-modal="true"
                     onClick={() => setLightboxOpen(false)}
-                    style={{
-                        position: 'fixed',
-                        inset: 0,
-                        zIndex: 9999,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '24px',
-                        background: 'rgba(0, 0, 0, 0.85)',
-                        cursor: 'zoom-out',
-                    }}
                 >
                     <img
                         src={el.src}
@@ -278,13 +267,7 @@ function ImageElement({ el, pathBase, fullWidth }: ElementProps & { fullWidth: b
                         // Clicking the image itself shouldn't close — only the
                         // backdrop (or Escape) dismisses the overlay.
                         onClick={(e) => e.stopPropagation()}
-                        style={{
-                            maxWidth: '90vw',
-                            maxHeight: '90vh',
-                            objectFit: 'contain',
-                            display: 'block',
-                            cursor: 'default',
-                        }}
+                        className="max-w-[90vw] max-h-[90vh] [object-fit:contain] [display:block] [cursor:default]"
                     />
                 </div>
             ) : null}
@@ -350,7 +333,7 @@ function IframeElement({ el }: ElementProps) {
                     title={el.label || 'Embedded content'}
                     height={heightPx}
                     scrolling={el.scrolling ? 'yes' : 'no'}
-                    style={{ width: '100%', border: 'none' }}
+                    className="w-[100%] [border:none]"
                     // sandbox: allow-scripts is needed for chat agents,
                     // Calendly, maps, etc. allow-same-origin keeps cookies
                     // working. allow-popups + allow-forms cover the rest of

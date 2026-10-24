@@ -1,8 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { EditorView } from './view';
-import { createState } from './state.js';
-import { markdownToAst } from '../serialization/mdToAst';
 import { textSelection, pos } from './selection.js';
+import { createState } from './state.js';
+import { EditorView } from './view';
+import { markdownToAst } from '../serialization/mdToAst';
 
 let views = [];
 function makeView(md) {

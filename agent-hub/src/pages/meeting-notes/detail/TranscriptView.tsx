@@ -112,8 +112,7 @@ export default function TranscriptView({
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder={t('meetings.transcript_search', 'Search transcript…')}
-                        className="w-full pl-9 pr-3 py-2 rounded-lg text-sm border outline-none"
-                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                        className="w-full pl-9 pr-3 py-2 rounded-lg text-sm border outline-none [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                     />
                 </div>
                 <SpeakerLegend speakers={speakers} colorMap={colorMap} activeId={speakerFilter} onSelect={setSpeakerFilter} onEdit={onEditSpeakers} />
@@ -278,7 +277,7 @@ function highlight(text: string, query: string) {
         const parts = text.split(new RegExp(`(${escapeRegex(query)})`, 'ig'));
         return parts.map((p, i) => (
             p.toLowerCase() === query.toLowerCase()
-                ? <mark key={i} style={{ background: 'rgba(255, 212, 0, 0.35)', color: 'inherit', borderRadius: 2, padding: '0 2px' }}>{p}</mark>
+                ? <mark key={i} className="[background:rgba(255,212,0,0.35)] [color:inherit] [border-radius:2px] [padding:0_2px]">{p}</mark>
                 : <React.Fragment key={i}>{p}</React.Fragment>
         ));
     } catch (_) { return text; }

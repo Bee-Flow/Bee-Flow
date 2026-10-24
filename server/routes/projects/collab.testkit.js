@@ -10,6 +10,7 @@
 'use strict';
 
 const { fakeRoleGate, passThrough, quietLog } = require('../../core/collab/collab.testkit');
+const telemetryLog = require('../../telemetry/log');
 
 /** The notebooks gates letting everybody through (a test passes its own to refuse). */
 async function passNotebooks(req, res, next) { next(); }
@@ -61,7 +62,7 @@ function serveCollab(w, roles, { maxBodyBytes = 64 * 1024, requireNotebooks = pa
         const res = await fetch(`${await base()}${url}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
         const text = await res.text();
         let json = null;
-        try { json = JSON.parse(text); } catch (_) { /* not JSON */ }
+        try { json = JSON.parse(text); } catch (err) { telemetryLog.debug('not JSON', err); }
         return { status: res.status, body: json, text };
     }
 
@@ -91,7 +92,7 @@ function serveCollab(w, roles, { maxBodyBytes = 64 * 1024, requireNotebooks = pa
                         if (f.event && f.event !== 'ping') { frames.push(f); if (onFrame) onFrame(f); }
                     }
                 }
-            } catch (_) { /* aborted */ }
+            } catch (err) { telemetryLog.debug('aborted', err); }
         })();
         return { frames, done, close: () => ctrl.abort() };
     }

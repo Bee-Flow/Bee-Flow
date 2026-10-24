@@ -264,7 +264,7 @@ function callbackHTML(message, success) {
 <script>
   // Notify opener (settings page) to refresh status
   if (window.opener) {
-    try { window.opener.postMessage({ type: 'linkedin-callback', success: ${success} }, '*'); } catch(e) {}
+    try { window.opener.postMessage({ type: 'linkedin-callback', success: ${success} }, '*'); } catch (e) { console.debug("opener gone", e); }
     setTimeout(() => window.close(), 1500);
   }
 </script>

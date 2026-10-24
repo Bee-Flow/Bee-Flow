@@ -22,6 +22,8 @@
  * every store pins a DB pool, so eager top-level requires made the unit tests
  * hang/crash.
  */
+const log = require('../telemetry/log');
+
 function resolveDeps(_deps = {}) {
     const d = { ..._deps };
     if (!d.getIntegrationTools) d.getIntegrationTools = require('../core/integrations/integrationTools').getIntegrationTools;
@@ -194,7 +196,7 @@ async function describeGrants({ webpageId, userId, session }, _deps = {}) {
     let availableNames = null;
     try {
         availableNames = await resolveAvailableToolNames({ userId, session }, deps);
-    } catch { /* null → per-entry available: null */ }
+    } catch (err) { log.debug('null → per-entry available: null', err); }
     const integrations = (grants.integrations || []).map((g) => {
         const owner = deps.findOwnerOfTool(g.tool) || null;
         return {

@@ -204,8 +204,7 @@ interface HistoryCardProps {
 function HistoryCard({ t, children }: HistoryCardProps) {
     return (
         <section
-            className="rounded-[10px] border overflow-hidden"
-            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-subtle)', boxShadow: 'var(--shadow-sm)' }}
+            className="rounded-[10px] border overflow-hidden [background:var(--bg-card)] [border-color:var(--border-subtle)] [box-shadow:var(--shadow-sm)]"
             data-testid="cowork-history"
         >
             <div

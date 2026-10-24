@@ -52,7 +52,7 @@ async function _selfHealFromHub(pkg) {
         await moduleAudit().emit('platform.module.selfheal', pkg.moduleId, null, {
             version: pkg.version, sha256: pkg.packageSha256,
         });
-    } catch (_) { /* audit is best-effort */ }
+    } catch (err) { log.debug('audit is best-effort', err); }
 }
 
 async function loadInstalledAtBoot() {
@@ -70,7 +70,7 @@ async function loadInstalledAtBoot() {
                 _logSystem(pkg.moduleId, `staged update completed at boot: v${pkg.version}`);
                 await moduleAudit().emit('platform.module.update', pkg.moduleId, pkg.installedBy, { version: pkg.version, staged: true });
             } catch (e) {
-                try { await packageStore().setFailed(pkg.moduleId, pkg.version, { error: e.message, status: e.compat ? 'incompatible' : 'failed' }); } catch (_) {}
+                try { await packageStore().setFailed(pkg.moduleId, pkg.version, { error: e.message, status: e.compat ? 'incompatible' : 'failed' }); } catch (_) { log.warn('could not record the failed activation', _); }
                 log.error(`[Modules] staged boot activation failed for ${pkg.moduleId}@${pkg.version}: ${e.message}`);
             }
         }
@@ -107,7 +107,7 @@ async function loadInstalledAtBoot() {
                 await packageStore().setFailed(pkg.moduleId, pkg.version, {
                     error: e.message, status: e.compat ? 'incompatible' : 'failed',
                 });
-            } catch (_) {}
+            } catch (_) { log.warn('could not record the failed activation', _); }
             log.error(`[Modules] boot activation failed for ${pkg.moduleId}@${pkg.version}: ${e.message}`);
         }
     }
@@ -196,7 +196,7 @@ async function _gcRetired(activeRows) {
                     await fsp.rm(versionDir(old.moduleId, old.version), { recursive: true, force: true });
                     await packageStore().markPruned(old.moduleId, old.version);
                     _reconcileStats.gcPruned++;
-                } catch (_) { /* next run */ }
+                } catch (err) { log.debug('next run', err); }
             }
             // Stale atomic-extract leftovers (a crash mid-extract): versions/*.tmp-*
             // older than a day.
@@ -211,9 +211,9 @@ async function _gcRetired(activeRows) {
                     if (Date.now() - st.mtimeMs > 24 * 3600 * 1000) {
                         await fsp.rm(abs, { recursive: true, force: true });
                     }
-                } catch (_) { /* raced */ }
+                } catch (err) { log.debug('raced', err); }
             }
-        } catch (_) { /* per-module best effort */ }
+        } catch (err) { log.debug('per-module best effort', err); }
     }
 }
 

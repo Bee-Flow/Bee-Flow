@@ -271,7 +271,7 @@ async function processTurnAttachments({ messageMetadata, lastMsg, userId, modelT
                                 onEvent?.('privacy_token_map', { tokenMap: _convMap, source: 'privacy_shield' });
                                 _assistantTokenisationInfo.tokenMap = _convMap;
                             }
-                        } catch (_) { /* transparency is best-effort */ }
+                        } catch (err) { log.debug('transparency is best-effort', err); }
                     }
                 }
 

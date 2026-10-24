@@ -9,6 +9,7 @@ import { TIER_META, customTierMeta } from '../../../licensing/tierMeta';
 import CategoryField from '../CategoryField';
 import { READ } from '../canUse/canUseFacts';
 import AvatarPicker from '../pickers/AvatarPicker';
+import { logger } from '../../../../utils/logger';
 
 /**
  * AgentHero — de identiteitsRIJ van de agent-editor, direct onder de gedeelde
@@ -98,7 +99,7 @@ export function languageChipLabel(code: unknown, locale = 'en') {
     try {
         const name = new Intl.DisplayNames([locale || 'en'], { type: 'language' }).of(base);
         if (typeof name === 'string' && name && name.toLowerCase() !== base) return name;
-    } catch (_) { /* geen ICU ⇒ geen naam ⇒ geen chip */ }
+    } catch (err) { logger.debug('geen ICU ⇒ geen naam ⇒ geen chip', err); }
     return null;
 }
 

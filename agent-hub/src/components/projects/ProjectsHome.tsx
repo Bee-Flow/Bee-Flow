@@ -205,7 +205,7 @@ function ProjectsHomeInner({ projects, archivedProjects, loading, error, user, o
     const [query, setQuery] = useState('');
     const [filter, setFilter] = useState<Filter>('all');
     const [sort, setSort] = useState<Sort>('recent');
-    const list = Array.isArray(projects) ? projects : [];
+    const list = useMemo(() => Array.isArray(projects) ? projects : [], [projects]);
     const archivedList = useMemo(() => (Array.isArray(archivedProjects) ? archivedProjects : []).filter((p) => !!p.archivedAt), [archivedProjects]);
     const visible = useVisibleProjects(filter === 'archived' ? archivedList : list, user?.id, query, filter, sort);
     const counts = useMemo(() => ({

@@ -23,6 +23,7 @@ const { exec, run, getOne, getAll, getClient } = require('../db');
 const ssrfGuard = require('../utils/ssrfGuard');
 const { isPrivateTarget } = require('../utils/isPrivateTarget');
 const log = require('../telemetry/log');
+const telemetryLog = require('../telemetry/log');
 
 // v1 → v2 was purely ADDITIVE (db.getClient/tx, ai, usage, limits, storage,
 // webpages, net). v3 introduces the PERMISSION MANIFEST: an mv2 module
@@ -137,7 +138,7 @@ function logBuffer() { return _logBuffer || (_logBuffer = require('./moduleLogBu
 
 function makeLogger(moduleId) {
     const tag = `[module:${moduleId}]`;
-    const buffer = (level, a) => { try { logBuffer().append(moduleId, level, a); } catch (_) { /* never throw into module code */ } };
+    const buffer = (level, a) => { try { logBuffer().append(moduleId, level, a); } catch (err) { telemetryLog.debug('never throw into module code', err); } };
     return {
         info: (...a) => { buffer('info', a); log.info(tag, ...a); },
         warn: (...a) => { buffer('warn', a); log.warn(tag, ...a); },
@@ -174,7 +175,7 @@ async function dbTx(fn) {
         await client.query('COMMIT');
         return result;
     } catch (e) {
-        try { await client.query('ROLLBACK'); } catch (_) { /* connection already gone */ }
+        try { await client.query('ROLLBACK'); } catch (err) { telemetryLog.debug('connection already gone', err); }
         throw e;
     } finally {
         client.release();

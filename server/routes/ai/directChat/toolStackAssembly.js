@@ -34,7 +34,7 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
                 if (Array.isArray(_convGroups?.activatedToolGroups)) {
                     activatedToolGroups = new Set(_convGroups.activatedToolGroups);
                 }
-            } catch (_) { /* non-fatal — fall back to no pre-activations */ }
+            } catch (err) { log.debug('non-fatal — fall back to no pre-activations', err); }
         }
 
         // ─── Skill-scoped app enablement ─────────────────────────
@@ -49,7 +49,7 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
             try {
                 const _skillMeta = await agentStore.getDirectConversationMeta(conversationId, userId, encryptionOpts(req));
                 if (Array.isArray(_skillMeta?.activatedSkillIds)) activatedLibrarySkillIds = [..._skillMeta.activatedSkillIds];
-            } catch (_) { /* best-effort — worst case dynamic skill apps need re-activation */ }
+            } catch (err) { log.debug('best-effort — worst case dynamic skill apps need re-activation', err); }
         }
         let skillApps = { allowedApps: [], dynamicSkillApps: new Map(), mergedIds: [] };
         try {

@@ -365,7 +365,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
                 const _convMap = require('../../core/dlp/dlpRunner').getConversationTokenMap(_dlpConvId);
                 const _add = buildTokenPreservationAddendum(_convMap);
                 if (_add && messages[0]?.role === 'system') messages[0].content += _add;
-            } catch (_) { /* best-effort */ }
+            } catch (err) { log.debug('best-effort', err); }
         }
 
         // Stream response
@@ -413,7 +413,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
         // answer is not an error to report.
         if (isGone() || err?.name === 'AbortError' || clientSignal.aborted) {
             log.info('[TemplateChat] turn cancelled by the client');
-            try { if (!res.writableEnded) res.end(); } catch (_) { /* socket already gone */ }
+            try { if (!res.writableEnded) res.end(); } catch (err) { log.debug('socket already gone', err); }
             return;
         }
         log.error('[TemplateChat] Error:', err);

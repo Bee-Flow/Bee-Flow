@@ -54,16 +54,7 @@ function HeaderPill({ children, title, testId }: { children: React.ReactNode; ti
         <span
             data-testid={testId}
             title={title}
-            style={{
-                display: 'inline-flex', alignItems: 'center', gap: '5px',
-                flexShrink: 0, maxWidth: '220px',
-                height: '22px', padding: '0 8px',
-                borderRadius: '9999px',
-                border: '1px solid var(--border-default)',
-                background: 'var(--bg-card, var(--bg-secondary))',
-                color: 'var(--text-secondary)',
-                fontSize: '11px', lineHeight: 1, whiteSpace: 'nowrap',
-            }}
+            className="[display:inline-flex] [align-items:center] [gap:5px] [flex-shrink:0] max-w-[220px] h-[22px] [padding:0_8px] [border-radius:9999px] [border:1px_solid_var(--border-default)] [background:var(--bg-card,var(--bg-secondary))] [color:var(--text-secondary)] [font-size:11px] [line-height:1] [white-space:nowrap]"
         >{children}</span>
     );
 }
@@ -84,7 +75,7 @@ function KbPill({ kb, t }: { kb: { count: number; names: string[]; name: string 
                 aria-hidden="true"
                 style={{ width: '12px', height: '12px', flexShrink: 0, color: kindColorVar('kb') }}
             />
-            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+            <span className="min-w-[0] [overflow:hidden] [text-overflow:ellipsis]">{label}</span>
         </HeaderPill>
     );
 }
@@ -117,7 +108,7 @@ function ShieldPill({ state, t }: { state: 'active' | 'unverified'; t: Translate
                     background: active ? 'var(--success)' : 'var(--warning)',
                 }}
             />
-            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span className="min-w-[0] [overflow:hidden] [text-overflow:ellipsis]">
                 {t(
                     active ? 'chat.header.shield_on' : 'chat.header.shield_unverified',
                     active ? 'Privacy Shield on' : 'Privacy Shield cannot check right now',
@@ -192,16 +183,13 @@ const ConversationHeader = ({
                 borderBottom: '1px solid var(--border-subtle)',
             }}
         >
-            <div className="flex items-center gap-2" style={{ minWidth: 0, flexShrink: 1 }}>
+            <div className="flex items-center gap-2 min-w-[0] [flex-shrink:1]">
                 {leading}
                 {title ? (
                     <h1
                         data-testid="conversation-title"
                         title={title}
-                        style={{
-                            fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)',
-                            minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        }}
+                        className="[font-weight:600] [font-size:14px] [color:var(--text-primary)] min-w-[0] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]"
                     >{title}</h1>
                 ) : null}
             </div>
@@ -218,7 +206,7 @@ const ConversationHeader = ({
                 <div className="absolute left-1/2 -translate-x-1/2 flex items-center">{center}</div>
             )}
 
-            <div className="flex items-center gap-2 relative" style={{ marginLeft: 'auto', flexShrink: 0 }}>
+            <div className="flex items-center gap-2 relative [margin-left:auto] [flex-shrink:0]">
                 {typeof onToNotebook === 'function' && (
                     <button
                         type="button"

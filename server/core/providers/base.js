@@ -187,7 +187,7 @@ class BaseProvider {
                 provider: this.name, model,
                 errorType: `http_${Math.floor(status / 100)}xx`,
             });
-        } catch (_) { /* telemetry is best-effort */ }
+        } catch (err) { log.debug('telemetry is best-effort', err); }
     }
 
     /**
@@ -609,9 +609,7 @@ class BaseProvider {
                     if (finishReason === 'tool_calls' || finishReason === 'stop') {
                         flushToolCalls();
                     }
-                } catch (e) {
-                    // Skip malformed JSON chunks
-                }
+                } catch (e) { log.debug('Skip malformed JSON chunks', e); }
             }
         }
 

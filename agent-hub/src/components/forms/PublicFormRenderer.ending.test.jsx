@@ -12,9 +12,9 @@
  *     and its text can carry model output, so rehype-raw must stay out.
  */
 
+import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
 import { FormEndingView } from './PublicFormRenderer';
 
 const form = (description) => ({ title: 'Klaar', description, theme: {} });

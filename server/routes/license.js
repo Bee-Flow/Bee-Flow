@@ -135,7 +135,7 @@ router.get('/status', licenseLimiter, async (req, res) => {
     try {
         const resolved = await resolveUserOrgIds(req);
         if (resolved instanceof Set) orgIds = [...resolved];
-    } catch (_) { /* ignore — fall back to direct org only */ }
+    } catch (err) { log.debug('ignore — fall back to direct org only', err); }
     const status = await license.getLicenseStatus({ organizationId: orgId, userId, orgIds, superAdmin: isSuperAdmin(req) });
     res.json(status);
 });
@@ -238,7 +238,7 @@ router.post('/refresh', validate({ body: NoBody }), async (req, res) => {
     let refreshOne;
     try {
         ({ refreshOne } = require('../license/refresh'));
-    } catch (_) { /* refresh module not present */ }
+    } catch (err) { log.debug('refresh module not present', err); }
     if (typeof refreshOne !== 'function') {
         throw new HttpError(503, 'refresh_unavailable', 'Refresh subsystem unavailable');
     }
@@ -259,7 +259,7 @@ router.get('/health', async (req, res) => {
         if (typeof refresh.getRefresherHealth === 'function') {
             refresherHealth = refresh.getRefresherHealth();
         }
-    } catch (_) { /* refresh module not present */ }
+    } catch (err) { log.debug('refresh module not present', err); }
 
     let dunning = { past_due_count: 0, suspended_count: 0 };
     try {
@@ -267,7 +267,7 @@ router.get('/health', async (req, res) => {
         if (typeof userStore.getDunningCounts === 'function') {
             dunning = await userStore.getDunningCounts();
         }
-    } catch (_) { }
+    } catch (_) { log.debug('dunning counts unavailable, omitted from the status', _); }
 
     res.json({
         refresher: refresherHealth || { enabled: false },

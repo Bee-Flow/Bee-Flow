@@ -569,7 +569,7 @@ function preWarmPiiScan({ messages, orgShieldConfig, providerConfig }) {
             ? orgShieldConfig.piiDetectionConfidenceThreshold
             : undefined;
         detectPii(text, piiCategories, piiThreshold).catch(() => { /* the real scan reports */ });
-    } catch (_) { /* pre-warming must never break the turn */ }
+    } catch (err) { log.debug('pre-warming must never break the turn', err); }
 }
 
 /**

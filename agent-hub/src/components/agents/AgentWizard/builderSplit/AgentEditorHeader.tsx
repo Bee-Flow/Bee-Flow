@@ -142,12 +142,12 @@ function AgentTileGlyph({ avatar }: AgentTileGlyphProps) {
                 alt=""
                 aria-hidden="true"
                 data-testid="agent-tile-avatar"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }}
+                className="w-[100%] h-[100%] [object-fit:cover] [border-radius:inherit]"
             />
         );
     }
     return (
-        <span aria-hidden="true" data-testid="agent-tile-avatar" style={{ fontSize: 15, lineHeight: 1 }}>
+        <span aria-hidden="true" data-testid="agent-tile-avatar" className="[font-size:15px] [line-height:1]">
             {avatar}
         </span>
     );
@@ -178,13 +178,7 @@ function HeaderStatus({ t, publishedVersion, savingState, savedAt, saveErrorMsg,
             {publishedVersion > 0 && (
                 <span
                     data-testid="agent-version-chip"
-                    className="text-[11px] whitespace-nowrap"
-                    style={{
-                        color: 'var(--text-tertiary)',
-                        padding: '3px 8px',
-                        borderRadius: 999,
-                        border: '1px solid var(--border-default)',
-                    }}
+                    className="text-[11px] whitespace-nowrap [color:var(--text-tertiary)]! [padding:3px_8px] [border-radius:999px] [border:1px_solid_var(--border-default)]"
                 >
                     {tx(t, 'agent_studio.header.saved_version', 'Saved · v{version}', { version: publishedVersion })}
                 </span>

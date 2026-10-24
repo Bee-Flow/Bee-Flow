@@ -109,9 +109,9 @@ export default function FramedMedia({ media, glow = true, fadeMask = false, clas
                     )
                 ) : (
                     <div className="cms-frame-placeholder" aria-hidden="true">
-                        <div className="cms-frame-ph-line" style={{ width: '38%' }} />
-                        <div className="cms-frame-ph-line" style={{ width: '72%' }} />
-                        <div className="cms-frame-ph-line" style={{ width: '55%' }} />
+                        <div className="cms-frame-ph-line w-[38%]" />
+                        <div className="cms-frame-ph-line w-[72%]" />
+                        <div className="cms-frame-ph-line w-[55%]" />
                     </div>
                 )}
             </div>

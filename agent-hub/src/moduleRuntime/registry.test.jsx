@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act, cleanup } from '@testing-library/react';
 import { Puzzle, Gauge } from 'lucide-react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // registry pulls RemoteStudioApp → useTranslation (default). A minimal mock lets
 // us import registry without a provider; authFetch is the whole network layer.
@@ -10,7 +10,6 @@ vi.mock('../hooks/useTranslation', () => {
     return { default: useTranslation, useTranslation };
 });
 
-import { authFetch } from '../utils/helpers';
 import {
     toDescriptor,
     loadRemoteModules,
@@ -18,6 +17,7 @@ import {
     useRuntimeStudioApps,
     __resetRuntimeForTests,
 } from './registry';
+import { authFetch } from '../utils/helpers';
 
 const jsonRes = (body, status = 200) => Promise.resolve({
     ok: status >= 200 && status < 300,

@@ -38,6 +38,7 @@ import { APP_BUILD_SHA } from '../utils/appVersion';
 import { redactSecrets } from '../utils/clientErrorReporter';
 import { isPublicMarketingPath } from '../utils/cmsPublicRouting';
 import { errorMessage } from '../utils/caughtError';
+import { logger } from '../utils/logger';
 
 declare global {
     interface Window {
@@ -140,13 +141,13 @@ function watchConsent() {
         if (consentAccepted()) { initOpenObserve(); return; }
         if (started && openobserveRum &&
             typeof openobserveRum.stopSession === 'function') {
-            try { openobserveRum.stopSession(); } catch { /* noop */ }
+            try { openobserveRum.stopSession(); } catch (err) { logger.debug('noop', err); }
         }
     };
     try {
         window.addEventListener('bf-cookie-consent', onChange);
         window.addEventListener('storage', onChange);
-    } catch { /* SSR guard */ }
+    } catch (err) { logger.debug('SSR guard', err); }
 }
 
 // Gate: token present AND production build AND flag on AND not the public embed.
@@ -157,7 +158,7 @@ function shouldInit() {
     if (!ENABLE_FLAG) return false;                        // explicit kill switch
     try {
         if (window.location.pathname.startsWith('/chat/')) return false; // 3rd-party embed
-    } catch { /* SSR guard */ }
+    } catch (err) { logger.debug('SSR guard', err); }
     return true;
 }
 
@@ -168,7 +169,7 @@ function tracingUrls() {
     const urls = [window.location.origin];
     const api = env.VITE_API_URL;
     if (api && /^https?:\/\//i.test(api)) {
-        try { urls.push(new URL(api).origin); } catch { /* ignore */ }
+        try { urls.push(new URL(api).origin); } catch (err) { logger.debug('ignore', err); }
     }
     return Array.from(new Set(urls));
 }
@@ -184,12 +185,12 @@ function scrubRumEvent(event: ScrubbableRumEvent) {
         if (event?.error?.stack)   event.error.stack   = redactSecrets(event.error.stack);
         if (event?.view?.url)      event.view.url      = redactSecrets(event.view.url);
         if (event?.resource?.url)  event.resource.url  = redactSecrets(event.resource.url);
-    } catch { /* never break telemetry */ }
+    } catch (err) { logger.debug('never break telemetry', err); }
     return true;
 }
 function scrubLog(log: { message?: string }) {
     if (consentWithheld()) return false;
-    try { if (log?.message) log.message = redactSecrets(log.message); } catch { /* noop */ }
+    try { if (log?.message) log.message = redactSecrets(log.message); } catch (err) { logger.debug('noop', err); }
     return true;
 }
 
@@ -212,7 +213,7 @@ export async function initOpenObserve() {
         // Chunk fetch failed (offline, blocked, cache miss on a stale deploy).
         // Telemetry must never break the app.
         started = false;
-        try { console.warn('[openobserve] sdk load failed:', e && errorMessage(e)); } catch { /* noop */ }
+        try { console.warn('[openobserve] sdk load failed:', e && errorMessage(e)); } catch (err) { logger.debug('noop', err); }
         return;
     }
 
@@ -258,7 +259,7 @@ export async function initOpenObserve() {
     } catch (e) {
         // Telemetry must never break the app.
         started = false;
-        try { console.warn('[openobserve] init failed:', e && errorMessage(e)); } catch { /* noop */ }
+        try { console.warn('[openobserve] init failed:', e && errorMessage(e)); } catch (err) { logger.debug('noop', err); }
     }
 }
 
@@ -269,7 +270,7 @@ export function setTelemetryView(name: string) {
     // the SDK matters: a view change during that window is dropped rather than
     // throwing.
     if (!started || !name || !openobserveRum) return;
-    try { openobserveRum.startView({ name }); } catch { /* noop */ }
+    try { openobserveRum.startView({ name }); } catch (err) { logger.debug('noop', err); }
 }
 
 export function isTelemetryEnabled() { return started; }

@@ -245,7 +245,7 @@ async function _sendTrialEndingEmailOnce({ scope, orgId, userId, subscription, t
                 const u = await userStore.getUser(userId);
                 recipientEmail = u?.email || null;
                 displayName = u?.displayName || u?.username || null;
-            } catch (_) {}
+            } catch (_) { log.debug('user lookup failed, the next recipient option is tried', _); }
         } else {
             // Org: prefer the org-admin who initiated checkout (metadata) or
             // the first org_admin user; fall back to the org's billing email.
@@ -260,7 +260,7 @@ async function _sendTrialEndingEmailOnce({ scope, orgId, userId, subscription, t
                 );
                 const adminEmails = (admins || []).map(a => a.email).filter(Boolean);
                 if (adminEmails.length > 0) recipientEmail = adminEmails[0];
-            } catch (_) {}
+            } catch (_) { log.debug('org admin lookup failed, the notice has no recipient', _); }
         }
         if (!recipientEmail) {
             log.warn(`[Stripe Webhook] trial_will_end: no recipient email found for ${targetType}=${targetId}`);
@@ -330,9 +330,9 @@ async function _notifyAdminNewSubscriptionOnce(subscription) {
         // Resolve a friendly customer name.
         let targetName = null;
         if (scope === 'consumer') {
-            try { const u = await userStore.getUser(targetId); targetName = u?.displayName || u?.username || u?.email || null; } catch (_) {}
+            try { const u = await userStore.getUser(targetId); targetName = u?.displayName || u?.username || u?.email || null; } catch (_) { log.debug('customer name lookup failed, the notice omits it', _); }
         } else {
-            try { const org = await userStore.getOrganization(targetId); targetName = org?.name || null; } catch (_) {}
+            try { const org = await userStore.getOrganization(targetId); targetName = org?.name || null; } catch (_) { log.debug('organization name lookup failed, the notice omits it', _); }
         }
 
         // Resolve plan details. Prefer the matched BeeFlow plan (by Stripe
@@ -349,7 +349,7 @@ async function _notifyAdminNewSubscriptionOnce(subscription) {
                 interval = plan.billing_interval || (priceObj?.recurring?.interval === 'year' ? 'yearly' : 'monthly');
                 trialDays = plan.trial_days || null;
             }
-        } catch (_) {}
+        } catch (_) { log.debug('plan lookup failed, the notice uses the Stripe price data', _); }
         if (!planName && priceObj) {
             planName = priceObj.nickname || 'Subscription';
             if (typeof priceObj.unit_amount === 'number') price = priceObj.unit_amount / 100;

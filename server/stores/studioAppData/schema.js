@@ -17,7 +17,7 @@ async function _initDB() {
     // FK dependants: studio_apps must exist first (mirrors webpagePublicShareStore
     // waiting on webpages). studioAppStore self-inits on load; await its handle.
     const studioAppStore = deps.studioAppStore;
-    try { if (studioAppStore && studioAppStore.ready) await studioAppStore.ready; } catch (_) { /* proceed — FK create will surface a real problem */ }
+    try { if (studioAppStore && studioAppStore.ready) await studioAppStore.ready; } catch (err) { log.debug('proceed — FK create will surface a real problem', err); }
 
     await exec(`
         CREATE TABLE IF NOT EXISTS studio_app_data_meta (

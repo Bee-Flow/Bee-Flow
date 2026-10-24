@@ -4,6 +4,7 @@ import type { Monaco } from '@monaco-editor/react';
 import type { editor as MonacoNs } from 'monaco-editor';
 import { useTranslation } from '../../hooks/useTranslation';
 import { lazy } from '../../utils/lazyWithReload';
+import { logger } from '../../utils/logger';
 
 type MonacoProps = ComponentProps<typeof MonacoReact> & { onLoadFailed?: () => void };
 
@@ -68,7 +69,7 @@ function useDecorations(
     useEffect(() => { apply(); }, [apply]);
 
     useEffect(() => () => {
-        try { collectionRef.current?.clear(); } catch { /* de editor is al weg */ }
+        try { collectionRef.current?.clear(); } catch (err) { logger.debug('de editor is al weg', err); }
         collectionRef.current = null;
     }, []);
 
@@ -122,13 +123,13 @@ export default function WebpageEditor({
                 format: { tabSize: 2, insertSpaces: true, wrapLineLength: 120 },
                 suggest: { html5: true },
             });
-        } catch (_) {}
+        } catch (err) { logger.debug('Monaco HTML options unsupported', err); }
         try {
             monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
                 noSemanticValidation: true,
                 noSyntaxValidation: false,
             });
-        } catch (_) {}
+        } catch (err) { logger.debug('Monaco diagnostics options unsupported', err); }
         if (onCursorChange) {
             editor.onDidChangeCursorPosition((e: MonacoNs.ICursorPositionChangedEvent) => {
                 onCursorChange({ line: e.position.lineNumber, col: e.position.column });
@@ -141,8 +142,7 @@ export default function WebpageEditor({
             <div className="flex-1 min-h-0">
                 {monacoFailed ? (
                     <textarea
-                        className="w-full h-full p-3 text-xs font-mono resize-none outline-none"
-                        style={{ background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)' }}
+                        className="w-full h-full p-3 text-xs font-mono resize-none outline-none [background:var(--vsc-editor-bg)] [color:var(--vsc-fg)]!"
                         value={value}
                         readOnly={readOnly}
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onChange?.(e.target.value)}

@@ -145,7 +145,7 @@ router.post('/:id/publish-version', validate({ body: NoBody, query: NoQuery }), 
                 orgId: agent.organization_id || 'default',
                 agentId: agent.id,
             });
-        } catch (_) { /* compliance bus is best-effort */ }
+        } catch (err) { log.debug('compliance bus is best-effort', err); }
     }
 
     const rev = Number(result.row?.rev) || Number(agent.rev) || 1;

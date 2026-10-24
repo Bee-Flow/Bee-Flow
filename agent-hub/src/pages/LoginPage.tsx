@@ -126,8 +126,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 relative"
-            style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
+        <div className="min-h-screen flex items-center justify-center p-4 relative [background:linear-gradient(160deg,var(--bg-primary)_0%,var(--bg-secondary)_50%,var(--bg-tertiary)_100%)]">
 
             {adminRecoveryKey && (
                 <RecoveryKeyModal

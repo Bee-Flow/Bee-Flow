@@ -1,5 +1,4 @@
-import { STUDIO_APPS } from './studioApps';
-import { STUDIO_START } from './studioStart';
+import { STUDIO_SECTIONS, STUDIO_START_SECTION } from './studioSections';
 import { getRuntimeStudioApps } from '../../../moduleRuntime/registry';
 import type { AppRef } from './AppStudio/inspector/appDefinition';
 
@@ -30,11 +29,11 @@ interface StudioSearchParts {
 // Accepted raw segments: the canonical urlSegment, the section id itself
 // (navigation code historically passed e.g. 'studio/meetingNotes'), and any
 // declared legacy slugs (e.g. 'ai-tasks' for routines).
-// Start is not in STUDIO_APPS (see studioStart.js) but IS a built-in segment,
+// Start is not in STUDIO_SECTIONS (see studioStart.js) but IS a built-in segment,
 // so it joins the static maps here rather than being special-cased in every
 // lookup below.
 export const SEG_TO_SECTION: Record<string, string> = Object.fromEntries(
-    [...STUDIO_APPS, STUDIO_START].flatMap((app) => [
+    [...STUDIO_SECTIONS, STUDIO_START_SECTION].flatMap((app) => [
         [app.urlSegment, app.id],
         [app.id, app.id],
         ...(app.legacySegments || []).map((seg) => [seg, app.id]),
@@ -42,7 +41,7 @@ export const SEG_TO_SECTION: Record<string, string> = Object.fromEntries(
 );
 
 export const SECTION_TO_SEG: Record<string, string> = Object.fromEntries(
-    [...STUDIO_APPS, STUDIO_START].map((app) => [app.id, app.urlSegment])
+    [...STUDIO_SECTIONS, STUDIO_START_SECTION].map((app) => [app.id, app.urlSegment])
 );
 
 // TWO different absences, and they resolve differently on purpose (Track H1):
@@ -58,7 +57,7 @@ export const SECTION_TO_SEG: Record<string, string> = Object.fromEntries(
 //
 // Built-in segments resolve first; then the live runtime module list.
 export function sectionFromRaw(raw: string | null | undefined): string {
-    if (!raw) return STUDIO_START.id;
+    if (!raw) return STUDIO_START_SECTION.id;
     if (SEG_TO_SECTION[raw]) return SEG_TO_SECTION[raw];
     for (const app of getRuntimeStudioApps()) {
         if (raw === app.urlSegment || raw === app.id || (app.legacySegments || []).includes(raw)) {
@@ -101,7 +100,7 @@ export function parseStudioUrl(pathname: string) {
     const m = pathname.match(/^\/app\/studio(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?/);
     // No segment → Start (sectionFromRaw draws the same line for the same
     // reason); an unknown one still falls back to Agents inside it.
-    const seg = m?.[1] || STUDIO_START.urlSegment;
+    const seg = m?.[1] || STUDIO_START_SECTION.urlSegment;
     let id = m?.[2] || null;
     // Third path segment — Automations uses it for a flowlet (layer) key,
     // Knowledge for the open tab.

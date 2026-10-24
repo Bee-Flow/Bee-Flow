@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { API_BASE, authFetch } from '../utils/helpers';
 import RemoteStudioApp from './RemoteStudioApp';
+import { logger } from '../utils/logger';
 
 // Runtime Studio-app registry. After auth, `GET /api/modules/frontend` returns
 // the installed remote modules that ship a frontend; each becomes a descriptor
@@ -146,9 +147,7 @@ export async function loadRemoteModules() {
         const data = await res.json();
         const mods = Array.isArray(data?.modules) ? data.modules : [];
         setDescriptors(mods.map(toDescriptor).filter(Boolean) as RuntimeDescriptor[]);
-    } catch {
-        // Network blip — keep whatever we had rather than blanking the UI.
-    }
+    } catch (err) { logger.debug('Network blip — keep whatever we had rather than blanking the UI.', err); }
 }
 
 // Alias used by ModulesPanel after an install/remove so a new/gone tab appears

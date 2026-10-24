@@ -186,7 +186,7 @@ router.put('/plans/:id', validate({ body: UpdatePlanBody }), async (req, res) =>
             JSON.stringify(req.body[f] ?? null) !== JSON.stringify(oldPlan?.[f] ?? null)
         );
         if (entChanged) {
-            try { require('../../license').bumpServerLicenseVersion(); } catch (_) { /* best-effort cache bust */ }
+            try { require('../../license').bumpServerLicenseVersion(); } catch (err) { log.debug('best-effort cache bust', err); }
         }
 
         // Auto-sync to Stripe if enabled.

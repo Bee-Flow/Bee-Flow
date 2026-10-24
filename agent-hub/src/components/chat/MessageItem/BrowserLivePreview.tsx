@@ -24,12 +24,10 @@ export default function BrowserLivePreview({ preview }: { preview?: BrowserPrevi
 
     return (
         <div
-            className="mt-1.5 rounded-lg overflow-hidden w-full"
-            style={{ maxWidth: 620, border: '1px solid var(--border-subtle)', background: 'var(--bg-tertiary)' }}
+            className="mt-1.5 rounded-lg overflow-hidden w-full max-w-[620px] [border:1px_solid_var(--border-subtle)] [background:var(--bg-tertiary)]"
         >
             <div
-                className="flex items-center gap-1.5 px-2 py-1 text-[10px] truncate"
-                style={{ color: 'var(--text-tertiary)', borderBottom: '1px solid var(--border-subtle)' }}
+                className="flex items-center gap-1.5 px-2 py-1 text-[10px] truncate [color:var(--text-tertiary)]! [border-bottom:1px_solid_var(--border-subtle)]"
             >
                 <Globe className="w-3 h-3 flex-shrink-0" />
                 <span className="truncate">{url || task || t('chat.msg.browsing', 'Browsing…')}</span>
@@ -58,7 +56,7 @@ export default function BrowserLivePreview({ preview }: { preview?: BrowserPrevi
             )}
 
             {!ended && action && frame && (
-                <div className="px-2 py-1 text-[10px] truncate" style={{ color: 'var(--text-tertiary)', borderTop: '1px solid var(--border-subtle)' }}>
+                <div className="px-2 py-1 text-[10px] truncate [color:var(--text-tertiary)]! [border-top:1px_solid_var(--border-subtle)]">
                     {action}
                 </div>
             )}

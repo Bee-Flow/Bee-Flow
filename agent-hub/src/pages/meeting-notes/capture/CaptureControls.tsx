@@ -41,8 +41,7 @@ export default function CaptureControls({ compact = false }: { compact?: boolean
                     value={settings.attendees}
                     onChange={(e) => setSettings((s) => ({ ...s, attendees: e.target.value }))}
                     placeholder={t('meeting_notes.capture_attendees_ph', 'Tom, Gerard, René…')}
-                    className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
-                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                    className="w-full px-3 py-2 rounded-lg text-sm border outline-none [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                 />
             </Field>
 
@@ -59,8 +58,7 @@ export default function CaptureControls({ compact = false }: { compact?: boolean
                         value={settings.numSpeakers}
                         onChange={(e) => setSettings((s) => ({ ...s, numSpeakers: e.target.value.replace(/[^0-9]/g, '') }))}
                         placeholder={t('meeting_notes.capture_num_speakers_ph', 'Auto')}
-                        className="w-28 px-3 py-2 rounded-lg text-sm border outline-none"
-                        style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                        className="w-28 px-3 py-2 rounded-lg text-sm border outline-none [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                     />
                 </Field>
             </div>
@@ -89,8 +87,7 @@ export default function CaptureControls({ compact = false }: { compact?: boolean
                         <select
                             value={settings.language}
                             onChange={(e) => setSettings((s) => ({ ...s, language: e.target.value }))}
-                            className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
-                            style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                            className="w-full px-3 py-2 rounded-lg text-sm border outline-none [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                         >
                             {/* `label` already carries the flag: '🇳🇱 Dutch'. This
                                 read `{l.flag} {l.name}`, neither of which exists on
@@ -109,8 +106,7 @@ export default function CaptureControls({ compact = false }: { compact?: boolean
                             value={settings.contextTerms}
                             onChange={(e) => setSettings((s) => ({ ...s, contextTerms: e.target.value }))}
                             placeholder={t('meeting_notes.capture_glossary_ph', 'AFAS, Bflow, N8N…')}
-                            className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
-                            style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                            className="w-full px-3 py-2 rounded-lg text-sm border outline-none [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                         />
                     </Field>
                 </div>

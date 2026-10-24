@@ -16,6 +16,7 @@ const {
 const { analyzePage } = require('./pageModel');
 const { detectMarks, deriveTerms, textReason, norm } = require('./detectMarks');
 const { streamBytes } = require('./pdfFonts');
+const log = require('../../../telemetry/log');
 
 const MAX_PAGES = 200;
 
@@ -168,7 +169,7 @@ async function rawText(buffer) {
     const chunks = [];
     for (const [, obj] of doc.context.enumerateIndirectObjects()) {
         if (obj instanceof PDFStream) {
-            try { const b = streamBytes(obj); if (b) chunks.push(b.toString('latin1')); } catch { /* undecodable filter: its raw bytes are below */ }
+            try { const b = streamBytes(obj); if (b) chunks.push(b.toString('latin1')); } catch (err) { log.debug('undecodable filter: its raw bytes are below', err); }
         }
         chunks.push(obj.toString());
     }

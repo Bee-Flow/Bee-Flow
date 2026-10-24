@@ -54,14 +54,12 @@ export function CoworkWelcomeHeader({ className = 'text-center mb-6' }: { classN
     return (
         <div className={className} data-testid="cowork-welcome">
             <div
-                className="inline-flex items-center justify-center w-11 h-11 rounded-2xl mb-4"
-                style={{ background: 'color-mix(in srgb, var(--accent-primary) 12%, transparent)' }}
+                className="inline-flex items-center justify-center w-11 h-11 rounded-2xl mb-4 [background:color-mix(in_srgb,var(--accent-primary)_12%,transparent)]"
             >
                 <Handshake className="w-5 h-5 text-[var(--accent-primary)]" />
             </div>
             <h1
-                className="font-semibold"
-                style={{ fontSize: 'clamp(20px, 4.5vw, 30px)', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}
+                className="font-semibold [font-size:clamp(20px,4.5vw,30px)] [color:var(--text-primary)] [letter-spacing:-0.02em]"
             >
                 {t('cowork.welcome.heading', COWORK_HEADING)}
             </h1>
@@ -95,13 +93,7 @@ export default function CoworkWelcome({ children, onStarterClick, isMobile = fal
                             type="button"
                             onClick={() => onStarterClick && onStarterClick(text)}
                             data-testid="cowork-starter"
-                            className="px-3 py-2 rounded-xl border text-[12.5px] text-left transition-colors hover:border-[var(--border-default)]"
-                            style={{
-                                background: 'var(--bg-card)',
-                                borderColor: 'var(--border-subtle)',
-                                color: 'var(--text-secondary)',
-                                maxWidth: '100%',
-                            }}
+                            className="px-3 py-2 rounded-xl border text-[12.5px] text-left transition-colors hover:border-[var(--border-default)] [background:var(--bg-card)] [border-color:var(--border-subtle)]! [color:var(--text-secondary)]! max-w-[100%]"
                         >
                             {text}
                         </button>

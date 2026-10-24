@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useEffectEvent } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import type { StatusMessage } from './chatModelTiers/tierTypes';
@@ -28,12 +28,16 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<StatusMessage | null>(null);
 
-    useEffect(() => {
+    const refreshForProviders = useEffectEvent(() => {
         fetchConfig();
         // Ensure models are loaded
         if (allModels.length === 0 && providers.length > 0) {
             fetchAllModels();
         }
+    });
+
+    useEffect(() => {
+        refreshForProviders();
     }, [providers]); // Refetch if providers change
 
     const fetchConfig = async () => {
@@ -95,7 +99,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
         <div className="p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style={{ background: 'rgba(16, 185, 129, 0.15)' }}>
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl [background:rgba(16,185,129,0.15)]">
                         🔍
                     </div>
                     <div>
@@ -116,8 +120,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
                     <select
                         value={config.embeddingProviderId}
                         onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => setConfig({ ...config, embeddingProviderId: e.target.value, embeddingModel: '' })}
-                        className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)]"
-                        style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                        className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] [background:var(--bg-tertiary)] [border-color:var(--border-default)]! [color:var(--text-primary)]"
                     >
                         <option value="">{t('admin_ai_config.embed_select_provider', 'Select Provider...')}</option>
                         {providers.map((p: EmbeddingProvider) => (
@@ -132,8 +135,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
                         <select
                             value={config.embeddingModel}
                             onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => setConfig({ ...config, embeddingModel: e.target.value })}
-                            className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)]"
-                            style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                            className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] [background:var(--bg-tertiary)] [border-color:var(--border-default)]! [color:var(--text-primary)]"
                         >
                             <option value="">{t('admin_ai_config.embed_select_model', 'Select Model...')}</option>
                             {providerModels.map((m: EmbeddingModel) => (
@@ -146,8 +148,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
                             value={config.embeddingModel}
                             onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => setConfig({ ...config, embeddingModel: e.target.value })}
                             placeholder={isAzure ? t('admin_ai_config.embed_azure_placeholder', 'Your Azure deployment name, e.g. text-embedding-3-small') : t('admin_ai_config.embed_model_placeholder', 'e.g. text-embedding-3-small')}
-                            className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)]"
-                            style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                            className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] [background:var(--bg-tertiary)] [border-color:var(--border-default)]! [color:var(--text-primary)]"
                         />
                     )}
                     <p className="text-xs mt-1 text-[var(--text-muted)]">

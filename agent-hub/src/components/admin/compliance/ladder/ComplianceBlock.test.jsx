@@ -1,5 +1,5 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../../../utils/helpers', () => ({ authFetch: vi.fn() }));
@@ -11,8 +11,8 @@ vi.mock('../../../shared/Toast', () => {
 vi.mock('../../../agents/AgentWizard/pickers/BehaviorPicker', () => ({ BehaviorBody: () => <div data-testid="behavior-body" /> }));
 vi.mock('../../../agents/VersionHistory', () => ({ default: () => <div data-testid="version-history" /> }));
 
-import { authFetch } from '../../../../utils/helpers';
 import ComplianceBlock, { chipState } from './ComplianceBlock';
+import { authFetch } from '../../../../utils/helpers';
 import AdvancedDrawer from '../../../agents/AgentWizard/pickers/AdvancedDrawer';
 import { API } from '../data/api';
 

@@ -23,6 +23,7 @@ const { resolveMemoryContext, injectProjectAndKnowledgeContext } = require('../c
 const { resolveMemoryPolicy } = require('../../memory/memoryPolicy');
 const { createUntokenisingEventWrapper } = require('../streamUntokeniser');
 const chatSignals = require('../../privacy/chatSignals');
+const log = require('../../../telemetry/log');
 const {
     resolveAndPrewarmShield, buildPromptWithMemory, hydrateTokenVault, runGuardrailsPhase,
     dropWebSearchOnUpload, runAgentDlpPreflight, dlpBlockError,
@@ -166,7 +167,7 @@ function recordChatSignal({ userId, messageMetadata, agent, config, dlpShield, d
             allowlistedHosts: Array.isArray(dlpShield?.dlpAllowlistedHosts) ? dlpShield.dlpAllowlistedHosts : [],
             dryRun: testChatMod.isDryRunTurn(messageMetadata) || !!messageMetadata?.testAs,
         });
-    } catch (_) { /* counting never touches the turn */ }
+    } catch (err) { log.debug('counting never touches the turn', err); }
 }
 
 module.exports = { runTurnPreflight };

@@ -41,7 +41,7 @@ function emitTokenMapEvent(conversationId, action_taken, extra = {}) {
             source: 'pii',
             violation_categories: extra.reason ? String(extra.reason).slice(0, 200) : null,
         }).catch(() => {});
-    } catch (_) { /* never let telemetry break the chat path */ }
+    } catch (err) { log.debug('never let telemetry break the chat path', err); }
 }
 
 /**

@@ -16,6 +16,7 @@
 import { toBase64 } from 'lib0/buffer';
 import { Outbox, chunkByBytes, mergeAll } from './outbox';
 import { BATCH_MS, MAX_RETRY_MS, codeOf, errorOf, retryable, type CollabHttp } from './providerSupport';
+import { logger } from '../../utils/logger';
 
 export interface SenderHost {
     http: CollabHttp;
@@ -120,7 +121,7 @@ export class Sender {
             try {
                 if (keepalive && http.beacon) http.beacon(target.path, body);
                 else http.post(target.path, body).catch(() => { /* best effort */ });
-            } catch { /* best effort */ }
+            } catch (err) { logger.debug('best effort', err); }
         }
     }
 

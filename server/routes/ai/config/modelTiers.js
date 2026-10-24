@@ -18,7 +18,7 @@ const requireAdmin = requireAdminUser(isAdminUser);
 
 /** The auto-tier classifier caches its model; a changed tier or classifier model must reach it. */
 function clearClassifierCache() {
-    try { require('../../../core/llm/promptClassifier').clearClassifierCache(); } catch (_) { /* non-fatal */ }
+    try { require('../../../core/llm/promptClassifier').clearClassifierCache(); } catch (err) { log.debug('non-fatal', err); }
 }
 
 // ── What a caller may send ────────────────────────────────────────────────
@@ -315,7 +315,7 @@ async function resolveSessionOrgId(req) {
                 if (g?.organizationId) return g.organizationId;
             }
         }
-    } catch (_) { /* ignore */ }
+    } catch (err) { log.debug('ignore', err); }
     return null;
 }
 

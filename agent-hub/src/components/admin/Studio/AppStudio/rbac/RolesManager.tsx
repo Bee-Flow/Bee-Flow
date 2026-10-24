@@ -317,8 +317,7 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                                     value={r.label}
                                     onChange={(e) => renameRole(r.key, e.target.value)}
                                     aria-label={t('studio_apps_edit.roles.role_name_aria', 'Role name ({key})', { key: r.key })}
-                                    className="flex-1 rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                    className="flex-1 rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                                 />
                                 <code className="shrink-0 text-[11px] text-[var(--text-tertiary)]">{r.key}</code>
                                 <button
@@ -345,8 +344,7 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                         value={draftDefault}
                         onChange={(e) => { setDraftDefault(e.target.value); setDirty(true); }}
                         aria-label={t('studio_apps_edit.roles.default_role_aria', 'Default role')}
-                        className="rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                        style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                        className="rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                     >
                         <option value="app">{t('studio_apps_edit.roles.app_default', 'App default (full access)')}</option>
                         <option value={NO_ACCESS}>{t('studio_apps_edit.roles.no_access', 'No access')}</option>
@@ -374,8 +372,7 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                                         value={draftByGroup[g.id] || ''}
                                         onChange={(e) => setGroupRole(g.id, e.target.value)}
                                         aria-label={t('studio_apps_edit.roles.role_for_group', 'Role for group {name}', { name: g.name || g.id })}
-                                        className="shrink-0 rounded border px-2 py-1 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                                        style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                        className="shrink-0 rounded border px-2 py-1 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                                     >
                                         <option value="">{t('studio_apps_edit.roles.no_override', '— no override —')}</option>
                                         {roleOptions.map((r) => <option key={r.key} value={r.key}>{r.label || r.key}</option>)}
@@ -412,8 +409,7 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                                 <span className="truncate text-[var(--text-primary)]">{userLabel(String(m.userId || m.user_id))}</span>
                                 <span className="flex items-center gap-2">
                                     <span
-                                        className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-                                        style={{ background: 'color-mix(in srgb, var(--accent-primary) 12%, transparent)', color: 'var(--accent-primary)' }}
+                                        className="rounded-full px-2 py-0.5 text-[11px] font-medium [background:color-mix(in_srgb,var(--accent-primary)_12%,transparent)] [color:var(--accent-primary)]!"
                                     >
                                         {m.roleKey || m.role_key}
                                     </span>
@@ -437,8 +433,7 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                             value={newMemberUser}
                             onChange={(e) => setNewMemberUser(e.target.value)}
                             aria-label={t('studio_apps_edit.roles.person_to_assign', 'Person to assign')}
-                            className="flex-1 rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                            style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                            className="flex-1 rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                         >
                             <option value="">{t('studio_apps_edit.roles.choose_person', 'Choose a person…')}</option>
                             {directory.users.map((u) => (
@@ -451,8 +446,7 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                             onChange={(e) => setNewMemberUser(e.target.value)}
                             placeholder={t('studio_apps_edit.roles.user_id', 'User id')}
                             aria-label={t('studio_apps_edit.roles.user_id_aria', 'User id to assign')}
-                            className="flex-1 rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                            style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                            className="flex-1 rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                         />
                     )}
                     <select
@@ -460,8 +454,7 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                         onChange={(e) => setNewMemberRole(e.target.value)}
                         aria-label={t('studio_apps_edit.roles.role_to_assign', 'Role to assign')}
                         disabled={!roleOptions.length}
-                        className="rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] disabled:opacity-50"
-                        style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                        className="rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] disabled:opacity-50 [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                     >
                         {roleOptions.length === 0 ? <option value="">{t('studio_apps_edit.roles.no_roles_option', 'No roles')}</option>
                             : roleOptions.map((r) => <option key={r.key} value={r.key}>{r.label || r.key}</option>)}

@@ -12,6 +12,7 @@ import type {
     VoiceState,
     VoiceTool,
 } from './useVoiceSession.types';
+import { logger } from '../../../utils/logger';
 
 /** What one voice turn reads and writes: the hook's refs, setters and TTS player. */
 export interface VoiceTurnCtx {
@@ -120,7 +121,7 @@ function onTurnDone(ctx: VoiceTurnCtx, st: TurnState, data: VoiceEventData): voi
 
 function dispatchTurnEvent(ctx: VoiceTurnCtx, st: TurnState, event: string, dataRaw: string): void {
     let data: VoiceEventData = {};
-    try { data = JSON.parse(dataRaw); } catch (_) { /* ignore */ }
+    try { data = JSON.parse(dataRaw); } catch (err) { logger.debug('ignore', err); }
     switch (event) {
         case 'transcript':
             onTranscript(ctx, st, data);

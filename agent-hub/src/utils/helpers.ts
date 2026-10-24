@@ -1,5 +1,6 @@
 import { isPublicMarketingPath } from './cmsPublicRouting';
 import type { AuthFetchOptions, FetchTransport, SaveErrorBody, SaveErrorInfo } from './helpers.types';
+import { logger } from './logger';
 export type { AuthFetchOptions } from './helpers.types';
 
 /** Anonymous marketing surface — a 401 there is the expected answer, not a
@@ -87,7 +88,7 @@ export const setSessionToken = (token?: string | null): void => {
     try {
         if (token) sessionStorage.setItem(SESSION_TOKEN_KEY, token);
         else sessionStorage.removeItem(SESSION_TOKEN_KEY);
-    } catch (_) { /* sessionStorage may be unavailable in private mode */ }
+    } catch (err) { logger.debug('sessionStorage may be unavailable in private mode', err); }
 };
 
 export const getSessionToken = (): string | null => {
@@ -295,7 +296,7 @@ export const authFetch = async (url: string, options: AuthFetchOptions = {}): Pr
         const COOLDOWN_MS = 30_000;
         let lastReload = 0;
         try { lastReload = parseInt(sessionStorage.getItem(RELOAD_FLAG) || '0', 10) || 0; }
-        catch (_) { /* sessionStorage unavailable */ }
+        catch (err) { logger.debug('sessionStorage unavailable', err); }
 
         if (Date.now() - lastReload < COOLDOWN_MS) {
             console.warn(`[authFetch] 401 on ${url} — suppressing reload (cooldown active)`);
@@ -303,7 +304,7 @@ export const authFetch = async (url: string, options: AuthFetchOptions = {}): Pr
         }
 
         try { sessionStorage.setItem(RELOAD_FLAG, String(Date.now())); }
-        catch (_) { /* sessionStorage unavailable */ }
+        catch (err) { logger.debug('sessionStorage unavailable', err); }
         window.location.reload();
         return response;
     }
@@ -315,7 +316,7 @@ export const authFetch = async (url: string, options: AuthFetchOptions = {}): Pr
 // both JSON ({error,code,resource}) and plain-text error bodies.
 export const parseSaveError = async (res: Pick<Response, 'status' | 'text'>): Promise<SaveErrorInfo> => {
     let body = '';
-    try { body = await res.text(); } catch (_) { /* ignore */ }
+    try { body = await res.text(); } catch (err) { logger.debug('ignore', err); }
     let info: SaveErrorBody = {};
     try { info = JSON.parse(body); } catch (_) { info = { error: body }; }
     const message = info.error || info.message || `Save failed (${res.status})`;

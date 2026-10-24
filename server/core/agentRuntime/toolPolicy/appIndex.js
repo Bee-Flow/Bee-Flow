@@ -10,6 +10,7 @@
  */
 
 'use strict';
+const { featureModule } = require('../../featureModules');
 const log = require('../../../telemetry/log');
 
 // ── appId ↔ tool names ──────────────────────────────────────────────
@@ -48,7 +49,7 @@ function _buildAppIndex() {
     const failed = [];
     let ok = true;
     try {
-        const registry = require('../../../automation/toolRegistry');
+        const registry = featureModule('automation/toolRegistry');
         const { ALL_TOOL_APPS } = registry;
         // ── "LOADTOOLS GOOIDE" WAS GEEN SIGNAAL (A2-tegenspraak) ────
         // De echte `loadTools` vangt zijn eigen fout en geeft `[]` terug, dus

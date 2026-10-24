@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
+import { COMMON_ROUTES, DEMO_CAPABILITIES } from './common';
 import { createState, ROUTES } from './compliance';
 import { CHECK_DEFS, ISO_CONTROLS, FRAMEWORKS, MILESTONES } from './complianceCatalog';
-import { COMMON_ROUTES, DEMO_CAPABILITIES } from './common';
 import { addCalendarMonths } from '../../components/shared/deadlineMath';
-import { DEMO_FEATURES } from '../registry';
 import { createDemoTransport } from '../demoTransport';
+import { DEMO_FEATURES } from '../registry';
 
 /**
  * What these pin is the class of bug that does not throw.

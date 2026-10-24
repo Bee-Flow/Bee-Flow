@@ -321,7 +321,7 @@ async function start() {
 async function stop({ timeoutMs = 25_000 } = {}) {
     if (stopping) return ACTIVE_RUNS.size;
     stopping = true;
-    for (const h of _tickHandles) { try { clearInterval(h); } catch (_) { /* noop */ } }
+    for (const h of _tickHandles) { try { clearInterval(h); } catch (err) { log.debug('noop', err); } }
     _tickHandles.length = 0;
     // Form submissions still waiting in this pod's queue: start no more of
     // them, and hand them back so another pod runs them now rather than after
@@ -345,7 +345,7 @@ async function stop({ timeoutMs = 25_000 } = {}) {
     // never waits on monitoring — flush the stragglers before the process goes.
     try {
         await require('../../integrations/integrationLogging').flushEgressLogs();
-    } catch (_) { /* best-effort */ }
+    } catch (err) { log.debug('best-effort', err); }
     started = false;
     return ACTIVE_RUNS.size;
 }

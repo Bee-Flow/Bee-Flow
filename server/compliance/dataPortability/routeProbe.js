@@ -20,6 +20,8 @@
 
 'use strict';
 
+const log = require('../../telemetry/log');
+
 const MAX_DEPTH = 16;
 
 /** The layer stack behind an app, a Router, or nothing. */
@@ -29,7 +31,7 @@ function stackOf(target) {
         if (Array.isArray(target.stack)) return target.stack;                 // express.Router()
         const r = target.router || target._router;                             // express() app (5.x getter / 4.x)
         if (r && Array.isArray(r.stack)) return r.stack;
-    } catch { /* a getter that throws is not a router */ }
+    } catch (err) { log.debug('a getter that throws is not a router', err); }
     return null;
 }
 
@@ -52,7 +54,7 @@ function matchLayer(layer, path) {
             try {
                 const r = matcher(path);
                 if (r) return { path: r.path || '' };
-            } catch { /* undecodable segment — not a match */ }
+            } catch (err) { log.debug('undecodable segment — not a match', err); }
         }
         return null;
     }

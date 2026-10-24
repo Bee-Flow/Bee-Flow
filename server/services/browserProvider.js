@@ -22,6 +22,8 @@
  * shared browser comfortably serves the low-volume export/thumbnail/ingest load.
  */
 
+const log = require('../telemetry/log');
+
 const DEFAULT_DEPS = {
     pwtRunner: require('./pwtRunner'),
     chromium: () => require('playwright').chromium,
@@ -134,7 +136,7 @@ async function withContext(contextOptions, fn) {
     try {
         return await fn(context);
     } finally {
-        try { await context.close(); } catch (_) { /* ignore */ }
+        try { await context.close(); } catch (err) { log.debug('ignore', err); }
     }
 }
 
@@ -157,7 +159,7 @@ async function getBrowserEndpoint() {
 async function close() {
     const b = _conn;
     _conn = null;
-    if (b) { try { await b.close(); } catch (_) { /* ignore */ } }
+    if (b) { try { await b.close(); } catch (err) { log.debug('ignore', err); } }
 }
 
 /**

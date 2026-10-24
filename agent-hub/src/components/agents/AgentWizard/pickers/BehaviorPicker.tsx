@@ -3,6 +3,7 @@ import { X, Check, Copy } from 'lucide-react';
 import { ToggleRow } from './_primitives';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { EditorAgent } from '../builderSplit/editorTypes';
+import { logger } from '../../../../utils/logger';
 
 // Copy-to-clipboard field for the embed URL / iframe snippet. Only used
 // inside this picker, so co-located here rather than in _primitives.
@@ -14,7 +15,7 @@ interface CopyFieldProps {
 function CopyField({ value, t }: CopyFieldProps) {
     const [copied, setCopied] = useState(false);
     const onCopy = async () => {
-        try { await navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch (_) { /* ignore */ }
+        try { await navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch (err) { logger.debug('ignore', err); }
     };
     return (
         <div className="flex gap-2">

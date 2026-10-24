@@ -54,9 +54,9 @@ vi.mock('../../../../../hooks/useTranslation', () => {
 });
 
 import ComponentRibbon from './ComponentRibbon';
+import * as scopedStorage from '../../../../../utils/scopedStorage';
 import { AppEditorProvider } from '../state/AppEditorContext';
 import { KITCHEN_SINK } from '../state/sampleDefinitions';
-import * as scopedStorage from '../../../../../utils/scopedStorage';
 
 const RIBBON_TAB_KEY = 'appStudioRibbonTab';
 

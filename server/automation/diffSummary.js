@@ -13,6 +13,8 @@
  * `edges` is ignored — only membership and per-step content matter.
  */
 
+const log = require('../telemetry/log');
+
 function asArray(v) { return Array.isArray(v) ? v : []; }
 function asObject(v) { return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; }
 function plural(n, noun) { return `${n} ${noun}${n === 1 ? '' : 's'}`; }
@@ -163,7 +165,7 @@ function planVersionWrite(prevDef, nextDef, { versionMeta = null, forceVersion =
     }
     let changeSummary = null;
     try { changeSummary = summarizeDefinitionDiffLine(prevDef, nextDef); }
-    catch (_) { /* best-effort, like the description */ }
+    catch (err) { log.debug('best-effort, like the description', err); }
     const ownEntries = settingsOnly ? SETTINGS_CHANGED.map(e => ({ ...e, params: {} })) : (desc?.entries || []);
     const descriptionJson = meta.descriptionJson != null
         ? meta.descriptionJson

@@ -39,5 +39,5 @@ export function useEmbedAgent(
             }
         };
         fetchAgent();
-    }, [agentId, applyEmbedPayload]);
+    }, [agentId, applyEmbedPayload, setAgent, setError, setIsLoading]);
 }

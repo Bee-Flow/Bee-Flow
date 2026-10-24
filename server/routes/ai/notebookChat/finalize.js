@@ -90,7 +90,7 @@ function buildPrivacyPanel({ _assistantTokenisationInfo, _untok, notebookId, mod
                 }
             }
         }
-    } catch (_) { /* the panel is best-effort — never break the turn */ }
+    } catch (err) { log.debug('the panel is best-effort — never break the turn', err); }
     return _assistantTokenisationInfo;
 }
 
@@ -166,7 +166,7 @@ function checkOutputRegex({ regexConfig, displayContent, send, userOrgForTiers, 
                     try {
                         const regex = new RegExp(rule.pattern, 'gi');
                         redactedOutput = redactedOutput.replace(regex, `[REDACTED: ${rule.name}]`);
-                    } catch (e) { /* skip invalid patterns */ }
+                    } catch (e) { log.debug('skip invalid patterns', e); }
                 }
                 send('content_redact', {
                     originalMessage: displayContent.slice(0, 500),

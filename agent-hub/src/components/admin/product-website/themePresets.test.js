@@ -7,8 +7,8 @@
  *
  * Run: cd agent-hub && npx vitest run src/components/admin/ProductWebsite/themePresets.test.js
  */
-import { describe, it, expect } from 'vitest';
 import { createRequire } from 'node:module';
+import { describe, it, expect } from 'vitest';
 import { THEME_PRESETS, applyPreset } from './themePresets';
 
 const require = createRequire(import.meta.url);

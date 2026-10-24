@@ -486,7 +486,7 @@ async function execDataExtraction(step, ctx, runState, mode) {
             // Normalised by the adapter (cache read/write included).
             ...usageLogFields(response && response.usage),
         }).catch(() => {});
-    } catch (_) {}
+    } catch (_) { log.warn('could not record AI usage of the extraction step', _); }
 
     const piiSummary = safety.buildPiiSummary(aiOut.categories || []);
     return {

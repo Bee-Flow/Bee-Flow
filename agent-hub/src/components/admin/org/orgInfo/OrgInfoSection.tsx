@@ -31,12 +31,10 @@ const OrgInfoSection = ({ t, isNcOrg, ncOrg, orgData, setOrgData, handleLogoUplo
                             users come from NC and points them to the Sync panel. */}
                         {isNcOrg && (
                             <div
-                                className="rounded-2xl p-4 flex items-start gap-3"
-                                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}
+                                className="rounded-2xl p-4 flex items-start gap-3 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]"
                             >
                                 <div
-                                    className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                                    style={{ background: 'rgba(0, 130, 201, 0.12)' }}
+                                    className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 [background:rgba(0,130,201,0.12)]"
                                 >
                                     <svg viewBox="0 0 24 24" width="18" height="18" fill="#0082C9">
                                         <path d="M12.018 6.537a5.5 5.5 0 00-5.142 3.547 3.62 3.62 0 100 3.832 5.498 5.498 0 0010.284 0 3.62 3.62 0 100-3.832 5.5 5.5 0 00-5.142-3.547zm0 1.987a3.518 3.518 0 11-.001 7.035 3.518 3.518 0 010-7.035z" />

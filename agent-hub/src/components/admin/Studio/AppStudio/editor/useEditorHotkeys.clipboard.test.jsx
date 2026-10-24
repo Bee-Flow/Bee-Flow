@@ -2,8 +2,8 @@ import { fireEvent, render, act } from '@testing-library/react';
 import { useEffect } from 'react';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import useEditorHotkeys from './useEditorHotkeys';
-import { setClipboard } from '../state/clipboard';
 import { AppEditorProvider, useAppEditor } from '../state/AppEditorContext';
+import { setClipboard } from '../state/clipboard';
 import { findNode } from '../state/definitionOps';
 import { KITCHEN_SINK } from '../state/sampleDefinitions';
 

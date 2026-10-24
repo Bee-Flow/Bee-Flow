@@ -138,7 +138,7 @@ function decodeRunCursor(cursor) {
     try {
         const o = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
         if (o && o.s && o.i) return { startedAt: o.s, id: o.i };
-    } catch { /* fall through */ }
+    } catch (err) { log.debug('fall through', err); }
     return null;
 }
 

@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest';
 import { render } from '@testing-library/react';
-import React from 'react';
 import { Table2 } from 'lucide-react';
-import StageShell, { StageHeader } from './StageShell';
+import React from 'react';
+import { describe, expect, it } from 'vitest';
 import { heroCard, isBusy, panelCard, stagePadding, stageType, STAGE_BUTTON, WIDTH } from './stageChrome';
-import { PHASE_VISUAL, phaseKind } from '../recipes';
+import StageShell, { StageHeader } from './StageShell';
 import { KINDS } from '../phaseMachine';
+import { PHASE_VISUAL, phaseKind } from '../recipes';
 
 const t = (_k, d, v) => (v ? Object.entries(v).reduce((s, [k, x]) => s.replace(`{${k}}`, x), d) : d);
 

@@ -82,7 +82,7 @@ function createSkillActivationHandler({
                 // Say it on the same wire the first pass uses, or the run would
                 // show a sandbox notice that is missing exactly the tools that
                 // arrived late.
-                try { onEvent?.('test_sandbox', { withheld: kept.sandboxWithheld }); } catch (_) { /* never take the turn down over telemetry */ }
+                try { onEvent?.('test_sandbox', { withheld: kept.sandboxWithheld }); } catch (err) { log.debug('never take the turn down over telemetry', err); }
             }
             for (const t of kept.tools) {
                 tools.push(t);

@@ -95,12 +95,12 @@ async function _publish(channel, message) {
     const r = getRedis();
     if (!r) return;
     _ensureSubscriber();
-    try { await r.publish(channel, message); } catch (_) { /* non-fatal */ }
+    try { await r.publish(channel, message); } catch (err) { log.debug('non-fatal', err); }
 }
 
 // Eagerly subscribe at module load if Redis is already up. If Redis comes up
 // later, the next mutation will trigger _ensureSubscriber() via _publish.
-setImmediate(() => { try { _ensureSubscriber(); } catch (_) { /* non-fatal */ } });
+setImmediate(() => { try { _ensureSubscriber(); } catch (err) { log.debug('non-fatal', err); } });
 
 /**
  * Invalidate the cached permission set for a specific user.
@@ -113,7 +113,7 @@ async function invalidatePermissionCache(userId) {
     _permCache.delete(userId);
     const r = getRedis();
     if (r) {
-        try { await r.del(buildKey(`bf:perms:${userId}`)); } catch (_) { }
+        try { await r.del(buildKey(`bf:perms:${userId}`)); } catch (_) { log.warn('permissions cache key delete failed, the entry expires with its TTL', _); }
     }
     await _publish(PERM_INVALIDATE_CHANNEL, String(userId));
 }
@@ -128,7 +128,7 @@ async function invalidateUserExistenceCache(userId) {
     _userExistsCache.delete(userId);
     const r = getRedis();
     if (r) {
-        try { await r.del(buildKey(`bf:uex:${userId}`)); } catch (_) { }
+        try { await r.del(buildKey(`bf:uex:${userId}`)); } catch (_) { log.warn('user-exists cache key delete failed, the entry expires with its TTL', _); }
     }
     await _publish(UEX_INVALIDATE_CHANNEL, String(userId));
 }
@@ -149,7 +149,7 @@ async function invalidateAllPermissionCaches() {
                 const [next, keys] = await r.scan(cursor, 'MATCH', 'bf:perms:*', 'COUNT', 200);
                 cursor = next;
                 if (keys.length) {
-                    try { await r.unlink(...keys); } catch (_) { try { await r.del(...keys); } catch (_) { } }
+                    try { await r.unlink(...keys); } catch (_) { try { await r.del(...keys); } catch (_) { log.warn('permissions cache keys could not be deleted, entries expire with their TTL', _); } }
                 }
             } while (cursor !== '0');
         } catch (err) {

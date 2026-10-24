@@ -3,8 +3,8 @@ import { describe, it, expect } from 'vitest';
 import { listVariables, removeVariable, renameVariable, setVariable } from './definitionOps';
 
 const require = createRequire(import.meta.url);
-const { validateAppDefinition } = require('../../../../../../../server/appStudio/validate.js');
 const { canonicalizeAppDefinition } = require('../../../../../../../server/appStudio/canonicalize.js');
+const { validateAppDefinition } = require('../../../../../../../server/appStudio/validate.js');
 
 /**
  * These ops feed straight into autosave, so two contracts matter as much as the

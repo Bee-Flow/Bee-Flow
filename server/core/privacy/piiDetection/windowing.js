@@ -223,7 +223,7 @@ async function detectPiiWindowed(text, enabledCategories, confidenceThreshold, e
                 // it: this is a status line, the scan is a privacy control.
                 try {
                     onProgress({ done, total: windows.length, coveredChars, totalChars: text.length, memoised });
-                } catch (_) { /* ignore */ }
+                } catch (err) { log.debug('ignore', err); }
             }
         }
     };

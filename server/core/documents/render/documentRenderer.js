@@ -37,6 +37,7 @@
  * so rendering cannot be turned into "fetch this URL for me" or worse.
  */
 
+const { featureModule } = require('../../featureModules');
 const { sanitizeContentForExport, escapeHtml } = require('../../../templates/exportTemplate');
 const log = require('../../../telemetry/log');
 
@@ -576,7 +577,7 @@ const SCREEN_DECK_SCRIPT = `<script>(function(){
     var i = 0;
     for (var k = 0; k < frames.length; k++) { if (frames[k].offsetTop - 24 <= top) i = k; }
     var next = frames[Math.max(0, Math.min(frames.length - 1, i + delta))];
-    if (next) { next.scrollIntoView({ behavior: 'smooth', block: 'start' }); try { next.focus({ preventScroll: true }); } catch (_) {} }
+    if (next) { next.scrollIntoView({ behavior: 'smooth', block: 'start' }); try { next.focus({ preventScroll: true }); } catch (_) { console.debug("focus failed", _); } }
   }
   document.addEventListener('keydown', function (e) {
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); go(1); }
@@ -591,7 +592,7 @@ const SCREEN_DECK_SCRIPT = `<script>(function(){
     if (d && d.__beeflowDeckGoto === true && typeof d.index === 'number' && frames[d.index]) frames[d.index].scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   fit();
-  try { parent.postMessage({ __beeflowDeckReady: true, slideCount: frames.length }, '*'); } catch (_) {}
+  try { parent.postMessage({ __beeflowDeckReady: true, slideCount: frames.length }, '*'); } catch (_) { console.debug("parent gone", _); }
 })();<\/script>`;
 
 /** The per-slide chrome of the viewer: logo, footer line, marking, the number. */
@@ -786,7 +787,7 @@ async function applyPdfMarkingMetadata(buffer, marking, { title = '' } = {}) {
 }
 
 async function renderPdfViaBrowser(html, { timeoutMs = 60_000, layout = 'document', marking = null } = {}) {
-    const browserProvider = require('../../../services/browserProvider');
+    const browserProvider = featureModule('services/browserProvider');
     return browserProvider.withContext({}, async (context) => {
         const page = await context.newPage();
         page.setDefaultTimeout(timeoutMs);
@@ -861,7 +862,7 @@ async function renderStyledHtmlToPdf({ html, title = '', marking = null, timeout
 
     let rendered;
     try {
-        const browserProvider = require('../../../services/browserProvider');
+        const browserProvider = featureModule('services/browserProvider');
         rendered = await browserProvider.withContext({}, async (context) => {
             const page = await context.newPage();
             page.setDefaultTimeout(timeoutMs);

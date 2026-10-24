@@ -17,6 +17,7 @@ const ncClient = require('./nextcloudClient');
 const { hasWritePrivilege } = require('./nextcloudDavProps');
 const { extractReason } = require('./nextcloudHttpError');
 const { CalendarInputError, buildVCalendarEvent, updateVCalendarEvent } = require('./nextcloudCalendarIcs');
+const log = require('../telemetry/log');
 
 const xmlParser = new XMLParser({
     ignoreAttributes: false,
@@ -222,7 +223,7 @@ function eventFromIcal(vevent) {
         };
     }
     let xMeeting = null;
-    try { xMeeting = vevent.getFirstPropertyValue('x-mailclient-online-meeting'); } catch (_) { /* no x-prop */ }
+    try { xMeeting = vevent.getFirstPropertyValue('x-mailclient-online-meeting'); } catch (err) { log.debug('no x-prop', err); }
     return {
         uid: ev.uid || null,
         summary: ev.summary || null,

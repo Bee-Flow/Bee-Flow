@@ -244,7 +244,7 @@ async function loadSession(userId) {
                 user: { id: userId, provider: 'nextcloud_connector', organizationId: u.organizationId || null, ncUid: u.nc_uid || null },
             };
         }
-    } catch (_) { /* non-fatal — fall through to token paths */ }
+    } catch (err) { log.debug('non-fatal — fall through to token paths', err); }
 
     // 1) Vault first.
     try {

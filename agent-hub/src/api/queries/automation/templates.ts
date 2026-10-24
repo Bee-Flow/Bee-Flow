@@ -7,6 +7,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { logger } from '../../../utils/logger';
 
 /** One card in the gallery (no definition: picking a template fetches it). */
 export interface TemplateCard {
@@ -87,7 +88,7 @@ export async function fetchAutomationTemplates(signal?: AbortSignal): Promise<Te
         try {
             const body = await res.json();
             if (body && typeof body.error === 'string' && body.error) message = body.error;
-        } catch { /* not JSON: keep the sentence */ }
+        } catch (err) { logger.debug('not JSON: keep the sentence', err); }
         throw new Error(message);
     }
     return parseTemplates(await res.json());

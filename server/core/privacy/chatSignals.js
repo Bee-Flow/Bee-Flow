@@ -325,7 +325,7 @@ async function _countTurnAsync(args) {
 function countTurn(args) {
     try {
         _countTurnAsync(args).catch(() => {});
-    } catch (_) { /* never on the request path */ }
+    } catch (err) { log.debug('never on the request path', err); }
     return undefined;
 }
 

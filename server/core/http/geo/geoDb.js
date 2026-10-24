@@ -119,7 +119,7 @@ async function _reload() {
         const current = kind === 'city' ? _state.cityInfo : _state.asnInfo;
         if (!file) continue;
         let mtime = 0;
-        try { mtime = fs.statSync(file).mtimeMs; } catch { /* raced with a rename */ }
+        try { mtime = fs.statSync(file).mtimeMs; } catch (err) { log.debug('raced with a rename', err); }
         if (current && current.file === file && current._mtime === mtime) continue;
         try {
             const { reader, info } = await _open(file);
@@ -157,7 +157,7 @@ function _watch() {
             });
             w.on('error', () => { /* directory removed: the next load() re-reads the sources */ });
             _watchers.push(w);
-        } catch { /* directory absent */ }
+        } catch (err) { log.debug('directory absent', err); }
     }
 }
 
@@ -261,7 +261,7 @@ function __setReadersForTests({ city = null, asn = null, edition = 'dbip-city-li
 }
 
 function __resetForTests() {
-    for (const w of _watchers) { try { w.close(); } catch { /* already closed */ } }
+    for (const w of _watchers) { try { w.close(); } catch (err) { log.debug('already closed', err); } }
     _watchers = [];
     if (_reloadTimer) clearTimeout(_reloadTimer);
     if (_updateTimer) clearTimeout(_updateTimer);

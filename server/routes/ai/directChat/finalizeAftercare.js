@@ -63,7 +63,7 @@ async function generateTitle({ convId, userId, savedMessages, send, ...modelCtx 
         }
     } catch (e) {
         log.error('[DirectChat] Title generation failed:', e.message, e.stack);
-        try { await agentStore.updateDirectConversationTitle(convId, 'New Chat', userId); send('title', { title: 'New Chat', conversationId: convId }); } catch (_) { /* non-fatal */ }
+        try { await agentStore.updateDirectConversationTitle(convId, 'New Chat', userId); send('title', { title: 'New Chat', conversationId: convId }); } catch (err) { log.debug('non-fatal', err); }
     }
 }
 
@@ -89,7 +89,7 @@ async function scheduleTitle({ conv, savedMessages, moderationViolation, convId,
     }
     // Moderation violation on a still-unnamed chat: safe generic title.
     const safeTitle = 'New Chat';
-    try { await agentStore.updateDirectConversationTitle(convId, safeTitle, userId); } catch (_) { /* non-fatal */ }
+    try { await agentStore.updateDirectConversationTitle(convId, safeTitle, userId); } catch (err) { log.debug('non-fatal', err); }
     send('title', { title: safeTitle, conversationId: convId });
     return { pendingTitle: null };
 }
@@ -124,7 +124,7 @@ async function extractTurnMemories({ req, userId, convId, messages, tokenizedMes
                 if (convMap && Object.keys(convMap).length > 0) {
                     userTextForMemory = restoreTokens(tokenizedMessage, convMap);
                 }
-            } catch (_) { /* fall back to the tokenised text */ }
+            } catch (err) { log.debug('fall back to the tokenised text', err); }
             extractionMessages = [{ role: 'user', content: userTextForMemory }];
         }
         memoryExtractor.extractFromConversation(userId, null, extractionMessages, convId, extractMemoriesEnabled ? validProjectId : null, userOrgForTiers || null)
@@ -134,7 +134,7 @@ async function extractTurnMemories({ req, userId, convId, messages, tokenizedMes
                 }
             })
             .catch(err => log.error('[DirectChat] Memory extraction failed:', err.message));
-    } catch (e) { /* extractor load failed */ }
+    } catch (e) { log.debug('extractor load failed', e); }
 }
 
 module.exports = { scheduleTitle, extractTurnMemories };

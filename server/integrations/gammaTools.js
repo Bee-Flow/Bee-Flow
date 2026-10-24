@@ -418,9 +418,7 @@ function extractGammaIdFromUrl(value) {
         const parts = lastSegment.split('-').filter(Boolean);
         const candidate = parts[parts.length - 1] || lastSegment;
         if (/^[A-Za-z0-9_-]{6,}$/.test(candidate)) return candidate;
-    } catch {
-        // Not a URL. Fall through and treat a bare ID as a possible candidate.
-    }
+    } catch (err) { log.debug('Not a URL. Fall through and treat a bare ID as a possible candidate.', err); }
 
     if (/^g_[A-Za-z0-9_-]+$/.test(input)) return input;
     return null;

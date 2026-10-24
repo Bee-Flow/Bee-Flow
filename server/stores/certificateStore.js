@@ -10,6 +10,7 @@
 // the plaintext token (which is recomputable on demand from the HMAC secret).
 
 const configStore = require('./configStore');
+const log = require('../telemetry/log');
 
 const userKey = (userId) => `learning_certificate_user_${userId}`;
 const lookupKey = (hash) => `learning_cert_lookup_${hash}`;
@@ -37,7 +38,7 @@ async function setLookup(tokenHash, userId, certId) {
 }
 
 async function clearLookup(tokenHash) {
-    try { await configStore.setConfig(lookupKey(tokenHash), null); } catch (_) { /* best-effort */ }
+    try { await configStore.setConfig(lookupKey(tokenHash), null); } catch (err) { log.debug('best-effort', err); }
 }
 
 async function resolveByTokenHash(tokenHash) {

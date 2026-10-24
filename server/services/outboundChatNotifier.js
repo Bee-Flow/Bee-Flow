@@ -101,7 +101,7 @@ async function getSettings() {
 async function getPublicSettings() {
     const s = await getSettings();
     let host = null;
-    try { if (s.url) host = new URL(s.url).host; } catch (_) { /* malformed: shown as configured-but-broken */ }
+    try { if (s.url) host = new URL(s.url).host; } catch (err) { log.debug('malformed: shown as configured-but-broken', err); }
     return {
         configured: !!s.url,
         enabled: s.enabled,

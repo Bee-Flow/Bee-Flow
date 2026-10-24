@@ -83,8 +83,7 @@ function ErrorCard({ label, onRetry }: ErrorCardProps) {
             </p>
             <button
                 onClick={onRetry}
-                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors hover:opacity-80"
-                style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', borderColor: 'var(--border-default)' }}
+                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors hover:opacity-80 [background:var(--bg-secondary)] [color:var(--text-primary)]! [border-color:var(--border-default)]"
             >
                 <RefreshCw className="w-3.5 h-3.5" /> {t('modules.retry')}
             </button>

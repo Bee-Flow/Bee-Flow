@@ -77,7 +77,7 @@ function _recordFailure() {
                 null,
                 { failures: _circuit.failures.length, window_ms: CIRCUIT_WINDOW_MS }
             ).catch(() => {});
-        } catch (_) { /* audit best-effort */ }
+        } catch (err) { log.debug('audit best-effort', err); }
     }
 }
 
@@ -180,7 +180,7 @@ async function drainOnce(targetIdentifier = null) {
         // even if another worker grabs the same row on the next tick.
         await client.query('COMMIT');
     } catch (e) {
-        try { await client.query('ROLLBACK'); } catch (_) { /* ignore */ }
+        try { await client.query('ROLLBACK'); } catch (err) { log.debug('ignore', err); }
         log.error('[PaygDrain] Claim failed:', e.message);
         return { delivered: 0, failed: 0, hardFailed: 0 };
     } finally {
@@ -218,7 +218,7 @@ async function drainOnce(targetIdentifier = null) {
                     null,
                     { identifier: row.identifier, attempts: row.attempt_count, age_days: Math.floor(ageDays) }
                 );
-            } catch (_) { /* audit best-effort */ }
+            } catch (err) { log.debug('audit best-effort', err); }
             continue;
         }
 

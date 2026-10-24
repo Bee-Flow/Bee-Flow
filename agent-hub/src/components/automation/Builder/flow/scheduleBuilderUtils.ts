@@ -1,3 +1,4 @@
+import { logger } from '../../../../utils/logger';
 /**
  * Pure helpers for the visual schedule builder.
  *
@@ -54,7 +55,7 @@ export const TIMEZONE_OPTIONS: string[] = (() => {
             const list = Intl.supportedValuesOf('timeZone');
             if (Array.isArray(list) && list.length > 20) return list;
         }
-    } catch (_) { /* fall through */ }
+    } catch (err) { logger.debug('fall through', err); }
     return [
         'UTC',
         'Europe/Amsterdam', 'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Madrid',

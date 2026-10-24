@@ -14,6 +14,7 @@
  * 2026-08 and agent-tasks-to-cowork-2026-10).
  */
 
+const { featureModule } = require('./featureModules');
 const { utcOffsetString } = require('./llm/clock');
 const { resolveModelForTier, resolveEffectiveOrgId, TIER_DEFAULTS } = require('./llm/modelResolver');
 const { getProviderForModel } = require('./aiAgent');
@@ -423,9 +424,9 @@ async function loadTaskTools(task, session) {
         log.warn(`[AITaskRunner] Failed to load integration tools: ${err.message}`);
         // Fallback: try to load at least web search
         try {
-            const { AGENT_SEARCH_TOOLS } = require('../integrations/agentSearchTools');
+            const { AGENT_SEARCH_TOOLS } = featureModule('integrations/agentSearchTools');
             tools = [...AGENT_SEARCH_TOOLS];
-        } catch (_) { /* no search available */ }
+        } catch (err) { log.debug('no search available', err); }
     }
     return { tools, toolHint };
 }
@@ -535,7 +536,7 @@ async function failRun(task, err, { manual, store }) {
             // you need to reach, so this one does link back.
             link: require('../utils/appPaths').coworkTaskPath(task.id),
         });
-    } catch (_) { /* don't fail on notification failure */ }
+    } catch (err) { log.debug('don\'t fail on notification failure', err); }
 }
 
 // ── Background timer ─────────────────────────────────────

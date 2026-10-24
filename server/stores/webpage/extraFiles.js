@@ -8,6 +8,7 @@ const { run, getOne, getAll } = require('../../db');
 const storageStore = require('../storageStore');
 const { initDB } = require('./schema');
 const { sha256 } = require('./shared');
+const log = require('../../telemetry/log');
 
 // ── Extra-files (multi-file) RustFS helpers ────────────────────────
 //
@@ -119,7 +120,7 @@ async function writeExtra(userId, webpageId, path, content, mimeType) {
 
 async function deleteExtra(userId, webpageId, path) {
     if (!storageStore.isAvailable()) return;
-    try { await storageStore.deleteFile(extraKey(userId, webpageId, path)); } catch (_) { /* ignore */ }
+    try { await storageStore.deleteFile(extraKey(userId, webpageId, path)); } catch (err) { log.debug('ignore', err); }
 }
 
 // ── Extra-files DB CRUD ───────────────────────────────────────────

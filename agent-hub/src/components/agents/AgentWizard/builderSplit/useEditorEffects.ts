@@ -4,6 +4,7 @@ import type { ChatMessage } from '../agentEditor.types';
 import type { EditorSnapshot } from './agentSaveTypes';
 import type { EditorAgent, EditorPlan } from './editorTypes';
 import { pickAgentAvatar, DEFAULT_AGENT_EMOJI } from '../../../../utils/agentAvatar';
+import { logger } from '../../../../utils/logger';
 
 /**
  * Mounted flag so async handlers can skip setState after unmount. Pair with
@@ -20,7 +21,7 @@ export function useMountedRef() {
         unmountAbortRef.current = new AbortController();
         return () => {
             mountedRef.current = false;
-            try { unmountAbortRef.current?.abort(); } catch { /* noop */ }
+            try { unmountAbortRef.current?.abort(); } catch (err) { logger.debug('noop', err); }
         };
     }, []);
     return mountedRef;
@@ -36,7 +37,7 @@ export function useSkillPickerOutsideClose(skillPickerOpen: boolean, setSkillPic
         };
         document.addEventListener('mousedown', onDoc);
         return () => document.removeEventListener('mousedown', onDoc);
-    }, [skillPickerOpen]);
+    }, [actionBarRef, setSkillPickerOpen, skillPickerOpen]);
 }
 
 interface SyncInputs {
@@ -78,7 +79,7 @@ export function useEditorSync({ initialAgent, plan, agent, name, instructions, d
         if (distanceFromBottom <= STICK_THRESHOLD_PX) {
             el.scrollTop = el.scrollHeight;
         }
-    }, [chat]);
+    }, [chat, chatScrollRef]);
 
     useEffect(() => {
         // Sync the chat-input tier pill with the agent's persisted tier on mount
@@ -87,7 +88,7 @@ export function useEditorSync({ initialAgent, plan, agent, name, instructions, d
         if (initialAgent?.model && initialAgent.model.startsWith('tier:')) {
             setSelectedTier(initialAgent.model.slice('tier:'.length));
         }
-    }, [initialAgent?.id, initialAgent?.model]);
+    }, [initialAgent?.id, initialAgent?.model, setSelectedTier]);
 
     const stateRef = useRef<EditorSnapshot>({
         name,
@@ -109,7 +110,7 @@ export function useEditorSync({ initialAgent, plan, agent, name, instructions, d
             const len = el.value.length;
             el.setSelectionRange(len, len);
         }
-    }, [instructionsEditing]);
+    }, [instructionsEditing, instructionsTextareaRef]);
 
     const agentIdRef = useRef<string | null | undefined>(agent?.id);
     useEffect(() => { agentIdRef.current = agent?.id; }, [agent?.id]);

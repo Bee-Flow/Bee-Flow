@@ -4,6 +4,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import { NC_BLUE, LANGS, Toggle, Row, Select } from '../../pages/settings/shared/settingsPrimitives';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
+import { logger } from '../../utils/logger';
 
 interface MeetingNotesAdminPanelProps {
     user?: { organizationId?: string } | null;
@@ -45,7 +46,7 @@ export default function MeetingNotesAdminPanel({ user }: MeetingNotesAdminPanelP
             try {
                 const res = await authFetch(`${API_BASE}/api/talk-notes-settings/${orgId}`);
                 if (res.ok) { const data = await res.json(); setCfg((prev: TalkNotesConfig) => ({ ...prev, ...data })); }
-            } catch (_) { /* ignore */ } finally { setLoading(false); }
+            } catch (err) { logger.debug('ignore', err); } finally { setLoading(false); }
         })();
     }, [orgId]);
 

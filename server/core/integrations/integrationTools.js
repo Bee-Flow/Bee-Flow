@@ -9,60 +9,12 @@
 
 const configStore = require('../../stores/configStore');
 const { resolveOrgAllowList, resolveOrgActiveSet } = require('./enabledIntegrations');
-const { GMAIL_TOOLS } = require('../../integrations/gmailTools');
-const { CALENDAR_TOOLS } = require('../../integrations/calendarTools');
-const { DRIVE_TOOLS } = require('../../integrations/driveTools');
-const { DOCS_TOOLS } = require('../../integrations/docsTools');
-const { SHEETS_TOOLS } = require('../../integrations/sheetsTools');
-const { SLIDES_TOOLS } = require('../../integrations/slidesTools');
-const { CONTACTS_TOOLS } = require('../../integrations/contactsTools');
-const { KEEP_TOOLS } = require('../../integrations/keepTools');
-const { GOOGLE_GROUPS_TOOLS } = require('../../integrations/googleGroupsTools');
-const { FIREFLIES_TOOLS } = require('../../integrations/firefliesTools');
-const { YOUTRACK_TOOLS } = require('../../integrations/youtrackTools');
-const { SIGNREQUEST_TOOLS } = require('../../integrations/signrequestTools');
-const { GAMMA_TOOLS } = require('../../integrations/gammaTools');
-const { AFAS_TOOLS } = require('../../integrations/afasTools');
-const { NMBRS_TOOLS } = require('../../integrations/nmbrsTools');
-const { VPLAN_TOOLS } = require('../../integrations/vplanTools');
-const { SCALEWAY_BILLING_TOOLS } = require('../../integrations/scalewayBillingTools');
-const { buildN8nTools } = require('../../integrations/n8nTools');
-const { N8N_WORKFLOW_TOOLS, getN8nToolPermission } = require('../../integrations/n8nWorkflowTools');
 const { hasPermission } = require('../../auth/permissions');
-const { AGENT_SEARCH_TOOLS } = require('../../integrations/agentSearchTools');
-const { BROWSE_WEB_TOOLS } = require('../../integrations/browserFetchTools');
-const { REGEX_GENERATOR_TOOLS } = require('../../integrations/regexGeneratorTools');
 const { IMAGE_GEN_TOOLS } = require('../tools/imageGenTool');
 const { VIDEO_GEN_TOOLS } = require('../tools/videoGenTool');
 const { ELEVENLABS_TOOLS } = require('../tools/elevenLabsTools');
-const { WORKSPACE_TOOLS } = require('../../integrations/workspaceTools');
-const { KB_SEARCH_TOOLS } = require('../../integrations/kbSearchTools');
-const { KB_INGEST_TOOLS } = require('../../integrations/kbIngestTools');
-const { MAPS_TOOLS } = require('../../integrations/mapsTools');
-const { LINKEDIN_TOOLS } = require('../../integrations/linkedinTools');
-const { WITHINGS_TOOLS } = require('../../integrations/withingsTools');
-const { GITHUB_TOOLS } = require('../../integrations/githubTools');
-const { OUTLOOK_TOOLS, OUTLOOK_READONLY_TOOLS } = require('../../integrations/outlookTools');
-const { MS_CALENDAR_TOOLS } = require('../../integrations/msCalendarTools');
-const { ONEDRIVE_TOOLS } = require('../../integrations/oneDriveTools');
-const { MS_CONTACTS_TOOLS } = require('../../integrations/msContactsTools');
-const { TRANSCRIPTION_TOOLS } = require('../../integrations/transcriptionTools');
-const { NEXTCLOUD_TOOLS } = require('../../integrations/nextcloudTools');
-const { NEXTCLOUD_CALENDAR_TOOLS } = require('../../integrations/nextcloudCalendarTools');
-const { NEXTCLOUD_CONTACTS_TOOLS } = require('../../integrations/nextcloudContactsTools');
-const { NEXTCLOUD_DECK_TOOLS } = require('../../integrations/nextcloudDeckTools');
-const { NEXTCLOUD_NOTIFICATIONS_TOOLS } = require('../../integrations/nextcloudNotificationsTools');
-const { NEXTCLOUD_TALK_TOOLS } = require('../../integrations/nextcloudTalkTools');
-const { NEXTCLOUD_TASKS_TOOLS } = require('../../integrations/nextcloudTasksTools');
-const { NEXTCLOUD_NOTES_TOOLS } = require('../../integrations/nextcloudNotesTools');
-const { NEXTCLOUD_MAIL_TOOLS } = require('../../integrations/nextcloudMailTools');
-const { NEXTCLOUD_ACTIVITY_TOOLS } = require('../../integrations/nextcloudActivityTools');
-const { NEXTCLOUD_TABLES_TOOLS } = require('../../integrations/nextcloudTablesTools');
-const { NEXTCLOUD_FORMS_TOOLS } = require('../../integrations/nextcloudFormsTools');
-const { NEXTCLOUD_TEAMS_TOOLS } = require('../../integrations/nextcloudTeamsTools');
-const { NEXTCLOUD_STATUS_TOOLS } = require('../../integrations/nextcloudStatusTools');
-const { WEBPAGE_AUTOMATION_TOOLS } = require('../../integrations/webpageAutomationTools');
 const log = require('../../telemetry/log');
+const { featureModule } = require('../featureModules');
 const { userHasBetaFeature } = require('../entitlements/betaFeatures');
 const { createWebpageToolsAllowed } = require('./integrationAppPolicy');
 const { createRuntimeAppGate } = require('./runtimeAppGate');
@@ -90,7 +42,7 @@ const lazy = {
     mcpManager: () => require('../mcpManager'),
     mcpLibraryGate: () => require('../customIntegrations/mcpLibrary/gate'),
     orgCustomIntegrationStore: () => require('../../stores/orgCustomIntegrationStore'),
-    customIntegrationRunner: () => require('../../integrations/customIntegrationRunner'),
+    customIntegrationRunner: () => featureModule('integrations/customIntegrationRunner'),
 };
 const webpageToolsAllowed = createWebpageToolsAllowed({ userHasBetaFeature, lazy });
 const resolveRuntimeAppGate = createRuntimeAppGate({ configStore, resolveOrgAllowList, resolveOrgActiveSet, lazy });
@@ -101,41 +53,31 @@ const { getUserPermittedApps, isIntegrationPermittedForUser } = createUserAppGat
 // The toolsets and the collaborators the tool groups (./integrationToolGroups,
 // ./integrationToolFeatures) read, handed in: they sit in the server's large
 // import cycle, which those modules stay out of. The lazy ones stay lazy.
-const TOOLSETS = {
-    GMAIL_TOOLS, CALENDAR_TOOLS, DRIVE_TOOLS, DOCS_TOOLS,
-    SHEETS_TOOLS, SLIDES_TOOLS, CONTACTS_TOOLS, KEEP_TOOLS,
-    GOOGLE_GROUPS_TOOLS, FIREFLIES_TOOLS, YOUTRACK_TOOLS, SIGNREQUEST_TOOLS,
-    GAMMA_TOOLS, AFAS_TOOLS, NMBRS_TOOLS, VPLAN_TOOLS,
-    SCALEWAY_BILLING_TOOLS, N8N_WORKFLOW_TOOLS, AGENT_SEARCH_TOOLS, BROWSE_WEB_TOOLS,
-    REGEX_GENERATOR_TOOLS, IMAGE_GEN_TOOLS, VIDEO_GEN_TOOLS, ELEVENLABS_TOOLS,
-    WORKSPACE_TOOLS, KB_SEARCH_TOOLS, KB_INGEST_TOOLS, MAPS_TOOLS,
-    LINKEDIN_TOOLS, WITHINGS_TOOLS, GITHUB_TOOLS, OUTLOOK_TOOLS,
-    OUTLOOK_READONLY_TOOLS, MS_CALENDAR_TOOLS, ONEDRIVE_TOOLS, MS_CONTACTS_TOOLS,
-    TRANSCRIPTION_TOOLS, NEXTCLOUD_TOOLS, NEXTCLOUD_CALENDAR_TOOLS, NEXTCLOUD_CONTACTS_TOOLS,
-    NEXTCLOUD_DECK_TOOLS, NEXTCLOUD_NOTIFICATIONS_TOOLS, NEXTCLOUD_TALK_TOOLS, NEXTCLOUD_TASKS_TOOLS,
-    NEXTCLOUD_NOTES_TOOLS, NEXTCLOUD_MAIL_TOOLS, NEXTCLOUD_ACTIVITY_TOOLS, NEXTCLOUD_TABLES_TOOLS,
-    NEXTCLOUD_FORMS_TOOLS, NEXTCLOUD_TEAMS_TOOLS, NEXTCLOUD_STATUS_TOOLS,
-};
-const GROUP_DEPS = {
-    configStore, buildN8nTools, N8N_WORKFLOW_TOOLS, getN8nToolPermission, hasPermission,
+// The integration tool arrays and the feature-side collaborators come from
+// integrations/coreToolsets.js, looked up by name (core/featureModules.js: core
+// may not require a feature) on first use; the core toolsets and lazy
+// collaborators are listed here.
+const CORE_TOOLSETS = { IMAGE_GEN_TOOLS, VIDEO_GEN_TOOLS, ELEVENLABS_TOOLS };
+const CORE_GROUP_DEPS = {
+    configStore, hasPermission,
     googleSessionHydration: () => require('../../auth/googleSessionHydration'),
     microsoftSessionHydration: () => require('../../auth/microsoftSessionHydration'),
-    pwtRunner: () => require('../../services/pwtRunner'),
-    webSearchAvailability: () => require('../../integrations/webSearchAvailability'),
+    pwtRunner: () => featureModule('services/pwtRunner'),
+    agentCallableTools: () => featureModule('automation/agentCallableTools'),
     connectionResolution: () => require('./connectionResolution'),
     integrationConnectionStore: () => require('../../stores/integrationConnectionStore'),
     automationCredentialStore: () => require('../../stores/automationCredentialStore'),
     entitlements: () => require('../entitlements/entitlements'),
-    officeFileDelivery: () => require('../../integrations/officeFileDelivery'),
-    memoryTools: () => require('../../integrations/memoryTools'),
-    automationEvolutionTools: () => require('../../integrations/automationEvolutionToolDefs'),
     datatableTools: () => require('../tools/datatableTools'),
-    nextcloudClient: () => require('../../integrations/nextcloudClient'),
     userStore: () => require('../../stores/userStore'),
     ncScope: () => require('./ncScope'),
     toolPolicy: () => require('../agentRuntime/toolPolicy'),
-    agentCallableTools: () => require('../../automation/agentCallableTools'),
 };
+/** The toolsets and group collaborators, feature side included (read per call, so a test's stubs are seen). */
+function featureToolsets() {
+    const { TOOLSETS, GROUP_DEPS } = featureModule('integrations/coreToolsets');
+    return { T: { ...TOOLSETS, ...CORE_TOOLSETS }, D: { ...GROUP_DEPS, ...CORE_GROUP_DEPS } };
+}
 
 // The app-id lists (ORG_EXEMPT_APPS, AUTO_ENABLED_APPS) and webpageToolsAllowed
 // live in integrationAppPolicy.js; the gate that folds them with the org,
@@ -165,6 +107,7 @@ const GROUP_DEPS = {
  */
 async function getIntegrationTools({ userId, session, isAdmin, agentConfig, agentId = null, automationStep = false, connectionPolicy = null, extraEnabledApps = null, enabledAppsOverride = null }) {
     const tools = [];
+    const { T: TOOLSETS, D: GROUP_DEPS } = featureToolsets();
 
     const { userSimpleMode, userOrgId, resolvedUserGroupIds, entSnapshot, effectiveIntegrations, isAppOn } =
         await resolveRuntimeAppGate({ userId, session, isAdmin, extraEnabledApps, enabledAppsOverride });
@@ -218,7 +161,7 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, agen
     if (await webpageToolsAllowed({
         userId, session, groupIds: resolvedUserGroupIds, orgId: userOrgId, simpleMode: userSimpleMode,
     })) {
-        addTools(WEBPAGE_AUTOMATION_TOOLS);
+        addTools(TOOLSETS.WEBPAGE_AUTOMATION_TOOLS);
     }
 
     // MCP servers are integrations (id `mcp:<serverId>`). Gate them by the same

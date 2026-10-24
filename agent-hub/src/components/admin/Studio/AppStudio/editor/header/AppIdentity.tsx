@@ -60,12 +60,7 @@ function AppNameField({ app, locked, isManaged, noteRefusal, onAppUpdated }: App
                     }
                 }}
                 aria-label={t('app_studio.header.name_aria', 'App name')}
-                className="w-48 rounded border px-2 py-1 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                style={{
-                    background: 'var(--bg-secondary)',
-                    borderColor: 'var(--accent-primary)',
-                    color: 'var(--text-primary)',
-                }}
+                className="w-48 rounded border px-2 py-1 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] [background:var(--bg-secondary)] [border-color:var(--accent-primary)] [color:var(--text-primary)]!"
             />
         );
     }

@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
-import { authFetch } from '../../../utils/helpers';
 import {
     regenerateSummary,
     listSummaryTemplates,
@@ -10,6 +9,7 @@ import {
     updateSummaryTemplate,
     deleteSummaryTemplate,
 } from './transcriptionsApi';
+import { authFetch } from '../../../utils/helpers';
 
 const ok = (body = {}) => ({ ok: true, status: 200, json: async () => body });
 

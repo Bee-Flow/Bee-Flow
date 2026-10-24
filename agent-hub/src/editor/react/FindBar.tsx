@@ -6,13 +6,14 @@
  * document as it changes — including co-editors' typing. Enter / Shift+Enter
  * step through them, Escape closes and puts the caret on the current match.
  */
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode, useEffectEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronUp, Replace, X, CaseSensitive } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
 import { findMatches, matchIndexFrom, replaceMatches, type FindMatch } from '../engine/find';
 import { textSelection, pos, isText, selRange } from '../engine/selection.js';
 import RangeOverlay from './RangeOverlay';
+import { logger } from '../../utils/logger';
 
 interface Props {
     view: any;
@@ -118,11 +119,12 @@ function useFindMatches(view: any, query: string, caseSensitive: boolean, tick: 
     const index = matches.length ? Math.min(current, matches.length - 1) : -1;
 
     // Start from the first match at or after the caret when the query changes.
-    useEffect(() => {
+    const runMatchesEffect = useEffectEvent(() => {
         const sel = view?.state?.selection;
         setCurrent(matchIndexFrom(matches, isText(sel) ? (selRange(sel) as any).from : null));
         setNav((n) => n + 1);
-    }, [query, caseSensitive]);
+    });
+    useEffect(() => { return runMatchesEffect(); }, [query, caseSensitive]);
 
     const ranges: Range[] = useMemo(
         () => matches.map((m) => (view ? view.rangeFor(m.from, m.to) : null)).filter(Boolean) as Range[],
@@ -135,7 +137,7 @@ function useFindMatches(view: any, query: string, caseSensitive: boolean, tick: 
         scrolledNav.current = nav;
         const r = index >= 0 ? ranges[index] : null;
         const el = r ? (r.startContainer.nodeType === 1 ? r.startContainer : r.startContainer.parentElement) as Element | null : null;
-        try { el?.scrollIntoView?.({ block: 'center', behavior: 'smooth' }); } catch { /* old engines */ }
+        try { el?.scrollIntoView?.({ block: 'center', behavior: 'smooth' }); } catch (err) { logger.debug('old engines', err); }
     }, [nav, index, ranges]);
 
     const layers = useMemo(() => [

@@ -62,6 +62,7 @@ const { isoDate, isoDateTime, hasTime } = require('./cells');
 const sync = require('./sync');
 const { KIND, PROVIDERS } = require('./index');
 const { resolveDeclared } = require('./linkRelations');
+const log = require('../../../../telemetry/log');
 
 const TAG = '[SpreadsheetFile]';
 const MAX_TABLES_PER_LINK = 10;
@@ -886,7 +887,7 @@ async function assertKeyUnique(source, next, fieldId, entry, ctx) {
 /** DELETE /:id: the mirror is gone; forget what was held about the link. */
 async function unlinked(table) {
     const source = (table && table.source) || {};
-    try { require('./linkerAuth').forget(source.linkedByUserId); } catch (_) { /* memo only */ }
+    try { require('./linkerAuth').forget(source.linkedByUserId); } catch (err) { log.debug('memo only', err); }
     const file = source.file || {};
     cache.forget(`${source.provider}|${source.provider === 'nextcloud_files' ? (file.path || '') : (file.id || '')}`);
 }

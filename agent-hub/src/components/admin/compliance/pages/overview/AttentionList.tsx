@@ -229,7 +229,7 @@ function AttentionRow({ item, confirming, busy, onAction, onOpenSubject, onCance
 
     return (
         <li className="grid grid-cols-[18px_1fr_auto] items-start gap-2.5 border-t border-[var(--border-default)] py-2 first:border-t-0" data-testid={testId} data-status={item.status} data-id={item.id}>
-            <Glyph size={14} className="mt-0.5" style={{ color: TONES[tone].ink }} aria-hidden />
+            {React.createElement(Glyph, { size: 14, className: "mt-0.5", style: { color: TONES[tone].ink }, "aria-hidden": true })}
             <div className="min-w-0">
                 <div className="text-xs font-medium text-[var(--text-primary)]">{item.titleKey ? t(item.titleKey, item.title) : item.title}</div>
                 {parts.length ? (

@@ -3,6 +3,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import vegaEmbed from 'vega-embed';
 import type { EmbedOptions, Result } from 'vega-embed';
 import { errorMessage } from '../../utils/caughtError';
+import { logger } from '../../utils/logger';
 
 /**
  * VegaLiteRenderer — renders a Vega-Lite JSON spec as an interactive chart.
@@ -33,6 +34,7 @@ const VegaLiteRenderer = ({ spec: specString }: { spec: string | Record<string, 
 
     useEffect(() => {
         if (!containerRef.current || !specString) return;
+        const containerEl = containerRef.current;
 
         let parsedSpec;
         try {
@@ -165,7 +167,7 @@ const VegaLiteRenderer = ({ spec: specString }: { spec: string | Record<string, 
                 if (viewRef.current) {
                     try {
                         viewRef.current.resize().runAsync();
-                    } catch { /* ignore */ }
+                    } catch (err) { logger.debug('ignore', err); }
                 }
             });
             resizeObserver.observe(wrapperRef.current);
@@ -173,26 +175,16 @@ const VegaLiteRenderer = ({ spec: specString }: { spec: string | Record<string, 
 
         return () => {
             resizeObserver?.disconnect();
-            if (containerRef.current) {
-                containerRef.current.innerHTML = '';
-            }
+            containerEl.innerHTML = '';
             viewRef.current = null;
         };
     }, [specString, resolveTheme]);
 
     if (error) {
         return (
-            <div style={{
-                padding: '12px 16px',
-                borderRadius: '10px',
-                background: 'var(--bg-tertiary, #1e1e2e)',
-                border: '1px solid var(--error)',
-                color: 'var(--error)',
-                fontSize: '13px',
-                margin: '8px 0'
-            }}>
-                <div style={{ fontWeight: 600, marginBottom: '4px' }}>⚠️ {t('chat.renderers.chart_error', 'Chart Error')}</div>
-                <div style={{ opacity: 0.8 }}>{error}</div>
+            <div className="[padding:12px_16px] [border-radius:10px] [background:var(--bg-tertiary,#1e1e2e)] [border:1px_solid_var(--error)] [color:var(--error)] [font-size:13px] [margin:8px_0]">
+                <div className="[font-weight:600] [margin-bottom:4px]">⚠️ {t('chat.renderers.chart_error', 'Chart Error')}</div>
+                <div className="[opacity:0.8]">{error}</div>
             </div>
         );
     }
@@ -216,10 +208,7 @@ const VegaLiteRenderer = ({ spec: specString }: { spec: string | Record<string, 
         >
             <div
                 ref={containerRef}
-                style={{
-                    width: '100%',
-                    minHeight: '200px',
-                }}
+                className="w-[100%] min-h-[200px]"
             />
         </div>
     );

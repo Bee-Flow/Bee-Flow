@@ -40,8 +40,7 @@ const SettingsDropdown = ({ label, options, value, onChange, accentColor = '#3B8
         <div ref={ref} className="relative">
             <label className="block text-[11px] font-medium mb-1.5 text-[var(--text-secondary)]">{label}</label>
             <button onClick={() => setOpen(!open)}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[11px] font-medium transition-all"
-                style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}>
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[11px] font-medium transition-all [background:var(--bg-tertiary)] [border:1px_solid_var(--border-subtle)] [color:var(--text-primary)]!">
                 <span>{selected.label}</span>
                 <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''} text-[var(--text-muted)]`} />
             </button>

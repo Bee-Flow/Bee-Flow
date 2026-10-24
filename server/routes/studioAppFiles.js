@@ -216,7 +216,7 @@ router.post('/:id/data/attachments', requireAuth, uploadLimiter, validate({ para
 
     const scan = await scanBuffer(file.buffer);
     if (!scan.clean) {
-        try { await storageStore.deleteFile(key); } catch (_) { /* best-effort cleanup */ }
+        try { await storageStore.deleteFile(key); } catch (err) { log.debug('best-effort cleanup', err); }
         return res.status(422).json({ error: 'File failed a malware scan', signature: scan.signature || null });
     }
 
@@ -454,7 +454,7 @@ router.delete('/:id/data/attachments/:fileId', requireAuth, uploadLimiter, valid
         // Best-effort: the ledger row is already gone, so the bytes no
         // longer count as used space either way — an orphan object is a
         // storage-sweep problem, not a correctness one.
-        try { await storageStore.deleteFile(attachmentKey(app.userId, app.id, attachment.sha256)); } catch (_) { /* swept later */ }
+        try { await storageStore.deleteFile(attachmentKey(app.userId, app.id, attachment.sha256)); } catch (err) { log.debug('swept later', err); }
     }
 
     res.json({ success: true });

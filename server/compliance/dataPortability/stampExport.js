@@ -19,6 +19,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const log = require('../../telemetry/log');
 
 const CHECK_ID = 'DATA_ACT-Art25-exit-procedure';
 const ACTION = 'data_export_performed';
@@ -26,7 +27,7 @@ const SUBJECT_TYPE = 'export';
 
 function _formatFromResponse(res) {
     let ct = '';
-    try { ct = String(res.getHeader('content-type') || '').toLowerCase(); } catch { /* headers gone */ }
+    try { ct = String(res.getHeader('content-type') || '').toLowerCase(); } catch (err) { log.debug('headers gone', err); }
     if (!ct) return null;
     if (ct.includes('json')) return 'json';
     if (ct.includes('csv')) return 'csv';

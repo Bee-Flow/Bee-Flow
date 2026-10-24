@@ -64,22 +64,22 @@ export default function SettingsSection({ settings, sites = [], onSaved, onSites
     };
 
     return (
-        <div className="absolute inset-0 overflow-auto" style={{ background: 'var(--bg-primary)' }}>
-            <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 28px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+        <div className="absolute inset-0 overflow-auto [background:var(--bg-primary)]">
+            <div className="max-w-[720px] [margin:0_auto] [padding:24px_28px]">
+                <div className="[display:flex] [align-items:center] [gap:10px] [margin-bottom:6px]">
                     {onClose && (
                         <button onClick={onClose} style={iconBtnStyle} title={t('cms_site.analytics.settings.back', 'Back to dashboard')}>
                             <ArrowLeft style={{ width: 15, height: 15 }} />
                         </button>
                     )}
-                    <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary, #fff)', margin: 0 }}>{t('cms_site.analytics.settings.title', 'Analytics settings')}</h2>
+                    <h2 className="[font-size:18px] [font-weight:800] [color:var(--text-primary,#fff)] [margin:0]">{t('cms_site.analytics.settings.title', 'Analytics settings')}</h2>
                 </div>
-                <p style={{ fontSize: 12, color: 'var(--text-muted, #888)', margin: '0 0 20px' }}>
+                <p className="[font-size:12px] [color:var(--text-muted,#888)] [margin:0_0_20px]">
                     {t('cms_site.analytics.settings.intro', 'Connect your self-hosted Umami instance. Visitor data stays on your own infrastructure.')}
                 </p>
 
-                {err && <div style={{ marginBottom: 14 }}><ErrorNote message={err} /></div>}
-                {msg && <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 10, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', color: '#6ee7b7', fontSize: 13 }}>{msg}</div>}
+                {err && <div className="[margin-bottom:14px]"><ErrorNote message={err} /></div>}
+                {msg && <div className="[margin-bottom:14px] [padding:10px_14px] [border-radius:10px] [background:rgba(16,185,129,0.08)] [border:1px_solid_rgba(16,185,129,0.25)] [color:#6ee7b7] [font-size:13px]">{msg}</div>}
 
                 <Card>
                     <Toggle label={t('cms_site.analytics.settings.enable', 'Enable tracking')} hint={t('cms_site.analytics.settings.enable_hint', 'Injects the tracker on your live published site.')} checked={enabled} onChange={setEnabled} />
@@ -87,18 +87,18 @@ export default function SettingsSection({ settings, sites = [], onSaved, onSites
                         <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://stats.example.com" style={inputStyle} />
                     </Field>
 
-                    <div style={{ margin: '6px 0 14px' }}>
+                    <div className="[margin:6px_0_14px]">
                         <label style={labelStyle}>{t('cms_site.analytics.settings.consent', 'Consent mode')}</label>
-                        <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                        <div className="[display:flex] [gap:8px] [margin-top:6px]">
                             <ModeChip active={consentMode === 'cookieless'} onClick={() => setConsentMode('cookieless')} title={t('cms_site.analytics.settings.cookieless', 'Cookieless')} desc={t('cms_site.analytics.settings.cookieless_desc', 'No cookies, no consent banner needed')} />
                             <ModeChip active={consentMode === 'cookies'} onClick={() => setConsentMode('cookies')} title={t('cms_site.analytics.settings.cookies', 'Cookies')} desc={t('cms_site.analytics.settings.cookies_desc', 'Loads only after the visitor accepts cookies')} />
                         </div>
-                        <p style={{ fontSize: 11, color: 'var(--text-muted, #777)', margin: '6px 0 0' }}>
+                        <p className="[font-size:11px] [color:var(--text-muted,#777)] [margin:6px_0_0]">
                             {t('cms_site.analytics.settings.cookies_note', 'In “Cookies” mode nothing is counted until a visitor presses Accept — including your own test visits.')}
                         </p>
                     </div>
 
-                    <div style={{ borderTop: '1px solid var(--border-default, rgba(255,255,255,0.08))', margin: '8px 0 14px', paddingTop: 14 }}>
+                    <div className="[border-top:1px_solid_var(--border-default,rgba(255,255,255,0.08))] [margin:8px_0_14px] [padding-top:14px]">
                         <p style={sectionLabelStyle}>{settings?.configured ? t('cms_site.analytics.settings.credentials_stored', 'Credentials (stored — leave blank to keep)') : t('cms_site.analytics.settings.credentials', 'Credentials')}</p>
                         <Field label={t('cms_site.analytics.settings.username', 'Username')} hint={t('cms_site.analytics.settings.username_hint', 'Umami admin user (for token login).')}>
                             <input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="off" placeholder={settings?.configured ? '••••••••' : 'admin'} style={inputStyle} />
@@ -111,7 +111,7 @@ export default function SettingsSection({ settings, sites = [], onSaved, onSites
                         </Field>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                    <div className="[display:flex] [align-items:center] [gap:10px] [margin-top:4px]">
                         <button onClick={save} disabled={saving} style={primaryBtnStyle}>
                             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                             {saving ? t('cms_site.analytics.settings.saving', 'Saving…') : t('cms_site.analytics.settings.save', 'Save settings')}
@@ -124,17 +124,17 @@ export default function SettingsSection({ settings, sites = [], onSaved, onSites
                     </div>
                 </Card>
 
-                <div style={{ marginTop: 14 }}>
+                <div className="[margin-top:14px]">
                     <TrackerCard tracker={tracker} onChange={patchTracker} onSave={save} saving={saving} />
                 </div>
-                <div style={{ marginTop: 14 }}>
+                <div className="[margin-top:14px]">
                     <RecorderCard recorder={recorder} maskLevels={settings?.maskLevels} onChange={patchRecorder} />
                 </div>
-                <div style={{ marginTop: 14 }}><DiagnoseCard /></div>
-                <div style={{ marginTop: 14 }}><ConnectionCard configured={settings?.configured} /></div>
-                <div style={{ marginTop: 14 }}><SitesCard sites={sites} onChanged={onSitesChanged} /></div>
+                <div className="[margin-top:14px]"><DiagnoseCard /></div>
+                <div className="[margin-top:14px]"><ConnectionCard configured={settings?.configured} /></div>
+                <div className="[margin-top:14px]"><SitesCard sites={sites} onChanged={onSitesChanged} /></div>
 
-                <div style={{ display: 'flex', gap: 8, marginTop: 14, alignItems: 'flex-start', color: 'var(--text-muted, #888)', fontSize: 12 }}>
+                <div className="[display:flex] [gap:8px] [margin-top:14px] [align-items:flex-start] [color:var(--text-muted,#888)] [font-size:12px]">
                     <Globe style={{ width: 14, height: 14, marginTop: 1, flexShrink: 0 }} />
                     <span>{t('cms_site.analytics.settings.website_note', 'A Umami "website" is created automatically per CMS site the first time you publish it (or save here while a site is live).')}</span>
                 </div>
@@ -172,7 +172,7 @@ function TrackerCard({ tracker, onChange }: { tracker: TrackerSettings; onChange
             <Toggle label={t('cms_site.analytics.settings.dnt', 'Honour Do Not Track')}
                 hint={t('cms_site.analytics.settings.dnt_hint', 'Skip visitors whose browser sends a DNT header. They then appear nowhere in your numbers.')}
                 checked={!!tracker.doNotTrack} onChange={(v) => onChange('doNotTrack', v)} />
-            <p style={{ fontSize: 11, color: 'var(--text-muted, #777)', margin: '2px 0 0' }}>
+            <p className="[font-size:11px] [color:var(--text-muted,#777)] [margin:2px_0_0]">
                 {t('cms_site.analytics.settings.tracker_note', "Saved with the button above. Changes apply on a visitor's next page load — no republish needed. Core Web Vitals are always collected: they are browser timings only, carried by the same request as the pageview.")}
             </p>
         </Card>
@@ -190,9 +190,9 @@ function RecorderCard({ recorder, maskLevels = ['strict', 'moderate'], onChange 
                     onChange={(e) => onChange('sampleRate', Number(e.target.value))}
                     style={{ width: '100%', marginTop: 6, accentColor: ACCENT }} />
             </Field>
-            <div style={{ marginBottom: 6 }}>
+            <div className="[margin-bottom:6px]">
                 <label style={labelStyle}>{t('cms_site.analytics.settings.masking', 'Input masking')}</label>
-                <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                <div className="[display:flex] [gap:8px] [margin-top:6px]">
                     {maskLevels.map(l => (
                         <ModeChip key={l} active={(recorder.maskLevel || 'strict') === l}
                             onClick={() => onChange('maskLevel', l)}
@@ -202,7 +202,7 @@ function RecorderCard({ recorder, maskLevels = ['strict', 'moderate'], onChange 
                     ))}
                 </div>
                 {recorder.maskLevel === 'moderate' && (
-                    <p style={{ fontSize: 11, color: '#fcd34d', margin: '6px 0 0' }}>
+                    <p className="[font-size:11px] [color:#fcd34d] [margin:6px_0_0]">
                         {t('cms_site.analytics.settings.mask_warning', 'Moderate masking records what visitors type into unmarked fields, which can include personal data. Strict is the safer default for a privacy-first product.')}
                     </p>
                 )}
@@ -240,11 +240,11 @@ function DiagnoseCard() {
         }>
             {state.error ? <ErrorNote message={state.error} onRetry={run} compact />
                 : !state.checks ? (
-                    <p style={{ fontSize: 12, color: 'var(--text-muted, #888)', margin: 0 }}>
+                    <p className="[font-size:12px] [color:var(--text-muted,#888)] [margin:0]">
                         {t('cms_site.analytics.settings.diagnose_intro', 'Checks the whole chain — switch, credentials, reachability, the script your visitors actually load, site registration and consent — and stops at the first thing that is broken.')}
                     </p>
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div className="[display:flex] [flex-direction:column] [gap:8px]">
                         {state.checks.map((c: CheckItem) => <CheckRow key={c.id} check={c} />)}
                     </div>
                 )}
@@ -263,16 +263,16 @@ const CHECK_STYLE: Record<string, { color: string; mark: string; }> = {
 function CheckRow({ check }: { check: CheckItem }) {
     const s = CHECK_STYLE[check.status] || CHECK_STYLE.info;
     return (
-        <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+        <div className="[display:flex] [gap:9px] [align-items:flex-start]">
             <span style={{
                 width: 17, height: 17, borderRadius: 5, flexShrink: 0, marginTop: 1,
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 10, fontWeight: 800, background: `${s.color}1f`, color: s.color,
             }}>{s.mark}</span>
-            <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 12, color: 'var(--text-primary, #fff)' }}>{check.label}</div>
+            <div className="min-w-[0]">
+                <div className="[font-size:12px] [color:var(--text-primary,#fff)]">{check.label}</div>
                 {check.detail && (
-                    <div style={{ fontSize: 11, color: 'var(--text-muted, #888)', wordBreak: 'break-word' }}>
+                    <div className="[font-size:11px] [color:var(--text-muted,#888)] [word-break:break-word]">
                         {check.detail}
                     </div>
                 )}
@@ -301,16 +301,16 @@ function ConnectionCard({ configured }: ConnectionCardProps) {
     return (
         <Card title={t('cms_site.analytics.settings.connection', 'Connection')}>
             {state.loading ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-muted, #888)' }}>
+                <div className="[display:flex] [align-items:center] [gap:8px] [font-size:12px] [color:var(--text-muted,#888)]">
                     <Loader2 className="w-4 h-4 animate-spin" /> {t('cms_site.analytics.settings.checking', 'Checking…')}
                 </div>
             ) : state.error ? (
                 <ErrorNote message={state.error} onRetry={check} compact />
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12 }}>
+                <div className="[display:flex] [flex-direction:column] [gap:8px] [font-size:12px]">
                     <Row label={t('cms_site.analytics.settings.status', 'Status')} value={
                         d?.reachable
-                            ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#10b981', fontWeight: 700 }}>
+                            ? <span className="[display:inline-flex] [align-items:center] [gap:5px] [color:#10b981] [font-weight:700]">
                                 <CheckCircle2 style={{ width: 13, height: 13 }} /> {d.websiteCount === 1
                                     ? t('cms_site.analytics.settings.connected_one', 'Connected · {n} website', { n: d.websiteCount })
                                     : t('cms_site.analytics.settings.connected_many', 'Connected · {n} websites', { n: d.websiteCount })}
@@ -323,7 +323,7 @@ function ConnectionCard({ configured }: ConnectionCardProps) {
                     <Row label={t('cms_site.analytics.settings.internal_url', 'Server URL (internal)')} value={d?.internalUrl || '—'} mono />
                     {d?.error && <ErrorNote message={d.error} onRetry={check} compact />}
                     {d?.usingInternalOverride && (
-                        <p style={{ fontSize: 11, color: 'var(--text-muted, #777)', margin: 0 }}>
+                        <p className="[font-size:11px] [color:var(--text-muted,#777)] [margin:0]">
                             {rich(t('cms_site.analytics.settings.internal_note', '{code} is set on the server, so stats are fetched over the internal address while visitors load the tracker from the public one. These are meant to differ — if you point the internal one at localhost the server will try to call itself and every panel will fail.'), { code: 'UMAMI_URL' })}
                         </p>
                     )}
@@ -362,24 +362,20 @@ function SitesCard({ sites, onChanged }: SitesCardProps) {
 
     return (
         <Card title={t('cms_site.analytics.settings.sites', 'Sites')}>
-            {error && <div style={{ marginBottom: 10 }}><ErrorNote message={error} compact /></div>}
+            {error && <div className="[margin-bottom:10px]"><ErrorNote message={error} compact /></div>}
             {tracked.length === 0 ? (
-                <p style={{ fontSize: 12, color: 'var(--text-muted, #888)', margin: 0 }}>
+                <p className="[font-size:12px] [color:var(--text-muted,#888)] [margin:0]">
                     {t('cms_site.analytics.settings.no_sites', 'No site is tracked yet. Publish a CMS site while tracking is enabled and it will appear here.')}
                 </p>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div className="[display:flex] [flex-direction:column] [gap:10px]">
                     {tracked.map(site => (
-                        <div key={site.id} style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-                            padding: '10px 12px', borderRadius: 10,
-                            background: 'var(--bg-tertiary, rgba(255,255,255,0.03))',
-                        }}>
-                            <div style={{ minWidth: 0 }}>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #fff)' }}>
+                        <div key={site.id} className="[display:flex] [align-items:center] [justify-content:space-between] [gap:12px] [padding:10px_12px] [border-radius:10px] [background:var(--bg-tertiary,rgba(255,255,255,0.03))]">
+                            <div className="min-w-[0]">
+                                <div className="[font-size:13px] [font-weight:700] [color:var(--text-primary,#fff)]">
                                     {site.name}{site.live ? <span style={{ color: ACCENT, fontWeight: 600 }}> · {t('cms_site.analytics.settings.live', 'live')}</span> : null}
                                 </div>
-                                <div style={{ fontSize: 11, color: 'var(--text-muted, #777)', fontFamily: 'ui-monospace, monospace' }}>
+                                <div className="[font-size:11px] [color:var(--text-muted,#777)] [font-family:ui-monospace,monospace]">
                                     {site.websiteId || '—'}
                                 </div>
                             </div>
@@ -403,7 +399,7 @@ function SitesCard({ sites, onChanged }: SitesCardProps) {
                 </div>
             )}
 
-            <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'flex-start', fontSize: 11, color: 'var(--text-muted, #888)' }}>
+            <div className="[display:flex] [gap:8px] [margin-top:12px] [align-items:flex-start] [font-size:11px] [color:var(--text-muted,#888)]">
                 <ShieldAlert style={{ width: 14, height: 14, marginTop: 1, flexShrink: 0, color: '#f59e0b' }} />
                 <span>
                     {rich(t('cms_site.analytics.settings.recording_note', 'Session recording powers heatmaps and replays. It loads a larger script that captures clicks, scrolling and page structure, so it only ever runs for visitors who accepted your cookie banner — {modes}. Form inputs are masked. If your cookie banner is disabled, recording can never start.'), {
@@ -419,8 +415,8 @@ function SitesCard({ sites, onChanged }: SitesCardProps) {
 
 function Row({ label, value, mono }: RowProps) {
     return (
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-            <span style={{ color: 'var(--text-muted, #888)' }}>{label}</span>
+        <div className="[display:flex] [justify-content:space-between] [gap:12px]">
+            <span className="[color:var(--text-muted,#888)]">{label}</span>
             <span style={{
                 color: 'var(--text-primary, #fff)', textAlign: 'right', wordBreak: 'break-all',
                 fontFamily: mono ? 'ui-monospace, monospace' : undefined, fontSize: mono ? 11 : undefined,
@@ -431,20 +427,20 @@ function Row({ label, value, mono }: RowProps) {
 
 function Field({ label, hint, children }: FieldProps) {
     return (
-        <div style={{ marginBottom: 14 }}>
+        <div className="[margin-bottom:14px]">
             <label style={labelStyle}>{label}</label>
             {children}
-            {hint && <p style={{ fontSize: 11, color: 'var(--text-muted, #777)', margin: '4px 0 0' }}>{hint}</p>}
+            {hint && <p className="[font-size:11px] [color:var(--text-muted,#777)] [margin:4px_0_0]">{hint}</p>}
         </div>
     );
 }
 
 function Toggle({ label, hint, checked, onChange }: ToggleProps) {
     return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div className="[display:flex] [align-items:center] [justify-content:space-between] [margin-bottom:14px]">
             <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #fff)' }}>{label}</div>
-                {hint && <div style={{ fontSize: 11, color: 'var(--text-muted, #777)' }}>{hint}</div>}
+                <div className="[font-size:13px] [font-weight:600] [color:var(--text-primary,#fff)]">{label}</div>
+                {hint && <div className="[font-size:11px] [color:var(--text-muted,#777)]">{hint}</div>}
             </div>
             <button
                 onClick={() => onChange(!checked)}
@@ -476,7 +472,7 @@ function ModeChip({ active, onClick, title, desc }: ModeChipProps) {
             }}
         >
             <div style={{ fontSize: 13, fontWeight: 700, color: active ? ACCENT : 'var(--text-primary, #fff)' }}>{title}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted, #888)', marginTop: 2 }}>{desc}</div>
+            <div className="[font-size:11px] [color:var(--text-muted,#888)] [margin-top:2px]">{desc}</div>
         </button>
     );
 }

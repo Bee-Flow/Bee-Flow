@@ -177,7 +177,7 @@ export default function DeadlineClock({
     children = null,
 }: DeadlineClockProps) {
     const { t } = useTranslation();
-    const now = useNow();
+    const now = useNow(60_000);
     const clock = resolveClock({ dueAt, startedAt, doneAt, state, pct, urgentBelowMs, now });
     // Far away and fine: neutral ink, a quiet bar. Never for urgent/overdue.
     const quiet = clock.state === 'ok' && typeof quietUntilMs === 'number' && Number.isFinite(quietUntilMs) && clock.remainingMs !== null && clock.remainingMs > quietUntilMs;

@@ -445,7 +445,7 @@ router.post('/config', requireAuth, validate({ body: ConfigBody }), async (req, 
         // style as syncSeatQuantityForOrg; idempotent + re-triggerable by
         // toggling off/on again). Read the PREVIOUS value before writing.
         let taxWasEnabled = false;
-        try { taxWasEnabled = !!(await configStore.getConfig('stripe_tax_enabled')); } catch (_) { /* treat as off */ }
+        try { taxWasEnabled = !!(await configStore.getConfig('stripe_tax_enabled')); } catch (err) { log.debug('treat as off', err); }
         await configStore.setConfig('stripe_tax_enabled', stripeTaxEnabled ? 'true' : '');
         if (stripeTaxEnabled && !taxWasEnabled) {
             const stripeService = require('../../../services/stripeService');
@@ -612,7 +612,7 @@ function _serviceEmailRedirectUri(req) {
         host = req.get('X-Forwarded-Host') || null;
         if (!host) {
             const ref = req.get('Referer');
-            if (ref) { try { const u = new URL(ref); host = u.host; protocol = u.protocol.replace(':', ''); } catch { /* ignore */ } }
+            if (ref) { try { const u = new URL(ref); host = u.host; protocol = u.protocol.replace(':', ''); } catch (err) { log.debug('ignore', err); } }
         }
         if (!host) host = req.get('host');
     }

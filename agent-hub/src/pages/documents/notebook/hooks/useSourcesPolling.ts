@@ -121,7 +121,7 @@ export default function useSourcesPolling({ entityId, onError, onChanged }: Opti
                     onErrorRef.current?.(t('notebooks.source_remove_failed', 'The source could not be removed: {message}', { message: e.message }));
                 }
             });
-    }, [t]);
+    }, [setSources, t]);
 
     const handleDeleteSource = useCallback((sid: string) => {
         if (!entityId) return;
@@ -144,7 +144,7 @@ export default function useSourcesPolling({ entityId, onError, onChanged }: Opti
         pendingDeleteRef.current = null;
         setPendingDelete(null);
         setSources((prev) => [...prev.slice(0, pending.index), pending.source, ...prev.slice(pending.index)]);
-    }, []);
+    }, [setSources]);
 
     // Leaving the notebook (or the page) settles a pending removal at once.
     useEffect(() => {
@@ -154,7 +154,7 @@ export default function useSourcesPolling({ entityId, onError, onChanged }: Opti
         activeRef.current = 0;
         const forId = entityId;
         return () => { if (pendingDeleteRef.current) commitDelete(forId); };
-    }, [entityId, commitDelete]);
+    }, [entityId, commitDelete, setUploads]);
 
     // ── Upload queue ────────────────────────────────────────────────
     const patchUpload = useCallback((id: string, patch: Partial<UploadItem>) => {
@@ -236,7 +236,7 @@ export default function useSourcesPolling({ entityId, onError, onChanged }: Opti
             await notebookApi(`/${entityId}/sources/${sid}/retry`, { method: 'POST' });
             setSources((prev) => prev.map((s) => (s.id === sid ? { ...s, status: 'processing', error: null } : s)));
         } catch (e) { onErrorRef.current?.(errorMessage(e)); }
-    }, [entityId]);
+    }, [entityId, setSources]);
 
     const handleCancelSource = useCallback(async (sid: string) => {
         if (!entityId) return;
@@ -244,7 +244,7 @@ export default function useSourcesPolling({ entityId, onError, onChanged }: Opti
             await notebookApi(`/${entityId}/sources/${sid}/cancel`, { method: 'POST' });
             setSources((prev) => prev.map((s) => (s.id === sid ? { ...s, status: 'error', error: t('notebooks.cancelled_by_you', 'Cancelled') } : s)));
         } catch (e) { onErrorRef.current?.(errorMessage(e)); }
-    }, [entityId, t]);
+    }, [entityId, setSources, t]);
 
     const handleRenameSource = useCallback(async (sid: string, name: string) => {
         if (!entityId || !name?.trim()) return;
@@ -252,14 +252,14 @@ export default function useSourcesPolling({ entityId, onError, onChanged }: Opti
         setSources((prev) => prev.map((s) => (s.id === sid ? { ...s, name: clean } : s)));
         try { await renameSourceApi(entityId, sid, clean); }
         catch (e) { onErrorRef.current?.(errorMessage(e)); await refreshSources(); }
-    }, [entityId, refreshSources]);
+    }, [entityId, refreshSources, setSources]);
 
     const handleReorderSources = useCallback(async (ordered: NotebookSource[]) => {
         if (!entityId || !Array.isArray(ordered)) return;
         setSources(ordered);
         try { await reorderSourcesApi(entityId, ordered.map((s) => s.id)); }
         catch (e) { onErrorRef.current?.(errorMessage(e)); await refreshSources(); }
-    }, [entityId, refreshSources]);
+    }, [entityId, refreshSources, setSources]);
 
     const handleBulkDelete = useCallback(async (ids: string[]) => {
         if (!entityId || !ids?.length) return;
@@ -267,7 +267,7 @@ export default function useSourcesPolling({ entityId, onError, onChanged }: Opti
         setSources((prev) => prev.filter((s) => !set.has(s.id)));
         try { await bulkDeleteSourcesApi(entityId, ids); onChangedRef.current?.(); }
         catch (e) { onErrorRef.current?.(errorMessage(e)); await refreshSources(); }
-    }, [entityId, refreshSources]);
+    }, [entityId, refreshSources, setSources]);
 
     const fetchSourceContent = useCallback((sid: string) => getSourceContent(entityId, sid), [entityId]);
 

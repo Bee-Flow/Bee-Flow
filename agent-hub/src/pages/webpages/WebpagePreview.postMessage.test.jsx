@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the auth helpers so the preview-token fetch is observable and offline.
 const authFetch = vi.fn(async () => ({

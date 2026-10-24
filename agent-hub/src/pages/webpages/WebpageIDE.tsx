@@ -81,8 +81,8 @@ export default function WebpageIDE(props: WebpageIDEProps) {
     const fileSize = activeView?.kind === 'text' ? new Blob([activeView.value]).size : 0;
 
     return (
-        <div ref={rootRef} data-vscode-theme={THEME} className="flex flex-col" style={{ height: '100%', width: '100%', overflow: 'hidden' }}>
-            <input ref={topUploadRef} type="file" multiple accept="image/*,.svg,.woff,.woff2,.ttf,.otf,.ico,.mp3,.mp4,.webm" style={{ display: 'none' }} onChange={onTopUploadPicked} />
+        <div ref={rootRef} data-vscode-theme={THEME} className="flex flex-col h-[100%] w-[100%] [overflow:hidden]">
+            <input ref={topUploadRef} type="file" multiple accept="image/*,.svg,.woff,.woff2,.ttf,.otf,.ico,.mp3,.mp4,.webm" className="[display:none]" onChange={onTopUploadPicked} />
             <IdeTopBar
                 devMode={devMode} toggleDevMode={toggleDevMode} hideHoistedActions={hideHoistedActions}
                 isOwner={isOwner} chatOpen={chatOpen} managed={managed}

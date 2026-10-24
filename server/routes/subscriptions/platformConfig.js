@@ -80,7 +80,7 @@ router.get('/registries', async (req, res) => {
     // be addable to plans — hide it from the picker (fail-open to the full
     // registry; grandfathered modules fail open by design).
     let inactiveModuleCaps = new Set();
-    try { inactiveModuleCaps = await require('../../modules').listInactiveCapabilityIds(); } catch (_) {}
+    try { inactiveModuleCaps = await require('../../modules').listInactiveCapabilityIds(); } catch (_) { log.warn('inactive module lookup failed, the full registry is shown', _); }
 
     res.json({
         beta_features: (BETA_FEATURES || []).filter(f => !f.deprecated && !inactiveModuleCaps.has(f.id)).map(f => ({
@@ -164,7 +164,7 @@ router.put('/currency-rates', validate({ body: CurrencyRatesBody }), async (req,
             await currency.setUsdToCurrencyRate(code, rate);
         }
         // Drop any PAYG-cache entries so freshly converted rates take effect now.
-        try { require('../../stores/usageStore').invalidatePaygCache(null, null); } catch (_) { /* circular-load safe */ }
+        try { require('../../stores/usageStore').invalidatePaygCache(null, null); } catch (err) { log.debug('circular-load safe', err); }
         const after = await currency.getAllConfiguredRates();
         await userStore.logSubscriptionAudit('update_currency_rates', 'currency_rates', 'global', getAdminId(req), before, after);
         res.json(after);

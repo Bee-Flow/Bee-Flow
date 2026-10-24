@@ -128,7 +128,7 @@ export default function PageStage({
                             for (const b of blocks) if (y >= b.top && y < b.top + b.height) hit = b;
                             onHighlight(hit?.id || null);
                         }}
-                        style={{ position: 'absolute', inset: 0, cursor: 'crosshair' }}
+                        className="[position:absolute] [inset:0] [cursor:crosshair]"
                     />
                 </div>
             </div>

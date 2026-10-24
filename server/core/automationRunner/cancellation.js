@@ -18,6 +18,7 @@
  */
 
 const automationStore = require('../../stores/automationStore');
+const log = require('../../telemetry/log');
 
 const ACTIVE_RUNS = new Map();
 
@@ -45,7 +46,7 @@ async function requestCancel(runId) {
     const updated = await automationStore.requestCancelRun(runId).catch(() => null);
     const ctrl = ACTIVE_RUNS.get(runId);
     if (ctrl) {
-        try { ctrl.abort(); } catch { /* abort is idempotent */ }
+        try { ctrl.abort(); } catch (err) { log.debug('abort is idempotent', err); }
     }
     return updated;
 }

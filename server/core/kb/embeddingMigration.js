@@ -110,7 +110,7 @@ async function fillNextColumn(deps, dim) {
         if (!rows || rows.length === 0) return done;
         const texts = rows.map((r) => r.content || '');
         const vectors = await embedExactly(deps, texts, dim);
-        try { deps.trackCost(texts); } catch (_) { /* cost logging never blocks the migration */ }
+        try { deps.trackCost(texts); } catch (err) { log.debug('cost logging never blocks the migration', err); }
         await deps.run(
             `UPDATE kb_chunks SET embedding_next = v.e::vector
              FROM unnest($1::bigint[], $2::text[]) AS v(id, e)
@@ -181,7 +181,7 @@ async function migrate(deps, { reason }) {
             if (dim !== targetDim) {
                 await deps.exec('DROP INDEX IF EXISTS idx_kb_chunks_embedding');
                 await deps.exec(`ALTER TABLE kb_chunks ALTER COLUMN embedding TYPE VECTOR(${targetDim})`);
-                try { await deps.exec(INDEX_SQL); } catch (_) { /* rebuilt by the next migration or ingest */ }
+                try { await deps.exec(INDEX_SQL); } catch (err) { log.debug('rebuilt by the next migration or ingest', err); }
             }
         } else {
             // A side column left by an interrupted run is reused when it has

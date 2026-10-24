@@ -29,7 +29,7 @@ const RecoveryKeyModal = ({ recoveryKey, onSaved }: RecoveryKeyModalProps) => {
                     <h3 className="text-lg font-bold text-[var(--text-primary)]">{t('login.save_recovery_key')}</h3>
                     <p className="text-sm mt-1 text-[var(--text-muted)]">{t('login.recovery_key_desc')}</p>
                 </div>
-                <div className="p-4 rounded-xl font-mono text-sm text-center break-all select-all cursor-text" data-testid="recovery-key-value" style={{ background: 'var(--bg-primary)', border: '2px dashed var(--border-default)', color: 'var(--text-primary)' }}>
+                <div className="p-4 rounded-xl font-mono text-sm text-center break-all select-all cursor-text [background:var(--bg-primary)] [border:2px_dashed_var(--border-default)] [color:var(--text-primary)]!" data-testid="recovery-key-value">
                     {recoveryKey}
                 </div>
                 <div className="flex gap-3">

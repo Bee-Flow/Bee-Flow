@@ -30,6 +30,7 @@
 
 const log = require('../telemetry/log');
 const { junkReason, strictJunkReason, normaliseText } = require('../agents/memory/contentRules');
+const telemetryLog = require('../telemetry/log');
 
 const FIRST_RUN_DELAY_MS = 60 * 1000;
 const INTERVAL_MS = 24 * 60 * 60 * 1000;
@@ -175,7 +176,7 @@ function realDeps() {
             const cfg = config();
             const shield = orgId ? await cfg.getConfig(`org_privacy_shield_${orgId}`) : null;
             let scrub = !!shield?.enabled;
-            if (!scrub) { try { scrub = !!(await require('../core/aiAgent').getAIConfig())?.piiDetectionEnabled; } catch (_) { /* fail open: no scrub flag */ } }
+            if (!scrub) { try { scrub = !!(await require('../core/aiAgent').getAIConfig())?.piiDetectionEnabled; } catch (err) { telemetryLog.debug('fail open: no scrub flag', err); } }
             return { allowed: true, orgId, shield, scrub };
         },
         scrubText: async (text, shield) => (await require('../core/memory/scrubMemoryContext').scrubMemoryContext(text, shield)).scrubbed,

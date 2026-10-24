@@ -51,21 +51,19 @@ export default function N8nConnectionTab({ conn, saving, onGotoPermissions }: { 
             <div className="flex items-center gap-2">
                 <button
                     onClick={conn.saveConnection} disabled={saving || !n8nUrl}
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50"
-                    style={{ background: 'var(--accent-primary)', color: 'white' }}
+                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 [background:var(--accent-primary)] [color:white]!"
                 >
                     {saving ? t('settings.n8n.saving', 'Saving...') : t('settings.n8n.save_connection', 'Save Connection')}
                 </button>
                 <button
                     onClick={conn.testConnection} disabled={testing || !n8nUrl || (!apiKey && !hasApiKey)}
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 border"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', background: 'transparent' }}
+                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 border [border-color:var(--border-default)] [color:var(--text-primary)]! [background:transparent]"
                 >
                     {testing ? <><Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1.5" />{t('settings.n8n.testing', 'Testing...')}</> : t('settings.n8n.test_connection', 'Test Connection')}
                 </button>
             </div>
             {testResult && !testResult.ok && (
-                <div className="text-[11px] rounded-lg border px-3 py-2" style={{ background: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.2)', color: '#ef4444' }}>
+                <div className="text-[11px] rounded-lg border px-3 py-2 [background:rgba(239,68,68,0.06)] [border-color:rgba(239,68,68,0.2)] [color:#ef4444]!">
                     {testResult.error || `HTTP ${testResult.status || '?'}`}
                 </div>
             )}

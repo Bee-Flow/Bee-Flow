@@ -81,7 +81,7 @@ function trackDecrypt(userId, conversationId = null) {
                 source: 'bulk_decrypt',
                 summary: `Bulk decrypt anomaly: ${entry.count} decrypt operations within a minute`,
             });
-        } catch (_) { /* best-effort */ }
+        } catch (err) { log.debug('best-effort', err); }
     }
 }
 

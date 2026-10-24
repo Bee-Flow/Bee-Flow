@@ -84,7 +84,7 @@ function recordWriteFailure(row, err) {
             + `subject=${entry.subject_type}/${entry.subject_id} error=${entry.error_type}) — `
             + 'the action succeeded but the append-only trail has a hole',
         );
-    } catch { /* reporting must never mask the original failure */ }
+    } catch (err) { log.debug('reporting must never mask the original failure', err); }
 }
 
 /**

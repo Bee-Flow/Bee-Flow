@@ -1,6 +1,6 @@
-import React from 'react';
 import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import RisksTable, {
     RISK_COLUMNS, severityOfScore, scoreOf, toneOfRiskStatus, isReviewOverdue, ownerName, riskRef,

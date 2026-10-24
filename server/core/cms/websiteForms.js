@@ -14,7 +14,7 @@
 
 'use strict';
 
-const { normalizeFields, coerceSubmission } = require('../../automation/formTriggerContract');
+const { featureModule } = require('../featureModules');
 const { definitionForRun, triggersOf } = require('../automationRunner/definitionForRun');
 
 /** The field types a website form may declare (a subset of the automation form's). */
@@ -41,7 +41,7 @@ function declaredFields(content) {
         .filter((f) => isPlainObject(f) && WEBSITE_FORM_FIELD_TYPES.includes(f.type))
         .slice(0, MAX_WEBSITE_FORM_FIELDS)
         .map((f) => ({ name: f.id, type: f.type, label: f.label, placeholder: f.placeholder, required: !!f.required, options: f.options }));
-    return normalizeFields({ fields: allowed });
+    return featureModule('automation/formTriggerContract').normalizeFields({ fields: allowed });
 }
 
 /**
@@ -138,7 +138,7 @@ function webhookTriggerId(automation) {
  */
 function validateSubmission(content, body) {
     const fields = declaredFields(content);
-    const { values, errors } = coerceSubmission(fields, body);
+    const { values, errors } = featureModule('automation/formTriggerContract').coerceSubmission(fields, body);
     const consent = consentOf(content);
     const given = isPlainObject(body) && body.consent === true;
     /** @type {{ field: string, message: string }[]} */

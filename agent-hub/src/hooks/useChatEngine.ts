@@ -426,7 +426,7 @@ export default function useChatEngine({
         // Deliberately NOT in deps: `messages` (read via messagesRef), `handleSSEEvent`
         // (invoked via handleSSEEventRef). Keeping them here would recreate
         // `sendMessage` on every streamed token and break child memoization.
-    }, [selectedAgent, isLoading, currentConversation, getNotebookPayload, directMode, onDirectConversationCreated, activeProject, activeSkillIds, onSessionSkillsChanged]);
+    }, [selectedAgent, isLoading, currentConversation, getNotebookPayload, directMode, onDirectConversationCreated, activeProject, activeSkillIds]);
 
     const stopGenerating = useCallback(() => {
         if (abortControllerRef.current) {
@@ -481,7 +481,7 @@ export default function useChatEngine({
         setTimeout(() => {
             sendMessage(userMsg.content ?? '', (userMsg.attachments as ChatAttachment[]) || [], false, truncated, overrideTier || null);
         }, 50);
-    }, [isLoading, sendMessage, directMode]);
+    }, [isLoading, sendMessage]);
 
     /**
      * Edit a user message and regenerate the response.

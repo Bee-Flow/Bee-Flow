@@ -3,6 +3,7 @@ import { ShieldCheck, AlertTriangle, Copy, Check, X } from 'lucide-react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { errorMessage } from '../../../utils/caughtError';
+import { logger } from '../../../utils/logger';
 
 export interface PendingNcBinding {
     id: string;
@@ -92,15 +93,15 @@ const NcBindingApprovalModal = ({ pending, organizationName, onResolved }: NcBin
             await navigator.clipboard.writeText(pending.ncInstanceId || '');
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
-        } catch (_) { /* ignore */ }
+        } catch (err) { logger.debug('ignore', err); }
     };
 
     return (
-        <div className="h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
+        <div className="h-screen flex items-center justify-center p-4 [background:linear-gradient(160deg,var(--bg-primary)_0%,var(--bg-secondary)_50%,var(--bg-tertiary)_100%)]">
             <div className="w-full max-w-lg">
                 <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(245, 158, 11, 0.12)' }}>
+                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center [background:rgba(245,158,11,0.12)]">
                             <ShieldCheck className="w-6 h-6" style={{ color: '#f59e0b' }} />
                         </div>
                         <div>
@@ -112,11 +113,10 @@ const NcBindingApprovalModal = ({ pending, organizationName, onResolved }: NcBin
                     </div>
 
                     <div
-                        className="rounded-xl border p-4 mb-4 flex items-start gap-3"
-                        style={{ borderColor: 'rgba(245, 158, 11, 0.4)', background: 'rgba(245, 158, 11, 0.06)' }}
+                        className="rounded-xl border p-4 mb-4 flex items-start gap-3 [border-color:rgba(245,158,11,0.4)] [background:rgba(245,158,11,0.06)]"
                     >
                         <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#f59e0b' }} />
-                        <div className="text-xs" style={{ color: 'var(--text-primary)', lineHeight: 1.55 }}>
+                        <div className="text-xs [color:var(--text-primary)]! [line-height:1.55]">
                             {t('integ.nc_binding_approval_modal_approve_only_if_this_is', 'Approve only if this is')} <strong>{t('integ.nc_binding_approval_modal_your', 'your')}</strong> {t('integ.nc_binding_approval_modal_nextcloud_once_approved_this_nextcloud', 'Nextcloud. Once approved, this Nextcloud can read and write data on behalf of users in your organisation.')}
                         </div>
                     </div>
@@ -172,7 +172,7 @@ const NcBindingApprovalModal = ({ pending, organizationName, onResolved }: NcBin
                     </label>
 
                     {error && (
-                        <div className="mb-3 text-sm rounded-lg p-2" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+                        <div className="mb-3 text-sm rounded-lg p-2 [background:rgba(239,68,68,0.1)] [color:#ef4444]!">
                             {error}
                         </div>
                     )}

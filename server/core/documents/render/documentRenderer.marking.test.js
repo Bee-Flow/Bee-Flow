@@ -8,6 +8,7 @@
  * can no longer be made to fail from a test.
  */
 
+require('../../../boot/featureModules'); // core looks feature modules up by name (core/featureModules.js)
 const { test, after } = require('node:test');
 const assert = require('node:assert');
 const Module = require('node:module');

@@ -220,7 +220,7 @@ function requireModule(moduleId, { remote = false } = {}) {
     return tagGate(async function moduleGate(req, res, next) {
         try {
             if (await isModuleActive(moduleId)) return next();
-        } catch (_) { /* fall through to concealment */ }
+        } catch (err) { log.debug('fall through to concealment', err); }
         return res.status(404).json({ error: 'not_found' });
     }, { axis: 'module', id: moduleId });
 }
@@ -250,7 +250,7 @@ function moduleGatedTick(moduleId, fn, name = fn.name || 'tick') {
         let active = true;
         try {
             active = await isModuleActive(moduleId);
-        } catch (_) { /* fail open — see above */ }
+        } catch (err) { log.debug('fail open — see above', err); }
         if (!active) {
             if (!announced) {
                 log.info(`[Modules] ${name} paused — module '${moduleId}' is not active on this instance`);

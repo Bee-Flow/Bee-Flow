@@ -14,6 +14,7 @@ import { cmsApi } from '../cmsApi';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { AI_LOCK_MSG } from './helpers';
 import { confirmPublishDespiteBrokenLinks } from './publishLinkCheck';
+import { logger } from '../../../../utils/logger';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 type History = ReturnType<typeof useCmsHistory>;
@@ -129,7 +130,7 @@ export default function useCmsPublishing({
             saveTimerRef.current = null;
         }
         if (inFlightSaveRef.current) {
-            try { await inFlightSaveRef.current; } catch { /* error already surfaced */ }
+            try { await inFlightSaveRef.current; } catch (err) { logger.debug('error already surfaced', err); }
             inFlightSaveRef.current = null;
         }
         // Never snapshot a site that still has unsaved edits — publishing here

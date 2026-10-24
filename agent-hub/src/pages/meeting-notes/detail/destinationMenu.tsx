@@ -253,8 +253,7 @@ export function ColumnMapping({ t, table, mapping, labels, onMap, onBack, onAddR
                         value={mapping[f.key] || ''}
                         onChange={(e) => onMap(f.key, e.target.value)}
                         aria-label={f.label || f.key}
-                        className="rounded border text-xs px-1 py-0.5"
-                        style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                        className="rounded border text-xs px-1 py-0.5 [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                     >
                         <option value="">{t('meetings.dest_column_none', 'Leave empty')}</option>
                         {ACTION_FIELD_IDS.map((id: string) => <option key={id} value={id}>{labels[id]}</option>)}

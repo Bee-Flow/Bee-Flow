@@ -18,7 +18,7 @@ const { supportEvents } = require('../support');
 function getUserId(req) { return req.session?.user?.id || null; }
 
 function emitInboxEvent(event, inboxId, data = {}) {
-    try { supportEvents.emit('event', { event, data: { ...data, inboxId } }); } catch {}
+    try { supportEvents.emit('event', { event, data: { ...data, inboxId } }); } catch (err) { log.debug('an event listener threw, the emit continues', err); }
 }
 
 async function _hasSupportInbox(req) {

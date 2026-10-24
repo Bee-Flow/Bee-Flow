@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { buildLayout, seedPositions } from './layout';
 import { DEFAULT_COLUMNS } from './arrange';
+import { buildLayout, seedPositions } from './layout';
 import { ROW_GAP } from './rowBands';
 
 /**

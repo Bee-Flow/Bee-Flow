@@ -347,7 +347,7 @@ router.get('/:orgId', requireAuth, async (req, res) => {
         if (resolved?.stalenessWarnings?.length) {
             config.stalenessWarnings = resolved.stalenessWarnings;
         }
-    } catch (_) { /* non-fatal */ }
+    } catch (err) { log.debug('non-fatal', err); }
 
     // Tier-driven clamps: a community-tier read of a stored config
     // that pre-dates the tightening must surface the EFFECTIVE values
@@ -549,7 +549,7 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (req
     try {
         const events = require('../compliance/events');
         events.emit(events.EVENTS.DLP_CONFIG_CHANGED, { orgId });
-    } catch (_) { /* compliance bus is best-effort */ }
+    } catch (err) { log.debug('compliance bus is best-effort', err); }
 
     // NOTE: we used to copy this org's PII / Azure / severity settings into
     // the global `ai` configStore blob here. That caused a cross-org leak:

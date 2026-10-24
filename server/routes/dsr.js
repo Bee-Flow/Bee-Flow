@@ -143,7 +143,7 @@ function clockFor(row, now = Date.now()) {
             const { state } = deadlines.clockState('dsr', due, Number.isFinite(startedMs) ? startedMs : null, now);
             return { days_left: daysLeft, state };
         }
-    } catch { /* not there — local rule below */ }
+    } catch (err) { log.debug('not there — local rule below', err); }
     let state = 'ok';
     if (due <= now) state = 'overdue';
     else if (due - now <= URGENT_BELOW_DAYS * DAY_MS) state = 'urgent';
@@ -153,7 +153,7 @@ function clockFor(row, now = Date.now()) {
 function publicBaseUrl() {
     try {
         if (typeof appPaths.publicBaseUrl === 'function') return String(appPaths.publicBaseUrl()).replace(/\/+$/, '');
-    } catch { /* fall through */ }
+    } catch (err) { log.debug('fall through', err); }
     const fromEnv = process.env.PUBLIC_SHARE_BASE_URL || process.env.PUBLIC_APP_URL;
     if (fromEnv) return String(fromEnv).replace(/\/+$/, '');
     return appPaths.clientHost();
@@ -208,11 +208,11 @@ async function letterContext(orgId) {
         const org = await userStore.getOrganization?.(orgId);
         if (org?.name) ctx.orgName = org.name;
         if (org?.defaultLocale || org?.locale) ctx.locale = org.defaultLocale || org.locale;
-    } catch { /* keep defaults */ }
+    } catch (err) { log.debug('keep defaults', err); }
     try {
         const settings = await complianceStore?.getSettings?.(orgId);
         if (settings?.dpo_email) ctx.dpoEmail = settings.dpo_email;
-    } catch { /* keep defaults */ }
+    } catch (err) { log.debug('keep defaults', err); }
     if (!ctx.orgName) ctx.orgName = orgId === 'default' ? 'Bee Flow' : orgId;
     return ctx;
 }

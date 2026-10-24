@@ -49,6 +49,7 @@ import type { FormEditorContext } from './settings/FormPageEditor';
 import type { InsertUpstreamStep } from './settings/RouteAssist.types';
 import type { RouteFollow, WholeRun } from './settings/SourceNotices';
 import type { SettingsFormProps } from './SettingsForm.types';
+import { logger } from '../../../../utils/logger';
 
 /**
  * Whether the Condition node may offer "is about" (the topic classifier), read
@@ -247,9 +248,7 @@ export default function SettingsForm({
             await onPatch(patch);
             baselineRef.current = sending;
             setBaseline(sending);
-        } catch {
-            // Leave baseline alone — dirty stays true, user can retry.
-        }
+        } catch (err) { logger.debug('Leave baseline alone — dirty stays true, user can retry.', err); }
     };
 
     const reset = () => setDraft(baseline);

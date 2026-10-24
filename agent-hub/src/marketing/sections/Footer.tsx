@@ -48,7 +48,7 @@ function FooterView({ data: rawData, isDark, onToggleTheme }: FooterProps) {
                     <div className="footer-grid">
                         <div className="footer-brand">
                             {data.brand?.logoText !== undefined ? (
-                                <div className="header-logo" style={{ marginBottom: 12 }}>
+                                <div className="header-logo [margin-bottom:12px]">
                                     <span>
                                         <EditableText path="footer.brand.logoText" placeholder="Logo">
                                             {data.brand.logoText || ''}
@@ -191,7 +191,7 @@ function FooterLocaleToggle() {
         ? { fontWeight: 600, color: 'var(--text-primary)' }
         : { color: 'var(--text-muted)' });
     return (
-        <span className="footer-locale-toggle" style={{ display: 'inline-flex', gap: 6, fontSize: '0.85rem' }}>
+        <span className="footer-locale-toggle [display:inline-flex] [gap:6px] [font-size:0.85rem]">
             <a href="?locale=en" onClick={go('en')} style={cls('en')} aria-current={current === 'en' ? 'true' : undefined}>EN</a>
             <span className="text-[var(--text-muted)]">/</span>
             <a href="?locale=nl" onClick={go('nl')} style={cls('nl')} aria-current={current === 'nl' ? 'true' : undefined}>NL</a>

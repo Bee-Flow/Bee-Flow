@@ -56,8 +56,8 @@ export default function RowsPreview({ datatableId, fields = [], rowCount = null,
     const schedule = revealSchedule(list.map((r: PreviewRow, i: number) => String(r.id || i)), { stagger: ROW_STAGGER_MS });
 
     return (
-        <section className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card)' }} data-testid="playbook-rows-preview">
-            <header className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: '1px solid var(--border-default)' }}>
+        <section className="rounded-xl overflow-hidden [border:1px_solid_var(--border-default)] [background:var(--bg-card)]" data-testid="playbook-rows-preview">
+            <header className="flex items-center gap-2 px-3 py-2 [border-bottom:1px_solid_var(--border-default)]">
                 <Table2 className="w-3.5 h-3.5 shrink-0" style={{ color: kindColorVar('datatable') }} aria-hidden="true" />
                 <span className="text-xs font-semibold truncate text-[var(--text-primary)]">{title || t('playbooks.rows.title', 'What landed in the table')}</span>
                 <span className="text-[11px] tabular-nums text-[var(--text-secondary)]">
@@ -79,11 +79,11 @@ export default function RowsPreview({ datatableId, fields = [], rowCount = null,
                 <p className="px-3 py-3 text-xs text-[var(--text-secondary)]">{t('playbooks.rows.empty', 'No rows yet.')}</p>
             ) : (
                 <div className="overflow-x-auto">
-                    <table className="w-full text-[11px]" style={{ borderCollapse: 'collapse' }}>
+                    <table className="w-full text-[11px] [border-collapse:collapse]">
                         <thead>
                             <tr className="bg-[var(--bg-primary)]">
                                 {columns.map((c) => (
-                                    <th key={c.key} className="text-left font-semibold px-3 py-1.5 whitespace-nowrap" style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-default)' }}>{c.name || c.key}</th>
+                                    <th key={c.key} className="text-left font-semibold px-3 py-1.5 whitespace-nowrap [color:var(--text-secondary)]! [border-bottom:1px_solid_var(--border-default)]">{c.name || c.key}</th>
                                 ))}
                             </tr>
                         </thead>

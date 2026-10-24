@@ -30,7 +30,7 @@ export default function useEditorActions({ s, stateRef, dirtyRef, agentIdRef, qu
     const patchConfig = useCallback((patch: Record<string, unknown>, { immediate = true } = {}) => {
         stateRef.current.config = { ...stateRef.current.config, ...patch };
         queueSave(immediate);
-    }, [queueSave]);
+    }, [queueSave, stateRef]);
 
     const updateBubbleColor = (v: string) => { s.setBubbleColor(v); patchConfig({ bubbleColor: v }); };
     const updateBubblePosition = (v: string) => { s.setBubblePosition(v); patchConfig({ bubblePosition: v }); };

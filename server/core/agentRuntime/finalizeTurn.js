@@ -9,6 +9,7 @@
  * the turn's result object. The message's extras (markup strip, token
  * restore, thinking, tokenisation info) live in ./assistantMessageExtras.
  */
+const { featureModule } = require('../featureModules');
 const agentStore = require('../../stores/agentStore');
 const log = require('../../telemetry/log');
 const { resolveMemoryPolicy } = require('../memory/memoryPolicy');
@@ -169,7 +170,7 @@ async function scheduleMemoryExtraction(turn) {
         return;
     }
     try {
-        const memoryExtractor = require('../../agents/memory/extractor');
+        const memoryExtractor = featureModule('agents/memory/extractor');
         memoryExtractor.extractFromConversation(userId, agentId, durableMessages, conversation.id, extractMemoriesEnabled ? validProjectId : null, messageMetadata?.userOrgId || null)
             .then(extracted => {
                 if (extracted.length > 0) {
@@ -180,7 +181,7 @@ async function scheduleMemoryExtraction(turn) {
                 log.error('[AgentRuntime] Memory extraction failed:', err.message);
                 // Surface to the client so operators can see persistent extraction
                 // failures rather than silently losing all memory writes.
-                try { onEvent('memory_extraction_failed', { error: err.message }); } catch (_) { /* ignore */ }
+                try { onEvent('memory_extraction_failed', { error: err.message }); } catch (err) { log.debug('ignore', err); }
             });
     } catch (memErr) {
         log.error('[AgentRuntime] Memory extractor load failed:', memErr.message);

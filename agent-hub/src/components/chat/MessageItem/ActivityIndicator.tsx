@@ -127,7 +127,7 @@ export function ActivityIndicator({ msg, sessionSkills = [] }: ActivityIndicator
         const defaultEmoji = getToolIcon(lastDoneTool.name);
         icon = (
             <span className="inline-flex items-center gap-1">
-                <span style={{ color: 'var(--accent-primary)', opacity: 0.7 }}>✓</span>
+                <span className="[color:var(--accent-primary)] [opacity:0.7]">✓</span>
                 <AppEmoji id={catalogId} default={defaultEmoji} className="text-xs" />
             </span>
         );
@@ -161,12 +161,10 @@ export function ActivityIndicator({ msg, sessionSkills = [] }: ActivityIndicator
                     className="w-1 h-1 rounded-full animate-pulse bg-[var(--accent-primary)]"
                 />
                 <span
-                    className="w-1 h-1 rounded-full animate-pulse"
-                    style={{ background: 'var(--accent-primary)', animationDelay: '150ms' }}
+                    className="w-1 h-1 rounded-full animate-pulse [background:var(--accent-primary)] [animation-delay:150ms]"
                 />
                 <span
-                    className="w-1 h-1 rounded-full animate-pulse"
-                    style={{ background: 'var(--accent-primary)', animationDelay: '300ms' }}
+                    className="w-1 h-1 rounded-full animate-pulse [background:var(--accent-primary)] [animation-delay:300ms]"
                 />
             </span>
         </div>

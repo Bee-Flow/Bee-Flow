@@ -40,8 +40,7 @@ function TestOutcome({ result }: { result: TestResult | null }) {
         return (
             <p
                 role="alert"
-                className="flex items-start gap-1.5 rounded-md border px-2 py-1.5 text-xs"
-                style={{ borderColor: 'color-mix(in srgb, var(--error) 40%, transparent)', background: 'color-mix(in srgb, var(--error) 10%, transparent)', color: 'var(--error)' }}
+                className="flex items-start gap-1.5 rounded-md border px-2 py-1.5 text-xs [border-color:color-mix(in_srgb,var(--error)_40%,transparent)] [background:color-mix(in_srgb,var(--error)_10%,transparent)] [color:var(--error)]!"
             >
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 <span>{result.message}</span>

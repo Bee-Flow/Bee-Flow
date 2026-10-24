@@ -79,7 +79,7 @@ async function setupSessionSkills({ req, send, userId, convId, config, clientHis
                         sessionSkillsCompletions = existingConv.sessionSkillsCompletions;
                     }
                 }
-            } catch (e) { /* ignore */ }
+            } catch (e) { log.debug('ignore', e); }
         }
         // Client-side fallback: if a direct conversation id is not yet synced
         // (race between new message and SSE conversation_created), reuse

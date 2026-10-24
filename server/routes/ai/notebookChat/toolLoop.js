@@ -284,7 +284,7 @@ async function runToolLoop({
         for (const toolCall of roundToolCalls) {
             const toolName = toolCall.function?.name || toolCall.name;
             let toolArgs = {};
-            try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (_) {}
+            try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (_) { log.debug('tool arguments are not valid JSON, call the tool with none', _); }
             // The model passes tokens in tool args (e.g. find_text). Restore for
             // the CLIENT-facing tool_start/tool_end previews only — the model-facing
             // result fed back below stays tokenized (token-space consistency).

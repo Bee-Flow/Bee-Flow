@@ -75,7 +75,7 @@ function createOrgMemoryRouter(deps = null) {
             await userStore.logAccessAudit(
                 action, 'organization', req.params.orgId, req.session?.user?.id || 'system', before, after, req.params.orgId,
             );
-        } catch (_) { /* logAccessAudit already swallows; belt and braces */ }
+        } catch (err) { log.debug('logAccessAudit already swallows; belt and braces', err); }
     }
 
     /**

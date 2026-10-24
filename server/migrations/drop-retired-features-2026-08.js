@@ -29,6 +29,7 @@
  */
 
 const { run, getAll } = require('../db');
+const log = require('../telemetry/log');
 
 // Order matters only where a FK points at a table in the same batch; CASCADE
 // covers the rest (indexes and dependent constraints go with the table).
@@ -123,7 +124,7 @@ async function up() {
     const configStore = require('../stores/configStore');
     let configRows = 0;
     for (const key of DROP_CONFIG_KEYS) {
-        try { if (await configStore.deleteConfig(key)) configRows++; } catch (_) { /* absent */ }
+        try { if (await configStore.deleteConfig(key)) configRows++; } catch (err) { log.debug('absent', err); }
     }
     try {
         const orgScoped = await getAll(
@@ -133,7 +134,7 @@ async function up() {
             DROP_CONFIG_KEYS.map(k => `%_${k}`)
         );
         for (const row of orgScoped || []) {
-            try { if (await configStore.deleteConfig(row.key)) configRows++; } catch (_) { /* absent */ }
+            try { if (await configStore.deleteConfig(row.key)) configRows++; } catch (err) { log.debug('absent', err); }
         }
     } catch (e) {
         console.warn('[drop-retired-features] org-scoped config sweep skipped:', e.message);

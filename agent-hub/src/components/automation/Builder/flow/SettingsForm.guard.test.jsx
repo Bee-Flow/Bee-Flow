@@ -1,10 +1,10 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { editorWithValue, typeInEditor } from '../../../../test/refEditor';
 import SettingsForm from './SettingsForm';
-import { VariablePickerProvider } from '../mapping/VariablePickerContext';
-import scopedStorage from '../../../../utils/scopedStorage';
+import { editorWithValue, typeInEditor } from '../../../../test/refEditor';
 import { authFetch } from '../../../../utils/helpers';
+import scopedStorage from '../../../../utils/scopedStorage';
+import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 
 vi.mock('../../../../utils/helpers', async (orig) => ({
     ...(await orig()),

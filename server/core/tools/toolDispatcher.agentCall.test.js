@@ -26,6 +26,7 @@
  * Run: cd server && node core/tools/toolDispatcher.agentCall.test.js
  */
 
+require('../../boot/featureModules'); // core looks feature modules up by name (core/featureModules.js)
 const assert = require('node:assert/strict');
 
 const automation = {

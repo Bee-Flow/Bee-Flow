@@ -182,7 +182,7 @@ ${useTranscripts ? '' : '\nNote: you received meeting summaries and artifacts, n
     // leaving {token → raw PII} in process memory for the pod's lifetime —
     // nothing will ever look it up again.
     if (dlpConversationId) {
-        try { require('../../core/dlp/dlpRunner').clearConversationState(dlpConversationId); } catch (_) {}
+        try { require('../../core/dlp/dlpRunner').clearConversationState(dlpConversationId); } catch (_) { log.warn('could not clear the DLP token map, it stays in memory until restart', _); }
     }
 
     res.json({

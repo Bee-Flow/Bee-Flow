@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { markdownToAst } from './mdToAst';
-import { astToMarkdown } from './astToMd';
 import { astToHtml } from './astToHtml.js';
+import { astToMarkdown } from './astToMd';
+import { markdownToAst } from './mdToAst';
 import { isFormulaCell } from '../engine/formula.js';
 
 // A1 is the literal top-left cell (the header here), so data lives in rows 2-3.

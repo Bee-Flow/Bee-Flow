@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
+import { logger } from '../../utils/logger';
 
 /**
  * Renders an untrusted email HTML body the way Gmail/Outlook would — inside a
@@ -76,9 +77,7 @@ export default function EmailHtmlBody({ html }: { html?: string | null }) {
                 doc.body?.scrollHeight || 0,
             );
             if (h) setHeight(h + 4);
-        } catch {
-            /* cross-origin guard — shouldn't trip with allow-same-origin */
-        }
+        } catch (err) { logger.debug('cross-origin guard — shouldn\'t trip with allow-same-origin', err); }
     }, []);
 
     const handleLoad = useCallback(() => {
@@ -93,9 +92,7 @@ export default function EmailHtmlBody({ html }: { html?: string | null }) {
                 ro.observe(doc.body);
                 observerRef.current = ro;
             }
-        } catch {
-            /* ignore */
-        }
+        } catch (err) { logger.debug('ignore', err); }
     }, [measure]);
 
     useEffect(() => () => observerRef.current?.disconnect(), []);

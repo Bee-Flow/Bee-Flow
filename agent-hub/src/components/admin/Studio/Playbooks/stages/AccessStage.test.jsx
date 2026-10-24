@@ -2,8 +2,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AccessStage from './AccessStage';
-import { playbooksApi } from '../playbooksApi';
 import { studioAppsApi } from '../../AppStudio/studioAppsApi';
+import { playbooksApi } from '../playbooksApi';
 
 /**
  * The access phase: a sentence becomes a PROPOSAL, and not one byte is written

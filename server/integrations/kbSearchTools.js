@@ -249,7 +249,7 @@ async function executeKbSearchTool(toolName, args, context = {}) {
             try {
                 const { resolveInferenceTargetsWithSecrets } = require('../core/llm/webSearchInferenceResolver');
                 inferenceRouting = await resolveInferenceTargetsWithSecrets();
-            } catch (_) { /* non-fatal */ }
+            } catch (err) { log.debug('non-fatal', err); }
             const sidecarT0 = Date.now();
             let searchRes;
             try {

@@ -11,7 +11,7 @@ const log = require('../../telemetry/log');
 // Ordered migration list. The first (init) is foundational; the rest are
 // incremental ALTERs applied on top. §WS3.4: each is tolerated individually so
 // one transient failure doesn't block the store, but every failure is now
-// LOGGED LOUDLY with its name — the previous silent `catch {}` hid a
+// LOGGED LOUDLY with its name — the previous silent empty catch hid a
 // half-migrated schema behind opaque runtime 500s with no breadcrumb.
 const MIGRATIONS = [
     'automation-builder-2026-05-init',          // foundational — must succeed

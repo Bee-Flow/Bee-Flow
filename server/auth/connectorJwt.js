@@ -163,9 +163,7 @@ async function _resolveTenant(token) {
         try {
             const payload = _verifyHs256(token, key);
             return { orgId, payload };
-        } catch (_) {
-            // try the next key
-        }
+        } catch (err) { log.debug('try the next key', err); }
     }
     // Pass 2 — cache-bypass. A tenant key may have just been (re)minted on
     // another replica while this replica's per-process cache still holds the
@@ -181,9 +179,7 @@ async function _resolveTenant(token) {
                 const payload = _verifyHs256(token, fresh);
                 _cacheSet(orgId, fresh); // refresh the per-org key cache too
                 return { orgId, payload };
-            } catch (_) {
-                // genuinely not this tenant
-            }
+            } catch (err) { log.debug('genuinely not this tenant', err); }
         }
     }
     // Pass 3 — the org-id LIST itself may be stale: a tenant that
@@ -203,9 +199,7 @@ async function _resolveTenant(token) {
             const payload = _verifyHs256(token, key);
             _cacheSet(orgId, key);
             return { orgId, payload };
-        } catch (_) {
-            // genuinely not this tenant
-        }
+        } catch (err) { log.debug('genuinely not this tenant', err); }
     }
     return null;
 }

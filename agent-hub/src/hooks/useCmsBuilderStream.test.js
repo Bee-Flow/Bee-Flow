@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 

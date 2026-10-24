@@ -105,7 +105,7 @@ const Field = ({ label, children, hint }: FieldProps) => (
 );
 
 const ErrorText = ({ children }: ErrorTextProps) => (
-    children ? <div className="text-xs mt-2" style={{ color: '#dc2626' }} role="alert">{children}</div> : null
+    children ? <div className="text-xs mt-2 [color:#dc2626]!" role="alert">{children}</div> : null
 );
 
 const PrimaryBtn = ({ children, ...props }: React.ComponentProps<'button'>) => (
@@ -148,8 +148,7 @@ const EmojiRow = ({ value, onChange, emojis }: EmojiRowProps) => (
 
 const StatusChip = ({ status, t }: StatusChipProps) => (
     status === 'published' ? (
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
-            style={{ background: 'color-mix(in srgb, #059669 15%, transparent)', color: '#059669' }}>
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold [background:color-mix(in_srgb,#059669_15%,transparent)] [color:#059669]!">
             {t('org.academy.content.published', 'Published')}
         </span>
     ) : (
@@ -363,7 +362,7 @@ function LessonEditor({ lesson, onChange, onSave, onBack, busy, error, notice, t
                     {t('org.academy.content.back_to_course', 'Back to course')}
                 </GhostBtn>
                 <div className="ml-auto flex items-center gap-2">
-                    {notice && <span className="text-xs" style={{ color: '#059669' }}>{notice}</span>}
+                    {notice && <span className="text-xs [color:#059669]!">{notice}</span>}
                     <PrimaryBtn onClick={onSave} disabled={busy}>
                         <Save className="w-3.5 h-3.5" />
                         {t('org.academy.content.save_lesson', 'Save lesson')}
@@ -655,7 +654,7 @@ export default function AcademyContentEditor() {
                     </GhostBtn>
                     <StatusChip status={status} t={t} />
                     <div className="ml-auto flex items-center gap-2 flex-wrap">
-                        {notice && <span className="text-xs" style={{ color: '#059669' }}>{notice}</span>}
+                        {notice && <span className="text-xs [color:#059669]!">{notice}</span>}
                         <GhostBtn onClick={handleDeleteCourse} disabled={busy}>
                             <Trash2 className="w-3.5 h-3.5" />
                             {t('org.academy.content.delete_course', 'Delete')}
@@ -667,8 +666,7 @@ export default function AcademyContentEditor() {
                             </GhostBtn>
                         ) : (
                             <button type="button" onClick={handlePublish} disabled={busy}
-                                className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 transition-opacity hover:opacity-90 disabled:opacity-40"
-                                style={{ background: '#059669', color: '#fff' }}>
+                                className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 transition-opacity hover:opacity-90 disabled:opacity-40 [background:#059669] [color:#fff]!">
                                 <Globe className="w-3.5 h-3.5" />
                                 {t('org.academy.content.publish', 'Publish')}
                             </button>

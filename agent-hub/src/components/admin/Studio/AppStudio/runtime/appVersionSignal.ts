@@ -1,3 +1,4 @@
+import { logger } from '../../../../../utils/logger';
 /**
  * A one-way signal: "the server just told us which published version it is
  * serving".
@@ -23,7 +24,7 @@ export function reportAppVersion(appId: string | null | undefined, version: numb
     if (latest.get(appId) === version) return;
     latest.set(appId, version);
     for (const fn of (listeners.get(appId) || [])) {
-        try { fn(version); } catch { /* a listener must never break a fetch */ }
+        try { fn(version); } catch (err) { logger.debug('a listener must never break a fetch', err); }
     }
 }
 

@@ -27,7 +27,7 @@ interface IntegrationTileProps {
 const IntegrationTile = ({ entry, enabled, onToggle }: IntegrationTileProps) => {
     const icon = hasIntegrationIcon(entry.id)
         ? getIntegrationIcon(entry.id, { size: 22 })
-        : <span style={{ fontSize: 18 }}>🔌</span>;
+        : <span className="[font-size:18px]">🔌</span>;
     return (
         <button
             type="button"

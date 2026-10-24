@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { computeDropHint } from './dropHint';
 import { computeDragEnd, PALETTE_PREFIX } from './dnd';
+import { computeDropHint } from './dropHint';
 import { moveNode } from '../state/definitionOps';
 
 /**

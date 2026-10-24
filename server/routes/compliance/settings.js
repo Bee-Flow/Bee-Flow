@@ -137,11 +137,11 @@ router.put('/settings', requireAuth, requirePermission('admin_compliance'), asyn
                     at,
                 },
             }).catch(e => log.warn('[Compliance] marking evidence failed:', e.message));
-            try { require('../../compliance/marking').invalidate(orgId); } catch { /* optional */ }
+            try { require('../../compliance/marking').invalidate(orgId); } catch (err) { log.debug('optional', err); }
             try {
                 const { emit, EVENTS } = require('../../compliance/events');
                 emit(EVENTS.CONTENT_MARKING_CHANGED, { orgId, enabled: marking.enabled, by: actorId });
-            } catch { /* the bus is optional in tests */ }
+            } catch (err) { log.debug('the bus is optional in tests', err); }
         }
         // An AI-literacy save re-runs the Art. 4 check now, instead of leaving
         // its old verdict standing until the next sweep. A switched-off AI Act

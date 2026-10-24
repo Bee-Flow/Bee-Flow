@@ -84,7 +84,7 @@ function startPlanCapDriftAudit() {
                                     { scanned: r.scanned, drifted: r.drifted, trimmed: r.trimmed },
                                     null,
                                 );
-                            } catch (_) { /* audit best-effort */ }
+                            } catch (err) { log.debug('audit best-effort', err); }
                         }
                     }
                 } catch (e) { log.error('[PlanCapDrift] tick error:', e.message); }
@@ -93,7 +93,7 @@ function startPlanCapDriftAudit() {
             // narrowed plan surfaces drift immediately rather than waiting
             // for the first scheduled tick. Awaited inside an IIFE so we
             // don't block module init.
-            (async () => { try { await runPlanCapDrift({ isBoot: true }); } catch (_) {} })();
+            (async () => { try { await runPlanCapDrift({ isBoot: true }); } catch (_) { log.warn('boot-time plan cap drift check failed', _); } })();
             setInterval(() => runPlanCapDrift({ isBoot: false }), PLAN_CAP_DRIFT_INTERVAL_MS).unref();
             log.info(`[Server] Plan-cap drift audit scheduled (interval=${PLAN_CAP_DRIFT_INTERVAL_MS}ms auto_trim=${PLAN_CAP_AUTO_TRIM})`);
         } catch (e) {
@@ -160,7 +160,7 @@ function startPaygDrain() {
                         log.info(`[PaygDrain] delivered=${r.delivered} failed=${r.failed} hard_failed=${r.hardFailed}`);
                     }
                 } catch (e) { ok = false; log.error('[PaygDrain] tick error:', e.message); }
-                finally { try { require('../telemetry/metrics').recordJobRun({ job: 'payg_drain', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 }); } catch (_) { /* best-effort */ } }
+                finally { try { require('../telemetry/metrics').recordJobRun({ job: 'payg_drain', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 }); } catch (err) { log.debug('best-effort', err); } }
             };
             setTimeout(runPaygDrain, 30_000).unref();
             setInterval(runPaygDrain, PAYG_DRAIN_INTERVAL_MS).unref();

@@ -107,7 +107,7 @@ async function listCandidateUsers({ configStore, kind, resolveSettings, flag, ge
                 for (const u of users) {
                     if (u.organizationId && enabledOrgs.includes(u.organizationId)) userIds.add(u.id);
                 }
-            } catch (_) { /* best-effort */ }
+            } catch (err) { log.debug('best-effort', err); }
         }
     }
     return Array.from(userIds);

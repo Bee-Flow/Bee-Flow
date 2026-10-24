@@ -30,7 +30,7 @@ class ChromeBoundary extends React.Component<ChromeBoundaryProps, ChromeBoundary
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // eslint-disable-next-line no-console
+     
     console.error(`[BeeEditor] ${this.props.label || 'chrome'} crashed — hiding it`, error, info);
   }
 

@@ -118,7 +118,7 @@ async function decodeToWav(audioPath) {
     try {
         await runFfmpeg(decodeArgs(audioPath, tmp));
     } catch (err) {
-        try { fs.unlinkSync(tmp); } catch (_) { /* never created */ }
+        try { fs.unlinkSync(tmp); } catch (err) { log.debug('never created', err); }
         throw err;
     }
     return tmp;
@@ -331,7 +331,7 @@ async function transcribeWithNpu(audioPath, options = {}) {
         _probe = { at: 0, ok: false, base: null };
         return null;
     } finally {
-        if (wavPath) { try { fs.unlinkSync(wavPath); } catch (_) { /* already gone */ } }
+        if (wavPath) { try { fs.unlinkSync(wavPath); } catch (err) { log.debug('already gone', err); } }
     }
 }
 

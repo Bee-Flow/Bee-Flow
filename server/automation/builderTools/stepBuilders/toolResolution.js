@@ -24,6 +24,8 @@
  * means "we were not told", which is different from "the user does not have
  * it" — the distinction buildCatalogForUser now refuses to blur.
  */
+const log = require('../../../telemetry/log');
+
 function availableListHint(available) {
     if (!available) return '';
     const names = [...available].slice(0, 40);
@@ -118,7 +120,7 @@ function unknownToolError(tool, draftWrap, { label = null } = {}) {
         if (!isStepType(tool)) {
             const { findOwnerOfTool } = require('../../toolRegistry');
             let owner = null;
-            try { owner = findOwnerOfTool(tool); } catch (_) { /* registry hiccup — treat as unknown */ }
+            try { owner = findOwnerOfTool(tool); } catch (err) { log.debug('registry hiccup — treat as unknown', err); }
             const list = availableListHint(available);
             if (owner) {
                 return {

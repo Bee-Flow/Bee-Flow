@@ -7,6 +7,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { logger } from '../../../utils/logger';
 
 const BASE = `${API_BASE}/api/automation`;
 
@@ -105,7 +106,7 @@ async function failure(res: { status: number; json: () => Promise<unknown> }): P
         const body = obj(await res.json());
         code = str(body.code);
         message = code ? str(body.error) : null;
-    } catch { /* no body */ }
+    } catch (err) { logger.debug('no body', err); }
     return new AgentBindingsError(res.status, code, message);
 }
 

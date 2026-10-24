@@ -193,7 +193,7 @@ describe('ActionsSection — native AI actions', () => {
     });
 
     it('ai_extract: an untouched schema adopts the table\'s columns and maps them on write-to', async () => {
-        const { findByLabelText, getByLabelText, lastAction } = renderActions(formNode, {
+        const { findByLabelText, lastAction } = renderActions(formNode, {
             act1: {
                 kind: 'ai_extract', source: { kind: 'formula', expr: 'form.upload' },
                 schema: [{ name: 'field1', type: 'string', description: '', required: false }],
@@ -219,7 +219,7 @@ describe('ActionsSection — native AI actions', () => {
     });
 
     it('ai_extract: an authored schema is kept and matched to columns by name', async () => {
-        const { findByLabelText, getByLabelText, lastAction } = renderActions(formNode, {
+        const { findByLabelText, lastAction } = renderActions(formNode, {
             act1: {
                 kind: 'ai_extract', source: { kind: 'formula', expr: 'form.upload' },
                 schema: [

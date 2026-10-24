@@ -9,6 +9,7 @@ import {
     VOICE_STATES,
     readRms,
 } from './voiceSessionAudio';
+import { logger } from '../../../utils/logger';
 
 /** What one VAD poll reads and writes: the hook's refs plus its recording callbacks. */
 export interface VadCtx {
@@ -37,7 +38,7 @@ export function runVadTick(c: VadCtx): void {
 
     // Barge-in: user starts speaking while TTS plays → interrupt.
     if (cur === VOICE_STATES.SPEAKING && rms > VAD_SPEECH_RMS) {
-        try { c.audioElRef.current?.pause(); } catch (_) { /* noop */ }
+        try { c.audioElRef.current?.pause(); } catch (err) { logger.debug('noop', err); }
         c.audioElRef.current = null;
         c.speakingRef.current = true;
         c.lastVoiceAtRef.current = now;

@@ -28,6 +28,7 @@ const { validate } = require('../../core/http/validate');
 const { lazyProjectRoleGate } = require('./roleGate');
 const { badRequest, conflict, notFound } = require('../../core/http/errors');
 const S = require('./workspaceSchemas');
+const telemetryLog = require('../../telemetry/log');
 
 const MAX_FILE_MB = 20;
 
@@ -176,7 +177,7 @@ function makeWorkspaceRouter(deps = {}) {
                             targetType: 'file', targetId: added.file.id,
                             payload: { fileId: added.file.id, status },
                         });
-                    } catch (_) { /* the list refetches on its next event either way */ }
+                    } catch (err) { telemetryLog.debug('the list refetches on its next event either way', err); }
                 },
             });
         }

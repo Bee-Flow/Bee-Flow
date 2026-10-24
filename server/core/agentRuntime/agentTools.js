@@ -163,7 +163,7 @@ async function getAgentTools(agentId) {
     try {
         const { agent, ownerOrgId } = await ownerLookup;
         componentScope = { userId: agent?.userId || null, orgId: ownerOrgId };
-    } catch { /* reported by the subworkflow reader below */ }
+    } catch (err) { log.debug('reported by the subworkflow reader below', err); }
     const agentEnabledComponents = allComponents.filter(c =>
         c.definition?.agentEnabled === true && componentVisibleTo(c.definition, componentScope));
 
@@ -345,9 +345,7 @@ async function getAvailableComponents({ userId = null } = {}) {
                             description: `Input parameter: ${key} (${valueType})`
                         };
                     }
-                } catch (e) {
-                    // Keep default if parsing fails
-                }
+                } catch (e) { log.debug('Keep default if parsing fails', e); }
             }
 
             componentList.push({

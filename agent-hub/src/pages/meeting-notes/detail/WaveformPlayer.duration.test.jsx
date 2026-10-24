@@ -1,6 +1,6 @@
+import { render, screen, act } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
 
 // The waveform hook does an authenticated fetch + Web Audio decode; neither
 // exists in jsdom, and neither is what this test is about.

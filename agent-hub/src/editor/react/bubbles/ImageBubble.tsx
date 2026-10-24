@@ -19,9 +19,9 @@ export default function ImageBubble({ view, node }: Props) {
         const Icon = al === 'left' ? AlignLeft : al === 'center' ? AlignCenter : AlignRight;
         return <button key={al} onClick={() => setAttr({ alignment: al })} className={`p-1.5 rounded-lg ${(attrs.alignment || 'center') === al ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}><Icon className="w-3.5 h-3.5" /></button>;
       })}
-      <div className="w-px h-4 mx-0.5" style={{ background: 'var(--border-subtle)' }} />
+      <div className="w-px h-4 mx-0.5 [background:var(--border-subtle)]" />
       <button onClick={() => setAttr({ textWrap: !attrs.textWrap })} className={`p-1.5 rounded-lg ${attrs.textWrap ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}><WrapText className="w-3.5 h-3.5" /></button>
-      <div className="w-px h-4 mx-0.5" style={{ background: 'var(--border-subtle)' }} />
+      <div className="w-px h-4 mx-0.5 [background:var(--border-subtle)]" />
       {[25, 50, 75, 100].map((p) => {
         const full = view.host ? view.host.clientWidth - 40 : 0;
         const cur = attrs.width || (full || null);
@@ -29,7 +29,7 @@ export default function ImageBubble({ view, node }: Props) {
         const isActive = activePct != null && Math.abs(activePct - p) <= 4;
         return <button key={p} title={`${p}%`} onClick={() => width(p)} className={`px-1.5 py-1 rounded-lg text-[10px] font-semibold ${isActive ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}>{p}%</button>;
       })}
-      <div className="w-px h-4 mx-0.5" style={{ background: 'var(--border-subtle)' }} />
+      <div className="w-px h-4 mx-0.5 [background:var(--border-subtle)]" />
       <button onClick={() => view.deleteAtom(node)} className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10"><Trash2 className="w-3.5 h-3.5" /></button>
     </div>
   );

@@ -1,12 +1,12 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
-import { editor, editors, editorValue, editorWithValue, typeInEditor } from '../../../../test/refEditor';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import SettingsForm from './SettingsForm';
-import { VariablePickerProvider } from '../mapping/VariablePickerContext';
-import scopedStorage from '../../../../utils/scopedStorage';
 import { extractFormState, buildPatch } from './settings/formState';
+import SettingsForm from './SettingsForm';
 import { buildStepFromPayload } from '../DiagramPane';
 import { DATA_ITEMS } from './stepPalette';
+import { editorWithValue } from '../../../../test/refEditor';
+import scopedStorage from '../../../../utils/scopedStorage';
+import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 
 const api = {
     mapJsonFields: vi.fn(async () => ({

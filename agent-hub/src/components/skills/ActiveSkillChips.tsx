@@ -58,12 +58,7 @@ export default function ActiveSkillChips({
             {chips.map(({ skill, attached }) => (
                 <div
                     key={skill.id}
-                    className="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-full text-[11px] border"
-                    style={{
-                        background: 'rgba(245,158,11,.08)',
-                        borderColor: 'rgba(245,158,11,.3)',
-                        color: 'var(--text-primary)',
-                    }}
+                    className="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-full text-[11px] border [background:rgba(245,158,11,.08)] [border-color:rgba(245,158,11,.3)] [color:var(--text-primary)]!"
                     title={attached
                         ? t('skills.chip_attached_title', '{name} — attached to this agent', { name: skill.name })
                         : t('skills.chip_active_title', '{name} — active for this chat', { name: skill.name })}

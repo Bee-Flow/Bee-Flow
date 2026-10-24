@@ -23,6 +23,7 @@ const learningRoutes = require('./ai/learning');
 const learningAdminRoutes = require('./ai/learningAdmin');
 const { requireCapability } = require('../core/entitlements/entitlements');
 const { requireModule } = require('../modules');
+const log = require('../telemetry/log');
 
 // Mount all sub-routes
 router.use('/', configRoutes);
@@ -45,7 +46,7 @@ const notebookKillSwitch = async (req, res, next) => {
         if (enabled === false) {
             return res.status(403).json({ error: 'Notebooks feature is disabled' });
         }
-    } catch (_) { /* fail open on the operator kill-switch only */ }
+    } catch (err) { log.debug('fail open on the operator kill-switch only', err); }
     next();
 };
 const notebookChatGate = (req, res, next) => {

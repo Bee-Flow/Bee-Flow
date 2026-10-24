@@ -11,6 +11,7 @@
  * executeWorkspaceTool) are patched BEFORE requiring the modules under test.
  */
 
+require('../../boot/featureModules'); // core looks feature modules up by name (core/featureModules.js)
 const assert = require('assert');
 
 // ── Patch destructure-at-load deps BEFORE requiring the modules under test ──

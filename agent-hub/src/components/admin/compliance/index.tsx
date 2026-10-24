@@ -130,8 +130,7 @@ export default function ComplianceHub({ activeSection = 'overview', focusCheckId
         // page, the automation builder and the agent drawer.
         onOpenLadder: (kind: string, target: unknown, title?: string | null) => setLadder({ kind, target: ladderTarget(target, title) }),
     };
-    const Page = pageFor(active);
-    const page = <Page {...pageProps} />;
+    const page = React.createElement(pageFor(active) as unknown as React.ComponentType<typeof pageProps>, pageProps);
 
     const headerCtx: Partial<HubHeaderCtx> = {
         counts: counts.counts, core, frameworks, calendar, dl, api: API,

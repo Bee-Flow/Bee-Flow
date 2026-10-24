@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { consentAccepted } from './consent';
+import { logger } from '../../utils/logger';
 
 // Injects Google Analytics 4 (gtag.js) onto a published CMS site.
 //
@@ -31,7 +32,7 @@ const MEASUREMENT_ID_RE = /^G-[A-Z0-9]{4,20}$/;
 function injectGa(measurementId: string) {
     if (typeof document === 'undefined') return;
     // Clear the opt-out flag a prior withdrawal may have set this session.
-    try { window[`ga-disable-${measurementId}`] = false; } catch { /* ignore */ }
+    try { window[`ga-disable-${measurementId}`] = false; } catch (err) { logger.debug('ignore', err); }
     if (document.getElementById(SCRIPT_ID)) return;
     const s = document.createElement('script');
     s.id = SCRIPT_ID;
@@ -53,7 +54,7 @@ function removeGa(measurementId: string) {
     document.getElementById(INIT_ID)?.remove();
     // Removing the tags doesn't stop an already-loaded gtag from sending
     // events this session — the documented per-property disable flag does.
-    try { window[`ga-disable-${measurementId}`] = true; } catch { /* ignore */ }
+    try { window[`ga-disable-${measurementId}`] = true; } catch (err) { logger.debug('ignore', err); }
 }
 
 /** @param {{ measurementId?: string | null }} [props] */

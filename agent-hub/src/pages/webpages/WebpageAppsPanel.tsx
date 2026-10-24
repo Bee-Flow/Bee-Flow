@@ -23,14 +23,14 @@ function StatusPill({ available }: StatusPillProps) {
     const { t } = useTranslation();
     if (available === true) {
         return (
-            <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: '#10b981' }}>
+            <span className="inline-flex items-center gap-1 text-[10px] [color:#10b981]!">
                 <CheckCircle2 size={11} /> {t('webpages.apps.status_connected', 'Connected')}
             </span>
         );
     }
     if (available === false) {
         return (
-            <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: '#d97706' }}>
+            <span className="inline-flex items-center gap-1 text-[10px] [color:#d97706]!">
                 <AlertTriangle size={11} /> {t('webpages.apps.status_reconnect', 'Needs reconnect')}
             </span>
         );
@@ -156,7 +156,7 @@ function AddAppForm({ webpageId, catalog, onGranted, onError }: AddAppFormProps)
                 </select>
             </label>
             {app && app.available === false ? (
-                <p className="text-[11px] flex items-start gap-1.5" style={{ color: '#d97706' }}>
+                <p className="text-[11px] flex items-start gap-1.5 [color:#d97706]!">
                     <AlertTriangle size={12} className="mt-0.5 shrink-0" />
                     <span>
                         {t('webpages.apps.app_not_connected', "{name} isn't connected to your account.", { name: app.label || app.id })}{' '}
@@ -218,10 +218,10 @@ function AddAppForm({ webpageId, catalog, onGranted, onError }: AddAppFormProps)
                 <span className="text-[10px] text-[var(--vsc-fg-muted)]">
                     {t('webpages.apps.pinned_hint', 'Pinned values always win over what the page sends — pin anything a visitor must not choose (recipient, channel, sheet id).')}
                 </span>
-                {fixedArgsError ? <span className="text-[10px]" style={{ color: '#ef4444' }}>{fixedArgsError}</span> : null}
+                {fixedArgsError ? <span className="text-[10px] [color:#ef4444]!">{fixedArgsError}</span> : null}
             </label>
             {needConnect ? (
-                <p className="text-[11px]" style={{ color: '#d97706' }}>
+                <p className="text-[11px] [color:#d97706]!">
                     {t('webpages.apps.need_connect', "That app isn't connected (anymore).")} <ConnectLink webpageId={webpageId}>{t('webpages.apps.reconnect_it', 'Reconnect it')}</ConnectLink> {t('webpages.apps.and_try_again', 'and try again.')}
                 </p>
             ) : null}
@@ -269,8 +269,7 @@ function AddAutomationForm({ webpageId, automations, onGranted, onError }: AddAu
             <label className="flex flex-col gap-1 flex-1">
                 <span className="text-[11px] text-[var(--vsc-fg-muted)]">{t('webpages.apps.field_automation', 'Automation')}</span>
                 <select
-                    className="w-full px-2 py-1.5 rounded text-[12px] border outline-none"
-                    style={{ background: 'var(--vsc-editor-bg)', borderColor: 'var(--vsc-border)', color: 'var(--vsc-fg)' }}
+                    className="w-full px-2 py-1.5 rounded text-[12px] border outline-none [background:var(--vsc-editor-bg)] [border-color:var(--vsc-border)] [color:var(--vsc-fg)]!"
                     value={automationId}
                     aria-label={t('webpages.apps.field_automation', 'Automation')}
                     onChange={(e) => setAutomationId(e.target.value)}
@@ -407,14 +406,14 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }: Webpag
             </p>
 
             {error ? (
-                <p role="alert" className="flex items-start gap-1.5 text-[11px]" style={{ color: '#ef4444' }}>
+                <p role="alert" className="flex items-start gap-1.5 text-[11px] [color:#ef4444]!">
                     <AlertTriangle size={12} className="mt-0.5 shrink-0" />
                     <span>{error}</span>
                 </p>
             ) : null}
 
             {grants?.discoveryFailed ? (
-                <p className="flex items-start gap-1.5 text-[11px]" style={{ color: '#d97706' }}>
+                <p className="flex items-start gap-1.5 text-[11px] [color:#d97706]!">
                     <AlertTriangle size={12} className="mt-0.5 shrink-0" />
                     <span>{t('webpages.apps.discovery_failed', "Couldn't verify your connected apps — statuses below may be stale.")}</span>
                 </p>
@@ -465,8 +464,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }: Webpag
                                     type="button"
                                     onClick={() => revoke('integrations', g.tool)}
                                     aria-label={t('webpages.build.remove_source', 'Remove {name}', { name: g.tool })}
-                                    className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-[var(--vsc-hover-bg)]"
-                                    style={{ color: '#ef4444' }}
+                                    className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-[var(--vsc-hover-bg)] [color:#ef4444]"
                                 >
                                     <Trash2 size={12} />
                                 </button>
@@ -529,8 +527,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }: Webpag
                                     type="button"
                                     onClick={() => revoke('automations', g.automationId)}
                                     aria-label={t('webpages.build.remove_source', 'Remove {name}', { name: g.label || g.automationId })}
-                                    className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-[var(--vsc-hover-bg)]"
-                                    style={{ color: '#ef4444' }}
+                                    className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-[var(--vsc-hover-bg)] [color:#ef4444]"
                                 >
                                     <Trash2 size={12} />
                                 </button>

@@ -39,7 +39,7 @@ async function underAdvisoryLock(key, label, run) {
         log.error(`[AutomationRunner] ${label} error:`, e.message);
     } finally {
         if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [key]); } catch (_) { /* lock release is best-effort */ }
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [key]); } catch (err) { log.debug('lock release is best-effort', err); }
             client.release();
         }
     }

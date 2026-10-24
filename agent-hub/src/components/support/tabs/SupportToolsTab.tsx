@@ -44,7 +44,7 @@ export default function SupportToolsTab() {
             <p className="text-xs mb-4 text-[var(--text-muted)]">
                 {t('support.support_tools_controls_for_the_deeper_ai_handling', 'Controls for the deeper AI handling. These apply to the live auto-responder.')}
             </p>
-            {error && <div className="text-xs mb-3 px-3 py-2 rounded" style={{ background: 'rgba(220,38,38,0.08)', color: '#dc2626' }}>{error}</div>}
+            {error && <div className="text-xs mb-3 px-3 py-2 rounded [background:rgba(220,38,38,0.08)] [color:#dc2626]!">{error}</div>}
 
             <div className="rounded-lg border p-4 mb-3 border-[var(--border-default)] bg-[var(--bg-card)]">
                 <label className="flex items-start gap-3 cursor-pointer">
@@ -70,10 +70,10 @@ export default function SupportToolsTab() {
             </div>
 
             <div className="flex items-center gap-3">
-                <button onClick={save} disabled={busy} className="px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 disabled:opacity-50" style={{ background: 'var(--accent-primary)', color: 'white' }}>
+                <button onClick={save} disabled={busy} className="px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 disabled:opacity-50 [background:var(--accent-primary)] [color:white]!">
                     <Save className="w-3.5 h-3.5" /> {busy ? 'Saving…' : 'Save'}
                 </button>
-                {saved && <span className="text-xs" style={{ color: '#059669' }}>{t('support.support_tools_saved', 'Saved')}</span>}
+                {saved && <span className="text-xs [color:#059669]!">{t('support.support_tools_saved', 'Saved')}</span>}
             </div>
         </div>
     );

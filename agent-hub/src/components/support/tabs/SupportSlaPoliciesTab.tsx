@@ -71,7 +71,7 @@ export default function SupportSlaPoliciesTab() {
             <p className="text-xs mb-4 text-[var(--text-muted)]">
                 {t('support.support_sla_policies_first_response_and_resolution_targets', 'First-response and resolution targets per priority (in minutes). Threads that breach are flagged and the assignee is notified. The clock pauses while a thread is waiting on the customer.')}
             </p>
-            {error && <div className="text-xs mb-3 px-3 py-2 rounded" style={{ background: 'rgba(220,38,38,0.08)', color: '#dc2626' }}>{error}</div>}
+            {error && <div className="text-xs mb-3 px-3 py-2 rounded [background:rgba(220,38,38,0.08)] [color:#dc2626]!">{error}</div>}
             <div className="space-y-2">
                 {PRIORITIES.map((p: string) => {
                     const row = rows[p] || {};
@@ -89,27 +89,28 @@ function SlaRow({ priority, row, busy, defaults, onSave }: SlaRowProps) {
     const [first, setFirst] = useState(row.first_response_minutes ?? defaults.first);
     const [res, setRes] = useState(row.resolution_minutes ?? defaults.resolution);
     const [enabled, setEnabled] = useState(row.enabled !== false);
-    useEffect(() => {
+    const [prevRowDeps, setPrevRowDeps] = useState([row, defaults]);
+    if (prevRowDeps[0] !== row || prevRowDeps[1] !== defaults) {
+        setPrevRowDeps([row, defaults]);
         setFirst(row.first_response_minutes ?? defaults.first);
         setRes(row.resolution_minutes ?? defaults.resolution);
         setEnabled(row.enabled !== false);
-    }, [row, defaults]);
+    }
 
     return (
         <div className="flex items-center gap-3 p-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)]">
             <span className="w-20 text-sm font-medium capitalize text-[var(--text-primary)]">{priority}</span>
             <label className="text-xs flex items-center gap-1 text-[var(--text-muted)]">
-                {t('support.support_sla_policies_first', 'First')} <input type="number" min="1" value={first} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFirst(parseInt(e.target.value, 10) || 0)} className="w-20 px-2 py-1 rounded border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} /> {t('support.support_sla_policies_min', 'min')}
+                {t('support.support_sla_policies_first', 'First')} <input type="number" min="1" value={first} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFirst(parseInt(e.target.value, 10) || 0)} className="w-20 px-2 py-1 rounded border [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]" /> {t('support.support_sla_policies_min', 'min')}
             </label>
             <label className="text-xs flex items-center gap-1 text-[var(--text-muted)]">
-                {t('support.support_sla_policies_resolve', 'Resolve')} <input type="number" min="1" value={res} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRes(parseInt(e.target.value, 10) || 0)} className="w-20 px-2 py-1 rounded border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} /> {t('support.support_sla_policies_min', 'min')}
+                {t('support.support_sla_policies_resolve', 'Resolve')} <input type="number" min="1" value={res} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRes(parseInt(e.target.value, 10) || 0)} className="w-20 px-2 py-1 rounded border [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]" /> {t('support.support_sla_policies_min', 'min')}
             </label>
             <label className="text-xs flex items-center gap-1 ml-auto text-[var(--text-secondary)]">
                 <input type="checkbox" checked={enabled} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEnabled(e.target.checked)} /> {t('support.support_sla_policies_on', 'on')}
             </label>
             <button onClick={() => onSave(priority, first, res, enabled)} disabled={busy}
-                className="px-2.5 py-1 rounded-md text-xs flex items-center gap-1 disabled:opacity-50"
-                style={{ background: 'var(--accent-primary)', color: 'white' }}>
+                className="px-2.5 py-1 rounded-md text-xs flex items-center gap-1 disabled:opacity-50 [background:var(--accent-primary)] [color:white]!">
                 <Save className="w-3 h-3" /> {busy ? '…' : 'Save'}
             </button>
         </div>

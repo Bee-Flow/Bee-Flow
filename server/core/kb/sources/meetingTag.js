@@ -39,6 +39,8 @@
  * able to check.
  */
 
+const log = require('../../../telemetry/log');
+
 const supportsModes = ['manual', 'schedule', 'after_meeting'];
 const defaultMode = 'after_meeting';
 
@@ -78,10 +80,7 @@ async function enumerate(source, ctx, deps) {
         const asker = await askerContext(owner);
         orgIds = [...asker.orgIds];
         userGroupIds = asker.userGroups;
-    } catch (_) {
-        // A failed resolve NARROWS: the owner still sees their own notes and
-        // anything shared with them directly, which is the safe direction.
-    }
+    } catch (err) { log.debug('A failed resolve NARROWS: the owner still sees their own notes and anything shared with them directly, which is the safe direction.', err); }
 
     const meetings = await store.listByTag(tag, owner, { orgIds, userGroupIds, limit: MAX_MEETINGS });
     return (meetings || []).map(m => ({

@@ -149,6 +149,11 @@ const AI_STEP_AGENT_PERMISSION_KEYS = Object.freeze(['startAutomations', 'useKno
  */
 const MAX_AI_STEP_SKILL_IDS = 5;
 
+// The step types that call a model. `summarize` is NOT one of them: it is an
+// aggregate op over a collection, and the client fallback in ComplianceBlock
+// must agree (CONTRACTS.md). core/privacy/dataFlow.js reads this too.
+const AI_STEP_TYPES = Object.freeze(['ai_step', 'data_extraction', 'ai_tool']);
+
 // A note's own field ceilings (BFSF-411). Generous — this is a sticky note,
 // not a form — but bounded for the same reason every other free-text/size
 // field here is: an unbounded value re-saves in full on every autosave.
@@ -569,6 +574,7 @@ module.exports = {
     KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES,
     AI_STEP_AGENT_PERMISSION_KEYS,
     MAX_AI_STEP_SKILL_IDS,
+    AI_STEP_TYPES,
     HTTP_REQUEST_METHODS,
     HTTP_REQUEST_WRITE_METHODS,
     CACHE_INTO_MAX_DAYS,

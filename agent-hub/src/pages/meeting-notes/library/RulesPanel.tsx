@@ -19,6 +19,7 @@ import {
 } from '../lib/meetingRules';
 import type { TranslateFn, RuleRow, RuleIdea, SuggestDone, RulesState, RunFacets, RunsState, RunFacetsBody, IdeasState, CreatedAutomation, RunLabelInput, RuleFooterProps, RuleCardProps, ComposerProps, RulesPanelProps, TriggerCondition, Consequences } from './RulesPanel.types';
 import { describeError, errorCode, errorMessage, errorStatus, messageOf } from '../../../utils/caughtError';
+import { logger } from '../../../utils/logger';
 
 /**
  * "Rules" (Regels) — de automations die op een AFGERONDE vergadernotitie
@@ -334,8 +335,7 @@ function Composer({ text, onText, ideas, onRun, onUseIdea, creating, t }: Compos
                 value={text}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => onText(e.target.value)}
                 placeholder={t('meetings.rules_ai_placeholder', 'put the decisions in the sales knowledge base')}
-                className="w-full px-2 py-1 rounded-md border text-[12px]"
-                style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                className="w-full px-2 py-1 rounded-md border text-[12px] [border-color:var(--border-default)] [background:var(--bg-card)] [color:var(--text-primary)]!"
             />
             <button
                 type="button" onClick={onRun} disabled={ideas.busy}
@@ -438,7 +438,7 @@ export default function RulesPanel({
 
     const load = useCallback(() => { setCreateError(null); loadRules(); loadRuns(); }, [loadRules, loadRuns]);
     useEffect(() => { load(); }, [load]);
-    useEffect(() => () => { try { abortRef.current?.abort(); } catch { /* al gesloten */ } }, []);
+    useEffect(() => () => { try { abortRef.current?.abort(); } catch (err) { logger.debug('al gesloten', err); } }, []);
 
     // Onleesbaar is niet nul. Een 200 met een body zonder `automationId`-map is
     // geen "geen runs" maar "niemand heeft geteld"; die landde stilzwijgend als
@@ -477,7 +477,7 @@ export default function RulesPanel({
     }, [api, loadRules, openRule, t]);
 
     const askAi = useCallback(async () => {
-        try { abortRef.current?.abort(); } catch { /* geen lopende scan */ }
+        try { abortRef.current?.abort(); } catch (err) { logger.debug('geen lopende scan', err); }
         const controller = new AbortController();
         abortRef.current = controller;
         setIdeas({ busy: true, ran: false, error: null, reason: null, items: [] });

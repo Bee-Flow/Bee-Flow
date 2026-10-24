@@ -78,9 +78,9 @@ const { kindOfCategory, orderKinds } = require('./personalColumns');
 // its own), which is why it can be pulled in from core at all.
 const { effectOf } = require('../automationModel/sideEffectMap');
 // The product's own answer to "which step types call a model", stated once in
-// automation/automationGraph.js and read here rather than restated. See
+// core/automationModel/constants.js and read here rather than restated. See
 // MODEL_TYPES below for what restating it cost.
-const { AI_STEP_TYPES } = require('../../automation/automationGraph');
+const { AI_STEP_TYPES } = require('../automationModel/constants');
 
 /**
  * Step types that reach outside the workspace whatever tool they run.
@@ -96,7 +96,7 @@ const OUTBOUND_TYPES = Object.freeze(new Set(['http_request', 'notification', 'c
 
 /**
  * Step types where a model reads whatever it was handed — `AI_STEP_TYPES`
- * from automation/automationGraph.js, not a fourth copy of it.
+ * from core/automationModel/constants.js, not a fourth copy of it.
  *
  * The copy this replaces said `['ai_step', 'data_extraction', 'summarize',
  * 'fill_document']`, carried forward from the playbook review's hand-rolled
@@ -117,7 +117,7 @@ const OUTBOUND_TYPES = Object.freeze(new Set(['http_request', 'notification', 'c
  *     which `aiAct/signals.generatingStepsDownstreamOfAi` already handles by
  *     asking what feeds it. It does not itself read anything to a model.
  *
- * One list, in one place. A fifth model step type added to automationGraph
+ * One list, in one place. A fifth model step type added to core/automationModel/constants
  * arrives here by itself.
  */
 const MODEL_TYPES = Object.freeze(new Set(AI_STEP_TYPES));

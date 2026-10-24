@@ -102,7 +102,7 @@ async function applyDefaultEncryptionTier(orgId, deps = {}) {
         return NONE('update_threw');
     }
 
-    try { invalidatePolicyCache(orgId); } catch (_) { /* non-fatal */ }
+    try { invalidatePolicyCache(orgId); } catch (err) { log.debug('non-fatal', err); }
 
     // Same persistent trail the admin route writes, so "who put this org on
     // this tier" has one answer whether a human or the default did it.
@@ -114,7 +114,7 @@ async function applyDefaultEncryptionTier(orgId, deps = {}) {
             { tier: wanted, scope: null, source: 'BEEFLOW_DEFAULT_ENCRYPTION_TIER' },
             orgId,
         );
-    } catch (_) { /* logAccessAudit already swallows; belt and braces */ }
+    } catch (err) { log.debug('logAccessAudit already swallows; belt and braces', err); }
 
     log.info(`[Encryption] New org '${orgId}' starts on tier '${wanted}' (BEEFLOW_DEFAULT_ENCRYPTION_TIER).`);
     return { tier: wanted, applied: true, reason: 'applied' };

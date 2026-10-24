@@ -141,7 +141,7 @@ function getEventDef(provider, event) {
     try {
         const { isAutoEventId, deriveEventDef } = require('./autoDerive');
         if (isAutoEventId(event)) return deriveEventDef(event);
-    } catch { /* auto-derivation unavailable */ }
+    } catch (err) { log.debug('auto-derivation unavailable', err); }
     return null;
 }
 

@@ -153,7 +153,7 @@ async function activateAutomation(automationId, { userId, session, isAdmin = fal
 /** Tear down a provisioned automation: remove its subscriptions, then delete it. */
 async function teardownAutomation(automationId) {
     if (!automationId) return false;
-    try { await automationStore.deleteSubscriptionsForAutomation(automationId); } catch (_) { /* ignore */ }
+    try { await automationStore.deleteSubscriptionsForAutomation(automationId); } catch (err) { log.debug('ignore', err); }
     return automationStore.deleteAutomation(automationId).catch(() => false);
 }
 

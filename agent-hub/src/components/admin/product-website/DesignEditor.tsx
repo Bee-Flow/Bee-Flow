@@ -454,7 +454,7 @@ function PresetCard({ preset, active, onApply }: { preset: ThemePreset; active: 
                 <div style={{ fontFamily: fontStack(p.fonts.heading), color: text, fontSize: 11, fontWeight: p.typography.headingWeight, lineHeight: 1.15, marginBottom: 5 }}>
                     {t('cms_site.site.design.sample_headline', 'Your AI. Your rules.')}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 6 }}>
+                <div className="[display:flex] [flex-direction:column] [gap:3px] [margin-bottom:6px]">
                     {line('80%', muted, 3)}
                     {line('62%', muted, 3)}
                 </div>
@@ -472,7 +472,7 @@ function PresetCard({ preset, active, onApply }: { preset: ThemePreset; active: 
                     {t('cms_site.site.design.sample_button', 'Get started')}
                 </div>
                 {/* mini cards — carry the card recipe */}
-                <div style={{ display: 'flex', gap: 4 }}>
+                <div className="[display:flex] [gap:4px]">
                     <div style={{ flex: 1, height: 16, borderRadius: cardRadius, background: surface, border: cardBorder, boxShadow: cardShadow }} />
                     <div style={{ flex: 1, height: 16, borderRadius: cardRadius, background: surface, border: cardBorder, boxShadow: cardShadow }} />
                 </div>

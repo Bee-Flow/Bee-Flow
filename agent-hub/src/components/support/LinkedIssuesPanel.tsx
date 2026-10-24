@@ -6,6 +6,7 @@ import { authFetch, API_BASE } from '../../utils/helpers';
 import useConfirm from '../shared/useConfirm';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
+import { logger } from '../../utils/logger';
 
 /**
  * The YouTrack issues attached to one support ticket.
@@ -71,7 +72,7 @@ function ConnectionNotice({ status }: { status: YouTrackStatus | null }) {
     }
     if (!status.ok) {
         return (
-            <div className="text-xs mb-2 flex items-start gap-1.5" style={{ color: '#b45309' }}>
+            <div className="text-xs mb-2 flex items-start gap-1.5 [color:#b45309]!">
                 <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                 <span>{t('support.linked_issues_can_t_reach_youtrack_host', 'Can\'t reach YouTrack ({host}):', { host: status.host })} {status.error}</span>
             </div>
@@ -85,7 +86,7 @@ function SyncNote({ issue }: { issue: LinkedIssue }) {
     if (!issue.syncError) return null;
     const gone = issue.syncError.includes('not found');
     return (
-        <span style={{ color: '#b45309' }}>
+        <span className="[color:#b45309]">
             · {gone ? 'no longer in YouTrack' : 'couldn’t refresh'}
             {!gone && issue.syncedAt ? ` — showing ${relative(issue.syncedAt)}` : ''}
         </span>
@@ -214,7 +215,7 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
             try {
                 const res = await authFetch(`${API_BASE}/api/support/youtrack/status`);
                 if (res.ok) setStatus(await res.json());
-            } catch { /* the panel degrades to "not connected" */ }
+            } catch (err) { logger.debug('the panel degrades to "not connected"', err); }
         })();
     }, []);
 
@@ -258,7 +259,7 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
         try {
             const res = await authFetch(`${API_BASE}/api/support/youtrack/issues/${issueId}/threads`);
             if (res.ok) { const d = await res.json(); setReverse(d.threads || []); }
-        } catch { /* the disclosure just stays empty */ }
+        } catch (err) { logger.debug('the disclosure just stays empty', err); }
     };
 
     const connected = status?.configured && status?.ok;
@@ -305,7 +306,7 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
             <ConnectionNotice status={status} />
 
             {error && (
-                <div className="text-xs mb-2 flex items-start gap-1.5" style={{ color: '#dc2626' }}>
+                <div className="text-xs mb-2 flex items-start gap-1.5 [color:#dc2626]!">
                     <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" /><span>{error}</span>
                 </div>
             )}

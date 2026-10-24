@@ -20,6 +20,7 @@
  */
 
 const { ORG_EXEMPT_APPS, AUTO_ENABLED_APPS } = require('./integrationAppPolicy');
+const log = require('../../telemetry/log');
 
 function createRuntimeAppGate({ configStore, resolveOrgAllowList, resolveOrgActiveSet, lazy }) {
     /**
@@ -63,7 +64,7 @@ function createRuntimeAppGate({ configStore, resolveOrgAllowList, resolveOrgActi
         try {
             const cat = require('./ncIntegrationCatalog');
             ncIdSet = cat.NC_INTEGRATION_ID_SET || new Set(cat.NC_INTEGRATION_IDS || []);
-        } catch (_) { }
+        } catch (_) { log.debug('integration catalog unavailable, no Nextcloud ids to gate', _); }
         try {
             const userStore = lazy.userStore();
             const currentUser = await userStore.getUser(userId);
@@ -98,7 +99,7 @@ function createRuntimeAppGate({ configStore, resolveOrgAllowList, resolveOrgActi
                 // Super admins without an org use the '__system__' config scope
                 userOrgId = '__system__';
             }
-        } catch (e) { /* ignore */ }
+        } catch (e) { log.debug('ignore', e); }
 
         // AUTO_ENABLED_APPS is module-scoped (integrationAppPolicy.js).
 

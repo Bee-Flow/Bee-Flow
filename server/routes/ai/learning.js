@@ -171,7 +171,7 @@ async function resolveModel(modelTier, { userId, userOrgId }) {
     try {
         const resolved = await resolveModelForTier(`tier:${tier}`, { userOrgId, userId, fallbackTier: 'fast' });
         if (resolved) return resolved;
-    } catch (_) { /* fall through */ }
+    } catch (err) { log.debug('fall through', err); }
     return resolveModelWithGlobalFallback(`tier:${tier}`, { userOrgId, userId });
 }
 
@@ -202,11 +202,11 @@ async function recordExerciseAttempt(userId, exerciseId, passed, score) {
 // Tolerant JSON extraction — models sometimes wrap JSON in prose or code fences.
 function parseJsonLoose(text) {
     if (!text || typeof text !== 'string') return null;
-    try { return JSON.parse(text); } catch (_) { /* try to extract */ }
+    try { return JSON.parse(text); } catch (err) { log.debug('try to extract', err); }
     const first = text.indexOf('{');
     const last = text.lastIndexOf('}');
     if (first !== -1 && last > first) {
-        try { return JSON.parse(text.slice(first, last + 1)); } catch (_) { /* give up */ }
+        try { return JSON.parse(text.slice(first, last + 1)); } catch (err) { log.debug('give up', err); }
     }
     return null;
 }
@@ -254,7 +254,7 @@ router.post('/coach', requireAuth, coachLimiter, validate({ body: CoachBody }), 
     // the PUBLISHED lesson snapshot by `${lessonId}:${stepId}`, never drafts).
     let rubric = getRubric(exerciseId);
     if (!rubric && userOrgId) {
-        try { rubric = await learningContentStore.findRubric(userOrgId, exerciseId); } catch (_) { /* 404 below */ }
+        try { rubric = await learningContentStore.findRubric(userOrgId, exerciseId); } catch (err) { log.debug('404 below', err); }
     }
     if (!rubric) return res.status(404).json({ error: 'Unknown exercise' });
 

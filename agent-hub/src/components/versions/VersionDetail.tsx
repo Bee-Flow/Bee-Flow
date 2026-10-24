@@ -17,6 +17,7 @@ import NameVersionForm from './NameVersionForm';
 import VersionCompare from './VersionCompare';
 import { AiChip, AvatarStack } from './VersionList';
 import { contributorLine, contributorSummary, sourceLabel, versionErrorText, type PeopleNames, type TFn } from './versionText';
+import { logger } from '../../utils/logger';
 
 export interface VersionDetailProps {
     baseUrl: string;
@@ -148,9 +149,7 @@ export default function VersionDetail({
         try {
             const out = await restore.mutateAsync({ ref: version.id, expectedVersion });
             onRestored(out.current);
-        } catch {
-            // Said below the header; the dialog closes either way.
-        } finally {
+        } catch (err) { logger.debug('Said below the header; the dialog closes either way.', err); } finally {
             setConfirming(false);
         }
     };

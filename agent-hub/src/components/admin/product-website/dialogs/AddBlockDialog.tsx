@@ -59,7 +59,11 @@ export default function AddBlockDialog({ onAdd, onCancel, design = null }: AddBl
             || m.type.toLowerCase().includes(q)
             || (m.category || '').toLowerCase().includes(q));
     }, [query]);
-    useEffect(() => { setFocusIdx(0); }, [query]);
+    const [prevQuery, setPrevQuery] = useState(query);
+    if (prevQuery !== query) {
+        setPrevQuery(query);
+        setFocusIdx(0);
+    }
 
     const categories = useMemo(() => {
         const out = new Map<string, Array<(typeof BLOCK_CATALOGUE)[string]>>();
@@ -97,8 +101,7 @@ export default function AddBlockDialog({ onAdd, onCancel, design = null }: AddBl
                 (the old picker's min(560px, 86vh) card, adapted to the
                 shell's own max-height). */}
             <div
-                className="flex flex-col overflow-hidden"
-                style={{ height: 'min(560px, 78vh)' }}
+                className="flex flex-col overflow-hidden h-[min(560px,78vh)]"
                 onKeyDown={onKeyDown}
             >
                 {/* Header + search */}

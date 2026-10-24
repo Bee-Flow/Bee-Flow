@@ -24,7 +24,7 @@ export default function ChartView({ node, view, editable }: { node: DocNode; vie
   const { t } = useTranslation();
   const spec: ChartNodeSpec = useMemo(() => { try { return JSON.parse(node.attrs?.spec || '{}'); } catch (e) { return {}; } }, [node.attrs?.spec]);
   const type = spec.type || 'bar';
-  const labels = Array.isArray(spec.labels) ? spec.labels : [];
+  const labels = useMemo(() => Array.isArray(spec.labels) ? spec.labels : [], [spec.labels]);
   // The spec is unvalidated content: it can arrive from an ingested document or
   // an AI write, so entries may be null/strings/anything. Drop what we can't
   // plot rather than throwing mid-render. Names are de-duplicated because
@@ -85,11 +85,10 @@ export default function ChartView({ node, view, editable }: { node: DocNode; vie
   }
 
   return (
-    <div className="bf-chart group relative my-3 rounded-xl border p-3"
-      style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}
+    <div className="bf-chart group relative my-3 rounded-xl border p-3 [border-color:var(--border-default)] [background:var(--bg-secondary)]"
       onMouseDown={() => view.selectAtom(node)}>
       {spec.title && <div className="text-[13px] font-semibold mb-2 text-[var(--text-primary)]">{spec.title}</div>}
-      <div style={{ width: '100%', height: 260 }}>
+      <div className="w-[100%] h-[260px]">
         <ResponsiveContainer width="100%" height="100%">{chart}</ResponsiveContainer>
       </div>
       {editable && (

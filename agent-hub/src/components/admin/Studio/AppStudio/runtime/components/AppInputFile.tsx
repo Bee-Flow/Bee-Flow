@@ -9,6 +9,7 @@ import { Field } from '../uiBits';
 import useInputChange from '../useInputChange';
 import type { NodeProps } from './appNode.types';
 import type { TranslateParams } from '../../../../../../hooks/useTranslation';
+import { logger } from '../../../../../../utils/logger';
 
 /**
  * App Studio runtime — 'input_file'. Spec: server/appStudio/componentSpecs.js.
@@ -115,19 +116,19 @@ export default function AppInputFile({ node }: NodeProps<InputFileProps>) {
         try {
             previewsRef.current.set(fileId, URL.createObjectURL(file));
             setPreviewVersion((v) => v + 1);
-        } catch { /* no object URLs here — the filename fallback still renders */ }
+        } catch (err) { logger.debug('no object URLs here — the filename fallback still renders', err); }
     }, []);
     const forgetPreview = useCallback((fileId: string) => {
         const url = previewsRef.current.get(fileId);
         if (!url) return;
-        try { URL.revokeObjectURL(url); } catch { /* already gone */ }
+        try { URL.revokeObjectURL(url); } catch (err) { logger.debug('already gone', err); }
         previewsRef.current.delete(fileId);
     }, []);
     useEffect(() => {
         const map = previewsRef.current;
         return () => {
             for (const url of map.values()) {
-                try { URL.revokeObjectURL(url); } catch { /* already gone */ }
+                try { URL.revokeObjectURL(url); } catch (err) { logger.debug('already gone', err); }
             }
             map.clear();
         };
@@ -260,15 +261,13 @@ export default function AppInputFile({ node }: NodeProps<InputFileProps>) {
                             return (
                                 <li
                                     key={`${typeof entry === 'object' ? entry.fileId : entry}-${i}`}
-                                    className="flex items-center gap-2 p-1.5 text-xs border"
-                                    style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)' }}
+                                    className="flex items-center gap-2 p-1.5 text-xs border [background:var(--bg-tertiary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)]"
                                 >
                                     {src ? (
                                         <img
                                             src={src}
                                             alt={display}
-                                            className="shrink-0 object-cover"
-                                            style={{ width: 56, height: 56, borderRadius: 'var(--app-radius)', background: 'var(--bg-secondary)' }}
+                                            className="shrink-0 object-cover w-[56px] h-[56px] [border-radius:var(--app-radius)] [background:var(--bg-secondary)]"
                                             // The stored-file URL is not readable
                                             // until the attachment hangs off a
                                             // record, so a broken image is an
@@ -278,7 +277,7 @@ export default function AppInputFile({ node }: NodeProps<InputFileProps>) {
                                         />
                                     ) : null}
                                     {href ? (
-                                        <a href={href} target="_blank" rel="noopener noreferrer" className="truncate underline underline-offset-2" style={{ color: 'var(--app-primary)' }}>
+                                        <a href={href} target="_blank" rel="noopener noreferrer" className="truncate underline underline-offset-2 [color:var(--app-primary)]">
                                             {display}
                                         </a>
                                     ) : (
@@ -288,8 +287,7 @@ export default function AppInputFile({ node }: NodeProps<InputFileProps>) {
                                         type="button"
                                         onClick={() => removeAt(i)}
                                         aria-label={t('studio_apps_runtime.inputs.file_remove', 'Remove {name}', { name: display })}
-                                        className="ml-auto shrink-0"
-                                        style={{ color: 'var(--text-muted)' }}
+                                        className="ml-auto shrink-0 [color:var(--text-muted)]"
                                     >
                                         <X className="w-3.5 h-3.5" aria-hidden="true" />
                                     </button>

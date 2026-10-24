@@ -15,8 +15,8 @@
  *
  * Run: cd agent-hub && npx vitest run src/demo/DemoHost.test.jsx
  */
-import React from 'react';
 import { render, screen, waitFor, cleanup, fireEvent } from '@testing-library/react';
+import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import DemoHost from './DemoHost';
 import { DEMO_FEATURE_IDS, DEMO_FEATURES } from './registry';

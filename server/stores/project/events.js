@@ -89,7 +89,7 @@ function makeEventFns({ run, getAll, getOne, getClient, initDB }) {
             await client.query('COMMIT');
             return { seq, id };
         } catch (err) {
-            try { await client.query('ROLLBACK'); } catch (_) { /* connection already gone */ }
+            try { await client.query('ROLLBACK'); } catch (err) { log.debug('connection already gone', err); }
             log.warn('[ProjectStore] appendProjectEvent failed:', err.message);
             return null;
         } finally {

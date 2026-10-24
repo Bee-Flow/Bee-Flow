@@ -208,8 +208,7 @@ function BuildBanner({ building, buildCue, farewell, endedAt, skipped, now, foll
     const dotTone = building ? 'var(--accent)' : (farewell?.finalizedId ? (statusVar('success') as string) : 'var(--text-tertiary)');
     return (
         <div
-            className="flex items-center gap-3 pl-3.5 pr-2 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] text-[12px] text-[var(--text-primary)]"
-            style={{ boxShadow: 'var(--shadow-popover)' }}
+            className="flex items-center gap-3 pl-3.5 pr-2 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] text-[12px] text-[var(--text-primary)] [box-shadow:var(--shadow-popover)]"
             data-testid="canvas-build-banner"
             data-phase={building ? buildCue?.phase : 'ended'}
         >
@@ -369,8 +368,7 @@ export default function CanvasSouthBar({
         if (selectionInDrawer) return null;
         return (
             <div
-                className="flex items-center gap-2 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-2.5 py-1.5 text-[12px]"
-                style={{ boxShadow: 'var(--shadow-popover)' }}
+                className="flex items-center gap-2 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-2.5 py-1.5 text-[12px] [box-shadow:var(--shadow-popover)]"
                 data-testid="canvas-selection-bar"
             >
                 <span className="font-medium text-[var(--text-primary)]">

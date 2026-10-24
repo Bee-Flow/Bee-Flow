@@ -60,7 +60,7 @@ async function requestApprovalStep(app, model, step, ctx) {
         try {
             const userStore = require('../../stores/userStore');
             orgId = (await userStore.getUser(app.userId))?.organizationId || null;
-        } catch { /* consumer account */ }
+        } catch (err) { log.debug('consumer account', err); }
     }
 
     // Assignee / panel: runtime org-membership checks, invalid → dropped (the

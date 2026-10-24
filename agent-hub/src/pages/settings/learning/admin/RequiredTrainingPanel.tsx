@@ -106,19 +106,19 @@ export default function RequiredTrainingPanel() {
 
     return (
         <div className="flex flex-col gap-4" data-testid="required-training-panel">
-            <div className="flex items-start gap-3 rounded-xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+            <div className="flex items-start gap-3 rounded-xl p-4 [background:var(--bg-card)] [border:1px_solid_var(--border-default)]">
                 <div className="w-9 h-9 rounded-lg grid place-items-center flex-shrink-0 bg-[var(--bg-tertiary)]">
                     <GraduationCap style={{ width: 18, height: 18, color: 'var(--text-secondary)' }} aria-hidden="true" />
                 </div>
                 <div className="min-w-0 flex flex-col gap-1">
                     <div className="text-[14px] font-semibold">{t('org.training.title', 'Finish the course first')}</div>
-                    <div className="text-[12px] leading-[18px]" style={{ color: 'var(--text-secondary)', textWrap: 'pretty' }}>
+                    <div className="text-[12px] leading-[18px] [color:var(--text-secondary)]! [text-wrap:pretty]!">
                         {t('org.training.intro', 'Pick the things people should be trained on before they build them. Reading and running are never blocked — someone who has not finished the agents course can still talk to agents and run what colleagues built; they just cannot create or change one yet. Unlike a permission, they can lift this themselves in an afternoon.')}
                     </div>
                 </div>
             </div>
 
-            <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+            <div className="rounded-xl overflow-hidden [background:var(--bg-card)] [border:1px_solid_var(--border-default)]">
                 {state.catalog.map((area: TrainingArea) => (
                     <AreaRow key={area.id} t={t} area={area} courses={state.courses}
                         courseId={draft[area.id] || ''}
@@ -129,8 +129,7 @@ export default function RequiredTrainingPanel() {
 
             <div className="flex items-center gap-3">
                 <button type="button" onClick={save} disabled={!dirty || saving}
-                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed"
-                    style={{ background: 'var(--accent-primary)', color: '#fff' }}>
+                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed [background:var(--accent-primary)] [color:#fff]!">
                     {saving ? <Loader2 className="animate-spin" style={{ width: 13, height: 13 }} /> : <Save style={{ width: 13, height: 13 }} aria-hidden="true" />}
                     {t('common.save', 'Save')}
                 </button>
@@ -161,7 +160,7 @@ function AreaRow({ t, area, courses, courseId, onToggle, onPick }: {
 }) {
     const on = !!courseId;
     return (
-        <div className="flex items-center gap-3" style={{ padding: '12px 14px', borderBottom: '1px solid var(--border-default)' }}>
+        <div className="flex items-center gap-3 [padding:12px_14px] [border-bottom:1px_solid_var(--border-default)]">
             <label className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
                 <input type="checkbox" checked={on} onChange={(e) => onToggle(e.target.checked)}
                     aria-label={t(area.labelKey, area.labelFallback)} />
@@ -176,8 +175,7 @@ function AreaRow({ t, area, courses, courseId, onToggle, onPick }: {
                     <span className="text-[11px] text-[var(--text-tertiary)]">{t('org.training.after', 'after')}</span>
                     <select value={courseId} onChange={(e) => onPick(e.target.value)}
                         aria-label={t('org.training.pick_course', 'Course that unlocks {area}').replace('{area}', t(area.labelKey, area.labelFallback))}
-                        className="text-[12px] rounded-lg px-2 h-8"
-                        style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', maxWidth: 280 }}>
+                        className="text-[12px] rounded-lg px-2 h-8 [background:var(--bg-secondary)] [border:1px_solid_var(--border-default)] [color:var(--text-primary)]! max-w-[280px]">
                         {courses.map((c) => (
                             <option key={c.id} value={c.id}>
                                 {c.title}{c.own ? ` · ${t('org.training.own_course', 'your course')}` : ''} ({t('learn.course.lesson_count', '{n} lessons').replace('{n}', String(c.lessons))})

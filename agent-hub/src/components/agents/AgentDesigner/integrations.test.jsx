@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { INTEGRATION_CATALOG } from './integrations';
 import { filterAvailableIntegrations } from './integrationAvailability';
+import { INTEGRATION_CATALOG } from './integrations';
 import { INTEGRATION_CATALOG as CANONICAL } from '../../../config/integrationCatalog';
 
 /**

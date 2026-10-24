@@ -128,7 +128,7 @@ router.post('/invitations', requireAuth, invitationInviterLimiter, validate({ bo
         try {
             const seatCap = await require('../../license').getMaxSeatsForOrg(orgId);
             if (seatCap != null && (maxUsers == null || maxUsers === -1 || seatCap < maxUsers)) maxUsers = seatCap;
-        } catch (_) { /* licence module unavailable: plan limit only */ }
+        } catch (err) { log.debug('licence module unavailable: plan limit only', err); }
         if (maxUsers != null && maxUsers !== -1) {
             const activeSeats = await userStore.getActiveSeatCount(orgId);
             let pendingInvites = 0;
@@ -140,7 +140,7 @@ router.post('/invitations', requireAuth, invitationInviterLimiter, validate({ bo
                     i.status === 'pending'
                     && (!i.expires_at || new Date(i.expires_at).getTime() > Date.now())
                 ).length;
-            } catch (_) { /* count without pending */ }
+            } catch (err) { log.debug('count without pending', err); }
             if (activeSeats + pendingInvites >= maxUsers) {
                 return res.status(403).json({
                     error: `Your plan has reached its user limit (${activeSeats} active${pendingInvites ? ` + ${pendingInvites} pending invite(s)` : ''} of ${maxUsers}). Upgrade your plan to add more users.`,

@@ -232,7 +232,7 @@ async function executeKeepTool(toolName, args, session) {
             try {
                 const response = await keep.notes.get({ name: noteId });
                 noteTitle = response.data.title || noteId;
-            } catch (e) { /* use ID as fallback title */ }
+            } catch (e) { log.debug('use ID as fallback title', e); }
 
             return {
                 _action: 'keep_draft',

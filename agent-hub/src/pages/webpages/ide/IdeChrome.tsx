@@ -84,14 +84,14 @@ export function BinaryPreview({ path, mimeType, dataUrl, size }: {
                 <img
                     src={dataUrl}
                     alt={path}
-                    style={{ maxWidth: '100%', maxHeight: '70%', objectFit: 'contain', border: '1px solid var(--vsc-border)' }}
+                    className="max-w-[100%] max-h-[70%] [object-fit:contain] [border:1px_solid_var(--vsc-border)]"
                 />
             ) : (
                 <FileImage size={48} style={{ opacity: 0.5 }} />
             )}
             <div className="text-[12px] mt-3 font-mono">{path}</div>
             <div className="text-[11px] mt-1">{mimeType || 'application/octet-stream'}{shown ? ` · ${shown}` : ''}</div>
-            <div className="text-[11px] mt-3 max-w-md text-center" style={{ opacity: 0.7 }}>
+            <div className="text-[11px] mt-3 max-w-md text-center [opacity:0.7]">
                 {t('webpages.ide.binary_not_editable', "Binary files aren't editable in the text editor. Ask the AI to replace this asset, or delete and re-upload.")}
             </div>
         </div>

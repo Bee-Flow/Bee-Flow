@@ -24,7 +24,7 @@ export function useLoginUrlParams({ t, setResetToken, setVerifiedBanner, setErro
             setResetToken(token);
             window.history.replaceState({}, '', window.location.pathname);
         }
-    }, []);
+    }, [setResetToken]);
 
     // Detect the email-verification redirect (?verified=1 on success, or
     // ?error=verify_expired / verify_error). The verify endpoint 302s here
@@ -38,7 +38,7 @@ export function useLoginUrlParams({ t, setResetToken, setVerifiedBanner, setErro
             setError(t('login.verify_link_invalid', 'This verification link is invalid or has expired. Please log in to request a new one.'));
             window.history.replaceState({}, '', window.location.pathname);
         }
-    }, [t]);
+    }, [setError, setVerifiedBanner, t]);
 
     useEffect(() => {
         const err = new URLSearchParams(window.location.search).get('error');
@@ -49,7 +49,7 @@ export function useLoginUrlParams({ t, setResetToken, setVerifiedBanner, setErro
         } else if (err === 'signup_failed') {
             setError(t('login.sso_signup_failed', 'Your account could not be created. Please try again or contact your administrator.'));
         }
-    }, [t]);
+    }, [setError, t]);
 
     // Detect the invite-redeem failure redirect (?error=invite_expired /
     // invite_error). /auth/redeem-invite/:token 302s here, without the
@@ -67,5 +67,5 @@ export function useLoginUrlParams({ t, setResetToken, setVerifiedBanner, setErro
             setError(t('login.invite_link_error', 'Something went wrong opening this invitation. Please try the link again or ask for a new one.'));
             window.history.replaceState({}, '', window.location.pathname);
         }
-    }, [t]);
+    }, [setError, t]);
 }

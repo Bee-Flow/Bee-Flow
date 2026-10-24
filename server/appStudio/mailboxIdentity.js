@@ -47,7 +47,7 @@ function defaultDeps() {
         resolveConnectionForRun: (...a) => require('../stores/integrationConnectionStore').resolveConnectionForRun(...a),
         resolveIntegration: (...a) => require('../core/integrations/integrationToolMap').resolveIntegration(...a),
         getUser: (...a) => require('../stores/userStore').getUser(...a),
-        buildUserSession: (...a) => require('./connectors')._defaultBuildUserSession(...a),
+        buildUserSession: (...a) => require('./connectors/session').defaultBuildUserSession(...a),
         resolveMailboxAddress: (...a) => require('../services/email/fetch').resolveMailboxAddress(...a),
     };
 }
@@ -102,7 +102,7 @@ async function viewerHasIntegration(integrationId, { userId, orgId, deps: inject
             const resolvedTool = deps.resolveIntegration(name);
             if (resolvedTool?.integration === integrationId) return true;
         }
-    } catch { /* fall through to the grant check */ }
+    } catch (err) { log.debug('fall through to the grant check', err); }
     return false;
 }
 

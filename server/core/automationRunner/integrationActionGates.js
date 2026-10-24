@@ -94,7 +94,7 @@ async function resolveLendingIdentity(step, ctx, deps) {
             });
             if (ov) { stepUserId = ov.integrationUserId; stepOrgId = ov.integrationOrgId; lentConnection = ov; }
         }
-    } catch (_) { /* fail closed to bring-your-own */ }
+    } catch (err) { log.debug('fail closed to bring-your-own', err); }
     return { stepUserId, stepOrgId, stepSession: ctx.session, lentConnection };
 }
 

@@ -194,7 +194,7 @@ const ConsumerPrivacySection = () => {
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden">
                 <div className="flex items-center justify-between p-5">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #ef4444, #f59e0b)' }}>
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center [background:linear-gradient(135deg,#ef4444,#f59e0b)]">
                             <Shield className="w-5 h-5 text-white" />
                         </div>
                         <div>

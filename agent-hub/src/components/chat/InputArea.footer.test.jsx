@@ -2,8 +2,8 @@ import { render as rtlRender, screen, cleanup } from '@testing-library/react';
 import React, { useState } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import InputArea from './InputArea';
 import { FOOTER_LINES, footerNotice } from './composerClaims';
+import InputArea from './InputArea';
 import { invalidateShieldStatus } from '../../hooks/useShieldStatus';
 import { queryWrapper } from '../../test/queryWrapper';
 

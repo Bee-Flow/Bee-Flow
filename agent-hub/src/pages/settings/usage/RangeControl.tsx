@@ -54,11 +54,11 @@ export default function RangeControl({ range, onChange, t, presets }: {
     const shown = Array.isArray(presets) ? PRESETS.filter(p => presets.includes(p.id)) : PRESETS;
 
     return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>
+        <div className="[display:flex] [align-items:center] [gap:8px] [flex-wrap:wrap]">
+            <span className="[font-size:10px] [font-weight:700] [text-transform:uppercase] [letter-spacing:0.08em] [color:var(--text-muted)]">
                 {tr('usage.range', 'Range')}
             </span>
-            <div style={{ display: 'flex', padding: 2, borderRadius: 8, background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+            <div className="[display:flex] [padding:2px] [border-radius:8px] [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
                 {shown.map(p => {
                     const active = range.preset === p.id;
                     return (
@@ -76,9 +76,9 @@ export default function RangeControl({ range, onChange, t, presets }: {
                 })}
             </div>
             {range.preset === 'custom' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', borderRadius: 8, background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+                <div className="[display:flex] [align-items:center] [gap:6px] [padding:4px_8px] [border-radius:8px] [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
                     <input type="datetime-local" value={range.customStart} max={range.customEnd} onChange={e => setCustom({ customStart: e.target.value })} style={DATE_INPUT} />
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>→</span>
+                    <span className="[font-size:11px] [color:var(--text-muted)]">→</span>
                     <input type="datetime-local" value={range.customEnd} min={range.customStart} onChange={e => setCustom({ customEnd: e.target.value })} style={DATE_INPUT} />
                 </div>
             )}

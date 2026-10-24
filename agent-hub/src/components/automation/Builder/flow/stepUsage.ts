@@ -1,4 +1,5 @@
 import { getJSON, setJSON } from '../../../../utils/scopedStorage';
+import { logger } from '../../../../utils/logger';
 
 /**
  * Pure-logic engine for the automations builder's "smart Add-step" menu.
@@ -111,9 +112,7 @@ export function recordStep(payload?: UsagePayload | null, sourceStep?: UsageSour
         const prev = usage[key] || { n: 0, t: 0 };
         usage[key] = { n: (prev.n || 0) + 1, t: now };
         setJSON(USAGE_KEY, usage);
-    } catch {
-        /* ignore storage failure */
-    }
+    } catch (err) { logger.debug('ignore storage failure', err); }
 
     try {
         const fromKind = (sourceStep && (sourceStep.kind || sourceStep.type)) || '__none';
@@ -122,9 +121,7 @@ export function recordStep(payload?: UsagePayload | null, sourceStep?: UsageSour
         bucket[key] = (bucket[key] || 0) + 1;
         transitions[fromKind] = bucket;
         setJSON(TRANSITIONS_KEY, transitions);
-    } catch {
-        /* ignore storage failure */
-    }
+    } catch (err) { logger.debug('ignore storage failure', err); }
 }
 
 /**

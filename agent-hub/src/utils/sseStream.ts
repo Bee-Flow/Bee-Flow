@@ -1,3 +1,4 @@
+import { logger } from './logger';
 /**
  * Minimal Server-Sent Events reader for fetch-streamed POST responses.
  *
@@ -40,7 +41,7 @@ export async function readEventStream(body: ReadableStream<Uint8Array>, onEvent:
             }
         }
     } finally {
-        try { reader.cancel(); } catch { /* already closed */ }
+        try { reader.cancel(); } catch (err) { logger.debug('already closed', err); }
     }
 }
 

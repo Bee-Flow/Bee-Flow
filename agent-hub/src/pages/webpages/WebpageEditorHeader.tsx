@@ -91,12 +91,7 @@ function PublicLinkMarker({ t }: PublicLinkMarkerProps) {
         <span
             data-testid="webpage-public-marker"
             title={t('webpages.publish.public_link_hint', 'Anyone with the link can open this page')}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-xs font-medium whitespace-nowrap"
-            style={{
-                border: '1px solid var(--border-default)',
-                background: 'var(--bg-card)',
-                color: 'var(--text-primary)',
-            }}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-xs font-medium whitespace-nowrap [border:1px_solid_var(--border-default)] [background:var(--bg-card)] [color:var(--text-primary)]!"
         >
             <Link2 size={13} aria-hidden="true" className="text-[var(--text-secondary)]" />
             <span className={OBJHEAD_FOLD.label}>{t('webpages.visibility.public', 'Public')}</span>
@@ -122,8 +117,7 @@ function ExtraButton({ icon, label, onClick }: ExtraButtonProps) {
             onClick={onClick}
             title={label}
             aria-label={label}
-            className="grid place-items-center w-8 h-8 rounded-[10px] flex-shrink-0 text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition"
-            style={{ border: '1px solid var(--border-default)' }}
+            className="grid place-items-center w-8 h-8 rounded-[10px] flex-shrink-0 text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition [border:1px_solid_var(--border-default)]"
         >
             <Icon size={14} aria-hidden="true" />
         </button>

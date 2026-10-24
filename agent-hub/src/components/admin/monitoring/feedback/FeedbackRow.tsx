@@ -51,19 +51,11 @@ function FeedbackDetail({ item, snapshot }: { item: FeedbackItem; snapshot: Snap
     const { t } = useTranslation();
     const isUp = item.rating === 'up';
     return (
-        <div style={{
-            padding: '10px 12px 16px 40px',
-            background: 'var(--bg-tertiary, rgba(255,255,255,0.02))',
-            borderRadius: '0 0 8px 8px',
-            animation: 'fadeIn 0.2s ease',
-        }}>
+        <div className="[padding:10px_12px_16px_40px] [background:var(--bg-tertiary,rgba(255,255,255,0.02))] [border-radius:0_0_8px_8px] [animation:fadeIn_0.2s_ease]">
             {/* Meta row */}
-            <div style={{
-                display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'wrap',
-                fontSize: '11px', color: 'var(--text-muted, #888)'
-            }}>
+            <div className="[display:flex] [gap:12px] [margin-bottom:12px] [flex-wrap:wrap] [font-size:11px] [color:var(--text-muted,#888)]">
                 {item.conversation_id && (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span className="[display:flex] [align-items:center] [gap:4px]">
                         <ExternalLink style={{ width: 10, height: 10 }} />
                         Conv: {item.conversation_id.slice(0, 16)}…
                     </span>
@@ -88,10 +80,7 @@ function FeedbackDetail({ item, snapshot }: { item: FeedbackItem; snapshot: Snap
                         letterSpacing: '0.04em', marginBottom: '4px',
                         color: isUp ? COLORS.green : COLORS.rose,
                     }}>{t('admin_monitoring.feedback_user_feedback', 'User Feedback')}</div>
-                    <div style={{
-                        fontSize: '13px', color: 'var(--text-primary, #fff)',
-                        whiteSpace: 'pre-wrap', lineHeight: 1.5,
-                    }}>{item.comment}</div>
+                    <div className="[font-size:13px] [color:var(--text-primary,#fff)] [white-space:pre-wrap] [line-height:1.5]">{item.comment}</div>
                 </div>
             )}
 
@@ -111,25 +100,20 @@ export default function FeedbackRow({ item, expanded, onToggle }: FeedbackRowPro
     const snapshot = parseSnapshot(item.conversation_snapshot);
     const isUp = item.rating === 'up';
     return (
-        <div style={{ borderBottom: '1px solid var(--border-default, rgba(255,255,255,0.05))' }}>
+        <div className="[border-bottom:1px_solid_var(--border-default,rgba(255,255,255,0.05))]">
             <div
                 onClick={onToggle}
-                style={{
-                    display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 2px',
-                    cursor: 'pointer', transition: 'background 0.12s',
-                }}
+                className="[display:flex] [align-items:center] [gap:10px] [padding:10px_2px] [cursor:pointer] [transition:background_0.12s]"
                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-tertiary, rgba(255,255,255,0.03))'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
             >
                 {/* Rating icon */}
-                <span style={{
-                    fontSize: '18px', width: '28px', textAlign: 'center', flexShrink: 0,
-                }}>{isUp ? '👍' : '👎'}</span>
+                <span className="[font-size:18px] w-[28px] [text-align:center] [flex-shrink:0]">{isUp ? '👍' : '👎'}</span>
 
                 {/* Main info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary, #fff)' }}>
+                <div className="[flex:1] min-w-[0]">
+                    <div className="[display:flex] [align-items:center] [gap:8px] [flex-wrap:wrap]">
+                        <span className="[font-size:12px] [font-weight:600] [color:var(--text-primary,#fff)]">
                             {item.user_id || 'Anonymous'}
                         </span>
                         <FeedbackChips item={item} snapshot={snapshot} />
@@ -146,7 +130,7 @@ export default function FeedbackRow({ item, expanded, onToggle }: FeedbackRowPro
                     )}
                 </div>
 
-                <span style={{ fontSize: '11px', color: 'var(--text-muted, #888)', flexShrink: 0 }}>
+                <span className="[font-size:11px] [color:var(--text-muted,#888)] [flex-shrink:0]">
                     {fmtTime(item.created_at)}
                 </span>
                 <ChevronRight style={{

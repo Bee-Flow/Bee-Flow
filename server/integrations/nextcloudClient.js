@@ -165,7 +165,7 @@ async function _doRefreshAccessToken(session) {
         try {
             const parsed = JSON.parse(body);
             if (typeof parsed?.error === 'string' && /^[a-z_]{1,40}$/.test(parsed.error)) code = parsed.error;
-        } catch (_) { /* non-JSON body — status alone is the signal */ }
+        } catch (err) { log.debug('non-JSON body — status alone is the signal', err); }
         log.error(`[Nextcloud] Token refresh failed (${response.status})${code ? `: ${code}` : ''}`);
         throw new Error('Nextcloud token refresh failed — user must re-authenticate');
     }
@@ -481,9 +481,7 @@ async function isConnected(session, userId) {
         const userStore = require('../stores/userStore');
         const creds = await userStore.getAppPassword(userId);
         if (creds && creds.username && creds.password) return true;
-    } catch (_) {
-        // fall through to the binding check
-    }
+    } catch (err) { log.debug('fall through to the binding check', err); }
     // DB-backed binding: an NC-org user in a standalone/bridged session is
     // still connected (the connector routes their calls) even though the
     // session carries none of the connector extras.

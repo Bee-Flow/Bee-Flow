@@ -103,7 +103,7 @@ function FileSection({ t, file, fileKey, describe, sheetDescribes, selection, ma
     const optIn = !!file.sharedWriteOptIn;
 
     return (
-        <section className="p-3 space-y-3" style={{ borderRadius: 12, background: 'var(--bg-primary)', border: '1px solid var(--border-default)' }} aria-label={file.name}>
+        <section className="p-3 space-y-3 [border-radius:12px] [background:var(--bg-primary)] [border:1px_solid_var(--border-default)]" aria-label={file.name}>
             <div className="flex items-center gap-2 flex-wrap">
                 {Logo
                     ? <span className="shrink-0 inline-flex" aria-hidden="true">{React.createElement(Logo, { size: 16 })}</span>

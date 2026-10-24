@@ -48,21 +48,20 @@ export default function SupportCannedResponsesTab() {
             <p className="text-xs mb-4 text-[var(--text-muted)]">
                 {t('support.support_canned_responses_reusable_reply_templates_staff_insert', 'Reusable reply templates. Staff insert them with the')} <code>/</code> {t('support.support_canned_responses_picker_in_the_composer_variables_are', 'picker in the composer. Variables are substituted on send: {value}.', { value: VARS.join(' ') })}
             </p>
-            {error && <div className="text-xs mb-3 px-3 py-2 rounded" style={{ background: 'rgba(220,38,38,0.08)', color: '#dc2626' }}>{error}</div>}
+            {error && <div className="text-xs mb-3 px-3 py-2 rounded [background:rgba(220,38,38,0.08)] [color:#dc2626]!">{error}</div>}
 
             <div className="rounded-lg border p-3 mb-4 space-y-2 border-[var(--border-default)] bg-[var(--bg-card)]">
                 <div className="flex gap-2">
                     <input value={draft.title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, title: e.target.value })} placeholder={t('support.support_canned_responses_title', 'Title')}
-                        className="flex-1 px-2 py-1.5 rounded border text-sm" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
+                        className="flex-1 px-2 py-1.5 rounded border text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!" />
                     <input value={draft.shortcut} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, shortcut: e.target.value })} placeholder="/shortcut"
-                        className="w-32 px-2 py-1.5 rounded border text-sm" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
+                        className="w-32 px-2 py-1.5 rounded border text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!" />
                 </div>
                 <textarea value={draft.body} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDraft({ ...draft, body: e.target.value })} rows={3} placeholder={t('support.support_canned_responses_template_body_use_variables_like', 'Template body — use variables like {{requester_name}}')}
-                    className="w-full px-2 py-1.5 rounded border text-sm resize-y" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
+                    className="w-full px-2 py-1.5 rounded border text-sm resize-y [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!" />
                 <div className="flex justify-end">
                     <button onClick={create} disabled={busy || !draft.title.trim() || !draft.body.trim()}
-                        className="px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 disabled:opacity-50"
-                        style={{ background: 'var(--accent-primary)', color: 'white' }}>
+                        className="px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 disabled:opacity-50 [background:var(--accent-primary)] [color:white]!">
                         <Plus className="w-3.5 h-3.5" /> {t('support.support_canned_responses_add_template', 'Add template')}
                     </button>
                 </div>
@@ -78,7 +77,7 @@ export default function SupportCannedResponsesTab() {
                                 {c.shortcut && <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)]">{c.shortcut}</span>}
                                 {c.organization_id == null && <span className="text-xs text-[var(--text-muted)]">{t('support.support_canned_responses_system', 'system')}</span>}
                             </div>
-                            <button onClick={() => remove(c.id)} className="p-1 rounded hover:bg-[var(--bg-tertiary)]" style={{ color: '#dc2626' }}>
+                            <button onClick={() => remove(c.id)} className="p-1 rounded hover:bg-[var(--bg-tertiary)] [color:#dc2626]">
                                 <Trash2 className="w-3.5 h-3.5" />
                             </button>
                         </div>

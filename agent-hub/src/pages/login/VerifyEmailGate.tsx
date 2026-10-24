@@ -21,8 +21,7 @@ interface VerifyEmailGateProps {
 const VerifyEmailGate = ({ verifyEmail, setVerifyEmail, resending, resendDone, onResend, onBack, inputClass }: VerifyEmailGateProps) => {
     const { t } = useTranslation();
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 relative"
-            style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
+        <div className="min-h-screen flex items-center justify-center p-4 relative [background:linear-gradient(160deg,var(--bg-primary)_0%,var(--bg-secondary)_50%,var(--bg-tertiary)_100%)]">
             <div className="w-full max-w-md">
                 <div className="rounded-2xl shadow-xl p-8 text-center bg-[var(--bg-secondary)]">
                     <div className="w-16 h-16 mx-auto mb-5 rounded-full flex items-center justify-center bg-[var(--bg-primary)]">
@@ -42,7 +41,7 @@ const VerifyEmailGate = ({ verifyEmail, setVerifyEmail, resending, resendDone, o
                     </p>
 
                     {resendDone ? (
-                        <div className="mb-4 p-3 rounded-lg flex items-center justify-center gap-2 text-sm" style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>
+                        <div className="mb-4 p-3 rounded-lg flex items-center justify-center gap-2 text-sm [background:rgba(34,197,94,0.1)] [color:#22c55e]!">
                             <CheckCircle className="w-4 h-4" /> {t('login.verify_resent', 'If that account needs confirmation, a new link is on its way.')}
                         </div>
                     ) : (

@@ -163,7 +163,7 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearch
 
             <div className="space-y-4">
                 {/* ── Embeddings (per-feature picker; empty -> inherit global) ── */}
-                <div className="rounded-xl border p-4" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
+                <div className="rounded-xl border p-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
                     <div className="flex items-center justify-between gap-4 mb-3">
                         <div className="flex-1">
                             <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.ws_embeddings', 'Embeddings')}</div>
@@ -196,7 +196,7 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearch
                 </div>
 
                 {/* ── Reranking ─────────────────────────────────────── */}
-                <div className="rounded-xl border p-4" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
+                <div className="rounded-xl border p-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
                     <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.ws_reranking', 'Reranking')}</div>
                     <p className="text-xs mt-0.5 mb-3 text-[var(--text-muted)]">
                         {t('admin_ai_config.ws_rerank_hint', 'Re-score search results to surface the most relevant. Provider-agnostic.')}
@@ -253,7 +253,7 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearch
                 </div>
 
                 {/* ── Cleanup ───────────────────────────────────────── */}
-                <div className="rounded-xl border p-4" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
+                <div className="rounded-xl border p-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
                     <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.ws_cleanup', 'Webpage cleanup')}</div>
                     <p className="text-xs mt-0.5 mb-3 text-[var(--text-muted)]">
                         {t('admin_ai_config.ws_cleanup_hint', 'Convert raw scraped HTML into clean, agent-readable text. Pick any chat model from a configured provider.')}

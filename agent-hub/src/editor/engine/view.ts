@@ -41,6 +41,7 @@ import type { TextSelection, Selection as ModelSelection } from './selection';
 import type { ModelPos } from './textIndex.js';
 import { now, keepScroll, docToText, resolveAtomIn } from './view.helpers';
 import type { HookArg, ViewPlugin, UndoProvider, RefPickHandlers, AtomNode, AtomResolution, EditorViewOptions } from './view.types';
+import { logger } from '../../utils/logger';
 export type { AtomNode, EditorViewOptions } from './view.types';
 
 export class EditorView {
@@ -190,7 +191,7 @@ export class EditorView {
       const fn = p && p[name];
       if (typeof fn !== 'function') continue;
       try { fn.apply(p, args); } catch (e) {
-        try { this.onError && this.onError(e); } catch { /* noop */ }
+        try { this.onError && this.onError(e); } catch (err) { logger.debug('noop', err); }
       }
     }
   }
@@ -367,7 +368,7 @@ export class EditorView {
       // selection / storedMarks only — no history, no DOM reconcile
       this.state = next;
       if (!eqSelection(next.selection, prev.selection)) this.writeSelection();
-      try { this.onSelectionChange(this.state); } catch { /* noop */ }
+      try { this.onSelectionChange(this.state); } catch (err) { logger.debug('noop', err); }
       this.runHook('selectionChanged', this.state, { source: 'local' });
       return false;
     }
@@ -375,7 +376,7 @@ export class EditorView {
       // Same grouping as the snapshot history: a run of typing is one step,
       // every other kind of edit starts its own.
       if (kind !== 'type' || this.lastKind !== 'type') {
-        try { this.undoProvider.stopCapturing(); } catch { /* noop */ }
+        try { this.undoProvider.stopCapturing(); } catch (err) { logger.debug('noop', err); }
       }
       this.lastKind = kind;
     } else {
@@ -410,7 +411,7 @@ export class EditorView {
     } catch (e) {
        
       console.error('[BeeEditor] onUpdate failed — the document may not be saved', e);
-      try { this.onError && this.onError(e); } catch { /* noop */ }
+      try { this.onError && this.onError(e); } catch (err) { logger.debug('noop', err); }
     }
   }
 
@@ -446,7 +447,7 @@ export class EditorView {
         const b = domFromPos(this.domForNode, this.state.doc, to);
         if (a && b) { const r = this.doc.createRange(); r.setStart(a.node as Node, a.offset); r.setEnd(b.node as Node, b.offset); dsel.removeAllRanges(); dsel.addRange(r); this.rememberWrite(dsel); }
       }
-    } catch { /* selection write can race the DOM; ignore */ }
+    } catch (err) { logger.debug('selection write can race the DOM; ignore', err); }
     this.paintCellSelection();
   }
 
@@ -504,7 +505,7 @@ export class EditorView {
     if (this.isSelfWrite(dsel)) { this.selfWrittenRange = null; return; }
     this.syncSelectionFromDOM();
     this.paintCellSelection(); // clears stale cell highlight when the caret moves out
-    try { this.onSelectionChange(this.state); } catch { /* noop */ }
+    try { this.onSelectionChange(this.state); } catch (err) { logger.debug('noop', err); }
   }
 
   /* ── input handling ───────────────────────────────────── */
@@ -604,7 +605,7 @@ export class EditorView {
     if (!isCell(this.state.selection)) return;
     this.setSelection(textSelection(pos([...this.state.selection.anchorCell, 0], 0)));
     this.writeSelection();
-    try { this.onSelectionChange(this.state); } catch { /* noop */ }
+    try { this.onSelectionChange(this.state); } catch (err) { logger.debug('noop', err); }
   }
 
   onKeyDown(e: KeyboardEvent) {
@@ -659,7 +660,7 @@ export class EditorView {
     if (!Tbl.cellRect(this.state.doc, sel)) return; // not a valid same-table rectangle
     this.setSelection(sel, { storedMarks: null });
     this.writeSelection();
-    try { this.onSelectionChange(this.state); } catch { /* noop */ }
+    try { this.onSelectionChange(this.state); } catch (err) { logger.debug('noop', err); }
   }
 
   onHoverMove(e: MouseEvent) {
@@ -682,11 +683,11 @@ export class EditorView {
    */
   beginRefPick(h: null) {
     this.refPick = h || null;
-    try { this.host.classList.toggle('bf-picking-ref', !!this.refPick); } catch { /* noop */ }
+    try { this.host.classList.toggle('bf-picking-ref', !!this.refPick); } catch (err) { logger.debug('noop', err); }
   }
   endRefPick() {
     this.refPick = null;
-    try { this.host.classList.remove('bf-picking-ref'); } catch { /* noop */ }
+    try { this.host.classList.remove('bf-picking-ref'); } catch (err) { logger.debug('noop', err); }
   }
 
   /** The table a formula atom lives in, so picking can be scoped to it. */
@@ -926,7 +927,7 @@ export class EditorView {
     // notebook into whatever the user pasted into (and made cut duplicate it).
     const slice = T.sliceSelection(this.state.doc, sel);
     const text = slice ? docToText(slice) : '';
-    try { (e.clipboardData as DataTransfer).setData('text/html', astToHtml(slice)); } catch { /* noop */ }
+    try { (e.clipboardData as DataTransfer).setData('text/html', astToHtml(slice)); } catch (err) { logger.debug('noop', err); }
     (e.clipboardData as DataTransfer).setData('text/plain', text);
     if (isCut) this.dispatch(T.deleteSelection, { kind: 'delete' });
   }
@@ -991,7 +992,7 @@ export class EditorView {
     const selection = at.inline ? EditorView.inlineAtomSelection(at) : nodeSelection(at.path);
     this.setSelection(selection, { storedMarks: null });
     this.writeSelection();
-    try { this.onSelectionChange(this.state); } catch { /* noop */ }
+    try { this.onSelectionChange(this.state); } catch (err) { logger.debug('noop', err); }
     return true;
   }
   deleteAtom(node: AtomNode, { fallbackAt = null }: { fallbackAt?: { path: number[]; offset: number } | null } = {}) {
@@ -1002,7 +1003,7 @@ export class EditorView {
   }
 
   /* ── public API (facade backing) ──────────────────────── */
-  focus() { try { this.host.focus(); } catch { /* noop */ } this.writeSelection(); }
+  focus() { try { this.host.focus(); } catch (err) { logger.debug('noop', err); } this.writeSelection(); }
 
   /**
    * Replace the whole document (switching notebooks, restoring a version, an AI

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
 import { TriangleAlert } from 'lucide-react';
+import { describe, it, expect } from 'vitest';
 import StatusPill from './StatusPill';
 
 describe('StatusPill — hairline in the raw tone, text in the ink tone', () => {

@@ -95,7 +95,7 @@ const requireAuth = async (req, res, next) => {
             try {
                 const val = await r.get(cacheKey);
                 if (val !== null) exists = val === '1';
-            } catch (_) { /* Redis error — fall through to DB */ }
+            } catch (err) { log.debug('Redis error — fall through to DB', err); }
         } else {
             const cached = _userExistsCache.get(userId);
             const now = Date.now();
@@ -111,7 +111,7 @@ const requireAuth = async (req, res, next) => {
                 const user = await userStore.getUser(userId);
                 exists = !!user;
                 if (r) {
-                    try { await r.set(cacheKey, exists ? '1' : '0', 'EX', USER_CHECK_TTL); } catch (_) { }
+                    try { await r.set(cacheKey, exists ? '1' : '0', 'EX', USER_CHECK_TTL); } catch (_) { log.debug('user-exists cache write failed, the next request looks the user up again', _); }
                 } else {
                     _userExistsCache.set(userId, { exists, ts: Date.now() });
                 }
@@ -125,7 +125,7 @@ const requireAuth = async (req, res, next) => {
         }
 
         if (!exists) {
-            if (r) { try { await r.del(cacheKey); } catch (_) { } }
+            if (r) { try { await r.del(cacheKey); } catch (_) { log.warn('user-exists cache delete failed, a stale entry lives until its TTL', _); } }
             else { _userExistsCache.delete(userId); }
             req.session.destroy(() => { });
             return res.status(401).json({ error: 'User no longer exists' });
@@ -144,7 +144,7 @@ const requireAuth = async (req, res, next) => {
                     req.session.user.isAdmin = shouldBeAdmin;
                 }
             }
-        } catch (_) { /* DB error — don't block the request */ }
+        } catch (err) { log.debug('DB error — don\'t block the request', err); }
 
         // Only here, at the bottom of the authenticated path: an anonymous
         // request has already been turned away with a 401 above, and a session

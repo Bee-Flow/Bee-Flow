@@ -116,7 +116,7 @@ export function useAuthSession({
         const canManageUsers = permissions.includes('all') || permissions.includes('manage_users');
         setUser({ ...data.user, permissions, groups: userGroups, organizations: userOrgs, allowedAgentTypes, betaFeatures, canUseFeature, featureFlags: data.featureFlags || {}, enabledIntegrations: data.enabledIntegrations || null, canManageUsers: canManageUsers || data.user.isAdmin, encryptionEnabled: data.encryptionEnabled !== false, isConsumerAccount: !!data.isConsumerAccount, ncOrg: data.ncOrg || null, organization: data.organization || null });
         setIsAuthenticated(true);
-    }, []);
+    }, [setDeploymentMode, setEncryptionState, setIsAuthenticated, setMfaSetupRequired, setNcOnboardingState, setNcOrgName, setNoOrganization, setOrgLogo, setPendingApproval, setPendingNcBinding, setUser]);
 
     // Check auth status on mount
     useEffect(() => {
@@ -130,7 +130,7 @@ export function useAuthSession({
                 try {
                     const diagRes = await authFetch(`${API_BASE}/setup/diagnostics`, { cache: 'no-store' });
                     if (diagRes.ok) setBootstrapDiagnostics(await diagRes.json());
-                } catch (_) { /* not embedded / connector unreachable */ }
+                } catch (err) { logger.debug('not embedded / connector unreachable', err); }
             };
             try {
                 // The three boot calls used to run serially; in embedded mode
@@ -223,7 +223,7 @@ export function useAuthSession({
             }
         };
         checkAuth();
-    }, [applyAuthSession]);
+    }, [applyAuthSession, setBootstrapDiagnostics, setDeploymentMode, setIsLoading, setOrgLogo, setServerAvailable]);
 
     return applyAuthSession;
 }

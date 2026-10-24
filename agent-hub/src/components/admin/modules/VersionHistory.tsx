@@ -95,12 +95,12 @@ export default function VersionHistory({ hubVersions, ledgerVersions, busy = fal
                             <History className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                             <span className="text-xs font-semibold text-[var(--text-primary)]">v{row.version}</span>
                             {row.channel && row.channel !== 'stable' && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium [background:rgba(245,158,11,0.15)] [color:#f59e0b]!">
                                     {row.channel}
                                 </span>
                             )}
                             {row.yanked && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium [background:rgba(239,68,68,0.15)] [color:#ef4444]!">
                                     {t('modules.yanked')}
                                 </span>
                             )}
@@ -117,8 +117,7 @@ export default function VersionHistory({ hubVersions, ledgerVersions, busy = fal
                                 <button
                                     onClick={() => onActivateStaged(row.version)}
                                     disabled={busy}
-                                    className="px-2.5 py-1 rounded-lg text-xs font-medium disabled:opacity-50 flex items-center gap-1"
-                                    style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                                    className="px-2.5 py-1 rounded-lg text-xs font-medium disabled:opacity-50 flex items-center gap-1 [background:var(--accent-primary)] [color:#fff]!"
                                 >
                                     {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
                                     {t('modules.activate_staged')}
@@ -142,7 +141,7 @@ export default function VersionHistory({ hubVersions, ledgerVersions, busy = fal
                             </p>
                         )}
                         {row.ledger?.error && (
-                            <p className="text-xs mt-1 ml-5" style={{ color: '#ef4444' }}>{row.ledger.error}</p>
+                            <p className="text-xs mt-1 ml-5 [color:#ef4444]!">{row.ledger.error}</p>
                         )}
                     </li>
                 );

@@ -14,26 +14,26 @@ interface SectionProps {
 const Section = ({ Logo, title, subtitle, children, defaultOpen = true }: SectionProps) => {
     const [open, setOpen] = useState(defaultOpen);
     return (
-        <div className="rounded-xl border-2 overflow-hidden transition-all" style={{ borderColor: '#e5e7eb', background: '#fff' }}>
+        <div className="rounded-xl border-2 overflow-hidden transition-all [border-color:#e5e7eb]! [background:#fff]">
             <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50/50 transition-colors">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(0,120,212,0.08)' }}>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 [background:rgba(0,120,212,0.08)]">
                     <Logo size={20} />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold" style={{ color: '#1f2937' }}>{title}</div>
-                    <div className="text-xs" style={{ color: '#6b7280' }}>{subtitle}</div>
+                    <div className="text-sm font-semibold [color:#1f2937]!">{title}</div>
+                    <div className="text-xs [color:#6b7280]!">{subtitle}</div>
                 </div>
                 <svg className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} style={{ color: '#9ca3af' }} viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
             </button>
-            {open && <div className="px-4 pb-4 space-y-3 border-t" style={{ borderColor: '#f3f4f6' }}>{children}</div>}
+            {open && <div className="px-4 pb-4 space-y-3 border-t [border-color:#f3f4f6]!">{children}</div>}
         </div>
     );
 };
 
 const Label = ({ children }: { children: React.ReactNode }) => (
-    <label className="block text-xs font-medium mb-1" style={{ color: '#374151' }}>{children}</label>
+    <label className="block text-xs font-medium mb-1 [color:#374151]!">{children}</label>
 );
 
 interface StepAzureSetupProps {
@@ -95,14 +95,14 @@ const StepAzureSetup = ({
                 <input type="text" value={msTenantId} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMsTenantId(e.target.value)}
                     placeholder={t('init_setup.step_azure_setup_common_or_your_tenant_guid', 'common or your tenant GUID')}
                     className={inputClass} style={inputStyle} />
-                <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>
-                    <code className="px-1 py-0.5 rounded text-xs" style={{ background: '#f3f4f6' }}>common</code> {t('init_setup.step_azure_setup_multi_tenant', '= multi-tenant')}
+                <p className="text-xs mt-1 [color:#9ca3af]!">
+                    <code className="px-1 py-0.5 rounded text-xs [background:#f3f4f6]">common</code> {t('init_setup.step_azure_setup_multi_tenant', '= multi-tenant')}
                 </p>
             </div>
-            <p className="text-xs" style={{ color: '#9ca3af' }}>
+            <p className="text-xs [color:#9ca3af]!">
                 {t('init_setup.step_azure_setup_register_at', 'Register at')}{' '}
                 <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener noreferrer"
-                    className="underline" style={{ color: '#0078D4' }}>{t('init_setup.step_azure_setup_azure_portal_app_registrations', 'Azure Portal → App Registrations')}</a>
+                    className="underline [color:#0078D4]">{t('init_setup.step_azure_setup_azure_portal_app_registrations', 'Azure Portal → App Registrations')}</a>
             </p>
         </Section>
 
@@ -127,7 +127,7 @@ const StepAzureSetup = ({
                 <input type="text" value={azureModels} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAzureModels(e.target.value)}
                     placeholder={t('init_setup.step_azure_setup_gpt_5_6_terra_gpt_6_astra_gpt_4_1', 'gpt-5.6-terra, gpt-6-astra, gpt-4.1')}
                     className={inputClass} style={inputStyle} />
-                <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>{t('init_setup.step_azure_setup_comma_separated_names_from_your_azure', 'Comma-separated names from your Azure portal. Use name=model when a deployment is not named after its model (e.g. prod-chat=gpt-6-astra).')}</p>
+                <p className="text-xs mt-1 [color:#9ca3af]!">{t('init_setup.step_azure_setup_comma_separated_names_from_your_azure', 'Comma-separated names from your Azure portal. Use name=model when a deployment is not named after its model (e.g. prod-chat=gpt-6-astra).')}</p>
             </div>
         </Section>
 
@@ -146,10 +146,10 @@ const StepAzureSetup = ({
                     placeholder={t('init_setup.step_azure_setup_e_g_nl_nl_en_us', 'e.g. nl-NL, en-US')}
                     className={inputClass} style={inputStyle} />
             </div>
-            <p className="text-xs" style={{ color: '#9ca3af' }}>
+            <p className="text-xs [color:#9ca3af]!">
                 {t('init_setup.step_azure_setup_get_your_key_from', 'Get your key from')}{' '}
                 <a href="https://portal.azure.com/#create/microsoft.bingsearch" target="_blank" rel="noopener noreferrer"
-                    className="underline" style={{ color: '#0078D4' }}>{t('init_setup.step_azure_setup_azure_portal_bing_search', 'Azure Portal → Bing Search')}</a>
+                    className="underline [color:#0078D4]">{t('init_setup.step_azure_setup_azure_portal_bing_search', 'Azure Portal → Bing Search')}</a>
             </p>
         </Section>
 
@@ -157,8 +157,8 @@ const StepAzureSetup = ({
         <Section Logo={MicrosoftLogo} title={t('init_setup.step_azure_setup_office_application_integration', 'Office Application Integration')} subtitle="Outlook, OneDrive, and Calendar tools for users" defaultOpen={false}>
             <div className="flex items-center justify-between py-1">
                 <div>
-                    <div className="text-sm font-medium" style={{ color: '#374151' }}>{t('init_setup.step_azure_setup_enable_office_365_tools', 'Enable Office 365 tools')}</div>
-                    <p className="text-xs mt-0.5" style={{ color: '#9ca3af' }}>
+                    <div className="text-sm font-medium [color:#374151]!">{t('init_setup.step_azure_setup_enable_office_365_tools', 'Enable Office 365 tools')}</div>
+                    <p className="text-xs mt-0.5 [color:#9ca3af]!">
                         {t('init_setup.step_azure_setup_let_users_access_outlook_mail_onedrive', 'Let users access Outlook mail, OneDrive files, and Calendar via Microsoft Graph')}
                     </p>
                 </div>
@@ -179,12 +179,12 @@ const StepAzureSetup = ({
                     />
                 </button>
             </div>
-            <p className="text-xs" style={{ color: '#9ca3af' }}>
+            <p className="text-xs [color:#9ca3af]!">
                 {t('init_setup.step_azure_setup_requires_the_entra_id_app_registration', 'Requires the Entra ID app registration above with')}{' '}
-                <code className="px-1 py-0.5 rounded text-xs" style={{ background: '#f3f4f6' }}>Mail.Read</code>,{' '}
-                <code className="px-1 py-0.5 rounded text-xs" style={{ background: '#f3f4f6' }}>Mail.Send</code>,{' '}
-                <code className="px-1 py-0.5 rounded text-xs" style={{ background: '#f3f4f6' }}>Files.ReadWrite</code>{t('init_setup.step_azure_setup_and', ', and')}{' '}
-                <code className="px-1 py-0.5 rounded text-xs" style={{ background: '#f3f4f6' }}>Calendars.ReadWrite</code> scopes.
+                <code className="px-1 py-0.5 rounded text-xs [background:#f3f4f6]">Mail.Read</code>,{' '}
+                <code className="px-1 py-0.5 rounded text-xs [background:#f3f4f6]">Mail.Send</code>,{' '}
+                <code className="px-1 py-0.5 rounded text-xs [background:#f3f4f6]">Files.ReadWrite</code>{t('init_setup.step_azure_setup_and', ', and')}{' '}
+                <code className="px-1 py-0.5 rounded text-xs [background:#f3f4f6]">Calendars.ReadWrite</code> scopes.
             </p>
         </Section>
     </div>

@@ -35,7 +35,7 @@ async function computeSlaDueAt(thread) {
 async function _notifyBreach(row, which) {
     // Lazy-require to avoid a circular dependency (routes/support requires this).
     let notifyStaff;
-    try { notifyStaff = require('../support/notifications').notifyStaff; } catch { /* noop */ }
+    try { notifyStaff = require('../support/notifications').notifyStaff; } catch (err) { log.debug('noop', err); }
     const label = which === 'first' ? 'First-response' : 'Resolution';
     try {
         await supportStore.recordThreadEvent({
@@ -79,7 +79,7 @@ async function _notifyBreach(row, which) {
         require('../support/events').supportEvents.emit('event', {
             event: 'thread_updated', data: { threadId: row.id },
         });
-    } catch { /* noop */ }
+    } catch (err) { log.debug('noop', err); }
 }
 
 async function slaTick() {

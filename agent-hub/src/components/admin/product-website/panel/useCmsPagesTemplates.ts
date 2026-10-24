@@ -9,6 +9,7 @@ import { exportPage as exportPageToFile, type ImportPayload } from '../pageIO';
 import { HEADER_VIRTUAL_ID } from '../sentinels';
 import type { CmsLocale, CmsLocaleOverrides, CmsPageDoc, CmsPageIndexEntry, CmsSiteDoc } from './cmsPanelTypes';
 import type { CmsTemplateSummary } from './useCmsPanelState';
+import { logger } from '../../../../utils/logger';
 
 /** The template-save dialog's page: the page plus the blocks resolved for it. */
 type PendingTemplatePage = { id: string; blocks?: unknown[]; [key: string]: unknown };
@@ -235,7 +236,7 @@ export default function useCmsPagesTemplates({
             if (!res.ok) return;
             const data = await res.json();
             setTemplates(Array.isArray(data.templates) ? data.templates : []);
-        } catch { /* non-fatal — manager + picker just stay empty */ }
+        } catch (err) { logger.debug('non-fatal — manager + picker just stay empty', err); }
     }, [setTemplates]);
 
     // Initial load — runs once when the panel mounts. Templates are

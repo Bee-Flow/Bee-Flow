@@ -7,6 +7,7 @@ import DeckLookFields from './DeckLookFields';
 import type { StudioDocument } from './documentQueries';
 import type { MegaItem } from '../../components/admin/product-website/blockEditors/HeaderEditor.types';
 import type { FeatureOption } from '../../shared/featureCatalog';
+import { logger } from '../../utils/logger';
 
 const input = 'w-full rounded border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1.5 text-sm';
 const button = 'rounded border border-[var(--border-subtle)] px-2.5 py-1.5 text-sm hover:bg-[var(--bg-tertiary)] disabled:opacity-50';
@@ -221,7 +222,7 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
     const acceptSettings=(next: DocSettings)=>{
         latestState.current={settings:next,kind,visibility};
         savedState.current=JSON.stringify({settings:next,kind,visibility});setSettings(next);setRecovered(null);
-        try{sessionStorage.removeItem(`document-settings-draft:${doc.id}`);}catch{/* memory copy remains */}
+        try{sessionStorage.removeItem(`document-settings-draft:${doc.id}`);}catch (err) { logger.debug('memory copy remains', err); }
     };
     const save=async()=>{
         if(saving.current) await saving.current;
@@ -233,7 +234,7 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
                 result=await onSave({...snapshot,...(expectedVersionId?{expectedVersionId}:{})});
                 savedState.current=JSON.stringify(snapshot);expectedVersionId=undefined;setRecovered(null);
             }
-            try {sessionStorage.removeItem(`document-settings-draft:${doc.id}`);}catch{/* memory draft remains */}
+            try {sessionStorage.removeItem(`document-settings-draft:${doc.id}`);}catch (err) { logger.debug('memory draft remains', err); }
             return result;
         };
         saving.current=run();
@@ -242,7 +243,7 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
     useImperativeHandle(ref,()=>({flush:save}));
     useEffect(()=>{
         if (JSON.stringify({settings,kind,visibility})!==savedState.current) {
-            try {sessionStorage.setItem(`document-settings-draft:${doc.id}`,JSON.stringify({settings,kind,visibility,versionId:recovered?.versionId || doc.versionId,bodyHtml:doc.bodyHtml,css:doc.css}));}catch{/* memory draft remains */}
+            try {sessionStorage.setItem(`document-settings-draft:${doc.id}`,JSON.stringify({settings,kind,visibility,versionId:recovered?.versionId || doc.versionId,bodyHtml:doc.bodyHtml,css:doc.css}));}catch (err) { logger.debug('memory draft remains', err); }
         }
         const warn=(e: BeforeUnloadEvent)=>{if(JSON.stringify({settings,kind,visibility})!==savedState.current){e.preventDefault();e.returnValue='';}};
         window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);
@@ -253,7 +254,7 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
         {error && <p role="alert" className="text-sm bg-red-500/10 p-2 rounded">{error}</p>}
         {recovered && <div className="text-xs bg-amber-500/10 p-3 rounded space-y-2"><p>{t('documents.workspace.unsaved_settings_recovered_review', 'Unsaved settings recovered. Review them before saving.')}</p>
             <button className={button} onClick={()=>action(async()=>{const r=await documentRequest('',{name:doc.name+' — recovered',kind:'document',bodyHtml:recovered.bodyHtml || doc.bodyHtml,css:recovered.css || doc.css,settings});setResult({message:t('documents.workspace.recovered_copy_saved', 'Recovered copy saved')+': '+r.document.name});})}>{t('documents.workspace.save_recovered_copy', 'Save recovered copy')}</button>
-            <button className={button} onClick={()=>{const next=currentSettings();setSettings(next);setKind(doc.kind || 'document');setVisibility(doc.visibility || 'private');savedState.current=JSON.stringify({settings:next,kind:doc.kind || 'document',visibility:doc.visibility || 'private'});setRecovered(null);try{sessionStorage.removeItem(`document-settings-draft:${doc.id}`);}catch{/* unavailable */}}}>{t('documents.workspace.discard_recovered_changes', 'Discard recovered changes')}</button>
+            <button className={button} onClick={()=>{const next=currentSettings();setSettings(next);setKind(doc.kind || 'document');setVisibility(doc.visibility || 'private');savedState.current=JSON.stringify({settings:next,kind:doc.kind || 'document',visibility:doc.visibility || 'private'});setRecovered(null);try{sessionStorage.removeItem(`document-settings-draft:${doc.id}`);}catch (err) { logger.debug('unavailable', err); }}}>{t('documents.workspace.discard_recovered_changes', 'Discard recovered changes')}</button>
         </div>}
         <fieldset disabled={busy || doc.editable===false} className="space-y-4 min-w-0">
         {tab==='parameters' && <>

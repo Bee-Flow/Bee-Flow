@@ -61,7 +61,7 @@ export default function NotificationCenter({ variant = 'row' }: { variant?: 'row
     const Trigger = isIcon ? IconTrigger : RowTrigger;
 
     return (
-        <div ref={panelRef} style={{ position: 'relative' }}>
+        <div ref={panelRef} className="[position:relative]">
             <Trigger open={open} unreadCount={inbox.unreadCount} onToggle={() => setOpen(o => !o)} />
 
             {/* Dropdown panel */}

@@ -58,7 +58,7 @@ async function resolveEffectiveRecordingFolder(session, userId, configuredFolder
         const talk = require('../../integrations/nextcloudTalkTools');
         const cap = await talk.getTalkRecordingCapability(session, userId);
         if (cap.recordingFolder) return cap.recordingFolder;
-    } catch (_) { /* fall through to the configured value */ }
+    } catch (err) { log.debug('fall through to the configured value', err); }
     return configuredFolder;
 }
 
@@ -382,7 +382,7 @@ async function decorateRoomNames(rooms, session, userId) {
             const name = nameByToken.get(room.token);
             if (name) room.name = name;
         }
-    } catch (_) { /* names are a nicety, the paths are the payload */ }
+    } catch (err) { log.debug('names are a nicety, the paths are the payload', err); }
 }
 
 router.post('/from-nextcloud', requireAuth, validate({ body: FromNextcloudBody, query: NO_QUERY }), async (req, res) => {
@@ -456,7 +456,7 @@ router.get('/talk-meetings', requireAuth, validate({ query: NO_QUERY }), async (
             const roomsRes = await guardedNcCall('nextcloud_talk_list_rooms', {}, { userId, orgId: userOrgId, session: req.session },
                 () => talk.executeNextcloudTalkTool('nextcloud_talk_list_rooms', {}, userId, req.session));
             if (roomsRes && Array.isArray(roomsRes.rooms)) for (const r of roomsRes.rooms) roomsByToken[r.token] = r;
-        } catch (_) { /* best-effort enrichment */ }
+        } catch (err) { log.debug('best-effort enrichment', err); }
 
         // De per-vergadering keuze komt uit meeting_prefs (M5). `excluded` is
         // hier de EFFECTIEVE stand van de schakelaar die de Gepland-lijst toont
@@ -506,7 +506,7 @@ router.get('/talk-meetings', requireAuth, validate({ query: NO_QUERY }), async (
             try {
                 const t = await transcriptionStore.getTranscriptionByTalkRoomToken(m.talkToken, userId);
                 if (t) recordedNoteId = t.id;
-            } catch (_) { /* ignore */ }
+            } catch (err) { log.debug('ignore', err); }
 
             let status;
             if (recordingNow) status = 'recording_now';

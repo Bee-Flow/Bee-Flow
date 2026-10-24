@@ -51,8 +51,7 @@ interface StatsState {
 function Figure({ label, value, sub, tone }: FigureProps) {
     return (
         <div
-            className="flex-1 min-w-0 rounded-[10px] border px-4 py-3.5 flex flex-col gap-1"
-            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-subtle)', boxShadow: 'var(--shadow-sm)' }}
+            className="flex-1 min-w-0 rounded-[10px] border px-4 py-3.5 flex flex-col gap-1 [background:var(--bg-card)] [border-color:var(--border-subtle)] [box-shadow:var(--shadow-sm)]"
         >
             <div
                 className="text-[10.5px] font-semibold uppercase tracking-wide truncate text-[var(--text-tertiary)]"

@@ -37,6 +37,8 @@
  * @param {(sql: string, params: any[]) => ({rows: object[], rowCount: number}) | undefined} [opts.onQuery]
  *   optional escape hatch: return a result to fully override dispatch for a query
  */
+const log = require('../telemetry/log');
+
 function createRecordingDb({ tables = {}, matchers = {}, onQuery } = {}) {
     const calls = { run: [], getOne: [], getAll: [], client: [], exec: [] };
 
@@ -120,7 +122,7 @@ function createRecordingDb({ tables = {}, matchers = {}, onQuery } = {}) {
                 await client.query('COMMIT');
                 return result;
             } catch (e) {
-                try { await client.query('ROLLBACK'); } catch (_) { /* ignore */ }
+                try { await client.query('ROLLBACK'); } catch (err) { log.debug('rollback after a failed callback, the original error is rethrown', err); }
                 throw e;
             }
         },

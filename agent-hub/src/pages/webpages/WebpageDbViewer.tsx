@@ -97,13 +97,13 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
         }
     };
 
-    const tables = schema?.tables || [];
+    const tables = useMemo(() => schema?.tables || [], [schema?.tables]);
     const sel = tables.find((tbl: DbTable) => tbl.name === selected);
 
     return (
         <div className="flex h-full text-[var(--vsc-fg)]">
             {/* Left: table list */}
-            <div className="shrink-0 border-r overflow-y-auto" style={{ width: 220, borderColor: 'var(--vsc-border)' }}>
+            <div className="shrink-0 border-r overflow-y-auto w-[220px] [border-color:var(--vsc-border)]!">
                 <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--vsc-border)]">
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--vsc-fg-muted)]">
                         {unreadable && tables.length === 0
@@ -145,7 +145,7 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                         >
                             <Table2 size={12} />
                             <span className="flex-1 truncate">{tbl.name}</span>
-                            <span className="text-[10px]" style={{ opacity: 0.6 }}>
+                            <span className="text-[10px] [opacity:0.6]">
                                 {nOf(t, 'webpages.db.n_col', tbl.columns.length, '{count} col', '{count} cols')}
                             </span>
                         </button>
@@ -165,8 +165,7 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                             value={name}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                             placeholder={t('webpages.db.ph_table_name', 'table_name')}
-                            className="w-full px-2 py-1.5 mb-3 text-[12px] rounded border outline-none"
-                            style={{ borderColor: 'var(--vsc-border)', background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)' }}
+                            className="w-full px-2 py-1.5 mb-3 text-[12px] rounded border outline-none [border-color:var(--vsc-border)] [background:var(--vsc-editor-bg)] [color:var(--vsc-fg)]!"
                         />
                         <div className="text-[11px] uppercase tracking-wider mb-1 text-[var(--vsc-fg-muted)]">{t('webpages.db.columns', 'Columns')}</div>
                         <div className="space-y-1.5 mb-3">
@@ -176,14 +175,12 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                                         value={c.name}
                                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCol(i, { name: e.target.value })}
                                         placeholder={t('webpages.db.ph_column_name', 'name')}
-                                        className="flex-1 px-2 py-1 text-[12px] rounded border outline-none"
-                                        style={{ borderColor: 'var(--vsc-border)', background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)' }}
+                                        className="flex-1 px-2 py-1 text-[12px] rounded border outline-none [border-color:var(--vsc-border)] [background:var(--vsc-editor-bg)] [color:var(--vsc-fg)]!"
                                     />
                                     <select
                                         value={c.type}
                                         onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateCol(i, { type: e.target.value })}
-                                        className="px-2 py-1 text-[12px] rounded border outline-none"
-                                        style={{ borderColor: 'var(--vsc-border)', background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)' }}
+                                        className="px-2 py-1 text-[12px] rounded border outline-none [border-color:var(--vsc-border)] [background:var(--vsc-editor-bg)] [color:var(--vsc-fg)]!"
                                     >
                                         <option>INTEGER</option>
                                         <option>TEXT</option>
@@ -206,8 +203,7 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                             <button
                                 onClick={handleCreate}
                                 disabled={submitting || !name.trim()}
-                                className="px-3 py-1.5 rounded text-[12px] font-medium disabled:opacity-50"
-                                style={{ background: 'var(--vsc-accent)', color: '#fff' }}
+                                className="px-3 py-1.5 rounded text-[12px] font-medium disabled:opacity-50 [background:var(--vsc-accent)] [color:#fff]!"
                             >
                                 {submitting ? t('webpages.db.creating', 'Creating…') : t('webpages.create', 'Create')}
                             </button>
@@ -222,16 +218,15 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                             </h3>
                             <button
                                 onClick={() => handleDropTable(sel.name)}
-                                className="flex items-center gap-1 px-2 py-1 rounded text-[11px] hover:bg-[var(--vsc-hover-bg)]"
-                                style={{ color: '#ef4444' }}
+                                className="flex items-center gap-1 px-2 py-1 rounded text-[11px] hover:bg-[var(--vsc-hover-bg)] [color:#ef4444]!"
                                 title={t('webpages.db.drop_table', 'Drop table')}
                             >
                                 <Trash2 size={12} /> {t('webpages.db.drop', 'Drop')}
                             </button>
                         </div>
-                        <table className="w-full text-[12px]" style={{ borderCollapse: 'collapse' }}>
+                        <table className="w-full text-[12px] [border-collapse:collapse]">
                             <thead>
-                                <tr style={{ color: 'var(--vsc-fg-muted)', borderBottom: '1px solid var(--vsc-border)' }}>
+                                <tr className="[color:var(--vsc-fg-muted)] [border-bottom:1px_solid_var(--vsc-border)]">
                                     <th className="text-left py-1.5 pr-3 font-medium">{t('webpages.db.col_column', 'Column')}</th>
                                     <th className="text-left py-1.5 pr-3 font-medium">{t('common.type', 'Type')}</th>
                                     <th className="text-left py-1.5 pr-3 font-medium">{t('webpages.db.pk', 'PK')}</th>
@@ -241,7 +236,7 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                             </thead>
                             <tbody>
                                 {sel.columns.map((c: DbColumn) => (
-                                    <tr key={c.name} style={{ borderBottom: '1px solid var(--vsc-border)' }}>
+                                    <tr key={c.name} className="[border-bottom:1px_solid_var(--vsc-border)]">
                                         <td className="py-1.5 pr-3 font-mono">
                                             {c.primaryKey && <KeyRound size={11} className="inline mr-1" style={{ color: '#eab308' }} />}
                                             {c.name}
@@ -255,7 +250,7 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                             </tbody>
                         </table>
                         {sel.sql && (
-                            <pre className="mt-4 p-2 rounded text-[11px] overflow-x-auto" style={{ background: 'var(--vsc-sidebar-bg)', color: 'var(--vsc-fg-muted)', border: '1px solid var(--vsc-border)' }}>{sel.sql}</pre>
+                            <pre className="mt-4 p-2 rounded text-[11px] overflow-x-auto [background:var(--vsc-sidebar-bg)] [color:var(--vsc-fg-muted)]! [border:1px_solid_var(--vsc-border)]">{sel.sql}</pre>
                         )}
                     </div>
                 ) : (
@@ -277,7 +272,7 @@ function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
     // laad-effect eindeloos opnieuw laten vuren.
     const tRef = useRef(t);
     tRef.current = t;
-    const tables = schema?.tables || [];
+    const tables = useMemo(() => schema?.tables || [], [schema?.tables]);
     const [tableName, setTableName] = useState<string | null>(null);
     const [page, setPage] = useState(0);
     const [rows, setRows] = useState<DbRow[]>([]);
@@ -413,8 +408,7 @@ function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
                 <select
                     value={tableName || ''}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTableName(e.target.value)}
-                    className="px-2 py-1 text-[12px] rounded border outline-none"
-                    style={{ borderColor: 'var(--vsc-border)', background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)' }}
+                    className="px-2 py-1 text-[12px] rounded border outline-none [border-color:var(--vsc-border)] [background:var(--vsc-editor-bg)] [color:var(--vsc-fg)]!"
                 >
                     {tables.length === 0 && <option value="">{t('webpages.db.no_tables_option', '— no tables —')}</option>}
                     {tables.map((tbl: DbTable) => <option key={tbl.name} value={tbl.name}>{tbl.name}</option>)}
@@ -448,8 +442,7 @@ function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
                 <button
                     onClick={() => { setInserting(true); setInsertValues({}); }}
                     disabled={!tableMeta}
-                    className="flex items-center gap-1 px-2 py-1 rounded text-[11px] disabled:opacity-50"
-                    style={{ background: 'var(--vsc-accent)', color: '#fff' }}
+                    className="flex items-center gap-1 px-2 py-1 rounded text-[11px] disabled:opacity-50 [background:var(--vsc-accent)] [color:#fff]!"
                 >
                     <Plus size={12} /> {t('webpages.db.insert_row', 'Insert row')}
                 </button>
@@ -471,16 +464,14 @@ function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
                                     value={insertValues[c.name] ?? ''}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInsertValues((v: Record<string, string>) => ({ ...v, [c.name]: e.target.value }))}
                                     placeholder={c.defaultValue ?? (c.notNull ? t('webpages.db.required', 'required') : 'NULL')}
-                                    className="px-2 py-1 text-[12px] rounded border outline-none"
-                                    style={{ borderColor: 'var(--vsc-border)', background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)' }}
+                                    className="px-2 py-1 text-[12px] rounded border outline-none [border-color:var(--vsc-border)] [background:var(--vsc-editor-bg)] [color:var(--vsc-fg)]!"
                                 />
                             </div>
                         ))}
                     </div>
                     <button
                         onClick={handleInsert}
-                        className="px-3 py-1 rounded text-[12px] font-medium"
-                        style={{ background: 'var(--vsc-accent)', color: '#fff' }}
+                        className="px-3 py-1 rounded text-[12px] font-medium [background:var(--vsc-accent)] [color:#fff]!"
                     >
                         {t('webpages.db.insert', 'Insert')}
                     </button>
@@ -495,25 +486,25 @@ function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
                 ) : rows.length === 0 ? (
                     <div className="px-3 py-8 text-[12px] text-[var(--vsc-fg-muted)]">{t('webpages.db.empty_table', 'Empty table.')}</div>
                 ) : (
-                    <table className="w-full text-[12px]" style={{ borderCollapse: 'collapse', tableLayout: 'auto' }}>
-                        <thead style={{ position: 'sticky', top: 0, background: 'var(--vsc-sidebar-bg)' }}>
-                            <tr style={{ borderBottom: '1px solid var(--vsc-border)' }}>
+                    <table className="w-full text-[12px] [border-collapse:collapse] [table-layout:auto]">
+                        <thead className="[position:sticky] [top:0] [background:var(--vsc-sidebar-bg)]">
+                            <tr className="[border-bottom:1px_solid_var(--vsc-border)]">
                                 <th className="text-left px-2 py-1.5 font-mono text-[var(--vsc-fg-muted)]">rowid</th>
                                 {dataColumns.map((c: string) => (
                                     <th key={c} className="text-left px-2 py-1.5 font-mono text-[var(--vsc-fg-muted)]">{c}</th>
                                 ))}
-                                <th style={{ width: 32 }}></th>
+                                <th className="w-[32px]"></th>
                             </tr>
                         </thead>
                         <tbody>
                             {rows.map((row: DbRow, rowidx: number) => (
-                                <tr key={row.rowid ?? rowidx} className="hover:bg-[var(--vsc-hover-bg)]" style={{ borderBottom: '1px solid var(--vsc-border)' }}>
+                                <tr key={row.rowid ?? rowidx} className="hover:bg-[var(--vsc-hover-bg)] [border-bottom:1px_solid_var(--vsc-border)]">
                                     <td className="px-2 py-1 font-mono text-[var(--vsc-fg-muted)]">{row.rowid}</td>
                                     {dataColumns.map((c: string) => {
                                         const isEditing = editing && editing.rowidx === rowidx && editing.col === c;
                                         const v = row[c];
                                         return (
-                                            <td key={c} className="px-2 py-1 font-mono" onDoubleClick={() => startEdit(rowidx, c, v)} style={{ cursor: 'text' }}>
+                                            <td key={c} className="px-2 py-1 font-mono [cursor:text]" onDoubleClick={() => startEdit(rowidx, c, v)}>
                                                 {isEditing ? (
                                                     <input
                                                         autoFocus
@@ -524,11 +515,10 @@ function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
                                                             if (e.key === 'Enter') commitEdit();
                                                             else if (e.key === 'Escape') setEditing(null);
                                                         }}
-                                                        className="w-full px-1 py-0.5 text-[12px] rounded border outline-none"
-                                                        style={{ borderColor: 'var(--vsc-accent)', background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)' }}
+                                                        className="w-full px-1 py-0.5 text-[12px] rounded border outline-none [border-color:var(--vsc-accent)] [background:var(--vsc-editor-bg)] [color:var(--vsc-fg)]!"
                                                     />
                                                 ) : v === null || v === undefined ? (
-                                                    <span style={{ color: 'var(--vsc-fg-muted)', fontStyle: 'italic' }}>NULL</span>
+                                                    <span className="[color:var(--vsc-fg-muted)] [font-style:italic]">NULL</span>
                                                 ) : (
                                                     <span className="block max-w-[400px] truncate" title={formatCell(v)}>{formatCell(v)}</span>
                                                 )}
@@ -618,8 +608,7 @@ function SqlTab({ webpageId, onError, onSchemaChanged }: SqlTabProps) {
                 <button
                     onClick={run}
                     disabled={running || !sql.trim()}
-                    className="flex items-center gap-1 px-3 py-1 rounded text-[12px] font-medium disabled:opacity-50"
-                    style={{ background: 'var(--vsc-accent)', color: '#fff' }}
+                    className="flex items-center gap-1 px-3 py-1 rounded text-[12px] font-medium disabled:opacity-50 [background:var(--vsc-accent)] [color:#fff]!"
                 >
                     {running ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />} {t('webpages.db.run', 'Run')}
                 </button>
@@ -629,8 +618,7 @@ function SqlTab({ webpageId, onError, onSchemaChanged }: SqlTabProps) {
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSql(e.target.value)}
                 onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) run(); }}
                 spellCheck={false}
-                className="shrink-0 w-full px-3 py-2 text-[12px] font-mono outline-none resize-none border-b"
-                style={{ height: 140, borderColor: 'var(--vsc-border)', background: 'var(--vsc-editor-bg)', color: 'var(--vsc-fg)' }}
+                className="shrink-0 w-full px-3 py-2 text-[12px] font-mono outline-none resize-none border-b h-[140px] [border-color:var(--vsc-border)]! [background:var(--vsc-editor-bg)] [color:var(--vsc-fg)]!"
                 placeholder={t('webpages.db.sql_placeholder', '-- Cmd/Ctrl+Enter to run')}
             />
 
@@ -640,11 +628,11 @@ function SqlTab({ webpageId, onError, onSchemaChanged }: SqlTabProps) {
                         {t('webpages.db.routing_hint', 'SELECT/WITH/PRAGMA → read query. Anything else (INSERT, CREATE, ALTER, …) → exec.')}
                     </div>
                 ) : result.error ? (
-                    <div className="m-3 px-3 py-2 rounded text-[12px]" style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.3)' }}>
+                    <div className="m-3 px-3 py-2 rounded text-[12px] [background:rgba(239,68,68,0.1)] [color:#dc2626]! [border:1px_solid_rgba(239,68,68,0.3)]">
                         <AlertTriangle size={12} className="inline mr-1" /> {result.error}
                     </div>
                 ) : result.kind === 'exec' ? (
-                    <div className="m-3 px-3 py-2 rounded text-[12px]" style={{ background: 'var(--vsc-sidebar-bg)', border: '1px solid var(--vsc-border)' }}>
+                    <div className="m-3 px-3 py-2 rounded text-[12px] [background:var(--vsc-sidebar-bg)] [border:1px_solid_var(--vsc-border)]">
                         {result.message
                             ? result.message
                             : result.multi
@@ -673,9 +661,9 @@ function SqlTab({ webpageId, onError, onSchemaChanged }: SqlTabProps) {
                                 : nOf(t, 'webpages.db.rows', (result.rows as DbRow[]).length, '{count} row', '{count} rows')}
                         </div>
                         {(result.rows as DbRow[]).length > 0 ? (
-                            <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-                                <thead style={{ position: 'sticky', top: 0, background: 'var(--vsc-sidebar-bg)' }}>
-                                    <tr style={{ borderBottom: '1px solid var(--vsc-border)' }}>
+                            <table className="[border-collapse:collapse] w-[100%]">
+                                <thead className="[position:sticky] [top:0] [background:var(--vsc-sidebar-bg)]">
+                                    <tr className="[border-bottom:1px_solid_var(--vsc-border)]">
                                         {(result.columns as string[]).map((c: string) => (
                                             <th key={c} className="text-left px-2 py-1 font-mono text-[var(--vsc-fg-muted)]">{c}</th>
                                         ))}
@@ -683,11 +671,11 @@ function SqlTab({ webpageId, onError, onSchemaChanged }: SqlTabProps) {
                                 </thead>
                                 <tbody>
                                     {(result.rows as DbRow[]).map((row: DbRow, i: number) => (
-                                        <tr key={i} style={{ borderBottom: '1px solid var(--vsc-border)' }}>
+                                        <tr key={i} className="[border-bottom:1px_solid_var(--vsc-border)]">
                                             {(result.columns as string[]).map((c: string) => (
                                                 <td key={c} className="px-2 py-1 font-mono">
                                                     {row[c] === null || row[c] === undefined
-                                                        ? <span style={{ color: 'var(--vsc-fg-muted)', fontStyle: 'italic' }}>NULL</span>
+                                                        ? <span className="[color:var(--vsc-fg-muted)] [font-style:italic]">NULL</span>
                                                         : <span className="block max-w-[400px] truncate" title={formatCell(row[c])}>{formatCell(row[c])}</span>}
                                                 </td>
                                             ))}
@@ -708,8 +696,7 @@ function SqlTab({ webpageId, onError, onSchemaChanged }: SqlTabProps) {
                 <button
                     onClick={handleReset}
                     disabled={resetting}
-                    className="flex items-center gap-1 px-2 py-1 rounded text-[11px] hover:bg-[var(--vsc-hover-bg)] disabled:opacity-50"
-                    style={{ color: '#ef4444' }}
+                    className="flex items-center gap-1 px-2 py-1 rounded text-[11px] hover:bg-[var(--vsc-hover-bg)] disabled:opacity-50 [color:#ef4444]!"
                     title={t('webpages.db.reset_hint', 'Drop all tables (DELETE /db)')}
                 >
                     <Trash2 size={11} /> {t('webpages.db.reset', 'Reset database')}
@@ -805,7 +792,7 @@ export default function WebpageDbViewer({ webpageId }: Props) {
             </div>
 
             {error && (
-                <div className="m-2 px-2 py-1 rounded text-[11px]" style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.3)' }}>
+                <div className="m-2 px-2 py-1 rounded text-[11px] [background:rgba(239,68,68,0.1)] [color:#dc2626]! [border:1px_solid_rgba(239,68,68,0.3)]">
                     {error}
                 </div>
             )}

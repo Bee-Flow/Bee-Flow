@@ -152,7 +152,7 @@ export default function FileBrowser({ t, scope, providers, files, onToggle, mark
                             </label>
                         )}
                         <button type="button" onClick={() => setTick(x => x + 1)} aria-label={t('datatables.ss_refresh', 'Read the folder again')}
-                            className="p-1 rounded focus-visible:outline focus-visible:outline-2" style={{ color: 'var(--text-tertiary)', outlineColor: 'var(--accent-primary)' }}>
+                            className="p-1 rounded focus-visible:outline focus-visible:outline-2 [color:var(--text-tertiary)] [outline-color:var(--accent-primary)]!">
                             <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
                         </button>
                     </div>
@@ -174,8 +174,7 @@ export default function FileBrowser({ t, scope, providers, files, onToggle, mark
                     </span>
                     <ul className="flex flex-wrap gap-1.5" role="list">
                         {selected.map((f) => (
-                            <li key={fileKeyOf(f.provider, f.id)} className="inline-flex items-center gap-1 text-[11px] pl-2 pr-1 py-0.5 rounded-full"
-                                style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}>
+                            <li key={fileKeyOf(f.provider, f.id)} className="inline-flex items-center gap-1 text-[11px] pl-2 pr-1 py-0.5 rounded-full [background:var(--bg-primary)] [border:1px_solid_var(--border-default)] [color:var(--text-primary)]!">
                                 <span className="truncate max-w-[220px]">{f.name}</span>
                                 <span className="text-[var(--text-tertiary)]">· {providerName(f.provider)}</span>
                                 <button type="button" onClick={() => onToggle(f)} aria-label={t('datatables.ss_unselect', 'Unselect {name}', { name: f.name })}
@@ -225,7 +224,7 @@ function Breadcrumb({ t, shared, searching, folderId, folder, onOpen }: Breadcru
             {searching && (
                 <>
                     <ChevronRight className="w-3 h-3" aria-hidden="true" />
-                    <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{t('datatables.ss_search_results', 'Search results')}</span>
+                    <span className="[color:var(--text-primary)] [font-weight:600]">{t('datatables.ss_search_results', 'Search results')}</span>
                 </>
             )}
             {crumbs.map((c, i) => {

@@ -256,13 +256,13 @@ function audit(req, verb, integrationId, oldValues, newValues) {
 // projection after grant-affecting mutations. The registry hook lands with the
 // entitlements phase — guard on typeof so this stays fail-soft until then.
 async function invalidateCaches(orgId) {
-    try { await require('../../core/entitlements/entitlements').invalidateForOrg(orgId); } catch (_) { /* best effort */ }
+    try { await require('../../core/entitlements/entitlements').invalidateForOrg(orgId); } catch (err) { log.debug('best effort', err); }
     try {
         const registry = require('../../core/entitlements/capabilityRegistry');
         if (typeof registry.invalidateCustomIntegrationCache === 'function') {
             await registry.invalidateCustomIntegrationCache(orgId);
         }
-    } catch (_) { /* best effort */ }
+    } catch (err) { log.debug('best effort', err); }
 }
 
 // The admin's own connection for this integration's provider (default first —
@@ -502,7 +502,7 @@ router.post('/:id/deactivate', validate({ body: NoBody }), async (req, res) => {
                 await cs.revokeGrant(g.id).catch(() => {});
             }
         }
-    } catch (_) { /* best effort */ }
+    } catch (err) { log.debug('best effort', err); }
 
     await invalidateCaches(req.params.orgId);
     await audit(req, 'deactivate', row.id, { status: row.status }, { status: 'disabled' });
@@ -563,11 +563,11 @@ router.delete('/:id', async (req, res) => {
                 await cs.deleteConnection(g.connection_id).catch(() => {});
             }
         }
-    } catch (_) { /* best effort */ }
+    } catch (err) { log.debug('best effort', err); }
 
     // Drop a stale capability entry if one remained (e.g. disabled row
     // that was previously active).
-    try { await setOrgCapability(req.params.orgId, row.id, false); } catch (_) { /* best effort */ }
+    try { await setOrgCapability(req.params.orgId, row.id, false); } catch (err) { log.debug('best effort', err); }
 
     await invalidateCaches(req.params.orgId);
     await audit(req, 'delete', row.id,

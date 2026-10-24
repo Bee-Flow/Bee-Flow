@@ -46,13 +46,10 @@ export default function useModelTierSelection(
         scopedStorage.setItem(storageKey, selectedTier);
     }, [storageKey, selectedTier]);
 
-    useEffect(() => {
-        const keys = Object.keys(modelTiers);
-        if (keys.length === 0) return;
-        if (!keys.includes(selectedTier)) {
-            setSelectedTier(keys.includes('auto') ? 'auto' : keys[0]);
-        }
-    }, [modelTiers, selectedTier]);
+    const tierKeys = Object.keys(modelTiers);
+    if (tierKeys.length > 0 && !tierKeys.includes(selectedTier)) {
+        setSelectedTier(tierKeys.includes('auto') ? 'auto' : tierKeys[0]);
+    }
 
     return { modelTiers, selectedTier, setSelectedTier };
 }

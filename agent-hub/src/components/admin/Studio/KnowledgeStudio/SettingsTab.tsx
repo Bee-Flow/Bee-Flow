@@ -231,7 +231,7 @@ export default function SettingsTab({
                 <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">
                     {t('knowledge.settings.where_title', 'Where it can be used')}
                 </h3>
-                <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+                <div className="grid gap-2 [grid-template-columns:repeat(3,minmax(0,1fr))]">
                     {SURFACE_CARDS.map(({ id }) => (
                         <SurfaceCard
                             key={id}
@@ -301,8 +301,7 @@ export default function SettingsTab({
                             disabled={saving}
                             onClick={() => duplicate(false)}
                             data-testid="kb-duplicate-shell"
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium border disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                            style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium border disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [border-color:var(--border-subtle)] [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!"
                         >
                             {t('knowledge.settings.duplicate_shell', 'Empty copy')}
                         </button>
@@ -311,8 +310,7 @@ export default function SettingsTab({
                             disabled={saving}
                             onClick={() => duplicate(true)}
                             data-testid="kb-duplicate-sources"
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium border disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                            style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium border disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [border-color:var(--border-subtle)] [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!"
                         >
                             {t('knowledge.settings.duplicate_sources', 'Copy with its sources')}
                         </button>
@@ -343,7 +341,7 @@ export default function SettingsTab({
                                    is the whole point: presenting a partial
                                    answer as a complete one is how somebody
                                    deletes a base three automations were using. */
-                                <p className="text-xs" data-testid="kb-delete-unchecked" style={{ color: 'var(--warning-ink, var(--warning))' }}>
+                                <p className="text-xs [color:var(--warning-ink,var(--warning))]!" data-testid="kb-delete-unchecked">
                                     {t('knowledge.settings.delete_unchecked', 'This list may be incomplete — {kinds} could not be checked.', {
                                         kinds: unchecked.map(k => t(`usage.kind_${k}_plural`, k)).join(', '),
                                     })}
@@ -432,7 +430,7 @@ function SurfaceCard({ id, active, disabled, attached, onToggle, t }: SurfaceCar
                 the server only refuses NEW links — so the count says so
                 rather than letting somebody think they revoked something. */}
             {!active && attached > 0 && (
-                <span className="text-[10px]" style={{ color: 'var(--warning-ink, var(--warning))' }}>
+                <span className="text-[10px] [color:var(--warning-ink,var(--warning))]!">
                     {attached === 1
                         ? t('knowledge.settings.still_attached_one', 'still attached to 1')
                         : t('knowledge.settings.still_attached', 'still attached to {n}', { n: attached })}
@@ -445,8 +443,7 @@ function SurfaceCard({ id, active, disabled, attached, onToggle, t }: SurfaceCar
 function PersonalNotice({ t, canMove, onMove, busy }: PersonalNoticeProps) {
     return (
         <div
-            className="flex flex-col gap-2 p-3 rounded-[10px]"
-            style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card)' }}
+            className="flex flex-col gap-2 p-3 rounded-[10px] [border:1px_solid_var(--border-default)] [background:var(--bg-card)]"
             data-testid="kb-personal-notice"
         >
             <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)]">
@@ -462,12 +459,7 @@ function PersonalNotice({ t, canMove, onMove, busy }: PersonalNoticeProps) {
                     onClick={onMove}
                     disabled={busy}
                     data-testid="kb-move-to-org"
-                    className="self-start px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                    style={{
-                        background: 'var(--accent-primary)',
-                        color: 'var(--accent-primary-fg)',
-                        outlineColor: 'var(--accent-primary)',
-                    }}
+                    className="self-start px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [background:var(--accent-primary)] [color:var(--accent-primary-fg)]! [outline-color:var(--accent-primary)]!"
                 >
                     {t('knowledge.settings.move_to_org', 'Move to my organisation')}
                 </button>

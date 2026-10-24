@@ -1,8 +1,8 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import KnowledgeOverview from './KnowledgeOverview';
 import { knowledgeApi } from './knowledgeApi';
+import KnowledgeOverview from './KnowledgeOverview';
 
 vi.mock('./knowledgeApi', () => {
     const knowledgeApi = {

@@ -50,6 +50,7 @@ const {
 // module still costs no database.
 const { buildDatatableCatalogForUser } = require('./builderDatatableCatalog');
 const runTools = require('./mcpRunTools');
+const log = require('../telemetry/log');
 
 // ── The gate ────────────────────────────────────────────────────────────────
 //
@@ -243,7 +244,7 @@ async function loadDraft(automationId, userId) {
             }
         }
         draftWrap._availableToolNames = catalog?.toolNames instanceof Set ? catalog.toolNames : null;
-    } catch (_) { /* permissive, as before */ }
+    } catch (err) { log.debug('permissive, as before', err); }
     // What the draft's tools really returned on this user's last live run, for
     // the builder's path checks — the same read the chat route makes per turn.
     draftWrap._runtimeShapes = await loadRuntimeShapes(draftWrap.def, userId);
@@ -299,7 +300,7 @@ async function loadRuntimeShapes(def, userId, {
         try {
             const shape = await getShape({ userId, toolName });
             if (shape) found[toolName] = shape;
-        } catch { /* no runtime shape for this tool this turn */ }
+        } catch (err) { log.debug('no runtime shape for this tool this turn', err); }
     }));
     // Cleared as soon as the reads are in, so it holds nothing open longer.
     let timer;

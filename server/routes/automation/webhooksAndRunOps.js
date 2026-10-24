@@ -533,7 +533,7 @@ async function formPickCaller(req) {
     const user = req.session?.user;
     if (!user?.id) return null;
     let access = { orgIds: [], userGroupIds: [], isSuperAdmin: false };
-    try { access = await require('../transcriptions/shared').resolveAccessContext(req); } catch (_) { /* narrower, never wider */ }
+    try { access = await require('../transcriptions/shared').resolveAccessContext(req); } catch (err) { log.debug('narrower, never wider', err); }
     return {
         userId: user.id,
         session: req.session,

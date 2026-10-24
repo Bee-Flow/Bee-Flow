@@ -80,8 +80,7 @@ export function GitHubConfigForm({ configured, showConfig, configuring, repoOwne
                 <button
                     onClick={onConfigure}
                     disabled={configuring}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
-                    style={{ background: 'var(--brand-gradient)' }}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 [background:var(--brand-gradient)]"
                 >
                     {configuring ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     {configured ? 'Update Configuration' : 'Connect Repository'}

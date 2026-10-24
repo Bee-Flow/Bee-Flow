@@ -175,7 +175,7 @@ function register(router, ctx) {
                 const resolved = await d.datatableRuntime.resolveForPrincipal(tableArt.datatableId, principal, { needed: 'viewer' });
                 const page = await d.datatableRuntime.readRows(resolved, { allowColumns: (tableArt.fields || []).map((f) => f.key), limit: 2 });
                 sampleRows = Array.isArray(page && page.rows) ? page.rows : [];
-            } catch { /* the designer works from the columns alone */ }
+            } catch (err) { log.debug('the designer works from the columns alone', err); }
         }
         const idx = phases.findIndex((p) => p.key === key);
         const approvals = phases.slice(idx + 1).some((p) => p.requires === 'approvals' && p.status !== 'locked');
@@ -189,7 +189,7 @@ function register(router, ctx) {
         // design exists yet, so this is the plain brief).
         let appBrief = (appPhase && appPhase.brief) || null;
         if (appPhase && !appBrief) {
-            try { appBrief = lifecycle.composeBriefFor(recipe, appPhase.key, { ...pb, phases }); } catch { /* not enough artifacts — the designer works from the goal */ }
+            try { appBrief = lifecycle.composeBriefFor(recipe, appPhase.key, { ...pb, phases }); } catch (err) { log.debug('not enough artifacts — the designer works from the goal', err); }
         }
         const result = await d.runDesignPhase({
             tier,

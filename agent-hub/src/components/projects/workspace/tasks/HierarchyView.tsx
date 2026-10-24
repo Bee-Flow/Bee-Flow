@@ -13,6 +13,7 @@ import type { useChatPeople } from '../chat/chatPeople';
 import { GhostButton } from '../workspaceUi';
 import { HierarchyRow } from './HierarchyRow';
 import { buildWorkTree, storyPoints, workItemType, type WorkNode, type WorkRollup } from './taskPlanning';
+import { logger } from '../../../../utils/logger';
 
 const GROUP_LABEL = 'text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)] m-0';
 
@@ -82,7 +83,7 @@ export default function HierarchyView({ projectId, tasks, canEdit, onOpen, onAdd
     }), [tasks]);
 
     const save = (next: Set<string>) => {
-        try { scopedStorage.setItem(collapsedKey(projectId), JSON.stringify([...next])); } catch { /* optional preference */ }
+        try { scopedStorage.setItem(collapsedKey(projectId), JSON.stringify([...next])); } catch (err) { logger.debug('optional preference', err); }
         return next;
     };
     const toggle = (id: string) => {

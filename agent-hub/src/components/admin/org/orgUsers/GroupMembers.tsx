@@ -55,8 +55,7 @@ export function GroupMemberAdd({ group, orgUsers, groupsState }: GroupMembersPro
                         value={memberAddSearch}
                         onChange={e => setMemberAddSearch(e.target.value)}
                         placeholder={t('admin.org_group_add_member_search', 'Search users to add…')}
-                        className="w-full px-2.5 py-1.5 rounded-md border text-xs outline-none mb-1.5"
-                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+                        className="w-full px-2.5 py-1.5 rounded-md border text-xs outline-none mb-1.5 [background:var(--bg-secondary)] [border-color:var(--border-subtle)] [color:var(--text-primary)]!"
                     />
                     <div className="max-h-40 overflow-y-auto space-y-1">
                         {renderCandidates()}

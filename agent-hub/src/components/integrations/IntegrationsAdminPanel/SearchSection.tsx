@@ -110,8 +110,7 @@ export default function SearchSection({
                                                 setTimeout(() => setMessage(null), 3000);
                                             }}
                                             disabled={savingBingKey}
-                                            className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
-                                            style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                                            className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                                         >
                                             {savingBingKey ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                                             {t('integ.search_save', 'Save')}
@@ -204,8 +203,7 @@ export default function SearchSection({
                                                 setTimeout(() => setMessage(null), 3000);
                                             }}
                                             disabled={savingSerperKey}
-                                            className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
-                                            style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                                            className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                                         >
                                             {savingSerperKey ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                                             {t('integ.search_save', 'Save')}
@@ -232,8 +230,7 @@ export default function SearchSection({
                                         <select
                                             value={agentSearchDefaults.mode}
                                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAgentSearchDefaults(p => ({ ...p, mode: e.target.value }))}
-                                            className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
-                                            style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                            className="w-full px-3 py-2 rounded-lg text-sm border outline-none [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                                         >
                                             <option value="web">{t('integ.search_web_full_pages_reranking', 'Web (full pages + reranking)')}</option>
                                             <option value="web_fast">{t('integ.search_web_fast_snippets_only', 'Web Fast (snippets only)')}</option>
@@ -267,8 +264,7 @@ export default function SearchSection({
                                                 type="number" min="1" max="10"
                                                 value={agentSearchDefaults.web?.max_results || 5}
                                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAgentSearchDefaults(p => ({ ...p, web: { ...p.web, max_results: parseInt(e.target.value) || 5 } }))}
-                                                className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
-                                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                                className="w-full px-3 py-2 rounded-lg text-sm border outline-none [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                                             />
                                         </div>
                                         <div>
@@ -277,8 +273,7 @@ export default function SearchSection({
                                                 type="number" min="1" max="5"
                                                 value={agentSearchDefaults.web?.fetch_top_n || 3}
                                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAgentSearchDefaults(p => ({ ...p, web: { ...p.web, fetch_top_n: parseInt(e.target.value) || 3 } }))}
-                                                className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
-                                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                                className="w-full px-3 py-2 rounded-lg text-sm border outline-none [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                                             />
                                         </div>
                                         <div>
@@ -287,8 +282,7 @@ export default function SearchSection({
                                                 type="number" min="500" max="5000" step="100"
                                                 value={agentSearchDefaults.web?.max_tokens_markdown || 2000}
                                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAgentSearchDefaults(p => ({ ...p, web: { ...p.web, max_tokens_markdown: parseInt(e.target.value) || 2000 } }))}
-                                                className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
-                                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                                className="w-full px-3 py-2 rounded-lg text-sm border outline-none [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                                             />
                                         </div>
                                         <div>
@@ -296,8 +290,7 @@ export default function SearchSection({
                                             <select
                                                 value={agentSearchDefaults.web?.detail_level || 'detailed'}
                                                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAgentSearchDefaults(p => ({ ...p, web: { ...p.web, detail_level: e.target.value } }))}
-                                                className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
-                                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                                className="w-full px-3 py-2 rounded-lg text-sm border outline-none [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                                             >
                                                 <option value="basic">{t('integ.search_basic_compact', 'Basic (compact)')}</option>
                                                 <option value="detailed">{t('integ.search_detailed_default', 'Detailed (default)')}</option>
@@ -309,7 +302,7 @@ export default function SearchSection({
 
                                 {/* Web Fast Mode Settings */}
                                 <div className="rounded-lg border p-3 mb-3 border-[var(--border-subtle)] bg-[var(--bg-primary)]">
-                                    <div className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-2" style={{ color: '#f59e0b' }}>
+                                    <div className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-2 [color:#f59e0b]!">
                                         {t('integ.search_web_fast_mode', '⚡ Web Fast Mode')}
                                         <span className="font-normal normal-case text-[var(--text-muted)]">{t('integ.search_snippets_ai_synthesis', '— snippets + AI synthesis')}</span>
                                     </div>
@@ -320,8 +313,7 @@ export default function SearchSection({
                                                 type="number" min="1" max="20"
                                                 value={agentSearchDefaults.web_fast?.max_results || 10}
                                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAgentSearchDefaults(p => ({ ...p, web_fast: { ...p.web_fast, max_results: parseInt(e.target.value) || 10 } }))}
-                                                className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
-                                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                                className="w-full px-3 py-2 rounded-lg text-sm border outline-none [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                                             />
                                         </div>
                                         <div>
@@ -330,8 +322,7 @@ export default function SearchSection({
                                                 type="number" min="500" max="5000" step="100"
                                                 value={agentSearchDefaults.web_fast?.max_tokens_markdown || 1500}
                                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAgentSearchDefaults(p => ({ ...p, web_fast: { ...p.web_fast, max_tokens_markdown: parseInt(e.target.value) || 1500 } }))}
-                                                className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
-                                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                                className="w-full px-3 py-2 rounded-lg text-sm border outline-none [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                                             />
                                         </div>
                                         <div>
@@ -339,8 +330,7 @@ export default function SearchSection({
                                             <select
                                                 value={agentSearchDefaults.web_fast?.detail_level || 'detailed'}
                                                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAgentSearchDefaults(p => ({ ...p, web_fast: { ...p.web_fast, detail_level: e.target.value } }))}
-                                                className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
-                                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                                className="w-full px-3 py-2 rounded-lg text-sm border outline-none [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                                             >
                                                 <option value="basic">{t('integ.search_basic_compact', 'Basic (compact)')}</option>
                                                 <option value="detailed">{t('integ.search_detailed_default', 'Detailed (default)')}</option>
@@ -369,8 +359,7 @@ export default function SearchSection({
                                             setTimeout(() => setMessage(null), 3000);
                                         }}
                                         disabled={savingSearchDefaults}
-                                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
-                                        style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                                     >
                                         {savingSearchDefaults ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                                         {t('integ.search_save_defaults', 'Save Defaults')}

@@ -222,7 +222,7 @@ function sanitizeHttpMeta(kind, secretMeta) {
     }
     if (kind === 'oauth2_cc') {
         let parsed = null;
-        try { parsed = new URL(String(src.tokenUrl || '')); } catch (_) { /* handled below */ }
+        try { parsed = new URL(String(src.tokenUrl || '')); } catch (err) { log.debug('handled below', err); }
         if (!parsed || (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')) {
             return { error: 'secretMeta.tokenUrl must be a valid http(s) URL' };
         }
@@ -250,7 +250,7 @@ async function auditConnectionChange(action, conn, userId) {
             { provider: conn.provider, label: conn.label, kind: conn.kind, action },
             conn.orgId || null,
         );
-    } catch (_) { /* non-fatal — auditing must never block a credential write */ }
+    } catch (err) { log.debug('non-fatal — auditing must never block a credential write', err); }
 }
 
 // Resolve the caller's org (sentinel-normalized) + group ids.
@@ -351,7 +351,7 @@ router.get('/required', requireAuth, validate({ query: RequiredQuery }), async (
             try {
                 const { viewerHasIntegration } = require('../../appStudio/mailboxIdentity');
                 legacyOk = await viewerHasIntegration(provider, { userId, orgId });
-            } catch { /* no legacy layer → the connection really is missing */ }
+            } catch (err) { log.debug('no legacy layer → the connection really is missing', err); }
             if (!legacyOk) requiresConnection.push({ provider });
         }
     }

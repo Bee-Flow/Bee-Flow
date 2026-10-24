@@ -1,7 +1,7 @@
 import { render, fireEvent } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import AppInputTextarea, { activeToken, matchSnippets } from './AppInputTextarea';
 import AppForm from './AppForm';
+import AppInputTextarea, { activeToken, matchSnippets } from './AppInputTextarea';
 import { RuntimeProvider, DEFAULT_RUNTIME } from '../RuntimeContext';
 
 /**

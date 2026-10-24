@@ -134,7 +134,7 @@ export function AddAfterButton({ nodeId, onAddAfter, chromeVisibility }: { nodeI
  */
 export function BadgeSlot({ badgeText, badge, badges }: { badgeText: string | null; badge: ChromeBadge | null; badges: React.ReactNode }) {
     return (
-        <div className="absolute flex items-center gap-1 max-w-[96px] overflow-hidden" style={{ top: -9, right: 10 }} data-testid="node-badge-slot">
+        <div className="absolute flex items-center gap-1 max-w-[96px] overflow-hidden [top:-9px] [right:10px]" data-testid="node-badge-slot">
             {badgeText ? (
                 <span
                     className="text-[10px] font-bold leading-4 px-1.5 rounded-md whitespace-nowrap"

@@ -13,7 +13,11 @@ const MEASUREMENT_ID_RE = /^G-[A-Z0-9]{4,20}$/;
 function GaIdField({ value, onCommit }: { value: string; onCommit: (value: string) => void }) {
     const { t } = useTranslation();
     const [draft, setDraft] = useState(value || '');
-    useEffect(() => { setDraft(value || ''); }, [value]);
+    const [prevValue, setPrevValue] = useState(value);
+    if (prevValue !== value) {
+        setPrevValue(value);
+        setDraft(value || '');
+    }
 
     const normalized = draft.trim().toUpperCase();
     const invalid = normalized !== '' && !MEASUREMENT_ID_RE.test(normalized);

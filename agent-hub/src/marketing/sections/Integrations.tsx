@@ -39,7 +39,7 @@ function BrandMark({ id }: { id: string | undefined }) {
     if (!Logo) return null;
     return (
         <span className="integration-logo-mark" aria-hidden="true">
-            <Logo size={20} />
+            {React.createElement(Logo, { size: 20 })}
         </span>
     );
 }

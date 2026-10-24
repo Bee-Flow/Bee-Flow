@@ -11,6 +11,7 @@
 
 const { deps, grantKeyResolver } = require('./packageState');
 const { _safeSeg } = require('./packageStaging');
+const log = require('../telemetry/log');
 
 const { hubClient, moduleEntitlements, subjects, configStore } = deps;
 
@@ -109,7 +110,7 @@ async function applyOfflineGrant(moduleId, grantFile) {
  */
 async function _sideloadEntitlementGate(moduleId, manifest, signedPayload) {
     let stash = null;
-    try { stash = await configStore().getConfig(_offlineGrantKey(moduleId)); } catch (_) {}
+    try { stash = await configStore().getConfig(_offlineGrantKey(moduleId)); } catch (_) { log.warn('offline grant stash lookup failed, treating it as absent', _); }
     if (stash && stash.grant_token) {
         const subjectIds = await _subjectIds();
         const res = await moduleEntitlements().verifyModuleGrant(stash.grant_token, {
@@ -131,7 +132,7 @@ async function _sideloadEntitlementGate(moduleId, manifest, signedPayload) {
     }
     try {
         if (await hubClient().isConnected()) return await _entitlementGate(moduleId, manifest);
-    } catch (_) { /* fall through to 402 */ }
+    } catch (err) { log.debug('fall through to 402', err); }
     const e = new Error('offline_grant_required');
     e.code = 'offline_grant_required';
     throw e;

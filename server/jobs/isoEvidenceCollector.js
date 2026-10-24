@@ -112,7 +112,7 @@ async function processSweep() {
         log.warn('[IsoEvidenceCollector] sweep error:', e.message);
     } finally {
         if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (_) { /* best-effort */ }
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { log.debug('best-effort', err); }
             client.release();
         }
         if (acquired) _deps.recordJobRun()({ job: 'iso_evidence_collect', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });

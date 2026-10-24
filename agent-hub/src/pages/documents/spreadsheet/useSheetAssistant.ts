@@ -47,6 +47,7 @@ export interface SheetAssistant {
 
 export default function useSheetAssistant(docId: string, sheet: SheetState, charts?: SheetChartsState): SheetAssistant {
     const { t } = useTranslation();
+    const applyCharts = charts?.applyCharts;
     const [messages, setMessages] = useState<AssistantMessage[]>([]);
     const [busy, setBusy] = useState(false);
     const [flashed, setFlashed] = useState<Set<string>>(new Set());
@@ -98,7 +99,7 @@ export default function useSheetAssistant(docId: string, sheet: SheetState, char
                 flash(names);
             }
             if (answer.charts?.length) {
-                charts?.applyCharts(answer.charts).catch(() => undefined);
+                applyCharts?.(answer.charts).catch(() => undefined);
             }
             reply = push({ role: 'assistant', content: answer.reply, changes: names.length ? changes : undefined, requestedTier: modelTier, tier: answer.tier });
         } catch (e) {
@@ -114,7 +115,7 @@ export default function useSheetAssistant(docId: string, sheet: SheetState, char
             setBusy(false);
         }
         return reply;
-    }, [docId, flash, push, t]);
+    }, [docId, flash, push, t, applyCharts]);
 
     const stop = useCallback(() => { abort.current?.abort(); }, []);
 

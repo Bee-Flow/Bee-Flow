@@ -79,8 +79,16 @@ export default function SoaPage(props: SoaPageProps) {
     const [query, setQuery] = useState('');
     const [offset, setOffset] = useState(0);
     const [selectedRef, setSelectedRef] = useState<string | null>(focusId || null);
-    useEffect(() => { if (focusId) setSelectedRef(String(focusId)); }, [focusId]);
-    useEffect(() => { setOffset(0); }, [decision, theme, query]);
+    const [prevFocusId, setPrevFocusId] = useState(focusId);
+    if (prevFocusId !== focusId) {
+        setPrevFocusId(focusId);
+        if (focusId) setSelectedRef(String(focusId));
+    }
+    const [prevFilters, setPrevFilters] = useState([decision, theme, query]);
+    if (prevFilters[0] !== decision || prevFilters[1] !== theme || prevFilters[2] !== query) {
+        setPrevFilters([decision, theme, query]);
+        setOffset(0);
+    }
     const [frameRef, drawerMode] = useDrawerMode({ isMobile });
 
     const decisionCounts = useMemo(() => (controls ? countByDecision(controls) : null), [controls]);

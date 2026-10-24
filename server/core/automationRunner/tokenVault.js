@@ -73,7 +73,7 @@ function createTokenVault({ runId = null, seed = null, persist = null, onEvict =
         for (const k of keys) delete map[k];
         evicted += keys.length;
         log.warn(`[TokenVault] run=${runId} evicted ${keys.length} token(s) at the ${MAX_TOKENS_PER_RUN} ceiling — those placeholders can no longer be restored`);
-        if (onEvict) { try { onEvict(keys.length); } catch (_) { /* audit must never break a run */ } }
+        if (onEvict) { try { onEvict(keys.length); } catch (err) { log.debug('audit must never break a run', err); } }
     }
 
     function merge(tokenMap) {

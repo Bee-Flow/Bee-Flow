@@ -69,7 +69,7 @@ function MeetingDangerZone({ t, data, usage, uncheckedKinds, onDelete, currentUs
             requireName={uncheckedKinds.length > 0}
             openLabel={t('meetings.delete_open', 'Delete this meeting')}
             notice={uncheckedKinds.length > 0 ? (
-                <p className="text-xs" style={{ color: 'var(--warning)' }} data-testid="meeting-delete-unchecked">
+                <p className="text-xs [color:var(--warning)]!" data-testid="meeting-delete-unchecked">
                     {t('meetings.delete_unchecked', 'Some of what could use this meeting could not be checked ({kinds}), so this list may be incomplete.', {
                         kinds: uncheckedKinds.map((k) => kindLabelFor(t, k, 2)).join(', '),
                     })}

@@ -44,8 +44,7 @@ function CreateGroupRow({ onCreate, onCancel }: { onCreate: (name: string) => Pr
             <button
                 onClick={handleCreate}
                 disabled={creating || !newGroupName.trim()}
-                className="px-2.5 py-1 rounded-lg text-xs font-medium transition-all disabled:opacity-50"
-                style={{ background: 'var(--accent-primary)', color: 'white' }}
+                className="px-2.5 py-1 rounded-lg text-xs font-medium transition-all disabled:opacity-50 [background:var(--accent-primary)] [color:white]!"
             >
                 {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : t('settings.n8n.create_grant', 'Create & grant')}
             </button>
@@ -130,7 +129,7 @@ function OrgAdminRow() {
             <span className="flex items-center gap-1.5 text-[var(--text-primary)]">
                 <Crown className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} />
                 {t('settings.n8n.org_admins', 'Organisation Admins')}
-                <span className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
+                <span className="text-[10px] px-1.5 py-0.5 rounded font-medium [background:rgba(245,158,11,0.12)] [color:#f59e0b]!">
                     {t('settings.n8n.always', 'always')}
                 </span>
             </span>

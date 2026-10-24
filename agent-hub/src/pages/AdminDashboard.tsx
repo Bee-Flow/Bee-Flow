@@ -176,7 +176,7 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
         return (
             <div className="h-full flex items-center justify-center bg-[var(--bg-primary)]">
                 <div className="text-center p-8 rounded-2xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'rgba(239, 68, 68, 0.1)' }}>
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center [background:rgba(239,68,68,0.1)]">
                         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgb(239, 68, 68)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" /></svg>
                     </div>
                     <h2 className="text-xl font-bold mb-2 text-[var(--text-primary)]">{t('admin.access_denied_title')}</h2>
@@ -195,7 +195,7 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
     const renderAccessDenied = () => (
         <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center p-8 rounded-2xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
-                <div className="w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center" style={{ background: 'rgba(239, 68, 68, 0.1)' }}>
+                <div className="w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center [background:rgba(239,68,68,0.1)]">
                     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgb(239, 68, 68)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                 </div>
                 <h3 className="text-lg font-semibold mb-1 text-[var(--text-primary)]">{t('admin.forbidden_title')}</h3>
@@ -242,8 +242,8 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
                 {/* Scrollable so the full tab set (now incl. Website Analytics)
                     is always reachable — the bar is at capacity and a fixed
                     single row would clip the rightmost tabs off-screen. */}
-                <div ref={tabScrollRef} className="flex-1 min-w-0 overflow-x-auto" style={{ scrollbarWidth: 'thin' }}>
-                    <div className="flex gap-2 p-1 rounded-lg w-max mx-auto" style={{ background: 'var(--bg-tertiary)' }} data-surface="default" data-static>
+                <div ref={tabScrollRef} className="flex-1 min-w-0 overflow-x-auto [scrollbar-width:thin]">
+                    <div className="flex gap-2 p-1 rounded-lg w-max mx-auto [background:var(--bg-tertiary)]" data-surface="default" data-static>
                         {tabs.map((tab) => {
                             if (!checkTabAccess(tab)) return null;
 

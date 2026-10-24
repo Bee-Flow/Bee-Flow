@@ -103,7 +103,7 @@ async function applyAppScreenshot(draftWrap, args) {
     let renderAppScreenshot;
     try {
         ({ renderAppScreenshot } = require('../../services/appStudioRender'));
-    } catch (_) { /* not shipped in this build — guard below */ }
+    } catch (err) { log.debug('not shipped in this build — guard below', err); }
     if (typeof renderAppScreenshot !== 'function') {
         return { content: 'Screenshots are not available in this deployment (no render service) — rely on app_dry_run and continue building.' };
     }

@@ -154,7 +154,7 @@ function makeLifecycle({ getClient, schemaIdent, assertOwnership, clearMetaFn, s
             }
             await client.query('COMMIT');
         } catch (err) {
-            try { await client.query('ROLLBACK'); } catch (_) {}
+            try { await client.query('ROLLBACK'); } catch (_) { log.debug('connection already broken, the original error is rethrown', _); }
             throw mapPgError(err);
         } finally {
             client.release();

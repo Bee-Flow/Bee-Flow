@@ -7,6 +7,7 @@
 // to window.opener and closes itself.
 
 import type { AuthFetchOptions } from '../utils/helpers';
+import { logger } from '../utils/logger';
 
 const POPUP_NAME = 'microsoft-oauth';
 const POPUP_WIDTH = 600;
@@ -68,7 +69,7 @@ export async function openMicrosoftOAuthPopup({
         const res = await authFetch(`${apiBase}/api/integrations/microsoft/auth-url`);
         data = ((await res.json().catch(() => ({}))) || {}) as typeof data;
         ok = res.ok;
-    } catch { /* rejected below as auth_url_failed */ }
+    } catch (err) { logger.debug('rejected below as auth_url_failed', err); }
     if (!ok || !data.url) {
         // Empty message when the server gave none: callers fall back to their
         // own translated generic error.

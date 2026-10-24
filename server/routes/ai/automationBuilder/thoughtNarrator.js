@@ -166,7 +166,7 @@ function createThoughtNarrator({
             lastText = text;
             seq += 1;
             if (emit) {
-                try { emit('thinking_summary', { partId, text, seq }); } catch (_) { /* the wire is the route's problem */ }
+                try { emit('thinking_summary', { partId, text, seq }); } catch (err) { logger.debug('the wire is the route\'s problem', err); }
             }
         }
         maybeSchedule();

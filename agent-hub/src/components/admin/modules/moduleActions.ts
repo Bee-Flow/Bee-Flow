@@ -23,6 +23,7 @@ import {
 } from '../../../api/queries/modules';
 import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
 import { reloadRemoteModules } from '../../../moduleRuntime/registry';
+import { logger } from '../../../utils/logger';
 
 /** The error a module request rejects with: status and parsed body from the API client. */
 export interface ModuleApiError extends Error {
@@ -130,7 +131,7 @@ export function useModuleActions({ t: tOverride, flash, reloadEntitlements, refe
         purchase.mutate({ id: module.id, successUrl, cancelUrl }, {
             onSuccess: (res) => {
                 if (res?.checkoutUrl) {
-                    try { window.open(res.checkoutUrl, '_blank', 'noopener,noreferrer'); } catch { /* popup blocked */ }
+                    try { window.open(res.checkoutUrl, '_blank', 'noopener,noreferrer'); } catch (err) { logger.debug('popup blocked', err); }
                     setAwaitingIds((s) => new Set(s).add(module.id));
                 } else {
                     // Free / instantly-active entitlement — reflect immediately.

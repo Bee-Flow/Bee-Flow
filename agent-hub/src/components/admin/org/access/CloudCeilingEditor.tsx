@@ -43,7 +43,7 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged }:
     const [editing, setEditing] = useState(false);
     const [message, setMessage] = useState<{ type: string; text: string; } | null>(null);
 
-    const plans = Array.isArray(plansRes.data) ? plansRes.data : [];
+    const plans = useMemo(() => Array.isArray(plansRes.data) ? plansRes.data : [], [plansRes.data]);
     const subs = Array.isArray(subsRes.data) ? subsRes.data : [];
     const sub = subs.find(s => s.organization_id === orgId) || null;
     const currentPlanId = sub?.plan_id || '';
@@ -95,7 +95,7 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged }:
     // Full-screen overlay for the (absolute inset-0) PlanEditor.
     if (editing && selectedPlan) {
         return (
-            <div className="fixed inset-0 z-[1500]" style={{ background: 'var(--bg-primary)' }}>
+            <div className="fixed inset-0 z-[1500] [background:var(--bg-primary)]">
                 <PlanEditor
                     plan={selectedPlan}
                     isNew={false}
@@ -110,7 +110,7 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged }:
     return (
         <div className="space-y-4">
             {/* Assignment card */}
-            <section className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+            <section className="rounded-2xl p-5 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
                 <header className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                         <Crown className="w-5 h-5" style={{ color: BLUE }} />
@@ -122,7 +122,7 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged }:
                         </span>
                     ) : null}
                 </header>
-                <p className="text-sm mb-4" style={{ color: 'var(--text-muted)', maxWidth: 720 }}>
+                <p className="text-sm mb-4 [color:var(--text-muted)]! max-w-[720px]">
                     {t('admin_org.ceiling_cloud_intro_a', 'The plan assigned to')} <strong>{orgName || t('admin_org.ceiling_this_org', 'this organisation')}</strong> {t('admin_org.ceiling_cloud_intro_b', 'is its capability ceiling. Pick a plan, then distribute its features to members and groups under')} <strong>{t('admin_org.ceiling_grants', 'Grants')}</strong>.
                 </p>
 
@@ -132,8 +132,7 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged }:
                         value={currentPlanId}
                         disabled={assigning}
                         onChange={e => assignPlan(e.target.value)}
-                        className="text-sm rounded-lg px-3 py-2 outline-none flex-1 max-w-sm"
-                        style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
+                        className="text-sm rounded-lg px-3 py-2 outline-none flex-1 max-w-sm [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)] [color:var(--text-primary)]!"
                     >
                         <option value="">{t('admin_org.ceiling_no_plan', 'No plan (custom / no ceiling)')}</option>
                         {plans.map(p => (
@@ -153,7 +152,7 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged }:
                 </div>
 
                 {selectedPlan ? (
-                    <div className="mt-3 flex items-start gap-2 text-[12px] rounded-lg px-3 py-2" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+                    <div className="mt-3 flex items-start gap-2 text-[12px] rounded-lg px-3 py-2 [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)] [color:var(--text-muted)]!">
                         <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: BLUE }} />
                         <span>{t('admin_org.ceiling_editing_a', 'Editing')} <strong>{selectedPlan.name}</strong> {t('admin_org.ceiling_editing_b', 'changes the ceiling for')} <em>{t('admin_org.ceiling_editing_every', 'every')}</em> {t('admin_org.ceiling_editing_c', 'organisation on this plan.')}</span>
                     </div>

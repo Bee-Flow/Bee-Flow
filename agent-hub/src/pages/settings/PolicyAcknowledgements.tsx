@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { FileText, Check, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
+import { logger } from '../../utils/logger';
 
 /**
  * Member-facing ISMS policy acknowledgements (ISO 27001 clause 7.3 awareness).
@@ -39,7 +40,7 @@ export default function PolicyAcknowledgements() {
         try {
             const r = await authFetch(`${API_BASE}/api/compliance/iso/docs/published/${encodeURIComponent(slug)}/body`);
             if (r.ok) setBody(await r.json());
-        } catch { /* body stays null; confirm still possible from the list row */ }
+        } catch (err) { logger.debug('body stays null; confirm still possible from the list row', err); }
     };
 
     const confirm = async (slug: string) => {

@@ -45,7 +45,7 @@ async function eraseProjectTraces(userId, opts = {}) {
         ['change feed state', (id) => require('../projectStore').eraseUserChangeState(id)],
         ['AI participation', (id) => require('../projectAiParticipationStore').eraseUser(id)],
         ['AI participation preference', (id) => require('../configStore')
-            .deleteConfig(`${require('../../projects/participation/policy').USER_KEY_PREFIX}${id}`)],
+            .deleteConfig(`${require('../lib/orgConfigKeyPrefixes').USER_AI_PARTICIPATION_KEY_PREFIX}${id}`)],
         ['compliance hint dismissals', (id) => require('../complianceStore').eraseHintDismissals(id)],
     ];
     /** @type {Record<string, any>} */

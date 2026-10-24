@@ -103,9 +103,7 @@ const SignupWizard = ({
 
     // Keep stepIdx in range when the path shrinks (e.g. user switches from a
     // new org to a consumer account on the 'type' step).
-    useEffect(() => {
-        if (stepIdx > steps.length - 1) setStepIdx(steps.length - 1);
-    }, [steps.length, stepIdx]);
+    if (steps.length > 0 && stepIdx > steps.length - 1) setStepIdx(steps.length - 1);
 
     // Consumer with a single allowed login method: pre-select it (the 'auth'
     // step is omitted from the path above). Mirrors the old handleSignupNext.
@@ -162,15 +160,12 @@ const SignupWizard = ({
     const logoSrc = (deploymentMode === 'self-hosted' && orgLogo) ? orgLogo : beeFlowLogo;
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 relative"
-            style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
+        <div className="min-h-screen flex items-center justify-center p-4 relative [background:linear-gradient(160deg,var(--bg-primary)_0%,var(--bg-secondary)_50%,var(--bg-tertiary)_100%)]">
 
             {/* Animated background shapes (match the login page) */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute w-[500px] h-[500px] rounded-full opacity-[0.07]"
-                    style={{ background: 'radial-gradient(circle, var(--accent-primary), transparent 70%)', top: '-5%', left: '-10%', animation: 'pulse 4s ease-in-out infinite' }} />
-                <div className="absolute w-80 h-80 rounded-full opacity-[0.05]"
-                    style={{ background: 'radial-gradient(circle, var(--accent-secondary), transparent 70%)', bottom: '5%', right: '-5%', animation: 'pulse 5s ease-in-out infinite 1.5s' }} />
+                <div className="absolute w-[500px] h-[500px] rounded-full opacity-[0.07] [background:radial-gradient(circle,var(--accent-primary),transparent_70%)] [top:-5%] [left:-10%] [animation:pulse_4s_ease-in-out_infinite]" />
+                <div className="absolute w-80 h-80 rounded-full opacity-[0.05] [background:radial-gradient(circle,var(--accent-secondary),transparent_70%)] [bottom:5%] [right:-5%] [animation:pulse_5s_ease-in-out_infinite_1.5s]" />
             </div>
 
             <div className="w-full max-w-2xl relative z-10">
@@ -181,8 +176,7 @@ const SignupWizard = ({
                             <div className="relative inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)] hover:border-[var(--border-default)] transition-colors cursor-pointer">
                                 <Globe className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                                 <select value={locale} onChange={(e) => setLocale(e.target.value)}
-                                    className="appearance-none bg-transparent text-xs font-medium text-[var(--text-secondary)] cursor-pointer pr-4 outline-none"
-                                    style={{ minWidth: '2rem' }}>
+                                    className="appearance-none bg-transparent text-xs font-medium text-[var(--text-secondary)] cursor-pointer pr-4 outline-none min-w-[2rem]">
                                     {availableLocales.map(l => (
                                         <option key={l.code} value={l.code} className="bg-[var(--bg-secondary)]">{l.code.toUpperCase()}</option>
                                     ))}

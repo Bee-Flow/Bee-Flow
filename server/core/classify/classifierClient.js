@@ -127,7 +127,7 @@ async function _request(url, { method = 'POST', body, apiKey, signal }) {
         signal,
     });
     let json = null;
-    try { json = await res.json(); } catch { /* a non-JSON body is read as no body */ }
+    try { json = await res.json(); } catch (err) { log.debug('a non-JSON body is read as no body', err); }
     return { status: res.status, json };
 }
 

@@ -42,6 +42,7 @@ const complianceStore = require('../../../stores/complianceStore');
 const sbomLocator = require('../../lib/sbomLocator');
 const { APP_BUILD_SHA } = require('../../../utils/buildInfo');
 const { APP_VERSION } = require('../../../version');
+const telemetryLog = require('../../../telemetry/log');
 
 const GRACE_DAYS = 7;
 const DAY_MS = 86400e3;
@@ -190,7 +191,7 @@ async function _evaluatePlatform(evidenceBase) {
     try {
         const located = await sbomLocator.locate({ hash: true });
         if (located.format === 'cyclonedx' || located.format === 'spdx') { sbomHash = located.sha256 || null; sbomPath = located.path; }
-    } catch { /* the SBOM has its own check — never fail the release record over it */ }
+    } catch (err) { telemetryLog.debug('the SBOM has its own check — never fail the release record over it', err); }
 
     const evidence = {
         ...evidenceBase,

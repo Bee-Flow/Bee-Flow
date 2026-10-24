@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import { logger } from '../../../../../utils/logger';
 
 export interface ShieldOrg {
     id: string;
@@ -79,7 +80,7 @@ export default function useShieldEnvironment(onOrgs: (orgs: ShieldOrg[]) => void
                         });
                         setGuardCheckedAt(Date.now());
                     }
-                } catch { /* stays null — see above */ }
+                } catch (err) { logger.debug('stays null — see above', err); }
 
                 const orgRes = await authFetch(`${API_BASE}/auth/organizations`);
                 if (orgRes.ok && !cancelled) {

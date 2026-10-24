@@ -37,7 +37,7 @@ export default function NamesStep({ t, selection, keyDup, marks, onChange }: Nam
                 return (
                     <section key={s.sheetKey} className="p-3 space-y-2" style={CARD} aria-label={label}>
                         <span className="block text-[11px] text-[var(--text-tertiary)]">{label}</span>
-                        <div className="grid gap-2" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)' }}>
+                        <div className="grid gap-2 [grid-template-columns:minmax(0,1fr)_minmax(0,1fr)]">
                             <label className="block">
                                 <span className="block text-xs mb-1 text-[var(--text-secondary)]">{t('datatables.field_name', 'Name')}</span>
                                 <input value={s.name}

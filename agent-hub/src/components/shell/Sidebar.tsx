@@ -89,7 +89,7 @@ const Sidebar = (props: SidebarProps) => {
         return (
             <div className="fixed inset-0 z-50 flex">
                 <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => p.onClose?.()} />
-                <div className="relative sidebar-slide-in" style={{ zIndex: 1 }}>{content}</div>
+                <div className="relative sidebar-slide-in [z-index:1]">{content}</div>
             </div>
         );
     }

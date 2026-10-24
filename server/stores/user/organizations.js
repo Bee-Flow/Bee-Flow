@@ -391,8 +391,13 @@ async function setOrgEveryoneRevoked(orgId, ids) {
  * feature ON, with nobody having decided that.
  */
 function orgConfigKeys(orgId) {
-    const { CONFIG_KEY_PREFIX: INTEGRATION_CACHE } = require('../../core/automationRunner/integrationCachePolicy');
-    const { CONFIG_KEY_PREFIX: AI_CONTEXT } = require('../../core/llm/contextPolicy');
+    const {
+        INTEGRATION_CACHE_CONFIG_KEY_PREFIX: INTEGRATION_CACHE,
+        AI_CONTEXT_CONFIG_KEY_PREFIX: AI_CONTEXT,
+        DOCUMENT_STYLE_CONFIG_KEY_PREFIX: DOCUMENT_STYLE,
+        TRAINING_GATES_CONFIG_KEY_PREFIX: TRAINING_GATES,
+        AI_PARTICIPATION_CONFIG_KEY_PREFIX: AI_PARTICIPATION,
+    } = require('../lib/orgConfigKeyPrefixes');
     const { CONFIG_KEY_PREFIX: ROLE_PERMISSIONS } = require('../../auth/orgRolePolicy');
     return [
         `${INTEGRATION_CACHE}${orgId}`,
@@ -417,18 +422,18 @@ function orgConfigKeys(orgId) {
         // id wordt heropgericht terug met andermans briefhoofd — en met een
         // logo dat als data: URL in de config staat, dus echte bytes van een
         // verwijderde organisatie.
-        `${require('../../core/documents/documentHouseStyle').CONFIG_KEY_PREFIX}${orgId}`,
+        `${DOCUMENT_STYLE}${orgId}`,
         // De leerplicht: welke handelingen DEZE organisatie achter een cursus
         // zet en welke cursus ze weer vrijgeeft. Ook dat is een keuze die
         // iemand hier maakte, dus hij sterft met de organisatie — blijft hij
         // staan, dan komt een org die op hetzelfde id wordt heropgericht
         // terug met een cursusplicht die niemand daar instelde.
-        `${require('../../learning/trainingGates').CONFIG_KEY_PREFIX}${orgId}`,
+        `${TRAINING_GATES}${orgId}`,
         // Whether members may edit project notebooks and pages together, and
         // how the AI may join conversations by itself: both chosen for THIS
         // organisation, so both die with it.
         `${require('../collabDocStore').COLLAB_SETTINGS_KEY_PREFIX}${orgId}`,
-        `${require('../../projects/participation/policy').CONFIG_KEY_PREFIX}${orgId}`,
+        `${AI_PARTICIPATION}${orgId}`,
     ];
 }
 

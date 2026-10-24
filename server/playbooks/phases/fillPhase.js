@@ -57,7 +57,7 @@ async function startFillPhase({ playbook, automationId, tableArtifacts, onRunCre
             startedByUserId: playbook.userId,
             onRunCreated: (run) => {
                 runId = run && run.id ? run.id : null;
-                if (typeof onRunCreated === 'function') { try { onRunCreated(run); } catch { /* observer */ } }
+                if (typeof onRunCreated === 'function') { try { onRunCreated(run); } catch (err) { log.debug('observer', err); } }
             },
         }).catch((e) => { runError = e; log.error('[playbooks/fill] run error:', e && e.message); return null; });
         const run = await Promise.race([runPromise, guard]);

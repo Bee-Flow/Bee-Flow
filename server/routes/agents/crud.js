@@ -29,6 +29,7 @@ const router = express.Router();
 const { CategoryBody, CategoryPatch, DeleteCategoryQuery, TransferBody, ToolParamsBody, AgentUpdateBody } = require('./crudSchemas');
 const { verifyHandoffAutomation, resolvePersonaWrite } = require('./agentPersonaWrite');
 const { makeUpdateAgentHandler } = require('./agentUpdate');
+const log = require('../../telemetry/log');
 
 // Block all writes when the caller's org is suspended/archived. Reads are
 // unaffected so customers can still export their data. Super-admins exempt.
@@ -528,7 +529,7 @@ router.put('/:id/transfer', requirePermission('manage_agents'), validate({ body:
             if (me && me.organizationId === agent.organization_id && isOrgAdminRole(me.orgRole)) {
                 allowed = true;
             }
-        } catch (_) { /* fall through */ }
+        } catch (err) { log.debug('fall through', err); }
     }
     if (!allowed) return res.status(403).json({ error: 'Only the owner or an org admin can transfer this agent' });
 

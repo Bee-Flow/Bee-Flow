@@ -3,7 +3,7 @@
 // to the text it is about.
 
 import { Loader2, Sparkles } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState , useLayoutEffect } from 'react';
 import { useImproveTask, type ChecklistItem, type ProjectTask, type TaskPriority } from '../../../../api/queries/projectTasks';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { SecondaryButton } from '../workspaceUi';
@@ -32,7 +32,9 @@ export function useImproveIntoForm(projectId: string, task: ProjectTask | null |
     // The description as it was when the task was opened, and as it is now (the AI answers later than the click).
     const openedAs = useRef(task?.description ?? '');
     const descriptionNow = useRef(description);
-    descriptionNow.current = description;
+    useLayoutEffect(() => {
+        descriptionNow.current = description;
+    });
     const run = () => {
         if (!task) return;
         setNote(null);

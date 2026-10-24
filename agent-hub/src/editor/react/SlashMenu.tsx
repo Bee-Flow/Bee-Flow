@@ -32,10 +32,13 @@ export default function SlashMenu({ items, query, rect, onSelect, onClose }: Sla
         return items.filter((it: InsertItem) => `${it.label} ${it.keywords || ''}`.toLowerCase().includes(q));
     }, [items, query]);
 
-    useEffect(() => { setActive(0); }, [query]);
-    useEffect(() => {
-        if (active >= filtered.length) setActive(Math.max(0, filtered.length - 1));
-    }, [filtered, active]);
+    const [prevQuery, setPrevQuery] = useState(query);
+    if (prevQuery !== query) {
+        setPrevQuery(query);
+        setActive(0);
+    }
+    const lastIdx = Math.max(0, filtered.length - 1);
+    if (active > lastIdx) setActive(lastIdx);
 
     // Capture navigation keys while the menu is open so the editor ignores them.
     useEffect(() => {
@@ -90,7 +93,7 @@ export default function SlashMenu({ items, query, rect, onSelect, onClose }: Sla
                         style={{ background: isActive ? 'var(--bg-tertiary)' : 'transparent', color: 'var(--text-primary)' }}
                     >
                         {Icon && (
-                            <span className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ background: 'var(--bg-tertiary)' }}>
+                            <span className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 [background:var(--bg-tertiary)]">
                                 <Icon className="w-3.5 h-3.5 text-[var(--text-secondary)]" strokeWidth={2} />
                             </span>
                         )}

@@ -118,7 +118,7 @@ function readPlan(ctx, table) {
             // een gewone tabel, dus de vraag hoeft hier niet gesteld.
             try {
                 require('../core/dataEngine/sources').kickStale(resolved.datatable, { reason: 'view' });
-            } catch (_) { /* a background refresh is never a reason to fail a read */ }
+            } catch (err) { log.debug('a background refresh is never a reason to fail a read', err); }
             return resolved;
         }).then((resolved) => ({
             tableMeta: resolved.tableMeta,

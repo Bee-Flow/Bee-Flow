@@ -101,7 +101,7 @@ function LaneBands({ t }: LaneBandsProps) {
                 />
                 <text
                     x={20} y={lane.y + 15}
-                    style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.05em', fill: 'var(--text-tertiary)' }}
+                    className="[font-size:9.5px] [font-weight:600] [letter-spacing:0.05em] [fill:var(--text-tertiary)]"
                 >
                     {(meta ? t(meta.labelKey, meta.labelFallback) : lane.id).toUpperCase()}
                 </text>
@@ -328,7 +328,7 @@ export default function StudioMap({ counts: countsProp, countsFailed = false, sc
                 <div className="relative" style={{ width: MAP_W, height: MAP_H }}>
                     <svg
                         width={MAP_W} height={MAP_H} viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-                        className="absolute inset-0" style={{ pointerEvents: 'none' }}
+                        className="absolute inset-0 [pointer-events:none]"
                         aria-hidden="true" focusable="false" data-testid="studio-map-svg"
                     >
                         <LaneBands t={t} />

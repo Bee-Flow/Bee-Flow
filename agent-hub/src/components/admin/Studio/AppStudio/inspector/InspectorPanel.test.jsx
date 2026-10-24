@@ -1,12 +1,12 @@
+import { createRequire } from 'node:module';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { createRequire } from 'node:module';
 import { useEffect } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import InspectorPanel from './InspectorPanel';
+import { nodeLabel } from './nodeLabel';
 import { getComponentEntry } from '../runtime/componentRegistry';
 import { AppEditorProvider, useAppEditor } from '../state/AppEditorContext';
-import { nodeLabel } from './nodeLabel';
 import { findNode, collectIds } from '../state/definitionOps';
 import { KITCHEN_SINK } from '../state/sampleDefinitions';
 

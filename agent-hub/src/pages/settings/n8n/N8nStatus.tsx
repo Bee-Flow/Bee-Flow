@@ -124,7 +124,7 @@ export function AccessCheckCard(p: AccessCheckProps) {
     const seen = toolCount === 1 ? t('settings.n8n.ai_sees_one', 'AI sees 1 n8n tool') : t('settings.n8n.ai_sees_many', 'AI sees {count} n8n tools', { count: toolCount });
     return (
         <div className="rounded-lg border overflow-hidden border-[var(--border-subtle)]">
-            <div className="px-3 py-2.5 flex items-center justify-between gap-2" style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-subtle)' }}>
+            <div className="px-3 py-2.5 flex items-center justify-between gap-2 [background:var(--bg-secondary)] [border-bottom:1px_solid_var(--border-subtle)]">
                 <div className="flex items-center gap-1.5">
                     <Mark ok={allPass} className="w-3.5 h-3.5" />
                     <span className="text-sm font-semibold text-[var(--text-primary)]">

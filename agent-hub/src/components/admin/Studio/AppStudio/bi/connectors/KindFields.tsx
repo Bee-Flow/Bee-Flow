@@ -51,7 +51,7 @@ export function AppToolFields({ connector, action, appUnavailable, catalogFailed
                     {action?.label || connector.tool || t('studio_apps_bi.connectors.no_action', 'No action chosen yet')}
                 </span>
                 {appUnavailable ? (
-                    <span className="shrink-0 text-[10px] uppercase tracking-wide" style={{ color: '#d97706' }}>{t('studio_apps_bi.connectors.not_connected', 'not connected')}</span>
+                    <span className="shrink-0 text-[10px] uppercase tracking-wide [color:#d97706]!">{t('studio_apps_bi.connectors.not_connected', 'not connected')}</span>
                 ) : null}
             </div>
 

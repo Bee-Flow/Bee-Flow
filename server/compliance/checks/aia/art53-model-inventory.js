@@ -16,6 +16,7 @@ const { LOCAL_PROVIDER_TYPES } = require('../../../core/providers/localModels');
 const complianceStore = require('../../../stores/complianceStore');
 const { canonical } = require('../../lib/observedOperators');
 const pd = require('../../projects/projectData');
+const log = require('../../../telemetry/log');
 
 // undefined_table / undefined_column: the agent register is not provisioned
 // yet. Any other SQLSTATE is a FAILED read: the inventory would then pass on
@@ -46,7 +47,7 @@ async function _aiActAssessments(orgId, agents) {
             .filter(a => !covered.has(`agent:${a.id}`))
             .slice(0, 50)
             .map(a => ({ target_kind: 'agent', target_id: String(a.id) }));
-    } catch { /* not provisioned yet — nulls say "unknown", never 0 */ }
+    } catch (err) { log.debug('not provisioned yet — nulls say "unknown", never 0', err); }
     return out;
 }
 

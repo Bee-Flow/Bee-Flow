@@ -105,7 +105,7 @@ function createFlusher({ handles, dbKey, storage, runQuery, metaTable, logPrefix
                             [id, entry.ownerId]
                         );
                         rowSha = check?.rows?.[0]?.db_sha256 ?? null;
-                    } catch (_) {}
+                    } catch (_) { log.warn('sha check read failed, assuming no concurrent writer', _); }
                     if (rowSha !== null && String(rowSha || '') !== prevSha) {
                         entry.poisoned = true;
                         entry.dirty = true;
@@ -128,7 +128,7 @@ function createFlusher({ handles, dbKey, storage, runQuery, metaTable, logPrefix
                                 `UPDATE ${metaTable} SET db_sha256 = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3 AND db_sha256 = $4`,
                                 [prevSha, id, entry.ownerId, sha]
                             );
-                        } catch (_) {}
+                        } catch (_) { log.warn('could not revert db_sha256 after the failed upload', _); }
                     }
                     entry.dirty = true;
                     throw uploadErr;
@@ -155,7 +155,7 @@ function createFlusher({ handles, dbKey, storage, runQuery, metaTable, logPrefix
             } catch (e) {
                 log.warn(`[${logPrefix}] Evict flush failed for ${id}:`, e.message);
             }
-            try { entry.db.close(); } catch (_) {}
+            try { entry.db.close(); } catch (_) { log.debug('database handle already closed', _); }
             if (entry.flushTimer) clearTimeout(entry.flushTimer);
             handles.delete(id);
         }

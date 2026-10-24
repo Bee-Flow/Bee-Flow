@@ -148,8 +148,7 @@ export default function MeetingCommandPalette({ user, onNavigate }: MeetingComma
                         onChange={(e) => { setQuery(e.target.value); setActiveIdx(0); }}
                         onKeyDown={onKey}
                         placeholder={t('meetings.palette_placeholder', 'Search meeting actions or recent meetings…')}
-                        className="flex-1 bg-transparent outline-none text-sm"
-                        style={{ color: 'var(--text-primary)' }}
+                        className="flex-1 bg-transparent outline-none text-sm [color:var(--text-primary)]!"
                     />
                     <span className="text-[10px] px-1.5 py-0.5 rounded border text-[var(--text-muted)] border-[var(--border-default)]">
                         ESC

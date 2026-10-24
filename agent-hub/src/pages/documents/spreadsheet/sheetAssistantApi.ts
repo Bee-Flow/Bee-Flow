@@ -5,6 +5,7 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
 import { SheetApiError } from './sheetApi';
 import type { SelectionKind } from './sheetModel';
 import type { SheetChartConfig } from './sheetCharts';
+import { logger } from '../../../utils/logger';
 
 export interface AssistantTurn { role: 'user' | 'assistant'; content: string }
 
@@ -38,7 +39,7 @@ export async function askSheetAssistant(id: string, request: AssistantRequest, s
         signal,
     });
     let body: any = null;
-    try { body = await res.json(); } catch { /* empty or non-JSON body */ }
+    try { body = await res.json(); } catch (err) { logger.debug('empty or non-JSON body', err); }
     if (!res.ok) throw new SheetApiError((body && body.error) || 'The assistant could not answer.', res.status, body?.code);
     if (!body || typeof body.reply !== 'string') throw new SheetApiError('The assistant could not answer.', res.status, 'not_json');
     return {

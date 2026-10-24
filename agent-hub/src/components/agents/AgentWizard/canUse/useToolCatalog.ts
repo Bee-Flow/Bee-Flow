@@ -3,6 +3,7 @@ import { READ } from './canUseFacts';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import type { ReadState } from '../agentEditor.types';
 import type { ToolApp } from './toolCatalogTypes';
+import { logger } from '../../../../utils/logger';
 
 /** What `GET /agents/tool-catalog` answers, narrowed to what the card reads. */
 interface CatalogAnswer {
@@ -107,7 +108,7 @@ export default function useToolCatalog({ enabled = true, agentId = null }: { ena
                 setCatalogState(READ.ERROR);
             }
         })();
-        return () => { alive = false; try { ctrl.abort(); } catch (_) { /* noop */ } };
+        return () => { alive = false; try { ctrl.abort(); } catch (err) { logger.debug('noop', err); } };
     }, [enabled, catalogNonce]);
 
     useEffect(() => {
@@ -156,7 +157,7 @@ export default function useToolCatalog({ enabled = true, agentId = null }: { ena
                 setLentState(READ.ERROR);
             }
         })();
-        return () => { alive = false; try { ctrl.abort(); } catch (_) { /* noop */ } };
+        return () => { alive = false; try { ctrl.abort(); } catch (err) { logger.debug('noop', err); } };
     }, [enabled, agentId, lentNonce]);
 
     const refetchCatalog = useCallback(() => setCatalogNonce(n => n + 1), []);

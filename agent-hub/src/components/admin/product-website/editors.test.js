@@ -7,10 +7,10 @@
  *
  * Run: cd agent-hub && npx vitest run src/components/admin/ProductWebsite/editors.test.js
  */
-import { describe, it, expect } from 'vitest';
 import { createRequire } from 'node:module';
-import * as editors from './editors';
+import { describe, it, expect } from 'vitest';
 import { BLOCK_VARIANTS } from './blockEditors/catalogue';
+import * as editors from './editors';
 
 // The server schema of record — CommonJS, so require() it directly.
 const require = createRequire(import.meta.url);

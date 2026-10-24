@@ -29,8 +29,7 @@ export default function SimStep({ step, saved, onState }: SimStepProps) {
     return (
         <div>
             <div className="flex items-start gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                    style={{ background: 'color-mix(in srgb, var(--accent-primary) 14%, transparent)' }} aria-hidden="true">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 [background:color-mix(in_srgb,var(--accent-primary)_14%,transparent)]" aria-hidden="true">
                     {step.icon || '🧩'}
                 </div>
                 <div className="pt-0.5">
@@ -46,8 +45,7 @@ export default function SimStep({ step, saved, onState }: SimStepProps) {
             </div>
 
             {alreadyDone && (
-                <div className="mb-3 px-3.5 py-2 rounded-lg text-[12.5px] inline-flex items-center gap-1.5"
-                    style={{ background: 'color-mix(in srgb, #22c55e 12%, transparent)', color: '#15803d' }}>
+                <div className="mb-3 px-3.5 py-2 rounded-lg text-[12.5px] inline-flex items-center gap-1.5 [background:color-mix(in_srgb,#22c55e_12%,transparent)] [color:#15803d]!">
                     <Check className="w-3.5 h-3.5" /> {t('learn.sim.done_before', 'Completed — replay it below if you like.')}
                 </div>
             )}
@@ -62,7 +60,7 @@ export default function SimStep({ step, saved, onState }: SimStepProps) {
 /* ── match: tap-the-pairs ─────────────────────────────────────────────────── */
 
 function MatchSim({ step, sim, t, onState }: { step: LessonStep; sim: SimConfig; t: TranslateFn; onState: OnState }) {
-    const pairs = sim.pairs || [];
+    const pairs = useMemo(() => sim.pairs || [], [sim.pairs]);
     const lefts = useMemo(() => seededShuffle(pairs, `${step.id}-l`), [pairs, step.id]);
     const rights = useMemo(() => seededShuffle(pairs, `${step.id}-r`), [pairs, step.id]);
 
@@ -129,13 +127,12 @@ function MatchSim({ step, sim, t, onState }: { step: LessonStep; sim: SimConfig;
             </div>
 
             {lastNote && !done && (
-                <p className="mt-2.5 px-3 py-2 rounded-lg text-[12.5px]"
-                    style={{ background: 'color-mix(in srgb, var(--accent-primary) 8%, transparent)', color: 'var(--text-secondary)' }}>
+                <p className="mt-2.5 px-3 py-2 rounded-lg text-[12.5px] [background:color-mix(in_srgb,var(--accent-primary)_8%,transparent)] [color:var(--text-secondary)]!">
                     {lastNote}
                 </p>
             )}
             {done && (
-                <p className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-semibold" style={{ color: '#15803d' }}>
+                <p className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-semibold [color:#15803d]!">
                     <Check className="w-4 h-4" /> {t('learn.sim.match_done', 'All matched — nice pattern-spotting.')}
                 </p>
             )}
@@ -146,7 +143,7 @@ function MatchSim({ step, sim, t, onState }: { step: LessonStep; sim: SimConfig;
 /* ── order: build the sequence ────────────────────────────────────────────── */
 
 function OrderSim({ step, sim, t, onState }: { step: LessonStep; sim: SimConfig; t: TranslateFn; onState: OnState }) {
-    const items = sim.items || [];
+    const items = useMemo(() => sim.items || [], [sim.items]);
     const bank = useMemo(() => seededShuffle(items, step.id), [items, step.id]);
     const [placed, setPlaced] = useState<string[]>([]); // item ids in chosen order
     const [attempts, setAttempts] = useState(0);
@@ -200,8 +197,7 @@ function OrderSim({ step, sim, t, onState }: { step: LessonStep; sim: SimConfig;
                                 background: wrongHere ? 'color-mix(in srgb, #ef4444 8%, transparent)' : 'var(--bg-secondary)',
                                 color: 'var(--text-primary)',
                             }}>
-                            <span className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
-                                style={{ background: 'color-mix(in srgb, var(--accent-primary) 14%, transparent)', color: 'var(--accent-primary)' }}>
+                            <span className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 [background:color-mix(in_srgb,var(--accent-primary)_14%,transparent)] [color:var(--accent-primary)]!">
                                 {i + 1}
                             </span>
                             {(() => { const it = byId.get(id); return it ? t(it.labelKey, it.label) : id; })()}
@@ -215,21 +211,19 @@ function OrderSim({ step, sim, t, onState }: { step: LessonStep; sim: SimConfig;
             <div className="mt-2.5 flex flex-wrap gap-2">
                 {bank.filter((i) => !placed.includes(i.id)).map((i) => (
                     <button key={i.id} type="button" onClick={() => place(i.id)}
-                        className="px-3 py-2 rounded-lg border text-[12.5px] transition-colors hover:bg-[var(--bg-tertiary)]"
-                        style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
+                        className="px-3 py-2 rounded-lg border text-[12.5px] transition-colors hover:bg-[var(--bg-tertiary)] [border-color:var(--border-default)] [background:var(--bg-card)]! [color:var(--text-primary)]!">
                         {t(i.labelKey, i.label)}
                     </button>
                 ))}
             </div>
 
             {verdict && !verdict.correct && (
-                <p className="mt-2.5 px-3 py-2 rounded-lg text-[12.5px]"
-                    style={{ background: 'color-mix(in srgb, var(--accent-primary) 8%, transparent)', color: 'var(--text-secondary)' }}>
+                <p className="mt-2.5 px-3 py-2 rounded-lg text-[12.5px] [background:color-mix(in_srgb,var(--accent-primary)_8%,transparent)] [color:var(--text-secondary)]!">
                     {sim.feedbackFallback ? t(sim.feedbackKey, sim.feedbackFallback) : t('learn.sim.order_wrong', 'Not quite — the highlighted piece is the first one out of place. Tap pieces to take them back.')}
                 </p>
             )}
             {passed && (
-                <p className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-semibold" style={{ color: '#15803d' }}>
+                <p className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-semibold [color:#15803d]!">
                     <Check className="w-4 h-4" />
                     {revealed ? t('learn.sim.revealed', 'Solution shown — walk through it once before moving on.') : t('learn.sim.order_done', 'Exactly right.')}
                 </p>
@@ -238,15 +232,13 @@ function OrderSim({ step, sim, t, onState }: { step: LessonStep; sim: SimConfig;
             {!passed && (
                 <div className="mt-3 flex items-center gap-2">
                     <button type="button" onClick={check} disabled={placed.length === 0}
-                        className="px-4 py-2 rounded-lg text-[13px] font-semibold inline-flex items-center gap-1.5 transition-opacity disabled:opacity-40"
-                        style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg, #fff)' }}>
+                        className="px-4 py-2 rounded-lg text-[13px] font-semibold inline-flex items-center gap-1.5 transition-opacity disabled:opacity-40 [background:var(--accent-primary)] [color:var(--accent-primary-fg,#fff)]!">
                         {attempts > 0 ? <RotateCcw className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
                         {t('learn.sim.check', 'Check')}
                     </button>
                     {attempts >= 2 && (
                         <button type="button" onClick={reveal}
-                            className="px-3 py-2 rounded-lg text-[12.5px] font-medium inline-flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)]"
-                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'transparent' }}>
+                            className="px-3 py-2 rounded-lg text-[12.5px] font-medium inline-flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)] [border-color:var(--border-default)] [color:var(--text-secondary)]! [background:transparent]!">
                             <Eye className="w-3.5 h-3.5" /> {t('learn.sim.show_solution', 'Show solution')}
                         </button>
                     )}
@@ -336,8 +328,7 @@ function FlowBuildSim({ sim, t, onState }: { sim: SimConfig; t: TranslateFn; onS
     return (
         <div>
             {/* Scenario brief */}
-            <div className="rounded-xl border p-3.5 mb-3"
-                style={{ borderColor: 'var(--border-default)', background: 'color-mix(in srgb, var(--accent-primary) 5%, transparent)' }}>
+            <div className="rounded-xl border p-3.5 mb-3 [border-color:var(--border-default)] [background:color-mix(in_srgb,var(--accent-primary)_5%,transparent)]">
                 <div className="text-[11px] font-semibold uppercase tracking-wide mb-1 text-[var(--accent-primary)]">
                     {t('learn.sim.flow_task', 'Build it: task {n} of {total}')
                         .replace('{n}', String(scenarioIdx + 1)).replace('{total}', String(scenarios.length))}
@@ -365,8 +356,7 @@ function FlowBuildSim({ sim, t, onState }: { sim: SimConfig; t: TranslateFn; onS
                     <React.Fragment key={id}>
                         <div className="pl-4 text-[11px] leading-none text-[var(--text-tertiary)]">↓</div>
                         {node(
-                            (<><span className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
-                                style={{ background: 'color-mix(in srgb, var(--accent-primary) 14%, transparent)', color: 'var(--accent-primary)' }}>{i + 1}</span>
+                            (<><span className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 [background:color-mix(in_srgb,var(--accent-primary)_14%,transparent)] [color:var(--accent-primary)]!">{i + 1}</span>
                                 {stepLabel(id)}
                                 {!solvedCurrent && (
                                     <button type="button" onClick={() => removeStep(id)} className="ml-auto" aria-label={t('learn.sim.remove', 'Remove')}>
@@ -415,8 +405,7 @@ function FlowBuildSim({ sim, t, onState }: { sim: SimConfig; t: TranslateFn; onS
                     <div className="mt-1.5 flex flex-wrap gap-2">
                         {(scenario.steps?.palette || []).filter((p) => !stepIds.includes(p.id)).map((p) => (
                             <button key={p.id} type="button" onClick={() => addStep(p.id)} title={p.hint}
-                                className="px-3 py-1.5 rounded-lg border text-[12px] inline-flex items-center gap-1.5 transition-colors hover:bg-[var(--bg-tertiary)]"
-                                style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
+                                className="px-3 py-1.5 rounded-lg border text-[12px] inline-flex items-center gap-1.5 transition-colors hover:bg-[var(--bg-tertiary)] [border-color:var(--border-default)] [background:var(--bg-card)]! [color:var(--text-primary)]!">
                                 <Plus className="w-3 h-3 text-[var(--text-tertiary)]" /> {p.label}
                             </button>
                         ))}
@@ -425,8 +414,7 @@ function FlowBuildSim({ sim, t, onState }: { sim: SimConfig; t: TranslateFn; onS
             )}
 
             {problems && problems.length > 0 && (
-                <div className="mt-3 px-3.5 py-2.5 rounded-lg text-[12.5px] flex flex-col gap-1"
-                    style={{ background: 'color-mix(in srgb, var(--accent-primary) 8%, transparent)', color: 'var(--text-secondary)' }}>
+                <div className="mt-3 px-3.5 py-2.5 rounded-lg text-[12.5px] flex flex-col gap-1 [background:color-mix(in_srgb,var(--accent-primary)_8%,transparent)] [color:var(--text-secondary)]!">
                     {problems.map((p, i) => <span key={i}>• {p}</span>)}
                 </div>
             )}
@@ -435,15 +423,13 @@ function FlowBuildSim({ sim, t, onState }: { sim: SimConfig; t: TranslateFn; onS
                 {!solvedCurrent && (
                     <>
                         <button type="button" onClick={check} disabled={!triggerId && stepIds.length === 0}
-                            className="px-4 py-2 rounded-lg text-[13px] font-semibold inline-flex items-center gap-1.5 transition-opacity disabled:opacity-40"
-                            style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg, #fff)' }}>
+                            className="px-4 py-2 rounded-lg text-[13px] font-semibold inline-flex items-center gap-1.5 transition-opacity disabled:opacity-40 [background:var(--accent-primary)] [color:var(--accent-primary-fg,#fff)]!">
                             {attempts > 0 ? <RotateCcw className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
                             {t('learn.sim.flow_check', 'Check my flow')}
                         </button>
                         {attempts >= 2 && (
                             <button type="button" onClick={reveal}
-                                className="px-3 py-2 rounded-lg text-[12.5px] font-medium inline-flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)]"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'transparent' }}>
+                                className="px-3 py-2 rounded-lg text-[12.5px] font-medium inline-flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)] [border-color:var(--border-default)] [color:var(--text-secondary)]! [background:transparent]!">
                                 <Eye className="w-3.5 h-3.5" /> {t('learn.sim.show_solution', 'Show solution')}
                             </button>
                         )}
@@ -451,13 +437,12 @@ function FlowBuildSim({ sim, t, onState }: { sim: SimConfig; t: TranslateFn; onS
                 )}
                 {solvedCurrent && !allDone && (
                     <button type="button" onClick={nextScenario}
-                        className="px-4 py-2 rounded-lg text-[13px] font-semibold inline-flex items-center gap-1.5"
-                        style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg, #fff)' }}>
+                        className="px-4 py-2 rounded-lg text-[13px] font-semibold inline-flex items-center gap-1.5 [background:var(--accent-primary)] [color:var(--accent-primary-fg,#fff)]!">
                         {t('learn.sim.flow_next', 'Next task')} <ArrowRight className="w-4 h-4" />
                     </button>
                 )}
                 {allDone && (
-                    <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold" style={{ color: '#15803d' }}>
+                    <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold [color:#15803d]!">
                         <Check className="w-4 h-4" /> {t('learn.sim.flow_all_done', 'All flows built — continue below.')}
                     </span>
                 )}

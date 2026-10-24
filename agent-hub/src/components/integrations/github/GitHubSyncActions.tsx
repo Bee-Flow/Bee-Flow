@@ -22,8 +22,7 @@ export function GitHubSyncActions({ syncing, overview, lastFullSync, showDetails
                 <button
                     onClick={onPushAll}
                     disabled={syncing}
-                    className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
-                    style={{ background: 'var(--brand-gradient)' }}
+                    className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 [background:var(--brand-gradient)]"
                 >
                     {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                     {t('integ.git_hub_sync_push_all_to_github', 'Push All to GitHub')}

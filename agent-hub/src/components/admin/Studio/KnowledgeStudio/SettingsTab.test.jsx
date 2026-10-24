@@ -1,8 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import SettingsTab, { surfacesOf, attachedCount } from './SettingsTab';
 import { knowledgeApi } from './knowledgeApi';
+import SettingsTab, { surfacesOf, attachedCount } from './SettingsTab';
 
 /**
  * The settings tab puts two questions next to each other that look like one:

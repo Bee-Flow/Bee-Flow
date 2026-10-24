@@ -58,7 +58,7 @@ function beforeInputEvent(data) {
     let e;
     try {
         e = new InputEvent('beforeinput', { data, inputType: 'insertText', bubbles: true, cancelable: true });
-    } catch (_) {
+    } catch {
         e = new Event('beforeinput', { bubbles: true, cancelable: true });
     }
     if (e.inputType !== 'insertText') Object.defineProperty(e, 'inputType', { value: 'insertText' });
@@ -69,7 +69,7 @@ function beforeInputEvent(data) {
 function pasteEvent() {
     try {
         return new ClipboardEvent('paste', { bubbles: true, cancelable: true });
-    } catch (_) {
+    } catch {
         return new Event('paste', { bubbles: true, cancelable: true });
     }
 }

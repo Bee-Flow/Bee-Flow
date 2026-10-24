@@ -79,10 +79,10 @@ export default function AudienceSection({ scope, onDrill }: AudienceSectionProps
     const screens = useMemo(() => screenBuckets(sessionRows), [sessionRows]);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}>
+        <div className="[display:flex] [flex-direction:column] [gap:14px]">
+            <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))] [gap:12px]">
                 <Card title={t('cms_site.analytics.audience.where', 'Where they are')} icon={Globe} action={
-                    <div style={{ display: 'flex', gap: 4 }}>
+                    <div className="[display:flex] [gap:4px]">
                         {GEO_LEVELS.map(l => (
                             <button key={l.dim} onClick={() => setLevel(l.dim)} style={{
                                 fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
@@ -103,7 +103,7 @@ export default function AudienceSection({ scope, onDrill }: AudienceSectionProps
                 </Card>
 
                 <Card title={t('cms_site.analytics.audience.screens', 'Screen widths to design for')} icon={Monitor} action={
-                    screens.total ? <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>
+                    screens.total ? <span className="[font-size:10px] [color:var(--text-muted,#777)]">
                         {t('cms_site.analytics.audience.sessions_count', '{n} sessions', { n: fmt(screens.total) })}
                     </span> : null
                 }>
@@ -111,14 +111,14 @@ export default function AudienceSection({ scope, onDrill }: AudienceSectionProps
                         : sessions.error ? <ErrorNote message={sessions.error} onRetry={sessions.reload} compact />
                         : screens.rows.length === 0 ? <Empty text={t('cms_site.analytics.audience.no_sessions', 'No session data in this period.')} />
                         : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                            <div className="[display:flex] [flex-direction:column] [gap:9px]">
                                 {screens.rows.map(r => (
                                     <div key={r.label}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 3 }}>
-                                            <span style={{ fontSize: 12, color: 'var(--text-primary, #fff)' }}>{screenLabel(r.label, t)}</span>
+                                        <div className="[display:flex] [justify-content:space-between] [gap:10px] [margin-bottom:3px]">
+                                            <span className="[font-size:12px] [color:var(--text-primary,#fff)]">{screenLabel(r.label, t)}</span>
                                             <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT }}>
                                                 {Math.round(r.share)}%
-                                                <span style={{ color: 'var(--text-muted, #777)', fontWeight: 500 }}> · {fmt(r.count)}</span>
+                                                <span className="[color:var(--text-muted,#777)] [font-weight:500]"> · {fmt(r.count)}</span>
                                             </span>
                                         </div>
                                         <ShareBar value={r.share} of={100} />
@@ -130,7 +130,7 @@ export default function AudienceSection({ scope, onDrill }: AudienceSectionProps
             </div>
 
             <Card title={t('cms_site.analytics.audience.stack', 'Browser and operating system')} icon={Monitor} action={
-                <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{t('cms_site.analytics.audience.stack_hint', 'the combination, not two lists')}</span>
+                <span className="[font-size:10px] [color:var(--text-muted,#777)]">{t('cms_site.analytics.audience.stack_hint', 'the combination, not two lists')}</span>
             }>
                 {stack.loading ? <Skeleton height={200} />
                     : stack.error ? <ErrorNote message={stack.error} onRetry={stack.reload} compact />
@@ -138,7 +138,7 @@ export default function AudienceSection({ scope, onDrill }: AudienceSectionProps
                     : <StackTable rows={stackRows} onDrill={onDrill} />}
             </Card>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+            <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(280px,1fr))] [gap:12px]">
                 <Card title={t('cms_site.analytics.audience.devices', 'Devices')} icon={Monitor}>
                     {devices.loading ? <Skeleton height={150} />
                         : devices.error ? <ErrorNote message={devices.error} onRetry={devices.reload} compact />
@@ -146,7 +146,7 @@ export default function AudienceSection({ scope, onDrill }: AudienceSectionProps
                             emptyText={t('cms_site.analytics.audience.no_devices', 'No device data.')} onDrill={(v) => onDrill('device', v)} />}
                 </Card>
                 <Card title={t('cms_site.analytics.audience.languages', 'Languages')} icon={Languages} action={
-                    <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{t('cms_site.analytics.audience.languages_hint', 'browser preference')}</span>
+                    <span className="[font-size:10px] [color:var(--text-muted,#777)]">{t('cms_site.analytics.audience.languages_hint', 'browser preference')}</span>
                 }>
                     {languages.loading ? <Skeleton height={150} />
                         : languages.error ? <ErrorNote message={languages.error} onRetry={languages.reload} compact />
@@ -169,21 +169,21 @@ function StackTable({ rows, onDrill }: StackTableProps) {
     const { t } = useTranslation();
     const peak = maxOf(rows.map(r => r.visitors || r.views));
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="[display:flex] [flex-direction:column] [gap:8px]">
             {rows.slice(0, 12).map((r, i) => (
                 <div key={`${i}-${r.browser}-${r.os}`}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 3 }}>
-                        <span style={{ fontSize: 12, display: 'flex', gap: 6, alignItems: 'baseline' }}>
+                    <div className="[display:flex] [justify-content:space-between] [gap:10px] [margin-bottom:3px]">
+                        <span className="[font-size:12px] [display:flex] [gap:6px] [align-items:baseline]">
                             <button onClick={() => r.browser && onDrill('browser', r.browser)}
                                 title={r.browser ? t('cms_site.analytics.common.filter_by', 'Filter by {value}', { value: r.browser }) : undefined}
                                 style={chipButton(!!r.browser)}>{r.browser || t('cms_site.analytics.audience.unknown_browser', 'Unknown browser')}</button>
-                            <span style={{ color: 'var(--text-muted, #666)' }}>{t('cms_site.analytics.audience.on', 'on')}</span>
+                            <span className="[color:var(--text-muted,#666)]">{t('cms_site.analytics.audience.on', 'on')}</span>
                             <button onClick={() => r.os && onDrill('os', r.os)}
                                 title={r.os ? t('cms_site.analytics.common.filter_by', 'Filter by {value}', { value: r.os }) : undefined}
                                 style={chipButton(!!r.os)}>{r.os || t('cms_site.analytics.audience.unknown_os', 'Unknown OS')}</button>
                         </span>
-                        <span style={{ display: 'flex', gap: 12, flexShrink: 0, alignItems: 'baseline' }}>
-                            <span style={{ fontSize: 11, color: 'var(--text-muted, #888)' }}>{t('cms_site.analytics.audience.views_count', '{n} views', { n: fmt(r.views) })}</span>
+                        <span className="[display:flex] [gap:12px] [flex-shrink:0] [align-items:baseline]">
+                            <span className="[font-size:11px] [color:var(--text-muted,#888)]">{t('cms_site.analytics.audience.views_count', '{n} views', { n: fmt(r.views) })}</span>
                             <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT }}>{fmt(r.visitors)}</span>
                         </span>
                     </div>
@@ -220,11 +220,7 @@ const chipButton = (clickable: boolean) => ({
 function GeoUnavailable() {
     const { t } = useTranslation();
     return (
-        <div style={{
-            display: 'flex', gap: 9, alignItems: 'flex-start', padding: '12px 14px',
-            borderRadius: 10, background: 'rgba(245,158,11,0.08)',
-            border: '1px solid rgba(245,158,11,0.25)', fontSize: 12, color: '#fcd34d',
-        }}>
+        <div className="[display:flex] [gap:9px] [align-items:flex-start] [padding:12px_14px] [border-radius:10px] [background:rgba(245,158,11,0.08)] [border:1px_solid_rgba(245,158,11,0.25)] [font-size:12px] [color:#fcd34d]">
             <MapPin style={{ width: 14, height: 14, marginTop: 1, flexShrink: 0 }} />
             <span>
                 <strong>{t('cms_site.analytics.audience.geo_title', 'Visits recorded, but no location data.')}</strong>{' '}

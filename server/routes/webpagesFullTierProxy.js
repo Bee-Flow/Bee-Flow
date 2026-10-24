@@ -111,7 +111,7 @@ function mountFullTierProxy(app, server) {
         const webpageId = decodeURIComponent(match[1]);
 
         let token = null;
-        try { token = new URL(req.url, 'http://internal').searchParams.get('token'); } catch (_) { /* malformed URL */ }
+        try { token = new URL(req.url, 'http://internal').searchParams.get('token'); } catch (err) { log.debug('malformed URL', err); }
         const claims = verifyPreviewToken(token);
         if (!claims || claims.webpageId !== webpageId) {
             socket.destroy();

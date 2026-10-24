@@ -153,7 +153,7 @@ export default function DatatablesStudio({ user = null, hasPermission = () => tr
             />
 
             <div className="flex-1 overflow-y-auto">
-                <div className="mx-auto px-6 py-8 space-y-4" style={{ maxWidth: 760 }}>
+                <div className="mx-auto px-6 py-8 space-y-4 max-w-[760px]">
                     <div className="flex items-end gap-3">
                         <div className="flex-1 min-w-0">
                             <h2 className="text-[18px] font-semibold text-[var(--text-primary)]">
@@ -236,18 +236,14 @@ interface SearchBoxProps {
 function SearchBox({ t, value, onChange }: SearchBoxProps) {
     const label = t('datatables.search', 'Search tables by name, key or purpose…');
     return (
-        <label className="relative block shrink-0" style={{ width: 200 }}>
+        <label className="relative block shrink-0 w-[200px]">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-tertiary)]" aria-hidden="true" />
             <input
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={t('datatables.search_short', 'Search a table…')}
                 aria-label={label}
-                className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
-                style={{
-                    background: 'var(--bg-card)', borderColor: 'var(--border-default)',
-                    color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)',
-                }}
+                className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 [background:var(--bg-card)] [border-color:var(--border-default)] [color:var(--text-primary)]! [outline-color:var(--accent-primary)]!"
             />
         </label>
     );
@@ -270,8 +266,7 @@ function ScopeNotice({ t, scope }: ScopeNoticeProps) {
     const personal = scope.kind === 'user';
     const Icon = personal ? User : Building2;
     return (
-        <p className="flex items-start gap-2 text-xs"
-            style={{ padding: '8px 12px', borderRadius: 8, background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+        <p className="flex items-start gap-2 text-xs [padding:8px_12px] [border-radius:8px] [background:var(--bg-secondary)] [color:var(--text-secondary)]!">
             <Icon className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
             <span>
                 {personal
@@ -300,8 +295,7 @@ function NoTablesYet({ t, canCreate, onCreate }: NoTablesYetProps) {
     const { tile, glyph } = kindTileStyle('datatable', { size: 44, pct: 14 });
     const Glyph = kindIcon('datatable');
     return (
-        <div className="flex flex-col items-center"
-            style={{ border: '1px dashed var(--border-default)', borderRadius: 12, background: 'var(--bg-card)' }}>
+        <div className="flex flex-col items-center [border:1px_dashed_var(--border-default)] [border-radius:12px] [background:var(--bg-card)]">
             <EmptyState
                 icon={<span style={tile}>{Glyph && <Glyph style={glyph} />}</span>}
                 title={t('datatables.empty_title', 'No datatables yet')}

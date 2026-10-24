@@ -36,8 +36,7 @@ export function FillSettingsPanel({ fillTemplate, editInstructions, setEditInstr
                         onBlur={saveInstructions}
                         placeholder={t('templates.custom_instructions_placeholder', "e.g. 'Always use formal Dutch language', 'Company address is ...', 'Use metric units'")}
                         rows={4}
-                        className="w-full px-4 py-3 rounded-xl border text-sm resize-y"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', background: 'var(--bg-tertiary)' }}
+                        className="w-full px-4 py-3 rounded-xl border text-sm resize-y [border-color:var(--border-default)] [color:var(--text-primary)]! [background:var(--bg-tertiary)]"
                     />
                     {savingInstructions && <span className="text-xs mt-1 block text-[var(--accent-primary)]">Saving...</span>}
                 </div>
@@ -76,8 +75,8 @@ export function FillChatPanel({
         <>
             {/* Processing Banner */}
             {parameterizing && (
-                <div className="mx-4 mt-3 flex items-center gap-3 px-4 py-3 rounded-xl border animate-pulse" style={{ background: 'rgba(99, 102, 241, 0.08)', borderColor: 'rgba(99, 102, 241, 0.2)' }}>
-                    <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin flex-shrink-0" style={{ borderColor: 'var(--accent-primary)', borderTopColor: 'transparent' }} />
+                <div className="mx-4 mt-3 flex items-center gap-3 px-4 py-3 rounded-xl border animate-pulse [background:rgba(99,102,241,0.08)] [border-color:rgba(99,102,241,0.2)]">
+                    <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin flex-shrink-0 [border-color:var(--accent-primary)]! [border-top-color:transparent]!" />
                     <div>
                         <p className="text-sm font-medium text-[var(--text-primary)]">{t('templates.processing_title', 'AI is processing your template...')}</p>
                         <p className="text-xs text-[var(--text-muted)]">{t('templates.processing_text', 'Detecting parameters, generating instructions, and building knowledge base. This may take up to a minute.')}</p>
@@ -99,8 +98,7 @@ export function FillChatPanel({
                                 <button
                                     key={i}
                                     onClick={() => setChatInput(q)}
-                                    className="text-[11px] px-2.5 py-1.5 rounded-lg border transition-all hover:border-[var(--accent-primary)]"
-                                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'var(--bg-secondary)' }}
+                                    className="text-[11px] px-2.5 py-1.5 rounded-lg border transition-all hover:border-[var(--accent-primary)] [border-color:var(--border-default)]! [color:var(--text-secondary)]! [background:var(--bg-secondary)]"
                                 >
                                     {q}
                                 </button>

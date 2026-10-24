@@ -64,6 +64,7 @@ import type {
     BlockStyle, CmsActiveState, CmsBlock, DesignComponents, DesignLayout,
     PreviewMessage, ProductWebsiteProps, SectionComponent, SiteContent, SiteDesign,
 } from './ProductWebsite.types';
+import { logger } from '../utils/logger';
 
 // Resolve which language the cookie banner / announcement bar should show.
 // Their `text` blobs carry every locale, so we pick one at render time.
@@ -398,7 +399,7 @@ const FONT_HREFS_CACHE_KEY = 'cms.fontHrefs';
             link.href = entry.href;
             document.head.appendChild(link);
         }
-    } catch { /* corrupt cache — ignore, ensureFontsLink rebuilds it */ }
+    } catch (err) { logger.debug('corrupt cache — ignore, ensureFontsLink rebuilds it', err); }
 })();
 
 function ensureFontsLink(
@@ -435,7 +436,7 @@ function ensureFontsLink(
     // inject them ~a round-trip earlier on repeat visits.
     try {
         window.localStorage.setItem(FONT_HREFS_CACHE_KEY, JSON.stringify(hrefs));
-    } catch { /* private mode etc. — cache is best-effort */ }
+    } catch (err) { logger.debug('private mode etc. — cache is best-effort', err); }
 
     // Track which source IDs are needed THIS pass. Anything previously
     // injected for a source no longer in the list (e.g. last Fontshare
@@ -723,7 +724,7 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
         try {
             if (next) window.localStorage.setItem('cms.themeOverride', next);
             else      window.localStorage.removeItem('cms.themeOverride');
-        } catch { /* ignore */ }
+        } catch (err) { logger.debug('ignore', err); }
     };
     // Resolved theme drives the dark-mode class. Override wins; otherwise
     // fall back to the site's design.theme.
@@ -1021,23 +1022,8 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
 // why the body is empty.
 function ChromePreviewPlaceholder() {
     return (
-        <div style={{
-            minHeight: '50vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '4rem 1.5rem',
-            background: 'var(--brand-bg, transparent)',
-        }}>
-            <p style={{
-                maxWidth: 420,
-                margin: 0,
-                textAlign: 'center',
-                fontSize: '0.9rem',
-                lineHeight: 1.6,
-                color: 'var(--brand-text-secondary, #94a3b8)',
-                opacity: 0.75,
-            }}>
+        <div className="min-h-[50vh] [display:flex] [align-items:center] [justify-content:center] [padding:4rem_1.5rem] [background:var(--brand-bg,transparent)]">
+            <p className="max-w-[420px] [margin:0] [text-align:center] [font-size:0.9rem] [line-height:1.6] [color:var(--brand-text-secondary,#94a3b8)] [opacity:0.75]">
                 Header and footer are shared across all pages.
             </p>
         </div>

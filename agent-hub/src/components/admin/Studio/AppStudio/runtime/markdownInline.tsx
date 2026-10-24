@@ -62,8 +62,7 @@ function parse(text: string, keyPrefix: string): ReactNode[] {
                                 href={href}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="underline underline-offset-2"
-                                style={{ color: 'var(--app-primary)' }}
+                                className="underline underline-offset-2 [color:var(--app-primary)]"
                             >
                                 {parse(label, key)}
                             </a>,

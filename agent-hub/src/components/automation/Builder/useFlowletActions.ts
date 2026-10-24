@@ -46,7 +46,7 @@ export default function useFlowletActions({
             return true;
         }
         return false;
-    }, [ensureAutomationCreated, layerAgent, onVisualEditRoot]);
+    }, [ensureAutomationCreated, layerAgent, onVisualEditRoot, readOnlyRef]);
 
     const onRefineLayer = useCallback(async (layerKey: any, instruction: any) => {
         if (!layerKey || !instruction || !instruction.trim() || readOnlyRef.current) return false;
@@ -56,7 +56,7 @@ export default function useFlowletActions({
         if (r.error) { toast.error(`Couldn't refine the flowlet. ${r.error}`.trim()); return false; }
         if (r.draft) { onVisualEditRoot(r.draft); toast.success('Flowlet updated.'); return true; }
         return false;
-    }, [ensureAutomationCreated, layerAgent, onVisualEditRoot]);
+    }, [ensureAutomationCreated, layerAgent, onVisualEditRoot, readOnlyRef]);
 
     const onRename = async (nextTitle: any) => {
         // While drilled into a flowlet the inline title edits the FLOWLET's

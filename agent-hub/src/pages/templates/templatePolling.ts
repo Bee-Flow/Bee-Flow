@@ -116,5 +116,5 @@ export function useModelTiersLoader(setModelTiers: (tiers: ModelTiers) => void):
             .then(r => r.ok ? r.json() : {})
             .then(data => setModelTiers(data))
             .catch(e => console.warn('[TemplatesPage] load model tiers failed', e));
-    }, []);
+    }, [setModelTiers]);
 }

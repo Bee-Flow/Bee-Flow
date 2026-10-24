@@ -11,6 +11,7 @@ import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { Step } from './skillModel.types';
 import type { RelativeTimeInput } from '../../../../hooks/useRelativeTime';
 import type { TestTabProps, StepRowProps, RunRowProps } from './TestTab.types';
+import { logger } from '../../../../utils/logger';
 
 /**
  * "Test" — one question through the steps (Skills artboard 1c, left).
@@ -141,12 +142,12 @@ export default function TestTab({ skillId, steps = [], onNavigate = null, readOn
         })();
         return () => { alive = false; };
     }, []);
-    useEffect(() => () => { try { abortRef.current?.abort(); } catch { /* gone */ } }, []);
+    useEffect(() => () => { try { abortRef.current?.abort(); } catch (err) { logger.debug('gone', err); } }, []);
     const canRun = Boolean(skillId) && !locked && question.trim().length > 0 && steps.length > 0 && !running && agents !== null;
 
     const run = async () => {
         if (!canRun) return;
-        try { abortRef.current?.abort(); } catch { /* none */ }
+        try { abortRef.current?.abort(); } catch (err) { logger.debug('none', err); }
         const controller = new AbortController();
         abortRef.current = controller;
         setRunning(true);

@@ -95,7 +95,7 @@ async function resolveWorkerModel({ worker, fallbackModelId, userOrgId, userId }
             userOrgId, userId, fallbackTier: 'fast',
         });
         if (resolved) modelId = resolved;
-    } catch (_) { /* fall back to fallbackModelId */ }
+    } catch (err) { log.debug('fall back to fallbackModelId', err); }
 
     const config = await getProviderForModel(modelId);
     const adapter = getAdapter(config.providerType, (config.url || '').replace(/\/+$/, ''));

@@ -123,6 +123,7 @@ const { rowFromSheet, fieldsByIdOf } = require('./rows');
 const reading = require('./reading');
 const cache = require('./cache');
 const formats = require('./formats');
+const log = require('../../../../telemetry/log');
 
 const CELLS_MODES = new Set(['sheets_api', 'graph_workbook']);
 const BYTE_MODES = new Set(['exceljs_put', 'csv_put']);
@@ -249,7 +250,7 @@ async function flagBehind(ctx, reason) {
         await datatableStore.markSourceStale(ctx.table.id, reason);
         const fresh = await datatableStore.getDatatable(ctx.table.id, ctx.scope);
         if (fresh) syncModule().kickStale(fresh, { reason, delayMs: 0 });
-    } catch (_) { /* best effort: the next tick or pulse re-checks anyway */ }
+    } catch (err) { log.debug('best effort: the next tick or pulse re-checks anyway', err); }
 }
 
 /**
@@ -860,7 +861,7 @@ async function updateRows(ctx, list, opts = {}) {
             try {
                 const newId = it && keyMoveOf(c, it.id, it.values);
                 if (newId) moves.set(it.id, newId);
-            } catch (_) { /* the shared half reports (or collects) the refusal itself */ }
+            } catch (err) { log.debug('the shared half reports (or collects) the refusal itself', err); }
         }
     }
     const out = await shared.updateRows(c, items, opts);

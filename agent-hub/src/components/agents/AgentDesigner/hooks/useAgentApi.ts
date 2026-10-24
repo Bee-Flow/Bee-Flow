@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useEffectEvent } from 'react';
 import { API_BASE, authFetch, parseSaveError } from '../../../../utils/helpers';
 import { mutate } from '../../../../api/mutate';
 import { logger } from '../../../../utils/logger';
@@ -121,7 +121,7 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
     };
 
     // Initial data load
-    useEffect(() => {
+    const runFetchAgentsEffect = useEffectEvent(() => {
         fetchAgents();
         fetchComponents();
         fetchModels();
@@ -138,7 +138,8 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
                 }
             } catch (e) { console.warn('Failed to load agent categories', e); }
         })();
-    }, []);
+    });
+    useEffect(() => { return runFetchAgentsEffect(); }, []);
 
     // Load org data for publish targets
     useEffect(() => {
@@ -155,7 +156,7 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
             }
         };
         loadOrgData();
-    }, []);
+    }, [setOrgGroups, setOrganizations]);
 
     const selectAgent = async (agent: DesignerAgent) => {
         setSelectedAgent(agent);

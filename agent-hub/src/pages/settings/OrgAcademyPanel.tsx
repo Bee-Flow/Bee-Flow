@@ -163,8 +163,7 @@ function OrgAcademyOverview() {
                 keeps only its own Refresh. */}
             <div className="mb-4 flex justify-end">
                 <button onClick={load} disabled={loading}
-                    className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-40"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'transparent' }}
+                    className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-40 [border-color:var(--border-default)] [color:var(--text-secondary)]! [background:transparent]!"
                     title={t('org.academy.refresh', 'Refresh')}>
                     <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                     {t('org.academy.refresh', 'Refresh')}
@@ -197,12 +196,10 @@ function OrgAcademyOverview() {
                             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                             <input value={query} onChange={(e) => setQuery(e.target.value)}
                                 placeholder={t('org.academy.search', 'Search members…')}
-                                className="w-full pl-9 pr-3 py-2 rounded-lg border text-sm outline-none focus:border-[var(--accent-primary)]"
-                                style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-primary)' }} />
+                                className="w-full pl-9 pr-3 py-2 rounded-lg border text-sm outline-none focus:border-[var(--accent-primary)] [border-color:var(--border-default)]! [background:var(--bg-card)] [color:var(--text-primary)]!" />
                         </div>
                         <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)}
-                            className="px-3 py-2 rounded-lg border text-sm outline-none"
-                            style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
+                            className="px-3 py-2 rounded-lg border text-sm outline-none [border-color:var(--border-default)] [background:var(--bg-card)] [color:var(--text-primary)]!">
                             <option value="">{t('org.academy.all_courses', 'All courses')}</option>
                             {courses.map((c: AcademyCourse) => (
                                 <option key={c.id} value={c.id}>{t('org.academy.completed_prefix', 'Completed:')} {c.title}</option>
@@ -266,8 +263,7 @@ function OrgAcademyOverview() {
                                             ) : m.certificates.map((cert: AcademyCertificate) => (
                                                 <span key={cert.certificateId}
                                                     title={cert.issuedAt ? new Date(cert.issuedAt).toLocaleDateString() : ''}
-                                                    className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                                                    style={{ background: 'color-mix(in srgb, #f59e0b 15%, transparent)', color: '#b45309' }}>
+                                                    className="px-2 py-0.5 rounded-full text-[10px] font-semibold [background:color-mix(in_srgb,#f59e0b_15%,transparent)] [color:#b45309]!">
                                                     📜 {cert.level || cert.certificateId}
                                                 </span>
                                             ))}

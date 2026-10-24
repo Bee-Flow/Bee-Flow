@@ -156,7 +156,7 @@ interface IncidentsTableProps {
 export default function IncidentsTable({ rows, selectedId, onSelect, loading = false, isMobile = false, footer, empty, testId = 'inc-table' }: IncidentsTableProps) {
     const { t } = useTranslation();
     const { formatDayTime } = useDateFormat();
-    const now = useNow();
+    const now = useNow(60_000);
     const columns = INCIDENT_COLUMNS.map(c => ({ id: c.id, width: c.width, foldBelow: c.foldBelow, label: t(c.labelKey, c.fallback) }));
     const openSeverity = (inc: IncidentRecord) => inc.status !== 'closed' && inc.severity;
     const occurredOf = (inc: IncidentRecord) => formatDayTime(inc.occurred_at ?? inc.detected_at) || '—';

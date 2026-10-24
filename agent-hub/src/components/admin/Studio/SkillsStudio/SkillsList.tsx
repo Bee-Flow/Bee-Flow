@@ -176,8 +176,7 @@ function EmptyColumn({ error, filtering, query, t }: EmptyColumnProps) {
             <p
                 role="status"
                 data-testid="skills-list-error"
-                className="text-xs px-2 py-4 text-center m-0"
-                style={{ color: 'var(--warning-ink, var(--warning))' }}
+                className="text-xs px-2 py-4 text-center m-0 [color:var(--warning-ink,var(--warning))]!"
             >
                 {t('skills_studio.err_list', 'Could not load the skills.')}
             </p>

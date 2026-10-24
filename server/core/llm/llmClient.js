@@ -477,7 +477,7 @@ class LLMClient {
         if (/^[\[{]/.test(text)) {
             const TITLE_KEYS = ['title', 'name', 'subject', 'topic'];
             let parsed = null;
-            try { parsed = JSON.parse(text); } catch (_) { /* fall through to the field scan */ }
+            try { parsed = JSON.parse(text); } catch (err) { log.debug('fall through to the field scan', err); }
             if (Array.isArray(parsed)) parsed = parsed[0];
             let picked = parsed && typeof parsed === 'object'
                 ? TITLE_KEYS.map(k => parsed[k]).find(v => typeof v === 'string' && v.trim())

@@ -12,6 +12,7 @@ import { downloadPdf, downloadPptx, fetchPreviewHtml, fetchRendered, getDocument
 import type { StudioDocument } from '../documentQueries';
 import useDocumentAutosave, { readDraft, type Draft } from '../useDocumentAutosave';
 import { messageOf, errorStatus } from '../../../utils/caughtError';
+import { logger } from '../../../utils/logger';
 
 export interface WorkspaceHandle { flush?: () => Promise<void> }
 
@@ -123,7 +124,7 @@ export default function useDesignedDocument({ initial, canvasRef, workspaceRef, 
         onMerged: async (saved) => {
             try {
                 if (await showOthersChanges(canvasRef.current, saved)) return true;
-            } catch { /* shown on the next reload */ }
+            } catch (err) { logger.debug('shown on the next reload', err); }
             setMergedUnseen(true);
             return false;
         },
@@ -211,7 +212,7 @@ export default function useDesignedDocument({ initial, canvasRef, workspaceRef, 
             try {
                 await autosave.restoreDraft(d);
                 await reload();
-            } catch { /* a conflict opens "compare and choose"; any other failure is on the save chip */ }
+            } catch (err) { logger.debug('a conflict opens "compare and choose"; any other failure is on the save chip', err); }
         },
         discardDraft: () => { autosave.dropDraft(); setDraft(null); },
     };

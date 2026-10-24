@@ -3,6 +3,7 @@
 const { GUID } = require('../auth/microsoftIdentity');
 const { decryptValue } = require('../stores/configEncryption');
 const { getClientCredentialsToken } = require('../integrations/azureGraph');
+const log = require('../telemetry/log');
 
 // The dry run opens only a read-only transaction. It does not import stores
 // whose initialization creates tables, migrates rows or starts background work.
@@ -57,7 +58,7 @@ function createUpgradeInspector({ db, initialize, migrateSecrets, request = fetc
             if (rawSecret && !secret && apply) throw new Error('Microsoft OAuth credential cannot be decrypted');
             if (secret) {
                 try { token = await tokenFor(ms.clientId, secret, tenantId); }
-                catch { /* Directory unavailable: leave identities unbound. */ }
+                catch (err) { log.debug('Directory unavailable: leave identities unbound.', err); }
             }
         }
         const verifyDirectoryObject = async (kind, oid) => {
@@ -118,7 +119,7 @@ function createUpgradeInspector({ db, initialize, migrateSecrets, request = fetc
                 try {
                     if (await verifyDirectoryObject('groups', group.azureGroupId)) report.groups.push({ groupId: group.id, tenantId: binding.syncTenantId,
                         objectId: group.azureGroupId.toLowerCase(), organizationId: group.organizationId });
-                } catch { /* Preserve groups whose provenance cannot be verified. */ }
+                } catch (err) { log.debug('Preserve groups whose provenance cannot be verified.', err); }
             }
         }
         if (apply) {

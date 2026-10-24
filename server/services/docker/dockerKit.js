@@ -9,6 +9,7 @@
  */
 
 const fs = require('fs');
+const log = require('../../telemetry/log');
 
 /**
  * Detect whether the server itself is running inside a Docker container.
@@ -18,11 +19,11 @@ const fs = require('fs');
 function isServerInContainer() {
     try {
         if (fs.existsSync('/.dockerenv')) return true;
-    } catch (_) { /* ignore */ }
+    } catch (err) { log.debug('ignore', err); }
     try {
         const cgroup = fs.readFileSync('/proc/1/cgroup', 'utf8');
         return /docker|containerd|kubepods/.test(cgroup);
-    } catch (_) { /* not Linux or no /proc — assume native */ }
+    } catch (err) { log.debug('not Linux or no /proc — assume native', err); }
     return false;
 }
 
@@ -86,7 +87,7 @@ async function connectSelfToNetwork(docker, network, onError) {
 async function removeContainerIfExists(docker, name, stopTimeoutSec) {
     try {
         const c = docker.getContainer(name);
-        try { await c.stop({ t: stopTimeoutSec }); } catch (_) { /* may already be stopped */ }
+        try { await c.stop({ t: stopTimeoutSec }); } catch (err) { log.debug('may already be stopped', err); }
         await c.remove({ force: true });
     } catch (err) {
         if (err.statusCode !== 404) throw err;

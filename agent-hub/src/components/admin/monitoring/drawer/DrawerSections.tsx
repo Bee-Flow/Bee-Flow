@@ -35,7 +35,7 @@ export function DrawerStats(props: StatsProps) {
     return (
         <div style={S.statGrid}>
             <div style={S.statBox}>
-                <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary, #fff)' }}>
+                <div className="[font-size:22px] [font-weight:800] [color:var(--text-primary,#fff)]">
                     {fmt(data.calls || 0)}
                 </div>
                 <div style={S.statLabel}>{t('admin_monitoring.drawer_calls', 'Calls')}</div>
@@ -91,7 +91,7 @@ export function DrawerBreakdown({ type, data, modelCosts }: BreakdownProps) {
     const { t } = useTranslation();
     const rate = type === 'model' ? modelCosts[data.model as string] : undefined;
     return (
-        <div style={{ padding: '0 24px 16px' }}>
+        <div className="[padding:0_24px_16px]">
             <div style={S.panel}>
                 <div style={{ ...S.sectionLabel, marginBottom: '12px' }}>
                     {t('admin_monitoring.drawer_breakdown', 'Breakdown')}
@@ -133,15 +133,15 @@ function CallCard({ call: r, type, rate }: { call: UsageRow; type: DetailType; r
     return (
         <div style={S.callCard}>
             <div style={{ ...S.row, marginBottom: '4px' }}>
-                <span style={{ color: 'var(--text-muted, #888)' }}>{fmtTime(r.timestamp)}</span>
+                <span className="[color:var(--text-muted,#888)]">{fmtTime(r.timestamp)}</span>
                 <span style={{ color: COLORS.amber, fontWeight: 600 }}>{cost != null ? fmtCost(cost) : '—'}</span>
             </div>
-            <div style={{ display: 'flex', gap: '12px', color: 'var(--text-secondary, #aaa)' }}>
+            <div className="[display:flex] [gap:12px] [color:var(--text-secondary,#aaa)]">
                 {type !== 'model' && <span>{r.model || '—'}</span>}
                 {type !== 'agent' && <span>{r.agent_name || '—'}</span>}
                 <span style={{ color: COLORS.blue }}>{t('admin_monitoring.drawer_in_n', '{n} in', { n: fmt(r.prompt_tokens) })}</span>
                 <span style={{ color: COLORS.amber }}>{t('admin_monitoring.drawer_out_n', '{n} out', { n: fmt(r.completion_tokens) })}</span>
-                <span style={{ color: 'var(--text-muted, #666)' }}>{fmtDuration(r.duration_ms)}</span>
+                <span className="[color:var(--text-muted,#666)]">{fmtDuration(r.duration_ms)}</span>
             </div>
         </div>
     );
@@ -151,16 +151,16 @@ function CallCard({ call: r, type, rate }: { call: UsageRow; type: DetailType; r
 export function RelatedCalls({ type, calls, modelCosts }: RelatedCallsProps) {
     const { t } = useTranslation();
     return (
-        <div style={{ flex: 1, overflow: 'auto', padding: '0 24px 24px' }}>
+        <div className="[flex:1] [overflow:auto] [padding:0_24px_24px]">
             <div style={{ ...S.sectionLabel, marginBottom: '10px' }}>
                 {t('admin_monitoring.drawer_recent_calls', 'Recent Calls ({n})', { n: calls.length })}
             </div>
             {calls.length === 0 ? (
-                <div style={{ fontSize: '12px', color: 'var(--text-muted, #666)', textAlign: 'center', padding: '20px' }}>
+                <div className="[font-size:12px] [color:var(--text-muted,#666)] [text-align:center] [padding:20px]">
                     {t('admin_monitoring.drawer_no_recent', 'No recent calls found')}
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div className="[display:flex] [flex-direction:column] [gap:6px]">
                     {calls.map((r, i) => (
                         <CallCard key={i} call={r} type={type} rate={modelCosts[r.model as string]} />
                     ))}

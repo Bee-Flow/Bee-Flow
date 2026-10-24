@@ -94,8 +94,8 @@ const SECONDARY_BUTTON = 'inline-flex items-center gap-1 px-[9px] py-1 rounded-l
 export default function CustomFrameworksPage(props: CustomFrameworksPageProps) {
     const { navigate, focusId, exportsEnabled = true, dl, isMobile = false, setHeaderActions, data = {}, now } = props;
     const { t } = useTranslation();
-    const fw = data.frameworks || {};
-    const core = data.core || {};
+    const fw = useMemo(() => data.frameworks || {}, [data.frameworks]);
+    const core = useMemo(() => data.core || {}, [data.core]);
 
     // The hub's frameworks read already carries the custom rows WITH their score;
     // only when it is absent does this page fetch the definitions itself.
@@ -331,8 +331,7 @@ export default function CustomFrameworksPage(props: CustomFrameworksPageProps) {
                                 key={f.id}
                                 type="button"
                                 onClick={() => setOpenId(f.id)}
-                                className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] px-3.5 py-3 flex items-center gap-3 text-left hover:bg-[var(--bg-secondary)]"
-                                style={{ boxShadow: 'var(--shadow-sm)' }}
+                                className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] px-3.5 py-3 flex items-center gap-3 text-left hover:bg-[var(--bg-secondary)] [box-shadow:var(--shadow-sm)]"
                                 data-testid="custom-card"
                                 data-framework={f.id}
                             >

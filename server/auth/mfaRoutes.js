@@ -50,7 +50,7 @@ async function ensureUserRow(userId) {
                 credentialUnchanged: true,
             });
             row = await userStore.getUser('admin');
-        } catch (_) { /* fall through */ }
+        } catch (err) { log.debug('fall through', err); }
     }
     return row;
 }

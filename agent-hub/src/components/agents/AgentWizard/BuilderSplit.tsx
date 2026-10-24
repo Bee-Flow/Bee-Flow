@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useEffectEvent, useCallback, useState } from 'react';
+import React, { useRef, useEffect, useEffectEvent, useCallback, useState , useLayoutEffect } from 'react';
 import { AGENT_TAB_IDS } from './builderSplit/AgentEditorHeader';
 import BuilderView from './builderSplit/BuilderView';
 import { createHandleRefine } from './builderSplit/refineActions';
@@ -66,7 +66,9 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
     const managed = managedOf(agent);
     const ro = readOnly || forcedReadOnly || !!managed;
     const roRef = useRef(ro);
-    roRef.current = ro;
+    useLayoutEffect(() => {
+        roRef.current = ro;
+    });
 
     const mountedRef = useMountedRef();
     useSkillPickerOutsideClose(skillPickerOpen, setSkillPickerOpen, actionBarRef);

@@ -65,7 +65,7 @@ export default function KeepDraftCard({ msg, keepDraftStatuses, setKeepDraftStat
             >
                 {/* Text content */}
                 {draft.content && (
-                    <div className="text-[var(--text-secondary)] text-xs pl-6 whitespace-pre-wrap leading-relaxed" style={{ maxHeight: '120px', overflow: 'auto' }}>
+                    <div className="text-[var(--text-secondary)] text-xs pl-6 whitespace-pre-wrap leading-relaxed max-h-[120px] [overflow:auto]">
                         {draft.content}
                     </div>
                 )}

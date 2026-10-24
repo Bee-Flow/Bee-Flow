@@ -6,6 +6,7 @@ import { toast } from '../../../shared/Toast';
 import { SvgAreaChart, type ChartPoint } from '../../monitoring/shared';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { SupportInbox, SupportTeammate } from './supportStudio.types';
+import { logger } from '../../../../utils/logger';
 
 // Explicit, non-purple chart color (the strict UI ban rules out the default indigo).
 const CHART_COLOR = '#10b981';
@@ -35,7 +36,7 @@ interface StatProps {
 
 function Stat({ label, value, sub }: StatProps) {
     return (
-        <div className="rounded-lg border p-4" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+        <div className="rounded-lg border p-4 [border-color:var(--border-default)] [background:var(--bg-card)]">
             <div className="text-2xl font-semibold text-[var(--text-primary)]">{value}</div>
             <div className="text-xs mt-1 text-[var(--text-muted)]">{label}</div>
             {sub && <div className="text-xs mt-0.5 text-[var(--text-muted)]">{sub}</div>}
@@ -110,7 +111,7 @@ function ScanSection({ inboxId, t }: ScanSectionProps) {
         try {
             const res = await authFetch(`${API_BASE}/api/support-inbox/inboxes/${inboxId}/scan`);
             if (res.ok) setScan(await res.json());
-        } catch (_) {}
+        } catch (err) { logger.debug('scan poll failed, next poll retries', err); }
     }, [inboxId]);
 
     useEffect(() => { fetchScan(); }, [fetchScan]);
@@ -145,7 +146,7 @@ function ScanSection({ inboxId, t }: ScanSectionProps) {
 
     return (
         <Section title={t('support.scan.title', 'Historical response times')}>
-            <div className="rounded-lg border p-4 flex flex-col gap-3" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+            <div className="rounded-lg border p-4 flex flex-col gap-3 [border-color:var(--border-default)] [background:var(--bg-card)]">
                 <div className="flex items-center justify-between gap-3">
                     <div className="text-xs text-[var(--text-secondary)]">
                         {t('support.scan.note', 'Scan past mailbox history to learn how fast questions were answered before Bee Flow. Reads aggregate stats only — no tickets are created.')}
@@ -165,7 +166,7 @@ function ScanSection({ inboxId, t }: ScanSectionProps) {
                 )}
 
                 {scan?.scan_status === 'error' && (
-                    <div className="text-xs" style={{ color: '#dc2626' }}>{progress.error || t('support.scan.error', 'Scan failed.')}</div>
+                    <div className="text-xs [color:#dc2626]!">{progress.error || t('support.scan.error', 'Scan failed.')}</div>
                 )}
 
                 {result && !running && (
@@ -221,7 +222,7 @@ export default function InsightsPanel({ inboxes = [], activeInbox }: InsightsPan
             .catch(() => {});
     }, []);
 
-    if (error) return <div className="p-6 text-sm" style={{ color: '#dc2626' }}>{error}</div>;
+    if (error) return <div className="p-6 text-sm [color:#dc2626]!">{error}</div>;
     if (!data || !data.handling) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-center gap-2 p-8">
@@ -244,7 +245,7 @@ export default function InsightsPanel({ inboxes = [], activeInbox }: InsightsPan
                 ? <ScanSection inboxId={scanInboxId} t={t} />
                 : (
                     <Section title={t('support.scan.title', 'Historical response times')}>
-                        <div className="rounded-lg border p-4 text-xs text-[var(--text-tertiary)]" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+                        <div className="rounded-lg border p-4 text-xs text-[var(--text-tertiary)] [border-color:var(--border-default)] [background:var(--bg-card)]">
                             {t('support.scan.select_inbox', 'Select a single inbox above to run a historical response-time scan.')}
                         </div>
                     </Section>
@@ -288,7 +289,7 @@ export default function InsightsPanel({ inboxes = [], activeInbox }: InsightsPan
 
             {busiestHours && busiestHours.length > 0 && (
                 <Section title={t('support.insights.busiest_hours', 'Busiest hours (UTC)')}>
-                    <div className="rounded-lg border p-3 flex items-end gap-1" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)', height: 110 }}>
+                    <div className="rounded-lg border p-3 flex items-end gap-1 [border-color:var(--border-default)] [background:var(--bg-card)] h-[110px]">
                         {Array.from({ length: 24 }, (_, h) => {
                             const found = busiestHours.find((b) => b.hour === h);
                             const count = found ? found.count : 0;

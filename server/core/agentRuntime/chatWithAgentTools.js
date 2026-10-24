@@ -40,7 +40,7 @@ async function resolveLentIdentity({ toolName, agent, agentId, userId, userAuth,
             });
             if (ov) { effUserId = ov.integrationUserId; effOrgId = ov.integrationOrgId; lentConnection = ov; }
         }
-    } catch (_) { /* fail closed to bring-your-own */ }
+    } catch (err) { log.debug('fail closed to bring-your-own', err); }
     return { effUserId, effOrgId, lentConnection };
 }
 

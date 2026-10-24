@@ -154,15 +154,14 @@ export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEm
 
                     {tab === 'nano' && (
                         <div className="flex-1 flex flex-col">
-                            <p className="text-sm mb-4 p-3 rounded-lg border flex items-start gap-2" style={{ background: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.2)', color: 'var(--text-primary)' }}>
+                            <p className="text-sm mb-4 p-3 rounded-lg border flex items-start gap-2 [background:rgba(245,158,11,0.1)] [border-color:rgba(245,158,11,0.2)] [color:var(--text-primary)]!">
                                 🍌 <span><strong>{t('common.icon_picker.nano_label', 'Nano Banana:')}</strong> {t('common.icon_picker.nano_hint', 'Describe the icon you want to generate. It will use your configured Nano Banana settings.')}</span>
                             </p>
                             <textarea
                                 value={prompt}
                                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
                                 placeholder={t('common.icon_picker.prompt_placeholder', 'A minimalist 3D icon of a glowing orb...')}
-                                className="w-full p-3 rounded-xl border resize-none h-32 text-sm focus:outline-none focus:ring-1"
-                                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)', outlineColor: '#f59e0b' }}
+                                className="w-full p-3 rounded-xl border resize-none h-32 text-sm focus:outline-none focus:ring-1 [background:var(--bg-primary)] [border-color:var(--border-subtle)] [color:var(--text-primary)]! [outline-color:#f59e0b]!"
                             />
                             <div className="mt-auto pt-4 flex justify-end">
                                 <button

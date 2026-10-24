@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, type Dispatch, type RefObject, type SetStateAction , useLayoutEffect } from 'react';
 import useChatEngine from '../../../hooks/useChatEngine';
 import type { ChatAttachment } from '../../../hooks/useChatEngine/historyAttachment';
 import type { ChatMessage } from '../../../hooks/useChatEngine/types';
@@ -10,6 +10,7 @@ import { api } from '../webpagesApi';
 import { useWebpageChatPersistence } from './useWebpageSave';
 import { useLatestAssistantRef, useWebpageTurnUndo } from './useWebpageTurnUndo';
 import type { WebpageExtraFiles } from './useWebpageExtraFiles';
+import { logger } from '../../../utils/logger';
 
 const CHAT_MODES = ['ask', 'auto', 'plan'];
 const noop = () => {};
@@ -38,7 +39,7 @@ function useChatMode() {
     const handleChatModeChange = useCallback((mode: string) => {
         if (!CHAT_MODES.includes(mode)) return;
         setChatMode(mode);
-        try { scopedStorage.setItem('webpages_chat_mode', mode); } catch { /* storage unavailable */ }
+        try { scopedStorage.setItem('webpages_chat_mode', mode); } catch (err) { logger.debug('storage unavailable', err); }
     }, []);
     return { chatMode, handleChatModeChange };
 }
@@ -185,7 +186,9 @@ export default function useWebpageChat({ pageId, selectedTier, content, contentR
         onWebpageExtraDeleted: extras.onWebpageExtraDeleted,
     });
     const { messages: chatMessages, setMessages: setChatMessages, isLoading: chatLoading, sendMessage } = engine;
-    setChatMessagesRef.current = setChatMessages;
+    useLayoutEffect(() => {
+        setChatMessagesRef.current = setChatMessages;
+    });
     useLatestAssistantRef(chatMessages, undo.latestAssistantIdRef);
 
     const { markSaved, clearOnServer } = useWebpageChatPersistence({ webpageId: pageId, chatMessages, chatLoading, api });

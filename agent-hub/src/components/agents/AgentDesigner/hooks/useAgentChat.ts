@@ -15,7 +15,7 @@ export default function useAgentChat(state: ReturnType<typeof useAgentState>) {
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [chatEndRef, messages]);
 
     const sendMessage = async () => {
         if (!chatInput.trim() || !selectedAgent || chatLoading) return;
@@ -123,9 +123,7 @@ export default function useAgentChat(state: ReturnType<typeof useAgentState>) {
                                     return updated;
                                 });
                             }
-                        } catch (e) {
-                            // Parse error, skip
-                        }
+                        } catch (e) { logger.debug('Parse error, skip', e); }
                     }
                 }
             }

@@ -30,11 +30,7 @@ export default function SaveBar({
     return (
         <div
             data-surface="opaque"
-            className="sticky bottom-0 px-6 py-3 border-t flex items-center gap-3 flex-wrap z-10"
-            style={{
-                background: 'var(--bg-card)',
-                borderColor: 'var(--border-default)',
-            }}
+            className="sticky bottom-0 px-6 py-3 border-t flex items-center gap-3 flex-wrap z-10 [background:var(--bg-card)] [border-color:var(--border-default)]!"
         >
             <StatusPill dirty={dirty} saving={saving} error={error} />
             <div className="ml-auto flex items-center gap-2">
@@ -59,11 +55,7 @@ export default function SaveBar({
                     type="button"
                     onClick={onSave}
                     disabled={saving || !dirty}
-                    className="px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center gap-2 disabled:opacity-40 transition-opacity"
-                    style={{
-                        background: 'var(--accent-primary)',
-                        color: 'var(--accent-primary-fg, #ffffff)',
-                    }}
+                    className="px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center gap-2 disabled:opacity-40 transition-opacity [background:var(--accent-primary)] [color:var(--accent-primary-fg,#ffffff)]!"
                 >
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     {saving ? 'Saving…' : 'Save as organisation default'}
@@ -78,8 +70,7 @@ function StatusPill({ dirty, saving, error }: Pick<Props, 'dirty' | 'saving' | '
     if (error) {
         return (
             <span
-                className="text-xs inline-flex items-center gap-1.5"
-                style={{ color: 'var(--danger, #ef4444)' }}
+                className="text-xs inline-flex items-center gap-1.5 [color:var(--danger,#ef4444)]!"
             >
                 <AlertCircle className="w-3.5 h-3.5" /> {error}
             </span>
@@ -97,12 +88,10 @@ function StatusPill({ dirty, saving, error }: Pick<Props, 'dirty' | 'saving' | '
     if (dirty) {
         return (
             <span
-                className="text-xs inline-flex items-center gap-1.5"
-                style={{ color: 'var(--warning, #f59e0b)' }}
+                className="text-xs inline-flex items-center gap-1.5 [color:var(--warning,#f59e0b)]!"
             >
                 <span
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{ background: 'var(--warning, #f59e0b)' }}
+                    className="w-1.5 h-1.5 rounded-full [background:var(--warning,#f59e0b)]"
                 />
                 {t('appearance.save_bar_unsaved_changes', 'Unsaved changes')}
             </span>

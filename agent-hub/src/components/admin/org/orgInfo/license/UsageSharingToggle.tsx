@@ -21,7 +21,7 @@ export default function UsageSharingToggle<T extends OrgUsageData>({ orgData, se
                 <p className="text-[12px] text-[var(--text-muted)] mt-0.5">{t('org.share_usage_desc', 'Choose whether your team shares one AI-usage budget, or whether each user gets their own slice.')}</p>
             </div>
             <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] flex items-start gap-3">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(16,185,129,0.12)' }}>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 [background:rgba(16,185,129,0.12)]">
                     <Users className="w-4 h-4" style={{ color: '#10b981' }} />
                 </div>
                 <div className="flex-1 min-w-0">

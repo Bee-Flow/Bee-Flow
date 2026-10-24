@@ -287,7 +287,7 @@ function _emit(name, payload) {
 function _bestEffortCountsInvalidate(orgId) {
     // The counts body caches the framework set for 60 s per org; bust it so the
     // rail and the header pick up an enable/disable on the very next poll.
-    try { require('./countsCache').invalidate(orgId); } catch { /* not shipped yet */ }
+    try { require('./countsCache').invalidate(orgId); } catch (err) { log.debug('not shipped yet', err); }
 }
 
 /**

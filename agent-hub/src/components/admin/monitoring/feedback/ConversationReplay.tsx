@@ -33,10 +33,7 @@ function SnapshotBubble({ msg }: { msg: SnapshotMessage }) {
                     : COLORS.primary + '20'
                 }`,
             }}>
-                <div style={{
-                    display: 'flex', alignItems: 'center', gap: '5px',
-                    marginBottom: '4px',
-                }}>
+                <div className="[display:flex] [align-items:center] [gap:5px] [margin-bottom:4px]">
                     {isUserMsg
                         ? <User style={{ width: 10, height: 10, color: 'var(--text-muted, #888)' }} />
                         : <Bot style={{ width: 10, height: 10, color: COLORS.primary }} />
@@ -48,22 +45,14 @@ function SnapshotBubble({ msg }: { msg: SnapshotMessage }) {
                         {isUserMsg ? 'User' : 'AI'}
                     </span>
                     {msg.timestamp && (
-                        <span style={{
-                            fontSize: '9px', color: 'var(--text-muted, #666)',
-                            marginLeft: 'auto',
-                        }}>
+                        <span className="[font-size:9px] [color:var(--text-muted,#666)] [margin-left:auto]">
                             {fmtTime(msg.timestamp)}
                         </span>
                     )}
                 </div>
-                <div style={{
-                    fontSize: '13px',
-                    color: 'var(--text-primary, #fff)',
-                    wordBreak: 'break-word',
-                    lineHeight: 1.6,
-                }} className="prose prose-sm dark:prose-invert max-w-none">
+                <div className="prose prose-sm dark:prose-invert max-w-none [font-size:13px] [color:var(--text-primary,#fff)] [word-break:break-word] [line-height:1.6]">
                     {isUserMsg
-                        ? <span style={{ whiteSpace: 'pre-wrap' }}>{truncated}</span>
+                        ? <span className="[white-space:pre-wrap]">{truncated}</span>
                         : <MarkdownRenderer content={truncated} />
                     }
                 </div>
@@ -85,11 +74,7 @@ export function ConversationReplay({ snapshot }: { snapshot: SnapshotMessage[] }
                 <MessageSquare style={{ width: 11, height: 11 }} />
                 {t('admin_monitoring.feedback_conversation', 'Conversation ({n} messages)', { n: snapshot.length })}
             </div>
-            <div style={{
-                maxHeight: '400px', overflowY: 'auto',
-                display: 'flex', flexDirection: 'column', gap: '6px',
-                padding: '2px',
-            }}>
+            <div className="max-h-[400px] [overflow-y:auto] [display:flex] [flex-direction:column] [gap:6px] [padding:2px]">
                 {snapshot.map((msg, mi) => <SnapshotBubble key={mi} msg={msg} />)}
             </div>
         </div>
@@ -100,16 +85,12 @@ export function ConversationReplay({ snapshot }: { snapshot: SnapshotMessage[] }
 export function NoConversation() {
     const { t } = useTranslation();
     return (
-        <div style={{
-            padding: '16px', borderRadius: '10px', textAlign: 'center',
-            background: 'var(--bg-primary, #0f0f1a)',
-            border: '1px dashed var(--border-default, rgba(255,255,255,0.08))',
-        }}>
+        <div className="[padding:16px] [border-radius:10px] [text-align:center] [background:var(--bg-primary,#0f0f1a)] [border:1px_dashed_var(--border-default,rgba(255,255,255,0.08))]">
             <MessageSquare style={{ width: 20, height: 20, color: 'var(--text-muted, #555)', margin: '0 auto 6px' }} />
-            <div style={{ fontSize: '12px', color: 'var(--text-muted, #666)' }}>
+            <div className="[font-size:12px] [color:var(--text-muted,#666)]">
                 {t('admin_monitoring.feedback_no_convo', 'No conversation shared')}
             </div>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted, #555)', marginTop: '2px' }}>
+            <div className="[font-size:10px] [color:var(--text-muted,#555)] [margin-top:2px]">
                 {t('admin_monitoring.feedback_no_convo_hint', 'User did not include conversation context with this feedback')}
             </div>
         </div>

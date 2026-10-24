@@ -38,6 +38,7 @@ import VideoStep, { type VideoStepDoc } from './VideoStep';
 import type { LessonStep } from './SimStep.types';
 import type { StepState, LessonUser, LessonDoc } from '../lessons.types';
 import type { CelebrationBadge, CelebrationXp, Celebration, LessonPlayerProps, LessonPlayerViewProps, StepBodyProps, CompletionScreenProps } from './LessonPlayer.types';
+import { logger } from '../../../utils/logger';
 
 export default function LessonPlayer(props: LessonPlayerProps) {
     const { lessonId, user } = props;
@@ -172,26 +173,26 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
                     sessionSteps: steps, statusMap: stateMap, progressMap, getLessonFn: getLesson,
                 });
                 for (const id of masteredIds) {
-                    try { await markLessonMastered(user, id); } catch (_) { /* best-effort */ }
+                    try { await markLessonMastered(user, id); } catch (err) { logger.debug('best-effort', err); }
                 }
                 masteredTitles = masteredIds
                     .map((id) => { const l = getLesson(id); return l ? t(l.titleKey, l.titleFallback) : null; })
                     .filter(Boolean);
-            } catch (_) { /* celebration only — never block the finish */ }
+            } catch (err) { logger.debug('celebration only — never block the finish', err); }
             setCelebration({ review: true, masteredTitles });
-            try { window.dispatchEvent(new CustomEvent(LESSON_COMPLETE_EVENT, { detail: { lessonId } })); } catch (_) { /* ignore */ }
+            try { window.dispatchEvent(new CustomEvent(LESSON_COMPLETE_EVENT, { detail: { lessonId } })); } catch (err) { logger.debug('ignore', err); }
             return;
         }
 
         let mastered = false;
-        try { await markLessonComplete(user, lessonId); } catch (_) { /* best-effort */ }
+        try { await markLessonComplete(user, lessonId); } catch (err) { logger.debug('best-effort', err); }
         try {
             if (lessonRunWasClean(steps, stateMap)) {
                 await markLessonMastered(user, lessonId);
                 mastered = true;
             }
-        } catch (_) { /* mastery is a bonus — never block completion */ }
-        try { window.dispatchEvent(new CustomEvent(LESSON_COMPLETE_EVENT, { detail: { lessonId } })); } catch (_) { /* ignore */ }
+        } catch (err) { logger.debug('mastery is a bonus — never block completion', err); }
+        try { window.dispatchEvent(new CustomEvent(LESSON_COMPLETE_EVENT, { detail: { lessonId } })); } catch (err) { logger.debug('ignore', err); }
         try {
             const info = onComplete ? await onComplete(lessonId) : null;
             setCelebration({ ...(info || {}), mastered });
@@ -220,7 +221,7 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
     // of working beside the panel, so it stays put.
     const launchAction = useCallback((navigateTo: string) => {
         if (!docked) setMinimized(true);
-        try { onNavigate?.(navigateTo); } catch (_) { /* ignore */ }
+        try { onNavigate?.(navigateTo); } catch (err) { logger.debug('ignore', err); }
     }, [onNavigate, docked]);
 
     // When the current step is a live tour step, gather the contiguous run and
@@ -241,7 +242,7 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
     useEffect(() => {
         if (!handoff) return undefined;
         const raf = requestAnimationFrame(() => {
-            try { window.dispatchEvent(new CustomEvent(TOUR_START_EVENT, { detail: { lessonId: handoff.ephemeralId } })); } catch (_) { /* ignore */ }
+            try { window.dispatchEvent(new CustomEvent(TOUR_START_EVENT, { detail: { lessonId: handoff.ephemeralId } })); } catch (err) { logger.debug('ignore', err); }
         });
         return () => cancelAnimationFrame(raf);
     }, [handoff]);
@@ -331,7 +332,7 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
                 <>
                     {isAction && <Loader2 className="animate-spin" style={{ width: 14, height: 14, color: 'var(--accent-primary)' }} aria-hidden="true" />}
                     <button type="button" onClick={() => setMinimized(false)} aria-label={t('learn.player.restore', 'Open the lesson again')}
-                        className="grid place-items-center rounded-full" style={{ width: 24, height: 24, border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
+                        className="grid place-items-center rounded-full w-[24px] h-[24px] [border:1px_solid_var(--border-default)] [color:var(--text-secondary)]">
                         <Maximize2 style={{ width: 12, height: 12 }} />
                     </button>
                 </>
@@ -342,9 +343,9 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
     const chrome = (
         <>
             {/* Header — 48px (artboard 1c) */}
-            <div className="flex items-center gap-1.5 flex-shrink-0" style={{ height: 48, padding: '0 10px 0 14px', borderBottom: '1px solid var(--border-default)' }}>
+            <div className="flex items-center gap-1.5 flex-shrink-0 h-[48px] [padding:0_10px_0_14px] [border-bottom:1px_solid_var(--border-default)]">
                 <div className="min-w-0 flex-1">
-                    <div className="uppercase font-semibold leading-3 truncate" style={{ fontSize: 10, letterSpacing: '.08em', color: 'var(--accent-primary)' }}>{eyebrow}</div>
+                    <div className="uppercase font-semibold leading-3 truncate [font-size:10px] [letter-spacing:.08em] [color:var(--accent-primary)]">{eyebrow}</div>
                     <h2 className="text-[14px] font-semibold leading-[18px] truncate text-[var(--text-primary)]">{title}</h2>
                 </div>
                 {!finished && (
@@ -383,8 +384,8 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
 
             {/* Progress — 4px segments: done = ink, current = accent, rest = tertiary */}
             {!finished && (
-                <div className="flex flex-col gap-1.5 flex-shrink-0" style={{ padding: '12px 14px 0' }}>
-                    <div className="flex" style={{ gap: 3 }} aria-hidden="true">
+                <div className="flex flex-col gap-1.5 flex-shrink-0 [padding:12px_14px_0]">
+                    <div className="flex [gap:3px]" aria-hidden="true">
                         {steps.map((s, i) => (
                             <span key={s.id || i} className="flex-1 transition-colors"
                                 style={{ height: 4, borderRadius: 2, background: i < stepIndex ? 'var(--text-primary)' : (i === stepIndex ? 'var(--accent-primary)' : 'var(--bg-tertiary)') }} />
@@ -439,7 +440,7 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
 
             {/* Footer — 56px */}
             {!finished && (
-                <div className="flex items-center gap-2 flex-shrink-0" style={{ height: 56, padding: '0 14px', borderTop: '1px solid var(--border-default)' }}>
+                <div className="flex items-center gap-2 flex-shrink-0 h-[56px] [padding:0_14px] [border-top:1px_solid_var(--border-default)]">
                     {/* The step counter already sits above the body; down here the
                         eye lands next to "Next", so this is where help is offered. */}
                     {!tutorOpen && (
@@ -452,8 +453,7 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
                     <div className="flex-1" />
                     {stepIndex > 0 && (
                         <button type="button" onClick={back}
-                            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] font-medium whitespace-nowrap transition-colors hover:bg-[var(--bg-tertiary)]"
-                            style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
+                            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] font-medium whitespace-nowrap transition-colors hover:bg-[var(--bg-tertiary)] [border:1px_solid_var(--border-default)] [background:var(--bg-card)]! [color:var(--text-primary)]!">
                             <ArrowLeft style={{ width: 13, height: 13 }} aria-hidden="true" /> {t('tour.back', 'Back')}
                         </button>
                     )}
@@ -489,8 +489,7 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
                 <div className={`fixed inset-0 z-[1000] flex items-center justify-center bg-black/55 backdrop-blur-sm p-4 ${minimized ? 'hidden' : ''}`}
                     onMouseDown={(e) => { if (e.target === e.currentTarget && !finished) onClose?.(); }}
                     aria-live="polite" aria-hidden={minimized || undefined}>
-                    <div className="w-full max-w-3xl rounded-xl border shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
-                        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', fontSize: 13, color: 'var(--text-primary)' }}>
+                    <div className="w-full max-w-3xl rounded-xl border shadow-2xl overflow-hidden flex flex-col max-h-[92vh] [background:var(--bg-card)] [border-color:var(--border-default)] [font-size:13px] [color:var(--text-primary)]">
                         {chrome}
                     </div>
                 </div>
@@ -529,15 +528,15 @@ function CompletionScreen({ t, celebration, lesson, steps, onClose, onNavigate, 
         onClose?.();
         try {
             window.dispatchEvent(new CustomEvent(LESSON_PLAYER_OPEN_EVENT, { detail: { lessonId: (next as NonNullable<typeof next>).id, courseId: (next as NonNullable<typeof next>).courseId, layout: (next as NonNullable<typeof next>).docked ? LAYOUTS.DOCKED : null } }));
-        } catch (_) { /* ignore */ }
+        } catch (err) { logger.debug('ignore', err); }
     };
     const backToCourse = () => {
         onClose?.();
         requestLearningNavigate(courseId ? { view: 'course', courseId } : { view: 'overview' });
-        try { onNavigate?.('settings/learning'); } catch (_) { /* ignore */ }
+        try { onNavigate?.('settings/learning'); } catch (err) { logger.debug('ignore', err); }
     };
     return (
-        <div className="flex flex-col items-center gap-3.5 text-center" style={{ padding: '12px 2px 4px' }} data-testid="lesson-complete">
+        <div className="flex flex-col items-center gap-3.5 text-center [padding:12px_2px_4px]" data-testid="lesson-complete">
             <div className="text-[34px] leading-none" aria-hidden="true">{isReview ? '🧠' : '🎉'}</div>
             <div className="flex flex-col gap-1">
                 <div className="text-[18px] font-bold leading-[22px] text-[var(--text-primary)]">
@@ -558,8 +557,8 @@ function CompletionScreen({ t, celebration, lesson, steps, onClose, onNavigate, 
 
             {/* Mastery — gold, only on a clean run (or lessons re-proven in review) */}
             {(celebration?.mastered || masteredTitles.length > 0) && (
-                <div className="w-full flex items-center gap-3 rounded-[10px] text-left" style={{ padding: '12px 14px', border: '1px solid var(--learn-mastered)', background: 'color-mix(in srgb, var(--learn-mastered) 10%, transparent)' }}>
-                    <div className="grid place-items-center flex-shrink-0" style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in srgb, var(--learn-mastered) 18%, transparent)', color: 'var(--learn-mastered-ink)' }}>
+                <div className="w-full flex items-center gap-3 rounded-[10px] text-left [padding:12px_14px] [border:1px_solid_var(--learn-mastered)] [background:color-mix(in_srgb,var(--learn-mastered)_10%,transparent)]">
+                    <div className="grid place-items-center flex-shrink-0 w-[36px] h-[36px] [border-radius:10px] [background:color-mix(in_srgb,var(--learn-mastered)_18%,transparent)] [color:var(--learn-mastered-ink)]">
                         <Award style={{ width: 18, height: 18 }} aria-hidden="true" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -573,8 +572,8 @@ function CompletionScreen({ t, celebration, lesson, steps, onClose, onNavigate, 
             )}
 
             {newBadges.length > 0 && (
-                <div className="w-full flex items-center gap-3 rounded-[10px] text-left" style={{ padding: '12px 14px', border: '1px solid var(--accent-primary)', background: 'color-mix(in srgb, var(--accent-primary) 8%, transparent)' }}>
-                    <div className="grid place-items-center flex-shrink-0" style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in srgb, var(--accent-primary) 18%, transparent)', color: 'var(--accent-primary)' }}>
+                <div className="w-full flex items-center gap-3 rounded-[10px] text-left [padding:12px_14px] [border:1px_solid_var(--accent-primary)] [background:color-mix(in_srgb,var(--accent-primary)_8%,transparent)]">
+                    <div className="grid place-items-center flex-shrink-0 w-[36px] h-[36px] [border-radius:10px] [background:color-mix(in_srgb,var(--accent-primary)_18%,transparent)] [color:var(--accent-primary)]">
                         <PartyPopper style={{ width: 18, height: 18 }} aria-hidden="true" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -605,7 +604,7 @@ function CompletionScreen({ t, celebration, lesson, steps, onClose, onNavigate, 
                     </button>
                 )}
                 {!isReview && (
-                    <button type="button" onClick={backToCourse} className="inline-flex items-center justify-center gap-1.5 rounded-[10px] text-[12px] font-medium px-3 hover:bg-[var(--bg-tertiary)]" style={{ height: 36, border: '1px solid var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
+                    <button type="button" onClick={backToCourse} className="inline-flex items-center justify-center gap-1.5 rounded-[10px] text-[12px] font-medium px-3 hover:bg-[var(--bg-tertiary)] h-[36px] [border:1px_solid_var(--border-default)] [background:var(--bg-card)]! [color:var(--text-primary)]!">
                         {courseId ? t('learn.player.back_to_course', 'Back to the course') : t('learn.player.back_to_center', 'Back to the Learning Center')}
                     </button>
                 )}

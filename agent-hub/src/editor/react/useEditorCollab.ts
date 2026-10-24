@@ -13,7 +13,7 @@
  * leaves the editor in its ordinary single-writer mode, so the caller's own
  * save path keeps working.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useEffectEvent } from 'react';
 import { bindEditor, type CollabBinding } from '../collab/binding';
 import type { CollabHandle } from '../collab/useCollab';
 import { errorName } from '../../utils/caughtError';
@@ -37,7 +37,7 @@ export default function useEditorCollab(view: any, handle: CollabHandle | null |
     const ready = !!handle?.ready;
     const ydoc = handle?.ydoc || null;
 
-    useEffect(() => {
+    const runHandleEffect = useEffectEvent(() => {
         if (!view || !ready || !handle || !ydoc) return undefined;
         const b = bindEditor(view, {
             ydoc: handle.ydoc,
@@ -52,7 +52,8 @@ export default function useEditorCollab(view: any, handle: CollabHandle | null |
             setBinding((cur) => (cur === b ? null : cur));
         };
         // The handle object changes on every presence update; the document does not.
-    }, [view, ready, ydoc]);
+    });
+    useEffect(() => { return runHandleEffect(); }, [view, ready, ydoc]);
 
     const active = collabIsActive(handle);
     const bound = !!binding && active;

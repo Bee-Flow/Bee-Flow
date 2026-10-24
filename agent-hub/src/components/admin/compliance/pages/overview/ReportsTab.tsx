@@ -124,8 +124,7 @@ export default function ReportsTab({ api = '/api/compliance', dl, exportsEnabled
                 return (
                     <section
                         key={group.id}
-                        className="flex flex-col rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-4 py-3.5"
-                        style={{ boxShadow: 'var(--shadow-sm)' }}
+                        className="flex flex-col rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-4 py-3.5 [box-shadow:var(--shadow-sm)]"
                         data-testid={`${testId}-group-${group.id}`}
                         aria-label={t(group.titleKey, group.titleEn)}
                     >

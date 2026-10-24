@@ -100,7 +100,7 @@ export default function FindingRow({
             <h3 className="mt-1 font-semibold" style={{ fontSize: presenter ? 17 : 14, color: 'var(--text-primary)' }}>{finding.title}</h3>
 
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="text-[11px] whitespace-nowrap" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', color: 'var(--text-secondary)' }}>
+                <span className="text-[11px] whitespace-nowrap [font-family:ui-monospace,SFMono-Regular,Menlo,monospace] [color:var(--text-secondary)]!">
                     {finding.framework}{finding.article ? ` ${finding.article}` : ''}
                 </span>
                 {target && (
@@ -108,13 +108,12 @@ export default function FindingRow({
                         <button
                             type="button"
                             onClick={() => onNavigate(to)}
-                            className="inline-flex items-center gap-1 text-[11px] px-2 py-[2px] rounded-full"
-                            style={{ border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+                            className="inline-flex items-center gap-1 text-[11px] px-2 py-[2px] rounded-full [border:1px_solid_var(--border-default)] [color:var(--text-primary)]!"
                             data-testid="playbook-compliance-target"
                             data-kind={target.kind}
                         >
                             {TargetIcon && <TargetIcon className="w-3 h-3 shrink-0" style={{ color: 'var(--type-ai)' }} aria-hidden="true" />}
-                            <span className="truncate" style={{ maxWidth: 220 }}>{target.name}</span>
+                            <span className="truncate max-w-[220px]">{target.name}</span>
                             <ExternalLink className="w-2.5 h-2.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                         </button>
                     ) : (
@@ -132,8 +131,7 @@ export default function FindingRow({
             {/* The proposal — in this row, in words, before anything is written. */}
             {open && (
                 <div
-                    className="mt-2 rounded-lg p-2.5"
-                    style={{ border: '1px solid var(--type-ai)', background: 'color-mix(in srgb, var(--type-ai) 5%, transparent)' }}
+                    className="mt-2 rounded-lg p-2.5 [border:1px_solid_var(--type-ai)] [background:color-mix(in_srgb,var(--type-ai)_5%,transparent)]"
                     data-testid="playbook-compliance-proposal"
                 >
                     {planBusy && (
@@ -143,7 +141,7 @@ export default function FindingRow({
                         </p>
                     )}
                     {!planBusy && planError && (
-                        <p role="alert" className="text-[11px]" style={{ color: 'var(--error-ink, var(--error))' }}>{planError}</p>
+                        <p role="alert" className="text-[11px] [color:var(--error-ink,var(--error))]!">{planError}</p>
                     )}
                     {!planBusy && plan && (
                         <>
@@ -160,7 +158,7 @@ export default function FindingRow({
                             {(plan.unresolved || []).length > 0 && (
                                 <ul className="mt-1 space-y-0.5" data-testid="playbook-compliance-unresolved">
                                     {plan.unresolved.map((u, i) => (
-                                        <li key={i} className="flex items-start gap-1.5 text-[11px]" style={{ color: 'var(--warning-ink, var(--warning))' }}>
+                                        <li key={i} className="flex items-start gap-1.5 text-[11px] [color:var(--warning-ink,var(--warning))]!">
                                             <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" aria-hidden="true" />{u.what}
                                         </li>
                                     ))}
@@ -187,8 +185,7 @@ export default function FindingRow({
                                     type="button"
                                     onClick={() => setOpen(false)}
                                     disabled={applying}
-                                    className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg text-[11px] font-medium disabled:opacity-50"
-                                    style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }}
+                                    className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg text-[11px] font-medium disabled:opacity-50 [color:var(--text-secondary)]! [border:1px_solid_var(--border-default)]"
                                     data-testid="playbook-compliance-fix-cancel"
                                 >
                                     <X className="w-3 h-3" aria-hidden="true" />{t('playbooks.compliance.fix_cancel', 'Leave it')}
@@ -207,8 +204,7 @@ export default function FindingRow({
                     <button
                         type="button"
                         onClick={ask}
-                        className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                        style={{ color: 'var(--type-ai)', border: '1px solid var(--type-ai)', background: 'color-mix(in srgb, var(--type-ai) 8%, transparent)', outlineColor: 'var(--type-ai)' }}
+                        className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [color:var(--type-ai)]! [border:1px_solid_var(--type-ai)] [background:color-mix(in_srgb,var(--type-ai)_8%,transparent)] [outline-color:var(--type-ai)]!"
                         data-testid="playbook-compliance-resolve"
                     >
                         <Sparkles className="w-3 h-3" aria-hidden="true" />{t('playbooks.compliance.resolve', 'Resolve with AI')}

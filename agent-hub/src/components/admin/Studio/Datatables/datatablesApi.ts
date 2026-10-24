@@ -41,6 +41,7 @@ import type {
     SpreadsheetBrowseOptions,
     SpreadsheetDescribeOptions,
 } from './datatablesApi.types';
+import { logger } from '../../../../utils/logger';
 
 const base = `${API_BASE}/api/datatables`;
 const enc = encodeURIComponent;
@@ -210,7 +211,7 @@ export const datatablesApi = {
         const res = await authFetch(`${base}/${enc(id)}/rows.csv`, { headers: { Accept: 'text/csv' } });
         if (!res.ok) {
             let body = null;
-            try { body = await res.json(); } catch { /* not JSON */ }
+            try { body = await res.json(); } catch (err) { logger.debug('not JSON', err); }
             const err: Error & { status?: number; code?: string | null } = new Error(body?.error || `Export failed (${res.status})`);
             err.status = res.status;
             err.code = body?.code || null;

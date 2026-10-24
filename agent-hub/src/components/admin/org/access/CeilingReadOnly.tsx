@@ -62,15 +62,15 @@ export default function CeilingReadOnly({ orgId = null }: { orgId?: string | nul
     }, [data]);
 
     if (loading) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[var(--text-muted)]" /></div>;
-    if (error) return <div className="rounded-2xl p-5 text-sm" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', color: '#dc2626' }}>{error}</div>;
+    if (error) return <div className="rounded-2xl p-5 text-sm [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)] [color:#dc2626]!">{error}</div>;
 
     const mode = data?.mode;
 
     return (
-        <section className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+        <section className="rounded-2xl p-5 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
             <div className="flex items-start gap-2 mb-4">
                 <Info className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: BLUE }} />
-                <p className="text-sm" style={{ color: 'var(--text-muted)', maxWidth: 720 }}>
+                <p className="text-sm [color:var(--text-muted)]! max-w-[720px]">
                     {t('admin_org.ceiling_ro_intro', 'These are the capabilities your organisation has access to (set by your administrator, within your {ceiling}). To distribute them to members or groups, use', { ceiling: mode === 'cloud' ? t('admin_org.ceiling_word_plan_long', 'subscription plan') : t('admin_org.ceiling_word_licence', 'licence') })} <strong>{t('admin_org.ceiling_grants', 'Grants')}</strong>.
                 </p>
             </div>
@@ -81,7 +81,7 @@ export default function CeilingReadOnly({ orgId = null }: { orgId?: string | nul
                 return (
                     <div key={section.kind} className="mb-5">
                         <div className="flex items-center gap-1.5 mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                            <SectionIcon className="w-3.5 h-3.5" /> {t(section.labelKey, section.label)} <span style={{ opacity: 0.6 }}>({caps.length})</span>
+                            <SectionIcon className="w-3.5 h-3.5" /> {t(section.labelKey, section.label)} <span className="[opacity:0.6]">({caps.length})</span>
                         </div>
                         {caps.length === 0 ? (
                             <p className="text-[12px] px-1 py-1 flex items-center gap-1.5 text-[var(--text-muted)]">
@@ -92,7 +92,7 @@ export default function CeilingReadOnly({ orgId = null }: { orgId?: string | nul
                                 {caps.map(cap => {
                                     const icon = cap.kind === 'integration' ? getIntegrationIcon(cap.id) : <SectionIcon className="w-4 h-4" style={{ color: BLUE }} />;
                                     return (
-                                        <div key={cap.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-primary)' }}>
+                                        <div key={cap.id} className="flex items-center gap-3 p-3 rounded-xl [border:1px_solid_var(--border-subtle)] [background:var(--bg-primary)]">
                                             <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[var(--bg-secondary)]">{icon}</div>
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-sm font-medium truncate text-[var(--text-primary)]" title={cap.name}>{cap.name}</p>

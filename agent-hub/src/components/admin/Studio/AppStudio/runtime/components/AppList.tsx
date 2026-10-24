@@ -253,16 +253,14 @@ export default function AppList({ node }: NodeProps<ListProps>) {
             <>
                 {icon ? (
                     <span
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md shrink-0"
-                        style={{ background: 'var(--app-primary-soft)', color: 'var(--app-primary)' }}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md shrink-0 [background:var(--app-primary-soft)] [color:var(--app-primary)]"
                     >
                         <AppIcon name={icon} className="w-3.5 h-3.5" />
                     </span>
                 ) : null}
                 {unread ? (
                     <span
-                        className="h-1.5 w-1.5 rounded-full shrink-0"
-                        style={{ background: 'var(--app-primary)' }}
+                        className="h-1.5 w-1.5 rounded-full shrink-0 [background:var(--app-primary)]"
                         aria-label={t('studio_apps_runtime.list.unread', 'Unread')}
                         data-app-list-unread="true"
                     />
@@ -315,7 +313,7 @@ export default function AppList({ node }: NodeProps<ListProps>) {
                         </div>
                     ) : null}
                     {detail != null && detail !== '' ? (
-                        <div className="mt-1 text-xs truncate" style={{ color: 'var(--app-primary)' }} data-app-list-detail="true">
+                        <div className="mt-1 text-xs truncate [color:var(--app-primary)]!" data-app-list-detail="true">
                             {displayValue(detail)}
                         </div>
                     ) : null}
@@ -415,8 +413,7 @@ export default function AppList({ node }: NodeProps<ListProps>) {
             children.push(
                 <li
                     key={`grp-${name}`}
-                    className="flex items-baseline gap-1 uppercase font-semibold px-1 pt-1 first:pt-0"
-                    style={{ fontSize: '11px', letterSpacing: '0.03em', color: 'var(--text-muted)', gridColumn: '1 / -1' }}
+                    className="flex items-baseline gap-1 uppercase font-semibold px-1 pt-1 first:pt-0 [font-size:11px] [letter-spacing:0.03em] [color:var(--text-muted)] [grid-column:1_/_-1]"
                     data-app-list-group={name}
                     aria-hidden="true"
                 >

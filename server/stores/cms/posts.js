@@ -38,6 +38,7 @@ const KEY_POST_INFIX = '_post_';
 const KEY_POSTS_SUFFIX = '_posts';
 
 const { POST_STATUSES, POST_LIMITS } = require('./postLimits');
+const log = require('../../telemetry/log');
 
 // Path segments the blog itself claims under /blog/… (feed, tag and paging
 // URLs), so no post may take them.
@@ -497,7 +498,7 @@ async function restorePosts(siteId, posts, translations = {}, { now = Date.now()
             if (!/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(locale) || !isPlainObject(override)) continue;
             try {
                 await configStore.setConfig(postLocaleKey(siteId, newPostId, locale), sanitizePostOverride(override));
-            } catch (_) { /* oversized translation: skipped */ }
+            } catch (err) { log.debug('oversized translation: skipped', err); }
         }
     }
     return { idMap, count: docs.length };

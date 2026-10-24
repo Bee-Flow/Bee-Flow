@@ -10,10 +10,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { astToMarkdown } from './astToMd';
-import { markdownToAst } from './mdToAst';
 import { astToHtml } from './astToHtml.js';
+import { astToMarkdown } from './astToMd';
 import { htmlToAst } from './htmlToAst';
+import { markdownToAst } from './mdToAst';
 
 const mdRoundTrip = (md) => astToMarkdown(markdownToAst(md));
 const htmlRoundTrip = (html) => astToHtml(markdownToAst(astToMarkdown(htmlToAst(html))));

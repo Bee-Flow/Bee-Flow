@@ -25,7 +25,7 @@ function PermissionRow({ perm, granted, isNew }: { perm: ModulePermission; grant
                         {permissionCopy(t, perm.id)}
                     </span>
                     {isNew && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium [background:rgba(245,158,11,0.15)] [color:#f59e0b]!">
                             {t('modules.permissions.new')}
                         </span>
                     )}
@@ -65,8 +65,8 @@ export default function PermissionList({ permissions, granted = null, diff = nul
                 </ul>
             )}
             {env.length > 0 && (
-                <div className="rounded-lg border p-3" style={{ borderColor: 'rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.06)' }} data-testid="perm-env-section">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: '#ef4444' }}>
+                <div className="rounded-lg border p-3 [border-color:rgba(239,68,68,0.35)] [background:rgba(239,68,68,0.06)]" data-testid="perm-env-section">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold [color:#ef4444]!">
                         <ServerCrash className="w-3.5 h-3.5" /> {t('modules.permissions.env_section')}
                     </div>
                     <p className="text-xs mt-1 leading-relaxed text-[var(--text-secondary)]">

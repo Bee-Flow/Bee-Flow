@@ -38,7 +38,7 @@ export default function ArrangeMenu({ onArrange }: { onArrange?: ((mode: string)
                 <LayoutGrid size={14} /> {t('automations.canvas.arrange', 'Arrange')} <ChevronDown size={12} className="text-[var(--text-tertiary)]" />
             </button>
             {open && (
-                <div role="menu" className="absolute left-0 bottom-full mb-1 z-40 w-56 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] py-1" style={{ boxShadow: 'var(--shadow-popover)' }}>
+                <div role="menu" className="absolute left-0 bottom-full mb-1 z-40 w-56 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] py-1 [box-shadow:var(--shadow-popover)]">
                     {items.map(({ mode, Icon, label }) => (
                         <button
                             key={mode}

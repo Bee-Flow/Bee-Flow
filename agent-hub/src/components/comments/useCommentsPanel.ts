@@ -11,6 +11,7 @@ import type { WorkspaceUser } from '../projects/workspace/types';
 import { anchorState, inReadingOrder, type AnchorState } from './commentAnchors';
 import { useCommentPeople } from './useCommentPeople';
 import { useCommentsLive } from './useCommentsLive';
+import { logger } from '../../utils/logger';
 
 export type HighlightAnchors = (list: Array<{ id: string; anchor: CommentAnchor }>, activeId?: string | null) => void;
 
@@ -60,10 +61,10 @@ function useAnchorHighlights(open: CommentThread[], states: Map<string, AnchorSt
     const current = useRef(list);
     useEffect(() => { current.current = list; }, [list]);
     useEffect(() => {
-        try { painter.current?.(current.current, activeId); } catch { /* highlighting is a courtesy */ }
+        try { painter.current?.(current.current, activeId); } catch (err) { logger.debug('highlighting is a courtesy', err); }
     }, [key, activeId]);
     useEffect(() => () => {
-        try { painter.current?.([], null); } catch { /* nothing to clear */ }
+        try { painter.current?.([], null); } catch (err) { logger.debug('nothing to clear', err); }
     }, []);
 }
 

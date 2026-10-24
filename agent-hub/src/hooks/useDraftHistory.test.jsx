@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { StrictMode, useState } from 'react';
 import { act, renderHook } from '@testing-library/react';
+import { StrictMode, useState } from 'react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import useDraftHistory from './useDraftHistory';
 
 /**

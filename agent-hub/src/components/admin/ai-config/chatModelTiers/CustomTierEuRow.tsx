@@ -34,7 +34,7 @@ export default function CustomTierEuRow({
                                 {tier.description || <span className="italic opacity-60">{t('admin_ai_config.tier_eu_custom_tier', 'Custom tier')}</span>}
                             </p>
                         </div>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(234, 179, 8, 0.2)', color: '#eab308' }}>{t('admin_ai_config.tier_eu_custom_badge', 'custom')}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full [background:rgba(234,179,8,0.2)] [color:#eab308]!">{t('admin_ai_config.tier_eu_custom_badge', 'custom')}</span>
                     </div>
                     <SearchableModelSelect
                         value={tier.euModelId || ''}

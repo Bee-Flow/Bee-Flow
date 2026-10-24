@@ -16,6 +16,7 @@ const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { requireAuth } = require('../../auth/permissions');
 const { DownloadQuery } = require('./schemas');
 const { requireManageApps, audienceFor, resolveOwnerOrgId } = require('./access');
+const log = require('../../telemetry/log');
 
 const router = express.Router();
 
@@ -108,7 +109,7 @@ router.get('/templates/:templateId/export', requireAuth, requireManageApps, vali
             try {
                 const org = await userStore.getOrganization(orgId);
                 orgName = (org && typeof org.name === 'string') ? org.name : null;
-            } catch { /* a missing name is a missing courtesy, not a failed export */ }
+            } catch (err) { log.debug('a missing name is a missing courtesy, not a failed export', err); }
         }
 
         const { envelope, warnings } = buildExport(template, {

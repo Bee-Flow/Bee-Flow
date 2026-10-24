@@ -50,13 +50,11 @@ export default function AppBrowserView({ node }: NodeProps<BrowserViewProps>) {
 
     return (
         <div
-            className="overflow-hidden w-full border"
-            style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', background: 'var(--bg-tertiary)' }}
+            className="overflow-hidden w-full border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:var(--bg-tertiary)]"
             data-app-browser-view={actionId || 'unbound'}
         >
             <div
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs truncate border-b"
-                style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs truncate border-b [color:var(--text-secondary)]! [border-color:var(--border-default)]!"
             >
                 <Globe className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
                 <span className="truncate">{preview ? label : t('studio_apps_runtime.browser_view.live_browser', 'Live browser')}</span>
@@ -89,8 +87,7 @@ export default function AppBrowserView({ node }: NodeProps<BrowserViewProps>) {
 
             {!ended && action && frame && (
                 <div
-                    className="px-2.5 py-1 text-xs truncate border-t"
-                    style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}
+                    className="px-2.5 py-1 text-xs truncate border-t [color:var(--text-secondary)]! [border-color:var(--border-default)]!"
                 >
                     {action}
                 </div>

@@ -71,7 +71,7 @@ interface DeadlinesCardProps {
 
 export default function DeadlinesCard({ items = null, emptyKinds = [], failed = false, navigate, className = '', testId = 'deadlines-card' }: DeadlinesCardProps) {
     const { t } = useTranslation();
-    const now = useNow();
+    const now = useNow(60_000);
     const [expanded, setExpanded] = useState(false);
     const listId = useId();
     const list = Array.isArray(items) ? items : null;

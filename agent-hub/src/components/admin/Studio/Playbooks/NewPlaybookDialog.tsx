@@ -274,7 +274,7 @@ export default function NewPlaybookDialog({ user = null, onClose, onCreated, has
                 {recipes.length > 0 && (
                 <div>
                     <span className={label} style={{ color: 'var(--text-secondary)' }}>{t('playbooks.new.recipe', 'Playbook')}</span>
-                    <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+                    <div className="grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
                         {recipes.map((r) => (
                             <ChoiceCard
                                 key={r.id}
@@ -314,13 +314,13 @@ export default function NewPlaybookDialog({ user = null, onClose, onCreated, has
                             placeholder={t('playbooks.new.describe_placeholder', 'e.g. Read the supplier contracts in /Contracten into a table with supplier, start date, end date and amount, then build an app that shows which contracts end within 90 days.')}
                         />
                         <div className="mt-2 flex items-center gap-2">
-                            <button type="button" onClick={compose} disabled={!description.trim() || composing} data-testid="playbook-compose" className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-xs font-semibold disabled:opacity-50" style={{ color: 'var(--type-ai)', border: '1px solid var(--type-ai)', background: 'color-mix(in srgb, var(--type-ai) 8%, transparent)' }}>
+                            <button type="button" onClick={compose} disabled={!description.trim() || composing} data-testid="playbook-compose" className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-xs font-semibold disabled:opacity-50 [color:var(--type-ai)]! [border:1px_solid_var(--type-ai)] [background:color-mix(in_srgb,var(--type-ai)_8%,transparent)]">
                                 {composing ? <Loader2 className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Wand2 className="w-3.5 h-3.5" aria-hidden="true" />}
                                 {composed ? t('playbooks.new.compose_again', 'Write it again') : t('playbooks.new.compose', 'Let the AI write the phases')}
                             </button>
                             {composing && <span className="text-[11px] text-[var(--text-secondary)]">{t('playbooks.new.composing', 'Writing the playbook…')}</span>}
                         </div>
-                        {composeError && <p className="mt-2 text-xs" style={{ color: 'var(--error-ink, var(--error))' }} role="alert">{composeError}</p>}
+                        {composeError && <p className="mt-2 text-xs [color:var(--error-ink,var(--error))]!" role="alert">{composeError}</p>}
                         {composed && <RecipePreview recipe={composed} warnings={composeWarnings} t={t} />}
                     </div>
                 )}
@@ -368,7 +368,7 @@ export default function NewPlaybookDialog({ user = null, onClose, onCreated, has
                             <div key={i.key}>
                                 <label className={label} htmlFor={`pbk-in-${i.key}`} style={{ color: 'var(--text-secondary)' }}>{i.key === 'folderPath' && recipe.source === 'builtin' ? t('playbooks.new.folder', 'Nextcloud folder with the invoices') : i.label}</label>
                                 <input id={`pbk-in-${i.key}`} data-testid={`playbook-input-${i.key}`} className={input} style={inputStyle} value={inputs[i.key] || ''} onChange={(e) => setInputs((prev) => ({ ...prev, [i.key]: e.target.value }))} placeholder={i.placeholder || (i.kind === 'folder' ? '/Invoices' : '')} />
-                                {i.kind === 'folder' && folderProblems.includes(i) && <p className="mt-1 text-[11px]" style={{ color: 'var(--error-ink, var(--error))' }}>{t('playbooks.new.err_folder', 'The folder is an absolute Nextcloud path, e.g. /Invoices.')}</p>}
+                                {i.kind === 'folder' && folderProblems.includes(i) && <p className="mt-1 text-[11px] [color:var(--error-ink,var(--error))]!">{t('playbooks.new.err_folder', 'The folder is an absolute Nextcloud path, e.g. /Invoices.')}</p>}
                                 {i.kind === 'folder' && !canLinkNextcloud(user) && <p className="mt-1 text-[11px] text-[var(--text-secondary)]">{t('playbooks.new.folder_hint', 'The automation reads this folder through your Nextcloud connection.')}</p>}
                             </div>
                         ))}
@@ -404,7 +404,7 @@ export default function NewPlaybookDialog({ user = null, onClose, onCreated, has
                     </>
                 )}
 
-                {error && <p className="text-xs" style={{ color: 'var(--error-ink, var(--error))' }} role="alert">{error}</p>}
+                {error && <p className="text-xs [color:var(--error-ink,var(--error))]!" role="alert">{error}</p>}
             </div>
         </Modal>
     );
@@ -416,7 +416,7 @@ function RecipePreview({ recipe, warnings = [], t }: RecipePreviewProps) {
     // playbook), so a preview of a re-opened document says the same thing.
     const synthesized = warnings.includes('table_synthesized') || (Array.isArray(recipe.warnings) && recipe.warnings.includes('table_synthesized'));
     return (
-        <div className="mt-3 rounded-xl p-3" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-default)' }} data-testid="playbook-recipe-preview">
+        <div className="mt-3 rounded-xl p-3 [background:var(--bg-primary)] [border:1px_solid_var(--border-default)]" data-testid="playbook-recipe-preview">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-primary)]">
                 <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--type-ai)' }} aria-hidden="true" />{recipe.title}
             </div>
@@ -425,7 +425,7 @@ function RecipePreview({ recipe, warnings = [], t }: RecipePreviewProps) {
                 {(recipe.phases || []).map((p, i) => (
                     <li key={p.key} className="inline-flex items-center gap-1">
                         {i > 0 && <span aria-hidden="true">→</span>}
-                        <span className="px-1.5 py-0.5 rounded-md" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}>{p.label || p.key}</span>
+                        <span className="px-1.5 py-0.5 rounded-md [background:var(--bg-card)] [border:1px_solid_var(--border-default)] [color:var(--text-primary)]">{p.label || p.key}</span>
                     </li>
                 ))}
             </ol>
@@ -435,7 +435,7 @@ function RecipePreview({ recipe, warnings = [], t }: RecipePreviewProps) {
                 </p>
             )}
             {fields.length > 0 && synthesized && (
-                <p className="mt-1 text-[11px]" style={{ color: 'var(--warning-ink, var(--warning))' }} data-testid="playbook-columns-synthesized">
+                <p className="mt-1 text-[11px] [color:var(--warning-ink,var(--warning))]!" data-testid="playbook-columns-synthesized">
                     {t('playbooks.new.preview_columns_synthesized', 'The AI did not declare these columns — they were read from the placeholders in its briefs. Check them before you start.')}
                 </p>
             )}

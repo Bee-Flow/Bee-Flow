@@ -157,7 +157,7 @@ export default function FormPage({ form, tab = null, onTab, onBack, onNavigate, 
                 )}
             />
             <div className="flex-1 overflow-y-auto">
-                <div className="mx-auto px-6 py-6" style={{ maxWidth: 900 }}>
+                <div className="mx-auto px-6 py-6 max-w-[900px]">
                     {detailState.managed && <ManagedPartBanner managed={detailState.managed} onNavigate={onNavigate} className="mb-5" />}
                     <Tabs value={active} onChange={switchTab} items={tabs} size="sm" ariaLabel={t('forms.page.tabs_label', 'This form')} className="mb-5" />
                     {loading && !detail && (

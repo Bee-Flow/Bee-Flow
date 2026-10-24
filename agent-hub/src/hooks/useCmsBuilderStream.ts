@@ -3,6 +3,7 @@ import type { BuilderMessage, BuilderToolCall, BuilderValidation, ThinkingPart }
 import { errorTextOf as safeText, finalizeStreaming, useAbortOnUnmount, usePatchAssistant } from './builderStream';
 import { readEventStream } from '../api/readEventStream';
 import { API_BASE, authFetch } from '../utils/helpers';
+import { logger } from '../utils/logger';
 
 // Shown when the build stream drops mid-flight (gateway timeout / network
 // cut). Every mutation is persisted server-side as it lands, so nothing is
@@ -143,9 +144,7 @@ export default function useCmsBuilderStream(
                     setSessionId(snap.sessionId);
                 }
                 if (snap.lastValidation) setLastValidation(snap.lastValidation);
-            } catch {
-                // degrade to a fresh chat
-            }
+            } catch (err) { logger.debug('degrade to a fresh chat', err); }
         })();
         return () => { alive = false; };
     }, [siteId]);
@@ -159,7 +158,7 @@ export default function useCmsBuilderStream(
         if (!message || !siteId) return;
 
         if (abortRef.current) {
-            try { abortRef.current.abort(); } catch { /* already settled */ }
+            try { abortRef.current.abort(); } catch (err) { logger.debug('already settled', err); }
         }
         const ac = new AbortController();
         abortRef.current = ac;
@@ -306,7 +305,7 @@ export default function useCmsBuilderStream(
     }, [siteId, patchAssistant]);
 
     const stop = useCallback(() => {
-        try { abortRef.current?.abort(); } catch { /* already settled */ }
+        try { abortRef.current?.abort(); } catch (err) { logger.debug('already settled', err); }
     }, []);
 
     return { messages, running, send, stop, sessionId, lastValidation };

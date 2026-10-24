@@ -20,6 +20,7 @@ import { copyText } from '../../../../utils/copyText';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import useConfirm from '../../../shared/useConfirm';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { logger } from '../../../../utils/logger';
 
 type AccessMode = 'unlisted' | 'password' | 'email';
 
@@ -200,7 +201,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
         try {
             await copyText(text, { fallbackOnReject: true, focus: true });
             markCopied();
-        } catch { /* clipboard genuinely unavailable */ }
+        } catch (err) { logger.debug('clipboard genuinely unavailable', err); }
     };
 
     return (

@@ -145,8 +145,7 @@ const RerankerConfig = ({ onMessage }: ProviderCardProps) => {
                         <button
                             onClick={handleTest}
                             disabled={testing}
-                            className="px-3 py-2 rounded-lg text-xs font-medium transition-all hover:bg-white/10"
-                            style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                            className="px-3 py-2 rounded-lg text-xs font-medium transition-all hover:bg-white/10 [background:var(--bg-secondary)]! [color:var(--text-primary)]!"
                         >
                             {testing ? '...' : t('admin_ai_config.rerank_test', '🧪 Test')}
                         </button>

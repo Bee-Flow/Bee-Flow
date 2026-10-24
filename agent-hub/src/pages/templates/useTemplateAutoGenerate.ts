@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useEffectEvent } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { API_BASE } from '../../api/mutate';
 import { templatesApi } from '../../api/templatesApi';
@@ -18,7 +18,7 @@ export function useTemplateAutoGenerate(
     setChatMessages: Dispatch<SetStateAction<TemplateChatMessage[]>>,
 ): void {
     const processedJsonMsgIds = useRef(new Set());
-    useEffect(() => {
+    const runFillTemplateEffect = useEffectEvent(() => {
         if (!fillTemplate || chatLoading) return;
         const lastMsg = chatMessages[chatMessages.length - 1];
         if (!lastMsg || lastMsg.role !== 'assistant' || lastMsg.isStreaming) return;
@@ -102,5 +102,6 @@ export function useTemplateAutoGenerate(
             // for telemetry so a regression in the model prompt is visible.
             logger.debug('[TemplatesPage] JSON parameter block parse skipped', e);
         }
-    }, [chatMessages, chatLoading, fillTemplate?.id]);
+    });
+    useEffect(() => { return runFillTemplateEffect(); }, [chatMessages, chatLoading, fillTemplate?.id]);
 }

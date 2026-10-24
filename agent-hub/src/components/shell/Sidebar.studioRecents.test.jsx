@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render as rtlRender, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
  * The Studio flyout's second level: hovering a section opens a further panel to

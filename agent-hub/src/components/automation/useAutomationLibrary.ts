@@ -8,6 +8,7 @@ import {
     invalidateAutomationTrash,
 } from '../../api/queries/automation/library';
 import { errorStatus } from '../../utils/caughtError';
+import { logger } from '../../utils/logger';
 /** One row of the sidebar's automation list. */
 export interface AutomationListRow {
     id: string;
@@ -240,7 +241,7 @@ export default function useAutomationLibrary({
                     if (prev.size === nextIds.length && nextIds.every(id => prev.has(id))) return prev;
                     return new Set(nextIds);
                 });
-            } catch { /* silent — non-critical */ }
+            } catch (err) { logger.debug('silent — non-critical', err); }
         };
         tick();
         const handle = setInterval(tick, 5000);

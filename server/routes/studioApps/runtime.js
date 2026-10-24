@@ -207,11 +207,11 @@ async function buildRuntimeViewer(app, userId, userGroups) {
         try {
             const meta = await studioAppDataStore.getDataModel(app.id, app.userId);
             model = (meta && meta.model) ? meta.model : null;
-        } catch { /* no data model → membership/mapping-less resolution */ }
+        } catch (err) { log.debug('no data model → membership/mapping-less resolution', err); }
         roleKey = await rlsGateway.resolveViewerRole(app, userId, model, { userGroups });
     }
     let user = null;
-    try { user = await userStore.getUser(userId); } catch { /* name/email stay null */ }
+    try { user = await userStore.getUser(userId); } catch (err) { log.debug('name/email stay null', err); }
     return {
         id: userId,
         name: user?.displayName || user?.name || user?.username || null,

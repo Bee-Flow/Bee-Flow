@@ -29,6 +29,7 @@
 const { getAll } = require('../../db');
 const configStore = require('../../stores/configStore');
 const { SUPPLIER_ROW, LEDGER_ORG_SQL } = require('../../stores/integrationLocationSql');
+const log = require('../../telemetry/log');
 
 const WINDOW_DAYS = 30;
 
@@ -53,7 +54,7 @@ function _localRuntimeTypes() {
         if (LOCAL_RUNTIMES && typeof LOCAL_RUNTIMES === 'object') {
             return new Set(Object.keys(LOCAL_RUNTIMES).map(k => k.toLowerCase()).concat(['local']));
         }
-    } catch { /* register not present in this build */ }
+    } catch (err) { log.debug('register not present in this build', err); }
     return new Set(['ollama', 'vllm', 'llamacpp', 'lmstudio', 'sglang', 'localai', 'tgi', 'jan', 'koboldcpp', 'local']);
 }
 

@@ -4,6 +4,7 @@ import type { ProviderCardProps } from './ProviderApiKeyCard';
 import { PROVIDER_KEY_CONFIGS } from './providerKeyConfig';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { logger } from '../../../../utils/logger';
 
 const EU_HOST = 'eu.api.openai.com';
 
@@ -37,9 +38,7 @@ const EuResidencyToggle = ({ onMessage }: ProviderCardProps) => {
             if (!res.ok) return;
             const data = await res.json();
             setProvider((data.providers || []).find((p: OpenAIProvider) => p.type === 'openai') || null);
-        } catch (e) {
-            // Non-fatal: the card still works as an API-key card without this.
-        }
+        } catch (e) { logger.debug('Non-fatal: the card still works as an API-key card without this.', e); }
     }, []);
 
     useEffect(() => { load(); }, [load]);

@@ -25,6 +25,7 @@ import useSheetAsk from './useSheetAsk';
 import useSheetAssistant from './useSheetAssistant';
 import useSheet, { type SheetState } from './useSheet';
 import useSheetActions from './useSheetActions';
+import { logger } from '../../../utils/logger';
 
 export interface SpreadsheetEditorProps {
     initial: StudioDocument;
@@ -67,13 +68,13 @@ export default function SpreadsheetEditor({ initial, onBack, onRenamed }: Spread
     const [chartCreatorOpen, setChartCreatorOpen] = useState(false);
     const showAssistant = (open: boolean) => {
         setAssistantOpen(open);
-        try { localStorage.setItem(OPEN_KEY, open ? '1' : '0'); } catch { /* the choice just does not outlive the page */ }
+        try { localStorage.setItem(OPEN_KEY, open ? '1' : '0'); } catch (err) { logger.debug('the choice just does not outlive the page', err); }
     };
     const toggleAssistant = () => showAssistant(!assistantOpen);
     const [formulaBarVisible, setFormulaBarVisible] = useState(storedFormulaBar);
     const showFormulaBar = (open: boolean) => {
         setFormulaBarVisible(open);
-        try { localStorage.setItem(FORMULA_BAR_KEY, open ? '1' : '0'); } catch { /* the choice just does not outlive the page */ }
+        try { localStorage.setItem(FORMULA_BAR_KEY, open ? '1' : '0'); } catch (err) { logger.debug('the choice just does not outlive the page', err); }
     };
     const toggleFormulaBar = () => showFormulaBar(!formulaBarVisible);
     const tier = useAssistantTier();

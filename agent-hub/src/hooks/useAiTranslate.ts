@@ -21,7 +21,7 @@
 //       translating={ai.translating} missing={stats.missing} onTranslate={ai.run} />
 //   <AiTranslateResult result={ai.result} />
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { authFetch } from '../utils/helpers';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
@@ -61,7 +61,9 @@ export async function translateRequest(url: string, tier: string): Promise<AiTra
         headers: JSON_HEADERS,
         body: JSON.stringify({ modelTier: tier }),
     });
-    return res.json();
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) return { error: body?.error || `HTTP ${res.status}` };
+    return body;
 }
 
 export default function useAiTranslate(
@@ -74,9 +76,13 @@ export default function useAiTranslate(
     // Keep the injected callbacks in refs so callers can pass inline closures
     // without re-creating `run` (and re-rendering) on every parent render.
     const requestRef = useRef(request);
-    requestRef.current = request;
+    useLayoutEffect(() => {
+        requestRef.current = request;
+    });
     const reloadRef = useRef(onReload);
-    reloadRef.current = onReload;
+    useLayoutEffect(() => {
+        reloadRef.current = onReload;
+    });
 
     const run = useCallback(async () => {
         setTranslating(true);

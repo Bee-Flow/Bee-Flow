@@ -12,8 +12,7 @@ const ITEMS = [
 export default function ActivityBar({ active, onSelect }: { active: string | null; onSelect: (id: string) => void }) {
     return (
         <div
-            className="flex flex-col items-center pt-1 pb-1 shrink-0"
-            style={{ width: 48, background: 'var(--vsc-actbar-bg)', borderRight: '1px solid var(--vsc-border)' }}
+            className="flex flex-col items-center pt-1 pb-1 shrink-0 w-[48px] [background:var(--vsc-actbar-bg)] [border-right:1px_solid_var(--vsc-border)]"
         >
             {ITEMS.map(({ id, Icon, title }) => {
                 const isActive = active === id;

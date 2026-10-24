@@ -186,7 +186,7 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
         // listening), and nothing logged as a termination.
         if (isGone() || err?.name === 'AbortError' || clientSignal.aborted) {
             log.info('[WebpageChat] turn cancelled by the client');
-            try { if (!res.writableEnded) res.end(); } catch (_) { /* socket already gone */ }
+            try { if (!res.writableEnded) res.end(); } catch (err) { log.debug('socket already gone', err); }
             return;
         }
         log.error('[WebpageChat] Error:', err);
@@ -200,7 +200,7 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
                 termination_type: 'error',
                 ...sanitizeError(err),
             }).catch(() => {});
-        } catch (_) { /* ignore logging failures */ }
+        } catch (err) { log.debug('ignore logging failures', err); }
         send('error', { error: `Chat error: ${err.message}` });
         res.end();
     }

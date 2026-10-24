@@ -64,7 +64,7 @@ const depsFor = (overrides) => depsWith(LOADERS, overrides);
 /** The integration a tool belongs to: the tool map's id, else the name's prefix. */
 function integrationOf(resolveIntegration, toolName) {
     let id = null;
-    try { id = resolveIntegration(toolName)?.integration || null; } catch (_) { /* unknown tool */ }
+    try { id = resolveIntegration(toolName)?.integration || null; } catch (err) { log.debug('unknown tool', err); }
     return String(id || String(toolName).split('_')[0] || '').toLowerCase();
 }
 

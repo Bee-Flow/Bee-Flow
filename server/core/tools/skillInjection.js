@@ -447,12 +447,15 @@ async function executeActivateSkill({ args, orgId, userId, onSkillsActivated, ag
 
     // Lazily required to avoid pulling automation runtime into modules that
     // don't need it. Falls back gracefully if the modules aren't available.
+    // The runner hands its executeAutomation over through automationExecutorPort
+    // (it may not be required from here: it dispatches tools through this module).
     let automationStore = null;
     let automationRunner = null;
     try {
         automationStore = require('../../stores/automationStore');
-        automationRunner = require('../automationRunner');
-    } catch (_) { /* automation runtime not available — skill→automation links will be skipped */ }
+        const executeAutomation = require('./automationExecutorPort').getAutomationExecutor();
+        automationRunner = executeAutomation ? { executeAutomation } : null;
+    } catch (err) { log.debug('automation runtime not available — skill→automation links will be skipped', err); }
 
     const blocks = await Promise.all(skills.map(async (s) => {
         // Linked automation: dispatch the flow and return its output instead of
@@ -467,7 +470,7 @@ async function executeActivateSkill({ args, orgId, userId, onSkillsActivated, ag
                 // Handoff 5: a skill that runs an automation is an agent starting
                 // an automation, so it counts against the same nesting limit and
                 // records who started it (automation/automationCallDepth.js).
-                const { runNestedAutomationCall } = require('../../automation/automationCallDepth');
+                const { runNestedAutomationCall } = require('../automationModel/automationCallDepth');
                 const trace = {
                     callerAgentId: callerAgentId || agentId || null,
                     callerConversationId: conversationId || null,
@@ -495,7 +498,7 @@ async function executeActivateSkill({ args, orgId, userId, onSkillsActivated, ag
                     // (BFSF-371), so the last row is often the sleep.
                     const last = Array.isArray(steps) ? steps.findLast(s => s.stepType !== 'wait') : null;
                     if (last) lastOutput = last.output;
-                } catch (_) { /* non-fatal */ }
+                } catch (err) { log.debug('non-fatal', err); }
                 let body = `### SKILL — "${s.name}" (id: ${s.id})\nThis skill ran the linked automation "${automation.title || automation.id}".\nStatus: ${status}`;
                 if (summary) body += `\nSummary: ${summary}`;
                 if (lastOutput !== undefined && lastOutput !== null) {

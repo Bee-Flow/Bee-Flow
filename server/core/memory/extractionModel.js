@@ -24,6 +24,7 @@
 
 const configStore = require('../../stores/configStore');
 const { resolveModelWithGlobalFallback } = require('../llm/modelResolver');
+const log = require('../../telemetry/log');
 
 const CONFIG_KEY = 'memory_extraction_model';
 
@@ -51,10 +52,7 @@ async function resolveMemoryExtractionModel({ agentModel = null, userOrgId = nul
     let configured = null;
     try {
         configured = await configStore.getConfig(CONFIG_KEY);
-    } catch (_) {
-        // A config-store hiccup must not stop extraction; fall through to the
-        // tier path the extractors always had.
-    }
+    } catch (err) { log.debug('A config-store hiccup must not stop extraction; fall through to the tier path the extractors always had.', err); }
     if (typeof configured === 'string' && configured.trim()) return configured.trim();
     return resolveModelWithGlobalFallback(agentModel, { userOrgId, userId, fallbackTier: 'fast' });
 }

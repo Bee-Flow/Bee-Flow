@@ -461,8 +461,7 @@ const InputArea = ({
             >
                 {/* Drag overlay */}
                 {isDragOver && (
-                    <div className="absolute inset-0 z-30 flex items-center justify-center bg-[var(--accent-primary)] bg-opacity-10 border-2 border-dashed border-[var(--accent-primary)] rounded-xl backdrop-blur-sm pointer-events-none"
-                        style={{ margin: '8px' }}
+                    <div className="absolute inset-0 z-30 flex items-center justify-center bg-[var(--accent-primary)] bg-opacity-10 border-2 border-dashed border-[var(--accent-primary)] rounded-xl backdrop-blur-sm pointer-events-none [margin:8px]"
                     >
                         <div className="flex flex-col items-center gap-2 text-[var(--accent-primary)]">
                             <Image className="w-8 h-8" />

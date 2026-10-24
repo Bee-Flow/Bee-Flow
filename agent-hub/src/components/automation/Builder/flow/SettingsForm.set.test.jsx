@@ -1,11 +1,11 @@
-import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
-import { editor, editors, editorValue, editorWithValue, typeInEditor } from '../../../../test/refEditor';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import SettingsForm from './SettingsForm';
-import { extractFormState, buildPatch } from './settings/formState';
 import { FormDensityContext } from './settings/formDensity';
-import { VariablePickerProvider } from '../mapping/VariablePickerContext';
+import { extractFormState, buildPatch } from './settings/formState';
+import SettingsForm from './SettingsForm';
+import { editorWithValue } from '../../../../test/refEditor';
 import scopedStorage from '../../../../utils/scopedStorage';
+import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 
 /**
  * The "Edit data" (set) editor — two modes derived from `arrayRef` presence.

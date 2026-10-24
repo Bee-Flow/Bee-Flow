@@ -23,12 +23,11 @@ export default function TemplateCard({ template, renamingId, setRenamingId, rena
     const { t } = useTranslation();
     return (
         <div
-            className="group rounded-xl border p-4 transition-all hover:shadow-md hover:border-[var(--accent-primary)]/30"
-            style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
+            className="group rounded-xl border p-4 transition-all hover:shadow-md hover:border-[var(--accent-primary)]/30 [border-color:var(--border-subtle)]! [background:var(--bg-secondary)]"
         >
             <div className="flex items-start gap-3">
                 {/* Icon */}
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(99, 102, 241, 0.08)' }}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 [background:rgba(99,102,241,0.08)]">
                     <File className="w-5 h-5" style={{ color: '#6366f1' }} />
                 </div>
 
@@ -76,8 +75,7 @@ export default function TemplateCard({ template, renamingId, setRenamingId, rena
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                         onClick={() => setFillTemplate(template)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-all hover:scale-[1.02]"
-                        style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-all hover:scale-[1.02] [background:linear-gradient(135deg,#6366f1,#8b5cf6)]"
                     >
                         {t('templates.fill_with_ai', 'Fill with AI')}
                     </button>

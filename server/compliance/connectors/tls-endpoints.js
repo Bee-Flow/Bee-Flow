@@ -8,9 +8,10 @@
  */
 
 const tls = require('node:tls');
+const log = require('../../telemetry/log');
 
 let _isPrivateHostname = null;
-try { _isPrivateHostname = require('../../utils/ssrfGuard').isPrivateHostname; } catch { /* optional */ }
+try { _isPrivateHostname = require('../../utils/ssrfGuard').isPrivateHostname; } catch (err) { log.debug('optional', err); }
 
 function _probe(host, port = 443, timeoutMs = 8000) {
     return new Promise((resolve) => {

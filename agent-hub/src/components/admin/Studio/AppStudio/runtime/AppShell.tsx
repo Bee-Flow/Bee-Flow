@@ -119,8 +119,7 @@ export default function AppShell({
     return (
         <div className={rootClass('flex-col')} data-app-appearance={appearance} style={rootStyle}>
             <header
-                className="flex items-center gap-4 border-b px-4 shrink-0"
-                style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}
+                className="flex items-center gap-4 border-b px-4 shrink-0 [border-color:var(--border-default)]! [background:var(--bg-card)]"
             >
                 <Brand definition={definition} />
                 {showNav ? (

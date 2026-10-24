@@ -199,7 +199,7 @@ function applyRegexGuardrails({ text, redactBase, regexConfig, scope, emit, audi
             try {
                 const regex = new RegExp(rule.pattern, 'gi');
                 processedText = processedText.replace(regex, `[REDACTED: ${rule.name}]`);
-            } catch (e) { /* skip invalid patterns */ }
+            } catch (e) { log.debug('skip invalid patterns', e); }
         }
         emit?.('content_redact', { originalMessage: text, redactedMessage: processedText, rules: ruleNames, autoRedactSeconds: 5 });
         if (audit) {

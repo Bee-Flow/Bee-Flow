@@ -197,7 +197,7 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
     } catch (err) {
         if (!res.headersSent) return next(err);
         log.error(`[StudioAppBrowse] ${err.message}`);
-        try { res.write(`data: ${JSON.stringify({ type: 'result', ok: false, error: 'Browse failed' })}\n\n`); } catch { /* gone */ }
+        try { res.write(`data: ${JSON.stringify({ type: 'result', ok: false, error: 'Browse failed' })}\n\n`); } catch (err) { log.debug('gone', err); }
         res.end();
     }
 });

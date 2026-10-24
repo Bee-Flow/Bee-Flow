@@ -20,6 +20,7 @@ import SegmentedControl from '../../../../../shared/SegmentedControl';
 import { SectionNote, hintTextClass, textareaClass } from '../formPrimitives';
 import { lineRange, markersFor } from './codeMarkers';
 import { EDITOR_PREF_KEY, MONACO_MOUNT_DEADLINE_MS, MonacoEditor, monacoOptions, monacoTheme } from './monaco';
+import { logger } from '../../../../../../utils/logger';
 
 export interface CodeEditorHandle {
     revealLine: (line: number, column?: number) => void;
@@ -57,7 +58,7 @@ function useEditorChoice() {
         // Asking for the editor back is a RETRY: without clearing the failure
         // the author would click an enabled control that does nothing.
         if (next === 'rich') { setFailure(null); setMounted(false); }
-        try { scopedStorage.setItem(EDITOR_PREF_KEY, next); } catch { /* private mode */ }
+        try { scopedStorage.setItem(EDITOR_PREF_KEY, next); } catch (err) { logger.debug('private mode', err); }
     };
     return { plain, failure, setFailure, mounted, setMounted, onUnavailable, choose };
 }

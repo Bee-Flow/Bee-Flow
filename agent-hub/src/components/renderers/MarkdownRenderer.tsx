@@ -529,7 +529,8 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, inline =
     // Throttle content updates to prevent flickering during streaming
     const THROTTLE_MS = 150;
     const [renderContent, setRenderContent] = useState<import('./MarkdownRenderer.types').MarkdownContent | null | undefined>(content);
-    const lastUpdateRef = useRef(Date.now());
+    const [firstUpdateAt] = useState(() => Date.now());
+    const lastUpdateRef = useRef(firstUpdateAt);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {

@@ -22,6 +22,7 @@ const fs = require('fs');
 const path = require('path');
 const Docker = require('dockerode');
 const log = require('../telemetry/log');
+const telemetryLog = require('../telemetry/log');
 const {
     isServerInContainer, imageExists, pullImage: pullImageStream, ensureNetwork,
     connectSelfToNetwork: connectSelf, removeContainerIfExists,
@@ -32,7 +33,7 @@ const {
 // local image tag so a version bump naturally invalidates the cached image and
 // forces a rebuild instead of silently reusing a stale, mismatched runner.
 let PW_VERSION = 'local';
-try { PW_VERSION = require('playwright/package.json').version; } catch (_) { /* fall back */ }
+try { PW_VERSION = require('playwright/package.json').version; } catch (err) { telemetryLog.debug('fall back', err); }
 const LOCAL_IMAGE_TAG = `beeflow-pwt-runner:pw-${PW_VERSION}`;
 
 const PWT_NETWORK = 'beeflow-pwt-net';
@@ -259,7 +260,7 @@ function followLogs(docker, container, onLine) {
             while ((idx = buf.indexOf('\n')) !== -1) {
                 const line = buf.slice(0, idx).trim();
                 buf = buf.slice(idx + 1);
-                if (line && onLine) { try { onLine(line); } catch (_) {} }
+                if (line && onLine) { try { onLine(line); } catch (_) { log.debug('log line consumer threw, the stream continues', _); } }
             }
             cb();
         },
@@ -270,7 +271,7 @@ function followLogs(docker, container, onLine) {
         logStream = stream;
         container.modem.demuxStream(stream, sink, sink);
     });
-    return () => { try { logStream?.destroy(); } catch (_) {} };
+    return () => { try { logStream?.destroy(); } catch (_) { log.debug('log stream already destroyed', _); } };
 }
 
 // ── Shared browser singleton ────────────────────────────────────────────────
@@ -382,14 +383,14 @@ async function ensureBrowserSingleton({ onLine } = {}) {
             _browserSingleton = { wsEndpoint, containerId: container.id };
             return _browserSingleton;
         } catch (e) {
-            try { detach(); } catch (_) {}
-            try { await container.stop({ t: 3 }); } catch (_) {}
-            try { await container.remove({ force: true }); } catch (_) {}
+            try { detach(); } catch (_) { log.debug('log follower already detached', _); }
+            try { await container.stop({ t: 3 }); } catch (_) { log.debug('container already stopped', _); }
+            try { await container.remove({ force: true }); } catch (_) { log.debug('container already removed', _); }
             throw e;
         } finally {
             // We only needed logs to capture the endpoint line; liveness is
             // tracked via inspect afterwards, so stop following.
-            try { detach(); } catch (_) {}
+            try { detach(); } catch (_) { log.debug('log follower already detached', _); }
         }
     })().finally(() => { _browserStarting = null; });
 

@@ -21,7 +21,7 @@ export default function SelfHostedCeilingEditor() {
                     <KeyRound className="w-5 h-5" style={{ color: '#3b82f6' }} />
                     <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_org.ceiling_licence_title', 'Server licence')}</h2>
                 </div>
-                <p className="text-sm mb-3" style={{ color: 'var(--text-muted)', maxWidth: 720 }}>
+                <p className="text-sm mb-3 [color:var(--text-muted)]! max-w-[720px]">
                     {t('admin_org.ceiling_licence_intro', 'The active licence tier is the capability ceiling for every organisation on this install. Distribute what it unlocks to members and groups under')} <strong>{t('admin_org.ceiling_grants', 'Grants')}</strong>.
                 </p>
                 <ServerLicensePanel />

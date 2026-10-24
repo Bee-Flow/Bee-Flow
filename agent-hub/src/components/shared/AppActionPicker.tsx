@@ -203,11 +203,9 @@ export default function AppActionPicker({
         );
     }, [apps, search]);
 
-    useEffect(() => {
-        if (filtered.length && !filtered.some((app) => app.id === focusedId)) {
-            setFocusedId(filtered[0].id);
-        }
-    }, [filtered, focusedId]);
+    if (filtered.length && !filtered.some((app) => app.id === focusedId)) {
+        setFocusedId(filtered[0].id);
+    }
 
     // De ↗ op een tool-rij opent de kiezer op DIE app; verandert het verzoek,
     // dan verspringt de focus mee.

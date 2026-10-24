@@ -93,9 +93,7 @@ function reindex(webpageId) {
     if (!webpageId) return;
     try {
         require('../core/webpages/webpageUsageSync').reconcileWebpageUsageDetached(webpageId);
-    } catch (_) {
-        // Een index mag een schrijfactie nooit laten omvallen.
-    }
+    } catch (err) { log.debug('Een index mag een schrijfactie nooit laten omvallen.', err); }
 }
 
 /*

@@ -111,8 +111,7 @@ export default function SourceDetail({
                             onClick={() => setScheduleOpen(v => !v)}
                             aria-haspopup="menu"
                             aria-expanded={scheduleOpen}
-                            className="inline-flex items-center gap-2 h-8 px-3 rounded-[10px] text-xs"
-                            style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                            className="inline-flex items-center gap-2 h-8 px-3 rounded-[10px] text-xs [border:1px_solid_var(--border-default)] [background:var(--bg-card)] [color:var(--text-primary)]!"
                         >
                             {t('knowledge.sources.refresh_label', 'Refresh: {mode}', {
                                 mode: t(refreshModeKey(source?.refreshMode), source?.refreshMode || 'manual'),
@@ -133,26 +132,23 @@ export default function SourceDetail({
             <div className="flex-1 overflow-y-auto px-7 py-5 flex flex-col gap-3 text-[12px]">
                 <div className="flex items-center gap-2.5">
                     <FilterChips t={t} value={filter} onChange={(v) => { setFilter(v); setOffset(0); }} source={source} />
-                    <label className="relative block shrink-0 ml-auto" style={{ width: 220 }}>
+                    <label className="relative block shrink-0 ml-auto w-[220px]">
                         <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-tertiary)]" aria-hidden="true" />
                         <input
                             value={query}
                             onChange={(e) => { setQuery(e.target.value); setOffset(0); }}
                             placeholder={t('knowledge.docs.search', 'Search a file…')}
                             aria-label={t('knowledge.docs.search_label', 'Search the files in this source')}
-                            className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
-                            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)' }}
+                            className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 [background:var(--bg-card)] [border-color:var(--border-default)] [color:var(--text-primary)]! [outline-color:var(--accent-primary)]!"
                         />
                     </label>
                 </div>
 
                 <div
-                    className="overflow-hidden"
-                    style={{ borderRadius: 12, background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)' }}
+                    className="overflow-hidden [border-radius:12px] [background:var(--bg-card)] [border:1px_solid_var(--border-default)] [box-shadow:var(--shadow-sm)]"
                 >
                     <div
-                        className="grid gap-3 px-3.5 py-2 text-[10px] font-semibold uppercase"
-                        style={{ gridTemplateColumns: '1fr 1.2fr 130px 130px 32px', letterSpacing: '.08em', color: 'var(--text-tertiary)', borderBottom: '1px solid var(--border-default)' }}
+                        className="grid gap-3 px-3.5 py-2 text-[10px] font-semibold uppercase [grid-template-columns:1fr_1.2fr_130px_130px_32px] [letter-spacing:.08em] [color:var(--text-tertiary)]! [border-bottom:1px_solid_var(--border-default)]"
                     >
                         <span>{t('knowledge.docs.col_file', 'File')}</span>
                         <span>{t('knowledge.docs.col_extracted', 'What the AI took from it')}</span>
@@ -291,8 +287,7 @@ function DocRow({ t, rel, doc, last, canManage, kbId, onChanged }: DocRowProps) 
                     <span
                         data-testid="kb-doc-unscanned"
                         title={doc.status_reason || undefined}
-                        className="shrink-0 px-1 rounded text-[10px] font-semibold"
-                        style={{ border: '1px solid var(--warning)', color: 'var(--warning-ink)' }}
+                        className="shrink-0 px-1 rounded text-[10px] font-semibold [border:1px_solid_var(--warning)] [color:var(--warning-ink)]!"
                     >
                         {t('knowledge.docs.not_checked', 'not checked')}
                     </span>
@@ -348,11 +343,11 @@ function Pager({ t, total, offset, onOffset }: PagerProps) {
         <div className="flex items-center gap-2 justify-end text-[var(--text-secondary)]">
             <span>{t('knowledge.docs.range', '{from}–{to} of {total}', { from, to, total })}</span>
             <button type="button" disabled={offset === 0} onClick={() => onOffset(Math.max(0, offset - PAGE_SIZE))}
-                className="px-2 py-1 rounded-lg disabled:opacity-40" style={{ border: '1px solid var(--border-default)' }}>
+                className="px-2 py-1 rounded-lg disabled:opacity-40 [border:1px_solid_var(--border-default)]">
                 {t('knowledge.docs.prev', 'Previous')}
             </button>
             <button type="button" disabled={to >= total} onClick={() => onOffset(offset + PAGE_SIZE)}
-                className="px-2 py-1 rounded-lg disabled:opacity-40" style={{ border: '1px solid var(--border-default)' }}>
+                className="px-2 py-1 rounded-lg disabled:opacity-40 [border:1px_solid_var(--border-default)]">
                 {t('knowledge.docs.next', 'Next')}
             </button>
         </div>
