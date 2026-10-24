@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AnswersDashboard from './AnswersDashboard';
 import { defaultRange, rangeToQuery } from './answersRange';
 import { datatablesApi } from '../../Datatables/datatablesApi';
@@ -60,6 +60,15 @@ beforeEach(() => {
     datatablesApi.getRow.mockResolvedValue({ row: { id: 'r1', source: 'search', subscribe: true, team: 12, more: 'Great onboarding, thanks', old: null } });
 });
 afterEach(() => { vi.useRealTimers(); });
+// Recharts' store batches through redux-toolkit's 'raf' queue, which also arms
+// a 100 ms fallback setTimeout that calls cancelAnimationFrame. On a loaded
+// machine the file can finish inside that window; the timer then fires after
+// the jsdom globals are gone and vitest reports an uncaught ReferenceError.
+// Unmount, then let those timers run while the globals still exist.
+afterAll(async () => {
+    cleanup();
+    await new Promise((resolve) => setTimeout(resolve, 150));
+});
 
 describe('answersRange', () => {
     it('turns presets into inclusive calendar days and "all" into no bounds', () => {
