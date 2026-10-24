@@ -771,5 +771,6 @@ module.exports = {
 // configStore.getSecret falls back to a named connection for legacy per-user
 // keys. configStore is the lower module, so we register instead of it requiring us.
 // Also registered lazily by boot/lateBoundPorts.js; a test may stub configStore without the setter.
-const _configStore = require('./configStore'); const { bestEffort, fallback } = require('../utils/bestEffort');
+const _configStore = require('./configStore');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 if (typeof _configStore.setLegacySecretResolver === 'function') _configStore.setLegacySecretResolver(getLegacySecretValue);

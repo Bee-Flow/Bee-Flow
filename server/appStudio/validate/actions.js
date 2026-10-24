@@ -390,7 +390,8 @@ function validateApprovalQuestions(field, value, path, ctx) {
 const { MAX_APPROVAL_STAGES: STAGE_MAX, MAX_SEATS_PER_STAGE: STAGE_SEAT_MAX,
     MAX_TOTAL_SEATS: STAGE_TOTAL_MAX, MAX_STAGE_NAME_LEN: STAGE_NAME_MAX,
     MAX_STAGE_DESCRIPTION_LEN: STAGE_DESC_MAX,
-    STAGE_RULES: STAGE_RULE_VALUES } = require('../../core/automationModel/approvalStages'); const { fallback } = require('../../utils/bestEffort');
+    STAGE_RULES: STAGE_RULE_VALUES } = require('../../core/automationModel/approvalStages');
+    const { fallback } = require('../../utils/bestEffort');
 function validateApprovalStages(field, value, path, ctx) {
     const { pushE } = ctx;
     if (!Array.isArray(value)) {

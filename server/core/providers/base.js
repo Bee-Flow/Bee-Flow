@@ -17,7 +17,8 @@
 const { stripInternalFields } = require('../../utils/messageUtils');
 const { parseGemmaArgs } = require('../llm/leakedToolCalls');
 const log = require('../../telemetry/log');
-const { normalizeUsage } = require('./usageNormalizer'); const { bestEffort, fallback } = require('../../utils/bestEffort');
+const { normalizeUsage } = require('./usageNormalizer');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 // Parity with claude.js (`?? DEFAULT_MAX_TOKENS`). Without a default, a
 // caller that passed no cap let a self-hosted model generate until its

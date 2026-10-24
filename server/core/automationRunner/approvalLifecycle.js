@@ -29,7 +29,8 @@ const {
     validatePanel,
     validateStages,
     panelRecipientIds,
-} = require('./approvalSeats'); const { bestEffort } = require('../../utils/bestEffort');
+} = require('./approvalSeats');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Resolve the org this approval belongs to. Stamped once at creation and

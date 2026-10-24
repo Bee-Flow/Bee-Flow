@@ -19,7 +19,8 @@ const { encryptField, decryptField, isEnvelope } = require('../lib/fieldEnvelope
 const { sealTitle, openTitle, openTitles } = require('./conversationTitle');
 const convMessages = require('./conversationMessages');
 const log = require('../../telemetry/log');
-const { searchConversationRows, byUpdatedDesc, AGENT_SEARCH } = require('../lib/conversationSearch'); const { bestEffort } = require('../../utils/bestEffort');
+const { searchConversationRows, byUpdatedDesc, AGENT_SEARCH } = require('../lib/conversationSearch');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** What the shared search needs from this store's db and crypto modules. */
 const SEARCH_DEPS = {

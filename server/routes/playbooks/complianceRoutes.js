@@ -69,7 +69,8 @@ const RegisterBody = bodyOf({
     risks: z.array(worded(RISKS_TEXT), { error: typeError({ invalid: RISKS_TEXT }) }).nullish(),
 });
 const { kindOf, firstOfKind, localeOf } = require('./phaseList');
-const log = require('../../telemetry/log'); const { fallback, bestEffort } = require('../../utils/bestEffort');
+const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /**
  * The six legal bases Art. 6 gives, and the cap the datatables route applies.

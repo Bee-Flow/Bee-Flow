@@ -7,7 +7,8 @@ const { dynamicUpdate, parseJSON } = require('./shared');
 const { deleteUser, assertNotStageRunAs } = require('./users');
 const { setOrgSubscription } = require('./subscriptions');
 const { getDefaultOrgPlanId } = require('./billingLifecycle');
-const log = require('../../telemetry/log'); const { fallback, bestEffort } = require('../../utils/bestEffort');
+const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // ── Organizations ─────────────────────────────
 function parseOrg(o) {

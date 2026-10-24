@@ -112,7 +112,8 @@ const UpdateBody = bodyOf({
 
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
-const { requireAuth } = require('../auth/permissions'); const { bestEffort } = require('../utils/bestEffort');
+const { requireAuth } = require('../auth/permissions');
+const { bestEffort } = require('../utils/bestEffort');
 
 // Every notebook route requires the `use_notebooks` permission. Ownership
 // isolation is still enforced per-route via the user_id check in notebookStore.

@@ -28,7 +28,8 @@ const ssrfGuard = require('./ssrfGuard');
 // The secret scrubber lives in the feature's runner; looked up on use
 // (core/featureModules.js), which also keeps the cycle with the runner lazy.
 const { featureModule } = require('../featureModules');
-const log = require('../../telemetry/log'); const { bestEffort } = require('../../utils/bestEffort');
+const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes, same as mcpManager
 const MAX_TOOLS = 100;

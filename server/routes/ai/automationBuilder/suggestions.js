@@ -61,7 +61,8 @@ const { isTimeZone } = require('../../../automation/patterns/periodicity');
 const { asToolExecutor } = require('../../../automation/patterns/scanReader');
 const { integrationOf } = require('../../../automation/patterns/ideation');
 const { fingerprintTitle } = require('../../../automation/suggestions');
-const { usageLogFields } = require('../../../core/providers/usageNormalizer'); const { fallback: fallbackSwallowed, bestEffort } = require('../../../utils/bestEffort');
+const { usageLogFields } = require('../../../core/providers/usageNormalizer');
+const { fallback: fallbackSwallowed, bestEffort } = require('../../../utils/bestEffort');
 
 const MODES = ['patterns', 'ideas'];
 const FOCUS_MAX_CHARS = 2000;

@@ -53,7 +53,8 @@ const safety = require('./safety');
 const usageStore = require('../../stores/usageStore');
 const { usageLogFields } = require('../providers/usageNormalizer');
 const { resolveDataExtractionModel, extractionRequestOptions, callExtractionModel } = require('./dataExtractionModel');
-const log = require('../../telemetry/log'); const { bestEffort } = require('../../utils/bestEffort');
+const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // The contract's system prompt, verbatim. The field list, the optional
 // instructions and the type rules follow it in the same message; the document

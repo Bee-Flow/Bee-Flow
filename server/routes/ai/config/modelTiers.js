@@ -12,7 +12,8 @@ const { isAdminUser } = require('./shared');
 const { requireAuth } = require('../../../auth/permissions');
 const { z, typeError } = require('../../../utils/zod');
 const { validate } = require('../../../core/http/validate');
-const { requireAdminUser } = require('../requireAdminUser'); const { bestEffort } = require('../../../utils/bestEffort');
+const { requireAdminUser } = require('../requireAdminUser');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const requireAdmin = requireAdminUser(isAdminUser);
 

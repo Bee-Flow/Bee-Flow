@@ -23,7 +23,8 @@ const configStore = require('../stores/configStore');
 const { chatWithAgent } = require('../core/agentRuntime');
 const { quickKBSearch } = require('../core/agentRuntime/knowledgeSearch');
 const { buildSupportToolset, makeActionPolicy } = require('../integrations/supportTools');
-const log = require('../telemetry/log'); const { fallback, bestEffort } = require('../utils/bestEffort');
+const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const ESCALATE_RE = /\[ESCALATE(?::\s*([^\]]+))?\]/i;
 const RESOLVED_RE = /\[RESOLVED\]/i;

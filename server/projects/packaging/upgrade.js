@@ -39,7 +39,8 @@ const {
     installDatatables, installAgents, installKnowledgeBases, patchReferences, stampAll, tablesForRebind,
 } = require('./install');
 const { HttpError } = require('../../core/http/errors');
-const log = require('../../telemetry/log'); const { bestEffort } = require('../../utils/bestEffort');
+const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 function hashOf(payload) {
     const { hashDefinition } = require('../../appStudio/templateUpgrade');

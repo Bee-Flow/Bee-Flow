@@ -42,7 +42,9 @@ const { resolveOrgId, _riskStore, _auditStore, _obligationStore } = require('./s
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
-const log = require('../../telemetry/log'); const { fallback } = require('../../utils/bestEffort'); const { isMissingTable } = require('../../utils/isMissingTable');
+const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
+const { isMissingTable } = require('../../utils/isMissingTable');
 
 // ── The vocabulary, kept next to the routes that speak it ───────────
 //

@@ -60,7 +60,8 @@ const {
 const { buildSandboxTools, executeSandboxTool } = require('../../core/skills/skillSandbox');
 const log = require('../../telemetry/log');
 const { openSse } = require('../../core/http/sseHelpers');
-const { HttpError } = require('../../core/http/errors'); const { bestEffort } = require('../../utils/bestEffort');
+const { HttpError } = require('../../core/http/errors');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** One test run is two model calls. Six a minute is a person pressing Run, not a script. */
 const limiter = perUserRateLimit({ windowMs: 60_000, max: 6 });

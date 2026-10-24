@@ -311,7 +311,8 @@ const {
     sanitiseSettings,
     stripReadOnly,
     SETTINGS_WHITELIST,
-} = require('./n8nWorkflowHelpers'); const { bestEffort, fallback } = require('../utils/bestEffort');
+} = require('./n8nWorkflowHelpers');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 // ─── Tool Execution ────────────────────────────────────────────
 

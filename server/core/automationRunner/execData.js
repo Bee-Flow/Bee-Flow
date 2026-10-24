@@ -11,7 +11,8 @@ const usageStore = require('../../stores/usageStore');
 const { usageLogFields } = require('../providers/usageNormalizer');
 const { COLLECTION_OP_MAX_ITEMS } = require('./shared');
 const { resolveArrayRef, skippedArrayRef } = require('./execCollections');
-const log = require('../../telemetry/log'); const { bestEffort } = require('../../utils/bestEffort');
+const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── n8n-style utility steps ─────────────────────────────
 //

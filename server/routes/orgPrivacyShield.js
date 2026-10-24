@@ -631,7 +631,8 @@ router.get('/:orgId/effective', requireAuth, async (req, res) => {
 
 // Secure by default (BFSF-289) — shared with the runtime resolver and the
 // consumer signup paths so the panel can never drift from what actually runs.
-const { USER_SHIELD_DEFAULTS } = require('../core/privacy/userShieldDefaults'); const { fallback, bestEffort } = require('../utils/bestEffort');
+const { USER_SHIELD_DEFAULTS } = require('../core/privacy/userShieldDefaults');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 // GET /user/guard-status — is PII detection actually able to run?
 //

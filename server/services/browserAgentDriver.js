@@ -21,7 +21,8 @@ const fs = require('fs');
 const path = require('path');
 
 const { resolveModelForTier } = require('../core/llm/modelResolver');
-const log = require('../telemetry/log'); const { fallback, bestEffort } = require('../utils/bestEffort');
+const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const PROMPT_PATH = path.join(__dirname, '..', 'prompts', 'browse-web-prompt.md');
 const DEFAULT_MAX_STEPS = parseInt(process.env.BROWSER_AGENT_MAX_STEPS || '8', 10);

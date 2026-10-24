@@ -71,7 +71,8 @@ const { perUserRateLimit } = require('../utils/perUserRateLimit');
 // ── Auth ────────────────────────────────────────────────────────────
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
-const { requireAuth } = require('../auth/permissions'); const { bestEffort } = require('../utils/bestEffort');
+const { requireAuth } = require('../auth/permissions');
+const { bestEffort } = require('../utils/bestEffort');
 
 // ── Rate limits (per viewer + app) ──────────────────────────────────
 const FILE_UPLOAD_RPM = parseInt(process.env.STUDIO_APP_FILE_UPLOAD_RPM, 10) || 20;

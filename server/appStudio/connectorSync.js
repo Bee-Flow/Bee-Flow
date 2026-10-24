@@ -90,7 +90,8 @@ function syncError(status, message, code) {
  * test here is untouched, and there is ONE definition of what a backoff is
  * rather than two that drift.
  */
-const { nextRunFor: coreNextRunFor } = require('../core/scheduling/nextRun'); const { bestEffort } = require('../utils/bestEffort');
+const { nextRunFor: coreNextRunFor } = require('../core/scheduling/nextRun');
+const { bestEffort } = require('../utils/bestEffort');
 
 /**
  * The cadence floor for a connector kind. A mailbox may poll every 2 minutes;

@@ -40,7 +40,8 @@ const storageStore = require('./storageStore');
 const webpageStore = require('./webpageStore');
 const { makeStoreInit } = require('./lib/storeInit');
 const log = require('../telemetry/log');
-const { parseJSONObject: parseJSON } = require('./lib/json'); const { fallback } = require('../utils/bestEffort');
+const { parseJSONObject: parseJSON } = require('./lib/json');
+const { fallback } = require('../utils/bestEffort');
 
 const ACCESS_MODES = ['unlisted', 'password', 'email'];
 

@@ -360,7 +360,8 @@ function parseRunFilters(req) {
 
 // Handoff 5: the Runs tab's row fields (automation/runListRows.js), in one
 // batched read per kind of fact per page.
-const { makeRunRowDecorator, segmentCounts } = require('../../automation/runListRows'); const { fallback } = require('../../utils/bestEffort');
+const { makeRunRowDecorator, segmentCounts } = require('../../automation/runListRows');
+const { fallback } = require('../../utils/bestEffort');
 const runRows = makeRunRowDecorator({
     store: automationStore,
     getUsersByIds: (ids) => require('../../stores/userStore').getUserAvatarsByIds(ids),

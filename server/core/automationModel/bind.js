@@ -20,7 +20,8 @@
 const { AsyncLocalStorage } = require('node:async_hooks');
 const { evaluate, parseExpr, templateText, parsePath, walkTokens, getRelativePath, replaceTemplate, scanTemplate, parseJsonText, formatPath, jsonCacheFor } = require('../../shared/expr/index.mjs');
 const log = require('../../telemetry/log');
-const { missingResultTokens } = require('./codeOutput'); const { bestEffort } = require('../../utils/bestEffort');
+const { missingResultTokens } = require('./codeOutput');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── The binding log ─────────────────────────────────────────────────────
 //

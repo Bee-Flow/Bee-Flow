@@ -129,7 +129,8 @@ const { validate } = require('../core/http/validate');
 const { openSse } = require('../core/http/sseHelpers');
 // The request shapes an app's runtime sends — shared with the public app
 // routes, which carry the same bodies (routes/studio/appRuntimeSchemas.js).
-const R = require('./studio/appRuntimeSchemas'); const { fallback, bestEffort } = require('../utils/bestEffort');
+const R = require('./studio/appRuntimeSchemas');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 // ── Pending run id (202 path) ───────────────────────────────────────
 // executeAutomation only hands back the run row when the run FINISHES, but a

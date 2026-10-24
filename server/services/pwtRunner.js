@@ -26,7 +26,8 @@ const telemetryLog = require('../telemetry/log');
 const {
     isServerInContainer, imageExists, pullImage: pullImageStream, ensureNetwork,
     connectSelfToNetwork: connectSelf, removeContainerIfExists,
-} = require('./docker/dockerKit'); const { bestEffort } = require('../utils/bestEffort');
+} = require('./docker/dockerKit');
+const { bestEffort } = require('../utils/bestEffort');
 
 // The runner image MUST match the server's Playwright version (connect()
 // rejects a minor-version mismatch). Derive the version and bake it into the

@@ -25,7 +25,8 @@
 
 const crypto = require('crypto');
 const configStore = require('../../stores/configStore');
-const log = require('../../telemetry/log'); const { fallback } = require('../../utils/bestEffort');
+const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // ─── Universal Heuristic Signals ──────────────────────────────────
 // These patterns are deliberately language-independent: they look at

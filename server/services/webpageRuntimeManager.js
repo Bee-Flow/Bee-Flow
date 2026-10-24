@@ -42,7 +42,8 @@ const log = require('../telemetry/log');
 const {
     isServerInContainer, imageExists, pullImage, ensureNetwork: ensureNamedNetwork,
     connectSelfToNetwork: connectSelf, removeContainerIfExists: removeContainer,
-} = require('./docker/dockerKit'); const { fallback: fallbackSwallowed, bestEffort } = require('../utils/bestEffort');
+} = require('./docker/dockerKit');
+const { fallback: fallbackSwallowed, bestEffort } = require('../utils/bestEffort');
 
 // ── Gate + tunables ─────────────────────────────────────────────────────────
 

@@ -63,7 +63,8 @@ const TestEmailBody = bodyOf({
 // Authentication middleware
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
-const { requireAuth } = require('../../../auth/permissions'); const { fallback } = require('../../../utils/bestEffort');
+const { requireAuth } = require('../../../auth/permissions');
+const { fallback } = require('../../../utils/bestEffort');
 
 // ─── General AI Config ───────────────────────────────────────────
 

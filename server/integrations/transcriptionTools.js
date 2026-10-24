@@ -29,7 +29,8 @@ const log = require('../telemetry/log');
 const { runAzureWhisperBatch, formatAzureBatchFailure, computeWhisperBatchTimeouts, azureDiarizationSpeakers } = require('../core/voice/azureWhisperBatch');
 const {
     formatTime, maxSegmentEnd, finalizeTranscript,
-} = require('./transcription/finalize'); const { fallback, bestEffort } = require('../utils/bestEffort');
+} = require('./transcription/finalize');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 // ─── Tool Definitions ──────────────────────────────────────────────────────────
 

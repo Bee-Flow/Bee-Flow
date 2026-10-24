@@ -41,7 +41,8 @@ const { HttpError } = require('../../http/errors');
 const { parseRange, cellsIn, fillRange, colName } = require('./sheetRefs');
 const { sheetDigest, rowsBlock, errorList, RANGE_CELL_CHARS } = require('./sheetDigest');
 const { sheetTabsOf } = require('../../../stores/lib/sheetDocument');
-const { chartProblem, chartFieldsOf, sizeInPx, CHART_STYLE_PROPERTIES, CHART_TYPES, CHART_TYPES_TEXT } = require('../sheetChartFields'); const { bestEffort } = require('../../../utils/bestEffort');
+const { chartProblem, chartFieldsOf, sizeInPx, CHART_STYLE_PROPERTIES, CHART_TYPES, CHART_TYPES_TEXT } = require('../sheetChartFields');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const MAX_ROUNDS = 8;
 /** The most cells one request may change. */

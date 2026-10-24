@@ -54,7 +54,8 @@ const crypto = require('crypto');
 const { run, getOne } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { createSecretBox } = require('../utils/secretBox');
-const log = require('../telemetry/log'); const { fallback } = require('../utils/bestEffort');
+const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const TABLE = 'integration_response_cache';
 

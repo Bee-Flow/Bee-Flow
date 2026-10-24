@@ -50,7 +50,8 @@ const datatableStore = require('../../stores/datatableStore');
 const datatableDbStore = require('../../stores/datatableDbStore');
 const {
     gradeForPrincipal, gradeAtLeast, datatableScopesFor, synthesizeAccess,
-} = require('../../auth/datatableAccess'); const { bestEffort } = require('../../utils/bestEffort');
+} = require('../../auth/datatableAccess');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const PG = { dialect: 'pg' };
 

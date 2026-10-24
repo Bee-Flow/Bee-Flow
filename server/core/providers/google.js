@@ -18,7 +18,8 @@ const BaseProvider = require('./base');
 const crypto = require('crypto');
 const { inlineInternalImages } = require('../documents/imageInline');
 const log = require('../../telemetry/log');
-const { normalizeUsage } = require('./usageNormalizer'); const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { normalizeUsage } = require('./usageNormalizer');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // Models that support thinking/reasoning — Gemini 3.x uses thinkingLevel.
 // Match any 3.x minor version (3, 3.1, 3.5, …) so new releases like

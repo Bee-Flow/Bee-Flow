@@ -21,7 +21,8 @@
  */
 
 const ssrfGuard = require('../core/customIntegrations/ssrfGuard');
-const log = require('../telemetry/log'); const { fallback: fallbackSwallowed, bestEffort } = require('../utils/bestEffort');
+const log = require('../telemetry/log');
+const { fallback: fallbackSwallowed, bestEffort } = require('../utils/bestEffort');
 
 const SLUG_RE = /^[a-z0-9]{4,16}$/;
 const TOOL_NAME_RE = /^[a-z][a-z0-9_]{2,40}$/;

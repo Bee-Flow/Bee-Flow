@@ -27,7 +27,8 @@ const userStore = require('../stores/userStore');
 const configStore = require('../stores/configStore');
 const { signedConnectorHeaders } = require('../integrations/ncSigning');
 const orgHealth = require('./orgHealth');
-const log = require('../telemetry/log'); const { fallback } = require('../utils/bestEffort');
+const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 // Org-health code for "the full sync could not read the NC user list". Open
 // while the connection is broken; the backstop backs off on it

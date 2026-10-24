@@ -100,7 +100,8 @@ const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const {
     makeLazyDeps, userIdOf, orgIdOf, moduleActive, licenceAllows, capability, permission, solutionsGate,
 } = require('./shared');
-const log = require('../../telemetry/log'); const { bestEffort } = require('../../utils/bestEffort');
+const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** One paragraph in, one building block out. Same cap skillDraft.js uses. */
 const MAX_TEXT_CHARS = 1000;

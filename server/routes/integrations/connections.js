@@ -32,7 +32,8 @@ const shareLimit = perUserRateLimit({ windowMs: 60_000, max: 10 });
 
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
-const { requireAuth } = require('../../auth/permissions'); const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { requireAuth } = require('../../auth/permissions');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 function isAdmin(req) {
     return !!(req.session?.isAdmin || req.session?.user?.role === 'admin');

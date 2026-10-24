@@ -19,7 +19,8 @@ const { resolveForEachItems } = require('./forEachScope');
 const { noteTruncation } = require('./truncations');
 const { buildLinearEdges } = require('./linearEdges');
 const { coerceLayerInputs } = require('./layerParams');
-const { forEachConcurrencyFor, runIndexedPool } = require('./forEachConcurrency'); const { fallback } = require('../../utils/bestEffort');
+const { forEachConcurrencyFor, runIndexedPool } = require('./forEachConcurrency');
+const { fallback } = require('../../utils/bestEffort');
 
 // ── Parallel branches ───────────────────────────────────
 //

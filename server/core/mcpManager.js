@@ -15,7 +15,8 @@ const path = require('path');
 const { buildMcpChildEnv } = require('./mcpChildEnv');
 const mcpStore = require('../stores/mcpStore');
 const configStore = require('../stores/configStore');
-const log = require('../telemetry/log'); const { bestEffort } = require('../utils/bestEffort');
+const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /** Repo root of this service — `/app` in the Docker image. */
 const SERVER_ROOT = path.resolve(__dirname, '..');

@@ -23,7 +23,8 @@ const { gmailClientFromTokens, graphFetchFromTokens } = require('./email/provide
 const parse = require('./email/parse');
 const supportMailer = require('./supportMailer');
 const { runAiAutoResponder } = require('./supportAiResponder');
-const log = require('../telemetry/log'); const { fallback, bestEffort } = require('../utils/bestEffort');
+const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const TICK_INTERVAL_MS = parseInt(process.env.SUPPORT_INBOX_TICK_MS || '90000', 10);
 const MAX_CONCURRENT = parseInt(process.env.SUPPORT_INBOX_MAX_CONCURRENT || '3', 10);

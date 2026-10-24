@@ -60,7 +60,8 @@ const agentStore = require('../stores/agentStore');
 const configStore = require('../stores/configStore');
 const { executeCowork } = require('../core/cowork/coworkRunner');
 const { userHasBetaFeature } = require('../core/entitlements/betaFeatures');
-const { requireAuth } = require('../auth/permissions'); const { bestEffort, fallback } = require('../utils/bestEffort');
+const { requireAuth } = require('../auth/permissions');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const DEFAULT_MAX_SCHEDULES = 10;
 

@@ -29,7 +29,8 @@
 const llmClient = require('../core/llm/llmClient');
 const usageStore = require('../stores/usageStore');
 const { usageLogFields } = require('../core/providers/usageNormalizer');
-const log = require('../telemetry/log'); const { bestEffort, fallback } = require('../utils/bestEffort');
+const log = require('../telemetry/log');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 // ── Caps (defence-in-depth; the attachment quota is the real byte backstop) ──
 const MAX_KB_IDS = 10;

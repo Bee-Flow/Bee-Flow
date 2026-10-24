@@ -42,7 +42,8 @@
 const { HttpError } = require('../../core/http/errors');
 const log = require('../../telemetry/log');
 const { KIND_OF_SECTION, canonicalOf, hashPayload } = require('./stagePayload');
-const { WRITE_ACTIONS, storesOf, makeJournal } = require('./journal'); const { bestEffort } = require('../../utils/bestEffort');
+const { WRITE_ACTIONS, storesOf, makeJournal } = require('./journal');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }

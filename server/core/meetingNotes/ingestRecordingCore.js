@@ -38,7 +38,8 @@ const { IngestError, safeUnlink } = require('./ingestShared');
 const { chooseProvider, transcribe } = require('./ingestTranscription');
 const log = require('../../telemetry/log');
 // The trigger bus lives in automation/, a feature: injected (../automationRunner/featurePorts.js).
-const { runnerPort } = require('../automationRunner/featurePorts'); const { fallback } = require('../../utils/bestEffort');
+const { runnerPort } = require('../automationRunner/featurePorts');
+const { fallback } = require('../../utils/bestEffort');
 
 const savedDir = path.resolve(__dirname, '../../data/uploads/saved-recordings');
 

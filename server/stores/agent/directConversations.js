@@ -24,7 +24,8 @@ const { buildUpdate } = require('../lib/sqlBuilder');
 const { normaliseKbIds } = require('../../core/kb/kbIdList');
 const log = require('../../telemetry/log');
 const { _restoreTokensInMessages, _displayTokenMap } = require('./tokenDisplay');
-const { searchConversationRows, byUpdatedDesc, DIRECT_SEARCH } = require('../lib/conversationSearch'); const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { searchConversationRows, byUpdatedDesc, DIRECT_SEARCH } = require('../lib/conversationSearch');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /** What the shared search needs from this store's db and crypto modules. */
 const SEARCH_DEPS = {

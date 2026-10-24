@@ -18,7 +18,8 @@ const fs = require('fs');
 const path = require('path');
 const log = require('../telemetry/log');
 const { s3ClientConfig } = require('./storageClientConfig');
-const { createUploadFileFromPath } = require('./storageUploadFromPath'); const { bestEffort, fallback } = require('../utils/bestEffort');
+const { createUploadFileFromPath } = require('./storageUploadFromPath');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const BUCKET = process.env.S3_BUCKET || 'beeflow-media';
 const DEFAULT_EXPIRY = 3600; // 1 hour

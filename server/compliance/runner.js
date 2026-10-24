@@ -92,7 +92,8 @@ const { computeScore, scoresByFramework, scoreNumbers, SNAPSHOT_COLUMN } = requi
 const { onEvidenceWriteFailed } = require('./evidence/writeFailures');
 const { errorShape: _errorShape, errorLabel: _errorLabel, stackFrames: _stackFrames } = require('./lib/errorShape');
 const { COVERAGE_SCOPE, coverageVerdict, coverageFailure, coverageSummary } = require('./coverage');
-const log = require('../telemetry/log'); const { bestEffort } = require('../utils/bestEffort');
+const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // Wall-clock budget per evaluate(). Env override exists for tests and for a
 // self-hosted box whose telemetry probes are slow — not a tuning knob.

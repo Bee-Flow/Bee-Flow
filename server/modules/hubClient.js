@@ -25,7 +25,8 @@ const crypto = require('crypto');
 const fsp = require('fs/promises');
 const { Readable } = require('stream');
 const { createTtlCache } = require('../utils/ttlCache');
-const log = require('../telemetry/log'); const { fallback, bestEffort } = require('../utils/bestEffort');
+const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const DEFAULT_HUB_URL = 'https://hub.beeflow.nl';
 const HUB_URL_KEY = 'beeflow_hub_url';

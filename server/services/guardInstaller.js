@@ -24,7 +24,8 @@ const log = require('../telemetry/log');
 const {
     isServerInContainer, imageExists, pullImage: pullImageStream, ensureNetwork,
     removeContainerIfExists: removeContainer,
-} = require('./docker/dockerKit'); const { fallback, bestEffort } = require('../utils/bestEffort');
+} = require('./docker/dockerKit');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const GUARD_CONTAINER = 'beeflow-guard';
 const REDIS_CONTAINER = 'beeflow-guard-redis';

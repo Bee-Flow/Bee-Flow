@@ -102,7 +102,8 @@ const safety = require('./safety');
 const { memoKeyParts, memoKeyFromParts } = require('./toolMemo');
 const { envFlagOn, resolveCachePolicy, resolveCachePolicyFresh } = require('./integrationCachePolicy');
 const log = require('../../telemetry/log');
-const { toolIdentity, stepKeyIdentity } = require('./toolIdentity'); const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { toolIdentity, stepKeyIdentity } = require('./toolIdentity');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /**
  * EVERY method may be cached. This is a deliberate product decision taken by the
