@@ -7,6 +7,7 @@
  */
 
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /** Dunning and trial-expiry ticks. */
 function startDunningAndTrialSchedulers() {
@@ -85,7 +86,7 @@ function startPlanCapDriftAudit() {
                                     { scanned: r.scanned, drifted: r.drifted, trimmed: r.trimmed },
                                     null,
                                 );
-                            } catch (err) { log.debug('audit best-effort', err); }
+                            } catch (err) { bestEffort('boot/startupBilling:runPlanCapDrift', err); /* audit best-effort */ }
                         }
                     }
                 } catch (e) { log.error('[PlanCapDrift] tick error:', e.message); }
@@ -161,7 +162,7 @@ function startPaygDrain() {
                         log.info(`[PaygDrain] delivered=${r.delivered} failed=${r.failed} hard_failed=${r.hardFailed}`);
                     }
                 } catch (e) { ok = false; log.error('[PaygDrain] tick error:', e.message); }
-                finally { try { require('../telemetry/metrics').recordJobRun({ job: 'payg_drain', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 }); } catch (err) { log.debug('best-effort', err); } }
+                finally { try { require('../telemetry/metrics').recordJobRun({ job: 'payg_drain', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 }); } catch (err) { bestEffort('boot/startupBilling:runPaygDrain', err); /* best-effort */ } }
             };
             setTimeout(runPaygDrain, 30_000).unref();
             setInterval(runPaygDrain, PAYG_DRAIN_INTERVAL_MS).unref();

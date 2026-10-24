@@ -5,6 +5,7 @@
  */
 
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const UNMATCHED_ROUTE = '__unmatched__';
 
@@ -41,7 +42,7 @@ function mountRequestTiming(app) {
                 if (typeof ct === 'string' && ct.includes('text/event-stream')) return;
                 const ms = Number(process.hrtime.bigint() - start) / 1e6;
                 httpMetrics.recordHttp({ method: req.method, route: _normalizeRoute(req), status: res.statusCode, ms });
-            } catch (err) { log.debug('never break the response', err); }
+            } catch (err) { bestEffort('boot/requestTiming:mountRequestTiming', err); /* never break the response */ }
         });
         next();
     });

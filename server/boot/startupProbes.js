@@ -8,6 +8,7 @@
 
 const { isModuleAvailable } = require('../modules/catalog');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /** Boot probes: the connector-bootstrap table check, the CPU pipeline warmups and the two PII Guard notices. */
 function startBootProbes() {
@@ -37,8 +38,8 @@ function startBootProbes() {
     try {
         const { warmup: warmRerank } = require('../core/rerank/cpuCrossEncoder');
         const { warmup: warmEmbed } = require('../core/embed/cpuEmbed');
-        setImmediate(() => { warmRerank().catch(() => {}); });
-        setImmediate(() => { warmEmbed().catch(() => {}); });
+        setImmediate(() => { warmRerank().catch((e) => bestEffort('boot/startupProbes:startBootProbes', e)); });
+        setImmediate(() => { warmEmbed().catch((e) => bestEffort('boot/startupProbes:startBootProbes#2', e)); });
     } catch (e) {
         log.warn('[CpuPipelines] Warmup could not start:', e.message);
     }
@@ -54,7 +55,7 @@ function startBootProbes() {
             if (installedModel === 'urchade/gliner_multi_pii-v1') {
                 log.warn('[PiiGuard] Old model in config (urchade/gliner_multi_pii-v1). Reinstall the guard service from Admin → Guardrails for improved Dutch + medical recall (E3-JSI/gliner-multi-pii-domains-v1).');
             }
-        } catch (err) { log.debug('fail-quiet', err); }
+        } catch (err) { bestEffort('boot/startupProbes:startBootProbes#3', err); /* fail-quiet */ }
     });
 
     // PII Guard reachability — one loud line at boot, non-blocking.
