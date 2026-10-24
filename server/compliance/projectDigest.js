@@ -27,6 +27,7 @@
 const findingState = require('./findingState');
 const { complianceSectionPath } = require('../utils/appPaths');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 // Upper bound on the findings one digest looks at: the count in the message
 // is exact up to here, and a sweep with more than this many brand-new project
@@ -57,7 +58,7 @@ function makeProjectDigest(overrides = {}) {
         const [latest, active, states] = await Promise.all([
             complianceStore.getLatestPerCheck(orgId),
             frameworkPolicy.activeRegulations(orgId),
-            complianceStore.listFindingStates ? complianceStore.listFindingStates(orgId).catch(() => []) : [],
+            complianceStore.listFindingStates ? complianceStore.listFindingStates(orgId).catch((e) => fallback('compliance/projectDigest:openFindings', e, [])) : [],
         ]);
         const index = findingState.indexStates(states);
         const out = [];

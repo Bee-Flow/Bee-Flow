@@ -58,6 +58,7 @@
 // Env override is for the tests and for a box whose checks are slow — not a
 // tuning knob for production.
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 const DEBOUNCE_MS = parseInt(process.env.COMPLIANCE_SUBJECT_REVIEW_DEBOUNCE_MS || '5000', 10);
 
 // key -> { timer, kind, orgId, subjectId, reason }. A key present here has a
@@ -145,7 +146,7 @@ function _queue(kind, orgId, subjectId, { reason = 'activation' } = {}) {
         if (_armed.has(key)) return;   // a review is already coming — it will read the final state
         const timer = setTimeout(() => {
             _armed.delete(key);
-            _run(key, kind, orgId, subjectId, reason).catch(() => { /* _run never rejects */ });
+            _run(key, kind, orgId, subjectId, reason).catch((e) => bestEffort('compliance/subjectReview:_queue', e));
         }, DEBOUNCE_MS);
         // unref: a pending review must never be the reason a worker or a test
         // run refuses to exit. Losing it on shutdown costs one verdict that

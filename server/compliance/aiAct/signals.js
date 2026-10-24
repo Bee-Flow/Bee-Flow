@@ -44,6 +44,7 @@ const complianceStore = require('../../stores/complianceStore');
 // the annex each one cites. It lives in its own file because `assess.js` needs
 // the same vocabulary and may not reach through this module (which does IO).
 const annexIii = require('./annexIii');
+const { fallback } = require('../../utils/bestEffort');
 const { ANNEX_III_RE } = annexIii;
 
 function isObject(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
@@ -193,7 +194,7 @@ async function loadAutomation(orgId, automationId) {
     } catch {
         // The form-page table is created lazily by automationStore/forms.js —
         // an install that never published a form must still resolve its automations.
-        row = await getOne(select(false), params).catch(() => null);
+        row = await getOne(select(false), params).catch((e) => fallback('compliance/aiAct/signals:loadAutomation', e, null));
     }
     return row || null;
 }
@@ -207,7 +208,7 @@ async function loadAgent(orgId, agentId) {
            FROM agents
           WHERE id = $2 AND organization_id = $1`,
         [orgId, String(agentId)],
-    ).catch(() => null);
+    ).catch((e) => fallback('compliance/aiAct/signals:loadAgent', e, null));
     return row || null;
 }
 
@@ -290,14 +291,14 @@ async function titlesFor(orgId, targets) {
             `SELECT a.id, a.title FROM automations a JOIN users u ON u.id = a.user_id
               WHERE ${AUTOMATION_ORG_WHERE} AND a.id = ANY($2::text[])`,
             [orgId, [...byKind.automation]],
-        ).catch(() => []);
+        ).catch((e) => fallback('compliance/aiAct/signals:titlesFor', e, []));
         for (const r of rows || []) out.automation[String(r.id)] = r.title || null;
     }
     if (byKind.agent.size) {
         const rows = await getAll(
             `SELECT id, name FROM agents WHERE organization_id = $1 AND id = ANY($2::text[])`,
             [orgId, [...byKind.agent]],
-        ).catch(() => []);
+        ).catch((e) => fallback('compliance/aiAct/signals:titlesFor#2', e, []));
         for (const r of rows || []) out.agent[String(r.id)] = r.name || null;
     }
     return out;

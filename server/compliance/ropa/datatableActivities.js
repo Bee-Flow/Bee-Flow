@@ -19,6 +19,7 @@
 
 /** Fields whose name says what kind of personal data the table holds. */
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const CATEGORY_HINTS = Object.freeze([
     { re: /\b(name|naam|voornaam|achternaam|surname|contact)\b/i, label: 'Names' },
@@ -76,7 +77,7 @@ async function datatableActivities(orgId, deps = defaultDeps()) {
         try {
             const meta = await deps.getTableMeta({ kind: r.scope_kind, id: r.scope_id }, r.id);
             fields = (meta && meta.fields) || [];
-        } catch (err) { log.debug('the row still describes a processing activity', err); }
+        } catch (err) { fallback('compliance/ropa/datatableActivities:datatableActivities', err); /* the row still describes a processing activity */ }
         const categories = categoriesOf(fields);
         const days = Number(r.retention_days);
         out.push({

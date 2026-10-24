@@ -32,6 +32,8 @@
 
 const complianceStore = require('../../../stores/complianceStore');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const LAWFUL_BASES = Object.freeze(['consent', 'contract', 'legal_obligation', 'vital_interests', 'public_task', 'legitimate_interests']);
 const DEFAULT_REVIEW_DAYS = 180;
@@ -240,14 +242,14 @@ module.exports = {
         if (!row) {
             return { status: 'not_applicable', evidence: { datatable_id: id }, details: 'That table is no longer in the register.' };
         }
-        const settings = await complianceStore.getSettings(orgId).catch(() => ({}));
+        const settings = await complianceStore.getSettings(orgId).catch((e) => fallback('compliance/checks/gdpr/art30-datatable-registrations:evaluate', e, {}));
         const reviewDays = Number(settings.datatable_review_days) > 0 ? Number(settings.datatable_review_days) : DEFAULT_REVIEW_DAYS;
         const reviewedAt = settings.ropa_reviewed_at ? Date.parse(settings.ropa_reviewed_at) : null;
         let fields = [];
         try {
             const meta = await deps.getTableMeta({ kind: row.scope_kind, id: row.scope_id }, row.id);
             fields = (meta && meta.fields) || [];
-        } catch (err) { log.debug('an unreadable table still has a registration to judge', err); }
+        } catch (err) { if (!isMissingTable(err)) throw err; log.debug('an unreadable table still has a registration to judge', err); }
         let outside = null;
         if (Number(row.retention_days) > 0 && row.retention_field) {
             try { outside = await deps.countOutside(row, { fields }); } catch { outside = null; }

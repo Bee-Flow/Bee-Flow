@@ -1,6 +1,7 @@
 // @typecheck
 'use strict';
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Evidence-chain WRITE failures — the hole the verifier cannot see.
@@ -85,7 +86,7 @@ function recordWriteFailure(row, err) {
             + `subject=${entry.subject_type}/${entry.subject_id} error=${entry.error_type}) — `
             + 'the action succeeded but the append-only trail has a hole',
         );
-    } catch (err) { log.debug('reporting must never mask the original failure', err); }
+    } catch (err) { fallback('compliance/evidence/writeFailures:recordWriteFailure', err); /* reporting must never mask the original failure */ }
 }
 
 /**

@@ -20,6 +20,7 @@
 
 const pd = require('../projects/projectData');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const KIND_LABEL = Object.freeze({
     name: 'Names',
@@ -72,9 +73,9 @@ async function projectActivities(orgId, deps = defaultDeps()) {
         `, [orgId, ids]);
         names = new Map((rows || []).map(r => [String(r.id), r.name]));
         namesRead = true;
-    } catch (err) { log.debug('ids stand in for names', err); }
+    } catch (err) { fallback('compliance/ropa/projectActivities:projectActivities', err); /* ids stand in for names */ }
     let byProject = new Map();
-    try { byProject = (await deps.signals.signalsFor(orgId)).byProject; } catch (err) { log.debug('categories unknown', err); }
+    try { byProject = (await deps.signals.signalsFor(orgId)).byProject; } catch (err) { fallback('compliance/ropa/projectActivities:projectActivities#2', err); /* categories unknown */ }
     const out = [];
     for (const r of registrations) {
         const id = String(r.subject_id);

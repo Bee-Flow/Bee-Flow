@@ -19,6 +19,7 @@
 const complianceStore = require('../../../stores/complianceStore');
 const incidentStore = require('../../../stores/incidentStore');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 module.exports = {
     id: 'ISO27001-A.5.24-incident-mgmt',
@@ -53,7 +54,7 @@ module.exports = {
         let attention = [];
         try {
             attention = await incidentStore.listNeedingAttention(orgId) || [];
-        } catch (err) { log.debug('sample stays empty', err); }
+        } catch (err) { fallback('compliance/checks/iso27001/a5-24-incident-mgmt:evaluate', err); /* sample stays empty */ }
 
         const evidence = {
             recipients_count: validRecipients.length,

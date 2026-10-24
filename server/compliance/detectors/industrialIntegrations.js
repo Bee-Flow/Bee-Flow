@@ -46,6 +46,7 @@
 const db = require('../../db');
 const { errorLabel } = require('../lib/errorShape');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const HEURISTICS_VERSION = '1.0.0';
 const ACTIVITY_WINDOW_DAYS = 90;
@@ -250,7 +251,7 @@ function _walkSteps(definition, fn) {
     try {
         const graph = require('../../automation/automationGraph');
         if (typeof graph.walkSteps === 'function') return graph.walkSteps(definition, fn);
-    } catch (err) { log.debug('not there yet — fall back', err); }
+    } catch (err) { bestEffort('compliance/detectors/industrialIntegrations:_walkSteps', err); /* not there yet — fall back */ }
     return _fallbackWalkSteps(definition, fn);
 }
 

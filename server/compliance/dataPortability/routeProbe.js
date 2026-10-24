@@ -22,6 +22,7 @@
 'use strict';
 
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const MAX_DEPTH = 16;
 
@@ -32,7 +33,7 @@ function stackOf(target) {
         if (Array.isArray(target.stack)) return target.stack;                 // express.Router()
         const r = target.router || target._router;                             // express() app (5.x getter / 4.x)
         if (r && Array.isArray(r.stack)) return r.stack;
-    } catch (err) { log.debug('a getter that throws is not a router', err); }
+    } catch (err) { bestEffort('compliance/dataPortability/routeProbe:stackOf', err); /* a getter that throws is not a router */ }
     return null;
 }
 
@@ -55,7 +56,7 @@ function matchLayer(layer, path) {
             try {
                 const r = matcher(path);
                 if (r) return { path: r.path || '' };
-            } catch (err) { log.debug('undecodable segment — not a match', err); }
+            } catch (err) { bestEffort('compliance/dataPortability/routeProbe:matchLayer', err); /* undecodable segment — not a match */ }
         }
         return null;
     }

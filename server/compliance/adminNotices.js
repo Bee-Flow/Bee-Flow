@@ -27,6 +27,7 @@
  */
 
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const RECIPIENT_SQL = `
     SELECT id FROM users
@@ -91,7 +92,7 @@ function makeAdminNotices(deps = {}) {
                 try {
                     await store.createNotification({ userId, category, title, message, link });
                     sent++;
-                } catch (err) { log.debug('one failed insert must not cost the others their notice', err); }
+                } catch (err) { bestEffort('compliance/adminNotices:notify', err); /* one failed insert must not cost the others their notice */ }
             }
             return sent;
         } catch (e) {

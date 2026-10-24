@@ -20,6 +20,7 @@
 
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 const CHECK_ID = 'DATA_ACT-Art25-exit-procedure';
 const ACTION = 'data_export_performed';
@@ -27,7 +28,7 @@ const SUBJECT_TYPE = 'export';
 
 function _formatFromResponse(res) {
     let ct = '';
-    try { ct = String(res.getHeader('content-type') || '').toLowerCase(); } catch (err) { log.debug('headers gone', err); }
+    try { ct = String(res.getHeader('content-type') || '').toLowerCase(); } catch (err) { fallback('compliance/dataPortability/stampExport:_formatFromResponse', err); /* headers gone */ }
     if (!ct) return null;
     if (ct.includes('json')) return 'json';
     if (ct.includes('csv')) return 'csv';
@@ -97,7 +98,7 @@ function stampExport(kind, { format = null } = {}) {
         // those red. No emitter → nothing to stamp, the export proceeds.
         if (res && typeof res.on === 'function') {
             res.on('finish', () => {
-                record(req, res, kind, format).catch(() => { /* best-effort evidence, never the export */ });
+                record(req, res, kind, format).catch((e) => bestEffort('compliance/dataPortability/stampExport:stampExport', e));
             });
         }
         next();

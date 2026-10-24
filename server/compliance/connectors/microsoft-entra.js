@@ -25,6 +25,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const LOGIN_BASE = 'https://login.microsoftonline.com';
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
@@ -129,7 +130,7 @@ module.exports = {
             } else {
                 admins = 0; // role never activated in this tenant
             }
-        } catch (err) { log.debug('permission missing — stay null', err); }
+        } catch (err) { fallback('compliance/connectors/microsoft-entra:collect', err); /* permission missing — stay null */ }
 
         // MFA-capable count — needs AuditLog.Read.All + Entra ID P1/P2;
         // null when the report is not accessible.
@@ -139,7 +140,7 @@ module.exports = {
             if (Array.isArray(reg?.value)) {
                 mfaCapable = reg.value.filter(r => r.isMfaCapable).length;
             }
-        } catch (err) { log.debug('licence or permission missing — stay null', err); }
+        } catch (err) { fallback('compliance/connectors/microsoft-entra:collect#2', err); /* licence or permission missing — stay null */ }
 
         return [{
             subject_id: 'summary',

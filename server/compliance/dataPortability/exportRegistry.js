@@ -26,6 +26,7 @@
 const path = require('path');
 const routeProbe = require('./routeProbe');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const SERVER_ROOT = path.resolve(__dirname, '..', '..');
 
@@ -348,7 +349,7 @@ async function heldCounts(orgId, /** @type {{db?: any}} */ { db } = {}) {
         const row = await getOne(combined, _paramsFor(combined, orgId));
         for (const k of EXPORT_KINDS) counts[k.kind] = _num(row?.[k.kind]);
         return { counts, errors };
-    } catch (err) { log.debug('fall through to per-kind', err); }
+    } catch (err) { fallback('compliance/dataPortability/exportRegistry:heldCounts', err); /* fall through to per-kind */ }
     for (const k of EXPORT_KINDS) {
         try {
             const row = await getOne(k.heldCountSql, _paramsFor(k.heldCountSql, orgId));

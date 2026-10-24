@@ -30,6 +30,7 @@
  */
 
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const SCHEDULER_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
 // A fixed key of our own (distinct from the ISO collector's 0xBEEF10A).
@@ -64,8 +65,8 @@ async function _acquire(pool) {
 }
 
 async function _release(client) {
-    try { await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { log.debug('best-effort: the session ends anyway', err); }
-    try { client.release(); } catch (err) { log.debug('already released', err); }
+    try { await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { bestEffort('compliance/scheduler:_release', err); /* best-effort: the session ends anyway */ }
+    try { client.release(); } catch (err) { bestEffort('compliance/scheduler:_release#2', err); /* already released */ }
 }
 
 async function _runAllOrgs(deps = null) {
@@ -101,7 +102,7 @@ async function _runAllOrgs(deps = null) {
                 continue;
             }
             if (d.digest && typeof d.digest.sendDigest === 'function') {
-                await d.digest.sendDigest(orgId).catch(() => { /* sendDigest never rejects; belt and braces */ });
+                await d.digest.sendDigest(orgId).catch((e) => bestEffort('compliance/scheduler:_runAllOrgs', e));
             }
         }
         if (d.complianceStore && typeof d.complianceStore.pruneHintDismissals === 'function') {

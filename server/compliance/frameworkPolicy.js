@@ -32,6 +32,7 @@
 const complianceStore = require('../stores/complianceStore');
 const frameworks = require('./frameworks');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const MEMO_TTL_MS = parseInt(process.env.COMPLIANCE_POLICY_MEMO_MS || '30000', 10);
 const RELEVANCE_VALUES = Object.freeze(['relevant', 'not_relevant', 'unknown']);
@@ -288,7 +289,7 @@ function _emit(name, payload) {
 function _bestEffortCountsInvalidate(orgId) {
     // The counts body caches the framework set for 60 s per org; bust it so the
     // rail and the header pick up an enable/disable on the very next poll.
-    try { require('./countsCache').invalidate(orgId); } catch (err) { log.debug('not shipped yet', err); }
+    try { require('./countsCache').invalidate(orgId); } catch (err) { bestEffort('compliance/frameworkPolicy:_bestEffortCountsInvalidate', err); /* not shipped yet */ }
 }
 
 /**

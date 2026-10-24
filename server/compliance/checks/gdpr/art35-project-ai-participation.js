@@ -31,6 +31,7 @@
 const pd = require('../../projects/projectData');
 const signals = require('../../projects/personalDataSignals');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const ORG_WIDE_DPIA_KEY = 'project_ai_participation';
 const ORG = pd.orgMatch('p.organization_id');
@@ -257,7 +258,7 @@ module.exports = {
         if (!targets.length) return { changed: 0, summary: 'No team chat needed switching.' };
         const updated = await deps.query(MENTION_SQL, [orgId, targets.map(s => s.id.slice(PREFIX.chats.length))]);
         for (const r of updated || []) {
-            try { await deps.announce(String(r.project_id), String(r.id), actorId); } catch (err) { log.debug('the switch stands; the live feed is best-effort', err); }
+            try { await deps.announce(String(r.project_id), String(r.id), actorId); } catch (err) { bestEffort('compliance/checks/gdpr/art35-project-ai-participation:autoFix', err); /* the switch stands; the live feed is best-effort */ }
         }
         return { changed: (updated || []).length, summary: `Switched ${(updated || []).length} team chat(s) to "AI answers on mention".` };
     },

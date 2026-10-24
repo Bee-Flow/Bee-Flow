@@ -93,6 +93,7 @@ const { onEvidenceWriteFailed } = require('./evidence/writeFailures');
 const { errorShape: _errorShape, errorLabel: _errorLabel, stackFrames: _stackFrames } = require('./lib/errorShape');
 const { COVERAGE_SCOPE, coverageVerdict, coverageFailure, coverageSummary } = require('./coverage');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // Wall-clock budget per evaluate(). Env override exists for tests and for a
 // self-hosted box whose telemetry probes are slow — not a tuning knob.
@@ -458,7 +459,7 @@ async function _runCustom(orgId, runType) {
 function _invalidateCounts(orgId) {
     // routes/compliance/counts.js caches /counts for 60 s per org; bust it so
     // the rail reflects this sweep. The module lands in Wave 1 — best-effort.
-    try { require('./countsCache').invalidate(orgId); } catch (err) { log.debug('not shipped yet', err); }
+    try { require('./countsCache').invalidate(orgId); } catch (err) { bestEffort('compliance/runner:_invalidateCounts', err); /* not shipped yet */ }
 }
 
 /**

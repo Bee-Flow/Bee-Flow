@@ -26,6 +26,7 @@
 
 const complianceStore = require('../stores/complianceStore');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const MEMO_MS = Number(process.env.COMPLIANCE_MARKING_MEMO_MS) > 0 ? Number(process.env.COMPLIANCE_MARKING_MEMO_MS) : 60_000;
 const FOOTER_KEY = 'compliance.marking_footer';
@@ -69,7 +70,7 @@ async function _dictionaryFooter(locale) {
         const strings = await languageStore.getEffectiveGUIStrings(locale);
         const v = strings && strings[FOOTER_KEY];
         if (typeof v === 'string' && v.trim()) return v;
-    } catch (err) { log.debug('dictionary unavailable → fallback below', err); }
+    } catch (err) { bestEffort('compliance/marking:_dictionaryFooter', err); /* dictionary unavailable → fallback below */ }
     return FOOTER_DEFAULTS[locale] || FOOTER_DEFAULTS.en;
 }
 

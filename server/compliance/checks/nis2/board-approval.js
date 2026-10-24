@@ -22,6 +22,7 @@
 const { getAll, getOne } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 const POLICY_SLUG = 'information-security-policy';
 const ORG_ADMIN_ROLES = ['org_admin', 'admin'];
@@ -100,7 +101,7 @@ module.exports = {
                 LIMIT 1
             `, [orgId]);
             if (r) lastReview = { held_at: r.held_at, attendees_count: Number(r.attendees_count) || 0 };
-        } catch (err) { log.debug('register absent — the signal is optional', err); }
+        } catch (err) { fallback('compliance/checks/nis2/board-approval:evaluate', err); /* register absent — the signal is optional */ }
 
         const evidence = {
             policy_slug: POLICY_SLUG,
