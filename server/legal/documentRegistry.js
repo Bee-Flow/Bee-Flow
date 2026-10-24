@@ -17,6 +17,7 @@
 
 // The consumer right-of-withdrawal waiver is a checkout-time acknowledgement.
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const WITHDRAWAL_WAIVER = {
     docId: 'withdrawal_waiver',
@@ -50,7 +51,7 @@ function optionalConsents() {
     try {
         const legalStore = require('./legalStore');
         if (legalStore.isLoaded()) ov = legalStore.getOptionalOverride();
-    } catch (err) { log.debug('fall back to defaults', err); }
+    } catch (err) { fallback('legal/documentRegistry:optionalConsents', err); /* fall back to defaults */ }
     if (!Array.isArray(ov) || !ov.length) return OPTIONAL_CONSENTS_DEFAULT.map(c => ({ ...c }));
     const byId = {};
     for (const d of OPTIONAL_CONSENTS_DEFAULT) byId[d.id] = { ...d };
