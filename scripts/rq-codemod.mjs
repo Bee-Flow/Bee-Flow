@@ -1407,10 +1407,13 @@ function mutationFile(file, text) {
         const line = lineOf(sf, site.node);
         if (site.dynamic) { results.skipped.push({ file, kind: 'mutation', line, reason: 'method is not a literal' }); continue; }
         if (site.get && insideEffectCallback(site.node)) { results.skipped.push({ file, kind: 'mutation', line, reason: 'GET inside an effect (query mode)' }); continue; }
-        const clash = [site.callee, 'RefusedError', 'errorBody'].find((nm) => bindsName(sf, nm) && !importMap(sf).has(nm));
-        if (clash) { results.skipped.push({ file, kind: 'mutation', line, reason: 'the file already binds a name the conversion imports', detail: clash }); continue; }
         try {
-            const r = convertMutation(sf, text, site.node, edits, site.callee);
+            const mine = [];
+            const r = convertMutation(sf, text, site.node, mine, site.callee);
+            // Only the names this conversion really imports can clash with what the file binds itself.
+            const clash = [...r.uses].find((nm) => bindsName(sf, nm) && !importMap(sf).has(nm));
+            if (clash) { results.skipped.push({ file, kind: 'mutation', line, reason: 'the file already binds a name the conversion imports', detail: clash }); continue; }
+            edits.push(...mine);
             for (const u of r.uses) used.add(u);
             results.converted.push({ file, kind: site.get ? 'request' : 'mutation', line, shape: r.shape });
         } catch (e) {
