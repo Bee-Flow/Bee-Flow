@@ -11,10 +11,10 @@ name = "beeflow-guard-service"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-  "fastapi==0.143.0",
+  "fastapi==0.146.0",
   "uvicorn[standard]==0.54.0",
   "pydantic==2.14.1",
-  "pydantic-settings==2.15.0",
+  "pydantic-settings==2.16.0",
   "httpx==0.28.1",
   "redis==8.1.0",
   "certifi==2026.10.19",
@@ -42,7 +42,7 @@ dependencies = [
   # and leaving it implicit means the resolver picks the default PyPI build
   # (CUDA, ~2.5 GB of nvidia-* wheels) for a service that runs CPU-only.
   # Same version the Dockerfile pins; the index below supplies the +cpu build.
-  "torch==2.14.0",
+  "torch==2.14.1",
 ]
 
 [dependency-groups]
