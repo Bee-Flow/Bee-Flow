@@ -75,7 +75,7 @@ async function complete(endpoint, body) {
     });
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}: ${(await res.text()).slice(0, 300)}`);
     const json = await res.json();
-    return json.choices?.[0]?.message?.content ?? '';
+    return /** @type {any} */ (json).choices?.[0]?.message?.content ?? '';
 }
 
 /** Run `fn` over `items`, at most `n` at a time, in order of completion. */

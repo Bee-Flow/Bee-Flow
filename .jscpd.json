@@ -55,6 +55,8 @@
     "mobile/src/features/projects/mirror/**",
     "mobile/src/features/orgShield/mirror/**",
     "mobile/src/shared/markdown/mirror/**",
+    "guard-service/app/shared/**",
+    "classify-service/app/shared/**",
     "**/*.generated.mjs",
     "components/*/ssrfGuard.js",
     "components/webpage-to-markdown/htmlToMarkdown.js",

@@ -701,7 +701,7 @@ export function fileList(filesArg, listArg) {
 }
 
 /** --anys over several files with ONE language service. A file that fails reports its error and the run goes on. */
-export function analyseAnysMany(c, files, { verify = true, log = () => {} } = {}) {
+export function analyseAnysMany(c, files, { verify = true, log = (/** @type {string} */ _m) => {} } = {}) {
     const results = [];
     for (const f of files) {
         log(`${c.rel(f)} ...`);
@@ -743,7 +743,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
                 const r = applyDepsChecked(c, iface, result);
                 if (r.error) result.applied = { error: r.error };
                 else {
-                    const { text, ...rest } = r;
+                    /** @type {{ text: string, [k: string]: any }} */
+                    const { text, ...rest } = /** @type {any} */ (r);
                     if (r.typechecks === false && !process.argv.includes('--force')) rest.refused = 'not written: the result adds diagnostics (see newErrors)';
                     else if (text !== c.original) fs.writeFileSync(c.abs, text);
                     result.applied = rest;

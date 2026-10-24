@@ -1539,6 +1539,9 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .nvmrc
+      # typescript for `lint:scripts-types` (scripts/tsconfig.json), plus jscpd.
+      - name: Install the root packages
+        run: npm ci --no-audit --no-fund
       - name: Ratchets and repo guards (check:fast)
         run: node scripts/check-fast.mjs
       - name: Repo-script unit tests
