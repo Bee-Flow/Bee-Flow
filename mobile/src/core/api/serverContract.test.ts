@@ -1551,6 +1551,8 @@ describe('the run log (server/stores/automationStore/runs.js + routes/automation
     const store = read('stores/automationStore/runs.js');
     // rowToOrgRunRow hands the mapped row to projectOrgRun, split out of runs.js.
     const orgRunRow = read('stores/automationStore/orgRunRow.js');
+    // getRunFacetsScoped, split out of runs.js.
+    const runsStats = read('stores/automationStore/runsStats.js');
     const routes = read('routes/automation/runs.js');
 
     it('rowToOrgRunRow still carries every field the log row reads, and `mine`', () => {
@@ -1574,7 +1576,7 @@ describe('the run log (server/stores/automationStore/runs.js + routes/automation
     });
 
     it('the facets still hold the chip maps and the per-automation rollup', () => {
-        const facets = functionSlice(store, 'getRunFacetsScoped');
+        const facets = functionSlice(runsStats, 'getRunFacetsScoped');
         expect(absentTokens(facets, [
             'status', 'triggerKind', 'automationId', 'errorClass', 'automations', 'automationsTotal',
             'title', 'kind', 'total', 'lastRunAt', 'lastErrorAt', 'lastErrorClass',

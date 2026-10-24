@@ -13,6 +13,8 @@ const SERVER = path.resolve(__dirname, '../../../../../server');
 const read = (rel: string) => fs.readFileSync(path.join(SERVER, rel), 'utf8');
 
 const users = read('auth/admin/userRoutes.js');
+// The allow-lists and body schemas, split out of userRoutes.js.
+const userSupport = read('auth/admin/userSupportRoutes.js');
 const usersStore = read('stores/user/users.js');
 const invitations = read('auth/admin/invitationRoutes.js');
 const invitationStore = read('stores/invitationStore.js');
@@ -38,9 +40,10 @@ describe('members (auth/admin/userRoutes.js)', () => {
     });
 
     it('still allows every key updateMember sends, and the self-demotion opt-in', () => {
-        const allowed = /USER_UPDATE_FIELDS = Object\.freeze\(\[([\s\S]*?)\]\)/.exec(users)?.[1] ?? '';
+        const allowed = /USER_UPDATE_FIELDS = Object\.freeze\(\[([\s\S]*?)\]\)/.exec(userSupport)?.[1] ?? '';
         for (const key of ['groups', 'orgRole', 'status']) expect(allowed).toContain(`'${key}'`);
-        expectAll(users, ["'confirmSelfDemotion'", "code: 'confirm_self_demotion'", 'wasEnabled']);
+        expectAll(userSupport, ["'confirmSelfDemotion'"]);
+        expectAll(users, ["code: 'confirm_self_demotion'", 'wasEnabled']);
     });
 
     it('lists the columns the roster reads', () => {

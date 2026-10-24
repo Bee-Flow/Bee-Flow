@@ -27,12 +27,9 @@ describe('lockstep with the web', () => {
     });
 
     it('paints the web’s panel', () => {
-        // Tailwind arbitrary classes (`[background:#1e1e2e]`, `[border-bottom:1px_solid_rgba(…)]`) and one style object.
-        const bare = (text: string) => text.replace(/[\s_]/g, '');
-        const web = bare(WEB);
-        for (const colour of [CODE_PANEL.background, CODE_PANEL.headerText, CODE_PANEL.copied]) expect(web).toContain(bare(colour));
-        expect(web).toContain(bare(`[background:${CODE_PANEL.headerBackground}]`));
-        expect(web).toContain(bare(`[border-bottom:1px solid ${CODE_PANEL.headerBorder}]`));
+        for (const colour of [CODE_PANEL.background, CODE_PANEL.headerText, CODE_PANEL.copied]) expect(WEB).toContain(`'${colour}'`);
+        expect(WEB).toContain(`background: '${CODE_PANEL.headerBackground}'`);
+        expect(WEB).toContain(`borderBottom: '1px solid ${CODE_PANEL.headerBorder}'`);
         expect(WEB).toContain("import 'highlight.js/styles/github-dark.min.css';");
     });
 

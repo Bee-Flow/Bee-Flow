@@ -194,7 +194,7 @@ jobs:
               # Studio, billing): lockstep tests and serverContract.test.ts
               # read these as text or require() them.
               - 'server/auth/{adminRoutes.js,ncBindingRoutes.js,permissions.js,router.js,permissionsCatalog.js,permissionsOrgGates.js}'
-              - 'server/auth/admin/{featureAccessRoutes.js,groupRoleRoutes.js,invitationRoutes.js,orgRoutes.js,userRoutes.js}'
+              - 'server/auth/admin/{featureAccessRoutes.js,groupRoleRoutes.js,invitationRoutes.js,orgRoutes.js,userRoutes.js,userSupportRoutes.js}'
               - 'server/auth/login/{currentUserRoutes.js,myPermissionsRoutes.js}'
               - 'server/automation/{deliverableEvents.js,formPickSources.js}'
               - 'server/automation/validate/constants.js'
@@ -238,7 +238,7 @@ jobs:
               - 'server/shared/expr/*'
               - 'server/stores/*'
               - 'server/stores/agent/sharedConversations.js'
-              - 'server/stores/automationStore/{folders.js,forms.js,lifecycle.js,orgRunRow.js,runs.js,versions.js,webhooks.js}'
+              - 'server/stores/automationStore/{folders.js,forms.js,lifecycle.js,orgRunRow.js,runs.js,runsStats.js,versions.js,webhooks.js}'
               - 'server/stores/datatableStore/{rowMappers.js,usage.js}'
               - 'server/stores/user/{groups.js,users.js}'
               - 'server/stores/webpage/{sources.js,versions.js}'
@@ -349,7 +349,9 @@ jobs:
               - 'agent-hub/src/shared/expr/**'
               - 'agent-hub/src/utils/{bindingHelpers,scopedStorage,caughtError}.*'
               - 'agent-hub/src/hooks/useUpstreamVariables.ts'
-              - 'agent-hub/src/api/client.*'
+              - 'agent-hub/src/api/{client,mutate}.*'
+              # the generated-copy list i18nGuard.test.ts skips
+              - 'scripts/shared-mirror.manifest.json'
               - 'agent-hub/src/components/admin/Studio/AppStudio/runtime/{resolveBinding.ts,resolveBinding.types.ts,themeVars.ts,uiBits.tsx}'
               - 'agent-hub/src/components/admin/security/guardrails/Info.tsx'
               - 'agent-hub/src/components/automation/Builder/BuilderConfirmContext.tsx'
