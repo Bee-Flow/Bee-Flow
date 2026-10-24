@@ -207,11 +207,12 @@ async function evictCached(r, sids) {
  * this, the existing cookie still validates for up to 30 days.
  *
  * Returns the number of sessions destroyed (PG row count).
+ * `db` is the test seam (pool + getRedis, as db.js exports them).
  */
-async function bustSessionsForUser(userId) {
+async function bustSessionsForUser(userId, { db = require('../db') } = {}) {
     if (!userId) return 0;
     try {
-        const { pool, getRedis } = require('../db');
+        const { pool, getRedis } = db;
         const result = await pool.query(
             `DELETE FROM user_sessions
                    WHERE sess::jsonb -> 'user' ->> 'id' = $1
@@ -236,10 +237,10 @@ async function bustSessionsForUser(userId) {
  * license revocation. Walks `users."organizationId"` to enumerate IDs, then
  * delegates per-user to bustSessionsForUser so the Redis bust happens too.
  */
-async function bustSessionsForOrg(organizationId) {
+async function bustSessionsForOrg(organizationId, { db = require('../db') } = {}) {
     if (!organizationId) return 0;
     try {
-        const { pool } = require('../db');
+        const { pool, getRedis } = db;
         const result = await pool.query(
             `DELETE FROM user_sessions
                    WHERE sess::jsonb -> 'user' ->> 'organizationId' = $1
@@ -248,7 +249,6 @@ async function bustSessionsForOrg(organizationId) {
             [String(organizationId)]
         );
         const sids = (result.rows || []).map(r => r.sid);
-        const { getRedis } = require('../db');
         await evictCached(getRedis(), sids);
         if (sids.length) {
             log.info(`[SessionCache] bust.org org_id=${organizationId} sessions=${sids.length}`);

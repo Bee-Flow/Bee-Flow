@@ -23,12 +23,12 @@ const { isMissingTable } = require('../../utils/isMissingTable');
  * @param {object} [opts]
  * @param {boolean} [opts.strict=false] throw if the remote cleanup is not demonstrably done,
  *   instead of warning.
+ * @param {Function} [opts.deleteLocal] test seam for localKBIngest.deleteChunksLocally
  */
-async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false } = {}) {
+async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false, deleteLocal } = {}) {
     // Clean up local kb_chunks (for Azure-path ingested docs)
     try {
-        const { deleteChunksLocally } = require('./localKBIngest');
-        await deleteChunksLocally(tenantId, kbId, docId);
+        await (deleteLocal || require('./localKBIngest').deleteChunksLocally)(tenantId, kbId, docId);
     } catch (err) {
         if (!isMissingTable(err)) {
             if (strict) throw new Error(`local chunk cleanup failed for document ${docId}: ${err.message}`);
