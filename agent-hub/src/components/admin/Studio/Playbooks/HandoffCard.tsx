@@ -100,7 +100,7 @@ export default function HandoffCard({ phase, next, index, total, t, onContinue, 
         return (
             <section className="pbk-handoff-enter" style={card} role="dialog" aria-label={t('playbooks.handoff.failed_title', 'Phase {n} did not land', { n: index + 1 })} data-testid="playbook-handoff" data-face="failed">
                 <header className="flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--error-ink, var(--error))' }} aria-hidden="true" />
+                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 [color:var(--error-ink,var(--error))]" aria-hidden="true" />
                     <div className="min-w-0">
                         <h3 className="font-semibold" style={{ fontSize: type.card, color: 'var(--text-primary)' }}>{t('playbooks.handoff.failed_title', 'Phase {n} did not land', { n: index + 1 })} — {label(phase)}</h3>
                         {phase.error && <p className="mt-1 break-words" style={{ fontSize: type.body, color: 'var(--text-secondary)' }}>{errorText(phase.error, t)}</p>}
@@ -119,7 +119,7 @@ export default function HandoffCard({ phase, next, index, total, t, onContinue, 
         return (
             <section className="pbk-handoff-enter" style={card} role="dialog" aria-label={t('playbooks.handoff.needs_input_title', 'The builder asked a question')} data-testid="playbook-handoff" data-face="needs_input">
                 <header className="flex items-start gap-2">
-                    <MessageSquare className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--type-ai)' }} aria-hidden="true" />
+                    <MessageSquare className="w-4 h-4 mt-0.5 shrink-0 [color:var(--type-ai)]" aria-hidden="true" />
                     <div className="min-w-0">
                         <h3 className="font-semibold" style={{ fontSize: type.card, color: 'var(--text-primary)' }}>{t('playbooks.handoff.needs_input_title', 'The builder asked a question')}</h3>
                         <p className="mt-1" style={{ fontSize: type.body, color: 'var(--text-secondary)' }}>{t('playbooks.handoff.needs_input_body', 'Answer in the chat on the left and the phase goes on. Or, when what is there is enough, mark it done.')}</p>
@@ -143,7 +143,7 @@ export default function HandoffCard({ phase, next, index, total, t, onContinue, 
     return (
         <section className="pbk-handoff-enter" style={card} role="dialog" aria-label={t('playbooks.handoff.title', 'Phase {n} of {total} landed', { n: index + 1, total })} data-testid="playbook-handoff" data-face="awaiting">
             <header className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--kind-playbook)' }} aria-hidden="true" />
+                <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 [color:var(--kind-playbook)]" aria-hidden="true" />
                 <div className="min-w-0">
                     <h3 className="font-semibold" style={{ fontSize: type.card, color: 'var(--text-primary)' }}>{t('playbooks.handoff.title', 'Phase {n} of {total} landed', { n: index + 1, total })} — {label(phase)}</h3>
                     {phase.summary && <p className="mt-1" style={{ fontSize: type.body, color: 'var(--text-secondary)' }}>{phase.summary}</p>}

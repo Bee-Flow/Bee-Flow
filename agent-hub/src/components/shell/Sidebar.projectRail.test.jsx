@@ -32,10 +32,7 @@ const { licenseMock, entitlementsMock, runtimeMock, fetchMock, storeMock, regist
 vi.mock('../../hooks/useProjectStream', () => ({ default: () => {} }));
 const { viewportMock } = vi.hoisted(() => ({ viewportMock: { isDesktop: true, isCompact: false, isMobile: false, width: 1920 } }));
 vi.mock('../../hooks/useViewport', () => ({ default: () => viewportMock, useViewport: () => viewportMock }));
-vi.mock('../../hooks/useTranslation', () => {
-    const useTranslation = () => ({ t: (key, fallback) => fallback || key, locale: 'en' });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 vi.mock('../appearance/ThemeContext', () => ({ useTheme: () => ({}) }));
 vi.mock('../licensing/LicenseContext', () => ({
     useLicenseContext: () => ({ hasFeature: (f) => licenseMock.hasFeature(f), deploymentMode: 'cloud' }),

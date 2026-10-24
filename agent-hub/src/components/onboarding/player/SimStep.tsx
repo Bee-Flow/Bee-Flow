@@ -108,7 +108,7 @@ function MatchSim({ step, sim, t, onState }: { step: LessonStep; sim: SimConfig;
                             onClick={() => setPickedLeft(pickedLeft === p.id ? null : p.id)}
                             className="text-left px-3 py-2.5 rounded-lg border text-[12.5px] leading-snug transition-colors disabled:opacity-60"
                             style={tile(pickedLeft === p.id, matched.has(p.id), false)}>
-                            {matched.has(p.id) && <Check className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" style={{ color: '#15803d' }} />}
+                            {matched.has(p.id) && <Check className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5 [color:#15803d]" />}
                             {t(p.leftKey, p.left)}
                         </button>
                     ))}
@@ -119,7 +119,7 @@ function MatchSim({ step, sim, t, onState }: { step: LessonStep; sim: SimConfig;
                             onClick={() => pickRight(p.id)}
                             className="text-left px-3 py-2.5 rounded-lg border text-[12.5px] leading-snug transition-colors disabled:opacity-60"
                             style={tile(false, matched.has(p.id), wrongFlash === p.id)}>
-                            {matched.has(p.id) && <Check className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" style={{ color: '#15803d' }} />}
+                            {matched.has(p.id) && <Check className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5 [color:#15803d]" />}
                             {t(p.rightKey, p.right)}
                         </button>
                     ))}
@@ -201,7 +201,7 @@ function OrderSim({ step, sim, t, onState }: { step: LessonStep; sim: SimConfig;
                                 {i + 1}
                             </span>
                             {(() => { const it = byId.get(id); return it ? t(it.labelKey, it.label) : id; })()}
-                            {wrongHere && <X className="w-3.5 h-3.5 ml-auto" style={{ color: '#b91c1c' }} />}
+                            {wrongHere && <X className="w-3.5 h-3.5 ml-auto [color:#b91c1c]" />}
                         </button>
                     );
                 })}

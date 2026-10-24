@@ -136,7 +136,7 @@ function FolderNode({ node, depth, expanded, toggle, activePath, onFileSelect, a
                 style={{ paddingLeft: 4 + depth * 10, color: 'var(--vsc-fg)' }}
             >
                 <ChevronDown size={12} style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.15s' }} />
-                <Icon size={12} style={{ color: 'var(--vsc-fg-muted)' }} />
+                <Icon size={12} className="[color:var(--vsc-fg-muted)]" />
                 <span className="flex-1 truncate">{node.name}</span>
                 {actions && (
                     <span className="flex items-center pr-1">
@@ -389,7 +389,7 @@ export default function FileExplorer({
             {/* Copy/rename toast */}
             {toast && (
                 <div className="absolute bottom-2 left-2 right-2 px-2 py-1 rounded text-[11px] flex items-center gap-1 [background:var(--vsc-editor-bg)] [color:var(--vsc-fg)]! [border:1px_solid_var(--vsc-border)]">
-                    <Check size={11} style={{ color: 'var(--vsc-accent)' }} /> {toast}
+                    <Check size={11} className="[color:var(--vsc-accent)]" /> {toast}
                 </div>
             )}
         </div>

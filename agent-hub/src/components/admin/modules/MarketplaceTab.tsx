@@ -272,7 +272,7 @@ export default function MarketplaceTab({ flash, reloadEntitlements }: Marketplac
             {/* Connection status row */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
-                    <Plug className="w-3.5 h-3.5" style={{ color: '#10b981' }} />
+                    <Plug className="w-3.5 h-3.5 [color:#10b981]" />
                     {t('modules.connected_to', { hub: hubUrl || '' })}
                 </div>
                 <div className="flex items-center gap-3">

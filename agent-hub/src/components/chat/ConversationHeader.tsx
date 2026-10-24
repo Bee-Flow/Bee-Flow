@@ -177,11 +177,7 @@ const ConversationHeader = ({
     return (
         <header
             data-testid="conversation-header"
-            className={`relative flex items-center ${isMobile ? 'px-3' : 'px-5'} bg-[var(--bg-primary)]/80 backdrop-blur-md sticky top-0 z-20`}
-            style={{
-                height: '48px', gap: '10px', flexShrink: 0,
-                borderBottom: '1px solid var(--border-subtle)',
-            }}
+            className={`relative flex items-center ${isMobile ? 'px-3' : 'px-5'} bg-[var(--bg-primary)]/80 backdrop-blur-md sticky top-0 z-20 h-[48px] [gap:10px] [flex-shrink:0] [border-bottom:1px_solid_var(--border-subtle)]`}
         >
             <div className="flex items-center gap-2 min-w-[0] [flex-shrink:1]">
                 {leading}
@@ -223,7 +219,7 @@ const ConversationHeader = ({
                     >
                         {/* The plus belongs to "to notebook" — it is the
                             direction of travel. Closing is not an addition. */}
-                        {!notebookOpen && <Plus aria-hidden="true" style={{ width: '13px', height: '13px' }} />}
+                        {!notebookOpen && <Plus aria-hidden="true" className="w-[13px] h-[13px]" />}
                         {t(notebookOpen ? 'chat.header.close_notebook' : 'chat.header.to_notebook',
                             notebookOpen ? 'Close notebook' : 'To notebook')}
                     </button>

@@ -546,7 +546,7 @@ function ContainsAiBanner({ containsAi, aiSteps, signals, t }: ContainsAiBannerP
             data-contains-ai={signals ? String(containsAi) : 'unknown'}
             className="flex items-start gap-2.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 py-2.5"
         >
-            <Sparkles size={16} aria-hidden="true" className="shrink-0 mt-0.5" style={{ color: 'var(--type-ai)' }} />
+            <Sparkles size={16} aria-hidden="true" className="shrink-0 mt-0.5 [color:var(--type-ai)]" />
             <div className="text-[13px] text-[var(--text-primary)] min-w-0">
                 <span className="font-semibold">{t('compliance.ladder_contains_ai', 'Contains AI:')}</span>{' '}
                 {!signals && <span className="text-[var(--text-tertiary)]">{t('compliance.ladder_signals_loading', 'reading the definition…')}</span>}

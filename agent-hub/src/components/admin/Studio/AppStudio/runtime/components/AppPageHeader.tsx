@@ -101,8 +101,7 @@ function IconBadge({ icon, size = 'h-9 w-9' }: { icon: string | null; size?: str
     if (!icon) return null;
     return (
         <span
-            className={`inline-flex ${size} items-center justify-center rounded-md shrink-0`}
-            style={{ background: 'var(--app-primary-soft)', color: 'var(--app-primary)' }}
+            className={`inline-flex ${size} items-center justify-center rounded-md shrink-0 [background:var(--app-primary-soft)] [color:var(--app-primary)]`}
             aria-hidden="true"
         >
             <AppIcon name={icon} className="w-4.5 h-4.5" />

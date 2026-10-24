@@ -488,7 +488,7 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }: Me
                                 {/* Loading skeleton */}
                                 {!ready && (
                                     <div className="mermaid-skeleton">
-                                        <Loader2 size={20} className="mermaid-skeleton-spinner" style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-primary)' }} />
+                                        <Loader2 size={20} className="mermaid-skeleton-spinner [animation:spin_1s_linear_infinite] [color:var(--accent-primary)]" />
                                         <span className="[font-size:12px] [color:var(--text-muted)] [margin-top:8px]">{t('notebooks.mermaid_rendering', 'Rendering diagram…')}</span>
                                     </div>
                                 )}

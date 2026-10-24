@@ -76,16 +76,14 @@ const GmailPicker = ({ isOpen, onClose, onFilesSelected, apiBase = '' }: Props) 
             {/* Email info */}
             <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                    <span className={`text-sm truncate ${msg.isUnread ? 'font-semibold' : 'font-medium'}`}
-                        style={{ color: '#202124', maxWidth: '200px' }}>
+                    <span className={`text-sm truncate ${msg.isUnread ? 'font-semibold' : 'font-medium'} [color:#202124]! max-w-[200px]`}>
                         {formatFrom(msg.from)}
                     </span>
                     <span className="text-xs flex-shrink-0 [color:#5f6368]!">
                         {formatRelativeDate(msg.date, { todayShowsTime: true })}
                     </span>
                 </div>
-                <div className={`text-sm truncate ${msg.isUnread ? 'font-semibold' : ''}`}
-                    style={{ color: '#202124' }}>
+                <div className={`text-sm truncate ${msg.isUnread ? 'font-semibold' : ''} [color:#202124]!`}>
                     {msg.subject}
                 </div>
                 <div className="text-xs truncate mt-0.5 [color:#5f6368]!">

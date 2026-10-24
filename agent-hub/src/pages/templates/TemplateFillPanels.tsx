@@ -87,7 +87,7 @@ export function FillChatPanel({
             <div ref={chatContainerRef} className="flex-1 overflow-auto p-4 custom-scrollbar">
                 {chatMessages.length === 0 ? (
                     <div className="text-center py-12">
-                        <Bot className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-muted)', opacity: 0.3 }} />
+                        <Bot className="w-12 h-12 mx-auto mb-3 [color:var(--text-muted)] [opacity:0.3]" />
                         <p className="text-sm font-medium text-[var(--text-secondary)]">{t('templates.fill_empty_title', 'Fill this template with AI')}</p>
                         <p className="text-xs mt-1 max-w-sm mx-auto text-[var(--text-muted)]">
                             {t('templates.fill_empty_text', 'Describe what the document should contain. The AI will help you fill in all the parameters.')}

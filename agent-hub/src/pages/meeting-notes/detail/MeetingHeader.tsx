@@ -135,7 +135,7 @@ export default function MeetingHeader({
                 color: 'var(--text-primary)',
             }}
         >
-            <Sparkles size={13} aria-hidden="true" style={{ color: 'var(--type-ai)' }} />
+            <Sparkles size={13} aria-hidden="true" className="[color:var(--type-ai)]" />
             <span className={OBJHEAD_FOLD.label}>{t('meetings.ask_ai', 'Ask AI')}</span>
         </button>
     ) : null;

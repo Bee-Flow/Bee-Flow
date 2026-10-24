@@ -120,7 +120,7 @@ export default function RelationsCard({ t, table, mirror, canEdit, onRefresh }: 
             {canEdit && siblings.length > 0 && (
                 <div className="space-y-2">
                     <span className="block text-xs font-medium text-[var(--text-primary)]">{t('datatables.nc_relation_add', 'Add a relation')}</span>
-                    <div className="grid gap-2 items-center" style={{ gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr) minmax(0,1fr)' }}>
+                    <div className="grid gap-2 items-center [grid-template-columns:minmax(0,1fr)_auto_minmax(0,1fr)_minmax(0,1fr)]">
                         <select value={draft.localFieldId} onChange={(e) => setDraft({ ...draft, localFieldId: e.target.value })} className={SELECT} style={INPUT_STYLE} aria-label={t('datatables.nc_rel_column', 'Column')}>
                             <option value="">{t('datatables.nc_rel_column', 'Column')}</option>
                             {own.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}

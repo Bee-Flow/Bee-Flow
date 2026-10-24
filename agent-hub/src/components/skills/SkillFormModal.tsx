@@ -433,8 +433,7 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
                         <button
                             onClick={save}
                             disabled={!canSave}
-                            className={`flex items-center gap-1.5 px-5 py-2 rounded-lg text-[13px] font-semibold transition-opacity ${canSave ? 'hover:opacity-90' : 'opacity-50 cursor-not-allowed'}`}
-                            style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
+                            className={`flex items-center gap-1.5 px-5 py-2 rounded-lg text-[13px] font-semibold transition-opacity ${canSave ? 'hover:opacity-90' : 'opacity-50 cursor-not-allowed'} [background:var(--accent-primary)] [color:var(--accent-primary-fg)]!`}
                         >
                             {saving
                                 ? t('skill_form.saving', 'Saving…')

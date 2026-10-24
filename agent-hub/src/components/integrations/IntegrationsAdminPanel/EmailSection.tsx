@@ -22,7 +22,7 @@ export default function EmailSection({
                 <div className="rounded-2xl border overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-default)]">
                     <div className="px-6 py-4 border-b border-[var(--border-subtle)]">
                         <h3 className="font-semibold flex items-center gap-2 text-[var(--text-primary)]">
-                            <Mail className="w-4 h-4" style={{ color: '#ea4335' }} />
+                            <Mail className="w-4 h-4 [color:#ea4335]" />
                             {t('integ.email_service_email_gmail', 'Service Email (Gmail)')}
                             {hasServiceEmail && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.email_configured', 'Configured')}</span>}
                         </h3>

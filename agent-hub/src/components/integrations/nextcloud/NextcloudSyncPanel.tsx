@@ -154,7 +154,7 @@ const NextcloudSyncPanel = ({ user }: NextcloudSyncPanelProps) => {
         <div className="space-y-6 max-w-3xl">
             <header className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <Cloud className="w-5 h-5" style={{ color: '#0082C9' }} />
+                    <Cloud className="w-5 h-5 [color:#0082C9]" />
                     <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('integ.nextcloud_sync_nextcloud_sync', 'Nextcloud Sync')}</h2>
                 </div>
                 <button onClick={handleSyncNow} disabled={syncing || config.mode === 'manual'}

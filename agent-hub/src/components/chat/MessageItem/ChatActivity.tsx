@@ -129,7 +129,7 @@ interface StatusGlyphProps {
 
 function StatusGlyph({ status }: StatusGlyphProps) {
     if (status === 'running') return <Loader2 size={12} className="flex-shrink-0 animate-spin motion-reduce:animate-none text-[var(--accent-primary)]" />;
-    if (status === 'failed') return <TriangleAlert size={12} className="flex-shrink-0" style={{ color: 'var(--warning)' }} />;
+    if (status === 'failed') return <TriangleAlert size={12} className="flex-shrink-0 [color:var(--warning)]" />;
     if (status === 'interrupted') return <Minus size={12} className="flex-shrink-0 text-[var(--text-tertiary)]" />;
     return <Check size={12} className="flex-shrink-0 text-emerald-500" />;
 }

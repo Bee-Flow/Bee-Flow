@@ -267,7 +267,7 @@ function OverviewRow({ skill, summary, onOpen, onImprove, rel, t }: OverviewRowP
                     data-testid="skills-overview-fill"
                     className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
                 >
-                    <Sparkles size={12} aria-hidden="true" style={{ color: 'var(--type-ai)' }} />
+                    <Sparkles size={12} aria-hidden="true" className="[color:var(--type-ai)]" />
                     {t('skills_studio.overview.fill', 'Let AI fill it in')}
                 </button>
             ) : (

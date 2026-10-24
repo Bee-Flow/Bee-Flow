@@ -56,7 +56,7 @@ export default function DocumentLinkCard({ href, label }: { href: string; label?
                 <FileText size={14} color="white" />
             </div>
             <span className="flex-1 text-sm font-medium truncate">{label || 'Open document'}</span>
-            <ArrowRight size={13} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+            <ArrowRight size={13} className="[color:var(--text-tertiary)] [flex-shrink:0]" />
         </button>
     );
 }

@@ -34,8 +34,7 @@ export function HeadCell({ t, label, title, kind, field, sort, onSort, numeric =
             style={{ color: muted ? 'var(--text-tertiary)' : 'var(--text-secondary)' }}
             title={title}>
             <button type="button" onClick={onSort}
-                className="inline-flex items-center gap-1.5 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                style={{ outlineColor: 'var(--accent-primary)' }}
+                className="inline-flex items-center gap-1.5 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [outline-color:var(--accent-primary)]!"
                 aria-label={t('datatables.sort_by', 'Sort by {name}', { name: label })}>
                 <ColumnKindIcon kind={kind} size={12} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
                 {label}
@@ -142,8 +141,7 @@ export function ManagedCell({ t, managedKind, column, row }: ManagedCellProps) {
     // dashed pill (2b), not as a dash that could pass for a value.
     if ((column.type === 'select' || column.type === 'multiselect') && isEmptyChoice(value)) {
         return (
-            <span className="inline-flex items-center text-[11px] whitespace-nowrap"
-                style={{ padding: '2px 8px', borderRadius: 999, border: '1px dashed var(--border-default)', color: 'var(--text-tertiary)' }}
+            <span className="inline-flex items-center text-[11px] whitespace-nowrap [padding:2px_8px] [border-radius:999px] [border:1px_dashed_var(--border-default)] [color:var(--text-tertiary)]!"
                 data-testid="cell-empty-choice">
                 {t('datatables.cell_no_choice', 'no {name} yet', { name: columnLabel(column).toLowerCase() })}
             </span>

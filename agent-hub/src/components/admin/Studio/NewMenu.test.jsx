@@ -5,10 +5,7 @@ const { fetchMock, toastMock } = vi.hoisted(() => ({
     fetchMock: vi.fn(),
     toastMock: { error: vi.fn(), success: vi.fn(), info: vi.fn(), dismiss: vi.fn() },
 }));
-vi.mock('../../../hooks/useTranslation', () => {
-    const useTranslation = () => ({ t: (key, fallback) => fallback || key, locale: 'en' });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
 vi.mock('../../shared/Toast', () => ({ toast: toastMock, default: toastMock }));
 vi.mock('../../automation/Builder/flow/settings/FormBuilderFields', () => ({

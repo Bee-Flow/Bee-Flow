@@ -5,9 +5,7 @@ import IntegrationsAdminPanel from './IntegrationsAdminPanel';
 import { authFetch } from '../../utils/helpers';
 
 vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../hooks/useTranslation', () => ({
-    useTranslation: () => ({ t: (_key, fallback) => fallback ?? _key }),
-}));
+vi.mock('../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 vi.mock('../licensing/LicenseContext', () => ({
     useLicenseContext: () => ({ hasFeature: () => true, hasTier: () => true }),
 }));

@@ -6,9 +6,7 @@ import { apiJson } from '../hooks/useApi';
 
 vi.mock('../hooks/useApi', () => ({ apiJson: vi.fn() }));
 vi.mock('../../../shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
-vi.mock('../../../../hooks/useTranslation', () => ({
-    useTranslation: () => ({ t: (key: string, fallback?: unknown) => (typeof fallback === 'string' ? fallback : key) }),
-}));
+vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
 const apiMock = vi.mocked(apiJson);
 

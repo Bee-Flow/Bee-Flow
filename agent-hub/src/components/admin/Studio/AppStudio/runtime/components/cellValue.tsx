@@ -331,8 +331,7 @@ function renderMainValue({ value, format, col, row, now, t }: RenderMainValueArg
                         return (
                             <span
                                 key={i}
-                                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs whitespace-nowrap"
-                                style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs whitespace-nowrap [background:var(--bg-secondary)] [color:var(--text-primary)]!"
                             >
                                 {m ? (
                                     <>
@@ -360,8 +359,7 @@ function renderMainValue({ value, format, col, row, now, t }: RenderMainValueArg
             return (
                 <span className="inline-flex items-center gap-1.5 w-full">
                     <span
-                        className="relative inline-block h-1.5 flex-1 rounded-full overflow-hidden"
-                        style={{ background: 'var(--bg-tertiary)' }}
+                        className="relative inline-block h-1.5 flex-1 rounded-full overflow-hidden [background:var(--bg-tertiary)]"
                         role="img"
                         aria-label={`${Math.round(pct)}%`}
                     >
@@ -396,8 +394,7 @@ function renderMainValue({ value, format, col, row, now, t }: RenderMainValueArg
                     href={String(value)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="underline underline-offset-2"
-                    style={{ color: 'var(--app-primary)' }}
+                    className="underline underline-offset-2 [color:var(--app-primary)]"
                 >
                     {displayValue(value)}
                 </a>

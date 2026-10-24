@@ -18,10 +18,7 @@ const { licenseMock, fetchMock, storeMock } = vi.hoisted(() => ({
     storeMock: { data: {} },
 }));
 
-vi.mock('../../hooks/useTranslation', () => {
-    const useTranslation = () => ({ t: (key, fallback) => fallback || key, locale: 'en' });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 vi.mock('../appearance/ThemeContext', () => ({ useTheme: () => ({}) }));
 vi.mock('../licensing/LicenseContext', () => ({
     useLicenseContext: () => ({ hasFeature: (f) => licenseMock.hasFeature(f), deploymentMode: 'cloud' }),

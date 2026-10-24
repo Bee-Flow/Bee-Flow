@@ -127,7 +127,7 @@ export default function LookPreviewIframe({ surface, draftPayload, onReload }: P
 
             {status === 'timeout' && (
                 <Overlay>
-                    <AlertTriangle className="w-7 h-7" style={{ color: 'var(--warning, #f59e0b)' }} />
+                    <AlertTriangle className="w-7 h-7 [color:var(--warning,#f59e0b)]" />
                     <p className="text-sm mt-3 max-w-xs text-center text-[var(--text-primary)]">
                         {t('appearance.look_preview_iframe_preview_took_longer_than_8_seconds_to', 'Preview took longer than 8 seconds to load.')}
                     </p>

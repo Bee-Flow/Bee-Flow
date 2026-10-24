@@ -91,7 +91,7 @@ export default function TutorPanel({ lessonId, step, modelTier = 'fast', onClose
                 <span className="text-[11px] text-[var(--text-tertiary)]">{t('learn.tutor.ladder', 'gives a hint first, the answer only after')}</span>
                 <button type="button" onClick={onClose} aria-label={t('common.close', 'Close')}
                     className="ml-auto grid place-items-center w-6 h-6 rounded-md transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">
-                    <X style={{ width: 12, height: 12 }} />
+                    <X className="w-[12px] h-[12px]" />
                 </button>
             </div>
 
@@ -116,7 +116,7 @@ export default function TutorPanel({ lessonId, step, modelTier = 'fast', onClose
                     ))}
                     {busy && (
                         <div className="self-start inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
-                            <Loader2 className="animate-spin" style={{ width: 12, height: 12 }} /> {t('learn.tutor.thinking', 'Thinking…')}
+                            <Loader2 className="animate-spin w-[12px] h-[12px]" /> {t('learn.tutor.thinking', 'Thinking…')}
                         </div>
                     )}
                 </div>
@@ -133,7 +133,7 @@ export default function TutorPanel({ lessonId, step, modelTier = 'fast', onClose
                 />
                 <button type="submit" disabled={busy || !input.trim()} aria-label={t('learn.tutor.send', 'Send')}
                     className="grid place-items-center transition-opacity disabled:opacity-40 text-[var(--text-tertiary)]">
-                    <CornerDownLeft style={{ width: 12, height: 12 }} />
+                    <CornerDownLeft className="w-[12px] h-[12px]" />
                 </button>
             </form>
         </div>

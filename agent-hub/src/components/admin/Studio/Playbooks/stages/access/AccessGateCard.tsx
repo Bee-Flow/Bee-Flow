@@ -46,7 +46,7 @@ export default function AccessGateCard({ changes, blocked, applying, approve, di
                         >
                             {c.kind === 'note'
                                 ? <span className="mt-0.5 shrink-0" aria-hidden="true">·</span>
-                                : <Check className="w-3 h-3 mt-0.5 shrink-0" style={{ color: 'var(--kind-playbook)' }} aria-hidden="true" />}
+                                : <Check className="w-3 h-3 mt-0.5 shrink-0 [color:var(--kind-playbook)]" aria-hidden="true" />}
                             {c.words}
                         </li>
                     ))}

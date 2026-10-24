@@ -80,7 +80,7 @@ const TrendChart = ({ timeline, title, avgLabel, noDataLabel, valueField = 'tota
         <Card style={{ padding: '12px 16px' }}>
             <div className="[display:flex] [align-items:center] [justify-content:space-between] [margin-bottom:8px]">
                 <div className="[display:flex] [align-items:center] [gap:6px]">
-                    <TrendingUp style={{ width: 13, height: 13, color: 'var(--accent-primary)', opacity: 0.7 }} />
+                    <TrendingUp className="w-[13px] h-[13px] [color:var(--accent-primary)] [opacity:0.7]" />
                     <span className="[font-size:12px] [font-weight:700] [color:var(--text-primary)]">{title}</span>
                 </div>
                 <span className="[font-size:11px] [color:var(--text-muted)] [font-weight:500]">{avgLabel.replace('{value}', fmt(avgDay))}</span>
@@ -477,7 +477,7 @@ export default function OverviewTab({
                                             <span className="[overflow:hidden] [text-overflow:ellipsis]">{row.display_name || row.user_id}</span>
                                         </span>
                                         <span style={{ fontSize: 11, fontWeight: 600, color: getColor(i), display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => setFilterModel(row.model)}>
-                                            <Cpu style={{ width: 10, height: 10, flexShrink: 0 }} />{shortModel(row.model)}
+                                            <Cpu className="w-[10px] h-[10px] [flex-shrink:0]" />{shortModel(row.model)}
                                         </span>
                                         <span className="[font-size:11px] [font-weight:600] [color:#3b82f6] [text-align:right]">{fNum(row.prompt_tokens)}</span>
                                         <span className="[font-size:11px] [font-weight:600] [color:#f59e0b] [text-align:right]">{fNum(row.completion_tokens)}</span>

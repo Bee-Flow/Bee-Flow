@@ -114,7 +114,7 @@ export default function NotificationRow({ n, index, isExpanded, actions }: {
                     title={t('common.delete', 'Delete')}
                     className="notif-delete-btn [background:none] [border:none] [cursor:pointer] [padding:4px] [border-radius:6px] [color:var(--text-muted,#94a3b8)] [opacity:0] [flex-shrink:0]"
                 >
-                    <X style={{ width: 14, height: 14 }} />
+                    <X className="w-[14px] h-[14px]" />
                 </button>
             </div>
 
@@ -235,7 +235,7 @@ function ResultActions({ n, body, actions }: { n: AppNotification; body: string;
                 data-testid="notif-open-in-chat"
                 className="[display:inline-flex] [align-items:center] [gap:6px] [padding:8px_16px] [border-radius:9px] [font-size:12.5px] [font-weight:600] [border:none] [cursor:pointer] [flex-shrink:0] [background:var(--text-primary,#0f172a)] [color:var(--bg-primary,#fff)]"
             >
-                <MessageSquare style={{ width: 14, height: 14 }} />
+                <MessageSquare className="w-[14px] h-[14px]" />
                 {t('notifications.open_result_in_chat', 'Open result in chat')}
             </button>
             <span className="[font-size:13px] [font-weight:600] min-w-[0] [color:var(--text-primary,#0f172a)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">

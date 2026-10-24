@@ -365,7 +365,7 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
     if (sentDone) {
         return wrap(
                 <div className="support-card">
-                    <CheckCircle2 size={40} color={T.primary} style={{ marginBottom: 12 }} aria-hidden="true" />
+                    <CheckCircle2 size={40} color={T.primary} className="[margin-bottom:12px]" aria-hidden="true" />
                     <h2 className="headline-md" style={{ color: T.text, margin: '0 0 12px' }}>{c.successTitle}</h2>
                     <p style={{ color: T.muted, fontSize: 15, lineHeight: 1.6, margin: '0 0 16px' }}>{c.successBody}</p>
                     {sentDone.threadUrl && (
@@ -384,9 +384,8 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
             <EditableText
                 path="customer-support.title"
                 as="h2"
-                className="headline-lg"
+                className="headline-lg [color:inherit]! [margin:0_0_12px]!"
                 placeholder="Title"
-                style={{ color: 'inherit', margin: '0 0 12px' }}
             >
                 {c.title}
             </EditableText>
@@ -395,7 +394,7 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
                 as="p"
                 multiline
                 placeholder="Intro text"
-                style={{ fontSize: '1.0625rem', lineHeight: 1.6, color: 'inherit', opacity: 0.85, margin: '0 0 32px' }}
+                className="[font-size:1.0625rem]! [line-height:1.6]! [color:inherit]! [opacity:0.85]! [margin:0_0_32px]!"
             >
                 {c.lead}
             </EditableText>

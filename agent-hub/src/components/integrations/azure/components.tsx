@@ -191,7 +191,7 @@ export const SearchableModelSelect = ({ value, label, models, onChange }: Search
                 style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: value ? 'var(--text-primary)' : 'var(--text-muted)' }}
             >
                 <span className="truncate">{label}</span>
-                <Search size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                <Search size={14} className="[color:var(--text-muted)] [flex-shrink:0]" />
             </button>
 
             {/* Through the shared Modal: Escape and a press on the backdrop
@@ -272,7 +272,7 @@ export const SearchableModelSelect = ({ value, label, models, onChange }: Search
                                                 <p className="text-sm font-medium truncate" style={{ color: isSelected ? '#0078D4' : 'var(--text-primary)' }}>{display}</p>
                                                 {display !== id && <p className="text-xs truncate text-[var(--text-muted)]">{id}</p>}
                                             </div>
-                                            {isSelected && <Check size={16} style={{ color: '#0078D4', flexShrink: 0 }} />}
+                                            {isSelected && <Check size={16} className="[color:#0078D4] [flex-shrink:0]" />}
                                         </button>
                                     );
                                 })}

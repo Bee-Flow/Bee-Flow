@@ -24,12 +24,14 @@ export const translationValue = {
 };
 
 /**
- * Like `tStub`, plus `{name}` interpolation from a params 3rd arg (the first
- * occurrence of each placeholder, as the inline copies this replaces did).
+ * Like `tStub`, plus `{name}` interpolation (every occurrence) from a params
+ * object given as 2nd or 3rd argument, as the real hook does.
  * Used by ./useTranslationParamsMock.
  */
-export function tParams(key: string, fallback?: unknown, params?: Record<string, unknown>): string {
-    let s = typeof fallback === 'string' ? fallback : key;
-    for (const [k, v] of Object.entries(params || {})) s = s.replace(`{${k}}`, String(v));
+export function tParams(key: string, fallbackOrParams?: unknown, params?: Record<string, unknown>): string {
+    let s = typeof fallbackOrParams === 'string' ? fallbackOrParams : key;
+    const vars =
+        params ?? (fallbackOrParams && typeof fallbackOrParams === 'object' ? (fallbackOrParams as Record<string, unknown>) : undefined);
+    for (const [k, v] of Object.entries(vars || {})) s = s.split(`{${k}}`).join(String(v));
     return s;
 }

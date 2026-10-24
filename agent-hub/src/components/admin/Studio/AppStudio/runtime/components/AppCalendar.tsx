@@ -248,8 +248,7 @@ export default function AppCalendar({ node }: NodeProps<CalendarProps>) {
                 ))}
             </div>
             <div
-                className={`grid grid-cols-7 gap-px border${fill ? ' flex-1 min-h-0 overflow-y-auto' : ' overflow-hidden'}`}
-                style={{ background: 'var(--border-subtle, var(--border-default))', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)' }}
+                className={`grid grid-cols-7 gap-px border${fill ? ' flex-1 min-h-0 overflow-y-auto' : ' overflow-hidden'} [background:var(--border-subtle,var(--border-default))] [border-color:var(--border-default)] [border-radius:var(--app-radius)]`}
             >
                 {days.map((day) => {
                     const key = dayKey(day);

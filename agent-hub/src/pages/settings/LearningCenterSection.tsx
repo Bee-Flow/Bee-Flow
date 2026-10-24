@@ -419,10 +419,10 @@ export default function LearningCenterSection({ user }: LearningCenterSectionPro
                             actions={(
                                 <>
                                     <SecondaryButton onClick={() => window.dispatchEvent(new CustomEvent(TOUR_START_EVENT, { detail: { returnTo: 'settings/learning' } }))} title={t('settings.learning_take_tour', 'Replay the welcome tour')}>
-                                        <Footprints style={{ width: 13, height: 13 }} aria-hidden="true" />{t('learn.tour_button', 'Tour')}
+                                        <Footprints className="w-[13px] h-[13px]" aria-hidden="true" />{t('learn.tour_button', 'Tour')}
                                     </SecondaryButton>
                                     <IconSquareButton ref={menuRef} onClick={() => setMenuOpen((o) => !o)} aria-haspopup="menu" aria-expanded={menuOpen} aria-label={t('learn.more', 'More')}>
-                                        <Ellipsis style={{ width: 14, height: 14 }} />
+                                        <Ellipsis className="w-[14px] h-[14px]" />
                                     </IconSquareButton>
                                     <AnchoredMenu open={menuOpen} onClose={() => setMenuOpen(false)} anchorRef={menuRef} align="right" width={220} role="menu" aria-label={t('learn.more', 'More')} className="py-1">
                                         <button type="button" role="menuitem" onClick={onReset} disabled={!anyProgress}

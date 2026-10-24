@@ -444,7 +444,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }: Webpag
                                 key={g.tool}
                                 className="group flex items-center gap-2 px-2 py-1.5 rounded border border-[var(--vsc-border)] bg-[var(--vsc-editor-bg)]"
                             >
-                                <Plug size={13} className="shrink-0" style={{ color: 'var(--vsc-fg-muted)' }} />
+                                <Plug size={13} className="shrink-0 [color:var(--vsc-fg-muted)]" />
                                 <div className="min-w-0 flex-1">
                                     <div className="truncate" title={g.tool}>
                                         {g.label || (g.tool || '').replace(/_/g, ' ')}
@@ -519,7 +519,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }: Webpag
                                 key={g.automationId}
                                 className="group flex items-center gap-2 px-2 py-1.5 rounded border border-[var(--vsc-border)] bg-[var(--vsc-editor-bg)]"
                             >
-                                <Workflow size={13} className="shrink-0" style={{ color: 'var(--vsc-fg-muted)' }} />
+                                <Workflow size={13} className="shrink-0 [color:var(--vsc-fg-muted)]" />
                                 <span className="min-w-0 flex-1 truncate" title={g.automationId}>
                                     {g.label || g.automationId}
                                 </span>

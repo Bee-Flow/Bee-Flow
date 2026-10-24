@@ -422,8 +422,8 @@ function RunRow({ run, rel, t }: RunRowProps) {
                 </span>
             </div>
             {ok
-                ? <Check size={14} aria-hidden="true" style={{ color: 'var(--success)' }} />
-                : <TriangleAlert size={14} aria-hidden="true" style={{ color: 'var(--warning)' }} />}
+                ? <Check size={14} aria-hidden="true" className="[color:var(--success)]" />
+                : <TriangleAlert size={14} aria-hidden="true" className="[color:var(--warning)]" />}
         </li>
     );
 }

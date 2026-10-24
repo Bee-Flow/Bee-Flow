@@ -264,7 +264,7 @@ function PanelBody({ sections, onNavigate, user, onClose }: PanelBodyProps) {
     return (
         <div className={CARD_CLASS} style={{ background: 'color-mix(in srgb, var(--type-ai) 4%, transparent)' }}>
             <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--type-ai)' }} strokeWidth={1.75} aria-hidden="true" />
+                <Sparkles className="w-4 h-4 flex-shrink-0 [color:var(--type-ai)]" strokeWidth={1.75} aria-hidden="true" />
                 <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">
                     {t('studio.ai.describe_title', 'Describe what you want')}
                 </h2>

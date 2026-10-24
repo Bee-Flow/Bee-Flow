@@ -123,7 +123,7 @@ export default function NowRunningStrip({ facets = null, loading = false, failed
                 /* UNREADABLE — never "nothing is running". A strip people
                    glance at has to be able to say it does not know. */
                 <div className="flex items-start gap-2 text-xs text-[var(--text-secondary)]" data-testid="now-running-unknown">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--warning)' }} aria-hidden="true" />
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 [color:var(--warning)]" aria-hidden="true" />
                     <span>
                         {failed
                             ? t('runs.now.unreadable', 'Could not read what is running — this is not “nothing is running”.')

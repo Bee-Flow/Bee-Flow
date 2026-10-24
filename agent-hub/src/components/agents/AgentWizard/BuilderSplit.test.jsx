@@ -35,19 +35,7 @@ vi.mock('../../renderers/MarkdownRenderer', () => ({
  * gebruiker leest ("42 documents"). Zelfde regel als de echte t():
  * een string als tweede argument is de fallback, anders zijn het de params.
  */
-vi.mock('../../../hooks/useTranslation', () => {
-    const t = (key, fallbackOrParams, paramsArg) => {
-        const hasStringFallback = typeof fallbackOrParams === 'string';
-        const params = hasStringFallback ? paramsArg : fallbackOrParams;
-        let value = hasStringFallback ? fallbackOrParams : key;
-        if (params && typeof params === 'object') {
-            for (const [k, v] of Object.entries(params)) value = value.split(`{${k}}`).join(String(v));
-        }
-        return value;
-    };
-    const useTranslation = () => ({ t, locale: 'en', setLocale: () => {}, isLoading: false, strings: {} });
-    return { default: useTranslation, useTranslation, TranslationProvider: ({ children }) => children };
-});
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import BuilderSplit from './BuilderSplit';
 import { authFetch } from '../../../utils/helpers';

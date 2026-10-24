@@ -212,10 +212,10 @@ export default function AnalyticsPanel() {
                             </select>
                         )}
                         <button onClick={() => setReloadToken(n => n + 1)} title={t('cms_site.analytics.panel.refresh', 'Refresh')} style={iconBtnStyle}>
-                            <RefreshCw style={{ width: 15, height: 15 }} />
+                            <RefreshCw className="w-[15px] h-[15px]" />
                         </button>
                         <button onClick={() => setView('settings')} title={t('cms_site.analytics.panel.settings', 'Analytics settings')} style={iconBtnStyle}>
-                            <Settings style={{ width: 15, height: 15 }} />
+                            <Settings className="w-[15px] h-[15px]" />
                         </button>
                     </div>
                 </div>
@@ -247,7 +247,7 @@ export default function AnalyticsPanel() {
                                             fontSize: 12, fontWeight: 700,
                                         }}
                                     >
-                                        <Icon style={{ width: 13, height: 13 }} />
+                                        <Icon className="w-[13px] h-[13px]" />
                                         {t(s.labelKey, s.label)}
                                     </button>
                                 );
@@ -266,13 +266,13 @@ export default function AnalyticsPanel() {
                                     borderRadius: 7, background: `${ACCENT}14`, border: `1px solid ${ACCENT}44`,
                                     color: ACCENT, fontSize: 11, fontWeight: 700,
                                 }}>
-                                    <Filter style={{ width: 11, height: 11 }} />
+                                    <Filter className="w-[11px] h-[11px]" />
                                     {filterLabel(k, t)}: {v}
                                     <button onClick={() => clearFilter(k)} aria-label={t('cms_site.analytics.panel.clear_filter', 'Clear {filter} filter', { filter: filterLabel(k, t) })} style={{
                                         display: 'inline-flex', background: 'transparent', border: 'none',
                                         color: ACCENT, cursor: 'pointer', padding: 0,
                                     }}>
-                                        <X style={{ width: 12, height: 12 }} />
+                                        <X className="w-[12px] h-[12px]" />
                                     </button>
                                 </span>
                             ))}

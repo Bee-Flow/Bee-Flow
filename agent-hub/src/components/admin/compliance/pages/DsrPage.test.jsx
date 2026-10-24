@@ -15,18 +15,7 @@ import { DAY_MS } from '../../../shared/deadlineMath';
  *     the modal validates before it posts an allow-listed body.
  */
 
-vi.mock('../../../../hooks/useTranslation', () => {
-    const useTranslation = () => ({
-        t: (key, fallback, vars) => {
-            const base = typeof fallback === 'string' ? fallback : key;
-            const params = typeof fallback === 'string' ? vars : fallback;
-            return params ? Object.entries(params).reduce((s, [k, v]) => s.replace(`{${k}}`, String(v)), base) : base;
-        },
-        locale: 'en',
-        resolvedLocale: 'en',
-    });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const { toast } = vi.hoisted(() => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock('../../../shared/Toast', () => ({ toast }));

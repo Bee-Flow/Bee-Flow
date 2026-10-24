@@ -145,8 +145,7 @@ export default function AiTablePanel({ mode = 'create', current = null, onApply,
     ].filter(Boolean).join(' ') : null;
 
     return (
-        <section className={`rounded-xl border ${compact ? 'p-3 space-y-2' : 'p-4 space-y-3'}`}
-            style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }} aria-labelledby={`${testId}-title`} data-testid={testId}>
+        <section className={`rounded-xl border ${compact ? 'p-3 space-y-2' : 'p-4 space-y-3'} [border-color:var(--border-default)] [background:var(--bg-card)]`} aria-labelledby={`${testId}-title`} data-testid={testId}>
             <div className="flex items-start gap-2">
                 <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-[var(--accent-primary)]" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
@@ -171,8 +170,7 @@ export default function AiTablePanel({ mode = 'create', current = null, onApply,
                     ? t('datatables.ai_placeholder_revise', 'e.g. add a phone number, rename Stage to Status, make Amount required')
                     : t('datatables.ai_placeholder', 'e.g. Supplier invoices: supplier, invoice number, date, amount excl. VAT, VAT %, total, status (new / approved / rejected)')}
                 disabled={busy}
-                className="w-full px-3 py-2 rounded-lg text-sm border outline-none focus:ring-2 disabled:opacity-60"
-                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                className="w-full px-3 py-2 rounded-lg text-sm border outline-none focus:ring-2 disabled:opacity-60 [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                 aria-label={t('datatables.ai_title', 'Build it with AI')}
                 data-testid={`${testId}-text`}
             />
@@ -196,7 +194,7 @@ export default function AiTablePanel({ mode = 'create', current = null, onApply,
                     </span>
                 )}
                 {result?.before && (
-                    <button type="button" onClick={undo} disabled={busy} className={`${BTN} inline-flex items-center gap-1.5`} style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }} data-testid={`${testId}-undo`}>
+                    <button type="button" onClick={undo} disabled={busy} className={`${BTN} inline-flex items-center gap-1.5 [border-color:var(--border-subtle)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`} data-testid={`${testId}-undo`}>
                         <Undo2 className="w-3.5 h-3.5" aria-hidden="true" />{t('datatables.ai_undo', 'Undo')}
                     </button>
                 )}

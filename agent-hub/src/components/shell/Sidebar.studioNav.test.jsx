@@ -45,10 +45,7 @@ const serve = ({ facets = null, orgFacets = null, forms = null } = {}) => {
     };
 };
 
-vi.mock('../../hooks/useTranslation', () => {
-    const useTranslation = () => ({ t: (key, fallback) => fallback || key, locale: 'en' });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 vi.mock('../appearance/ThemeContext', () => ({ useTheme: () => ({}) }));
 vi.mock('../licensing/LicenseContext', () => ({
     useLicenseContext: () => ({ hasFeature: (f) => licenseMock.hasFeature(f), deploymentMode: 'cloud' }),

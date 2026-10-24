@@ -298,7 +298,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
                                         ...(r.id === 'custom' ? { display: 'flex', alignItems: 'center', gap: '5px' } : {}),
                                     }}
                                 >
-                                    {r.id === 'custom' && <Calendar style={{ width: 12, height: 12 }} />}
+                                    {r.id === 'custom' && <Calendar className="w-[12px] h-[12px]" />}
                                     {r.labelKey ? t(r.labelKey, r.label) : r.label}
                                 </button>
                             ))}

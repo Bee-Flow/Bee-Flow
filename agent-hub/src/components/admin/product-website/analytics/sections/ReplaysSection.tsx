@@ -189,14 +189,14 @@ function SessionRow({ row, base, websiteId, onDrill }: { row: SessionListRow; ba
                 </div>
                 <div className="[font-size:11px] [color:var(--text-muted,#888)] [display:flex] [gap:10px] [flex-wrap:wrap] [margin-top:2px]">
                     <span className="[display:inline-flex] [align-items:center] [gap:4px]">
-                        <Monitor style={{ width: 11, height: 11 }} />
+                        <Monitor className="w-[11px] h-[11px]" />
                         {[s.browser, s.os, s.device].filter(Boolean).join(' · ') || t('cms_site.analytics.replays.unknown_device', 'unknown device')}
                         {s.screen ? ` · ${s.screen}` : ''}
                     </span>
                     {s.country && (
                         <button onClick={() => onDrill?.('country', s.country)}
                             className="[display:inline-flex] [align-items:center] [gap:4px] [background:transparent] [border:none] [padding:0] [cursor:pointer] [font-size:11px] [color:var(--text-muted,#888)]">
-                            <Globe style={{ width: 11, height: 11 }} />{s.country}
+                            <Globe className="w-[11px] h-[11px]" />{s.country}
                         </button>
                     )}
                     <span>
@@ -211,7 +211,7 @@ function SessionRow({ row, base, websiteId, onDrill }: { row: SessionListRow; ba
                     fontSize: 11, fontWeight: 700, color: ACCENT, textDecoration: 'none',
                     border: `1px solid ${ACCENT}44`, borderRadius: 7, padding: '4px 9px',
                 }}>
-                    {t('cms_site.analytics.replays.play', 'Play')} <ExternalLink style={{ width: 11, height: 11 }} />
+                    {t('cms_site.analytics.replays.play', 'Play')} <ExternalLink className="w-[11px] h-[11px]" />
                 </a>
             ) : (
                 <span className="[font-size:10px] [color:var(--text-muted,#666)] [flex-shrink:0]">{t('cms_site.analytics.replays.not_recorded', 'not recorded')}</span>
@@ -236,7 +236,7 @@ function RecordingStrip({ recording, totals, site, onOpenSettings }: RecordingSt
     if (!recording) {
         return (
             <div className="[display:flex] [gap:10px] [align-items:flex-start] [padding:12px_15px] [border-radius:10px] [background:rgba(245,158,11,0.08)] [border:1px_solid_rgba(245,158,11,0.25)] [font-size:12px] [color:#fcd34d]">
-                <ShieldAlert style={{ width: 14, height: 14, marginTop: 1, flexShrink: 0 }} />
+                <ShieldAlert className="w-[14px] h-[14px] [margin-top:1px] [flex-shrink:0]" />
                 <span className="[flex:1]">
                     <strong>{site?.name
                         ? t('cms_site.analytics.replays.off_named', 'Session recording is off for “{name}”.', { name: site.name })

@@ -10,10 +10,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: { calls: [], impl: null } }));
 
-vi.mock('../../../hooks/useTranslation', () => {
-    const useTranslation = () => ({ t: (key, fallback) => fallback || key, locale: 'en' });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 vi.mock('../../../utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async (url, opts) => {

@@ -83,8 +83,7 @@ const AgentCard = React.memo(({ agentId, name, avatar, description, typeLabel, i
             )}
             <button
                 onClick={(e) => { e.stopPropagation(); onToggleFavorite(agentId); }}
-                className={`p-1.5 rounded-lg transition-opacity ${isFavorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                style={{ background: 'var(--bg-tertiary)' }}
+                className={`p-1.5 rounded-lg transition-opacity ${isFavorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} [background:var(--bg-tertiary)]`}
             >
                 <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'text-red-500 fill-red-500' : ''}`} style={isFavorite ? {} : { color: 'var(--text-muted)' }} />
             </button>

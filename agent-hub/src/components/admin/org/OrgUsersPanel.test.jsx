@@ -29,19 +29,7 @@ const tab = vi.hoisted(() => ({ section: 'users', navigated: [], basePath: null 
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 const { toast } = vi.hoisted(() => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock('../../shared/Toast', () => ({ toast }));
-vi.mock('../../../hooks/useTranslation', () => ({
-    useTranslation: () => ({
-        // Mirrors the real t(): key, optional string fallback, optional params.
-        t: (key, fallbackOrParams, maybeParams) => {
-            const params = typeof fallbackOrParams === 'object' ? fallbackOrParams : maybeParams;
-            if (params && typeof fallbackOrParams === 'string') {
-                return fallbackOrParams.replace(/\{(\w+)\}/g, (m, k) => (k in params ? String(params[k]) : m));
-            }
-            if (params) return `${key}:${JSON.stringify(params)}`;
-            return typeof fallbackOrParams === 'string' ? fallbackOrParams : key;
-        },
-    }),
-}));
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 vi.mock('../../../hooks/useUrlTab', () => ({
     useUrlTab: ({ basePath }) => {
         tab.basePath = basePath;

@@ -446,12 +446,10 @@ export function FormEndingView({ form, downloadHref = null, onOpenInNotebooks = 
     return (
         <div style={style} className="w-full" data-testid="form-ending">
             <div
-                className={`flex flex-col gap-3 px-6 py-10 border ${isLong ? 'items-stretch text-left' : 'items-center text-center'}`}
-                style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', background: 'var(--bg-card, var(--bg-secondary))' }}
+                className={`flex flex-col gap-3 px-6 py-10 border ${isLong ? 'items-stretch text-left' : 'items-center text-center'} [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:var(--bg-card,var(--bg-secondary))]`}
             >
                 <span
-                    className={`h-11 w-11 flex items-center justify-center ${isLong ? 'self-center' : ''}`}
-                    style={{ background: 'var(--app-primary)', color: 'var(--app-primary-contrast)', borderRadius: '999px' }}
+                    className={`h-11 w-11 flex items-center justify-center ${isLong ? 'self-center' : ''} [background:var(--app-primary)] [color:var(--app-primary-contrast)] [border-radius:999px]`}
                 >
                     <Check size={22} />
                 </span>

@@ -43,7 +43,7 @@ export default function MeetingCard({ meeting, active, onClick }: MeetingCardPro
                     <h3 className="text-sm font-semibold leading-snug line-clamp-2 text-[var(--text-primary)]">
                         {meeting.title || 'Untitled meeting'}
                     </h3>
-                    {status === 'failed' && <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#ef4444' }} />}
+                    {status === 'failed' && <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 [color:#ef4444]" />}
                     {status === 'processing' && <Loader2 className="w-3.5 h-3.5 flex-shrink-0 animate-spin text-[var(--text-muted)]" />}
                 </div>
                 <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)]">

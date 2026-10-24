@@ -150,7 +150,7 @@ export default function AppStat({ node }: NodeProps<StatProps>) {
                 {error
                     ? <ErrorText error={error} errorCode={errorCode} />
                     : isLoading
-                    ? <Skeleton className="h-7 mt-1" style={{ width: '4rem' }} />
+                    ? <Skeleton className="h-7 mt-1 w-[4rem]!" />
                     : (
                         <div className="flex items-baseline gap-2 min-w-0">
                             <div

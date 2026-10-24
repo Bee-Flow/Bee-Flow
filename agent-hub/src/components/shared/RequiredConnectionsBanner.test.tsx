@@ -14,15 +14,7 @@ import { authFetch } from '../../utils/helpers';
  */
 
 vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../hooks/useTranslation', () => {
-    const t = (key: string, fallback?: string | Record<string, unknown>, params?: Record<string, unknown>) => {
-        const text = typeof fallback === 'string' ? fallback : key;
-        const values = params ?? (typeof fallback === 'object' ? fallback : undefined);
-        return values ? text.replace(/\{(\w+)\}/g, (m, k: string) => (k in values ? String(values[k]) : m)) : text;
-    };
-    const useTranslation = () => ({ t });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const mockedFetch = vi.mocked(authFetch);
 

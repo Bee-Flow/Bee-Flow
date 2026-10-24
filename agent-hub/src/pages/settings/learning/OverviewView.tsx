@@ -105,8 +105,8 @@ export default function OverviewView({
                                     )}
                                 </span>
                                 {expanded
-                                    ? <ChevronDown style={{ width: 15, height: 15, flexShrink: 0, color: 'var(--text-tertiary)' }} aria-hidden="true" />
-                                    : <ChevronRight style={{ width: 15, height: 15, flexShrink: 0, color: 'var(--text-tertiary)' }} aria-hidden="true" />}
+                                    ? <ChevronDown className="w-[15px] h-[15px] [flex-shrink:0] [color:var(--text-tertiary)]" aria-hidden="true" />
+                                    : <ChevronRight className="w-[15px] h-[15px] [flex-shrink:0] [color:var(--text-tertiary)]" aria-hidden="true" />}
                             </button>
                             {expanded && col.courses.map((course) => (
                                 <CourseRow key={course.id} t={t} course={course} lessons={lessonsOf(course)}
@@ -152,7 +152,7 @@ interface ContinueHeroProps {
 function ContinueHero({ t, target, reviewDue, reviewBuilding, onStartLesson, onStartReview }: ContinueHeroProps) {
     const reviewCount = (reviewDue?.mistakes || 0) + (reviewDue?.staleLessons || 0);
     return (
-        <Card className="flex items-center gap-4" style={{ padding: '16px 18px' }} data-testid="learning-hero">
+        <Card className="flex items-center gap-4 [padding:16px_18px]!" data-testid="learning-hero">
             <IconTile size={44}>
                 <CourseIcon courseId={target ? target.course.id : 'course-hive-master'} size={20} />
             </IconTile>
@@ -179,19 +179,19 @@ function ContinueHero({ t, target, reviewDue, reviewBuilding, onStartLesson, onS
                 {target && (
                     <>
                         <PrimaryButton onClick={() => onStartLesson(target.lesson.id, target.course.id)} data-testid="learning-continue">
-                            <Play style={{ width: 13, height: 13 }} aria-hidden="true" />{t('learn.play', 'Play')}
+                            <Play className="w-[13px] h-[13px]" aria-hidden="true" />{t('learn.play', 'Play')}
                         </PrimaryButton>
                         <SecondaryButton onClick={() => onStartLesson(target.lesson.id, target.course.id, { layout: 'docked' })}
                             title={t('learn.player.dock_title', 'Dock to the side — use the app while you learn')}>
-                            <PanelRight style={{ width: 13, height: 13 }} aria-hidden="true" />{t('learn.beside_app', 'Beside the app')}
+                            <PanelRight className="w-[13px] h-[13px]" aria-hidden="true" />{t('learn.beside_app', 'Beside the app')}
                         </SecondaryButton>
                     </>
                 )}
                 {reviewDue?.due && (
                     <SecondaryButton onClick={onStartReview} disabled={reviewBuilding} data-testid="learning-start-review">
                         {reviewBuilding
-                            ? <Loader2 className="animate-spin" style={{ width: 13, height: 13 }} aria-hidden="true" />
-                            : <RotateCcw style={{ width: 13, height: 13 }} aria-hidden="true" />}
+                            ? <Loader2 className="animate-spin w-[13px] h-[13px]" aria-hidden="true" />
+                            : <RotateCcw className="w-[13px] h-[13px]" aria-hidden="true" />}
                         {t('learn.hero.review_n', '{n} to review').replace('{n}', String(reviewCount))}
                     </SecondaryButton>
                 )}
@@ -235,9 +235,9 @@ export function CourseRow({ t, course, lessons, completedMap, locked, complete, 
             <span className="flex-1 min-w-0 truncate font-medium">{title}</span>
             <span className="flex items-center gap-2 text-[11px] whitespace-nowrap flex-shrink-0 text-[var(--text-tertiary)]">
                 {complete ? (
-                    <Check style={{ width: 15, height: 15, color: 'var(--learn-complete)' }} aria-label={t('learn.state.complete', 'complete')} />
+                    <Check className="w-[15px] h-[15px] [color:var(--learn-complete)]" aria-label={t('learn.state.complete', 'complete')} />
                 ) : locked ? (
-                    <>{lockedReason}<Lock style={{ width: 12, height: 12, flexShrink: 0 }} aria-hidden="true" /></>
+                    <>{lockedReason}<Lock className="w-[12px] h-[12px] [flex-shrink:0]" aria-hidden="true" /></>
                 ) : done > 0 ? (
                     t('learn.course.n_of_m', '{a} of {b}').replace('{a}', String(done)).replace('{b}', String(lessons.length))
                 ) : (
@@ -292,18 +292,18 @@ function CapstoneRow({ t, user, hasFeature, course, isComplete, locked, lockedRe
         <button type="button" onClick={onOpen} data-testid="capstone-station"
             aria-label={locked ? `${title} — ${lockedReason}` : title}
             className="w-full flex items-center gap-2.5 text-left rounded-xl transition hover:bg-[var(--bg-secondary)] [padding:12px_14px] [color:var(--text-tertiary)]! [background:var(--bg-card)]! [border:1px_solid_var(--border-default)] [box-shadow:var(--shadow-sm)]">
-                <Crown style={{ width: 16, height: 16, flexShrink: 0 }} aria-hidden="true" />
+                <Crown className="w-[16px] h-[16px] [flex-shrink:0]" aria-hidden="true" />
                 <span className="font-medium flex-shrink-0 text-[var(--text-primary)]">{title}</span>
                 <span className="text-[12px] truncate">{t('learn.capstone.short', 'No lessons — prove it in your own workspace.')}</span>
                 <span className="ml-auto flex items-center gap-2 text-[11px] whitespace-nowrap flex-shrink-0">
                     {complete ? (
-                        <Check style={{ width: 15, height: 15, color: 'var(--learn-complete)' }} aria-label={t('learn.state.complete', 'complete')} />
+                        <Check className="w-[15px] h-[15px] [color:var(--learn-complete)]" aria-label={t('learn.state.complete', 'complete')} />
                     ) : locked ? (
-                        <>{lockedReason}<Lock style={{ width: 12, height: 12, flexShrink: 0 }} aria-hidden="true" /></>
+                        <>{lockedReason}<Lock className="w-[12px] h-[12px] [flex-shrink:0]" aria-hidden="true" /></>
                     ) : (
                         <>
                             {passes === null
-                                ? <Loader2 className="animate-spin" style={{ width: 11, height: 11 }} aria-hidden="true" />
+                                ? <Loader2 className="animate-spin w-[11px] h-[11px]" aria-hidden="true" />
                                 : t('learn.capstone.checks_n', '{a} of {b} checks passed').replace('{a}', String(passed)).replace('{b}', String(criteria.length))}
                         </>
                     )}

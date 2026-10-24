@@ -114,7 +114,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
 
             {/* Warning: Impact of misconfiguration */}
             <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-lg text-[12px] [background:rgba(239,68,68,0.06)] [border:1px_solid_rgba(239,68,68,0.15)]">
-                <AlertTriangle size={15} className="mt-0.5 flex-shrink-0" style={{ color: '#ef4444' }} />
+                <AlertTriangle size={15} className="mt-0.5 flex-shrink-0 [color:#ef4444]" />
                 <div className="[color:#b91c1c]">
                     <p className="font-semibold mb-1">{t('azure.sso_warning_title')}</p>
                     <ul className="space-y-0.5 text-[11px] text-[var(--text-secondary)]">
@@ -164,7 +164,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
             {/* Warning: Tenant ID = common */}
             {(ssoTenantId === 'common' || ssoTenantId === '') && (
                 <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-lg text-[12px] [background:rgba(245,158,11,0.06)] [border:1px_solid_rgba(245,158,11,0.2)]">
-                    <AlertTriangle size={15} className="mt-0.5 flex-shrink-0" style={{ color: '#f59e0b' }} />
+                    <AlertTriangle size={15} className="mt-0.5 flex-shrink-0 [color:#f59e0b]" />
                     <div className="[color:#92400e]">
                         <p className="font-semibold mb-0.5">{t('azure.sso_tenant_common_title')}</p>
                         <p className="text-[11px] text-[var(--text-secondary)]">
@@ -186,7 +186,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                 />
                 {autoApproveSSO && (
                     <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-lg text-[12px] ml-[48px] [background:rgba(245,158,11,0.06)] [border:1px_solid_rgba(245,158,11,0.2)]">
-                        <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" style={{ color: '#f59e0b' }} />
+                        <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 [color:#f59e0b]" />
                         <p className="[color:#92400e]">{t('azure.sso_auto_approve_warning')}</p>
                     </div>
                 )}
@@ -212,9 +212,9 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                             status.lastSyncResult === 'partial' ? 'rgba(245,158,11,0.12)' :
                                 status.lastSyncResult === 'error' ? 'rgba(239,68,68,0.12)' : 'rgba(100,116,139,0.12)'
                     }}>
-                        {status.lastSyncResult === 'success' ? <CheckCircle2 size={18} style={{ color: '#22c55e' }} /> :
-                            status.lastSyncResult === 'partial' ? <AlertTriangle size={18} style={{ color: '#f59e0b' }} /> :
-                                status.lastSyncResult === 'error' ? <XCircle size={18} style={{ color: '#ef4444' }} /> :
+                        {status.lastSyncResult === 'success' ? <CheckCircle2 size={18} className="[color:#22c55e]" /> :
+                            status.lastSyncResult === 'partial' ? <AlertTriangle size={18} className="[color:#f59e0b]" /> :
+                                status.lastSyncResult === 'error' ? <XCircle size={18} className="[color:#ef4444]" /> :
                                     <Clock size={18} className="text-[var(--text-muted)]" />}
                     </div>
                     <div className="flex-1">
@@ -282,7 +282,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                             className="flex items-center gap-2 px-3.5 py-2.5 cursor-pointer [background:rgba(34,197,94,0.06)]"
                             onClick={() => setShowDetails(!showDetails)}
                         >
-                            <CheckCircle2 size={14} style={{ color: '#22c55e' }} />
+                            <CheckCircle2 size={14} className="[color:#22c55e]" />
                             <span className="text-[12px] font-medium flex-1 [color:#166534]!">
                                 {t('azure.sync_groups_success', 'Sync completed')}: {syncResult.synced?.groups || 0} {t('azure.sso_group_s', 'group(s),')} {syncResult.synced?.users || 0} {t('azure.sso_new_user_s', 'new user(s)')}
                             </span>
@@ -298,7 +298,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
 
                 {syncError && (
                     <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-lg text-[12px] [background:rgba(239,68,68,0.06)] [border:1px_solid_rgba(239,68,68,0.15)]">
-                        <XCircle size={14} className="mt-0.5 flex-shrink-0" style={{ color: '#ef4444' }} />
+                        <XCircle size={14} className="mt-0.5 flex-shrink-0 [color:#ef4444]" />
                         <div>
                             <p className="font-medium [color:#b91c1c]">{t('azure.sync_groups_error', 'Sync failed')}</p>
                             <p className="text-[11px] mt-0.5 text-[var(--text-secondary)]">{syncError}</p>
@@ -340,7 +340,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                         />
                         {settings.destructiveSync && (
                             <div className="flex items-start gap-2.5 px-3.5 py-2.5 rounded-lg text-[11px] ml-[48px] [background:rgba(239,68,68,0.06)] [border:1px_solid_rgba(239,68,68,0.15)]">
-                                <AlertTriangle size={13} className="mt-0.5 flex-shrink-0" style={{ color: '#ef4444' }} />
+                                <AlertTriangle size={13} className="mt-0.5 flex-shrink-0 [color:#ef4444]" />
                                 <p className="[color:#b91c1c]">
                                     {t('azure.sync_destructive_warning', 'Warning: This will remove users from BeeFlow groups and delete Azure-synced groups that are no longer assigned to the enterprise app.')}
                                 </p>

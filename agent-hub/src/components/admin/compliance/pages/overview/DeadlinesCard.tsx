@@ -81,8 +81,7 @@ export default function DeadlinesCard({ items = null, emptyKinds = [], failed = 
 
     return (
         <section
-            className={`flex flex-col rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-4 py-3.5 ${className}`}
-            style={{ boxShadow: 'var(--shadow-sm)' }}
+            className={`flex flex-col rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-4 py-3.5 ${className} [box-shadow:var(--shadow-sm)]`}
             data-testid={testId}
             aria-label={t('compliance.ovw_deadlines_title', 'Deadlines')}
         >

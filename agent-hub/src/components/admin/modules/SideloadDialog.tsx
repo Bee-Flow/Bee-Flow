@@ -122,7 +122,7 @@ export default function SideloadDialog({ onClose, onDone }: SideloadDialogProps)
                 disableEscapeClose={busy}
                 title={
                     <span className="flex items-center gap-2">
-                        <FileUp className="w-4 h-4" style={{ color: '#f59e0b' }} aria-hidden="true" />
+                        <FileUp className="w-4 h-4 [color:#f59e0b]" aria-hidden="true" />
                         {t('modules.sideload_title')}
                     </span>
                 }

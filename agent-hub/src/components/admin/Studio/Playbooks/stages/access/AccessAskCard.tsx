@@ -22,7 +22,7 @@ export default function AccessAskCard({ said, setSaid, asking, askError, ask, pl
     return (
         <section className="rounded-xl p-3 [border:1px_solid_var(--type-ai)] [background:color-mix(in_srgb,var(--type-ai)_4%,transparent)]">
             <p className="flex items-center gap-1.5 font-semibold mb-1.5" style={{ fontSize: presenter ? 15 : 13, color: 'var(--text-primary)' }}>
-                <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--type-ai)' }} aria-hidden="true" />
+                <Sparkles className="w-3.5 h-3.5 shrink-0 [color:var(--type-ai)]" aria-hidden="true" />
                 {t('playbooks.access.ask_title', 'Say who should use it')}
             </p>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -70,7 +70,7 @@ export default function AccessAskCard({ said, setSaid, asking, askError, ask, pl
                 <ul className="mt-2 space-y-1" data-testid="playbook-access-roles">
                     {plan.roles.map((r) => (
                         <li key={r.key} className="flex items-start gap-1.5" style={{ fontSize: presenter ? 13 : 11, color: 'var(--text-secondary)' }}>
-                            <Check className="w-3 h-3 mt-0.5 shrink-0" style={{ color: 'var(--kind-playbook)' }} aria-hidden="true" />
+                            <Check className="w-3 h-3 mt-0.5 shrink-0 [color:var(--kind-playbook)]" aria-hidden="true" />
                             <span>
                                 <span className="font-medium text-[var(--text-primary)]">{r.label}</span>
                                 {r.scope

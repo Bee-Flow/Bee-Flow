@@ -85,8 +85,7 @@ export default function SourceMirrorPanel({ table, mirror, canEdit, canWrite, on
                 <div className="flex items-center gap-2 flex-wrap">
                     {canWrite && (
                         <button type="button" onClick={refresh} disabled={busy || sync?.status === 'running'}
-                            className={`${BTN} border inline-flex items-center gap-1.5 disabled:opacity-50`}
-                            style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)' }}>
+                            className={`${BTN} border inline-flex items-center gap-1.5 disabled:opacity-50 [border-color:var(--border-subtle)] [color:var(--text-primary)] [outline-color:var(--accent-primary)]`}>
                             {busy || sync?.status === 'running'
                                 ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
                                 : <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />}
@@ -191,7 +190,7 @@ function StatusLine({ t, rel, sync, sourceName, compact = false }: StatusLinePro
     }
     if (sync.status === 'error') {
         return (
-            <span className={`${cls} inline-flex items-start gap-1.5`} style={{ color: 'var(--warning)' }}>
+            <span className={`${cls} inline-flex items-start gap-1.5 [color:var(--warning)]`}>
                 <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
                 <span>{t('datatables.nc_status_error', 'The last refresh failed: {error}', { error: sync.lastError || sync.lastErrorCode || '?' })}</span>
             </span>
@@ -201,7 +200,7 @@ function StatusLine({ t, rel, sync, sourceName, compact = false }: StatusLinePro
     // moment the copy was proven equal to the source.
     return (
         <span className={`${cls} inline-flex items-center gap-1.5 text-[var(--text-secondary)]`}>
-            <Zap className="w-3.5 h-3.5" style={{ color: 'var(--success)' }} aria-hidden="true" />
+            <Zap className="w-3.5 h-3.5 [color:var(--success)]" aria-hidden="true" />
             {t('datatables.src_status_live', 'Live · in step with {source}', { source: sourceName })}
             <span className="text-[var(--text-tertiary)]">
                 {t('datatables.nc_live_last', '· checked {when}', { when: rel(sync.lastSuccessAt || sync.lastSyncAt) })}

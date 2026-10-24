@@ -172,7 +172,7 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
                     <FilterChipBar value={filter} onChange={(v) => { setFilter(v); setPageNum(0); }} options={FILTER_CHIPS} />
                     <div className="[flex:1]" />
                     <div className="[display:flex] [align-items:center] [gap:6px] [padding:5px_10px] [border-radius:8px] [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]">
-                        <Search style={{ width: 12, height: 12, color: 'var(--text-muted)' }} />
+                        <Search className="w-[12px] h-[12px] [color:var(--text-muted)]" />
                         <input value={search} onChange={e => { setSearch(e.target.value); setPageNum(0); }} placeholder={t('org.feedback_search_placeholder')}
                             className="[background:transparent] [border:none] [outline:none] [font-size:12px] [color:var(--text-primary)] w-[160px]" />
                     </div>
@@ -197,18 +197,18 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
                                         {item.source && <span className="[padding:1px_6px] [border-radius:4px] [font-size:10px] [font-weight:600] [background:var(--bg-tertiary)] [color:var(--text-muted)]">{item.source}</span>}
                                         {(item.agent_name || item.agent_id) && (
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: `${C.blue}15`, color: C.blue }} title={item.agent_id || ''}>
-                                                <Bot style={{ width: 9, height: 9 }} />{item.agent_name || (item.agent_id?.length > 20 ? item.agent_id.slice(0, 20) + '…' : item.agent_id)}
+                                                <Bot className="w-[9px] h-[9px]" />{item.agent_name || (item.agent_id?.length > 20 ? item.agent_id.slice(0, 20) + '…' : item.agent_id)}
                                             </span>
                                         )}
                                         {item.model && (
                                             <span className="[display:flex] [align-items:center] [gap:3px] [padding:1px_6px] [border-radius:4px] [font-size:10px] [font-weight:600] [background:var(--bg-tertiary)] [color:var(--text-secondary)]" title={item.model}>
-                                                <Cpu style={{ width: 9, height: 9 }} />{shortModel(item.model)}
+                                                <Cpu className="w-[9px] h-[9px]" />{shortModel(item.model)}
                                             </span>
                                         )}
                                         {item.model_tier && <span style={{ padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: `${C.amber}15`, color: C.amber }} title={`tier: ${item.model_tier}`}>tier: {item.model_tier}</span>}
                                         {hasConvo && (
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: `${C.cyan}15`, color: C.cyan }}>
-                                                <MessageSquare style={{ width: 9, height: 9 }} />{snapshot.length}
+                                                <MessageSquare className="w-[9px] h-[9px]" />{snapshot.length}
                                             </span>
                                         )}
                                     </div>
@@ -225,7 +225,7 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
                             {isExpanded && (
                                 <div className="[padding:10px_12px_14px_38px] [background:var(--bg-tertiary)] [border-radius:0_0_8px_8px]">
                                     <div className="[display:flex] [gap:12px] [margin-bottom:10px] [flex-wrap:wrap] [font-size:11px] [color:var(--text-muted)]">
-                                        {item.conversation_id && <span className="[display:flex] [align-items:center] [gap:4px]"><ExternalLink style={{ width: 10, height: 10 }} />Conv: {item.conversation_id.slice(0, 16)}…</span>}
+                                        {item.conversation_id && <span className="[display:flex] [align-items:center] [gap:4px]"><ExternalLink className="w-[10px] h-[10px]" />Conv: {item.conversation_id.slice(0, 16)}…</span>}
                                         {item.message_id && <span>Msg: {item.message_id.slice(0, 16)}…</span>}
                                     </div>
                                     {item.comment && (
@@ -237,7 +237,7 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
                                     {hasConvo ? (
                                         <div>
                                             <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8, color: C.blue, display: 'flex', alignItems: 'center', gap: 5 }}>
-                                                <MessageSquare style={{ width: 11, height: 11 }} />{t('org.feedback_conversation')} ({snapshot.length})
+                                                <MessageSquare className="w-[11px] h-[11px]" />{t('org.feedback_conversation')} ({snapshot.length})
                                             </div>
                                             <div className="max-h-[360px] [overflow-y:auto] [display:flex] [flex-direction:column] [gap:6px]">
                                                 {(() => {
@@ -255,17 +255,17 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
                                                             <div key={mi} style={{ display: 'flex', justifyContent: isUserMsg ? 'flex-end' : 'flex-start' }}>
                                                                 <div style={{ maxWidth: '85%', padding: '8px 12px', borderRadius: 12, background: isUserMsg ? 'var(--bg-secondary)' : 'var(--bg-primary)', border: `1px solid ${isUserMsg ? 'var(--border-subtle)' : `${C.blue}25`}` }}>
                                                                     <div className="[display:flex] [align-items:center] [gap:5px] [margin-bottom:4px] [flex-wrap:wrap]">
-                                                                        {isUserMsg ? <User style={{ width: 10, height: 10, color: 'var(--text-muted)' }} /> : <Bot style={{ width: 10, height: 10, color: C.blue }} />}
+                                                                        {isUserMsg ? <User className="w-[10px] h-[10px] [color:var(--text-muted)]" /> : <Bot style={{ width: 10, height: 10, color: C.blue }} />}
                                                                         <span style={{ fontSize: 10, fontWeight: 600, color: isUserMsg ? 'var(--text-muted)' : C.blue }}>{isUserMsg ? t('org.feedback_role_user') : t('org.feedback_role_ai')}</span>
                                                                         {turnModel && (
                                                                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: switched ? `${C.amber}20` : 'var(--bg-tertiary)', color: switched ? C.amber : 'var(--text-secondary)', border: switched ? `1px solid ${C.amber}40` : '1px solid transparent' }}
                                                                                 title={switched ? `${t('org.feedback_model_switched')}: ${prevAssistantModel} → ${turnModel}` : turnModel}>
-                                                                                {switched ? <Repeat style={{ width: 9, height: 9 }} /> : <Cpu style={{ width: 9, height: 9 }} />}{shortModel(turnModel)}
+                                                                                {switched ? <Repeat className="w-[9px] h-[9px]" /> : <Cpu className="w-[9px] h-[9px]" />}{shortModel(turnModel)}
                                                                             </span>
                                                                         )}
                                                                         {duration && (
                                                                             <span className="[display:inline-flex] [align-items:center] [gap:3px] [padding:1px_6px] [border-radius:4px] [font-size:10px] [font-weight:600] [background:var(--bg-tertiary)] [color:var(--text-secondary)]" title={t('org.feedback_response_time')}>
-                                                                                <Clock style={{ width: 9, height: 9 }} />{duration}
+                                                                                <Clock className="w-[9px] h-[9px]" />{duration}
                                                                             </span>
                                                                         )}
                                                                     </div>
@@ -281,7 +281,7 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
                                         </div>
                                     ) : (
                                         <div className="[padding:14px] [border-radius:10px] [text-align:center] [background:var(--bg-primary)] [border:1px_dashed_var(--border-subtle)]">
-                                            <MessageSquare style={{ width: 18, height: 18, color: 'var(--text-muted)', margin: '0 auto 4px' }} />
+                                            <MessageSquare className="w-[18px] h-[18px] [color:var(--text-muted)] [margin:0_auto_4px]" />
                                             <div className="[font-size:12px] [color:var(--text-muted)]">{t('org.feedback_no_conversation')}</div>
                                         </div>
                                     )}

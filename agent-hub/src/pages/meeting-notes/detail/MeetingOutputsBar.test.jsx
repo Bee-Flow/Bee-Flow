@@ -11,15 +11,7 @@ import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import MeetingOutputsBar, { orderRows } from './MeetingOutputsBar';
 
-vi.mock('../../../hooks/useTranslation', () => ({
-    default: () => ({
-        t: (key, fallback, vars) => {
-            let out = fallback || key;
-            for (const [k, v] of Object.entries(vars || {})) out = out.split(`{${k}}`).join(String(v));
-            return out;
-        },
-    }),
-}));
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const kbRow = (over = {}) => ({ kind: 'kb', id: 'kb-1', title: 'Sales', role: 'contains', siteLabel: 'sales', ownerId: 'me', ...over });
 const autoRow = (over = {}) => ({ kind: 'automation', id: 'a-1', title: 'Notify the team', role: 'read', ownerId: 'me', ...over });

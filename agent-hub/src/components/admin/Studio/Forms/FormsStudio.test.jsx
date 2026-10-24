@@ -26,19 +26,7 @@ const { fetchMock, listOrgForms, getForm } = vi.hoisted(() => ({
 // A `t` that behaves like the real one: string fallback + {placeholder}
 // interpolation, so "{count} forms" is asserted as a sentence rather than as
 // a key.
-vi.mock('../../../../hooks/useTranslation', () => {
-    const t = (key, fallbackOrParams, paramsArg) => {
-        const hasFallback = typeof fallbackOrParams === 'string';
-        const params = hasFallback ? paramsArg : fallbackOrParams;
-        let value = hasFallback ? fallbackOrParams : key;
-        if (params && typeof params === 'object') {
-            for (const [k, v] of Object.entries(params)) value = value.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
-        }
-        return value;
-    };
-    const useTranslation = () => ({ t, locale: 'en' });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 // STABLE object, like the real hook's useMemo: FormsStudio's load effect is
 // keyed on `api`, so a fresh literal per render would refetch forever.
 const apiStub = { listOrgForms, getForm };

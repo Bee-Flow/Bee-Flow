@@ -95,7 +95,7 @@ export default function TableStage({ phase, dispatch, t, reducedMotion = false, 
                                         data-testid="playbook-table-column"
                                     >
                                         <div className="flex items-center gap-1.5 min-w-0">
-                                            {mapping && role && <Check className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--kind-playbook)' }} aria-hidden="true" />}
+                                            {mapping && role && <Check className="w-3.5 h-3.5 shrink-0 [color:var(--kind-playbook)]" aria-hidden="true" />}
                                             <span className="text-xs font-medium truncate text-[var(--text-primary)]">{f.name || f.key}</span>
                                         </div>
                                         <div className="text-[11px] flex items-center gap-1 text-[var(--text-secondary)]">

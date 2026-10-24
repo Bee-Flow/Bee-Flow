@@ -278,8 +278,7 @@ export default function LinkSpreadsheetDialog({ scope, providers, onBack, onClos
             headerActions={<StepStrip t={t} at={at} labels={labels} />}
             footer={(
                 <>
-                    <button type="button" onClick={back} disabled={busy} className={`${BTN} border inline-flex items-center gap-1.5`}
-                        style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}>
+                    <button type="button" onClick={back} disabled={busy} className={`${BTN} border inline-flex items-center gap-1.5 [border-color:var(--border-subtle)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
                         <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
                         {t('datatables.nc_back', 'Back')}
                     </button>
@@ -288,8 +287,7 @@ export default function LinkSpreadsheetDialog({ scope, providers, onBack, onClos
                             ? t('datatables.ss_max_tables', 'At most {n} sheets can be linked in one go.', { n: MAX_TABLES_PER_LINK })
                             : null}
                     </span>
-                    <button type="button" onClick={onClose} disabled={busy} className={`${BTN} border`}
-                        style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}>
+                    <button type="button" onClick={onClose} disabled={busy} className={`${BTN} border [border-color:var(--border-subtle)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
                         {t('datatables.cancel', 'Cancel')}
                     </button>
                     {step !== 'review' ? (
@@ -367,7 +365,7 @@ function ReviewStep({ t, scope, selected, files, describes, relations, onChangeS
                         <li key={s.sheetKey} className="flex items-center gap-2 p-2.5 flex-wrap" style={CARD}>
                             {Logo
                                 ? <span className="shrink-0 inline-flex" aria-hidden="true">{React.createElement(Logo, { size: 14 })}</span>
-                                : <FileSpreadsheet className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--type-data)' }} aria-hidden="true" />}
+                                : <FileSpreadsheet className="w-3.5 h-3.5 shrink-0 [color:var(--type-data)]" aria-hidden="true" />}
                             <span className="truncate font-medium">{s.name}</span>
                             <span className="text-[11px] truncate text-[var(--text-tertiary)]">
                                 {/* A csv's only sheet has no name: the file alone, not "file › null". */}

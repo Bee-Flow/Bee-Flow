@@ -307,7 +307,7 @@ export default function PlaybookRun({ playbookId, user = null, onBack, onNavigat
                         )}
                         {autoCountdown !== null && (
                             <div className="absolute right-4 bottom-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs [background:var(--bg-card)] [border:1px_solid_var(--type-ai)] [color:var(--text-primary)]! [box-shadow:var(--shadow-md)]" role="status" data-testid="playbook-autopilot-countdown">
-                                <Zap className="w-3.5 h-3.5" style={{ color: 'var(--type-ai)' }} aria-hidden="true" />
+                                <Zap className="w-3.5 h-3.5 [color:var(--type-ai)]" aria-hidden="true" />
                                 {t('playbooks.bar.autopilot_in', 'Autopilot continues in {n} s', { n: autoCountdown })}
                                 <button type="button" onClick={() => continueNow(undefined)} className="font-semibold text-[var(--type-ai)]" data-testid="playbook-autopilot-now">{t('playbooks.bar.autopilot_now', 'Continue now')}</button>
                             </div>

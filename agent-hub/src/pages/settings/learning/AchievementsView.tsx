@@ -68,7 +68,7 @@ export default function AchievementsView({
     return (
         <div className="flex flex-col gap-4 [padding:22px_28px] [font-size:13px] [color:var(--text-primary)]" data-testid="achievements-view">
             {/* Level card */}
-            <Card className="grid items-center gap-7" style={{ padding: '16px 18px', gridTemplateColumns: 'auto minmax(0,1fr) auto' }}>
+            <Card className="grid items-center gap-7 [padding:16px_18px]! [grid-template-columns:auto_minmax(0,1fr)_auto]!">
                 <div className="flex items-center gap-3">
                     <EmojiTile icon="🐝" size={48} />
                     <div>
@@ -98,7 +98,7 @@ export default function AchievementsView({
                 {/* Badges table */}
                 <Card className="overflow-hidden flex flex-col text-[12px]">
                     <div className="flex items-center gap-2 [padding:12px_14px]">
-                        <Medal style={{ width: 15, height: 15, color: 'var(--text-secondary)' }} aria-hidden="true" />
+                        <Medal className="w-[15px] h-[15px] [color:var(--text-secondary)]" aria-hidden="true" />
                         <span className="font-semibold">{t('learn.achievements.badges_title', 'Badges')}</span>
                         <span className="text-[11px] text-[var(--text-tertiary)]">
                             {t('learn.achievements.badges_sub', 'one per course · {a} of {b}').replace('{a}', String(earnedCount)).replace('{b}', String(ordered.length))}
@@ -146,9 +146,9 @@ export default function AchievementsView({
 
                 <div className="flex flex-col gap-4 min-h-0">
                     {/* Certificates */}
-                    <Card className="flex flex-col text-[12px]" style={{ padding: '12px 14px' }}>
+                    <Card className="flex flex-col text-[12px] [padding:12px_14px]!">
                         <div className="flex items-center gap-2 pb-2">
-                            <Award style={{ width: 15, height: 15, color: 'var(--text-secondary)' }} aria-hidden="true" />
+                            <Award className="w-[15px] h-[15px] [color:var(--text-secondary)]" aria-hidden="true" />
                             <span className="font-semibold">{t('learn.cert.section_title', 'Certificates')}</span>
                             <span className="text-[11px] text-[var(--text-tertiary)]">
                                 {t('learn.achievements.certs_sub', '{a} of {b} · eligibility is recomputed on the server').replace('{a}', String(certsEarned)).replace('{b}', String((certificates || []).length))}
@@ -164,9 +164,9 @@ export default function AchievementsView({
                     </Card>
 
                     {/* How a certificate works */}
-                    <Card className="flex flex-col gap-2 text-[12px] flex-1" style={{ padding: '12px 14px' }}>
+                    <Card className="flex flex-col gap-2 text-[12px] flex-1 [padding:12px_14px]!">
                         <div className="flex items-center gap-2">
-                            <Share2 style={{ width: 15, height: 15, color: 'var(--text-secondary)' }} aria-hidden="true" />
+                            <Share2 className="w-[15px] h-[15px] [color:var(--text-secondary)]" aria-hidden="true" />
                             <span className="font-semibold">{t('learn.achievements.how_title', 'How an earned certificate works')}</span>
                         </div>
                         <div className="flex flex-col gap-1.5 text-[11px] leading-4 text-[var(--text-secondary)]">
@@ -252,13 +252,13 @@ function BadgeStatus({ t, locale, earned, locked, lockedReason, remaining, start
     if (earned) {
         return (
             <span className="inline-flex items-center gap-1 font-medium text-[var(--learn-complete-ink)]">
-                <CircleCheck style={{ width: 13, height: 13 }} aria-hidden="true" />
+                <CircleCheck className="w-[13px] h-[13px]" aria-hidden="true" />
                 {t('learn.achievements.earned_on', 'Earned {date}').replace('{date}', shortDate(earned.earnedAt, locale))}
             </span>
         );
     }
     if (locked) {
-        return <span className="inline-flex items-center gap-1"><Lock style={{ width: 12, height: 12 }} aria-hidden="true" />{lockedReason}</span>;
+        return <span className="inline-flex items-center gap-1"><Lock className="w-[12px] h-[12px]" aria-hidden="true" />{lockedReason}</span>;
     }
     if (started) {
         return <span className="text-[var(--text-secondary)]">{t('learn.achievements.remaining', '{n} lessons to go').replace('{n}', String(remaining))}</span>;
@@ -285,7 +285,7 @@ function CertificateRow({ t, cert, last, busy, isComplete, onEarn, onView, onOpe
     return (
         <div className="grid items-center gap-3" style={{ gridTemplateColumns: '32px minmax(0,1fr) auto', padding: last ? '10px 0 4px' : '10px 0', borderTop: '1px solid var(--border-default)' }} data-testid="certificate-row">
             <div className="grid place-items-center" aria-hidden="true" style={{ width: 32, height: 32, borderRadius: 8, background: earned ? 'color-mix(in srgb, var(--accent-primary) 18%, transparent)' : 'var(--bg-tertiary)', color: earned ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}>
-                <Award style={{ width: 15, height: 15 }} />
+                <Award className="w-[15px] h-[15px]" />
             </div>
             <div className="min-w-0 flex flex-col gap-[5px]">
                 <div className="font-medium truncate">{cert.title}</div>
@@ -301,14 +301,14 @@ function CertificateRow({ t, cert, last, busy, isComplete, onEarn, onView, onOpe
                 </div>
             </div>
             {earned ? (
-                <SecondaryButton small onClick={() => onView(cert)}><Eye style={{ width: 12, height: 12 }} aria-hidden="true" />{t('learn.cert.view', 'View certificate')}</SecondaryButton>
+                <SecondaryButton small onClick={() => onView(cert)}><Eye className="w-[12px] h-[12px]" aria-hidden="true" />{t('learn.cert.view', 'View certificate')}</SecondaryButton>
             ) : cert.eligible ? (
                 <PrimaryButton small onClick={() => onEarn(cert)} disabled={busy}>
-                    {busy ? <Loader2 className="animate-spin" style={{ width: 12, height: 12 }} /> : <Award style={{ width: 12, height: 12 }} aria-hidden="true" />}
+                    {busy ? <Loader2 className="animate-spin w-[12px] h-[12px]" /> : <Award className="w-[12px] h-[12px]" aria-hidden="true" />}
                     {t('learn.cert.get', 'Get certified')}
                 </PrimaryButton>
             ) : missing.length > 0 ? (
-                <SecondaryButton small onClick={() => onOpenCourse((missing[0] as Course).id)}>{t('learn.achievements.cert_continue', 'Continue')}<ArrowRight style={{ width: 12, height: 12 }} aria-hidden="true" /></SecondaryButton>
+                <SecondaryButton small onClick={() => onOpenCourse((missing[0] as Course).id)}>{t('learn.achievements.cert_continue', 'Continue')}<ArrowRight className="w-[12px] h-[12px]" aria-hidden="true" /></SecondaryButton>
             ) : (
                 <span className="text-[11px] whitespace-nowrap text-[var(--text-tertiary)]">{t('learn.achievements.cert_every_course', 'every course counts')}</span>
             )}

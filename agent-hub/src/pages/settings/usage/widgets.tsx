@@ -99,7 +99,7 @@ interface ModelTierBadgeProps {
 export const ModelTierBadge = ({ model, tier }: ModelTierBadgeProps) => (
     <span className="[display:inline-flex] [align-items:center] [gap:4px] [flex-wrap:wrap]">
         <span className="[display:inline-flex] [align-items:center] [gap:3px] [padding:1px_6px] [border-radius:4px] [font-size:10px] [font-weight:600] [background:var(--bg-tertiary)] [color:var(--text-secondary)]" title={model}>
-            <Cpu style={{ width: 9, height: 9 }} /> {shortModel(model)}
+            <Cpu className="w-[9px] h-[9px]" /> {shortModel(model)}
         </span>
         {tier && (
             <span className="[padding:1px_6px] [border-radius:4px] [font-size:10px] [font-weight:600] [background:#f59e0b15] [color:#f59e0b]" title={`tier: ${tier}`}>

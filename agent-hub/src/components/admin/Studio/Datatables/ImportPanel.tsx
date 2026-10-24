@@ -146,8 +146,7 @@ export default function ImportPanel({ columns, onImport, onDone, onClose }: Impo
             <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-secondary)]">
                 {t('datatables.import_help', 'Copy the rows in Excel or Google Sheets — including the header row — and paste them here.')}
                 <textarea
-                    className="w-full resize-y rounded-md border px-3 py-2 font-mono text-xs"
-                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+                    className="w-full resize-y rounded-md border px-3 py-2 font-mono text-xs [background:var(--bg-primary)] [border-color:var(--border-subtle)] [color:var(--text-primary)]!"
                     rows={5}
                     value={text}
                     onChange={(e) => setText(e.target.value)}

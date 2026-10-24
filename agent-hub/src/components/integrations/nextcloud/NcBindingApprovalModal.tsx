@@ -102,7 +102,7 @@ const NcBindingApprovalModal = ({ pending, organizationName, onResolved }: NcBin
                 <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-12 h-12 rounded-2xl flex items-center justify-center [background:rgba(245,158,11,0.12)]">
-                            <ShieldCheck className="w-6 h-6" style={{ color: '#f59e0b' }} />
+                            <ShieldCheck className="w-6 h-6 [color:#f59e0b]" />
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('integ.nc_binding_approval_modal_confirm_nextcloud_connection', 'Confirm Nextcloud connection')}</h2>
@@ -115,7 +115,7 @@ const NcBindingApprovalModal = ({ pending, organizationName, onResolved }: NcBin
                     <div
                         className="rounded-xl border p-4 mb-4 flex items-start gap-3 [border-color:rgba(245,158,11,0.4)] [background:rgba(245,158,11,0.06)]"
                     >
-                        <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#f59e0b' }} />
+                        <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5 [color:#f59e0b]" />
                         <div className="text-xs [color:var(--text-primary)]! [line-height:1.55]">
                             {t('integ.nc_binding_approval_modal_approve_only_if_this_is', 'Approve only if this is')} <strong>{t('integ.nc_binding_approval_modal_your', 'your')}</strong> {t('integ.nc_binding_approval_modal_nextcloud_once_approved_this_nextcloud', 'Nextcloud. Once approved, this Nextcloud can read and write data on behalf of users in your organisation.')}
                         </div>

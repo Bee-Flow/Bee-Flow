@@ -150,7 +150,7 @@ function ActionItemRow({ item, editing, draft, onDraftChange, onToggle, onStartE
                     borderColor: item.done ? 'var(--accent-primary)' : 'var(--border-default)',
                 }}
             >
-                {item.done && <Check className="w-3 h-3" style={{ color: 'var(--accent-primary-fg)' }} aria-hidden="true" />}
+                {item.done && <Check className="w-3 h-3 [color:var(--accent-primary-fg)]" aria-hidden="true" />}
             </button>
             <div className="flex-1 min-w-0">
                 {editing ? (

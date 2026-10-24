@@ -21,7 +21,7 @@ export default function TranscriptionSection(props: TranscriptionSectionProps) {
                 {/* Header */}
                 <div>
                     <h2 className="text-lg font-bold flex items-center gap-2 text-[var(--text-primary)]">
-                        <Cloud className="w-5 h-5" style={{ color: '#0ea5e9' }} />
+                        <Cloud className="w-5 h-5 [color:#0ea5e9]" />
                         {t('integ.transcription_meeting_transcription', 'Meeting Transcription')}
                     </h2>
                     <p className="text-sm mt-1 text-[var(--text-muted)]">

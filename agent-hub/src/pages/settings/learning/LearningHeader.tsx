@@ -93,11 +93,11 @@ export function PathChip({ t, path, onPick }: PathChipProps) {
                 title={t('learn.path.change_title', 'Change your learning path')}
                 className="inline-flex items-center gap-[5px] text-[11px] font-medium whitespace-nowrap flex-shrink-0 transition hover:bg-[var(--bg-tertiary)]"
                 style={{ padding: '3px 8px', borderRadius: 999, border: `1px solid ${current ? 'var(--border-default)' : 'var(--accent-primary)'}`, color: 'var(--text-secondary)', background: 'var(--bg-card)' }}>
-                <Compass style={{ width: 11, height: 11 }} aria-hidden="true" />
+                <Compass className="w-[11px] h-[11px]" aria-hidden="true" />
                 {current
                     ? t('learn.path.chip', 'Path: {path}').replace('{path}', t(current.titleKey, current.titleFallback))
                     : t('learn.path.q', 'What do you want to get good at?')}
-                <ChevronDown style={{ width: 11, height: 11, color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                <ChevronDown className="w-[11px] h-[11px] [color:var(--text-tertiary)]" aria-hidden="true" />
             </button>
             <AnchoredMenu open={open} onClose={() => setOpen(false)} anchorRef={ref} align="left" width={320} role="menu" aria-label={t('learn.path.q', 'What do you want to get good at?')} className="py-1">
                 <div className="px-3 pt-1.5 pb-1 text-[11px] text-[var(--text-tertiary)]">{t('learn.path.q_sub', 'Your pick reorders the courses below — everything stays available.')}</div>

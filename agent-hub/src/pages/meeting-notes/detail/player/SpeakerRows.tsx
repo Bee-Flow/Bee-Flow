@@ -219,8 +219,7 @@ function SpeakerRows({ rows = [], others = null, colorMap = {}, duration = 0, se
                             onClick={() => setExpanded(true)}
                             aria-expanded={false}
                             aria-label={t('meeting_notes.timeline_show_more', 'Show {count} more speakers', { count: others.count })}
-                            className={`${SPEAKER_LABEL_CLASS} shrink-0 pr-2 truncate text-left text-[11px] leading-3 hover:underline`}
-                            style={{ color: 'var(--text-muted)' }}
+                            className={`${SPEAKER_LABEL_CLASS} shrink-0 pr-2 truncate text-left text-[11px] leading-3 hover:underline [color:var(--text-muted)]!`}
                         >
                             {t('meeting_notes.timeline_more', '+{count} more', { count: others.count })}
                         </button>

@@ -80,7 +80,7 @@ export default function PublicLinkCard({ form, canEdit, onChanged = null }: Publ
                         {href}
                     </code>
                     <button type="button" onClick={copy} className={BTN} style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }} data-testid="form-link-copy">
-                        {copied ? <Check className="w-3 h-3" style={{ color: 'var(--success)' }} aria-hidden="true" /> : <Link2 className="w-3 h-3" aria-hidden="true" />}
+                        {copied ? <Check className="w-3 h-3 [color:var(--success)]" aria-hidden="true" /> : <Link2 className="w-3 h-3" aria-hidden="true" />}
                         {copied ? t('forms.studio.copied', 'Link copied') : t('forms.studio.copy_link', 'Copy the link')}
                     </button>
                     <a href={href} target="_blank" rel="noopener noreferrer" className={BTN} style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }} data-testid="form-link-open">

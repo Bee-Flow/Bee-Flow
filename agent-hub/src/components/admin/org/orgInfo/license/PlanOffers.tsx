@@ -97,7 +97,7 @@ export function NoSubscriptionOffers({ isCloud, plans, checkoutLoading, onChecko
             {isCloud && plans.length > 0 ? (
                 <div>
                     <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3 flex items-center gap-2">
-                        <Zap className="w-4 h-4" style={{ color: '#3b82f6' }} />
+                        <Zap className="w-4 h-4 [color:#3b82f6]" />
                         {t('org.choose_plan', 'Choose a Plan')}
                     </h3>
                     <div className="mb-3"><RecurringNotice /></div>
@@ -167,7 +167,7 @@ export function UpgradeToPaidOffers({ plans, checkoutLoading, onCheckout }: Chec
     return (
         <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 space-y-3">
             <div className="flex items-center gap-2 mb-1">
-                <Zap className="w-4 h-4" style={{ color: '#3b82f6' }} />
+                <Zap className="w-4 h-4 [color:#3b82f6]" />
                 <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('org.upgrade_to_paid', 'Upgrade to a paid plan')}</h3>
             </div>
             <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">

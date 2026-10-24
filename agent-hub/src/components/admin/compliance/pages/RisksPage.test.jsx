@@ -5,18 +5,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { severityOfScore } from './risks/RisksTable';
 import RisksPage, { matchesFilter, sortRisks } from './RisksPage';
 
-vi.mock('../../../../hooks/useTranslation', () => {
-    const useTranslation = () => ({
-        t: (key, fallback, params) => {
-            let out = typeof fallback === 'string' ? fallback : key;
-            for (const [k, v] of Object.entries(params || {})) out = out.split(`{${k}}`).join(String(v));
-            return out;
-        },
-        locale: 'en',
-        resolvedLocale: 'en',
-    });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const fetchJson = vi.fn();
 vi.mock('../data/api', async (importOriginal) => {

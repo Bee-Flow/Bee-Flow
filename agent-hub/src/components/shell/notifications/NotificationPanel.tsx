@@ -124,7 +124,7 @@ function PanelHeader({ unreadCount, filter, setFilter, onMarkAllRead }: {
     return (
         <div className="[padding:12px_16px] [border-bottom:1px_solid_var(--border-subtle,rgba(0,0,0,0.06))] [display:flex] [align-items:center] [gap:10px] [background:var(--bg-card,#ffffff)]">
             <div className="w-[32px] h-[32px] [border-radius:9px] [background:rgba(59,130,246,0.08)] [display:flex] [align-items:center] [justify-content:center] [border:1px_solid_rgba(59,130,246,0.15)] [flex-shrink:0]">
-                <Bell style={{ width: 15, height: 15, color: '#3b82f6' }} />
+                <Bell className="w-[15px] h-[15px] [color:#3b82f6]" />
             </div>
             <div className="[flex:1] [font-size:14px] [font-weight:700] [color:var(--text-primary,#0f172a)]">
                 {t('notifications.title', 'Notifications')}
@@ -156,7 +156,7 @@ function PanelHeader({ unreadCount, filter, setFilter, onMarkAllRead }: {
                     className="[background:none] [border:none] [cursor:pointer] [font-size:11px] [color:#3b82f6] [font-weight:500] [display:flex] [align-items:center] [gap:4px] [padding:4px_8px] [border-radius:6px]"
                     title={t('notifications.mark_all_read_title', 'Mark all as read')}
                 >
-                    <CheckCheck style={{ width: 13, height: 13 }} />
+                    <CheckCheck className="w-[13px] h-[13px]" />
                 </button>
             )}
         </div>
@@ -179,8 +179,8 @@ function EmptyState({ filter }: { filter: NotifFilter }) {
         <div className="[padding:48px_32px] [text-align:center] [color:var(--text-muted,#94a3b8)]">
             <div className="w-[52px] h-[52px] [margin:0_auto_14px] [border-radius:16px] [display:flex] [align-items:center] [justify-content:center] [background:rgba(59,130,246,0.06)]">
                 {unread
-                    ? <Check style={{ width: 24, height: 24, color: '#22c55e', opacity: 0.6 }} />
-                    : <BellOff style={{ width: 24, height: 24, color: '#3b82f6', opacity: 0.4 }} />
+                    ? <Check className="w-[24px] h-[24px] [color:#22c55e] [opacity:0.6]" />
+                    : <BellOff className="w-[24px] h-[24px] [color:#3b82f6] [opacity:0.4]" />
                 }
             </div>
             <p className="[margin:0_0_4px] [font-size:14px] [font-weight:600] [color:var(--text-secondary,#64748b)]">

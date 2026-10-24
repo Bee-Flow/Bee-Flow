@@ -11,15 +11,7 @@ import { acceptPatchOf, draftOf, memberOptions, patchOf } from './riskDraft';
  * draft resets on updated_at, and an owner or review date typed just before
  * was gone. It now sends the draft with the status, in one write.
  */
-vi.mock('../../../../../hooks/useTranslation', () => {
-    const t = (key: string, fallback?: unknown, vars?: Record<string, unknown>) => {
-        let s = typeof fallback === 'string' ? fallback : key;
-        for (const [k, v] of Object.entries(vars || {})) s = s.split(`{${k}}`).join(String(v));
-        return s;
-    };
-    const hook = () => ({ t, locale: 'en', resolvedLocale: 'en' });
-    return { useTranslation: hook, default: hook };
-});
+vi.mock('../../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 interface Risk {
     id: number; title: string; description?: string | null; category: string; likelihood: number; impact: number;

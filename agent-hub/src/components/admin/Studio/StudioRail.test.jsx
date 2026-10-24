@@ -15,16 +15,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn(async () => ({ ok: false })) }));
 
-vi.mock('../../../hooks/useTranslation', () => {
-    const useTranslation = () => ({
-        t: (key, fallback, vars) => {
-            const base = fallback || key;
-            return vars ? Object.entries(vars).reduce((s, [k, v]) => s.replace(`{${k}}`, v), base) : base;
-        },
-        locale: 'en',
-    });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
 vi.mock('../../shell/NavLink', () => ({ default: ({ children, ...p }) => <a {...p}>{children}</a> }));
 

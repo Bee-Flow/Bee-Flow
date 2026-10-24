@@ -477,7 +477,7 @@ export function ResultStep({ result, failures }: ResultStepProps) {
     return (
         <div className="space-y-3">
             <p className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
-                <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--success, #10b981)' }} />
+                <CheckCircle2 className="w-4 h-4 [color:var(--success,#10b981)]" />
                 {t('solutions.install_installed', 'Installed.')}
             </p>
 
@@ -518,7 +518,7 @@ export function ResultStep({ result, failures }: ResultStepProps) {
                 <ul className="space-y-1" data-testid="install-result-failures">
                     {failures.map((f, i) => (
                         <li key={i} className="flex items-start gap-2 text-xs text-[var(--text-primary)]">
-                            <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--warning)' }} />
+                            <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 [color:var(--warning)]" />
                             {f}
                         </li>
                     ))}

@@ -440,7 +440,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }: UpcomingM
 
             {!talk.loading && !talk.error && talk.data && !recordingEnabled && (
                 <div className="mx-3 mb-2 flex items-start gap-2 px-3 py-2 rounded-lg border text-[11px]" style={WARN_BANNER}>
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--warning)' }} aria-hidden="true" />
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 [color:var(--warning)]" aria-hidden="true" />
                     <span>{t('meetings.upcoming_talk_backend', "The Nextcloud Talk recording backend isn't configured, so auto-record is unavailable. You can still import finished recordings.")}</span>
                 </div>
             )}
@@ -457,7 +457,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }: UpcomingM
 
             {!gmeet.loading && !gmeet.error && connection && connection.googleConnected !== false && !meetScopesGranted && (
                 <div className="mx-3 mb-2 flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px]" style={WARN_BANNER}>
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--warning)' }} aria-hidden="true" />
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 [color:var(--warning)]" aria-hidden="true" />
                     <span className="flex-1">{t('meetings.upcoming_meet_scopes', "Your Google connection doesn't include Meet permissions yet — reconnect to enable auto-import.")}</span>
                     <button
                         type="button" onClick={reconnectGoogle} disabled={reconnecting}

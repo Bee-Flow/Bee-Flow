@@ -13,17 +13,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../hooks/useTranslation', () => {
-    const translator = () => ({
-        t: (key, fallback, vars) => {
-            let out = fallback || key;
-            for (const [k, v] of Object.entries(vars || {})) out = out.split(`{${k}}`).join(String(v));
-            return out;
-        },
-        language: 'en', locale: 'en',
-    });
-    return { default: translator, useTranslation: translator };
-});
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const run = vi.fn();
 const listAutomations = vi.fn();

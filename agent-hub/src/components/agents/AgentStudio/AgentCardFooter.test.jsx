@@ -23,21 +23,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 // ZONDER `{count}` in te vullen, en dan zou elke assertie hieronder over een
 // letterlijke "{count} conversations" gaan. Dit is de provider-loze tak van de
 // echte hook, inclusief interpolatie.
-vi.mock('../../../hooks/useTranslation', () => ({
-    default: () => ({
-        t: (key, fallbackOrParams, paramsArg) => {
-            const hasFallback = typeof fallbackOrParams === 'string';
-            const params = hasFallback ? paramsArg : fallbackOrParams;
-            let value = hasFallback ? fallbackOrParams : key;
-            if (params && typeof params === 'object') {
-                for (const [k, v] of Object.entries(params)) {
-                    value = value.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
-                }
-            }
-            return value;
-        },
-    }),
-}));
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import AgentCardFooter from './AgentCardFooter';
 

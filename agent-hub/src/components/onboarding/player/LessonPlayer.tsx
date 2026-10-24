@@ -309,7 +309,7 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
             }}
             data-testid="lesson-player-pill">
             {advanceable
-                ? <CircleCheck style={{ width: 16, height: 16, color: 'var(--learn-complete)' }} aria-hidden="true" />
+                ? <CircleCheck className="w-[16px] h-[16px] [color:var(--learn-complete)]" aria-hidden="true" />
                 : <span className="text-[15px] leading-none" aria-hidden="true">{lesson?.icon || '🎓'}</span>}
             <button type="button" onClick={() => setMinimized(false)} className="flex flex-col gap-[1px] text-left min-w-0"
                 title={t('learn.player.pill_working', 'Lesson in progress — click to return')}>
@@ -326,14 +326,14 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
                 <button type="button" onClick={() => { setMinimized(false); advance(); }}
                     className="inline-flex items-center gap-[5px] h-[26px] px-2.5 rounded-full text-[12px] font-semibold"
                     style={PRIMARY_ACTION_STYLE}>
-                    {t('learn.player.pill_continue', 'Continue')}<ArrowRight style={{ width: 12, height: 12 }} aria-hidden="true" />
+                    {t('learn.player.pill_continue', 'Continue')}<ArrowRight className="w-[12px] h-[12px]" aria-hidden="true" />
                 </button>
             ) : (
                 <>
-                    {isAction && <Loader2 className="animate-spin" style={{ width: 14, height: 14, color: 'var(--accent-primary)' }} aria-hidden="true" />}
+                    {isAction && <Loader2 className="animate-spin w-[14px] h-[14px] [color:var(--accent-primary)]" aria-hidden="true" />}
                     <button type="button" onClick={() => setMinimized(false)} aria-label={t('learn.player.restore', 'Open the lesson again')}
                         className="grid place-items-center rounded-full w-[24px] h-[24px] [border:1px_solid_var(--border-default)] [color:var(--text-secondary)]">
-                        <Maximize2 style={{ width: 12, height: 12 }} />
+                        <Maximize2 className="w-[12px] h-[12px]" />
                     </button>
                 </>
             )}
@@ -365,7 +365,7 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
                             ? t('learn.player.undock_title', 'Expand — focus on the lesson')
                             : t('learn.player.dock_title', 'Dock to the side — use the app while you learn')}
                         className={iconBtn} style={{ color: 'var(--text-secondary)' }}>
-                        {docked ? <AppWindow style={{ width: 14, height: 14 }} /> : <PanelRight style={{ width: 14, height: 14 }} />}
+                        {docked ? <AppWindow className="w-[14px] h-[14px]" /> : <PanelRight className="w-[14px] h-[14px]" />}
                     </button>
                 )}
                 {(isAction || docked) && !finished && (
@@ -373,12 +373,12 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
                         aria-label={t('learn.player.minimize', 'Minimize')}
                         title={t('learn.player.minimize_title', 'Collapse the lesson while you work — it keeps checking')}
                         className={iconBtn} style={{ color: 'var(--text-secondary)' }}>
-                        <Minus style={{ width: 14, height: 14 }} />
+                        <Minus className="w-[14px] h-[14px]" />
                     </button>
                 )}
                 <button type="button" onClick={() => onClose?.()} aria-label={t('common.close', 'Close')}
                     className={iconBtn} style={{ color: 'var(--text-secondary)' }}>
-                    <X style={{ width: 14, height: 14 }} />
+                    <X className="w-[14px] h-[14px]" />
                 </button>
             </div>
 
@@ -409,7 +409,7 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
             )}
 
             {/* Body */}
-            <div className={`overflow-y-auto flex flex-col gap-3 text-[12px] ${docked ? 'flex-1 min-h-0' : ''}`} style={{ padding: 14 }}>
+            <div className={`overflow-y-auto flex flex-col gap-3 text-[12px] ${docked ? 'flex-1 min-h-0' : ''} [padding:14px]`}>
                 {finished ? (
                     <CompletionScreen t={t} celebration={celebration} lesson={lesson} steps={steps} onClose={onClose} onNavigate={onNavigate} courseId={courseId} />
                 ) : (
@@ -430,7 +430,7 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
                 )}
                 {!finished && !advanceable && stepIsRequired(step) && (
                     <div className="mt-auto flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
-                        <Lock style={{ width: 11, height: 11 }} aria-hidden="true" />
+                        <Lock className="w-[11px] h-[11px]" aria-hidden="true" />
                         {isAction
                             ? t('learn.player.next_unlocks_checks', '"Next" unlocks once every check passes.')
                             : t('learn.player.complete_to_continue', 'Complete this step to continue')}
@@ -454,7 +454,7 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
                     {stepIndex > 0 && (
                         <button type="button" onClick={back}
                             className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] font-medium whitespace-nowrap transition-colors hover:bg-[var(--bg-tertiary)] [border:1px_solid_var(--border-default)] [background:var(--bg-card)]! [color:var(--text-primary)]!">
-                            <ArrowLeft style={{ width: 13, height: 13 }} aria-hidden="true" /> {t('tour.back', 'Back')}
+                            <ArrowLeft className="w-[13px] h-[13px]" aria-hidden="true" /> {t('tour.back', 'Back')}
                         </button>
                     )}
                     <button type="button" onClick={advance} disabled={!advanceable}
@@ -465,8 +465,8 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
                             ? (isReview ? t('learn.review.finish', 'Finish review') : t('learn.player.finish', 'Finish lesson'))
                             : t('tour.next', 'Next')}
                         {advanceable
-                            ? <ArrowRight style={{ width: 13, height: 13 }} aria-hidden="true" />
-                            : stepIsRequired(step) && <Lock style={{ width: 13, height: 13 }} aria-hidden="true" />}
+                            ? <ArrowRight className="w-[13px] h-[13px]" aria-hidden="true" />
+                            : stepIsRequired(step) && <Lock className="w-[13px] h-[13px]" aria-hidden="true" />}
                     </button>
                 </div>
             )}
@@ -480,8 +480,7 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
                 // Learn-along panel: the app stays interactive to the left. No
                 // backdrop, no Escape-close — the panel is a co-worker, not a
                 // modal. Same z as the modal (below the tour's 9997+).
-                <div className={`fixed inset-y-0 right-0 z-[1000] w-[420px] max-w-full border-l flex flex-col ${minimized ? 'hidden' : ''}`}
-                    style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: '-8px 0 24px rgba(0,0,0,.06)', fontSize: 13, color: 'var(--text-primary)' }}
+                <div className={`fixed inset-y-0 right-0 z-[1000] w-[420px] max-w-full border-l flex flex-col ${minimized ? 'hidden' : ''} [background:var(--bg-card)] [border-color:var(--border-default)]! [box-shadow:-8px_0_24px_rgba(0,0,0,.06)] [font-size:13px] [color:var(--text-primary)]`}
                     role="complementary" aria-label={title} aria-live="polite" aria-hidden={minimized || undefined}>
                     {chrome}
                 </div>
@@ -559,7 +558,7 @@ function CompletionScreen({ t, celebration, lesson, steps, onClose, onNavigate, 
             {(celebration?.mastered || masteredTitles.length > 0) && (
                 <div className="w-full flex items-center gap-3 rounded-[10px] text-left [padding:12px_14px] [border:1px_solid_var(--learn-mastered)] [background:color-mix(in_srgb,var(--learn-mastered)_10%,transparent)]">
                     <div className="grid place-items-center flex-shrink-0 w-[36px] h-[36px] [border-radius:10px] [background:color-mix(in_srgb,var(--learn-mastered)_18%,transparent)] [color:var(--learn-mastered-ink)]">
-                        <Award style={{ width: 18, height: 18 }} aria-hidden="true" />
+                        <Award className="w-[18px] h-[18px]" aria-hidden="true" />
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="font-semibold text-[var(--learn-mastered-ink)]">{t('learn.mastery.earned', 'Mastered')}</div>
@@ -574,7 +573,7 @@ function CompletionScreen({ t, celebration, lesson, steps, onClose, onNavigate, 
             {newBadges.length > 0 && (
                 <div className="w-full flex items-center gap-3 rounded-[10px] text-left [padding:12px_14px] [border:1px_solid_var(--accent-primary)] [background:color-mix(in_srgb,var(--accent-primary)_8%,transparent)]">
                     <div className="grid place-items-center flex-shrink-0 w-[36px] h-[36px] [border-radius:10px] [background:color-mix(in_srgb,var(--accent-primary)_18%,transparent)] [color:var(--accent-primary)]">
-                        <PartyPopper style={{ width: 18, height: 18 }} aria-hidden="true" />
+                        <PartyPopper className="w-[18px] h-[18px]" aria-hidden="true" />
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="font-semibold text-[var(--accent-primary)]">{t('learn.player.badge_earned', 'Badge earned')}</div>
@@ -593,14 +592,14 @@ function CompletionScreen({ t, celebration, lesson, steps, onClose, onNavigate, 
             <div className="w-full flex flex-col gap-1.5 mt-1">
                 {!isReview && next ? (
                     <button type="button" onClick={openNext} className="inline-flex items-center justify-center gap-1.5 rounded-[10px] text-[12px] font-semibold px-3" style={{ height: 36, ...PRIMARY_ACTION_STYLE }}>
-                        {next.docked ? <PanelRight style={{ width: 13, height: 13 }} aria-hidden="true" /> : <Play style={{ width: 13, height: 13 }} aria-hidden="true" />}
+                        {next.docked ? <PanelRight className="w-[13px] h-[13px]" aria-hidden="true" /> : <Play className="w-[13px] h-[13px]" aria-hidden="true" />}
                         <span className="truncate">
                             {(next.docked ? t('learn.player.next_docked', 'Next lesson beside the app: {title}') : t('learn.player.next_lesson', 'Next lesson: {title}')).replace('{title}', next.title)}
                         </span>
                     </button>
                 ) : (
                     <button type="button" onClick={() => onClose?.()} className="inline-flex items-center justify-center gap-1.5 rounded-[10px] text-[12px] font-semibold px-3" style={{ height: 36, ...PRIMARY_ACTION_STYLE }}>
-                        {t('learn.player.done', 'Done')} <Check style={{ width: 13, height: 13 }} aria-hidden="true" />
+                        {t('learn.player.done', 'Done')} <Check className="w-[13px] h-[13px]" aria-hidden="true" />
                     </button>
                 )}
                 {!isReview && (

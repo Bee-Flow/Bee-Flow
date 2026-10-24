@@ -44,7 +44,7 @@ export function DetailSkeleton({ t }: { t: TranslateFn }) {
 export function MeetingLoadError({ t, error, onRetry }: { t: TranslateFn; error: ApiError; onRetry: () => void }) {
     return (
         <div className="flex flex-col items-center justify-center gap-3 py-16 text-center" role="alert">
-            <AlertTriangle className="w-8 h-8" style={{ color: 'var(--error)' }} aria-hidden="true" />
+            <AlertTriangle className="w-8 h-8 [color:var(--error)]" aria-hidden="true" />
             <p className="text-sm font-semibold text-[var(--text-primary)]">
                 {t('meetings.load_failed', 'Couldn’t load this meeting')}
             </p>
@@ -96,7 +96,7 @@ export function MeetingProcessingBody({ t, failed, reason, audioGone, canRetry, 
     }
     return (
         <>
-            <AlertTriangle className="w-10 h-10" style={{ color: 'var(--error)' }} aria-hidden="true" />
+            <AlertTriangle className="w-10 h-10 [color:var(--error)]" aria-hidden="true" />
             <p className="text-lg font-semibold text-[var(--text-primary)]">{t('meetings.failed_title', 'Transcription failed')}</p>
             {reason ? (
                 <p className="text-sm max-w-md [color:var(--error)]!">{reason}</p>

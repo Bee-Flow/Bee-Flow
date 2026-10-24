@@ -418,7 +418,7 @@ function RecipePreview({ recipe, warnings = [], t }: RecipePreviewProps) {
     return (
         <div className="mt-3 rounded-xl p-3 [background:var(--bg-primary)] [border:1px_solid_var(--border-default)]" data-testid="playbook-recipe-preview">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-primary)]">
-                <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--type-ai)' }} aria-hidden="true" />{recipe.title}
+                <Sparkles className="w-3.5 h-3.5 [color:var(--type-ai)]" aria-hidden="true" />{recipe.title}
             </div>
             {recipe.description && <p className="text-[11px] mt-0.5 text-[var(--text-secondary)]">{recipe.description}</p>}
             <ol className="mt-2 flex flex-wrap items-center gap-1 text-[11px] text-[var(--text-secondary)]">

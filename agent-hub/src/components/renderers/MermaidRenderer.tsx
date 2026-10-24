@@ -161,42 +161,18 @@ const MermaidOverlay = ({ code, onClose }: { code: string; onClose: () => void }
         <div
             ref={overlayRef}
             onClick={(e: React.MouseEvent<HTMLDivElement>) => { if (e.target === overlayRef.current) onClose(); }}
-            style={{
-                position: 'fixed', inset: 0, zIndex: 9999,
-                background: 'rgba(0, 0, 0, 0.85)',
-                backdropFilter: 'blur(8px)',
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                animation: 'mermaidOverlayIn 0.2s ease-out',
-            }}
+            className="[position:fixed] [inset:0] [z-index:9999] [background:rgba(0,0,0,0.85)] [backdrop-filter:blur(8px)] [display:flex] [flex-direction:column] [align-items:center] [justify-content:center] [animation:mermaidOverlayIn_0.2s_ease-out]"
         >
             {/* Toolbar */}
-            <div style={{
-                position: 'absolute', top: 0, left: 0, right: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '16px 24px',
-                background: 'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%)',
-            }}>
-                <span style={{
-                    fontSize: '13px', fontWeight: 600,
-                    color: 'rgba(255,255,255,0.6)',
-                    letterSpacing: '0.05em', textTransform: 'uppercase',
-                }}>
+            <div className="[position:absolute] [top:0] [left:0] [right:0] [display:flex] [align-items:center] [justify-content:space-between] [padding:16px_24px] [background:linear-gradient(to_bottom,rgba(0,0,0,0.6)_0%,transparent_100%)]">
+                <span className="[font-size:13px] [font-weight:600] [color:rgba(255,255,255,0.6)] [letter-spacing:0.05em] [text-transform:uppercase]">
                     📊 {t('chat.renderers.mermaid_full_view', 'Diagram — Full View')}
                 </span>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div className="[display:flex] [gap:8px]">
                     <button
                         onClick={handleDownloadSVG}
                         title={t('chat.renderers.mermaid_download_svg', 'Download SVG')}
-                        style={{
-                            display: 'flex', alignItems: 'center', gap: '6px',
-                            padding: '8px 14px', borderRadius: '8px',
-                            background: 'rgba(255,255,255,0.1)',
-                            border: '1px solid rgba(255,255,255,0.15)',
-                            color: 'rgba(255,255,255,0.8)', cursor: 'pointer',
-                            fontSize: '12px', fontWeight: 500,
-                            transition: 'all 0.15s',
-                        }}
+                        className="[display:flex] [align-items:center] [gap:6px] [padding:8px_14px] [border-radius:8px] [background:rgba(255,255,255,0.1)] [border:1px_solid_rgba(255,255,255,0.15)] [color:rgba(255,255,255,0.8)] [cursor:pointer] [font-size:12px] [font-weight:500] [transition:all_0.15s]"
                         onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.2)'; }}
                         onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.1)'; }}
                     >
@@ -205,14 +181,7 @@ const MermaidOverlay = ({ code, onClose }: { code: string; onClose: () => void }
                     <button
                         onClick={onClose}
                         title={t('chat.renderers.mermaid_close_esc', 'Close (ESC)')}
-                        style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            width: '36px', height: '36px', borderRadius: '8px',
-                            background: 'rgba(255,255,255,0.1)',
-                            border: '1px solid rgba(255,255,255,0.15)',
-                            color: 'rgba(255,255,255,0.8)', cursor: 'pointer',
-                            transition: 'all 0.15s',
-                        }}
+                        className="[display:flex] [align-items:center] [justify-content:center] w-[36px] h-[36px] [border-radius:8px] [background:rgba(255,255,255,0.1)] [border:1px_solid_rgba(255,255,255,0.15)] [color:rgba(255,255,255,0.8)] [cursor:pointer] [transition:all_0.15s]"
                         onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { (e.target as HTMLElement).style.background = 'rgba(239,68,68,0.4)'; }}
                         onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.1)'; }}
                     >
@@ -224,13 +193,7 @@ const MermaidOverlay = ({ code, onClose }: { code: string; onClose: () => void }
             {/* Diagram container */}
             <div
                 ref={containerRef}
-                style={{
-                    width: '90vw', maxHeight: 'calc(100vh - 100px)',
-                    overflow: 'auto', padding: '32px',
-                    background: 'rgba(30, 30, 46, 0.9)',
-                    borderRadius: '16px',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                }}
+                className="w-[90vw] max-h-[calc(100vh_-_100px)] [overflow:auto] [padding:32px] [background:rgba(30,30,46,0.9)] [border-radius:16px] [border:1px_solid_rgba(255,255,255,0.08)]"
             />
 
             <style>{`
@@ -309,31 +272,12 @@ const MermaidRenderer = ({ code }: { code: string }) => {
         // Stale Vite chunk — show friendly reload prompt
         if (error === '__STALE_CHUNK__') {
             return (
-                <div style={{
-                    padding: '16px 20px',
-                    borderRadius: '10px',
-                    background: 'var(--bg-tertiary, #1e1e2e)',
-                    border: '1px solid rgba(99, 102, 241, 0.3)',
-                    color: 'var(--text-secondary, #94a3b8)',
-                    fontSize: '13px',
-                    margin: '8px 0',
-                    textAlign: 'center',
-                }}>
-                    <div style={{ fontWeight: 600, marginBottom: '6px' }}>🔄 {t('chat.renderers.mermaid_new_version', 'New version available')}</div>
-                    <div style={{ opacity: 0.8, marginBottom: '12px' }}>{t('chat.renderers.mermaid_reload_hint', 'Reload the page to view this diagram.')}</div>
+                <div className="[padding:16px_20px] [border-radius:10px] [background:var(--bg-tertiary,#1e1e2e)] [border:1px_solid_rgba(99,102,241,0.3)] [color:var(--text-secondary,#94a3b8)] [font-size:13px] [margin:8px_0] [text-align:center]">
+                    <div className="[font-weight:600] [margin-bottom:6px]">🔄 {t('chat.renderers.mermaid_new_version', 'New version available')}</div>
+                    <div className="[opacity:0.8] [margin-bottom:12px]">{t('chat.renderers.mermaid_reload_hint', 'Reload the page to view this diagram.')}</div>
                     <button
                         onClick={() => window.location.reload()}
-                        style={{
-                            padding: '8px 20px',
-                            borderRadius: '8px',
-                            background: 'rgba(99, 102, 241, 0.15)',
-                            border: '1px solid rgba(99, 102, 241, 0.4)',
-                            color: '#818cf8',
-                            cursor: 'pointer',
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            transition: 'all 0.15s',
-                        }}
+                        className="[padding:8px_20px] [border-radius:8px] [background:rgba(99,102,241,0.15)] [border:1px_solid_rgba(99,102,241,0.4)] [color:#818cf8] [cursor:pointer] [font-size:13px] [font-weight:600] [transition:all_0.15s]"
                     >
                         {t('chat.renderers.mermaid_reload', 'Reload page')}
                     </button>
@@ -342,17 +286,9 @@ const MermaidRenderer = ({ code }: { code: string }) => {
         }
 
         return (
-            <div style={{
-                padding: '12px 16px',
-                borderRadius: '10px',
-                background: 'var(--bg-tertiary, #1e1e2e)',
-                border: '1px solid var(--error)',
-                color: 'var(--error)',
-                fontSize: '13px',
-                margin: '8px 0',
-            }}>
-                <div style={{ fontWeight: 600, marginBottom: '4px' }}>⚠️ {t('chat.renderers.mermaid_error', 'Diagram Error')}</div>
-                <div style={{ opacity: 0.8, fontFamily: 'monospace', fontSize: '12px', whiteSpace: 'pre-wrap' }}>{error}</div>
+            <div className="[padding:12px_16px] [border-radius:10px] [background:var(--bg-tertiary,#1e1e2e)] [border:1px_solid_var(--error)] [color:var(--error)] [font-size:13px] [margin:8px_0]">
+                <div className="[font-weight:600] [margin-bottom:4px]">⚠️ {t('chat.renderers.mermaid_error', 'Diagram Error')}</div>
+                <div className="[opacity:0.8] [font-family:monospace] [font-size:12px] [white-space:pre-wrap]">{error}</div>
             </div>
         );
     }
@@ -401,13 +337,7 @@ const MermaidRenderer = ({ code }: { code: string }) => {
 
                 <div
                     ref={containerRef}
-                    style={{
-                        width: '100%',
-                        minHeight: '80px',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                    }}
+                    className="w-[100%] min-h-[80px] [display:flex] [justify-content:center] [align-items:center]"
                 />
             </div>
 

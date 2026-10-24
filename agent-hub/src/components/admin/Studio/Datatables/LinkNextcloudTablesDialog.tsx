@@ -170,14 +170,12 @@ export default function LinkNextcloudTablesDialog({ scope, linkable, onBack, onC
             ]} />}
             footer={(
                 <>
-                    <button type="button" onClick={back} disabled={busy} className={`${BTN} border inline-flex items-center gap-1.5`}
-                        style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}>
+                    <button type="button" onClick={back} disabled={busy} className={`${BTN} border inline-flex items-center gap-1.5 [border-color:var(--border-subtle)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
                         <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
                         {t('datatables.nc_back', 'Back')}
                     </button>
                     <span className="mr-auto" />
-                    <button type="button" onClick={onClose} disabled={busy} className={`${BTN} border`}
-                        style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}>
+                    <button type="button" onClick={onClose} disabled={busy} className={`${BTN} border [border-color:var(--border-subtle)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
                         {t('datatables.cancel', 'Cancel')}
                     </button>
                     {step !== 'review' ? (
@@ -295,7 +293,7 @@ function NamesStep({ t, selected, describes, onChange, keyDup, marks, onSelectTa
                 const dup = keyDup.includes(s.key);
                 return (
                     <section key={s.refKey} className="p-3 space-y-2" style={CARD} aria-label={s.title}>
-                        <div className="grid gap-2" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)' }}>
+                        <div className="grid gap-2 [grid-template-columns:minmax(0,1fr)_minmax(0,1fr)]">
                             <label className="block">
                                 <span className="block text-xs mb-1 text-[var(--text-secondary)]">{t('datatables.field_name', 'Name')}</span>
                                 <input value={s.name} onChange={(e) => onChange(s.refKey, { name: e.target.value, ...(s.keyTouched ? {} : { key: keyFromName(e.target.value) }) })}
@@ -323,7 +321,7 @@ function NamesStep({ t, selected, describes, onChange, keyDup, marks, onSelectTa
                             {d.loading && <span className="inline-flex items-center gap-1.5 text-xs text-[var(--text-tertiary)]"><Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />{t('datatables.nc_reading', 'Reading the columns…')}</span>}
                             {d.error && <p className="text-[11px] text-[var(--warning)]">{d.error}</p>}
                             {!d.loading && !d.error && (
-                                <ul className="grid gap-1" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
+                                <ul className="grid gap-1 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
                                     {d.columns.map((c) => {
                                         const kind = columnTypeKind(c.mappedType);
                                         const missingTarget = c.type === 'relation' && c.relationTarget && c.relationTarget.ncTableId && !selectedTableIds.has(c.relationTarget.ncTableId);
@@ -364,7 +362,7 @@ function ReviewStep({ t, scope, selected, relations, locked, onChangeScope }: Re
             <ul className="space-y-1">
                 {selected.map(s => (
                     <li key={s.refKey} className="flex items-center gap-2 p-2.5" style={CARD}>
-                        <Cloud className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--type-data)' }} aria-hidden="true" />
+                        <Cloud className="w-3.5 h-3.5 shrink-0 [color:var(--type-data)]" aria-hidden="true" />
                         <span className="truncate">{s.name}</span>
                         <code className="ml-auto text-[11px] font-mono shrink-0 text-[var(--text-tertiary)]">{s.key}</code>
                     </li>

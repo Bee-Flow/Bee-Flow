@@ -9,12 +9,7 @@ vi.mock('./SignupStepOrg', () => ({ default: () => <div>STEP:type</div> }));
 vi.mock('./SignupStepAuth', () => ({ default: () => <div>STEP:auth</div> }));
 vi.mock('./SignupStepPrivacy', () => ({ default: () => <div>STEP:privacy</div> }));
 vi.mock('./SignupStepAccount', () => ({ default: () => <div>STEP:account</div> }));
-vi.mock('../../hooks/useTranslation', () => ({
-    useTranslation: () => ({ t: (_k, fallback, vars) => {
-        if (typeof fallback !== 'string') return _k;
-        return fallback.replace(/\{(\w+)\}/g, (m, name) => (vars?.[name] ?? m));
-    } }),
-}));
+vi.mock('../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 vi.mock('../../assets/bee-flow-logo.png', () => ({ default: 'logo.png' }), { virtual: true });
 
 const BASE_DATA = {

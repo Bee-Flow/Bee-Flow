@@ -30,7 +30,7 @@ export default function LinkedResultModal({ title, body, warnings, onOpen, t }: 
                 {/* VERBATIM, like the managed warning: the server owns these sentences. */}
                 {warnings.map((w, i) => (
                     <p key={i} className="text-xs px-3 py-2 rounded-lg flex items-start gap-2 bg-[var(--bg-primary)] text-[var(--text-primary)]">
-                        <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} aria-hidden="true" />
+                        <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0 [color:var(--warning)]" aria-hidden="true" />
                         <span>{w}</span>
                     </p>
                 ))}

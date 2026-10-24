@@ -23,18 +23,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // default-only mock takes the whole Used-by table down inside a `waitFor` and
 // reads as a missing element rather than as a broken mock. The factory is
 // hoisted above every `const` in this file, so it defines its own translator.
-vi.mock('../../../hooks/useTranslation', () => {
-    const translator = () => ({
-        t: (key, fallback, vars) => {
-            let out = fallback || key;
-            for (const [k, v] of Object.entries(vars || {})) out = out.split(`{${k}}`).join(String(v));
-            return out;
-        },
-        language: 'en',
-        locale: 'en',
-    });
-    return { default: translator, useTranslation: translator };
-});
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const usageState = { usage: [], unchecked: [], error: null, loading: false };
 vi.mock('../../../hooks/useUsage', () => ({

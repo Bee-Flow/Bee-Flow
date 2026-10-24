@@ -331,7 +331,7 @@ export default function InstallBlueprintModal({ open, source, onClose, onInstall
 
             {unreadable && (
                 <p className="flex items-start gap-2 text-sm text-[var(--text-primary)]" data-testid="install-unreadable">
-                    <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--warning)' }} />
+                    <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0 [color:var(--warning)]" />
                     {t('solutions.install_unreadable',
                         'That Blueprint could not be read, so there is nothing to describe and nothing has been installed.')}
                 </p>
@@ -339,7 +339,7 @@ export default function InstallBlueprintModal({ open, source, onClose, onInstall
 
             {error && (
                 <p className="flex items-start gap-2 text-sm mb-3 text-[var(--text-primary)]" data-testid="install-error">
-                    <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--warning)' }} />
+                    <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0 [color:var(--warning)]" />
                     {error}
                 </p>
             )}

@@ -32,7 +32,7 @@ export default function CreatedResultModal({ title, warning, onOpen, t }: Create
                     wrong. */}
                 {warning && (
                     <p className="text-xs px-3 py-2 rounded-lg flex items-start gap-2 bg-[var(--bg-primary)] text-[var(--text-primary)]">
-                        <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} aria-hidden="true" />
+                        <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0 [color:var(--warning)]" aria-hidden="true" />
                         <span>{warning}</span>
                     </p>
                 )}

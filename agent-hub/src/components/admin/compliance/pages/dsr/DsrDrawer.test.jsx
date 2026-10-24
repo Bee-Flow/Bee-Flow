@@ -12,18 +12,7 @@ import { DAY_MS } from '../../../../shared/deadlineMath';
  * (timeline / found in Bee Flow) degrade when the routes are not there.
  */
 
-vi.mock('../../../../../hooks/useTranslation', () => {
-    const useTranslation = () => ({
-        t: (key, fallback, vars) => {
-            const base = typeof fallback === 'string' ? fallback : key;
-            const params = typeof fallback === 'string' ? vars : fallback;
-            return params ? Object.entries(params).reduce((s, [k, v]) => s.replace(`{${k}}`, String(v)), base) : base;
-        },
-        locale: 'en',
-        resolvedLocale: 'en',
-    });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const NOW = new Date('2026-09-14T09:12:00Z').getTime();
 const iso = (ms) => new Date(ms).toISOString();

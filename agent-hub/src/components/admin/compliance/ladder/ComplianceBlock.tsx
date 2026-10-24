@@ -78,7 +78,7 @@ export default function ComplianceBlock({ kind = 'automation', target, now, clas
         <section data-testid="compliance-block" data-kind={kind} className={`flex flex-col gap-2 ${className}`}>
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-2 min-w-0">
-                    <ClipboardCheck size={15} aria-hidden="true" style={{ color: 'var(--kind-compliance)' }} />
+                    <ClipboardCheck size={15} aria-hidden="true" className="[color:var(--kind-compliance)]" />
                     <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">
                         {t('compliance.ladder_block_title', 'Compliance')}
                     </h3>
@@ -103,7 +103,7 @@ export default function ComplianceBlock({ kind = 'automation', target, now, clas
 
             {line && (
                 <p data-testid="compliance-block-signals" data-source={signals?.source || 'server'} className="flex items-start gap-1.5 text-[12px] text-[var(--text-secondary)]">
-                    <Sparkles size={12} aria-hidden="true" className="shrink-0 mt-0.5" style={{ color: 'var(--type-ai)' }} />
+                    <Sparkles size={12} aria-hidden="true" className="shrink-0 mt-0.5 [color:var(--type-ai)]" />
                     <span>
                         {line}
                         {signals?.source === 'client' && !loading && (

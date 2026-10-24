@@ -37,7 +37,7 @@ export default function FileField({ field, value, disabled, onChange, onUpload, 
             <div
                 className="flex items-center gap-2 px-2.5 py-1.5 text-sm border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-primary)]!"
             >
-                <Paperclip size={14} style={{ color: 'var(--app-primary)' }} />
+                <Paperclip size={14} className="[color:var(--app-primary)]" />
                 <span className="truncate flex-1 min-w-0">{value.filename}</span>
                 <button
                     type="button"

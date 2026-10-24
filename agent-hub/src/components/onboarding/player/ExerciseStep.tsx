@@ -193,7 +193,7 @@ export default function ExerciseStep({ step, saved, modelTier = 'fast', onState 
                                     <ul className="flex flex-col gap-1.5">
                                         {result.strengths.map((s, i) => (
                                             <li key={i} className="text-[12.5px] flex items-start gap-1.5 text-[var(--text-secondary)]">
-                                                <Check className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: '#15803d' }} /> {s}
+                                                <Check className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 [color:#15803d]" /> {s}
                                             </li>
                                         ))}
                                     </ul>

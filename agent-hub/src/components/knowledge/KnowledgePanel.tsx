@@ -144,8 +144,7 @@ const KnowledgePanel = ({ API_BASE, strictKnowledge = false, onStrictKnowledgeCh
                                     const isSelected = selectedKB?.id === item.id;
                                     return (
                                         <div key={item.id}
-                                            className={`p-3 rounded-lg border group cursor-pointer transition-all ${isSelected ? 'ring-2 ring-[var(--accent-primary)] border-transparent' : 'hover:border-[var(--border-default)]'}`}
-                                            style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}
+                                            className={`p-3 rounded-lg border group cursor-pointer transition-all ${isSelected ? 'ring-2 ring-[var(--accent-primary)] border-transparent' : 'hover:border-[var(--border-default)]'} [background:var(--bg-tertiary)] [border-color:var(--border-default)]!`}
                                             onClick={() => kb.setSelectedKB(isSelected ? null : item)}
                                             data-testid={`kb-item-${item.id}`}>
                                             <div className="flex items-center justify-between">

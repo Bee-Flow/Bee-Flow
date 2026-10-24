@@ -34,7 +34,7 @@ const ToolsUsedTimeline = ({ visibleTools }: ToolsUsedTimelineProps) => {
                         <StepBadge n={i + 1} />
                         {/* Card */}
                         <div className="flex-1 min-w-0">
-                            <summary className="flex items-center gap-2 cursor-pointer rounded-lg px-2.5 py-2 select-none list-none [&::-webkit-details-marker]:hidden transition-colors hover:bg-[var(--bg-tertiary)]" style={{ background: 'var(--bg-tertiary)', border: '1px solid transparent' }}>
+                            <summary className="flex items-center gap-2 cursor-pointer rounded-lg px-2.5 py-2 select-none list-none [&::-webkit-details-marker]:hidden transition-colors hover:bg-[var(--bg-tertiary)] [background:var(--bg-tertiary)]! [border:1px_solid_transparent]">
                                 <AppEmoji id={toolNameToCatalogId(tool.name)} default={getToolIcon(tool.name)} className="text-sm flex-shrink-0" />
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-1.5 flex-wrap">
@@ -43,7 +43,7 @@ const ToolsUsedTimeline = ({ visibleTools }: ToolsUsedTimelineProps) => {
                                         {argEntries.slice(0, 3).map(([k, v]) => {
                                             const val = typeof v === 'string' ? (v.length > 35 ? v.slice(0, 35) + '…' : v) : JSON.stringify(v).slice(0, 25);
                                             return (
-                                                <span key={k} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] max-w-[160px] overflow-hidden" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+                                                <span key={k} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] max-w-[160px] overflow-hidden [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
                                                     <span className="font-medium opacity-50 flex-shrink-0 text-[var(--text-secondary)]">{k}</span>
                                                     <span className="truncate text-[var(--text-primary)]">{val}</span>
                                                 </span>
@@ -60,7 +60,7 @@ const ToolsUsedTimeline = ({ visibleTools }: ToolsUsedTimelineProps) => {
                             </summary>
                             {/* Result preview */}
                             {preview && (
-                                <div className="mt-1 mx-0.5 px-3 py-2 rounded-b-lg text-[10px] leading-relaxed" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-subtle)', fontFamily: 'monospace', opacity: 0.85 }}>
+                                <div className="mt-1 mx-0.5 px-3 py-2 rounded-b-lg text-[10px] leading-relaxed [background:var(--bg-secondary)] [color:var(--text-secondary)]! [border-top:1px_solid_var(--border-subtle)] [font-family:monospace] [opacity:0.85]">
                                     <div className="line-clamp-3">{preview}{((tool.resultPreview as string | undefined)?.length as number) > 150 ? ' …' : ''}</div>
                                 </div>
                             )}

@@ -103,8 +103,7 @@ export default function ScheduleMenu({ open, onClose, anchorRef, source, onChang
             align={align}
             width={280}
             role="menu"
-            className="py-1.5 text-xs"
-            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+            className="py-1.5 text-xs [background:var(--bg-card)]! [border-color:var(--border-default)]! [color:var(--text-primary)]!"
         >
             <div className="px-3 pb-1.5 font-semibold text-[var(--text-secondary)]">
                 {t('knowledge.schedule.title', 'Refresh')}

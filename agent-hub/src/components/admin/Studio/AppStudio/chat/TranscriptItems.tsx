@@ -27,8 +27,7 @@ export function ScreenshotItem({ item }: { item: TranscriptImage }) {
     const fromUser = !!item.fromUser;
     return (
         <figure
-            className={`overflow-hidden rounded-lg border ${fromUser ? 'max-w-[70%] self-end' : 'w-full'}`}
-            style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}
+            className={`overflow-hidden rounded-lg border ${fromUser ? 'max-w-[70%] self-end' : 'w-full'} [border-color:var(--border-default)] [background:var(--bg-secondary)]`}
         >
             <img
                 src={item.dataUrl}
@@ -97,7 +96,7 @@ export function ErrorItem({ message, code, onRetry, disabled = false }: ErrorIte
             className="flex w-full items-start gap-2 rounded-lg border px-2.5 py-2 text-xs leading-relaxed [border-color:rgba(239,68,68,0.35)] [background:color-mix(in_srgb,var(--error)_8%,transparent)] [color:var(--text-secondary)]!"
             role="alert"
         >
-            <AlertTriangle size={13} className="mt-0.5 shrink-0" style={{ color: 'var(--error)' }} aria-hidden="true" />
+            <AlertTriangle size={13} className="mt-0.5 shrink-0 [color:var(--error)]" aria-hidden="true" />
             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                 <span>{friendly}</span>
                 {showRetry ? (

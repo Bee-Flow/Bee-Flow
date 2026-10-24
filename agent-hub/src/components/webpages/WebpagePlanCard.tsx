@@ -90,7 +90,7 @@ export default function WebpagePlanCard({ plan, status = 'pending', planId, onAp
                     </div>
                 </div>
                 {status === 'approved' && <Loader2 size={13} className="animate-spin text-[var(--accent-primary)]" />}
-                {status === 'executed' && <CheckCircle2 size={14} style={{ color: 'rgb(22,163,74)' }} />}
+                {status === 'executed' && <CheckCircle2 size={14} className="[color:rgb(22,163,74)]" />}
                 <ChevronRight
                     size={14}
                     style={{

@@ -18,13 +18,13 @@ function FeedbackChips({ item, snapshot }: { item: FeedbackItem; snapshot: Snaps
             )}
             {(item.agent_name || item.agent_id) && (
                 <span style={chipStyle(COLORS.blue + '15', COLORS.blue, true)} title={agentId}>
-                    <Bot style={{ width: 9, height: 9 }} />
+                    <Bot className="w-[9px] h-[9px]" />
                     {item.agent_name || (agentId.length > 20 ? agentId.slice(0, 20) + '…' : agentId)}
                 </span>
             )}
             {item.model && (
                 <span style={chipStyle(MUTED_CHIP_BG, 'var(--text-secondary, #aaa)', true)} title={item.model}>
-                    <Cpu style={{ width: 9, height: 9 }} />
+                    <Cpu className="w-[9px] h-[9px]" />
                     {shortModel(item.model)}
                 </span>
             )}
@@ -38,7 +38,7 @@ function FeedbackChips({ item, snapshot }: { item: FeedbackItem; snapshot: Snaps
             )}
             {!!snapshot && snapshot.length > 0 && (
                 <span style={chipStyle(COLORS.blue + '15', COLORS.blue, true)}>
-                    <MessageSquare style={{ width: 9, height: 9 }} />
+                    <MessageSquare className="w-[9px] h-[9px]" />
                     {t('admin_monitoring.feedback_msgs', '{n} msgs', { n: snapshot.length })}
                 </span>
             )}
@@ -56,7 +56,7 @@ function FeedbackDetail({ item, snapshot }: { item: FeedbackItem; snapshot: Snap
             <div className="[display:flex] [gap:12px] [margin-bottom:12px] [flex-wrap:wrap] [font-size:11px] [color:var(--text-muted,#888)]">
                 {item.conversation_id && (
                     <span className="[display:flex] [align-items:center] [gap:4px]">
-                        <ExternalLink style={{ width: 10, height: 10 }} />
+                        <ExternalLink className="w-[10px] h-[10px]" />
                         Conv: {item.conversation_id.slice(0, 16)}…
                     </span>
                 )}

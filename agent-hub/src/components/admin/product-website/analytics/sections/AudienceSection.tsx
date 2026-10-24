@@ -221,7 +221,7 @@ function GeoUnavailable() {
     const { t } = useTranslation();
     return (
         <div className="[display:flex] [gap:9px] [align-items:flex-start] [padding:12px_14px] [border-radius:10px] [background:rgba(245,158,11,0.08)] [border:1px_solid_rgba(245,158,11,0.25)] [font-size:12px] [color:#fcd34d]">
-            <MapPin style={{ width: 14, height: 14, marginTop: 1, flexShrink: 0 }} />
+            <MapPin className="w-[14px] h-[14px] [margin-top:1px] [flex-shrink:0]" />
             <span>
                 <strong>{t('cms_site.analytics.audience.geo_title', 'Visits recorded, but no location data.')}</strong>{' '}
                 {t('cms_site.analytics.audience.geo_body', "Usually the visitor's IP address is not reaching the analytics service — behind a load balancer it is the balancer's own address that arrives, which resolves to nowhere. Everything else on this page is unaffected.")}

@@ -238,7 +238,7 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
                                 {sel.columns.map((c: DbColumn) => (
                                     <tr key={c.name} className="[border-bottom:1px_solid_var(--vsc-border)]">
                                         <td className="py-1.5 pr-3 font-mono">
-                                            {c.primaryKey && <KeyRound size={11} className="inline mr-1" style={{ color: '#eab308' }} />}
+                                            {c.primaryKey && <KeyRound size={11} className="inline mr-1 [color:#eab308]" />}
                                             {c.name}
                                         </td>
                                         <td className="py-1.5 pr-3 text-[var(--vsc-fg-muted)]">{c.type || '—'}</td>
@@ -404,7 +404,7 @@ function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
     return (
         <div className="flex flex-col h-full text-[var(--vsc-fg)]">
             <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0 border-[var(--vsc-border)]">
-                <Table2 size={14} style={{ color: 'var(--vsc-fg-muted)' }} />
+                <Table2 size={14} className="[color:var(--vsc-fg-muted)]" />
                 <select
                     value={tableName || ''}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTableName(e.target.value)}
@@ -531,7 +531,7 @@ function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
                                             className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]"
                                             title={t('webpages.db.delete_row', 'Delete row')}
                                         >
-                                            <Trash2 size={12} style={{ color: '#ef4444' }} />
+                                            <Trash2 size={12} className="[color:#ef4444]" />
                                         </button>
                                     </td>
                                 </tr>

@@ -278,8 +278,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
         <div className="flex-1 flex min-h-0 min-w-0 bg-[var(--bg-primary)]">
             {showList && (
             <aside
-                className={`${isMobile ? 'flex-1' : 'w-80 flex-shrink-0 border-r'} flex flex-col min-h-0`}
-                style={{ borderColor: 'var(--border-subtle)' }}
+                className={`${isMobile ? 'flex-1' : 'w-80 flex-shrink-0 border-r'} flex flex-col min-h-0 [border-color:var(--border-subtle)]!`}
             >
                 <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[var(--border-subtle)]">
                     <span className="text-[13px] font-semibold text-[var(--text-primary)]">Cowork</span>

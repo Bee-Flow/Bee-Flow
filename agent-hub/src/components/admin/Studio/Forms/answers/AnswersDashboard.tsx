@@ -88,7 +88,7 @@ export default function AnswersDashboard({ datatableId, grade = null, mine = fal
     if (loading && !data) return <DashSkeleton tiles={4} cards={3} testId={`${testId}-skeleton`} />;
     if (error && !data) {
         return (
-            <div className="rounded-xl border p-4 text-xs" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)', color: 'var(--error)' }} role="alert">
+            <div className="rounded-xl border p-4 text-xs [border-color:var(--border-default)] [background:var(--bg-card)] [color:var(--error)]!" role="alert">
                 {t('forms.answers.load_failed', 'Could not load the answers.')}{' '}
                 <button type="button" onClick={reload} className="underline">{t('forms.answers.retry', 'Try again')}</button>
             </div>

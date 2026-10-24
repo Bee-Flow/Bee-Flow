@@ -301,7 +301,7 @@ function VideoElement({ el, pathBase }: ElementProps) {
                 ) : hasUrl ? (
                     <LazyLoopVideo
                         src={el.url ?? ''}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        className="w-[100%]! h-[100%]! [object-fit:cover]!"
                     />
                 ) : (
                     <div className="content-el-video-placeholder">

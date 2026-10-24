@@ -18,7 +18,7 @@ export default function SelfHostedCeilingEditor() {
         <div className="space-y-6">
             <section>
                 <div className="flex items-center gap-2 mb-3">
-                    <KeyRound className="w-5 h-5" style={{ color: '#3b82f6' }} />
+                    <KeyRound className="w-5 h-5 [color:#3b82f6]" />
                     <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_org.ceiling_licence_title', 'Server licence')}</h2>
                 </div>
                 <p className="text-sm mb-3 [color:var(--text-muted)]! max-w-[720px]">
@@ -29,7 +29,7 @@ export default function SelfHostedCeilingEditor() {
 
             <section>
                 <div className="flex items-center gap-2 mb-3">
-                    <ToggleLeft className="w-5 h-5" style={{ color: '#10b981' }} />
+                    <ToggleLeft className="w-5 h-5 [color:#10b981]" />
                     <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_org.ceiling_global_switches', 'Global feature switches')}</h2>
                 </div>
                 <FeatureKillSwitches />

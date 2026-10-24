@@ -222,8 +222,7 @@ export default function HouseStylePanel({ onBack }: HouseStylePanelProps) {
                         </div>
                         <div className="flex flex-col gap-2">
                             <label
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${disabled ? 'opacity-50' : 'cursor-pointer'}`}
-                                style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${disabled ? 'opacity-50' : 'cursor-pointer'} [background:var(--bg-tertiary)] [color:var(--text-primary)]!`}
                             >
                                 <Upload size={14} />
                                 {t('documents.style.upload_logo', 'Choose a file')}

@@ -131,8 +131,7 @@ export default function AppsPicker({
                 <div
                     ref={panelRef}
                     data-testid="apps-picker-panel"
-                    className={`absolute ${dropDown ? 'top-full mt-2' : 'bottom-full mb-2'} left-0 w-80 rounded-xl border shadow-2xl overflow-hidden z-50`}
-                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', animation: 'appsOverlayIn .15s ease-out' }}
+                    className={`absolute ${dropDown ? 'top-full mt-2' : 'bottom-full mb-2'} left-0 w-80 rounded-xl border shadow-2xl overflow-hidden z-50 [background:var(--bg-secondary)] [border-color:var(--border-subtle)] [animation:appsOverlayIn_.15s_ease-out]`}
                 >
                     {/* Header */}
                     <div className="px-4 py-3 border-b border-[var(--border-subtle)]">

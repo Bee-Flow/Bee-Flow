@@ -103,8 +103,7 @@ export function ViewAsMenu({ roles, previewRole, previewRoleName, setPreviewRole
                 align="right"
                 role="menu"
                 minWidth={220}
-                className="py-1"
-                style={{ background: 'var(--bg-secondary)' }}
+                className="py-1 [background:var(--bg-secondary)]!"
             >
                 <RoleMenuItem
                     label={t('app_studio.header.view_as_owner_full', 'Owner (full view)')}
@@ -157,8 +156,7 @@ export function MoreMenu({ streamLock, onOpenCommand, onOpenVersions }: MoreMenu
                 align="right"
                 role="menu"
                 minWidth={230}
-                className="py-1"
-                style={{ background: 'var(--bg-secondary)' }}
+                className="py-1 [background:var(--bg-secondary)]!"
             >
                 <MoreMenuItem
                     icon={Command}
