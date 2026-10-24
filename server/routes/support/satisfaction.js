@@ -74,7 +74,7 @@ function register(router) {
                     category: 'urgent',
                 });
                 _emit('thread_updated', { threadId: thread.id });
-                return res.redirect(303, `${req.baseUrl}/csat/${encodeURIComponent(thread.id)}/done?dispute=1`);
+                return res.redirect(303, `${req.baseUrl}/csat/${encodeURIComponent(thread.id)}/done?dispute=1`); // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- same-origin path built server-side, id URI-encoded
             }
 
             await supportStore.setCsat({ threadId: thread.id, score: numScore });

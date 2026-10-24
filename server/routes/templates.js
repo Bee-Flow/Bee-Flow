@@ -401,7 +401,7 @@ router.get('/download-filled/:filename', requireAuth, (req, res) => {
 
     // Sanitize filename to prevent directory traversal
     const sanitized = path.basename(filename);
-    const filePath = path.join(__dirname, '..', 'data', 'templates_filled', userId, sanitized);
+    const filePath = path.join(__dirname, '..', 'data', 'templates_filled', userId, sanitized); // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal -- filename reduced to its basename above, userId from the session
 
     if (!fs.existsSync(filePath)) {
         log.error(`[Templates] Download-filled file not found: ${filePath}`);
