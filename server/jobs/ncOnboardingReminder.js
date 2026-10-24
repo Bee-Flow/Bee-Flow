@@ -20,6 +20,7 @@
  * start() from server/index.js, staggered first run, unref'd interval.
  */
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MIN_AGE_DAYS = 3;         // orgs younger than this are still "just installed"
@@ -127,8 +128,8 @@ let _interval = null;
 function start() {
     if (_interval) return;
     // Stagger first run by 10 min after boot so we don't compete with init load.
-    setTimeout(() => { run().catch(() => { }); }, 10 * 60 * 1000).unref?.();
-    _interval = setInterval(() => { run().catch(() => { }); }, TICK_INTERVAL_MS);
+    setTimeout(() => { run().catch((e) => bestEffort('jobs/ncOnboardingReminder:start', e)); }, 10 * 60 * 1000).unref?.();
+    _interval = setInterval(() => { run().catch((e) => bestEffort('jobs/ncOnboardingReminder:start#2', e)); }, TICK_INTERVAL_MS);
     if (typeof _interval.unref === 'function') _interval.unref();
     log.info('[ncOnboardingReminder] Scheduled (daily; >3d incomplete onboarding; 1 reminder/org/7d)');
 }

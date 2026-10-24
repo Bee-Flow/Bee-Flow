@@ -33,6 +33,7 @@ const log = require('../telemetry/log');
 const { normalizeNotificationSettings } = require('../automation/notificationDefaults');
 const { resolveDigestRecipientIds } = require('../automation/notificationRecipients');
 const { bundleMessage, composeDigest, talkText } = require('../automation/notificationMessages');
+const { fallback } = require('../utils/bestEffort');
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -51,7 +52,7 @@ function defaultDeps() {
         sendRunEmail: (a, o) => runNotifications.sendRunEmail(a, o),
         sendDigestEmail: async ({ userId, subject, text }) => {
             const emailService = require('../utils/emailService');
-            const cfg = await emailService.getServiceEmailConfig().catch(() => null);
+            const cfg = await emailService.getServiceEmailConfig().catch((e) => fallback('jobs/automationDigest:sendDigestEmail', e, null));
             if (!cfg?.configured) return { sent: false, reason: 'no_service_email' };
             const user = await require('../stores/userStore').getUser(userId).catch(() => null);
             if (!user?.email) return { sent: false, reason: 'no_owner_email' };
@@ -92,7 +93,7 @@ function ncCache(deps) {
     return (ownerId) => ({
         get: async () => {
             if (!cache.has(ownerId)) {
-                cache.set(ownerId, await Promise.resolve(deps.resolveNcContext(ownerId)).catch(() => null));
+                cache.set(ownerId, await Promise.resolve(deps.resolveNcContext(ownerId)).catch((e) => fallback('jobs/automationDigest:get', e, null)));
             }
             return cache.get(ownerId);
         },
@@ -110,7 +111,7 @@ async function flushBundles(deps, now, nc) {
     for (const g of groups) {
         try {
             if (!settingsCache.has(g.automationId)) {
-                const a = await Promise.resolve(deps.getAutomation(g.automationId)).catch(() => null);
+                const a = await Promise.resolve(deps.getAutomation(g.automationId)).catch((e) => fallback('jobs/automationDigest:flushBundles', e, null));
                 settingsCache.set(g.automationId, a ? { a, settings: normalizeNotificationSettings(a.definition?.notificationSettings) } : null);
             }
             const entry = settingsCache.get(g.automationId);
@@ -125,7 +126,7 @@ async function flushBundles(deps, now, nc) {
                 if (!entry.digestIds) {
                     entry.digestIds = new Set(await resolveDigestRecipientIds(settings, {
                         automation: a, orgId: a.organizationId || null,
-                    }, { listUsers: () => deps.listUsers() }).catch(() => []));
+                    }, { listUsers: () => deps.listUsers() }).catch((e) => fallback('jobs/automationDigest:flushBundles#2', e, [])));
                 }
                 if (entry.digestIds.has(g.recipient)) continue;
             }
@@ -188,7 +189,7 @@ async function dueDigests(deps, now) {
     const byRecipient = new Map();
     let users = null;
     const listUsers = async () => {
-        if (!users) users = await Promise.resolve(deps.listUsers()).catch(() => []);
+        if (!users) users = await Promise.resolve(deps.listUsers()).catch((e) => fallback('jobs/automationDigest:listUsers', e, []));
         return users;
     };
     for (const a of automations) {
@@ -198,7 +199,7 @@ async function dueDigests(deps, now) {
         if (slot == null || now - slot > DIGEST_GRACE_MS) continue;
         let orgId = a.organizationId || null;
         if (!orgId) {
-            const owner = await Promise.resolve(deps.getUser(a.userId)).catch(() => null);
+            const owner = await Promise.resolve(deps.getUser(a.userId)).catch((e) => fallback('jobs/automationDigest:dueDigests', e, null));
             orgId = owner?.organizationId || null;
         }
         const ids = await resolveDigestRecipientIds(settings, { automation: a, orgId }, { listUsers });

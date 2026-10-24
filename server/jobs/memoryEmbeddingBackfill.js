@@ -56,6 +56,7 @@ const { validateDim, vectorColumn, tsvectorExpr } = require('../stores/memoryVec
 const { ENVELOPE_LIKE } = require('../stores/memoryCrypto');
 const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 // Namespaced so it cannot collide with another job's advisory lock.
 const LOCK_KEY = 887401;
@@ -251,7 +252,7 @@ async function getBackfillStatus() {
                    FROM user_memories WHERE status = 'active'`,
             );
             embedded = r?.n || 0;
-        } catch (err) { log.debug('column not created yet', err); }
+        } catch (err) { fallback('jobs/memoryEmbeddingBackfill:getBackfillStatus', err); /* column not created yet */ }
     }
     return {
         activeDim: dim,
@@ -312,7 +313,7 @@ async function runOnce({ dryRun = false } = {}) {
     } finally {
         if (client) {
             try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); }
-            catch (err) { log.debug('best-effort', err); }
+            catch (err) { bestEffort('jobs/memoryEmbeddingBackfill:runOnce', err); /* best-effort */ }
             client.release();
         }
         if (acquired) recordJobRun({ job: 'memory_embedding_backfill', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });

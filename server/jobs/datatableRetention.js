@@ -49,6 +49,7 @@ const { isSourceManagedKind } = require('../core/dataEngine/dataModel/managedTab
 const { envFlagOn } = require('../core/automationRunner/integrationCachePolicy');
 const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // Rows are always in Postgres — the App Studio engine flag is a process global
 // that may say 'sqlite', and compiling under it would emit SQL for the wrong
@@ -185,7 +186,7 @@ async function reconcileRowCount(table, meta, scopeKey) {
     try {
         // Mirrored into datatable_models by the engine itself (mirrorScopeSize).
         await datatableDbStore.sizeBytes(scopeKey, scopeKey);
-    } catch (err) { log.debug('the quota reader tolerates a stale size', err); }
+    } catch (err) { bestEffort('jobs/datatableRetention:reconcileRowCount', err); /* the quota reader tolerates a stale size */ }
 }
 
 /**

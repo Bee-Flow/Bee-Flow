@@ -29,6 +29,7 @@
 
 const crypto = require('crypto');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const TICK_MS = 5_000;
 const BOOT_DELAY_MS = 20_000;
@@ -81,7 +82,7 @@ function makeParticipationJob(deps = {}) {
                     log.warn(`[AiParticipation] watch ${watch.id} not closed; the reaper will: ${err && err.message}`);
                 }
                 inFlight -= 1;
-                try { recordJobRun({ job: 'ai_participation', status, durationMs: now() - started }); } catch (err) { log.debug('metrics are optional', err); }
+                try { recordJobRun({ job: 'ai_participation', status, durationMs: now() - started }); } catch (err) { bestEffort('jobs/aiParticipation:launch', err); /* metrics are optional */ }
             }
         })();
         running.add(work);
@@ -140,9 +141,9 @@ function makeParticipationJob(deps = {}) {
             ? deps.gate(tick)
             : require('../modules').moduleGatedTick('projects', tick, 'aiParticipation');
         log.info(`[AiParticipation] started: every ${TICK_MS / 1000}s, up to ${concurrency} at a time`);
-        timer = setInterval(() => { Promise.resolve(gated()).catch(() => {}); }, TICK_MS);
+        timer = setInterval(() => { Promise.resolve(gated()).catch((e) => bestEffort('jobs/aiParticipation:start', e)); }, TICK_MS);
         timer.unref?.();
-        bootTimer = setTimeout(() => { Promise.resolve(gated()).catch(() => {}); }, BOOT_DELAY_MS);
+        bootTimer = setTimeout(() => { Promise.resolve(gated()).catch((e) => bestEffort('jobs/aiParticipation:start#2', e)); }, BOOT_DELAY_MS);
         bootTimer.unref?.();
     }
 

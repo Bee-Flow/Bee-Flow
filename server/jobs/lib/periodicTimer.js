@@ -21,13 +21,14 @@
  * @param {{ bootDelayMs: number, intervalMs: number, run: (when: 'initial'|'scheduled') => unknown }} opts
  * @returns {{ start: () => boolean, stop: () => void }}
  */
+const { bestEffort } = require('../../utils/bestEffort');
 function periodicTimer({ bootDelayMs, intervalMs, run }) {
     /** @type {ReturnType<typeof setTimeout>|null} */
     let boot = null;
     /** @type {ReturnType<typeof setInterval>|null} */
     let interval = null;
     /** @param {'initial'|'scheduled'} when */
-    const tick = (when) => { Promise.resolve().then(() => run(when)).catch(() => {}); };
+    const tick = (when) => { Promise.resolve().then(() => run(when)).catch((e) => bestEffort('jobs/lib/periodicTimer:tick', e)); };
     return {
         start() {
             if (interval) return false;

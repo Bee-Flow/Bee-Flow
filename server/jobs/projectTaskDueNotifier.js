@@ -18,6 +18,7 @@
 const { pool } = require('../db');
 const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const LOCK_KEY = 0xBEEF7A5; // unique among jobs/* advisory locks
@@ -102,7 +103,7 @@ async function tick() {
         log.warn(`[ProjectTaskDue] tick failed: ${err && err.message}`);
     } finally {
         if (client) {
-            if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]).catch(() => {});
+            if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]).catch((e) => bestEffort('jobs/projectTaskDueNotifier:tick', e));
             client.release();
         }
         if (acquired) recordJobRun({ job: 'project_task_due', status: ok ? 'ok' : 'error', durationMs: Date.now() - started });

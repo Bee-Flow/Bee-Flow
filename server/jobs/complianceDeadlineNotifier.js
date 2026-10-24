@@ -26,6 +26,7 @@ const { recordJobRun } = require('../telemetry/metrics');
 const { complianceSectionPath, complianceIncidentPath } = require('../utils/appPaths');
 const log = require('../telemetry/log');
 const { REGIME_ARTICLE } = require('../compliance/deadlines');
+const { bestEffort } = require('../utils/bestEffort');
 
 const INTERVAL_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -94,7 +95,7 @@ async function _notifyAdmins(d, orgId, title, message, link) {
             [orgId],
         );
         for (const u of rows || []) {
-            await store.createNotification({ userId: u.id, category: 'urgent', title, message, link }).catch(() => {});
+            await store.createNotification({ userId: u.id, category: 'urgent', title, message, link }).catch((e) => bestEffort('jobs/complianceDeadlineNotifier:_notifyAdmins', e));
         }
     } catch (e) {
         log.warn('[ComplianceDeadlines] notify failed:', e.message);
@@ -250,7 +251,7 @@ async function _sweepDpia(d, orgId, nowMs) {
                 complianceSectionPath('dpia'),
             );
         }
-    } catch (err) { log.debug('table absent on fresh installs', err); }
+    } catch (err) { bestEffort('jobs/complianceDeadlineNotifier:_sweepDpia', err); /* table absent on fresh installs */ }
 }
 
 // ── 5. Regulatory calendar ───────────────────────────────────────────────
@@ -261,7 +262,7 @@ async function _relevantFrameworkIds(d, orgId) {
             const entries = await d.frameworkPolicy.resolve(orgId);
             return new Set((entries || []).filter(e => e.enabled && e.relevance !== 'not_relevant').map(e => e.id));
         }
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('jobs/complianceDeadlineNotifier:_relevantFrameworkIds', err); /* fall through */ }
     return null; // unknown → every milestone counts
 }
 
@@ -419,7 +420,7 @@ async function _sweepObligations(d) {
                 `${obligation.kind.replace(/_/g, ' ')}${obligation.subject ? ` — ${obligation.subject}` : ''} is ${overdue ? 'past' : 'approaching'} its due date (${new Date(obligation.due_at).toLocaleDateString()}). Complete it under ISO 27001 → Training & obligations.`,
                 complianceSectionPath('iso_training'),
             );
-            await obligationStore.markNotified(obligation.id, offset).catch(() => {});
+            await obligationStore.markNotified(obligation.id, offset).catch((e) => bestEffort('jobs/complianceDeadlineNotifier:_sweepObligations', e));
         }
     } catch (e) {
         log.warn('[ComplianceDeadlines] obligation sweep failed:', e.message);

@@ -23,6 +23,7 @@
 const { pool } = require('../db');
 const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const NUDGE_IDLE_DAYS = 7;      // quiet at least this long before we nudge
@@ -185,14 +186,14 @@ async function _tick() {
         // boot-time catalog flag; fails open.
         try {
             if (!await require('../modules').isModuleActive('learning')) return;
-        } catch (err) { log.debug('fail open — a state read blip must not stop the job', err); }
+        } catch (err) { bestEffort('jobs/learningNudge:_tick', err); /* fail open — a state read blip must not stop the job */ }
         await run();
     } catch (e) {
         ok = false;
         log.warn('[learningNudge] tick failed (will retry tomorrow):', e && e.message);
     } finally {
         if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { log.debug('best-effort', err); }
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { bestEffort('jobs/learningNudge:_tick#2', err); /* best-effort */ }
             client.release();
         }
         if (acquired) recordJobRun({ job: 'learning_nudge', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });
@@ -204,8 +205,8 @@ let _interval = null;
 function start() {
     if (_interval) return;
     // Stagger first run by 12 min after boot so we don't compete with init load.
-    setTimeout(() => { _tick().catch(() => { }); }, 12 * 60 * 1000).unref?.();
-    _interval = setInterval(() => { _tick().catch(() => { }); }, TICK_INTERVAL_MS);
+    setTimeout(() => { _tick().catch((e) => bestEffort('jobs/learningNudge:start', e)); }, 12 * 60 * 1000).unref?.();
+    _interval = setInterval(() => { _tick().catch((e) => bestEffort('jobs/learningNudge:start#2', e)); }, TICK_INTERVAL_MS);
     if (typeof _interval.unref === 'function') _interval.unref();
     log.info('[learningNudge] Scheduled (daily; lapsed 7-60d learners; 1 nudge/user/14d)');
 }

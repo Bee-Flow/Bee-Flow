@@ -43,6 +43,7 @@
 const { pool, run } = require('../db');
 const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const LOCK_KEY = 0xBEEF10B;
 const BATCH_SIZE = 5000;
@@ -171,7 +172,7 @@ function makeMonitoringRetentionPass(deps) {
             log.error('[monitoringRetention] pass error:', e.message);
         } finally {
             if (client) {
-                try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { log.debug('best-effort', err); }
+                try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { bestEffort('jobs/monitoringRetention:makeMonitoringRetentionPass', err); /* best-effort */ }
                 client.release();
             }
             if (acquired) deps.recordJobRun({ job: 'monitoring_retention', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });

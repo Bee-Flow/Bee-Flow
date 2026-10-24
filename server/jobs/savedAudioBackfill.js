@@ -30,6 +30,7 @@
 const fs = require('fs');
 const path = require('path');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const INTERVAL_MS = Number(process.env.SAVED_AUDIO_BACKFILL_INTERVAL_MS) || 6 * 60 * 60 * 1000;
 // Stagger past boot so it never competes with startup work, and so a fleet of
@@ -117,7 +118,7 @@ async function tick() {
 function recordRun(status, durationMs) {
     try {
         require('../telemetry/metrics').recordJobRun({ job: 'saved_audio_backfill', status, durationMs });
-    } catch (err) { log.debug('telemetry is optional', err); }
+    } catch (err) { bestEffort('jobs/savedAudioBackfill:recordRun', err); /* telemetry is optional */ }
 }
 
 function start() {

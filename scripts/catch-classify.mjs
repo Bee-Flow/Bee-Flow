@@ -265,7 +265,7 @@ export function scanText(text, file) {
             site.reason = 'empty catch carrying a comment';
         } else if (EXPECTED_NOOP.test(site.msg)) {
             site.reason = 'expected no-op (already closed/gone)';
-        } else if (TABLE_WORDS.test(site.msg) && QUERYING.test(tryText) && bind) {
+        } else if (TABLE_WORDS.test(site.msg) && (QUERYING.test(tryText) || /\bawait\b/.test(tryText)) && bind) {
             site.bucket = 'optional-table';
         } else if (reqOnly && bind) {
             site.bucket = 'lazy-require';
@@ -293,7 +293,7 @@ export function scanText(text, file) {
         } else if (securityPath || SECURITY_BODY.test(receiver) || SECURITY_BODY.test(site.fn)) {
             site.bucket = 'security-relevant';
             site.reason = securityPath ? 'path' : 'receiver decides access or touches personal data';
-        } else if (/^\s*await\s+import\s*\(|^\s*import\s*\(/.test(receiver) || /^\s*require\s*\(/.test(receiver)) {
+        } else if (/^\s*(?:import|require)\s*\([^()]*\)\s*$/.test(receiver)) {
             site.bucket = 'lazy-require';
             site.reason = 'promise form: no mechanical rewrite';
             site.manual = true;

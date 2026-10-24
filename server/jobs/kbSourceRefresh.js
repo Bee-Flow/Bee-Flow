@@ -32,6 +32,7 @@ const { pool } = require('../db');
 const kbSourcesStore = require('../stores/kbSources');
 const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /**
  * A key of its own. 0xBEEF105–0xBEEF10E are taken by the other jobs
@@ -137,7 +138,7 @@ async function processDueSources() {
         log.warn('[KBSourceRefresh] tick error:', e.message);
     } finally {
         if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { log.debug('best-effort', err); }
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { bestEffort('jobs/kbSourceRefresh:processDueSources', err); /* best-effort */ }
             client.release();
         }
         if (acquired) recordJobRun({ job: 'kb_source_refresh', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });

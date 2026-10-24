@@ -27,6 +27,7 @@ const metricsStore = require('../stores/metricsStore');
 const userStore = require('../stores/userStore');
 const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const LOCK_KEY = 0xBEEF109;
 
@@ -99,7 +100,7 @@ async function ingest(c, stream, records) {
         try {
             const j = JSON.parse(body);
             for (const s of (j.status || [])) { failed += Number(s.failed) || 0; if (s.error) err = String(s.error); }
-        } catch (err) { log.debug('non-JSON 200 — treat as accepted', err); }
+        } catch (err) { fallback('jobs/opsMetricsPush:ingest', err); /* non-JSON 200 — treat as accepted */ }
         if (failed > 0) {
             throw new Error(`ingest partial failure on ${stream}: ${failed}/${records.length} rejected (${err.slice(0, 150)})`);
         }
@@ -152,7 +153,7 @@ async function processOpsPush() {
         log.warn('[OpsPush] push failed (will retry):', e && e.message);
     } finally {
         if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { log.debug('best-effort', err); }
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { bestEffort('jobs/opsMetricsPush:processOpsPush', err); /* best-effort */ }
             client.release();
         }
         if (acquired) recordJobRun({ job: 'ops_push', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });
@@ -177,7 +178,7 @@ function start() {
     }, c.intervalMs);
     _timer.unref?.();
     // Kick one run shortly after boot so data appears without waiting an interval.
-    setTimeout(() => { processOpsPush().catch(() => {}); }, 8000).unref?.();
+    setTimeout(() => { processOpsPush().catch((e) => bestEffort('jobs/opsMetricsPush:start', e)); }, 8000).unref?.();
 }
 
 function stop() {
