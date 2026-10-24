@@ -1,4 +1,6 @@
 // @typecheck
+const { fallback } = require('../../utils/bestEffort');
+
 /**
  * What the build bar sends along with POST /, checked and turned into a brief.
  *
@@ -24,7 +26,6 @@
  */
 
 /** The kinds "Bron kiezen" can name. An allow-list: anything else is a 400. */
-const { fallback } = require('../../utils/bestEffort');
 const CREATE_SOURCE_KINDS = new Set(['datatable', 'automation']);
 const MAX_CREATE_SOURCES = 10;
 const MAX_PROMPT_CHARS = 4000;

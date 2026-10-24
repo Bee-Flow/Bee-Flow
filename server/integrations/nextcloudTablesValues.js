@@ -1,5 +1,7 @@
 // @typecheck
 'use strict';
+const { fallback } = require('../utils/bestEffort');
+
 /**
  * Cell values of Nextcloud Tables, both directions.
  *
@@ -23,7 +25,6 @@
  * @param {unknown} raw
  * @returns {SelectionOption[]}
  */
-const { fallback } = require('../utils/bestEffort');
 
 function parseSelectionOptions(raw) {
     let list = [];

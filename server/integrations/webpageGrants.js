@@ -1,3 +1,5 @@
+const { fallback } = require('../utils/bestEffort');
+
 /**
  * Webpage bridge grants — shared grant/revoke/verify logic used by BOTH the
  * studio-AI bridge tools (integrations/webpageBridgeTools.js) and the owner
@@ -22,7 +24,6 @@
  * every store pins a DB pool, so eager top-level requires made the unit tests
  * hang/crash.
  */
-const { fallback } = require('../utils/bestEffort');
 
 function resolveDeps(_deps = {}) {
     const d = { ..._deps };

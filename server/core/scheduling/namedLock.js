@@ -13,6 +13,8 @@
 
 'use strict';
 
+const { bestEffort } = require('../../utils/bestEffort');
+
 /**
  * @template T
  * @param {{ connect: () => Promise<{ query: (sql: string, params?: any[]) => Promise<{ rows: any[] }>, release: () => void }> }} pool
@@ -20,7 +22,6 @@
  * @param {(client: any) => Promise<T>} fn
  * @returns {Promise<{ ran: true, value: T } | { ran: false }>}
  */
-const { bestEffort } = require('../../utils/bestEffort');
 
 async function withNamedLock(pool, name, fn) {
     const client = await pool.connect();

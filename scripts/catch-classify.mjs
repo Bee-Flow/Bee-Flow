@@ -357,6 +357,25 @@ function existingImports(text, file) {
     return out;
 }
 
+/**
+ * Where an import goes in a file with no require/import yet: in front of the first statement,
+ * above the JSDoc or `//` comment that belongs to it (one with no blank line between), below
+ * the header comments and directives.
+ */
+function firstStatementSlot(ts, text, sf) {
+    const first = sf.statements.find((s) => !(ts.isExpressionStatement(s) && ts.isStringLiteral(s.expression)));
+    if (!first) return -1;
+    let pos = first.getStart(sf, true);
+    // Walk up over contiguous comment lines that sit directly above the statement.
+    for (;;) {
+        const lineStart = text.lastIndexOf('\n', pos - 2) + 1;
+        const prev = text.slice(lineStart, pos);
+        if (lineStart === pos || !/^\s*(?:\/\/|\/\*|\*)/.test(prev) || /@typecheck|@ts-|eslint-disable|^\s*#!/.test(prev)) break;
+        pos = lineStart;
+    }
+    return pos;
+}
+
 /** Insert (or extend) the require/import of the helpers a rewrite uses. Returns the new text, or null when unsafe. */
 function addImports(ts, text, file, sf, names, local) {
     const esm = /\.mjs$|\.mts$/.test(file) || (!/\brequire\s*\(/.test(text) && sf.statements.some((s) => ts.isImportDeclaration(s)));
@@ -388,9 +407,9 @@ function addImports(ts, text, file, sf, names, local) {
         if (at >= 0) {
             out = `${text.slice(0, at)}\n${fresh.join('\n')}${text.slice(at)}`;
         } else {
-            const first = sf.statements.find((s) => !(ts.isExpressionStatement(s) && ts.isStringLiteral(s.expression)));
-            if (!first) return { text: null, reason: 'no insertion point' };
-            out = `${text.slice(0, first.getStart(sf))}${fresh.join('\n')}\n${text.slice(first.getStart(sf))}`;
+            const pos = firstStatementSlot(ts, text, sf);
+            if (pos < 0) return { text: null, reason: 'no insertion point' };
+            out = `${text.slice(0, pos)}${fresh.join('\n')}\n\n${text.slice(pos)}`;
         }
     }
     for (const [spec, add] of extend) {
@@ -652,6 +671,48 @@ async function main(argv) {
     const dir = flags.get('--dir');
     const files = flags.get('--files') ? new Set(String(flags.get('--files')).split(',')) : null;
     const filter = (r) => (!dir || r.startsWith(dir)) && (!files || files.has(r));
+
+    if (flags.has('--fix-import-placement')) {
+        // Repair: a helper import that an earlier run put between a comment and the statement it belongs to.
+        const ts = loadTs();
+        const fixed = [];
+        const standalone = new RegExp(`^${HELPER_IMPORT_STATEMENT}$`);
+        for (const file of listServerFiles()) {
+            const r = rel(file);
+            if (!filter(r)) continue;
+            const text = fs.readFileSync(file, 'utf8');
+            if (!text.includes('utils/bestEffort') && !text.includes('utils/isMissingTable')) continue;
+            const lines = text.split('\n');
+            const bad = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (!standalone.test(lines[i])) continue;
+                const prev = lines[i - 1].trim();
+                if (/\*\/$/.test(prev) || /^\/\//.test(prev)) bad.push(i);
+            }
+            if (!bad.length) continue;
+            const moved = bad.map((i) => lines[i]);
+            for (const i of bad.reverse()) lines.splice(i, 1);
+            const stripped = lines.join('\n');
+            const sf = parse(stripped, file);
+            let at = -1;
+            for (const st of sf.statements) {
+                const t = st.getText(sf);
+                if (ts.isImportDeclaration(st) || (ts.isVariableStatement(st) && /\brequire\s*\(/.test(t) && !/=>|function/.test(t))) at = st.getEnd();
+            }
+            let out;
+            if (at >= 0) out = `${stripped.slice(0, at)}\n${moved.join('\n')}${stripped.slice(at)}`;
+            else {
+                const pos = firstStatementSlot(ts, stripped, sf);
+                out = `${stripped.slice(0, pos)}${moved.join('\n')}\n${stripped.slice(pos)}`;
+            }
+            const diag = ts.transpileModule(out, { reportDiagnostics: true, fileName: file, compilerOptions: { allowJs: true } }).diagnostics ?? [];
+            if (diag.length) { console.error(`skip ${r}`); continue; }
+            fs.writeFileSync(file, out);
+            fixed.push(r);
+        }
+        console.log(JSON.stringify({ fixed }, null, 2));
+        return 0;
+    }
 
     if (flags.has('--squeeze-imports')) {
         // A file at its file-budget ceiling may not grow: join the helper import onto the require line above it.

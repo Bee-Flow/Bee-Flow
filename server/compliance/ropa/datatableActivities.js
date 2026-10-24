@@ -17,8 +17,9 @@
 
 'use strict';
 
-/** Fields whose name says what kind of personal data the table holds. */
 const { fallback } = require('../../utils/bestEffort');
+
+/** Fields whose name says what kind of personal data the table holds. */
 
 const CATEGORY_HINTS = Object.freeze([
     { re: /\b(name|naam|voornaam|achternaam|surname|contact)\b/i, label: 'Names' },

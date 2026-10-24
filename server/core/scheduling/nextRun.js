@@ -1,3 +1,5 @@
+const { bestEffort } = require('../../utils/bestEffort');
+
 /**
  * When should a periodic thing run again?
  *
@@ -32,7 +34,6 @@
  * problem for whoever is being hammered, and short enough that a source
  * whose upstream came back does not sit idle for a working day.
  */
-const { bestEffort } = require('../../utils/bestEffort');
 
 const MAX_BACKOFF_MINUTES = 60;
 

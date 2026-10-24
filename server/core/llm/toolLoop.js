@@ -20,6 +20,7 @@
 // adapters' shared 'done' payload carries: OpenAI-compatible runtimes
 // (llama.cpp, vLLM, Ollama) say 'length', Anthropic 'max_tokens', the OpenAI
 // Responses API 'max_output_tokens', Google 'MAX_TOKENS'.
+
 const { fallback } = require('../../utils/bestEffort');
 
 const TRUNCATION_STOP_REASONS = new Set(['length', 'max_tokens', 'max_output_tokens', 'MAX_TOKENS']);

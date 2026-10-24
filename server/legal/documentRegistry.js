@@ -1,4 +1,6 @@
 // @typecheck
+const { fallback } = require('../utils/bestEffort');
+
 /**
  * Consent registry — the descriptors for the consents the product still
  * records.
@@ -16,7 +18,6 @@
  */
 
 // The consumer right-of-withdrawal waiver is a checkout-time acknowledgement.
-const { fallback } = require('../utils/bestEffort');
 
 const WITHDRAWAL_WAIVER = {
     docId: 'withdrawal_waiver',

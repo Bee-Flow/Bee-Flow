@@ -29,8 +29,9 @@
 
 'use strict';
 
-/** Strip a leading ```json / ``` fence and its closing fence, if both are there. */
 const { bestEffort } = require('../../utils/bestEffort');
+
+/** Strip a leading ```json / ``` fence and its closing fence, if both are there. */
 
 function stripFence(text) {
     const t = String(text).trim();

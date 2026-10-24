@@ -1,4 +1,6 @@
 // @typecheck
+const { bestEffort } = require('../../utils/bestEffort');
+
 /**
  * DLP preflight — the interactive outbound scanner shared by the agent
  * (chatStream) and direct-chat paths.
@@ -47,7 +49,6 @@
  * `tooShort` (the last message is under 3 characters, so nothing could be
  * detected), and `override: true` when the person chose "send anyway".
  */
-const { bestEffort } = require('../../utils/bestEffort');
 async function runDlpPreflight({
     messages,
     resolvedShield,

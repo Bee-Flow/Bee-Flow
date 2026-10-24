@@ -17,11 +17,12 @@
 
 'use strict';
 
+const { bestEffort } = require('../../utils/bestEffort');
+
 /**
  * @param {{ bootDelayMs: number, intervalMs: number, run: (when: 'initial'|'scheduled') => unknown }} opts
  * @returns {{ start: () => boolean, stop: () => void }}
  */
-const { bestEffort } = require('../../utils/bestEffort');
 function periodicTimer({ bootDelayMs, intervalMs, run }) {
     /** @type {ReturnType<typeof setTimeout>|null} */
     let boot = null;

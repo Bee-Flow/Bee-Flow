@@ -18,6 +18,8 @@
 
 'use strict';
 
+const { fallback } = require('../utils/bestEffort');
+
 /**
  * @param {{
  *   hasPermission: (userId: string, permission: string, session?: any) => Promise<boolean>,
@@ -26,7 +28,6 @@
  *   roles: () => { SystemRoles: { SUPER_ADMIN: string }, OrgRoles: { AGENT_EDITOR: string } },
  * }} deps
  */
-const { fallback } = require('../utils/bestEffort');
 function makeAgentAccess(deps) {
     // Prefetch the per-request inputs canModifyAgent needs so list endpoints can
     // compute `can_edit` for many agents without N× user/permission lookups.

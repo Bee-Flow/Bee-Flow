@@ -1,11 +1,12 @@
 // @typecheck
+const { bestEffort } = require('../../utils/bestEffort');
+
 /**
  * The GitHub Sync hook for agents (fire-and-forget): marks an agent pending or
  * deleted for its organisation's sync, and pushes when auto-sync is on.
  */
 
 // ── GitHub Sync hook (fire-and-forget) ───────────────────────────
-const { bestEffort } = require('../../utils/bestEffort');
 
 async function _notifySync(orgId, agentId, action = 'pending') {
     if (!orgId) return;

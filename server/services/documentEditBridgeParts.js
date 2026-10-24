@@ -1,5 +1,7 @@
 'use strict';
 
+const { bestEffort } = require('../utils/bestEffort');
+
 /**
  * The first two parts of the edit bridge (see documentEditBridge.js): the
  * reporting half (outline, stats, caret, selection) and the drawing half
@@ -9,7 +11,6 @@
  */
 
 /* global document, window, parent, NodeFilter, CSS, Highlight */
-const { bestEffort } = require('../utils/bestEffort');
 
 function bridgeCore(B) {
     var timers = {};
