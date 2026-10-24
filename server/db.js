@@ -165,7 +165,7 @@ function redisHealthy() { return _redis.client?.status === 'ready'; }
 /** Gracefully disconnect Redis (call during shutdown). */
 async function disconnectRedis() {
     if (_redis.client) {
-        try { await _redis.client.quit(); } catch (err) { log.debug('ignore', err); }
+        try { await _redis.client.quit(); } catch (err) { bestEffort('db:disconnectRedis', err); /* ignore */ }
         _redis.client = null;
     }
 }
@@ -176,6 +176,7 @@ async function disconnectRedis() {
 // logs slow queries. We log ONLY a sanitized SQL prefix + the param COUNT —
 // never param values, which can contain PII or secrets.
 const metrics = require('./telemetry/httpMetrics');
+const { bestEffort } = require('./utils/bestEffort');
 const DB_SLOW_MS = metrics.DB_SLOW_MS;
 
 function _sanitizeSql(sql) {
@@ -193,7 +194,7 @@ async function _timedQuery(sql, params) {
             if (ms > DB_SLOW_MS) {
                 log.warn(`[DB] Slow query ${ms.toFixed(0)}ms (params=${Array.isArray(params) ? params.length : 0}): ${_sanitizeSql(sql)}`);
             }
-        } catch (err) { log.debug('instrumentation must never break a query', err); }
+        } catch (err) { bestEffort('db:_timedQuery', err); /* instrumentation must never break a query */ }
     }
 }
 
@@ -335,7 +336,7 @@ function _instrumentClient(client) {
                 if (ms > DB_SLOW_MS) {
                     log.warn(`[DB] Slow query ${ms.toFixed(0)}ms (params=${Array.isArray(params) ? params.length : 0}): ${_sanitizeSql(sql)}`);
                 }
-            } catch (err) { log.debug('instrumentation must never break a query', err); }
+            } catch (err) { bestEffort('db:record', err); /* instrumentation must never break a query */ }
         };
 
         // Callback form: measure around the callback and pass it through
@@ -377,7 +378,7 @@ async function _runTransaction(client, fn) {
         const result = await fn(client);
         return await settleTransaction(client, result);
     } catch (e) {
-        try { await client.query('ROLLBACK'); } catch (err) { log.debug('connection may be dead', err); }
+        try { await client.query('ROLLBACK'); } catch (err) { bestEffort('db:_runTransaction', err); /* connection may be dead */ }
         throw e;
     } finally {
         client.release();
