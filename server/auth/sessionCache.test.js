@@ -175,7 +175,7 @@ test('installRedisCacheWhenReady activates at once on a ready client and not at 
 function withFakeDb(fakeDb, fn) {
     const dbPath = require.resolve('../db');
     const prev = require.cache[dbPath];
-    require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: fakeDb };
+    require.cache[dbPath] = /** @type {any} */ ({ id: dbPath, filename: dbPath, loaded: true, exports: fakeDb });
     return Promise.resolve(fn()).finally(() => { if (prev) require.cache[dbPath] = prev; else delete require.cache[dbPath]; });
 }
 
