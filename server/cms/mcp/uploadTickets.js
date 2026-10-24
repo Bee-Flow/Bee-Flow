@@ -28,6 +28,7 @@
 
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const KEY_PREFIX = 'cms_mcp_upload_';
 const TTL_MS = 15 * 60 * 1000;
@@ -84,7 +85,7 @@ function createUploadTickets({ store = null, now = Date.now } = {}) {
                 const rec = await kv.get(key);
                 if (!isRecord(rec) || now() - Date.parse(rec.createdAt) > RETAIN_MS) await kv.remove(key);
             }
-        } catch (err) { log.debug('housekeeping only', err); }
+        } catch (err) { bestEffort('cms/mcp/uploadTickets:prune', err); /* housekeeping only */ }
     }
 
     /** How many unused, unexpired tickets this user holds. Bounded scan. */

@@ -31,6 +31,7 @@
 'use strict';
 
 const log = require('../../telemetry/log');
+const { bestEffort, fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 // services/browserProvider.js BACKEND_UNAVAILABLE: the code of "no browser to render with".
 const BACKEND_UNAVAILABLE = 'browser_backend_unavailable';
@@ -133,7 +134,7 @@ async function withHardTimeout(promise, ms) {
         ]);
     } finally {
         clearTimeout(t);
-        Promise.resolve(promise).catch(() => {});
+        Promise.resolve(promise).catch((e) => bestEffort('cms/mcp/screenshot:withHardTimeout', e));
     }
 }
 
@@ -172,7 +173,7 @@ async function captureWithBrowser({ serve, url, viewport, fullPage, offsetY }, b
             page.on('console', (m) => {
                 try {
                     if (m.type() === 'error' && consoleErrors.length < 5) consoleErrors.push(m.text().slice(0, 200));
-                } catch (err) { log.debug('diagnostics only', err); }
+                } catch (err) { fallbackSwallowed('cms/mcp/screenshot:captureWithBrowser', err); /* diagnostics only */ }
             });
             await page.route((u) => isFakeOrigin(u.href), async (route) => {
                 const req = route.request();
@@ -197,8 +198,8 @@ async function captureWithBrowser({ serve, url, viewport, fullPage, offsetY }, b
             await page.waitForFunction(
                 () => !document.querySelector('.cms-prehydrate') && !!document.querySelector('#root')?.children.length,
                 { timeout: HYDRATE_WAIT_MS, polling: 100 },
-            ).catch(() => {});
-            await page.evaluate(() => (document.fonts ? document.fonts.ready.then(() => true) : true)).catch(() => {});
+            ).catch((e) => bestEffort('cms/mcp/screenshot:captureWithBrowser#2', e));
+            await page.evaluate(() => (document.fonts ? document.fonts.ready.then(() => true) : true)).catch((e) => bestEffort('cms/mcp/screenshot:captureWithBrowser#3', e));
             if (fullPage) {
                 // Walk down the page so lazy images load, then back up.
                 await page.evaluate(async () => {
@@ -208,7 +209,7 @@ async function captureWithBrowser({ serve, url, viewport, fullPage, offsetY }, b
                         await new Promise((r) => setTimeout(r, 60));
                     }
                     window.scrollTo(0, 0);
-                }).catch(() => {});
+                }).catch((e) => bestEffort('cms/mcp/screenshot:captureWithBrowser#4', e));
             }
             await page.waitForTimeout(SETTLE_MS);
 
