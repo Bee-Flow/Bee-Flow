@@ -10,6 +10,7 @@
 
 const configStore = require('../stores/configStore');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const REQUEST_TIMEOUT_MS = 20000;
 const DEFAULT_TAKE = 25;
@@ -261,7 +262,7 @@ function extractAfasErrorMessage(bodyText) {
         try {
             const data = JSON.parse(bodyText);
             message = data.externalMessage || data.message || (data.error && data.error.message) || null;
-        } catch (err) { log.debug('not JSON after all', err); }
+        } catch (err) { fallback('integrations/afasTools:extractAfasErrorMessage', err); /* not JSON after all */ }
     }
     if (!message) return null;
     return String(message).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, MAX_ERROR_MESSAGE_CHARS) || null;
@@ -312,7 +313,7 @@ async function afasRequest(creds, path, query = null) {
         let detail = null;
         try {
             detail = extractAfasErrorMessage(await response.text());
-        } catch (err) { log.debug('body unreadable — keep the mapped reason', err); }
+        } catch (err) { fallback('integrations/afasTools:afasRequest', err); /* body unreadable — keep the mapped reason */ }
         throw new Error(detail ? `${reason}: ${detail}` : reason);
     }
 

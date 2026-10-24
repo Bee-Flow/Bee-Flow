@@ -312,6 +312,7 @@ const {
     stripReadOnly,
     SETTINGS_WHITELIST,
 } = require('./n8nWorkflowHelpers');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 // ─── Tool Execution ────────────────────────────────────────────
 
@@ -572,7 +573,7 @@ async function workflowExecute(args, { orgId }) {
         if (onlyWebhook) {
             return { error: 'This workflow is webhook-triggered. Trigger it by calling its webhook URL directly, or temporarily swap in a Manual Trigger.', workflow_id };
         }
-    } catch (err) { log.debug('fall through — let the execute attempt surface the real error', err); }
+    } catch (err) { bestEffort('integrations/n8nWorkflowTools:workflowExecute', err); /* fall through — let the execute attempt surface the real error */ }
 
     // Kick off the run. n8n's POST /workflows/:id/execute returns an execution record.
     const start = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}/execute`, {
@@ -591,7 +592,7 @@ async function workflowExecute(args, { orgId }) {
         try {
             lastExec = await n8nApiFetch(orgId, `/executions/${encodeURIComponent(execId)}?includeData=true`);
             if (lastExec?.finished) break;
-        } catch (e) { log.debug('transient — keep polling', e); }
+        } catch (e) { fallback('integrations/n8nWorkflowTools:workflowExecute#2', e); /* transient — keep polling */ }
         await new Promise(r => setTimeout(r, 1000));
     }
 

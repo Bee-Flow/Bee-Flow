@@ -17,6 +17,7 @@ const { resolveFramework } = require('./webpageFramework');
 const { scheduleThumbnail } = require('../core/webpages/webpageThumbnailGenerator');
 const log = require('../telemetry/log');
 const { sanitizeMetadata, countLines, slotTooLarge } = require('./webpageMetadataInput');
+const { fallback } = require('../utils/bestEffort');
 
 const BUILDER_TOOLS = [
     {
@@ -168,7 +169,7 @@ async function executeBuilderTool(toolName, args, ctx) {
     if (toolName === 'webpage_file_read') {
         const { webpageId, file } = args;
         if (!webpageId) return { result: { error: 'webpageId is required.' } };
-        const webpage = await webpageStore.getWebpage(webpageId, userId).catch(() => null);
+        const webpage = await webpageStore.getWebpage(webpageId, userId).catch((e) => fallback('integrations/webpageBuilderTools:executeBuilderTool', e, null));
         if (!webpage) return { result: { error: `Webpage ${webpageId} not found.` } };
         const files = await webpageStore.readAllSlots(userId, webpageId);
         const docResult = executeWebpageDocTool('webpage_file_read', { file }, files, { readSlots: readSetFor(webpageId) });
@@ -188,7 +189,7 @@ async function executeBuilderTool(toolName, args, ctx) {
     if (toolName === 'webpage_set_metadata') {
         const { webpageId } = args;
         if (!webpageId) return { result: { error: 'webpageId is required.' } };
-        const webpage = await webpageStore.getWebpage(webpageId, userId).catch(() => null);
+        const webpage = await webpageStore.getWebpage(webpageId, userId).catch((e) => fallback('integrations/webpageBuilderTools:executeBuilderTool#2', e, null));
         if (!webpage) return { result: { error: `Webpage ${webpageId} not found.` } };
         const { updates, warnings } = sanitizeMetadata(args);
         if (Object.keys(updates).length === 0) {
@@ -215,7 +216,7 @@ async function executeBuilderTool(toolName, args, ctx) {
     if (toolName === 'webpage_file_write') {
         const { webpageId, file, content, title } = args;
         if (!webpageId) return { result: { error: 'webpageId is required.' } };
-        const webpage = await webpageStore.getWebpage(webpageId, userId).catch(() => null);
+        const webpage = await webpageStore.getWebpage(webpageId, userId).catch((e) => fallback('integrations/webpageBuilderTools:executeBuilderTool#3', e, null));
         if (!webpage) return { result: { error: `Webpage ${webpageId} not found.` } };
 
         const tooLarge = slotTooLarge(content);
@@ -266,7 +267,7 @@ async function executeBuilderTool(toolName, args, ctx) {
     if (toolName === 'webpage_file_replace' || toolName === 'webpage_file_patch') {
         const { webpageId, file } = args;
         if (!webpageId) return { result: { error: 'webpageId is required.' } };
-        const webpage = await webpageStore.getWebpage(webpageId, userId).catch(() => null);
+        const webpage = await webpageStore.getWebpage(webpageId, userId).catch((e) => fallback('integrations/webpageBuilderTools:executeBuilderTool#4', e, null));
         if (!webpage) return { result: { error: `Webpage ${webpageId} not found.` } };
 
         // Read current content from RustFS — pass through to the doc tool

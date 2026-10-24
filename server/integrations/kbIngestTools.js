@@ -22,6 +22,7 @@
 const knowledgeBases = require('../stores/knowledgeBases');
 const { ingestDocument, findDocumentBySourceUri, deleteDocumentChunks } = require('../core/kb/kbIngestionHelpers');
 const log = require('../telemetry/log');
+const { bestEffort, fallback: fallbackSwallowed } = require('../utils/bestEffort');
 
 const SOURCE_TYPE = 'support_ticket';
 
@@ -148,7 +149,7 @@ async function _refreshInPlace(tenantId, kbId, existingDoc, article, title, lang
     // skipSnapshot: this row is being replaced by its own source, not deleted
     // by a person — a snapshot per refresh would copy the full article into
     // kb_document_versions, a table with no erasure path.
-    await deleteDocumentChunks(kbId, existingDoc.id, tenantId, { skipSnapshot: true }).catch(() => {});
+    await deleteDocumentChunks(kbId, existingDoc.id, tenantId, { skipSnapshot: true }).catch((e) => bestEffort('integrations/kbIngestTools:_refreshInPlace', e));
     const metadata = {
         ingestedBy: 'automation',
         sourceUri: canonicalUri,
@@ -371,7 +372,7 @@ async function executeKbIngestTool(toolName, args = {}, context = {}) {
             }
             // Near-duplicate of a DIFFERENT ticket → resolve per strategy.
             if (e.code === 'NEAR_DUPLICATE') {
-                const existing = e.documentId ? await knowledgeBases.getDocument(e.documentId).catch(() => null) : null;
+                const existing = e.documentId ? await knowledgeBases.getDocument(e.documentId).catch((e) => fallbackSwallowed('integrations/kbIngestTools:executeKbIngestTool', e, null)) : null;
 
                 // 'add': a near-duplicate of a DIFFERENT subject is stored as
                 // its own document. The exact-duplicate branch above still

@@ -1,5 +1,6 @@
 const log = require('../telemetry/log');
 const { DEFAULT_LIMIT, MAX_LIMIT } = require('./vplanToolDefs');
+const { fallback: fallbackSwallowed } = require('../utils/bestEffort');
 
 const API_BASE = 'https://api.vplan.com/v1';
 
@@ -81,7 +82,7 @@ function extractVplanErrorMessage(bodyText) {
                 || data.message
                 || (data.error && data.error.message)
                 || null;
-        } catch (err) { log.debug('not JSON after all', err); }
+        } catch (err) { fallbackSwallowed('integrations/vplanClient:extractVplanErrorMessage', err); /* not JSON after all */ }
     }
     if (!message) return null;
     return String(message).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, MAX_ERROR_MESSAGE_CHARS) || null;
@@ -177,7 +178,7 @@ async function vplanRequest(creds, path, query = null, retried = false) {
         let detail = null;
         try {
             detail = extractVplanErrorMessage(await response.text());
-        } catch (err) { log.debug('body unreadable — keep the mapped reason', err); }
+        } catch (err) { fallbackSwallowed('integrations/vplanClient:vplanRequest', err); /* body unreadable — keep the mapped reason */ }
         throw new Error(detail ? `${reason}: ${detail}` : reason);
     }
 

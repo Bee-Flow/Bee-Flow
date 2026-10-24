@@ -171,11 +171,12 @@ function recordBrowserPeers(startUrl, answer) {
             try { host = new URL(u).hostname; } catch (_) { continue; }
             recordPeer({ host, ip: null, basis: 'browser', method: 'GET', sentBody: false });
         }
-    } catch (err) { log.debug('a missing peer must never fail the browse', err); }
+    } catch (err) { fallback('integrations/toolFamilies:recordBrowserPeers', err); /* a missing peer must never fail the browse */ }
 }
 
 // ─── Notebook Tools (formerly Workspace) ───────────────────────
 const { NOTEBOOK_TOOLS } = require('./notebookToolNames');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * BFSF-207 backstop: notebook tools are entitlement-gated at registration;
@@ -188,7 +189,7 @@ async function notebookRefusal(userId, session) {
     try {
         const { hasCapability } = require('../core/entitlements/entitlements');
         let resolveOrgId = null;
-        try { resolveOrgId = (await require('../stores/userStore').getUser(userId))?.organizationId || null; } catch (_) { log.debug('user lookup failed, the capability check runs without an org', _); }
+        try { resolveOrgId = (await require('../stores/userStore').getUser(userId))?.organizationId || null; } catch (_) { fallback('integrations/toolFamilies:notebookRefusal', _); /* user lookup failed, the capability check runs without an org */ }
         const ok = !!userId
             && await hasCapability('notebooks', { userId, orgId: resolveOrgId, session })
             && await hasPermission(userId, 'use_notebooks', session);

@@ -12,6 +12,7 @@
 const supportStore = require('../stores/supportStore');
 const userStore = require('../stores/userStore');
 const log = require('../telemetry/log');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const SUPPORT_TOOLS = [
     {
@@ -206,7 +207,7 @@ function _emitThreadUpdated(thread) {
         if (!thread?.inbox_id) return;
         const { supportEvents } = require('../support/events');
         supportEvents.emit('event', { event: 'thread_updated', data: { threadId: thread.id, inboxId: thread.inbox_id } });
-    } catch (err) { log.debug('non-fatal', err); }
+    } catch (err) { bestEffort('integrations/supportTools:_emitThreadUpdated', err); /* non-fatal */ }
 }
 
 async function _resolveThread(context) {
@@ -218,7 +219,7 @@ async function _resolveThread(context) {
 async function _recordAction(threadId, tool, payload = {}) {
     try {
         await supportStore.recordThreadEvent(/** @type {any} */ ({ threadId, actorKind: 'ai', action: 'ai_action', payload: { tool, ...payload } }));
-    } catch (err) { log.debug('audit is best-effort', err); }
+    } catch (err) { bestEffort('integrations/supportTools:_recordAction', err); /* audit is best-effort */ }
 }
 
 // The group ACL on the thread's inbox ([] = open). Used so AI assignment/
@@ -298,7 +299,7 @@ async function executeSupportActionTool(toolName, args, context, thread) {
             const userId = String(args.userId || '').trim();
             if (!userId) return { error: 'userId required' };
             const { _eligibleStaffForOrg } = require('../services/supportAutoAssigner');
-            const eligible = await _eligibleStaffForOrg(thread.organization_id || null).catch(() => []);
+            const eligible = await _eligibleStaffForOrg(thread.organization_id || null).catch((e) => fallback('integrations/supportTools:executeSupportActionTool', e, []));
             if (!eligible.includes(userId)) return { error: 'Not an eligible teammate for this organisation.' };
             // On a group-restricted inbox the assignee must be able to work it,
             // otherwise the ticket is stranded with someone who'd be 403'd.
@@ -317,7 +318,7 @@ async function executeSupportActionTool(toolName, args, context, thread) {
         }
         case 'support_escalate_to_human': {
             const reason = String(args.reason || 'escalated by AI').slice(0, 200);
-            await supportStore.appendMessage({ threadId: thread.id, authorKind: 'system', body: `AI handed off to a human agent (${reason}).` }).catch(() => {});
+            await supportStore.appendMessage({ threadId: thread.id, authorKind: 'system', body: `AI handed off to a human agent (${reason}).` }).catch((e) => bestEffort('integrations/supportTools:executeSupportActionTool#2', e));
             await supportStore.updateThread(thread.id, { status: 'awaiting_agent', ai_handled: true, ai_escalated_reason: reason });
             policy.statusChangedByTool = true;
             try {
@@ -328,7 +329,7 @@ async function executeSupportActionTool(toolName, args, context, thread) {
                     const next = await pickNextAssignee(thread.organization_id || null, { sharedGroups });
                     if (next) await supportStore.updateThread(thread.id, { assignee_user_id: next, auto_assigned: true });
                 }
-            } catch (err) { log.debug('auto-assign best-effort', err); }
+            } catch (err) { bestEffort('integrations/supportTools:executeSupportActionTool#3', err); /* auto-assign best-effort */ }
             await _recordAction(thread.id, toolName, { reason });
             result = { ok: true };
             break;
@@ -362,7 +363,7 @@ async function executeSupportTool(toolName, args = {}, context = {}) {
                         role = role || user.role || null;
                         accountCreatedAt = user.createdAt || user.created_at || null;
                     }
-                } catch (err) { log.debug('best-effort', err); }
+                } catch (err) { fallback('integrations/supportTools:executeSupportTool', err); /* best-effort */ }
             }
             return {
                 name: thread.requester_name || null,

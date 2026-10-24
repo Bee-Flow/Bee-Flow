@@ -12,6 +12,7 @@
 const { loadConfig, microsoftRefreshScope } = require('../auth/permissions');
 const log = require('../telemetry/log');
 const { parseRetryAfter, backoffDelay, sleep, isReplayableBody } = require('../core/http/retryAfter');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 
@@ -164,7 +165,7 @@ async function graphRequest(path, session, options = {}) {
         if (!isRead && (attempt > 0 || delay > GRAPH_WRITE_MAX_WAIT_MS)) break;
         if (waited + delay > GRAPH_MAX_WAIT_MS) break;
         waited += delay;
-        await response.body?.cancel?.().catch(() => {});
+        await response.body?.cancel?.().catch((e) => bestEffort('integrations/msGraphClient:graphRequest', e));
         await wait(delay, options.signal || null);
         response = await doFetch(session.accessToken);
         // The token may have run out while we waited.
@@ -200,7 +201,7 @@ async function graphFetch(path, session, options = {}) {
         try {
             const parsed = JSON.parse(errorBody);
             errorMsg = parsed.error?.message || errorMsg;
-        } catch (_) { log.debug('error body is not JSON, keep the status-based message', _); }
+        } catch (_) { fallback('integrations/msGraphClient:graphFetch', _); /* error body is not JSON, keep the status-based message */ }
         throw new Error(errorMsg);
     }
 

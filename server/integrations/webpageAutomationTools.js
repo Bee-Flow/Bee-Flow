@@ -22,6 +22,7 @@ const { publicDbErrorMessage } = require('../stores/lib/publicDbError');
 const webpageStore = require('../stores/webpageStore');
 const { executeDbTool } = require('./webpageDbTools');
 const { executeBuilderTool } = require('./webpageBuilderTools');
+const { fallback } = require('../utils/bestEffort');
 
 const WEBPAGE_AUTOMATION_TOOLS = [
     {
@@ -190,7 +191,7 @@ const READ_ONLY_TOOLS = new Set(['webpages_list', 'webpage_db_schema', 'webpage_
 
 async function resolveWebpageForAccess(webpageId, ctx, mode) {
     if (!webpageId) return { error: 'webpageId is required.' };
-    const webpage = await webpageStore.getWebpageRaw(webpageId).catch(() => null);
+    const webpage = await webpageStore.getWebpageRaw(webpageId).catch((e) => fallback('integrations/webpageAutomationTools:resolveWebpageForAccess', e, null));
     if (!webpage) return { error: `Webpage ${webpageId} not found.` };
     const userGroupIds = Array.isArray(ctx.userGroupIds) ? ctx.userGroupIds : [];
     const userOrgIds = Array.isArray(ctx.userOrgIds) ? ctx.userOrgIds : (ctx.organizationId ? [ctx.organizationId] : []);

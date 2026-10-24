@@ -25,6 +25,7 @@
 const configStore = require('../stores/configStore');
 const { XMLParser } = require('fast-xml-parser');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const REQUEST_TIMEOUT_MS = 20000;
 const MAX_RESPONSE_CHARS = 30000;
@@ -344,7 +345,7 @@ function extractNmbrsErrorMessage(bodyText) {
         try {
             const data = JSON.parse(bodyText);
             message = data.message || data.title || (data.error && data.error.message) || null;
-        } catch (err) { log.debug('not JSON after all', err); }
+        } catch (err) { fallback('integrations/nmbrsTools:extractNmbrsErrorMessage', err); /* not JSON after all */ }
     }
     if (!message) return null;
     return String(message).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, MAX_ERROR_MESSAGE_CHARS) || null;
@@ -364,7 +365,7 @@ function mapNmbrsError(status, bodyText) {
     let detail = null;
     try {
         detail = extractNmbrsErrorMessage(bodyText);
-    } catch (err) { log.debug('body unreadable — keep the mapped reason', err); }
+    } catch (err) { fallback('integrations/nmbrsTools:mapNmbrsError', err); /* body unreadable — keep the mapped reason */ }
     return new Error(detail ? `${reason}: ${detail}` : reason);
 }
 

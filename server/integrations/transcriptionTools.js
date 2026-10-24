@@ -30,6 +30,7 @@ const { runAzureWhisperBatch, formatAzureBatchFailure, computeWhisperBatchTimeou
 const {
     formatTime, maxSegmentEnd, finalizeTranscript,
 } = require('./transcription/finalize');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 // ─── Tool Definitions ──────────────────────────────────────────────────────────
 
@@ -363,7 +364,7 @@ async function handlePyannoteTranscription(args, context) {
         try {
             const { getUser } = require('../stores/userStore');
             orgId = (await getUser(context.userId))?.organizationId || null;
-        } catch (err) { log.debug('no org context → no identification, transcription unaffected', err); }
+        } catch (err) { fallback('integrations/transcriptionTools:handlePyannoteTranscription', err); /* no org context → no identification, transcription unaffected */ }
 
         const { transcribeWithPyannote } = require('../core/voice/pyannoteClient');
         const p = await transcribeWithPyannote(inputPath, { language, orgId, recorderUserId: context.userId });
@@ -619,7 +620,7 @@ async function handleScalewayTranscription(args, context) {
         log.error('[Transcription:Scaleway] Error:', safeMsg);
         return { error: `Scaleway transcription failed: ${safeMsg}` };
     } finally {
-        try { fs.unlinkSync(tmpPath); } catch (err) { log.debug('ignore', err); }
+        try { fs.unlinkSync(tmpPath); } catch (err) { bestEffort('integrations/transcriptionTools:handleScalewayTranscription', err); /* ignore */ }
     }
 }
 
@@ -682,7 +683,7 @@ async function handleLocalTranscription(args, context) {
         log.error('[Transcription:Local] Error:', err.message);
         return { error: `Local transcription failed: ${err.message}` };
     } finally {
-        try { fs.unlinkSync(tmpPath); } catch (err) { log.debug('ignore', err); }
+        try { fs.unlinkSync(tmpPath); } catch (err) { bestEffort('integrations/transcriptionTools:handleLocalTranscription', err); /* ignore */ }
     }
 }
 

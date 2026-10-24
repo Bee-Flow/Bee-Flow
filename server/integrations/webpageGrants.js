@@ -23,6 +23,7 @@
  * hang/crash.
  */
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 function resolveDeps(_deps = {}) {
     const d = { ..._deps };
@@ -121,7 +122,7 @@ async function revokeIntegration({ webpageId, userId, tool }, _deps = {}) {
 async function grantAutomation({ webpageId, userId, automationId, label }, _deps = {}) {
     const deps = resolveDeps(_deps);
     if (typeof automationId !== 'string' || !automationId.trim()) throw grantError(400, 'automationId is required');
-    const a = await deps.getAutomation(automationId).catch(() => null);
+    const a = await deps.getAutomation(automationId).catch((e) => fallback('integrations/webpageGrants:grantAutomation', e, null));
     if (!a) throw grantError(404, `Automation ${automationId} not found`);
     if (a.userId !== userId) throw grantError(403, 'You can only grant your own automations');
     const entry = { automationId, ...(label ? { label: String(label) } : {}) };
@@ -141,7 +142,7 @@ async function revokeAutomation({ webpageId, userId, automationId }, _deps = {})
 /** The author's automations, shaped for a picker (chat tool + REST share this). */
 async function listAuthorAutomations({ userId }, _deps = {}) {
     const deps = resolveDeps(_deps);
-    const list = await deps.getAutomationsForUser(userId).catch(() => []);
+    const list = await deps.getAutomationsForUser(userId).catch((e) => fallback('integrations/webpageGrants:listAuthorAutomations', e, []));
     return list.map(a => ({
         automationId: a.id,
         title: a.title,
@@ -196,7 +197,7 @@ async function describeGrants({ webpageId, userId, session }, _deps = {}) {
     let availableNames = null;
     try {
         availableNames = await resolveAvailableToolNames({ userId, session }, deps);
-    } catch (err) { log.debug('null → per-entry available: null', err); }
+    } catch (err) { fallback('integrations/webpageGrants:describeGrants', err); /* null → per-entry available: null */ }
     const integrations = (grants.integrations || []).map((g) => {
         const owner = deps.findOwnerOfTool(g.tool) || null;
         return {

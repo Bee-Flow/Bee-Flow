@@ -22,6 +22,7 @@
 const configStore = require('../stores/configStore');
 const { jsonApiRequest } = require('./shared/apiClient');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 // configStore keys. The service pair is written by the support admin UI; the
 // per-user pair predates it and is still what the agent tools use.
@@ -100,7 +101,7 @@ async function ping({ userId = null } = {}) {
     if (!creds) return { configured: false, ok: false, host: null };
 
     let host = null;
-    try { host = new URL(creds.baseUrl).host; } catch (err) { log.debug('malformed URL: reported as not-ok below', err); }
+    try { host = new URL(creds.baseUrl).host; } catch (err) { fallback('integrations/youtrackClient:ping', err); /* malformed URL: reported as not-ok below */ }
 
     try {
         const projects = await listProjects(creds, { limit: 100 });

@@ -158,6 +158,7 @@ When others are editing the notebook live, the answer carries a "revision": pass
 
 const { wordCount, readNotebookContent } = require('./notebookReadModes');
 const { insertIntoContent, replaceInContent } = require('./notebookTextEdits');
+const { fallback } = require('../utils/bestEffort');
 
 // ─── Tool execution ─────────────────────────────────────────────────────────
 
@@ -278,7 +279,7 @@ async function setWorkspace(convId, content, workspace, { expectSeq = null } = {
         // while these tools keep reading Markdown back out.
         const { markdownToHtml } = require('../core/markdown');
         let html = content;
-        try { html = markdownToHtml(content); } catch (err) { log.debug('fall back to raw', err); }
+        try { html = markdownToHtml(content); } catch (err) { fallback('integrations/workspaceTools:setWorkspace', err); /* fall back to raw */ }
         // While the notebook is co-edited, the live document is the
         // co-editing state: the edit goes in there (everyone's editor
         // follows) instead of onto the row, where the next materialisation

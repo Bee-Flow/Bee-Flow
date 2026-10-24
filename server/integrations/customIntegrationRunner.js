@@ -22,6 +22,7 @@
 
 const ssrfGuard = require('../core/customIntegrations/ssrfGuard');
 const log = require('../telemetry/log');
+const { fallback: fallbackSwallowed, bestEffort } = require('../utils/bestEffort');
 
 const SLUG_RE = /^[a-z0-9]{4,16}$/;
 const TOOL_NAME_RE = /^[a-z][a-z0-9_]{2,40}$/;
@@ -307,7 +308,7 @@ function extractErrorMessage(bodyText) {
                     || (typeof obj.error === 'string' ? obj.error : (obj.error && obj.error.message))
                     || null;
             }
-        } catch (err) { log.debug('not JSON after all', err); }
+        } catch (err) { fallbackSwallowed('integrations/customIntegrationRunner:extractErrorMessage', err); /* not JSON after all */ }
     } else {
         const xmlMatch = t.match(/<(?:message|error|title)>([\s\S]*?)<\//i);
         if (xmlMatch) message = xmlMatch[1];
@@ -329,7 +330,7 @@ async function readBodyCapped(response, capBytes) {
         if (done) break;
         total += value.byteLength;
         if (total > capBytes) {
-            await reader.cancel().catch(() => {});
+            await reader.cancel().catch((e) => bestEffort('integrations/customIntegrationRunner:readBodyCapped', e));
             const err = new Error('Response exceeded the size limit.');
             err.tooLarge = true;
             throw err;
@@ -607,7 +608,7 @@ async function executeCustomIntegrationTool(prefixedName, args, {
 
         // 16. Best-effort usage stamp.
         if (connection) {
-            try { await connStore.touchLastUsed(connection.id); } catch (err) { log.debug('best effort', err); }
+            try { await connStore.touchLastUsed(connection.id); } catch (err) { bestEffort('integrations/customIntegrationRunner:executeCustomIntegrationTool', err); /* best effort */ }
         }
 
         const maxChars = clampInt(def.api.maxResponseChars, MIN_RESPONSE_CHARS, DEFAULT_MAX_RESPONSE_CHARS, DEFAULT_MAX_RESPONSE_CHARS);

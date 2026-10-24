@@ -24,6 +24,7 @@
  * @returns {SelectionOption[]}
  */
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 function parseSelectionOptions(raw) {
     let list = [];
@@ -32,7 +33,7 @@ function parseSelectionOptions(raw) {
         try {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed)) list = parsed;
-        } catch (err) { log.debug('not a list: no options', err); }
+        } catch (err) { fallback('integrations/nextcloudTablesValues:parseSelectionOptions', err); /* not a list: no options */ }
     }
     return list
         .filter(o => o && typeof o === 'object' && o.id !== undefined && o.id !== null)

@@ -12,6 +12,7 @@
 require('googleapis');
 require('../auth/permissions');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const KEEP_TOOLS = [
     {
@@ -233,7 +234,7 @@ async function executeKeepTool(toolName, args, session) {
             try {
                 const response = await keep.notes.get({ name: noteId });
                 noteTitle = response.data.title || noteId;
-            } catch (e) { log.debug('use ID as fallback title', e); }
+            } catch (e) { fallback('integrations/keepTools:executeKeepTool', e); /* use ID as fallback title */ }
 
             return {
                 _action: 'keep_draft',

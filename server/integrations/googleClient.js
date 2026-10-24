@@ -15,6 +15,7 @@ const { loadConfig } = require('../auth/permissions');
 const { google } = require('googleapis');
 const log = require('../telemetry/log');
 const { parseRetryAfter, backoffDelay, sleep } = require('../core/http/retryAfter');
+const { fallback } = require('../utils/bestEffort');
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_REVOKE_URL = 'https://oauth2.googleapis.com/revoke';
@@ -107,7 +108,7 @@ async function googleFetch(url, session, options = {}) {
         try {
             const parsed = JSON.parse(errorBody);
             errorMsg = parsed.error?.message || parsed.error_description || errorMsg;
-        } catch (err) { log.debug('non-JSON', err); }
+        } catch (err) { fallback('integrations/googleClient:googleFetch', err); /* non-JSON */ }
         throw new Error(errorMsg);
     }
 

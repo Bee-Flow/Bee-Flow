@@ -12,6 +12,7 @@ const { getServiceHeaders } = require('../core/serviceAuth');
 const { recordSidecarCall } = require('../telemetry/metrics');
 const { toCitation } = require('../core/kb/citation');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 /** @type {Array<Record<string, any>>} */ const KB_SEARCH_TOOLS = [
     {
@@ -249,7 +250,7 @@ async function executeKbSearchTool(toolName, args, context = {}) {
             try {
                 const { resolveInferenceTargetsWithSecrets } = require('../core/llm/webSearchInferenceResolver');
                 inferenceRouting = await resolveInferenceTargetsWithSecrets();
-            } catch (err) { log.debug('non-fatal', err); }
+            } catch (err) { fallback('integrations/kbSearchTools:executeKbSearchTool', err); /* non-fatal */ }
             const sidecarT0 = Date.now();
             let searchRes;
             try {
