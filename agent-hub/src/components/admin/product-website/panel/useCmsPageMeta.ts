@@ -5,10 +5,10 @@ import type { CmsActivePage, CmsPageDoc } from './cmsPanelTypes';
 import type useCmsAutosave from './useCmsAutosave';
 import type useCmsPanelState from './useCmsPanelState';
 import { errorMessage, messageOf } from '../../../../utils/caughtError';
-import { authFetch } from '../../../../utils/helpers';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { noteSavedRev } from './cmsRevisions';
+import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 
@@ -47,14 +47,17 @@ export default function useCmsPageMeta({
         await drainPendingSaves();
         setSaveStatus('saving');
         try {
-            const res = await authFetch(cmsApi.pageMeta(siteId, pageId), {
+            let res: Response;
+            try {
+                res = await mutate(cmsApi.pageMeta(siteId, pageId), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(patch),
             });
-            if (!res.ok) {
-                const d = await res.json().catch(() => ({}));
-                throw new Error(d.error || `Save failed (${res.status})`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const d = errorBody(err) ?? {};
+                throw new Error(d.error || `Save failed (${err.status})`);
             }
             // A slug/title change raises the PageDoc's revision: the next block save must name it.
             const answer: unknown = await res.json().catch(() => null);

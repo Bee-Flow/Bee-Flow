@@ -2,10 +2,10 @@ import { Loader2, Check, AlertTriangle, Lock, Layers, Sparkles, Settings, ListCh
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getIntegrationIcon } from '../../../../config/integrationIcons';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
 import { messageOf } from '../../../../utils/caughtError';
 import type { AccessCapability, AccessData, AccessKindSection, AccessMessage } from './accessTypes';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '../../../../api/mutate';
 
 /**
  * OrgAccessEditor — the super-admin "Organisation access" menu: which
@@ -46,8 +46,14 @@ export default function OrgAccessEditor({ orgId, onChanged }: OrgAccessEditorPro
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await authFetch(path);
-            if (!res.ok) { setMessage({ type: 'error', text: t('admin_org.access_matrix_failed_load_status', 'Failed to load ({status})', { status: res.status }) }); return; }
+            let res: Response;
+            try {
+                res = await request(path);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                setMessage({ type: 'error', text: t('admin_org.access_matrix_failed_load_status', 'Failed to load ({status})', { status: err.status }) });
+                return;
+            }
             const j = await res.json();
             setData(j);
             setUnrestricted(!!j.unrestricted);

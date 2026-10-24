@@ -14,7 +14,7 @@ import type { CustomIcon } from '../../../../hooks/useIconPack';
 import type { AddPackModalProps, BulkGenerateModalProps, BulkOptions, BulkResult, IconCategory, IconCellProps, IconEntry, IconPack, PackEditorProps, PackListItemProps } from './IconsEditor.types';
 import { errorMessage } from '../../../../utils/caughtError';
 import { logger } from '../../../../utils/logger';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '../../../../api/mutate';
 
 const API = `${API_BASE}/api/icons`;
 
@@ -118,8 +118,13 @@ export default function IconsEditor() {
 
     const handleExport = async (id: string) => {
         try {
-            const res = await authFetch(`${API}/${id}/export`);
-            if (!res.ok) throw new Error('export failed');
+            let res: Response;
+            try {
+                res = await request(`${API}/${id}/export`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error('export failed');
+            }
             const data = await res.json();
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);

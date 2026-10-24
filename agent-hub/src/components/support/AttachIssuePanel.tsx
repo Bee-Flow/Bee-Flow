@@ -4,6 +4,7 @@ import StateChip from './IssueStateChip';
 import { authFetch, API_BASE } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
+import { request, errorBody, RefusedError, mutate } from '../../api/mutate';
 
 interface IssueSearchResult {
     id: string;
@@ -60,9 +61,17 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
         setError(null);
         try {
             const params = new URLSearchParams({ q, threadId: threadId || '' });
-            const res = await authFetch(`${API_BASE}/api/support/youtrack/search?${params}`);
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/support/youtrack/search?${params}`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const d = errorBody(err) ?? {};
+                setError(d.error || 'Search failed');
+                setResults([]);
+                return;
+            }
             const d = await res.json().catch(() => ({}));
-            if (!res.ok) { setError(d.error || 'Search failed'); setResults([]); return; }
             setResults(d.issues || []);
         } catch (e) {
             setError(errorMessage(e));
@@ -83,13 +92,20 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
         setAttaching(true);
         setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/support/threads/${threadId}/issues`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/support/threads/${threadId}/issues`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ issueIds }),
             });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const d = errorBody(err) ?? {};
+                setError(d.error || 'Could not attach');
+                return;
+            }
             const d = await res.json().catch(() => ({}));
-            if (!res.ok) { setError(d.error || 'Could not attach'); return; }
             setPicked(new Set());
             setQuery('');
             setResults([]);

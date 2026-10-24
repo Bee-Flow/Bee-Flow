@@ -28,6 +28,7 @@ import { formatRelative } from '../../../projects/relativeTime';
 import StudioSectionHeader from '../../../shared/StudioSectionHeader';
 import type { SolutionProject, SolutionDetailViewProps, SolutionDetailProps } from './SolutionDetail.types';
 import { logger } from '../../../../utils/logger';
+import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
 export type { SolutionProject } from './SolutionDetail.types';
 
 export { blueprintVersionFor, controlBadge };
@@ -98,13 +99,15 @@ function SolutionDetailView({
     const removeResource = async (kind: string, item: { id: string }) => {
         setRemoveError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/projects/${project.id}/resources`, {
+            try {
+                await mutate(`${API_BASE}/api/projects/${project.id}/resources`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ kind, id: item.id, attach: false }),
             });
-            if (!res.ok) {
-                const body = await res.json().catch(() => null);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err) ?? null;
                 setRemoveError(body?.error || t('solutions.remove_failed', 'That could not be removed from the Solution.'));
                 return;
             }

@@ -3,6 +3,7 @@ import type { KeyboardEvent } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { Loader2, Plus, Trash2, AtSign, ChevronDown, ChevronRight, ShieldCheck } from 'lucide-react';
+import { request, RefusedError } from '../../../api/mutate';
 
 interface DomainMessage {
     type: 'success' | 'error';
@@ -35,8 +36,11 @@ export default function FreeEmailDomainsPanel() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await authFetch(`${API_BASE}/auth/free-email-domains`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/auth/free-email-domains`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const data = await res.json();
                 setBuiltin(Array.isArray(data.builtin) ? data.builtin : []);
                 setExtra(Array.isArray(data.extra) ? data.extra : []);

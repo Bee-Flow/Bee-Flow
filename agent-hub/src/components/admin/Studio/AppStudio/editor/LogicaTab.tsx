@@ -5,7 +5,7 @@ import { useAutomationRows } from './automationTitles';
 import logicRows, { assignNotices, collectBoundTableIds, derivedAutomationRows } from './logicRows';
 import { toSaveNotices, type SavePayload, type SaveNotice } from './saveNotices';
 import useTranslation from '../../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import { API_BASE } from '../../../../../utils/helpers';
 import { kindColorVar } from '../../../../shared/kindColors';
 import { nOf } from '../../KnowledgeStudio/plural';
 import { automationHref } from '../inspector/AutomationTile';
@@ -16,6 +16,7 @@ import type { AppDefinition } from '../inspector/appDefinition';
 import type { WiredAutomation } from '../inspector/useEventWiring';
 import type { TranslateParams } from '../../../../../hooks/useTranslation';
 import type { TFn, LogicTableRow, RowStatus, RevealFn, LogicaTabProps, LogicRowProps, StatusCellProps, GroupHeadingProps, LogicTableProps } from './LogicaTab.types';
+import { request, RefusedError } from '../../../../../api/mutate';
 
 /**
  * The Logic tab — When · Happens · Status · ↗, across all screens.
@@ -51,17 +52,25 @@ const RANGE_HOURS = 24;
 
 /** The facets of the OWN runs over the window, or null if they could not be read. */
 async function fetchRunFacets() {
-    const res = await authFetch(`${API_BASE}/api/automation/_runs/facets?range=${RANGE_HOURS}`);
-    if (!res.ok) return null;
+    let res: Response;
+    try {
+        res = await request(`${API_BASE}/api/automation/_runs/facets?range=${RANGE_HOURS}`);
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        return null;
+    }
     try { return (await res.json())?.facets ?? null; } catch { return null; }
 }
 
 /** The approval facets for this app, viewer-scoped, or null on a refusal. */
 async function fetchApprovalFacets(appId: string) {
-    const res = await authFetch(
-        `${API_BASE}/api/automation/approvals/facets?scope=mine&appId=${encodeURIComponent(appId)}`,
-    );
-    if (!res.ok) return null;
+    let res: Response;
+    try {
+        res = await request(`${API_BASE}/api/automation/approvals/facets?scope=mine&appId=${encodeURIComponent(appId)}`);
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        return null;
+    }
     try { return (await res.json())?.facets ?? null; } catch { return null; }
 }
 

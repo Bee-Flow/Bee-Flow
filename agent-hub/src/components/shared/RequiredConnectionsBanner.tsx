@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useEffectEvent } from 'react';
 import { settingsPathForTab } from '../../authedApp/settingsRoutes';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
 import { AlertCircle } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
 import { logger } from '../../utils/logger';
+import { request, RefusedError } from '../../api/mutate';
 
 /**
  * RequiredConnectionsBanner — recipient pre-flight for a shared resource. Shows
@@ -40,8 +41,13 @@ const RequiredConnectionsBanner = ({ resourceType, resourceId, providers, purpos
             if (!resourceId || list.length === 0) return;
             try {
                 const qs = new URLSearchParams({ resourceType, resourceId, providers: list.join(',') });
-                const res = await authFetch(`${BASE}/required?${qs.toString()}`);
-                if (!res.ok) return;
+                let res: Response;
+                try {
+                    res = await request(`${BASE}/required?${qs.toString()}`);
+                } catch (err) {
+                    if (!(err instanceof RefusedError)) throw err;
+                    return;
+                }
                 const data = await res.json();
                 if (alive) setRequired(data.requiresConnection || []);
             } catch (err) { logger.debug('silent', err); }

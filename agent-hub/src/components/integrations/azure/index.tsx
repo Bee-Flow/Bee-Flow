@@ -12,6 +12,7 @@ import DocProcessingSection from './DocProcessingSection';
 import loadChatModels from './loadChatModels';
 import type { ProviderModel } from './loadChatModels';
 import { errorMessage } from '../../../utils/caughtError';
+import { request, RefusedError } from '../../../api/mutate';
 
 interface GroupSyncSettings {
     destructiveSync: boolean;
@@ -94,8 +95,11 @@ export default function OrgAzureConfigPanel({ user }: OrgAzureConfigPanelProps) 
         if (!orgId) return;
         setLoading(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/org-azure-config/${orgId}`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/api/org-azure-config/${orgId}`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const d = await res.json();
                 setAzureEndpoint(d.azureEndpoint || '');
                 setHasAzureApiKey(d.hasAzureApiKey || false);

@@ -7,12 +7,13 @@ import React, {
     useRef,
     useState,
     useEffectEvent } from 'react';
-import { API_BASE, authFetch, isDemoPath } from '../../utils/helpers';
+import { API_BASE, isDemoPath } from '../../utils/helpers';
 import WallpaperLayer from './WallpaperLayer';
 import { applyThemeToDocument } from '../theme/applyTheme';
 import type { PreviewMode, ThemeContextValue, ThemeOption, ThemeProviderProps, ThemeSettings, ThemeState } from './ThemeContext.types';
 import { messageOf } from '../../utils/caughtError';
 import { logger } from '../../utils/logger';
+import { mutate, errorBody, RefusedError } from '../../api/mutate';
 
 /**
  * ThemeContext — single source of truth for the active theme + branding.
@@ -295,15 +296,18 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
     }, [inPreview]);
 
     const setUserOverride = useCallback(async (patch: Partial<ThemeSettings>) => {
-        const r = await authFetch(`${API_BASE}/api/branding/user`, {
+        let r: Response;
+        try {
+            r = await mutate(`${API_BASE}/api/branding/user`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(patch),
         });
-        if (!r.ok) {
-            const data = await r.json().catch(() => ({}));
-            const msg = data.error || `HTTP ${r.status}`;
-            console.error('[Theme] user override failed:', r.status, msg);
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            const data = errorBody(err) ?? {};
+            const msg = data.error || `HTTP ${err.status}`;
+            console.error('[Theme] user override failed:', err.status, msg);
             throw new Error(msg);
         }
         const result = await r.json().catch(() => ({}));
@@ -315,11 +319,14 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
     // `null`, which the server's strict JSON parser refuses with a 400 before
     // the route runs — so "reset to the default theme" never reset anything.
     const clearUserOverride = useCallback(async () => {
-        const r = await authFetch(`${API_BASE}/api/branding/user`, { method: 'DELETE' });
-        if (!r.ok) {
-            const data = await r.json().catch(() => ({}));
-            const msg = data.error || `HTTP ${r.status}`;
-            console.error('[Theme] clear override failed:', r.status, msg);
+        let r: Response;
+        try {
+            r = await mutate(`${API_BASE}/api/branding/user`, { method: 'DELETE' });
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            const data = errorBody(err) ?? {};
+            const msg = data.error || `HTTP ${err.status}`;
+            console.error('[Theme] clear override failed:', err.status, msg);
             throw new Error(msg);
         }
         const result = await r.json().catch(() => ({}));
@@ -328,15 +335,18 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
     }, [reload]);
 
     const setAdminDefault = useCallback(async (patch: Partial<ThemeSettings>) => {
-        const r = await authFetch(`${API_BASE}/api/branding/admin`, {
+        let r: Response;
+        try {
+            r = await mutate(`${API_BASE}/api/branding/admin`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(patch),
         });
-        if (!r.ok) {
-            const data = await r.json().catch(() => ({}));
-            const msg = data.error || `HTTP ${r.status}`;
-            console.error('[Theme] save failed:', r.status, msg);
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            const data = errorBody(err) ?? {};
+            const msg = data.error || `HTTP ${err.status}`;
+            console.error('[Theme] save failed:', err.status, msg);
             throw new Error(msg);
         }
         const result = await r.json();
@@ -347,23 +357,28 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
     const uploadWallpaper = useCallback(async (file: File | Blob) => {
         const fd = new FormData();
         fd.append('wallpaper', file);
-        const r = await authFetch(`${API_BASE}/api/branding/wallpaper`, {
+        let r: Response;
+        try {
+            r = await mutate(`${API_BASE}/api/branding/wallpaper`, {
             method: 'POST',
             body: fd,
         });
-        if (!r.ok) {
-            const data = await r.json().catch(() => ({}));
-            throw new Error(data.error || `HTTP ${r.status}`);
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            const data = errorBody(err) ?? {};
+            throw new Error(data.error || `HTTP ${err.status}`);
         }
         await reload();
         return r.json();
     }, [reload]);
 
     const deleteWallpaper = useCallback(async () => {
-        const r = await authFetch(`${API_BASE}/api/branding/wallpaper`, { method: 'DELETE' });
-        if (!r.ok) {
-            const data = await r.json().catch(() => ({}));
-            throw new Error(data.error || `HTTP ${r.status}`);
+        try {
+            await mutate(`${API_BASE}/api/branding/wallpaper`, { method: 'DELETE' });
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            const data = errorBody(err) ?? {};
+            throw new Error(data.error || `HTTP ${err.status}`);
         }
         await reload();
     }, [reload]);

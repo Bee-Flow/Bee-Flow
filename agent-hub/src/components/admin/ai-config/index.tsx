@@ -10,7 +10,7 @@ import GoogleApiKeyCard from './ProviderCards/GoogleCard';
 import MistralApiKeyCard from './ProviderCards/MistralCard';
 import ScalewayApiKeyCard from './ProviderCards/ScalewayCard';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import { getModelMeta, CAT_COLORS } from '../../../api/modelMeta';
 
 import WebSearchInferenceConfig from './WebSearchInferenceConfig';
@@ -22,6 +22,7 @@ import LocalModelsCard from './ProviderCards/LocalModelsCard';
 import RerankerConfig from './RerankerConfig';
 import type { ProviderMessage } from '../../../hooks/useProviderConfig';
 import type { CatalogModel } from './chatModelTiers/tierTypes';
+import { request, RefusedError } from '../../../api/mutate';
 
 /** A provider as GET /ai/providers lists it. */
 interface ProviderRow {
@@ -69,8 +70,11 @@ const AIConfigPanel = () => {
 
     const fetchProviders = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/providers`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/ai/providers`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const data = await res.json();
                 setProviders(data.providers || []);
             }
@@ -87,8 +91,11 @@ const AIConfigPanel = () => {
             const results = await Promise.all(
                 providers.map(async (provider) => {
                     try {
-                        const res = await authFetch(`${API_BASE}/ai/providers/${provider.id}/models`);
-                        if (res.ok) {
+                        const res = await request(`${API_BASE}/ai/providers/${provider.id}/models`).catch((err: unknown) => {
+                            if (err instanceof RefusedError) return null;
+                            throw err;
+                        });
+                        if (res) {
                             const data = await res.json();
                             return (data.models || []).map((m: CatalogModel) => ({
                                 ...m,

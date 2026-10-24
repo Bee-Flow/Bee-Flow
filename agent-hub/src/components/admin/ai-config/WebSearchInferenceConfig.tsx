@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import { getModelMeta, getModelDisplayName, type ModelEntry } from '../../../api/modelMeta';
 import SearchableModelSelect from '../shared/SearchableModelSelect';
 import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
-import { mutate, ApiError } from '../../../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '../../../api/mutate';
 
 const getRerankMethods = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) => [
     {
@@ -59,8 +59,11 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearch
 
     const fetchAll = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/config/web-search-inference`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/ai/config/web-search-inference`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const data = await res.json();
                 if (data.config) setConfig(data.config);
                 if (data.embedSummary) setEmbedSummary(data.embedSummary);

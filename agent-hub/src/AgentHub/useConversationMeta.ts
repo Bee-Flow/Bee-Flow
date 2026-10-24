@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { projectErrorText } from '../components/projects/workspace/projectErrorText';
 import { toast } from '../components/shared/Toast';
 import { API_BASE, authFetch } from '../utils/helpers';
-import { mutate, ApiError } from '../api/mutate';
+import { mutate, ApiError, errorBody, RefusedError } from '../api/mutate';
 import type { TranslateFn } from '../hooks/useTranslation';
 import { errorMessage } from '../utils/caughtError';
 
@@ -126,13 +126,15 @@ const useConversationMeta = ({
         const change = targetProject ? { assign: [{ id: conv.id, type }] } : { unassign: [{ id: conv.id, type }] };
         const failed = t('sidebar.project_move_failed', 'Could not move this chat. It is still where it was.');
         try {
-            const res = await authFetch(`${API_BASE}/api/projects/${encodeURIComponent(projectId)}/conversations`, {
+            try {
+                await mutate(`${API_BASE}/api/projects/${encodeURIComponent(projectId)}/conversations`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(change),
             });
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
+            } catch (apiErr) {
+                if (!(apiErr instanceof RefusedError)) throw apiErr;
+                const err = errorBody(apiErr) ?? {};
                 toast.error(projectErrorText(t, err, failed));
                 return;
             }

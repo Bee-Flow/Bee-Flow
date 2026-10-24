@@ -82,6 +82,7 @@ import { parseProjectUrl, projectRoutePath } from './utils/projectRoutes';
 import scopedStorage from './utils/scopedStorage';
 import { runStorageMigrations, runUserStorageMigrations } from './utils/storageMigrations';
 import type { AuthedUser, HubUser, PendingNcBinding, StudioRoute } from './AuthedApp.types';
+import { request, RefusedError } from './api/mutate';
 
 // Kept exported from this module: the allow-list moved to ./authedApp/appRoutes
 // with the rest of the route table, but AuthedApp.jsx is still its address.
@@ -482,8 +483,11 @@ function App() {
                 onResolved={async () => {
                     // Re-pull /auth/user so the next gate (wizard or app) renders.
                     try {
-                        const res = await authFetch(`${API_BASE}/auth/user`, { cache: 'no-store' });
-                        if (res.ok) {
+                        const res = await request(`${API_BASE}/auth/user`, { cache: 'no-store' }).catch((err: unknown) => {
+                            if (err instanceof RefusedError) return null;
+                            throw err;
+                        });
+                        if (res) {
                             const data = await res.json();
                             setPendingNcBinding(data.pendingNcBinding || null);
                             if (data.ncOnboardingNeeded) setNcOnboardingState('admin');
@@ -530,8 +534,11 @@ function App() {
                 onDone={async () => {
                     setMfaSetupRequired(false);
                     try {
-                        const res = await authFetch(`${API_BASE}/auth/user`, { cache: 'no-store' });
-                        if (res.ok) {
+                        const res = await request(`${API_BASE}/auth/user`, { cache: 'no-store' }).catch((err: unknown) => {
+                            if (err instanceof RefusedError) return null;
+                            throw err;
+                        });
+                        if (res) {
                             const data = await res.json();
                             setMfaSetupRequired(!!data.mfaSetupRequired);
                         }

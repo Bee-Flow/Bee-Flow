@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { API_BASE, authFetch } from '../utils/helpers';
+import { API_BASE } from '../utils/helpers';
 import { logger } from '../utils/logger';
+import { request, RefusedError } from '../api/mutate';
 
 /**
  * Watches for an announced deployment window so the app can warn people before
@@ -124,8 +125,13 @@ export function useMaintenanceWindow({ enabled = true }: { enabled?: boolean } =
 
     const poll = useCallback(async () => {
         try {
-            const res = await authFetch(`${API_BASE}/api/maintenance`);
-            if (!res.ok) return;   // 401 on a logged-out tab: nothing to show
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/maintenance`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                return;
+            }   // 401 on a logged-out tab: nothing to show
             const data = await res.json();
 
             const version = data.appVersion || '';

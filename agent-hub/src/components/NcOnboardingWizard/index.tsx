@@ -4,6 +4,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import beeFlowLogo from '../../assets/bee-flow-logo.svg';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
+import { mutate, errorBody, RefusedError } from '../../api/mutate';
 /**
  * Bee Flow ↔ Nextcloud App Store onboarding wizard.
  *
@@ -113,7 +114,8 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
         setError(null);
         try {
             // 1. Persist org details (mirrors OrgInfoPanel's PUT).
-            const orgRes = await authFetch(`${API_BASE}/auth/organizations/${orgId}`, {
+            try {
+                await mutate(`${API_BASE}/auth/organizations/${orgId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -128,15 +130,17 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
                     vat: org.vat.trim(),
                 }),
             });
-            if (!orgRes.ok) {
-                const j = await orgRes.json().catch(() => ({}));
-                throw new Error(`Could not save organisation: ${j.error || orgRes.status}`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const j = errorBody(err) ?? {};
+                throw new Error(`Could not save organisation: ${j.error || err.status}`);
             }
 
             // 2. Persist wizard outputs (deployment + sync + shield). Subscription
             //    is handled separately by the organisation admin, so it's not sent
             //    here — the org keeps whatever plan it already has.
-            const res = await authFetch(`${API_BASE}/auth/admin/${orgId}/nc-onboarding/complete`, {
+            try {
+                await mutate(`${API_BASE}/auth/admin/${orgId}/nc-onboarding/complete`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -152,9 +156,10 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
                     },
                 }),
             });
-            if (!res.ok) {
-                const j = await res.json().catch(() => ({}));
-                throw new Error(j.error || `HTTP ${res.status}`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const j = errorBody(err) ?? {};
+                throw new Error(j.error || `HTTP ${err.status}`);
             }
 
             onComplete?.();

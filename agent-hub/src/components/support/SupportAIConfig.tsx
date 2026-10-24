@@ -3,7 +3,7 @@ import { Save, Sparkles, AlertTriangle, Send } from 'lucide-react';
 import AgentEditorUI from '../agents/AgentEditorUI';
 import MarkdownRenderer from '../renderers/MarkdownRenderer';
 import { tierLabel } from '../licensing/tierMeta';
-import { authFetch, API_BASE } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
 import SupportSlaPoliciesTab from './tabs/SupportSlaPoliciesTab';
 import SupportCannedResponsesTab from './tabs/SupportCannedResponsesTab';
 import SupportTagsTab from './tabs/SupportTagsTab';
@@ -13,6 +13,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import type { ModelTierMap } from '../../api/queries/modelTiers';
 import type { SupportAgentRow, SupportAgentData, PreviewReply } from './SupportAIConfig.types';
 import { useConfigTiersForUser } from '../../api/queries/configModels';
+import { request, errorBody, RefusedError, mutate } from '../../api/mutate';
 
 const CONFIG_TABS = [
     { id: 'agent', label: 'Agent' },
@@ -74,9 +75,12 @@ export default function SupportAIConfig() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/support/agent`);
-            if (!res.ok) {
-                const e = await res.json().catch(() => ({}));
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/support/agent`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const e = errorBody(err) ?? {};
                 setSaveError(e.error || 'Failed to load support agent');
                 return;
             }
@@ -134,14 +138,16 @@ export default function SupportAIConfig() {
                 // generic /agents/:id/knowledge endpoint. We refetch after
                 // save and reflect the result.
             };
-            const res = await authFetch(`${API_BASE}/api/support/agent`, {
+            try {
+                await mutate(`${API_BASE}/api/support/agent`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
-            if (!res.ok) {
-                const e = await res.json().catch(() => ({}));
-                throw new Error(e.error || `Save failed (${res.status})`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const e = errorBody(err) ?? {};
+                throw new Error(e.error || `Save failed (${err.status})`);
             }
             await load();
             setDirty(false);
@@ -159,13 +165,19 @@ export default function SupportAIConfig() {
         setPreviewError(null);
         setPreviewReply(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/support/preview`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/support/preview`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message }),
             });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const json = errorBody(err) ?? {};
+                throw new Error(json.error || `Preview failed (${err.status})`);
+            }
             const json = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(json.error || `Preview failed (${res.status})`);
             setPreviewReply(json);
         } catch (e) {
             setPreviewError((e as Error).message);

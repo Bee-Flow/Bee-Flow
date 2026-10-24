@@ -1,6 +1,6 @@
 import { useEffect, useRef, useEffectEvent } from 'react';
 import { API_BASE, authFetch, parseSaveError } from '../../../../utils/helpers';
-import { mutate } from '../../../../api/mutate';
+import { mutate, request, RefusedError, errorBody } from '../../../../api/mutate';
 import { logger } from '../../../../utils/logger';
 import { filterVisibleModels, fetchAllowedModelsByAgentType } from '../../../../api/modelMeta';
 import { toast } from '../../../shared/Toast';
@@ -108,15 +108,21 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
 
     const fetchModelTiers = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/config/chat-models`);
-            if (res.ok) setModelTiers(await res.json());
+            const res = await request(`${API_BASE}/ai/config/chat-models`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) setModelTiers(await res.json());
         } catch (e) { console.error('Failed to load model tiers:', e); }
     };
 
     const fetchIntegrationStatus = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/user-settings`);
-            if (res.ok) setIntegrationStatus(await res.json());
+            const res = await request(`${API_BASE}/ai/user-settings`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) setIntegrationStatus(await res.json());
         } catch (e) { console.error('Failed to load integration status:', e); }
     };
 
@@ -131,8 +137,11 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
         // Fetch agent categories
         (async () => {
             try {
-                const res = await authFetch(`${API_BASE}/agents/categories`);
-                if (res.ok) {
+                const res = await request(`${API_BASE}/agents/categories`).catch((err: unknown) => {
+                    if (err instanceof RefusedError) return null;
+                    throw err;
+                });
+                if (res) {
                     const cats = await res.json();
                     setAgentCategories(Array.isArray(cats) ? cats : []);
                 }
@@ -295,9 +304,11 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
     const deleteAgent = async (id: string) => {
         if (!(await confirm({ title: 'Delete this agent?', confirmLabel: 'Delete', destructive: true }))) return;
         try {
-            const res = await authFetch(securityMode ? `${API_BASE}/security-agents/${id}` : `${API_BASE}/agents/${id}`, { method: 'DELETE' });
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
+            try {
+                await mutate(securityMode ? `${API_BASE}/security-agents/${id}` : `${API_BASE}/agents/${id}`, { method: 'DELETE' });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = errorBody(err) ?? {};
                 toast.error(data.error || 'Failed to delete agent. Please try again.');
                 return;
             }

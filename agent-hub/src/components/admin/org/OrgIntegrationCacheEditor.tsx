@@ -16,10 +16,11 @@ import { AlertTriangle, DatabaseZap, Loader2, Timer, Trash2 } from 'lucide-react
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import { errorMessage, messageOf } from '../../../utils/caughtError';
 import ChoiceCards from '../../shared/ChoiceCards';
 import { toast } from '../../shared/Toast';
+import { request, errorBody, RefusedError, mutate } from '../../../api/mutate';
 
 const MINUTES = (s: number) => Math.round(s / 60);
 
@@ -68,10 +69,13 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
         setLoading(true);
         setLoadError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/org-integration-cache/${orgId}`);
-            if (!res.ok) {
-                const body = await res.json().catch(() => ({}));
-                throw new Error(body.error || `HTTP ${res.status}`);
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/org-integration-cache/${orgId}`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err) ?? {};
+                throw new Error(body.error || `HTTP ${err.status}`);
             }
             const data = await res.json();
             setServer(data);
@@ -105,7 +109,9 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
         if (!server || !isDirty) return;
         setSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/org-integration-cache/${orgId}`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/org-integration-cache/${orgId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -113,11 +119,13 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
                     scopes: { integration: scopeIntegration, http: scopeHttp, ai: scopeAi },
                 }),
             });
-            const body = await res.json().catch(() => ({}));
-            if (!res.ok) {
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err) ?? {};
                 toast.error(body.error || t('admin.integration_cache.save_failed', 'Could not save the setting'));
                 return;
             }
+            const body = await res.json().catch(() => ({}));
             toast.success(body.purged
                 ? t('admin.integration_cache.saved_purged', 'Saved. Stored answers were deleted.')
                 : t('admin.integration_cache.saved', 'Saved'));
@@ -132,12 +140,16 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
     const handleClear = useCallback(async () => {
         setClearing(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/org-integration-cache/${orgId}/entries`, { method: 'DELETE' });
-            const body = await res.json().catch(() => ({}));
-            if (!res.ok) {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/org-integration-cache/${orgId}/entries`, { method: 'DELETE' });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err) ?? {};
                 toast.error(body.error || t('admin.integration_cache.clear_failed', 'Could not clear the stored answers'));
                 return;
             }
+            const body = await res.json().catch(() => ({}));
             toast.success(t('admin.integration_cache.cleared', 'Stored answers deleted'));
             await load();
         } catch {

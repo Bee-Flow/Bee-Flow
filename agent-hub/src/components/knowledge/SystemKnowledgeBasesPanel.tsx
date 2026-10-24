@@ -3,7 +3,7 @@ import { BookOpen, CheckCircle2, Circle, Loader2, RefreshCw, ShieldCheck, Downlo
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
 import { logger } from '../../utils/logger';
-import { mutate, ApiError } from '../../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '../../api/mutate';
 
 interface SystemKb {
     id: string;
@@ -45,8 +45,13 @@ const SystemKnowledgeBasesPanel = () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/kb/system`);
-            if (!res.ok) throw new Error(`Load failed (${res.status})`);
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/kb/system`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error(`Load failed (${err.status})`);
+            }
             const j = await res.json();
             setItems(Array.isArray(j.items) ? j.items : []);
             setOrgId(j.orgId || null);
@@ -70,8 +75,13 @@ const SystemKnowledgeBasesPanel = () => {
             try {
                 const slugs = items.filter(i => i.system_slug).map(i => i.system_slug);
                 const updates = await Promise.all(slugs.map(async (slug) => {
-                    const r = await authFetch(`${API_BASE}/api/kb/system/${slug}/status`);
-                    if (!r.ok) return [slug, null];
+                    let r: Response;
+                    try {
+                        r = await request(`${API_BASE}/api/kb/system/${slug}/status`);
+                    } catch (err) {
+                        if (!(err instanceof RefusedError)) throw err;
+                        return [slug, null];
+                    }
                     return [slug, await r.json()];
                 }));
                 let stillRunning = false;
@@ -131,8 +141,13 @@ const SystemKnowledgeBasesPanel = () => {
             // try to write the active subset — /auth/me/active-features
             // silently drops anything not in the allow-list.
             if (isSuperAdmin && goingOn && !item.allowedForOrg) {
-                const cur = await authFetch(`${API_BASE}/auth/beta-features`);
-                if (!cur.ok) throw new Error('Could not read allow-list');
+                let cur: Response;
+                try {
+                    cur = await request(`${API_BASE}/auth/beta-features`);
+                } catch (apiErr) {
+                    if (!(apiErr instanceof RefusedError)) throw apiErr;
+                    throw new Error('Could not read allow-list');
+                }
                 const curJ = await cur.json();
                 const current = (curJ.assignments && curJ.assignments[orgId]) || [];
                 const nextAllow = current.includes(item.betaFeatureId)
@@ -151,8 +166,13 @@ const SystemKnowledgeBasesPanel = () => {
             }
 
             // Flip the org-admin active subset (the toggle every user sees).
-            const cur = await authFetch(`${API_BASE}/auth/me/active-features`);
-            if (!cur.ok) throw new Error('Could not read current features');
+            let cur: Response;
+            try {
+                cur = await request(`${API_BASE}/auth/me/active-features`);
+            } catch (apiErr) {
+                if (!(apiErr instanceof RefusedError)) throw apiErr;
+                throw new Error('Could not read current features');
+            }
             const curJ = await cur.json();
             const active = new Set(Array.isArray(curJ.enabledBetaFeatures) ? curJ.enabledBetaFeatures : []);
             if (goingOn) active.add(item.betaFeatureId);

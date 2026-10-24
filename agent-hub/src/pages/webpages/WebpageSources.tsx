@@ -9,6 +9,7 @@ import useConfirm from '../../components/shared/useConfirm';
 import useTranslation from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
+import { mutate, errorBody, RefusedError } from '../../api/mutate';
 
 /*
  * The kind label travels as a KEY (`labelKey`), with the English beside it as fallback: the table is rendered in one place, but the value is text for the reader and must therefore be findable in the Languages panel. The i18n guard checks `labelKey` as a carrier — see i18nGuard.test.js (CARRIERS).
@@ -187,11 +188,14 @@ export default function WebpageSources({ webpageId, sources, onSourcesChange }: 
         try {
             const form = new FormData();
             form.append('file', file);
-            const res = await authFetch(`${API_BASE}/api/webpages/${webpageId}/sources/file`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/webpages/${webpageId}/sources/file`, {
                 method: 'POST', body: form,
             });
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = errorBody(err) ?? {};
                 throw new Error(data.error || t('webpages.knowledge.upload_failed', 'Upload failed'));
             }
             const { source } = await res.json();

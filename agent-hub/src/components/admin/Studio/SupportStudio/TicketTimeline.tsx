@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import useTranslation from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
 import { metaFor } from './auditMeta';
 import type { SupportTeammate } from './supportStudio.types';
 import type { SupportEvent } from '../../../support/SupportInboxPanel.types';
+import { request, RefusedError } from '../../../../api/mutate';
 
 interface TicketTimelineProps {
     threadId: string;
@@ -30,8 +31,11 @@ export default function TicketTimeline({ threadId, teammates = [] }: TicketTimel
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/support-inbox/threads/${threadId}/events`);
-            if (res.ok) { const d = await res.json(); setEvents(Array.isArray(d.events) ? d.events : []); }
+            const res = await request(`${API_BASE}/api/support-inbox/threads/${threadId}/events`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) { const d = await res.json(); setEvents(Array.isArray(d.events) ? d.events : []); }
         } finally { setLoading(false); }
     }, [threadId]);
     useEffect(() => { load(); }, [load]);

@@ -7,8 +7,7 @@ import type useCmsAutosave from './useCmsAutosave';
 import type useCmsHistory from './useCmsHistory';
 import type useCmsPanelState from './useCmsPanelState';
 import { messageOf, errorMessage } from '../../../../utils/caughtError';
-import { authFetch } from '../../../../utils/helpers';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { mutate, ApiError, errorBody, RefusedError } from '../../../../api/mutate';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { useTranslation } from '../../../../hooks/useTranslation';
@@ -151,9 +150,15 @@ export default function useCmsPublishing({
         if (!(await confirmPublishDespiteBrokenLinks(siteId, confirm, t))) return;
         setPublishing(true);
         try {
-            const res = await authFetch(cmsApi.sitePublish(siteId), { method: 'POST' });
+            let res: Response;
+            try {
+                res = await mutate(cmsApi.sitePublish(siteId), { method: 'POST' });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = errorBody(err) ?? {};
+                throw new Error(data.error || `Publish failed (${err.status})`);
+            }
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.error || `Publish failed (${res.status})`);
             setPublishedAt(data.publishedAt || new Date().toISOString());
             setDirtySincePublish(false);
         } catch (err) {

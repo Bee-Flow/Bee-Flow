@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { LifeBuoy, Plus, ArrowLeft, GraduationCap } from 'lucide-react';
-import { authFetch, API_BASE } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
 import {
     NewThreadForm,
     ThreadDetail,
@@ -9,6 +9,7 @@ import {
 } from '../../components/support/SupportDrawer';
 import { useTranslation } from '../../hooks/useTranslation';
 import { logger } from '../../utils/logger';
+import { request, RefusedError } from '../../api/mutate';
 
 interface HelpSupportSectionProps {
     showLearningLink?: boolean;
@@ -47,8 +48,11 @@ export default function HelpSupportSection({ showLearningLink = true, onOpenLear
 
     const fetchMine = useCallback(async () => {
         try {
-            const res = await authFetch(`${API_BASE}/api/support/threads/mine`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/api/support/threads/mine`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const data = await res.json();
                 setThreads(data.threads || []);
             }

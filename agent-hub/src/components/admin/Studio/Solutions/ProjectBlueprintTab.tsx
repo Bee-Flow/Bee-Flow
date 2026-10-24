@@ -3,8 +3,9 @@ import React, { useState } from 'react';
 import Notice from './Notice';
 import { CARD, ROW, TabCard } from './TabParts';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
 
 interface BlueprintReport {
     counts?: { automations?: number; apps?: number; webpages?: number };
@@ -161,13 +162,20 @@ export default function ProjectBlueprintTab({ projectId, projectName, role, forc
         setBusy(true);
         setError('');
         try {
-            const res = await authFetch(`${API_BASE}/api/projects/${projectId}/package/export`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/projects/${projectId}/package/export`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ save: keepHere }),
             });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err) ?? {};
+                setError(humanError(err.status, body, t));
+                return;
+            }
             const body = await res.json().catch(() => ({}));
-            if (!res.ok) { setError(humanError(res.status, body, t)); return; }
             // The capture succeeded even if keeping it did not — the manifest
             // still downloads, so say what failed rather than losing the work.
             if (body._saveError) setError(body._saveError);

@@ -3,7 +3,7 @@ import type { ChangeEvent, Dispatch, SetStateAction } from 'react';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { logger } from '../../../../utils/logger';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { mutate, ApiError, errorBody, RefusedError } from '../../../../api/mutate';
 
 /** The organisation's editable fields; every one is sent on save. */
 interface OrgFormFields {
@@ -282,12 +282,19 @@ export default function useOrgInfoForm({ user, t, onSave: parentOnSave, onStateC
         try {
             // The id is the URL; the route refuses any key it does not update ("Unsupported field(s): id").
             const { id, ...fields } = current;
-            const res = await authFetch(`${API_BASE}/auth/organizations/${id}`, {
+            let res: Response | undefined;
+            try {
+                res = await mutate(`${API_BASE}/auth/organizations/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(fields),
             });
-            if (res.ok) {
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = errorBody(err) ?? {};
+                setMessage({ type: 'error', text: data.error || t('common.save_failed', 'Save failed') });
+            }
+            if (res) {
                 setMessage({ type: 'success', text: t('common.saved', 'Saved') });
                 originalDataRef.current = JSON.stringify(current);
                 setSavedAuthMethod(current.authMethod);
@@ -299,10 +306,6 @@ export default function useOrgInfoForm({ user, t, onSave: parentOnSave, onStateC
                 // An edit made while the PUT was in flight is still unsaved.
                 setHasChanges(JSON.stringify(orgDataRef.current) !== originalDataRef.current);
                 if (parentOnSave) parentOnSave();
-            } else {
-                // A non-JSON error page is still a refused save, not a dropped connection.
-                const data = await res.json().catch(() => ({}));
-                setMessage({ type: 'error', text: data.error || t('common.save_failed', 'Save failed') });
             }
         } catch {
             setMessage({ type: 'error', text: t('error.network', 'Network error. Please check your connection.') });

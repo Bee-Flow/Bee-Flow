@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
 import { isAgentCallable } from './skillModel';
 import type { OrgGroup } from '../../../shared/VisibilityCapsule.types';
 import type { CallableAutomation } from './skillModel.types';
+import { request, RefusedError } from '../../../../api/mutate';
 
 /** An automation row as the picker reads it. */
 export interface PickerAutomation extends CallableAutomation {
@@ -71,8 +72,13 @@ const UNREAD = Object.freeze({ rows: [], ok: false });
 
 async function readList<T>(path: string, pick: (body: ListBody | null) => unknown): Promise<ReadResult<T>> {
     try {
-        const res = await authFetch(`${API_BASE}${path}`);
-        if (!res.ok) return UNREAD;
+        let res: Response;
+        try {
+            res = await request(`${API_BASE}${path}`);
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            return UNREAD;
+        }
         const body = await res.json();
         const rows = pick(body);
         return Array.isArray(rows) ? { rows, ok: true } : UNREAD;

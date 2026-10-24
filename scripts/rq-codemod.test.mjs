@@ -238,7 +238,7 @@ export default function Rename({ id }: { id: string }) {
 }
 `;
 
-test('mutation: a res.ok branch becomes mutate() with a catch of ApiError', () => {
+test('mutation: a res.ok branch becomes mutate() with a catch of RefusedError', () => {
     const sb = sandbox({ 'src/components/things/Rename.tsx': MUTATION });
     const file = sb.at('src/components/things/Rename.tsx');
     const r = run([file], { mode: 'mutation', dry: true });
@@ -246,11 +246,11 @@ test('mutation: a res.ok branch becomes mutate() with a catch of ApiError', () =
     assert.equal(r.converted.length, 1);
     const out = r.texts[file];
     assert.match(out, /import \{ API_BASE \} from '\.\.\/\.\.\/utils\/helpers';/);
-    assert.match(out, /import \{ mutate, ApiError \} from '\.\.\/\.\.\/api\/mutate';/);
+    assert.match(out, /import \{ mutate, RefusedError \} from '\.\.\/\.\.\/api\/mutate';/);
     assert.match(out, /\n( +)let res: Response;\n\1try \{\n\1    res = await mutate/);
-    assert.match(out, /\n( +)\} catch \(err\) \{\n\1    if \(!\(err instanceof ApiError\)\) throw err;\n\1    setError/);
+    assert.match(out, /\n( +)\} catch \(err\) \{\n\1    if \(!\(err instanceof RefusedError\)\) throw err;\n\1    setError/);
     assert.match(out, /let res: Response;\n\s+try \{\n\s+res = await mutate\(`\$\{API_BASE\}\/api\/things\/\$\{id\}`, \{/);
-    assert.match(out, /\} catch \(err\) \{\n\s+if \(!\(err instanceof ApiError\)\) throw err;\n\s+setError\(`Failed \(\$\{err\.status\}\)`\);\n\s+return;\n\s+\}/);
+    assert.match(out, /\} catch \(err\) \{\n\s+if \(!\(err instanceof RefusedError\)\) throw err;\n\s+setError\(`Failed \(\$\{err\.status\}\)`\);\n\s+return;\n\s+\}/);
     assert.match(out, /const body = await res\.json\(\);/);
     assert.doesNotMatch(out, /authFetch/);
 });
@@ -299,7 +299,7 @@ export async function c(set: (s: string) => void) {
     assert.equal(r.converted.length, 0);
     assert.deepEqual(r.skipped.map((s) => s.reason), [
         'Response ignored (unchecked)',
-        'non-ok branch reads the Response',
+        'non-ok branch parses JSON without a fallback',
         'non-ok branch falls through',
     ]);
 });
@@ -311,4 +311,236 @@ test('files in src/api and test files are left alone', () => {
     });
     const r = run([sb.at('src/api/thing.ts'), sb.at('src/components/x/y.test.tsx')], { mode: 'both', dry: true });
     assert.equal(r.converted.length + r.skipped.length, 0);
+});
+
+test('mutation: json first, then the ok check -> the body is rebuilt from the RefusedError', () => {
+    const src = `import { authFetch } from '../../utils/helpers';
+export async function save(set: (s: string) => void) {
+    const res = await authFetch('/api/x', { method: 'POST', body: '{}' });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        set(body.error || \`Failed (\${res.status})\`);
+        return null;
+    }
+    return body.id;
+}
+`;
+    const sb = sandbox({ 'src/components/x/save.ts': src });
+    const file = sb.at('src/components/x/save.ts');
+    const r = run([file], { mode: 'mutation', dry: true });
+    assert.deepEqual(r.skipped, []);
+    assert.equal(r.converted.length, 1);
+    const out = r.texts[file];
+    for (const name of ['mutate', 'RefusedError', 'errorBody']) assert.match(out, new RegExp(`import \\{[^}]*\\b${name}\\b[^}]*\\} from '\\.\\./\\.\\./api/mutate';`));
+    assert.match(out, /let res: Response;\n\s+try \{\n\s+res = await mutate\('\/api\/x', \{ method: 'POST', body: '\{\}' \}\);/);
+    assert.match(out, /\} catch \(err\) \{\n\s+if \(!\(err instanceof RefusedError\)\) throw err;\n\s+const body = errorBody\(err\) \?\? \{\};\n\s+set\(body\.error \|\| `Failed \(\$\{err\.status\}\)`\);\n\s+return null;\n\s+\}\n\s+const body = await res\.json\(\)\.catch\(\(\) => \(\{\}\)\);/);
+    assert.doesNotMatch(out, /authFetch/);
+});
+
+test('mutation: json first without a fallback, or a composite ok check, is skipped', () => {
+    const src = `import { authFetch } from '../../utils/helpers';
+export async function a() {
+    const res = await authFetch('/api/a', { method: 'POST' });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error);
+    return body;
+}
+export async function b() {
+    const res = await authFetch('/api/b', { method: 'POST' });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.success) throw new Error('x');
+    return body;
+}
+`;
+    const sb = sandbox({ 'src/components/x/j.ts': src });
+    const r = run([sb.at('src/components/x/j.ts')], { mode: 'mutation', dry: true });
+    assert.equal(r.converted.length, 0);
+    assert.deepEqual(r.skipped.map((s) => s.reason), ['ok check is not the first use of the Response', 'the ok check is not a plain res.ok test']);
+});
+
+test('mutation: the refused branch may read its JSON through a fallback and the status', () => {
+    const src = `import { authFetch } from '../../utils/helpers';
+export async function save(set: (s: string) => void) {
+    const res = await authFetch('/api/x', { method: 'PUT', body: '{}' });
+    if (!res.ok) {
+        const d = await res.json().catch(() => null);
+        set(d?.error ?? String(res.status));
+        return;
+    }
+}
+`;
+    const sb = sandbox({ 'src/components/x/save.ts': src });
+    const file = sb.at('src/components/x/save.ts');
+    const r = run([file], { mode: 'mutation', dry: true });
+    assert.deepEqual(r.skipped, []);
+    const out = r.texts[file];
+    assert.match(out, /const d = errorBody\(err\) \?\? null;\n\s+set\(d\?\.error \?\? String\(err\.status\)\);/);
+    assert.doesNotMatch(out, /let res/, 'the Response is not used after the check');
+});
+
+test('mutation: an else branch that reads the answer moves into the catch', () => {
+    const src = `import { authFetch } from '../../utils/helpers';
+export async function create(done: () => void, fail: (s: string) => void) {
+    const res = await authFetch('/api/things', { method: 'POST', body: '{}' });
+    if (res.ok) {
+        done();
+    } else {
+        const d = await res.json().catch(() => ({}));
+        fail(d.error || 'x');
+    }
+}
+`;
+    const sb = sandbox({ 'src/components/x/create.ts': src });
+    const file = sb.at('src/components/x/create.ts');
+    const r = run([file], { mode: 'mutation', dry: true });
+    assert.deepEqual(r.skipped, []);
+    const out = r.texts[file];
+    assert.match(out, /let res: Response \| undefined;\n\s+try \{\n\s+res = await mutate\('\/api\/things', \{ method: 'POST', body: '\{\}' \}\);/);
+    assert.match(out, /\} catch \(err\) \{\n\s+if \(!\(err instanceof RefusedError\)\) throw err;\n\s+const d = errorBody\(err\) \?\? \{\};\n\s+fail\(d\.error \|\| 'x'\);\n\s+\}\n\s+if \(res\) \{\n\s+done\(\);/);
+});
+
+test('mutation: a checked GET outside an effect becomes request(); inside an effect it is left for query mode', () => {
+    const src = `import { useEffect } from 'react';
+import { authFetch } from '../../utils/helpers';
+export async function peek(id: string): Promise<string | null> {
+    const res = await authFetch('/api/things/' + id);
+    if (!res.ok) return null;
+    return res.text();
+}
+export function Hook({ id }: { id: string }) {
+    useEffect(() => {
+        (async () => {
+            const res = await authFetch('/api/in-effect/' + id);
+            if (!res.ok) return;
+        })();
+    }, [id]);
+    return null;
+}
+`;
+    const sb = sandbox({ 'src/components/x/peek.tsx': src });
+    const file = sb.at('src/components/x/peek.tsx');
+    const r = run([file], { mode: 'mutation', dry: true });
+    assert.equal(r.converted.length, 1);
+    assert.equal(r.converted[0].kind, 'request');
+    assert.deepEqual(r.skipped.map((s) => s.reason), ['GET inside an effect (query mode)']);
+    const out = r.texts[file];
+    assert.match(out, /import \{ request(?:, RefusedError)? \} from '\.\.\/\.\.\/api\/mutate';/);
+    assert.match(out, /let res: Response;\n\s+try \{\n\s+res = await request\('\/api\/things\/' \+ id\);/);
+    assert.match(out, /const res = await authFetch\('\/api\/in-effect\/'/);
+});
+
+test('mutation: a file that already binds the imported name is skipped', () => {
+    const src = `import { authFetch } from '../../utils/helpers';
+export class RefusedError extends Error {}
+export async function a() {
+    const res = await authFetch('/api/a', { method: 'POST' });
+    if (!res.ok) throw new RefusedError('x');
+}
+export async function b(request: string) {
+    const res = await authFetch('/api/b/' + request);
+    if (!res.ok) return null;
+    return res.text();
+}
+`;
+    const sb = sandbox({ 'src/components/x/clash.ts': src });
+    const r = run([sb.at('src/components/x/clash.ts')], { mode: 'mutation', dry: true });
+    assert.equal(r.converted.length, 0);
+    assert.deepEqual(r.skipped.map((s) => s.reason), ['the file already binds a name the conversion imports', 'the file already binds a name the conversion imports']);
+});
+
+test('mutation: a file the test setup loads is left alone (a helpers mock would not reach api/mutate)', () => {
+    const src = `import { authFetch } from '../../utils/helpers';
+export async function peek(id: string): Promise<string | null> {
+    const res = await authFetch('/api/things/' + id);
+    if (!res.ok) return null;
+    return res.text();
+}
+`;
+    const sb = sandbox({
+        'src/test/setup.ts': "await import('../hooks/useThing');\n",
+        'src/hooks/useThing.ts': src.replace('../../utils/helpers', '../utils/helpers'),
+        'src/components/x/peek.ts': src,
+    });
+    const r = run([sb.at('src/hooks/useThing.ts'), sb.at('src/components/x/peek.ts')], { mode: 'mutation', dry: true });
+    assert.equal(r.converted.length, 1);
+    assert.match(r.converted[0].file, /components\/x\/peek\.ts$/);
+    assert.deepEqual(r.skipped.map((s) => s.reason), ['loaded by the test setup (api/mutate would escape the helpers mock)']);
+});
+
+test('--max-lines: a conversion that would push a small file over the limit is dropped, a file already over may grow', () => {
+    const body = (n) => `export async function f${n}(set: (s: string) => void) {
+    const res = await authFetch('/api/x${n}', { method: 'POST' });
+    if (!res.ok) {
+        set('x');
+        return;
+    }
+}
+`;
+    const head = "import { authFetch } from '../../utils/helpers';\n";
+    const sb = sandbox({
+        'src/components/x/near.ts': head + body(1) + '\n'.repeat(4),
+        'src/components/x/over.ts': head + body(2) + '\n'.repeat(30),
+    });
+    const r = run([sb.at('src/components/x/near.ts'), sb.at('src/components/x/over.ts')], { mode: 'mutation', dry: true, maxLines: 13 });
+    assert.deepEqual(r.converted.map((c) => path.basename(c.file)), ['over.ts']);
+    assert.deepEqual(r.skipped.map((c) => c.reason), ['would push the file over 13 lines']);
+    assert.equal(r.changedFiles.length, 1);
+});
+
+const LOADER = `import { useCallback, useEffect, useState } from 'react';
+import { API_BASE, authFetch } from '../../utils/helpers';
+
+export default function Roles({ orgId }: { orgId: string }) {
+    const [roles, setRoles] = useState<string[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const load = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await authFetch(\`\${API_BASE}/api/orgs/\${orgId}/roles\`);
+            if (res.ok) setRoles(await res.json());
+        } finally {
+            setLoading(false);
+        }
+    }, [orgId]);
+
+    useEffect(() => { load(); }, [load]);
+
+    const add = async (name: string) => {
+        await authFetch(\`\${API_BASE}/api/orgs/\${orgId}/roles\`, { method: 'POST', body: name });
+        await load();
+    };
+
+    return <button onClick={() => add('x')}>{loading ? '…' : roles.join(',')}</button>;
+}
+`;
+
+test('loader: a useCallback loader called by one effect becomes useQuery; other callers use refetch()', () => {
+    const sb = sandbox({ 'src/components/org/Roles.tsx': LOADER });
+    const file = sb.at('src/components/org/Roles.tsx');
+    const r = run([file], { mode: 'query', dry: true });
+    assert.deepEqual(r.skipped, []);
+    assert.equal(r.converted.length, 1);
+    assert.equal(r.converted[0].loader, 'load');
+    const comp = r.texts[file];
+    assert.doesNotMatch(comp, /useEffect|useCallback|useState|const load\b/);
+    assert.match(comp, /const rolesQuery = use\w+\(orgId\);/);
+    assert.match(comp, /const roles = rolesQuery\.data \?\? EMPTY_ROLES;/);
+    assert.match(comp, /const loading = rolesQuery\.isFetching;/);
+    assert.match(comp, /await rolesQuery\.refetch\(\);/);
+    assert.doesNotMatch(comp, /await load\(\)/);
+    const hook = r.texts[sb.at('src/api/queries/org.ts')];
+    assert.match(hook, /useQuery<string\[\], Error>/);
+    assert.match(hook, /await authFetch\(`\$\{API_BASE\}\/api\/orgs\/\$\{orgId\}\/roles`\)/);
+});
+
+test('loader: used as a value, or guarded and called from elsewhere, is skipped', () => {
+    const asValue = LOADER.replace("return <button onClick={() => add('x')}>", "return <button onClick={load} onBlur={() => add('x')}>");
+    const sb = sandbox({ 'src/components/org/Roles.tsx': asValue });
+    const r1 = run([sb.at('src/components/org/Roles.tsx')], { mode: 'query', dry: true });
+    assert.deepEqual(r1.skipped.map((s) => s.reason), ['the loader is used as a value, not only called']);
+    const guarded = LOADER.replace('setLoading(true);\n        try {', 'if (!orgId) return;\n        setLoading(true);\n        try {');
+    const sb2 = sandbox({ 'src/components/org/Roles.tsx': guarded });
+    const r2 = run([sb2.at('src/components/org/Roles.tsx')], { mode: 'query', dry: true });
+    assert.deepEqual(r2.skipped.map((s) => s.reason), ['the loader guards itself and has other callers']);
 });

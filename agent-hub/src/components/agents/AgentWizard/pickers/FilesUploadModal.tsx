@@ -8,6 +8,7 @@ import { errorMessage } from '../../../../utils/caughtError';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { KnowledgeBaseRow } from '../builderSplit/useKnowledgeBases';
 import { logger } from '../../../../utils/logger';
+import { request, RefusedError } from '../../../../api/mutate';
 
 /** One document of the base (`GET /api/kb/:id/documents`). */
 interface KbDocument {
@@ -186,8 +187,11 @@ export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds
         if (!id) return;
         setLoading(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/kb/${id}/documents?limit=200`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/api/kb/${id}/documents?limit=200`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const data = await res.json();
                 const list = Array.isArray(data) ? data : (data?.documents || data?.items || []);
                 setDocs(list);

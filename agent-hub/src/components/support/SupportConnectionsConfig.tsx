@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { authFetch, API_BASE } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
+import { request, RefusedError, mutate, errorBody } from '../../api/mutate';
 
 /**
  * Where support connects to the outside world: YouTrack, and the team chat
@@ -103,8 +104,11 @@ export default function SupportConnectionsConfig() {
 
     const loadYt = useCallback(async () => {
         try {
-            const res = await authFetch(`${API_BASE}/api/support/youtrack/status`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/api/support/youtrack/status`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const d = await res.json();
                 setYt(d);
                 setYtProject(d.defaultProject || '');
@@ -117,8 +121,11 @@ export default function SupportConnectionsConfig() {
 
     const loadChat = useCallback(async () => {
         try {
-            const res = await authFetch(`${API_BASE}/api/support/notifications`);
-            if (res.ok) setChat(await res.json());
+            const res = await request(`${API_BASE}/api/support/notifications`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) setChat(await res.json());
         } catch (e) {
             setChatError(errorMessage(e));
         }
@@ -137,13 +144,20 @@ export default function SupportConnectionsConfig() {
             const body: { project: string; includeSubject: boolean; url?: string; token?: string } = { project: ytProject, includeSubject: subject };
             if (ytUrl.trim()) body.url = ytUrl.trim();
             if (ytToken.trim()) body.token = ytToken.trim();
-            const res = await authFetch(`${API_BASE}/api/support/youtrack/connection`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/support/youtrack/connection`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const d = errorBody(err) ?? {};
+                setYtError(d.error || 'Could not save');
+                return;
+            }
             const d = await res.json().catch(() => ({}));
-            if (!res.ok) { setYtError(d.error || 'Could not save'); return; }
             setYtToken('');
             setYtUrl('');
             setYt(d.status);
@@ -161,13 +175,20 @@ export default function SupportConnectionsConfig() {
         try {
             const body: ChatPatch = { ...patch };
             if (hook.trim()) body.webhookUrl = hook.trim();
-            const res = await authFetch(`${API_BASE}/api/support/notifications`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/support/notifications`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const d = errorBody(err) ?? {};
+                setChatError(d.error || 'Could not save');
+                return;
+            }
             const d = await res.json().catch(() => ({}));
-            if (!res.ok) { setChatError(d.error || 'Could not save'); return; }
             setHook('');
             setChat(d.settings);
         } catch (e) {

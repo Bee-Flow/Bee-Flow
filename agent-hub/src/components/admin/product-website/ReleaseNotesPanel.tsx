@@ -3,6 +3,7 @@ import { Check, Eye, EyeOff, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { messageOf } from '../../../utils/caughtError';
+import { request, RefusedError } from '../../../api/mutate';
 
 /**
  * Release notes review queue — the human gate.
@@ -50,8 +51,13 @@ export default function ReleaseNotesPanel() {
         setLoading(true);
         setError('');
         try {
-            const res = await authFetch(`${API_BASE}/api/release-notes/admin`);
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/release-notes/admin`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error(`Request failed (${err.status})`);
+            }
             const data = await res.json();
             setEntries(Array.isArray(data.entries) ? data.entries : []);
         } catch (e) {

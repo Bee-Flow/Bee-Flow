@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { StatusMessage } from './chatModelTiers/tierTypes';
-import { mutate, ApiError } from '../../../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '../../../api/mutate';
 
 interface LimitsConfigProps {
     onNavigateToTab?: (tab: string) => void;
@@ -42,8 +42,11 @@ const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
 
     const fetchConfig = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/config`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/ai/config`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const data = await res.json();
                 setValue(data.maxToolRoundsChat ?? '');
                 setKbProvider(data.kbProvider || 'auto');

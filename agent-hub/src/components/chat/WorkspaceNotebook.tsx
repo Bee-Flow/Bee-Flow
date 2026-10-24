@@ -10,7 +10,7 @@ import {
 import { renderMermaidToSVG, svgToPngDataUrl } from '../../pages/documents/notebook/MermaidBlock';
 import type { NotebookEditorFacade, NotebookEditorHandle } from '../../pages/documents/notebook/detail/editorHandle';
 import type { WorkspaceNotebookProps } from './WorkspaceNotebook.types';
-import { mutate, ApiError } from '../../api/mutate';
+import { mutate, ApiError, errorBody, RefusedError } from '../../api/mutate';
 /** The editor ref as this panel uses it: the facade also carries TipTap's storage and commands. */
 interface WorkspaceEditorHandle extends NotebookEditorHandle {
     getEditor?: () => (NotebookEditorFacade & {
@@ -286,15 +286,17 @@ export default function WorkspaceNotebook({
 
             htmlContent = await embedImagesAsBase64(htmlContent);
 
-            const res = await authFetch(`${API_BASE}/api/notebooks/${nbId}/export/${format}`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/notebooks/${nbId}/export/${format}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: htmlContent, title: 'Notebook' }),
             });
-
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(err.error || `Export failed (${res.status})`);
+            } catch (apiErr) {
+                if (!(apiErr instanceof RefusedError)) throw apiErr;
+                const err = errorBody(apiErr) ?? {};
+                throw new Error(err.error || `Export failed (${apiErr.status})`);
             }
 
             const blob = await res.blob();

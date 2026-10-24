@@ -18,14 +18,20 @@
 // Promise.allSettled so one 403 (e.g. a license-gated endpoint) leaves its
 // criterion unmet instead of sinking the whole check; a total fetch failure
 // yields { error } so the step can fall back to honor-system completion.
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
 import { checkPermission } from '../../hooks/usePermissionCheck';
 import { GENERATED_ACTION_CHECKS } from './generated/actionChecks';
 import type { ActionCheck, ActionCheckResult, AgentRow, AutomationRow, CheckContext, CheckCriterion, CheckData, CheckVerdict, CoworkRow, CriterionExpect, CriterionSpec, KbRow } from './actionChecks.types';
 import { messageOf } from '../../utils/caughtError';
+import { request, RefusedError } from '../../api/mutate';
 async function getJson(path: string) {
-    const res = await authFetch(`${API_BASE}${path}`);
-    if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
+    let res: Response;
+    try {
+        res = await request(`${API_BASE}${path}`);
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        throw new Error(`GET ${path} → ${err.status}`);
+    }
     return res.json();
 }
 

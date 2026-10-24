@@ -22,7 +22,7 @@
 //   <AiTranslateResult result={ai.result} />
 
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
-import { authFetch } from '../utils/helpers';
+import { mutate, errorBody, RefusedError } from '../api/mutate';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
@@ -56,13 +56,19 @@ export interface UseAiTranslateReturn {
 // Standard single-endpoint translate call (system prompts + email templates):
 // POST `{ modelTier }` and return the parsed JSON body.
 export async function translateRequest(url: string, tier: string): Promise<AiTranslateResult> {
-    const res = await authFetch(url, {
+    let res: Response;
+    try {
+        res = await mutate(url, {
         method: 'POST',
         headers: JSON_HEADERS,
         body: JSON.stringify({ modelTier: tier }),
     });
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        const body = errorBody(err) ?? {};
+        return { error: body?.error || `HTTP ${err.status}` };
+    }
     const body = await res.json().catch(() => ({}));
-    if (!res.ok) return { error: body?.error || `HTTP ${res.status}` };
     return body;
 }
 

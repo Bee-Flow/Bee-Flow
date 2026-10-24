@@ -11,6 +11,7 @@ import { useRuntime } from '../RuntimeContext';
 import type { TranslateParams } from '../../../../../../hooks/useTranslation';
 import type React from 'react';
 import type { NodeProps } from './appNode.types';
+import { mutate, errorBody, RefusedError } from '../../../../../../api/mutate';
 
 /**
  * App Studio runtime — 'approval_list'. Spec: server/appStudio/componentSpecs.js.
@@ -160,17 +161,21 @@ export default function AppApprovalList({ node }: NodeProps<ApprovalListProps>) 
     }, [showDetails, openId, tr]);
 
     const decide = useCallback(async (approval: ApprovalRow, decision: string, reason: string | undefined, answers: unknown) => {
-        const res = await authFetch(`${API_BASE}/api/automation/approvals/${encodeURIComponent(approval.id)}/decide`, {
+        let res: Response;
+        try {
+            res = await mutate(`${API_BASE}/api/automation/approvals/${encodeURIComponent(approval.id)}/decide`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ decision, reason, answers }),
         });
-        const body = await res.json().catch(() => null);
-        if (!res.ok) {
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            const body = errorBody(err) ?? null;
             setDetail((d) => ({ ...(d || {}), error: body?.error || tr('studio_apps_runtime.approvals.decision_rejected', 'The decision was not accepted') }));
             load();
             return;
         }
+        const body = await res.json().catch(() => null);
         // A panel that has not resolved records a VOTE: the row stays pending
         // and nothing downstream fires yet — refresh and keep waiting.
         if (body?.decision === 'vote_recorded') {

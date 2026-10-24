@@ -2,9 +2,10 @@ import { AlertCircle, Check, Loader2, Lock } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { editablePermissionsForRole, permissionsForRole } from '../../../config/orgRoles';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import { errorMessage } from '../../../utils/caughtError';
 import type { OrgRolePermissions } from './useOrgDirectory';
+import { mutate, errorBody, RefusedError } from '../../../api/mutate';
 
 interface RolePermissionEditorProps {
     role: { id: string; color: string };
@@ -70,13 +71,19 @@ const RolePermissionEditor = ({ role, mapping, editablePermissions, canEdit, onS
         setSaving(true);
         setError('');
         try {
-            const res = await authFetch(`${API_BASE}/auth/org-roles/${encodeURIComponent(role.id)}`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/auth/org-roles/${encodeURIComponent(role.id)}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ permissions: current }),
             });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err) ?? null;
+                throw new Error(body?.error || t('admin.org_roles_save_failed', 'Could not save this role.'));
+            }
             const body = await res.json().catch(() => null);
-            if (!res.ok) throw new Error(body?.error || t('admin.org_roles_save_failed', 'Could not save this role.'));
             // The server sanitises and returns what it actually stored, so the
             // screen shows the saved truth rather than what was clicked.
             onSaved(role.id, body?.permissions || current);

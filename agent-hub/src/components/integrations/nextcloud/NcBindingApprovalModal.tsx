@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, AlertTriangle, Copy, Check, X } from 'lucide-react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { errorMessage } from '../../../utils/caughtError';
 import { logger } from '../../../utils/logger';
+import { mutate, errorBody, RefusedError } from '../../../api/mutate';
 
 export interface PendingNcBinding {
     id: string;
@@ -73,12 +74,14 @@ const NcBindingApprovalModal = ({ pending, organizationName, onResolved }: NcBin
         setSubmitting(true);
         setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/auth/admin/nc-bindings/${pending.id}/${action}`, {
+            try {
+                await mutate(`${API_BASE}/auth/admin/nc-bindings/${pending.id}/${action}`, {
                 method: 'POST',
             });
-            if (!res.ok) {
-                const body = await res.json().catch(() => ({}));
-                throw new Error(body?.error || `${action} failed (HTTP ${res.status})`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err) ?? {};
+                throw new Error(body?.error || `${action} failed (HTTP ${err.status})`);
             }
             onResolved?.(action);
         } catch (e) {

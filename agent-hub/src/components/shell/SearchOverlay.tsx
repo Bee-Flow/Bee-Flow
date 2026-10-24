@@ -4,10 +4,11 @@ import { loadRecent, saveRecent } from './searchRecents';
 import { highlightSnippet } from './searchHighlight';
 import { isImageAvatar, resolveAvatarSrc } from '../../utils/agentAvatar';
 import { formatRelativeDate } from '../../utils/dateFormatters';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
 import useTranslation from '../../hooks/useTranslation';
 import type { SearchMessage, SearchConversation, SearchResult, SearchOverlayProps, PillGroupProps, FilterPillProps, ResultRowProps, EmptyStateProps } from './SearchOverlay.types';
 import { logger } from '../../utils/logger';
+import { request, RefusedError } from '../../api/mutate';
 
 const formatDate = (dateStr: string | number | Date | null) => formatRelativeDate(dateStr, {
     fallbackOptions: { year: 'numeric', month: 'short', day: 'numeric' },
@@ -102,8 +103,11 @@ const SearchOverlay = ({ isOpen, onClose, onSelectResult, agents = [] }: SearchO
         try {
             const filters = buildFilters();
             const queryParams = new URLSearchParams({ q: searchTerm, ...filters });
-            const res = await authFetch(`${API_BASE}/agents/conversations/search?${queryParams.toString()}`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/agents/conversations/search?${queryParams.toString()}`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const data = await res.json();
                 if (lastSearchedRef.current === searchTerm) {
                     setResults(processResults(data, searchTerm));

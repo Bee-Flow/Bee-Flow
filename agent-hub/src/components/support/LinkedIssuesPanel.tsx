@@ -7,7 +7,7 @@ import useConfirm from '../shared/useConfirm';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
 import { logger } from '../../utils/logger';
-import { mutate, ApiError } from '../../api/mutate';
+import { mutate, ApiError, request, RefusedError, errorBody } from '../../api/mutate';
 
 /**
  * The YouTrack issues attached to one support ticket.
@@ -197,8 +197,11 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
         if (!threadId) return;
         setLoading(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/support/threads/${threadId}/issues`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/api/support/threads/${threadId}/issues`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const d = await res.json();
                 setIssues(d.issues || []);
             }
@@ -245,9 +248,16 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
         setRefreshing(true);
         setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/support/threads/${threadId}/issues/refresh`, { method: 'POST' });
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/support/threads/${threadId}/issues/refresh`, { method: 'POST' });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const d = errorBody(err) ?? {};
+                setError(d.error || 'Refresh failed');
+                return;
+            }
             const d = await res.json().catch(() => ({}));
-            if (!res.ok) { setError(d.error || 'Refresh failed'); return; }
             setIssues(d.issues || []);
         } catch (e) {
             setError(errorMessage(e));
@@ -261,8 +271,11 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
         setReverseFor(issueId);
         setReverse([]);
         try {
-            const res = await authFetch(`${API_BASE}/api/support/youtrack/issues/${issueId}/threads`);
-            if (res.ok) { const d = await res.json(); setReverse(d.threads || []); }
+            const res = await request(`${API_BASE}/api/support/youtrack/issues/${issueId}/threads`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) { const d = await res.json(); setReverse(d.threads || []); }
         } catch (err) { logger.debug('the disclosure just stays empty', err); }
     };
 

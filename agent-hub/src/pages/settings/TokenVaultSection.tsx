@@ -3,8 +3,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import useConfirm from '../../components/shared/useConfirm';
 
 import { useTranslation } from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
-import { mutate, ApiError } from '../../api/mutate';
+import { API_BASE } from '../../utils/helpers';
+import { mutate, ApiError, request, RefusedError } from '../../api/mutate';
 
 /** One entry of GET /api/privacy/token-vault (server/stores/piiVaultStore.js). */
 interface VaultEntry {
@@ -52,8 +52,13 @@ const TokenVaultSection = () => {
         try {
             const qs = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(nextOffset) });
             if (nextSearch) qs.set('search', nextSearch);
-            const res = await authFetch(`${API_BASE}/api/privacy/token-vault?${qs}`);
-            if (!res.ok) throw new Error(String(res.status));
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/privacy/token-vault?${qs}`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error(String(err.status));
+            }
             const data = await res.json();
             setState({ entries: data.entries || [], total: data.total || 0, loading: false, error: '' });
         } catch {

@@ -6,9 +6,10 @@ import { operatedStagesOf } from '../../../../api/stagesApi';
 import { filterSolutions, partitionSolutions } from './solutionOverviewModel';
 import { CatalogueTab, EmptyOurs, GridSkeleton, OperatedStages, OverviewFilters, OverviewNotices, SolutionGrid } from './SolutionsOverviewParts';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
 import SegmentedControl, { type SegmentedOption } from '../../../shared/SegmentedControl';
 import type { OperatedStage } from '../../../../api/stagesApi';
+import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
 
 /** One Solution row of GET /api/projects/summary; the model reads the rest. */
 export type SummaryRow = Record<string, unknown>;
@@ -67,15 +68,22 @@ function NewSolutionForm({ onCreated, focus = false }: { onCreated: (project: { 
         setBusy(true);
         setError('');
         try {
-            const res = await authFetch(`${API_BASE}/api/projects`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/projects`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 // `kind` keeps it in Studio: without it the server files a new
                 // row as a collaborative project workspace.
                 body: JSON.stringify({ name: name.trim(), icon: '📦', kind: 'solution' }),
             });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err) ?? {};
+                setError(body.error || t('solutions.create_failed', 'Could not create it.'));
+                return;
+            }
             const body = await res.json().catch(() => ({}));
-            if (!res.ok) { setError(body.error || t('solutions.create_failed', 'Could not create it.')); return; }
             setName('');
             onCreated(body);
         } catch {

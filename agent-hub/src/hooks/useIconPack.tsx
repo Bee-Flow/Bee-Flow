@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, ty
 import { API_BASE, authFetch } from '../utils/helpers';
 import { buildStampedCacheKey, ICONPACK_CACHE_PREFIX } from '../utils/storageMigrations';
 import { logger } from '../utils/logger';
-import { mutate, ApiError } from '../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '../api/mutate';
 
 /** One override: an emoji, or an image the icon API serves. */
 export interface CustomIcon {
@@ -77,8 +77,11 @@ export function IconPackProvider({ children }: { children: ReactNode }) {
         setIsLoading(true);
         try {
             // First fetch user's active configurations
-            const res = await authFetch(`${API_BASE}/api/icons`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/api/icons`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const data = await res.json();
                 const targetPack = data.packs.find((p: { id: string }) => p.id === packId);
                 if (targetPack) {

@@ -7,6 +7,7 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { readEventStream } from '../../../../utils/sseStream';
 import { READ, type ReadState } from '../canUse/canUseFacts';
 import { logger } from '../../../../utils/logger';
+import { request, RefusedError } from '../../../../api/mutate';
 
 /**
  * The reads and the actions behind the test-set card (A4 part D).
@@ -129,8 +130,13 @@ export default function useAgentTests({ agentId = null, enabled = true }: UseAge
         if (!agentId) return;
         setRunsState(READ.LOADING);
         try {
-            const res = await authFetch(`${API_BASE}/agents/${agentId}/tests/runs`);
-            if (!res.ok) throw new Error(`runs ${res.status}`);
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/agents/${agentId}/tests/runs`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error(`runs ${err.status}`);
+            }
             const body = await res.json();
             if (!aliveRef.current) return;
             setRuns(Array.isArray(body?.runs) ? body.runs : []);

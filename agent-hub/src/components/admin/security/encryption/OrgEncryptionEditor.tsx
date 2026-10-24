@@ -23,10 +23,11 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import EncryptExistingData from './EncryptExistingData';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { errorMessage, messageOf } from '../../../../utils/caughtError';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
 import ChoiceCards from '../../../shared/ChoiceCards';
 import type { ChoiceCardOption } from '../../../shared/ChoiceCards';
 import { toast } from '../../../shared/Toast';
+import { request, errorBody, RefusedError, mutate } from '../../../../api/mutate';
 
 type EncryptionTier = 'none' | 'managed' | 'zk';
 
@@ -64,10 +65,13 @@ export default function OrgEncryptionEditor({ orgId }: { orgId: string }) {
         setLoading(true);
         setLoadError(null);
         try {
-            const res = await authFetch(`${API_BASE}/auth/organizations/${orgId}/encryption`);
-            if (!res.ok) {
-                const body = await res.json().catch(() => ({}));
-                throw new Error(body.error || `HTTP ${res.status}`);
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/auth/organizations/${orgId}/encryption`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err) ?? {};
+                throw new Error(body.error || `HTTP ${err.status}`);
             }
             const data = await res.json();
             setServer(data);
@@ -90,16 +94,20 @@ export default function OrgEncryptionEditor({ orgId }: { orgId: string }) {
         if (!server || !isDirty) return;
         setSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/auth/organizations/${orgId}/encryption`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/auth/organizations/${orgId}/encryption`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tier }),
             });
-            const body = await res.json().catch(() => ({}));
-            if (!res.ok) {
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err) ?? {};
                 toast.error(body.message || body.error || t('admin.encryption.save_failed', 'Could not save encryption settings'));
                 return;
             }
+            const body = await res.json().catch(() => ({}));
             if (body.sessionsBusted) {
                 // Everyone, including the admin doing this, has to sign in again.
                 toast.info(t(

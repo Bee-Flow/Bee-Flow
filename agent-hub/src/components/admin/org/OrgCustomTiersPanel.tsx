@@ -2,6 +2,7 @@ import React, { useState, useEffect, useEffectEvent } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import useConfirm from '../../shared/useConfirm';
+import { request, RefusedError, mutate, errorBody } from '../../../api/mutate';
 
 interface OrgTier {
     id: string;
@@ -79,8 +80,11 @@ const OrgCustomTiersPanel = () => {
                 const results = await Promise.all(
                     (providers || []).map(async (p: { id: string; name?: string; type?: string }) => {
                         try {
-                            const r = await authFetch(`${API_BASE}/ai/providers/${p.id}/models`);
-                            if (r.ok) {
+                            const r = await request(`${API_BASE}/ai/providers/${p.id}/models`).catch((err: unknown) => {
+                                if (err instanceof RefusedError) return null;
+                                throw err;
+                            });
+                            if (r) {
                                 const { models } = await r.json();
                                 return (models || []).map((m: AvailableModel) => ({ ...m, providerName: p.name, providerType: p.type }));
                             }
@@ -154,21 +158,25 @@ const OrgCustomTiersPanel = () => {
     const save = async () => {
         setSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/config/org-custom-chat-models`, {
+            let res: Response | undefined;
+            try {
+                res = await mutate(`${API_BASE}/ai/config/org-custom-chat-models`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tiers: orgTiers }),
             });
-            if (res.ok) {
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err) ?? {};
+                setMessage({ type: 'error', text: body.error || t('admin_org.custom_tiers_save_failed', 'Failed to save') });
+            }
+            if (res) {
                 const data = await res.json();
                 if (Array.isArray(data.tiers)) setOrgTiers(data.tiers);
                 const warn = Array.isArray(data.warnings) && data.warnings.length > 0
                     ? ` (${data.warnings.join('; ')})`
                     : '';
                 setMessage({ type: warn ? 'warning' : 'success', text: t('admin_org.custom_tiers_saved', 'Org custom tiers saved{warn}', { warn }) });
-            } else {
-                const body = await res.json().catch(() => ({}));
-                setMessage({ type: 'error', text: body.error || t('admin_org.custom_tiers_save_failed', 'Failed to save') });
             }
         } catch (e) {
             setMessage({ type: 'error', text: t('admin_org.custom_tiers_save_failed', 'Failed to save') });

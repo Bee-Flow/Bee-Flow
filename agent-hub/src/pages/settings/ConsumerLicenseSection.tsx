@@ -7,10 +7,16 @@ import { daysUntil } from './consumerLicense/consumerBilling';
 import ConsumerPlanPicker from './consumerLicense/ConsumerPlanPicker';
 import { CheckoutBanner, ConsumerLicenseSkeleton, PlanLimitsGrid, PlanSummaryCard, UpgradeCta, UsageThisPeriod } from './consumerLicense/ConsumerUsageParts';
 import useConsumerBilling from './consumerLicense/useConsumerBilling';
+import { request, RefusedError } from '../../api/mutate';
 
 async function fetchInvoices() {
-    const res = await authFetch(`${API_BASE}/api/stripe/invoices`);
-    if (!res.ok) throw new Error('Failed to load invoices');
+    let res: Response;
+    try {
+        res = await request(`${API_BASE}/api/stripe/invoices`);
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        throw new Error('Failed to load invoices');
+    }
     const data = await res.json();
     return data.invoices || [];
 }

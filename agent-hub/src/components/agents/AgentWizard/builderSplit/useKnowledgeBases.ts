@@ -4,6 +4,7 @@ import { toast } from '../../../shared/Toast';
 import { READ } from '../canUse/canUseFacts';
 import type { ReadState } from '../agentEditor.types';
 import { messageOf } from '../../../../utils/caughtError';
+import { request, RefusedError } from '../../../../api/mutate';
 
 /** A knowledge base as `GET /api/kb` lists it. */
 export interface KnowledgeBaseRow {
@@ -55,8 +56,13 @@ export default function useKnowledgeBases({ knowledgeBaseIds, setKnowledgeBaseId
     const refreshKbs = useCallback(async () => {
         setKbsState(READ.LOADING);
         try {
-            const res = await authFetch(`${API_BASE}/api/kb?context=agent`);
-            if (!res.ok) throw new Error(`kb ${res.status}`);
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/kb?context=agent`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error(`kb ${err.status}`);
+            }
             const body = await res.json();
             if (!Array.isArray(body)) throw new Error('kb list is not a list');
             setAllKbs(body);

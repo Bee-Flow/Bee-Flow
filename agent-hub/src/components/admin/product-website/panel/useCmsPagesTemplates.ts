@@ -10,6 +10,7 @@ import { HEADER_VIRTUAL_ID } from '../sentinels';
 import type { CmsLocale, CmsLocaleOverrides, CmsPageDoc, CmsPageIndexEntry, CmsSiteDoc } from './cmsPanelTypes';
 import type { CmsTemplateSummary } from './useCmsPanelState';
 import { logger } from '../../../../utils/logger';
+import { request, RefusedError, errorBody, mutate } from '../../../../api/mutate';
 
 /** The template-save dialog's page: the page plus the blocks resolved for it. */
 type PendingTemplatePage = { id: string; blocks?: unknown[]; [key: string]: unknown };
@@ -47,8 +48,13 @@ export default function useCmsPagesTemplates({
     const reloadPayload = useCallback(async () => {
         const siteId = activeSiteIdRef.current;
         if (!siteId) return;
-        const res = await authFetch(cmsApi.site(siteId));
-        if (!res.ok) return;
+        let res: Response;
+        try {
+            res = await request(cmsApi.site(siteId));
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            return;
+        }
         const data = await res.json();
         // Re-check guards AFTER the round-trip: the user may have switched
         // sites or started a new edit while this GET was in flight. Applying a
@@ -232,8 +238,13 @@ export default function useCmsPagesTemplates({
     // ── page templates (global, shared across sites) ──────────────────
     const refreshTemplates = useCallback(async () => {
         try {
-            const res = await authFetch(cmsApi.templates());
-            if (!res.ok) return;
+            let res: Response;
+            try {
+                res = await request(cmsApi.templates());
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                return;
+            }
             const data = await res.json();
             setTemplates(Array.isArray(data.templates) ? data.templates : []);
         } catch (err) { logger.debug('non-fatal — manager + picker just stay empty', err); }
@@ -261,9 +272,12 @@ export default function useCmsPagesTemplates({
             // Fallback — not in the local cache. Round-trip to fetch the
             // PageDoc so we never open the dialog without blocks.
             try {
-                const res = await authFetch(cmsApi.page(siteId, page.id));
-                if (!res.ok) {
-                    const data = await res.json().catch(() => ({}));
+                let res: Response;
+                try {
+                    res = await request(cmsApi.page(siteId, page.id));
+                } catch (err) {
+                    if (!(err instanceof RefusedError)) throw err;
+                    const data = errorBody(err) ?? {};
                     throw new Error(data.error || 'Failed to load page');
                 }
                 const doc = await res.json();
@@ -295,13 +309,19 @@ export default function useCmsPagesTemplates({
             return;
         }
         try {
-            const res = await authFetch(cmsApi.templates(), {
+            let res: Response;
+            try {
+                res = await mutate(cmsApi.templates(), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, description, blocks }),
             });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = errorBody(err) ?? {};
+                throw new Error(data.error || `HTTP ${err.status}`);
+            }
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
             await refreshTemplates();
             setPendingTemplatePage(null);
             toast.success('Template saved');
@@ -318,9 +338,15 @@ export default function useCmsPagesTemplates({
 
     const handleDeleteTemplate = useCallback(async (id: string) => {
         try {
-            const res = await authFetch(cmsApi.template(id), { method: 'DELETE' });
+            let res: Response;
+            try {
+                res = await mutate(cmsApi.template(id), { method: 'DELETE' });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = errorBody(err) ?? {};
+                throw new Error(data.error || `HTTP ${err.status}`);
+            }
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
             await refreshTemplates();
             toast.success('Template deleted');
         } catch (err) {

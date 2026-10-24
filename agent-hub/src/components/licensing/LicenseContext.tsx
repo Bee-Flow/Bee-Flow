@@ -3,6 +3,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import { useEntitlements } from './EntitlementsContext';
 import UpgradePrompt from '../billing/UpgradePrompt';
 import { isAbortError, messageOf } from '../../utils/caughtError';
+import { request, RefusedError } from '../../api/mutate';
 
 /** A licence or subscription row as /api/license/status returns it. */
 export interface LicenseRecord {
@@ -142,8 +143,13 @@ export function LicenseProvider({ children }: { children: React.ReactNode }) {
 
     const reload = useCallback(async () => {
         try {
-            const r = await authFetch(`${API_BASE}/api/license/status`);
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            let r: Response;
+            try {
+                r = await request(`${API_BASE}/api/license/status`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error(`HTTP ${err.status}`);
+            }
             const data = await r.json();
             if (!mountedRef.current) return;
             // Older deployments may still respond with `tier: 'pro'` from

@@ -9,9 +9,9 @@ import {
     Card, Empty, MetricCard
 } from './shared';
 import { TYPE_ORDER, isLargeInput, LARGE_ATTACHMENT_BYTES_THRESHOLD, LARGE_INPUT_TOKEN_THRESHOLD } from '../../../utils/terminationsModel';
-import { authFetch } from '../../../utils/helpers';
 import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
 import type { TypeMeta, TerminationRow, TerminationSummary, TimelineRow, AgentTerminations, TypeBadgeProps, Bucket, TerminationsPageProps, DetailRowProps } from './TerminationsPage.types';
+import { request, RefusedError } from '../../../api/mutate';
 
 const API = (import.meta.env.VITE_API_URL || '') + '/api/terminations';
 // authFetch, not raw fetch. Both send credentials, but authFetch also sets the
@@ -39,8 +39,13 @@ function typeLabel(t: (key: string | undefined, fallbackOrParams?: string | Tran
 
 async function fetchJson(url: string) {
     try {
-        const r = await authFetch(url);
-        if (!r.ok) return null;
+        let r: Response;
+        try {
+            r = await request(url);
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            return null;
+        }
         return await r.json();
     } catch { return null; }
 }

@@ -10,6 +10,7 @@ import useDatasetUpload from '../useDatasetUpload';
 import useInputChange from '../useInputChange';
 import type { NodeProps } from './appNode.types';
 import { logger } from '../../../../../../utils/logger';
+import { request, errorBody, RefusedError } from '../../../../../../api/mutate';
 
 /**
  * App Studio runtime — 'input_dataset'. Spec: server/appStudio/componentSpecs.js.
@@ -96,9 +97,15 @@ export default function AppDatasetUpload({ node }: NodeProps<DatasetUploadProps>
         const tick = async () => {
             if (!aliveRef.current) return;
             try {
-                const res = await authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/large-datasets/${encodeURIComponent(datasetId)}`);
+                let res: Response;
+                try {
+                    res = await request(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/large-datasets/${encodeURIComponent(datasetId)}`);
+                } catch (err) {
+                    if (!(err instanceof RefusedError)) throw err;
+                    const ds = errorBody(err) ?? {};
+                    throw new Error(ds.error || t('studio_apps_runtime.dataset_upload.status_check_failed', 'status check failed'));
+                }
                 const ds = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error(ds.error || t('studio_apps_runtime.dataset_upload.status_check_failed', 'status check failed'));
                 if (ds.status === 'ready') {
                     setPhase('idle');
                     setProgress(null);

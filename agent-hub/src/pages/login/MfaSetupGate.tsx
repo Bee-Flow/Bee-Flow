@@ -7,8 +7,9 @@ import MfaHelpAssistant from '../../components/mfa/MfaHelpAssistant';
 import RecoveryCodes from '../../components/mfa/RecoveryCodes';
 import SecurityKeyEnrolment from '../../components/mfa/SecurityKeyEnrolment';
 import { useTranslation } from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
 import { errorMessage } from '../../utils/caughtError';
+import { mutate, errorBody, RefusedError } from '../../api/mutate';
 
 /** POST /auth/mfa/setup: the enrollment secret and how to hand it to an app. */
 interface MfaSetupData {
@@ -51,12 +52,18 @@ export default function MfaSetupGate({ onDone, onLogout }: MfaSetupGateProps) {
     const [withKey, setWithKey] = useState(false);
 
     const post = async (path: string, body?: Record<string, unknown>) => {
-        const res = await authFetch(`${API_BASE}/auth/mfa/${path}`, {
+        let res: Response;
+        try {
+            res = await mutate(`${API_BASE}/auth/mfa/${path}`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body || {}),
         });
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            const data = errorBody(err) ?? {};
+            throw new Error(data.error || 'Request failed');
+        }
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Request failed');
         return data;
     };
 

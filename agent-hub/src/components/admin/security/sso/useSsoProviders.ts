@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { logger } from '../../../../utils/logger';
+import { request, RefusedError } from '../../../../api/mutate';
 
 export type SsoProviderId = 'nextcloud' | 'google' | 'microsoft';
 
@@ -93,8 +94,11 @@ export default function useSsoProviders(): SsoProvidersState {
 
     const fetchProviders = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/auth/providers`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/auth/providers`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const data = await res.json();
                 setProviders(data);
             }

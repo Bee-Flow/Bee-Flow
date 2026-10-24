@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { FileText, Check, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
 import { logger } from '../../utils/logger';
-import { mutate, ApiError } from '../../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '../../api/mutate';
 
 /**
  * Member-facing ISMS policy acknowledgements (ISO 27001 clause 7.3 awareness).
@@ -23,8 +23,14 @@ export default function PolicyAcknowledgements() {
 
     const refresh = async () => {
         try {
-            const r = await authFetch(`${API_BASE}/api/compliance/iso/docs/published/me`);
-            if (!r.ok) { setDocs([]); return; } // 402/403 → unlicensed or no access; stay invisible
+            let r: Response;
+            try {
+                r = await request(`${API_BASE}/api/compliance/iso/docs/published/me`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                setDocs([]);
+                return;
+            } // 402/403 → unlicensed or no access; stay invisible
             const data = await r.json();
             setDocs(Array.isArray(data) ? data : []);
         } catch { setDocs([]); }
@@ -39,8 +45,11 @@ export default function PolicyAcknowledgements() {
         setOpenSlug(slug);
         setBody(null);
         try {
-            const r = await authFetch(`${API_BASE}/api/compliance/iso/docs/published/${encodeURIComponent(slug)}/body`);
-            if (r.ok) setBody(await r.json());
+            const r = await request(`${API_BASE}/api/compliance/iso/docs/published/${encodeURIComponent(slug)}/body`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (r) setBody(await r.json());
         } catch (err) { logger.debug('body stays null; confirm still possible from the list row', err); }
     };
 

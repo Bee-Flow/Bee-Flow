@@ -9,8 +9,9 @@ import useShieldFields from './useShieldFields';
 import { piiCategoriesLocalized } from '../../../../../config/piiCategories';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { deepEqual } from '../../../../../utils/deepEqual';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import { API_BASE } from '../../../../../utils/helpers';
 import useConfirm from '../../../../shared/useConfirm';
+import { request, RefusedError, mutate, errorBody } from '../../../../../api/mutate';
 
 type Doc = Record<string, unknown>;
 
@@ -173,16 +174,14 @@ export function useOrgShield({ orgId: pinnedOrgId = null, allowOrgPicker = false
         setShieldLoading(true);
         setLoadError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/org-privacy-shield/${orgId}`);
-            if (!res.ok) {
-                // A failed load used to leave every field at its constructor
-                // default — "shield off, no categories, action block" — while
-                // Save stayed live. One click then persisted that blank config
-                // over the org's real one. Refusing to save is the only honest
-                // state: we do not know what the configuration is.
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/org-privacy-shield/${orgId}`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
                 loadedDocRef.current = null;
                 snapshotRef.current = null;
-                setLoadError({ status: res.status });
+                setLoadError({ status: err.status });
                 return;
             }
             const data = await res.json();
@@ -286,17 +285,21 @@ export function useOrgShield({ orgId: pinnedOrgId = null, allowOrgPicker = false
         setSaving(true);
         setMessage(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/org-privacy-shield/${selectedOrgId}`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/org-privacy-shield/${selectedOrgId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(currentPayload),
             });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) {
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = errorBody(err) ?? {};
                 const text = data.error || 'Failed to save.';
                 setMessage({ type: 'error', text });
                 return { ok: false, error: text };
             }
+            const data = await res.json().catch(() => ({}));
 
             // The save succeeded, so the server's row is the new baseline:
             // including any value it clamped or rejected.

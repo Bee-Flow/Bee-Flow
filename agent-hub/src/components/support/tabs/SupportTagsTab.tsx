@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { authFetch, API_BASE } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { errorMessage } from '../../../utils/caughtError';
-import { mutate, ApiError } from '../../../api/mutate';
+import { mutate, ApiError, request, RefusedError, errorBody } from '../../../api/mutate';
 
 interface SupportTag {
     id: string;
@@ -22,8 +22,11 @@ export default function SupportTagsTab() {
 
     const load = useCallback(async () => {
         try {
-            const res = await authFetch(`${API_BASE}/api/support/tags`);
-            if (res.ok) setTags((await res.json()).tags || []);
+            const res = await request(`${API_BASE}/api/support/tags`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) setTags((await res.json()).tags || []);
         } catch (e) { setError(errorMessage(e)); }
     }, []);
     useEffect(() => { load(); }, [load]);
@@ -32,11 +35,16 @@ export default function SupportTagsTab() {
         if (!name.trim()) return;
         setBusy(true); setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/support/tags`, {
+            try {
+                await mutate(`${API_BASE}/api/support/tags`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: name.trim(), color }),
             });
-            if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Create failed'); }
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const e = errorBody(err) ?? {};
+                throw new Error(e.error || 'Create failed');
+            }
             setName('');
             await load();
         } catch (e) { setError(errorMessage(e)); }

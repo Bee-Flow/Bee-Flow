@@ -7,6 +7,7 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
 import ConfigToggle from '../../../shared/ConfigToggle';
 import FormField from '../../../shared/FormField';
 import Section from '../../../shared/Section';
+import { mutate, errorBody, RefusedError, request } from '../../../../api/mutate';
 
 const PRIORITIES = ['low', 'normal', 'high', 'urgent'];
 const SLA_DEFAULTS: Record<string, number[]> = { low: [480, 2880], normal: [240, 1440], high: [60, 480], urgent: [30, 240] };
@@ -71,12 +72,19 @@ function KnowledgeIngestion({ inbox, kbs, onChanged }: KnowledgeIngestionProps) 
         if (enabled && !kbId) { setStatus(t('support.kb_ingest.kb_required', 'Pick or create a knowledge base first.')); return; }
         setBusy(true); setStatus('');
         try {
-            const res = await authFetch(`${API_BASE}/api/support-inbox/inboxes/${inbox.id}/kb-automation`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/support-inbox/inboxes/${inbox.id}/kb-automation`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ enabled, knowledgeBaseId: enabled ? kbId : null }),
             });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const d = errorBody(err) ?? {};
+                setStatus(d.error || t('support.kb_ingest.save_failed', 'Could not save knowledge ingestion'));
+                return;
+            }
             const d = await res.json().catch(() => ({}));
-            if (!res.ok) { setStatus(d.error || t('support.kb_ingest.save_failed', 'Could not save knowledge ingestion')); return; }
             setAutomationId(d.automationId || (enabled ? automationId : null));
             setStatus(t('support.kb_ingest.saved', 'Knowledge ingestion saved.'));
             onChanged?.();
@@ -136,8 +144,13 @@ function SlaPolicies() {
     const [savingP, setSavingP] = useState<string | null>(null);
 
     const load = async () => {
-        const res = await authFetch(`${API_BASE}/api/support-inbox/sla-policies`);
-        if (!res.ok) return;
+        let res: Response;
+        try {
+            res = await request(`${API_BASE}/api/support-inbox/sla-policies`);
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            return;
+        }
         const d = await res.json().catch(() => ({}));
         const map: Record<string, SlaRow> = {};
         (d.policies || []).forEach((p: SlaPolicy) => { map[p.priority] = { first: p.first_response_minutes, resolution: p.resolution_minutes, enabled: p.enabled }; });

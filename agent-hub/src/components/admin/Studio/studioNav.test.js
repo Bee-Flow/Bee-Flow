@@ -155,7 +155,7 @@ describe('studioSectionLabel — geen tweede kopie in de boom', () => {
             "if (typeof app.label === 'function') unsupported.push(app.id);\n// een sectie herken je aan haar labelKey",
         ), 'commentaar is geen tweede tak').toBe(false);
         // And the real tree contains that second case, so this is not an invented risk.
-        const recent = FILES.find(([f]) => f.endsWith('recent/recentWork.ts'));
+        const recent = FILES.find(([f]) => f.endsWith('api/recentWork.ts'));
         expect(recent, 'recentWork.ts hoort in de scan te zitten').toBeTruthy();
         expect(computesLabel(recent[1])).toBe(false);
     });

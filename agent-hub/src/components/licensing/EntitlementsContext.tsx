@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useCallback, useEffect, useMemo, useState } from 'react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
 import { errorMessage } from '../../utils/caughtError';
+import { request, RefusedError } from '../../api/mutate';
 
 export interface CapabilitySets {
     core: string[];
@@ -95,8 +96,14 @@ export function EntitlementsProvider({ children }: EntitlementsProviderProps) {
 
     const reload = useCallback(async () => {
         try {
-            const res = await authFetch(`${API_BASE}/auth/my-entitlements`);
-            if (!res.ok) { setState((s: EntitlementsState) => ({ ...s, loading: false, error: `HTTP ${res.status}` })); return; }
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/auth/my-entitlements`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                setState((s: EntitlementsState) => ({ ...s, loading: false, error: `HTTP ${err.status}` }));
+                return;
+            }
             const j = await res.json();
             setState({
                 loading: false,

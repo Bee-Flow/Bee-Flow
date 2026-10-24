@@ -9,7 +9,7 @@ import type { SessionSkill } from '../components/skills/sessionSkillState';
 import type { ConversationRow } from './useConversationMeta';
 import type { AgentLike, IdRef } from './useAgentHubData';
 import type { UseAgentHubActionsArgs } from './useAgentHubActions.types';
-import { mutate, ApiError } from '../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '../api/mutate';
 
 // Navigation-level handlers of the hub: selecting agents and conversations,
 // entering direct chat, new chat / delete, search-result routing, favourites,
@@ -104,8 +104,11 @@ const useAgentHubActions = ({
 
     const handleSelectDirectConversation = async (conv: { id: string }) => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/direct/conversations/${conv.id}`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/ai/direct/conversations/${conv.id}`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const data = await res.json();
                 setCurrentDirectConversation(data);
                 setDirectSessionSkills(Array.isArray(data.sessionSkills) ? data.sessionSkills : []);

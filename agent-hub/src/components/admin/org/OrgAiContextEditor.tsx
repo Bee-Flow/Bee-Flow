@@ -15,10 +15,11 @@ import { Brain, AlertTriangle, Loader2 } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import { errorMessage, messageOf } from '../../../utils/caughtError';
 import ChoiceCards from '../../shared/ChoiceCards';
 import { toast } from '../../shared/Toast';
+import { request, errorBody, RefusedError, mutate } from '../../../api/mutate';
 
 // "750,000" reads better than "750000" and than "0.75M" at these magnitudes.
 const formatTokens = (n: number) => Math.round(n).toLocaleString();
@@ -47,10 +48,13 @@ export default function OrgAiContextEditor({ orgId }: { orgId?: string | null })
         setLoading(true);
         setLoadError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/org-ai-context/${orgId}`);
-            if (!res.ok) {
-                const body = await res.json().catch(() => ({}));
-                throw new Error(body.error || `HTTP ${res.status}`);
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/org-ai-context/${orgId}`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err) ?? {};
+                throw new Error(body.error || `HTTP ${err.status}`);
             }
             const data = await res.json();
             setServer(data);
@@ -77,7 +81,9 @@ export default function OrgAiContextEditor({ orgId }: { orgId?: string | null })
         if (!server || !isDirty) return;
         setSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/org-ai-context/${orgId}`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/org-ai-context/${orgId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -87,11 +93,13 @@ export default function OrgAiContextEditor({ orgId }: { orgId?: string | null })
                     contextBudgetPercent: budgetPercent,
                 }),
             });
-            const body = await res.json().catch(() => ({}));
-            if (!res.ok) {
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err) ?? {};
                 toast.error(body.error || t('admin.ai_context.save_failed', 'Could not save conversation memory settings'));
                 return;
             }
+            const body = await res.json().catch(() => ({}));
             toast.success(t('admin.ai_context.saved', 'Conversation memory settings saved'));
             await load();
         } catch (err) {

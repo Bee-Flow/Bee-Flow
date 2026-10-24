@@ -15,7 +15,7 @@ import type { CannedResponse } from '../../../support/SupportInboxPanel.types';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { SupportThread, SupportMessage, TicketContext, DotProps, SupportStudioProps, EmptyStateProps, TicketDetailProps, MessageBubbleProps } from './index.types';
 import { logger } from '../../../../utils/logger';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '../../../../api/mutate';
 
 const NOT_SUPPORT_TAG = 'not-support';
 const STATUS_IDS = ['open', 'ai_responding', 'awaiting_user', 'awaiting_agent', 'resolved', 'closed'];
@@ -84,8 +84,11 @@ export default function SupportStudio({ user, initialTicketId = null }: SupportS
 
     const fetchInboxes = useCallback(async () => {
         try {
-            const res = await authFetch(`${API_BASE}/api/support-inbox/inboxes`);
-            if (res.ok) { const d = await res.json(); setInboxes(d.inboxes || []); }
+            const res = await request(`${API_BASE}/api/support-inbox/inboxes`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) { const d = await res.json(); setInboxes(d.inboxes || []); }
         } catch (err) { logger.warn('support inboxes load failed', err); }
     }, []);
 
@@ -97,8 +100,11 @@ export default function SupportStudio({ user, initialTicketId = null }: SupportS
             else if (statusFilter) params.set('status', statusFilter);
             if (search.trim()) params.set('q', search.trim());
             params.set('limit', String(limit));
-            const res = await authFetch(`${API_BASE}/api/support-inbox/threads?${params.toString()}`);
-            if (res.ok) { const d = await res.json(); setThreads(d.threads || []); setCounts(d.counts || {}); }
+            const res = await request(`${API_BASE}/api/support-inbox/threads?${params.toString()}`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) { const d = await res.json(); setThreads(d.threads || []); setCounts(d.counts || {}); }
         } catch (err) { logger.warn('support threads load failed', err); }
     }, [activeInbox, statusFilter, search, limit]);
 
@@ -287,8 +293,11 @@ function TicketDetail({ threadId, user, onChanged, autoRefreshMs = 0 }: TicketDe
     const [showContext, setShowContext] = useState(false);
 
     const load = useCallback(async () => {
-        const res = await authFetch(`${API_BASE}/api/support-inbox/threads/${threadId}`);
-        if (res.ok) { const d = await res.json(); setThread(d.thread); setMessages(d.messages || []); }
+        const res = await request(`${API_BASE}/api/support-inbox/threads/${threadId}`).catch((err: unknown) => {
+            if (err instanceof RefusedError) return null;
+            throw err;
+        });
+        if (res) { const d = await res.json(); setThread(d.thread); setMessages(d.messages || []); }
     }, [threadId]);
     useEffect(() => { load(); }, [load]);
 
@@ -303,8 +312,11 @@ function TicketDetail({ threadId, user, onChanged, autoRefreshMs = 0 }: TicketDe
     const toggleActivity = () => setShowActivity(v => !v);
 
     const loadContext = useCallback(async () => {
-        const res = await authFetch(`${API_BASE}/api/support-inbox/threads/${threadId}/context`);
-        if (res.ok) setContext(await res.json());
+        const res = await request(`${API_BASE}/api/support-inbox/threads/${threadId}/context`).catch((err: unknown) => {
+            if (err instanceof RefusedError) return null;
+            throw err;
+        });
+        if (res) setContext(await res.json());
     }, [threadId]);
     const toggleContext = () => setShowContext(v => { const nv = !v; if (nv && !context) loadContext(); return nv; });
 

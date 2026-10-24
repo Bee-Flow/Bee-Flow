@@ -15,7 +15,7 @@ import type { UserSettingSaveResult } from '../../hooks/useUserSettingSave';
 import type { SettingsStatuses, SettingsUser } from './shell/settingsShellTypes';
 import type { GroupLabelProps, FirefliesIntegrationProps, YouTrackIntegrationProps, SignRequestIntegrationProps, GammaIntegrationProps, AFASIntegrationProps, VplanIntegrationProps, NMBRSIntegrationProps, GitHubIntegrationProps, NextcloudIntegrationProps, McpCredential, McpCredentialServer, McpCredentialRowsProps, IntegrationGroupProps, IntegrationsSectionProps } from './IntegrationsSection.types';
 import { logger } from '../../utils/logger';
-import { mutate, ApiError } from '../../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '../../api/mutate';
 import { IntegrationRow, ApiKeyField, DisconnectButton } from './IntegrationPrimitives';
 import { GoogleWorkspaceIntegration, LinkedInIntegration, WithingsIntegration } from './OAuthIntegrations';
 
@@ -363,8 +363,11 @@ const GitHubIntegration = ({ onSaved, last }: GitHubIntegrationProps) => {
     const { saving, disconnecting, error, save, disconnect } = useUserSettingSave(onSaved);
     const checkStatus = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/api/integrations/github/status`);
-            if (res.ok) { const data = await res.json(); setConnected(data.connected); setUsername(data.username); }
+            const res = await request(`${API_BASE}/api/integrations/github/status`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) { const data = await res.json(); setConnected(data.connected); setUsername(data.username); }
         } catch (err) { logger.debug('ignore', err); }
     };
     React.useEffect(() => { checkStatus(); }, []);
@@ -540,8 +543,11 @@ const useMcpCredentialServers = (enabled: boolean) => {
     const [servers, setServers] = useState<McpCredentialServer[]>([]);
     const load = React.useCallback(async () => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/mcp-servers/user-credentials`);
-            if (res.ok) { const data = await res.json(); setServers(data.servers || []); }
+            const res = await request(`${API_BASE}/ai/mcp-servers/user-credentials`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) { const data = await res.json(); setServers(data.servers || []); }
         } catch (err) { logger.debug('ignore', err); }
     }, []);
     React.useEffect(() => { if (enabled) load(); }, [enabled, load]);

@@ -6,6 +6,7 @@ import {
     type PermissionSummary, type TestResult,
 } from './n8nModel';
 import { errorMessage } from '../../../utils/caughtError';
+import { request, RefusedError, mutate, errorBody } from '../../../api/mutate';
 
 /** The status line's message, and clearing it after a while. */
 export function useFlashMessage() {
@@ -125,8 +126,11 @@ function useN8nDiagnostics({ setMessage, clearAfter }: Flash) {
     const loadDiagnostics = async () => {
         setDiagLoading(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/n8n/diagnostics`);
-            if (res.ok) setDiag(await res.json());
+            const res = await request(`${API_BASE}/ai/n8n/diagnostics`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) setDiag(await res.json());
             else setDiag({ ok: false, error: 'Failed to load diagnostics' });
         } catch (e) {
             setDiag({ ok: false, error: errorMessage(e) });
@@ -137,17 +141,21 @@ function useN8nDiagnostics({ setMessage, clearAfter }: Flash) {
     const enableForOrg = async () => {
         setEnablingForOrg(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/n8n/enable-for-org`, { method: 'POST' });
-            if (res.ok) {
+            let res: Response | undefined;
+            try {
+                res = await mutate(`${API_BASE}/ai/n8n/enable-for-org`, { method: 'POST' });
+            } catch (apiErr) {
+                if (!(apiErr instanceof RefusedError)) throw apiErr;
+                const err = errorBody(apiErr) ?? {};
+                setMessage({ type: 'error', text: err.error || 'Failed to enable' });
+            }
+            if (res) {
                 const data = await res.json();
                 setMessage({
                     type: 'success',
                     text: data.changed ? 'n8n enabled for this organisation' : (data.note || 'n8n was already enabled'),
                 });
                 await loadDiagnostics();
-            } else {
-                const err = await res.json().catch(() => ({}));
-                setMessage({ type: 'error', text: err.error || 'Failed to enable' });
             }
         } catch {
             setMessage({ type: 'error', text: 'Request failed' });
@@ -175,8 +183,11 @@ export function useN8nConnection(flash: Flash, wf: Pick<N8nWorkflows, 'setWorkfl
         setLoading(true);
         // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
         try {
-            const res = await authFetch(`${API_BASE}/ai/n8n/config`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/ai/n8n/config`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const data = await res.json();
                 setN8nUrl(data.n8nUrl || '');
                 setHasApiKey(data.hasApiKey);
@@ -239,8 +250,11 @@ export function useN8nPermissions({ setMessage, clearAfter }: Flash) {
     const loadPermissions = async () => {
         setPermLoading(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/n8n/permissions`);
-            if (res.ok) setPermSummary(await res.json());
+            const res = await request(`${API_BASE}/ai/n8n/permissions`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) setPermSummary(await res.json());
             else setPermSummary({ error: 'Failed to load permissions' });
         } catch (e) {
             setPermSummary({ error: errorMessage(e) });

@@ -6,6 +6,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import useConfirm from '../shared/useConfirm';
 import { messageOf } from '../../utils/caughtError';
 import { logger } from '../../utils/logger';
+import { request, RefusedError } from '../../api/mutate';
 
 interface ServerLicenseRecord {
     tier?: string;
@@ -73,8 +74,13 @@ export default function ServerLicensePanel() {
     const reload = useCallback(async () => {
         setLoading(true);
         try {
-            const r = await authFetch(`${API_BASE}/api/license/status`);
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            let r: Response;
+            try {
+                r = await request(`${API_BASE}/api/license/status`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error(`HTTP ${err.status}`);
+            }
             const data = await r.json();
             setStatus(data);
             setActionError(null);

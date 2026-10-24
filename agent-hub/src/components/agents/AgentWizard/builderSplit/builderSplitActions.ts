@@ -3,6 +3,7 @@ import { errorMessage, messageOf } from '../../../../utils/caughtError';
 import type { EditorSnapshot, Ref, Setter } from '../../../../api/agentSaveTypes';
 import type { CategoryRow } from '../agentEditor.types';
 import { logger } from '../../../../utils/logger';
+import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
 
 export interface FieldUpdaterDeps {
     setName: (value: string) => void;
@@ -141,13 +142,19 @@ export function createCategoryActions({ setCategories, updateCategory, bootstrap
     };
     const renameCategory = async (id: string, name: string) => {
         try {
-            const res = await authFetch(`${API_BASE}/agents/categories/${id}`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/agents/categories/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name }),
             });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = errorBody(err) ?? {};
+                return { ok: false, error: data.error || 'Rename failed', code: data.code };
+            }
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) return { ok: false, error: data.error || 'Rename failed', code: data.code };
             setCategories(prev => prev.map(c => (c.id === id ? { ...c, ...data } : c)));
             bootstrap.refreshCategories?.();
             return { ok: true, category: data };
@@ -169,9 +176,15 @@ export function createCategoryActions({ setCategories, updateCategory, bootstrap
                 try { await flush(); } catch (err) { logger.debug('best-effort', err); }
             }
             const qs = reassignTo ? `?reassignTo=${encodeURIComponent(reassignTo)}` : '';
-            const res = await authFetch(`${API_BASE}/agents/categories/${id}${qs}`, { method: 'DELETE' });
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/agents/categories/${id}${qs}`, { method: 'DELETE' });
+            } catch (apiErr) {
+                if (!(apiErr instanceof RefusedError)) throw apiErr;
+                const data = errorBody(apiErr) ?? {};
+                return { ok: false, error: data.error || 'Delete failed', code: data.code, count: data.count };
+            }
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) return { ok: false, error: data.error || 'Delete failed', code: data.code, count: data.count };
             setCategories(prev => prev.filter(c => c.id !== id));
             // Bare-delete success while a DRAFT (unpersisted) agent still
             // points at the category — clear the dangling local selection.

@@ -2,10 +2,10 @@ import { Loader2, Check, AlertTriangle, Lock, Users, ShieldCheck, Sparkles, Sett
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { getIntegrationIcon } from '../../../config/integrationIcons';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import { messageOf } from '../../../utils/caughtError';
 import type { AccessCapability, AccessData, AccessKindSection, AccessMessage } from './access/accessTypes';
-import { mutate, ApiError } from '../../../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '../../../api/mutate';
 
 /**
  * GroupAccessMatrix — the org "Access & Permissions" surface.
@@ -72,8 +72,15 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await authFetch(readPath);
-            if (!res.ok) { setMessage({ type: 'error', text: t('admin_org.access_matrix_failed_load_status', 'Failed to load ({status})', { status: res.status }) }); setLoading(false); return; }
+            let res: Response;
+            try {
+                res = await request(readPath);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                setMessage({ type: 'error', text: t('admin_org.access_matrix_failed_load_status', 'Failed to load ({status})', { status: err.status }) });
+                setLoading(false);
+                return;
+            }
             const j = await res.json();
             setData(j);
             setEveryone(new Set(j.everyone || []));

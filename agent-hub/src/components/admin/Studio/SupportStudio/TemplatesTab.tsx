@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import useTranslation from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
 import Section from '../../../shared/Section';
 import FormField from '../../../shared/FormField';
 import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE } from './supportStyles';
 import type { CannedResponse } from '../../../support/SupportInboxPanel.types';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { mutate, ApiError, request, RefusedError, errorBody } from '../../../../api/mutate';
 
 interface SupportTag {
     id: string;
@@ -37,18 +37,27 @@ function Tags() {
     const [error, setError] = useState<string | null>(null);
 
     const load = useCallback(async () => {
-        const res = await authFetch(`${API_BASE}/api/support-inbox/tags`);
-        if (res.ok) setTags((await res.json()).tags || []);
+        const res = await request(`${API_BASE}/api/support-inbox/tags`).catch((err: unknown) => {
+            if (err instanceof RefusedError) return null;
+            throw err;
+        });
+        if (res) setTags((await res.json()).tags || []);
     }, []);
     useEffect(() => { load(); }, [load]);
 
     const create = async () => {
         if (!name.trim()) return;
         setError(null);
-        const res = await authFetch(`${API_BASE}/api/support-inbox/tags`, {
+        try {
+            await mutate(`${API_BASE}/api/support-inbox/tags`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim(), color }),
         });
-        if (!res.ok) { const e = await res.json().catch(() => ({})); setError(e.error || t('studio_misc.errors.create_failed', 'Create failed')); return; }
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            const e = errorBody(err) ?? {};
+            setError(e.error || t('studio_misc.errors.create_failed', 'Create failed'));
+            return;
+        }
         setName(''); await load();
     };
     const remove = async (id: string) => {
@@ -90,19 +99,28 @@ function Canned() {
     const [error, setError] = useState<string | null>(null);
 
     const load = useCallback(async () => {
-        const res = await authFetch(`${API_BASE}/api/support-inbox/canned`);
-        if (res.ok) setItems((await res.json()).canned || []);
+        const res = await request(`${API_BASE}/api/support-inbox/canned`).catch((err: unknown) => {
+            if (err instanceof RefusedError) return null;
+            throw err;
+        });
+        if (res) setItems((await res.json()).canned || []);
     }, []);
     useEffect(() => { load(); }, [load]);
 
     const create = async () => {
         if (!form.title.trim() || !form.body.trim()) { setError(t('support.canned.required', 'Title and body are required.')); return; }
         setError(null);
-        const res = await authFetch(`${API_BASE}/api/support-inbox/canned`, {
+        try {
+            await mutate(`${API_BASE}/api/support-inbox/canned`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title: form.title.trim(), shortcut: form.shortcut.trim() || null, body: form.body }),
         });
-        if (!res.ok) { const e = await res.json().catch(() => ({})); setError(e.error || t('studio_misc.errors.create_failed', 'Create failed')); return; }
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            const e = errorBody(err) ?? {};
+            setError(e.error || t('studio_misc.errors.create_failed', 'Create failed'));
+            return;
+        }
         setForm({ title: '', shortcut: '', body: '' }); setAdding(false); await load();
     };
     const remove = async (id: string) => {

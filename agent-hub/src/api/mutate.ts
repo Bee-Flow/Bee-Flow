@@ -33,11 +33,35 @@ async function errorText(res: Response): Promise<{ message: string; body: unknow
     return { message: fromBody || `HTTP ${res.status}`, body };
 }
 
-export async function mutate(url: string, init: AuthFetchOptions = {}): Promise<Response> {
-    const res: Response = await authFetch(url, init);
+/**
+ * What mutate() throws for a refused request: an ApiError whose `status` is always set, so a catch
+ * that narrows with `instanceof RefusedError` reads `err.status` as a number, like `res.status`.
+ */
+export class RefusedError extends ApiError {
+    declare status: number;
+}
+
+export async function mutate(url: string, init?: AuthFetchOptions): Promise<Response> {
+    // The call is passed on exactly as written: a GET without options reaches authFetch(url), not authFetch(url, {}).
+    const res: Response = init === undefined ? await authFetch(url) : await authFetch(url, init);
     if (res.ok) return res;
     const { message, body } = await errorText(res);
-    throw new ApiError(message, { status: res.status, body });
+    throw new RefusedError(message, { status: res.status, body });
 }
+
+/** What `await res.json()` resolves to (`any` in lib.dom): the shape callers already annotate. */
+export type JsonBody = Awaited<ReturnType<Response['json']>>;
+
+/**
+ * The JSON body of a refused request, as `await res.json()` gave it: mutate() has already read it,
+ * so a caller that wanted `await res.json().catch(() => X)` writes `errorBody(err) ?? X` (null when
+ * the body was not JSON).
+ */
+export function errorBody(err: ApiError): JsonBody | null {
+    return (err.body ?? null) as JsonBody | null;
+}
+
+/** The same checked request under a name that does not say "mutation": for a GET whose answer is checked. */
+export const request = mutate;
 
 export { ApiError, API_BASE, authFetch };

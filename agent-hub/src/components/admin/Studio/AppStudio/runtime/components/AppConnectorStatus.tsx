@@ -6,6 +6,7 @@ import { API_BASE, authFetch } from '../../../../../../utils/helpers';
 import { useDataContext } from '../DataContext';
 import { useRuntime } from '../RuntimeContext';
 import { ROLE_COLORS } from '../styleResolver';
+import { request, RefusedError } from '../../../../../../api/mutate';
 
 /**
  * App Studio runtime — 'connector_status'. Spec: server/appStudio/componentSpecs.js.
@@ -95,8 +96,15 @@ export default function AppConnectorStatus({ node }: AppConnectorStatusProps) {
     const load = useCallback(async () => {
         if (!isRun) { setLoading(false); return; }
         try {
-            const res = await authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/runtime/connectors/status`);
-            if (!res.ok) { setCheckFailed(true); setState(null); return; }
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/runtime/connectors/status`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                setCheckFailed(true);
+                setState(null);
+                return;
+            }
             const body = await res.json().catch(() => null);
             // Only a 200 whose list genuinely lacks the id means "removed".
             const found = (body?.connectors || []).find((c: ConnectorState) => c.id === connectorId) || null;

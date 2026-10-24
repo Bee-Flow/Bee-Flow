@@ -54,18 +54,24 @@
 // place where "unknown narrows" is enforced for whatever entry comes next.
 
 import { checkPermission } from '../../../../hooks/usePermissionCheck';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
 import { kindOf, type KindKey } from '../../../shared/kindColors';
 import { studioAppForKind, studioSectionLabel } from '../studioNav';
 import type { TranslateParams } from '../../../../hooks/useTranslation';
 import type { LessonUser, HasFeature } from '../../../../api/lessons.types';
 import type { AttentionFinding, RawAttentionRow, AttentionBody, AttentionVerdict, AttentionRun, AttentionCtx, AttentionGate, AttentionCheck, SourceLabel, AttentionItem } from './attentionChecks.types';
+import { request, RefusedError } from '../../../../api/mutate';
 export type { AttentionFinding, AttentionRun, AttentionItem } from './attentionChecks.types';
 
 /** The same helper actionChecks.js keeps private; the Studio chunk gets its own. */
 async function getJson(path: string) {
-    const res = await authFetch(`${API_BASE}${path}`);
-    if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
+    let res: Response;
+    try {
+        res = await request(`${API_BASE}${path}`);
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        throw new Error(`GET ${path} → ${err.status}`);
+    }
     return res.json();
 }
 

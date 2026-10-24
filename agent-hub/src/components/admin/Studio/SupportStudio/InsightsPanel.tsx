@@ -7,6 +7,7 @@ import { SvgAreaChart, type ChartPoint } from '../../monitoring/shared';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { SupportInbox, SupportTeammate } from './supportStudio.types';
 import { logger } from '../../../../utils/logger';
+import { request, RefusedError, errorBody } from '../../../../api/mutate';
 
 // Explicit, non-purple chart color (the strict UI ban rules out the default indigo).
 const CHART_COLOR = '#10b981';
@@ -109,8 +110,11 @@ function ScanSection({ inboxId, t }: ScanSectionProps) {
 
     const fetchScan = useCallback(async () => {
         try {
-            const res = await authFetch(`${API_BASE}/api/support-inbox/inboxes/${inboxId}/scan`);
-            if (res.ok) setScan(await res.json());
+            const res = await request(`${API_BASE}/api/support-inbox/inboxes/${inboxId}/scan`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) setScan(await res.json());
         } catch (err) { logger.debug('scan poll failed, next poll retries', err); }
     }, [inboxId]);
 
@@ -209,8 +213,14 @@ export default function InsightsPanel({ inboxes = [], activeInbox }: InsightsPan
             setError(null);
             const params = new URLSearchParams();
             if (activeInbox && activeInbox !== 'all') params.set('inbox', activeInbox);
-            const res = await authFetch(`${API_BASE}/api/support-inbox/insights?${params.toString()}`);
-            if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Failed'); }
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/support-inbox/insights?${params.toString()}`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const e = errorBody(err) ?? {};
+                throw new Error(e.error || 'Failed');
+            }
             setData(await res.json());
         } catch (e) { setError((e as Error).message); }
     }, [activeInbox]);

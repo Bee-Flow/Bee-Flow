@@ -8,6 +8,7 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
 import type {
     AdminMcpServer, AdminMessage, AdminOrganization, AgentSearchDefaults,
 } from './IntegrationsAdminPanel.types';
+import { request, RefusedError } from '../../../api/mutate';
 
 export default function useIntegrationsAdminState() {
     const [defaults, setDefaults] = useState<string[] | null>(null); // null = all enabled
@@ -118,8 +119,11 @@ export default function useIntegrationsAdminState() {
         // Load config status
         // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
         try {
-            const configRes = await authFetch(`${API_BASE}/ai/config`);
-            if (configRes.ok) {
+            const configRes = await request(`${API_BASE}/ai/config`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (configRes) {
                 const configData = await configRes.json();
                 setHasAgentSearchUrl(!!configData.hasAgentSearchUrl);
                 if (configData.agentSearchUrl) setAgentSearchUrl(configData.agentSearchUrl);
@@ -159,8 +163,11 @@ export default function useIntegrationsAdminState() {
         } catch (e) { console.error(e); }
         // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
         try {
-            const searchDefRes = await authFetch(`${API_BASE}/ai/agent-search/defaults`);
-            if (searchDefRes.ok) {
+            const searchDefRes = await request(`${API_BASE}/ai/agent-search/defaults`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (searchDefRes) {
                 const d = await searchDefRes.json();
                 setAgentSearchDefaults(prev => ({ ...prev, ...d }));
             }
@@ -168,8 +175,11 @@ export default function useIntegrationsAdminState() {
         // Load MCP servers
         // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
         try {
-            const mcpRes = await authFetch(`${API_BASE}/ai/mcp-servers`);
-            if (mcpRes.ok) {
+            const mcpRes = await request(`${API_BASE}/ai/mcp-servers`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (mcpRes) {
                 const mcpData = await mcpRes.json();
                 setMcpServers(mcpData.servers || []);
             }

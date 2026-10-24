@@ -11,12 +11,12 @@ import { FeedbackPage } from './FeedbackPage';
 import { ActivityPage } from './ActivityPage';
 import { TerminationsPage } from './TerminationsPage';
 import { DetailDrawer } from './DetailDrawer';
-import { authFetch } from '../../../utils/helpers';
 import { monitoringUrl } from './monitoringUrl';
 import type { DrawerDetail, ModelRate } from './drawer/drawerTypes';
 import type { FeedbackItem } from './feedback/feedbackModel';
 import type { MonitoringPanelProps } from './index.types';
 import { logger } from '../../../utils/logger';
+import { request, RefusedError } from '../../../api/mutate';
 
 const API = (import.meta.env.VITE_API_URL || '') + '/api/usage';
 const AI_API = (import.meta.env.VITE_API_URL || '') + '/ai';
@@ -106,8 +106,13 @@ const PAGES = [
 
 async function fetchJson(url: string) {
     try {
-        const r = await authFetch(url);
-        if (!r.ok) return null;
+        let r: Response;
+        try {
+            r = await request(url);
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            return null;
+        }
         return await r.json();
     } catch { return null; }
 }

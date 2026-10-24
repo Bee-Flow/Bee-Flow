@@ -8,11 +8,12 @@ import type { DocumentSource } from './stepReferences';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
 import useTranslation from '../../../../../hooks/useTranslation';
 import { listTemplates } from '../../../../../pages/documents/documentsApi';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import { API_BASE } from '../../../../../utils/helpers';
 import useAppTables, { fieldsForTable } from '../bi/useAppTables';
 import useConnectors from '../bi/useConnectors';
 import { useEditorChrome } from '../editor/EditorChromeContext';
 import type { AppDefinition } from '../inspector/appDefinition';
+import { request, RefusedError } from '../../../../../api/mutate';
 
 type DatasetSource = NonNullable<Parameters<typeof datasetOptions>[0]>;
 type AutomationSource = NonNullable<Parameters<typeof automationOptions>[0]>;
@@ -33,8 +34,13 @@ type AutomationSource = NonNullable<Parameters<typeof automationOptions>[0]>;
 
 /** Saved datasets, read-only. useDatasets also brings CRUD this has no use for. */
 async function fetchDatasets(appId: string | null): Promise<DatasetSource> {
-    const res = await authFetch(`${API_BASE}/api/studio-apps/${(encodeURIComponent as (value: string | null | undefined) => string)(appId)}/datasets`);
-    if (!res.ok) return [];
+    let res: Response;
+    try {
+        res = await request(`${API_BASE}/api/studio-apps/${(encodeURIComponent as (value: string | null | undefined) => string)(appId)}/datasets`);
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        return [];
+    }
     let body: { datasets?: DatasetSource } | null = null;
     try { body = await res.json(); } catch { return []; }
     return Array.isArray(body?.datasets) ? body.datasets : [];

@@ -1,6 +1,6 @@
 import { AlertTriangle, CheckCircle2, ChevronDown, ExternalLink, Loader2, RefreshCw, ScaleIcon, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import { API_BASE } from '../../../../../utils/helpers';
 import StageShell from './StageShell';
 import { TONES } from '../../../../shared/statusTone';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
@@ -13,18 +13,22 @@ import { applyResolvePlan, resolveSummary } from './resolveApply';
 import type { Finding, ResolvePlan } from './compliance.types';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import type { Phase, PlaybookEvent, PlaybookLike } from '../phaseMachine';
+import { request, errorBody, RefusedError } from '../../../../../api/mutate';
 
 /** One write, at the endpoint that owns it. Throws with the status on it. */
 async function put(path: string, body: unknown, method: string = 'PUT') {
-    const r = await authFetch(`${API_BASE}${path}`, {
+    let r: Response;
+    try {
+        r = await request(`${API_BASE}${path}`, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
     });
-    if (!r.ok) {
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
         const e: Error & { status?: number; body?: unknown } = new Error(`${method} ${path} failed`);
-        e.status = r.status;
-        e.body = await r.json().catch(() => null);
+        e.status = err.status;
+        e.body = (errorBody(err) ?? null);
         throw e;
     }
     return r.json().catch(() => ({}));

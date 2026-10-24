@@ -2,7 +2,6 @@ import { useState, useEffect, useEffectEvent } from 'react';
 import KnowledgePanel from '../knowledge/KnowledgePanel';
 import VersionHistory from './VersionHistory';
 import ModelTierSelector from '../licensing/ModelTierSelector';
-import { authFetch } from '../../utils/helpers';
 import { isImageAvatar, resolveAvatarSrc, DEFAULT_AGENT_EMOJI } from '../../utils/agentAvatar';
 import { useUrlQueryParam } from '../../hooks/useUrlTab';
 import AgentSkillsTab from './AgentSkillsTab';
@@ -12,6 +11,7 @@ import type { ModelEntry } from '../../api/modelMeta';
 import type { AppUserLike } from '../projects/workspace/types';
 import type { ToolParamConfig, AgentFormData, AgentEditorData, EditorOrganization, EditorGroup, EditorCategory, AgentEditorUIProps } from './AgentEditorUI.types';
 import { logger } from '../../utils/logger';
+import { request, RefusedError } from '../../api/mutate';
 export type { ToolParamConfig, AgentFormData, AgentEditorData, EditorOrganization, EditorGroup, EditorCategory } from './AgentEditorUI.types';
 
 const AgentEditorUI = ({
@@ -51,8 +51,13 @@ const AgentEditorUI = ({
         let cancelled = false;
         (async () => {
             try {
-                const res = await authFetch(`${API_BASE}/ai/config/tiers-for-user?taskType=direct_chat`);
-                if (!res.ok) return;
+                let res: Response;
+                try {
+                    res = await request(`${API_BASE}/ai/config/tiers-for-user?taskType=direct_chat`);
+                } catch (err) {
+                    if (!(err instanceof RefusedError)) throw err;
+                    return;
+                }
                 const data = await res.json();
                 if (!cancelled) setFetchedTiers(data || {});
             } catch (err) { logger.debug('keep empty — selector still shows standard tiers', err); }

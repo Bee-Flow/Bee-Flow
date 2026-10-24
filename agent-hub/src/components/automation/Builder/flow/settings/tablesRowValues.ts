@@ -13,9 +13,10 @@
  * the module the server mirrors; this file only applies it.
  */
 import { resolveKeyToColumn } from './columnMatch';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import { API_BASE } from '../../../../../utils/helpers';
 import type { Binding } from './codeStep/codeParams';
 import { logger } from '../../../../../utils/logger';
+import { request, RefusedError } from '../../../../../api/mutate';
 
 /** One column in the editor's own shape (see normaliseColumn). */
 export interface TableColumn {
@@ -136,10 +137,13 @@ export function normaliseColumn(c?: RawTableColumn | null): TableColumn {
  * editor turns that into the typed-titles fallback; it never guesses columns.
  */
 export async function loadTableColumns(tableId: string | number): Promise<TableColumn[]> {
-    const res = await authFetch(columnsEndpoint(tableId));
-    if (!res?.ok) {
-        const err: Error & { status?: number } = new Error(`HTTP ${res?.status ?? '?'}`);
-        err.status = res?.status;
+    let res: Response;
+    try {
+        res = await request(columnsEndpoint(tableId));
+    } catch (apiErr) {
+        if (!(apiErr instanceof RefusedError)) throw apiErr;
+        const err: Error & { status?: number } = new Error(`HTTP ${apiErr.status ?? '?'}`);
+        err.status = apiErr.status;
         throw err;
     }
     const body = await res.json();

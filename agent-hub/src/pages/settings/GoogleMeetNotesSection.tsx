@@ -5,6 +5,7 @@ import { LANGS, Toggle, Row, Select } from './shared/settingsPrimitives';
 import { openGoogleOAuthPopup } from '../../lib/googleOAuthPopup';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage, messageOf } from '../../utils/caughtError';
+import { request, RefusedError, mutate, errorBody } from '../../api/mutate';
 
 interface GmeetConfig {
     autoImport: boolean;
@@ -47,8 +48,11 @@ export default function GoogleMeetNotesSection() {
 
     const load = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/api/gmeet-notes-settings/user/me`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/api/gmeet-notes-settings/user/me`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const { connection: conn, ...data } = await res.json();
                 setConnection(conn || {});
                 setCfg((prev: GmeetConfig) => ({ ...prev, ...data }));
@@ -60,11 +64,17 @@ export default function GoogleMeetNotesSection() {
     const save = async () => {
         setSaving(true); setMessage(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/gmeet-notes-settings/user/me`, {
+            let res: Response | undefined;
+            try {
+                res = await mutate(`${API_BASE}/api/gmeet-notes-settings/user/me`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg),
             });
-            if (res.ok) setMessage({ type: 'success', text: t('common.saved', 'Saved') });
-            else { const e = await res.json().catch(() => ({})); setMessage({ type: 'error', text: e.error || `HTTP ${res.status}` }); }
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const e = errorBody(err) ?? {};
+                setMessage({ type: 'error', text: e.error || `HTTP ${err.status}` });
+            }
+            if (res) setMessage({ type: 'success', text: t('common.saved', 'Saved') });
         } catch (e) { setMessage({ type: 'error', text: errorMessage(e) }); }
         finally { setSaving(false); }
     };

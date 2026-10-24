@@ -3,6 +3,7 @@ import type { AuthFetchOptions } from '../../utils/helpers';
 import { API_BASE } from '../../utils/helpers';
 import { ChevronDown, ChevronRight, Mail } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
+import { request, RefusedError } from '../../api/mutate';
 
 interface EmailThread {
     thread_id: string;
@@ -42,8 +43,11 @@ export default function EmailThreadExplorer({ kbId, authFetch, onOpenDoc }: Emai
         if (!kbId) return;
         setLoading(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/kb/${kbId}/threads?limit=100`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/api/kb/${kbId}/threads?limit=100`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const body = await res.json();
                 setThreads(body.threads || []);
             }
@@ -61,8 +65,11 @@ export default function EmailThreadExplorer({ kbId, authFetch, onOpenDoc }: Emai
         setExpandedThreadId(threadId);
         if (!threadDocs[threadId]) {
             try {
-                const res = await authFetch(`${API_BASE}/api/kb/${kbId}/threads/${encodeURIComponent(threadId)}/documents`);
-                if (res.ok) {
+                const res = await request(`${API_BASE}/api/kb/${kbId}/threads/${encodeURIComponent(threadId)}/documents`).catch((err: unknown) => {
+                    if (err instanceof RefusedError) return null;
+                    throw err;
+                });
+                if (res) {
                     const body = await res.json();
                     setThreadDocs((prev: Record<string, EmailThreadDoc[]>) => ({ ...prev, [threadId]: body.documents || [] }));
                 }
