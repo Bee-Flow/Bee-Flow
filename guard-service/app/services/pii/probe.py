@@ -23,6 +23,7 @@ from .cache import _get_inference_semaphore
 from .custom_labels import _CustomSpec
 from .detection import _scan_units, _ScanUnit, _Timings
 from .postprocess import _postprocess_entities
+from .state import _PiiState
 
 logger = logging.getLogger("guard.pii")
 
@@ -85,7 +86,7 @@ def _candidates(text_idx: int, text: str, raw: list[dict]) -> list[dict]:
     ]
 
 
-class _Probe:
+class _Probe(_PiiState):
     """``PiiService``'s tuning surface. Mixed into the service."""
 
     def probe(self, texts: list[str], label_set: dict[str, str]) -> list[dict]:

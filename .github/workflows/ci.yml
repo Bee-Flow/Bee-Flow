@@ -376,7 +376,9 @@ jobs:
             python:
               - 'guard-service/**'
               - 'classify-service/**'
+              - 'python-shared/**'
               - 'ruff.toml'
+              - 'mypy.ini'
               - 'scripts/coverage-ratchet.mjs'
               - '.github/workflows/ci.yml'
             # Two filters for the guard service. `guard` drives guard-model-eval
@@ -390,6 +392,7 @@ jobs:
               - 'guard-service/**'
             guard-unit:
               - 'guard-service/**'
+              - 'python-shared/**'
               - 'scripts/coverage-ratchet.mjs'
               - '.github/workflows/ci.yml'
             # The four small Node services share one lint config
@@ -1071,6 +1074,16 @@ jobs:
         run: ruff check guard-service classify-service --output-format=github
       - name: ruff format --check
         run: ruff format --check guard-service classify-service
+      # The gate: mypy over each service's own app/ (config: mypy.ini), with the
+      # service's dev requirements installed so fastapi and pydantic are typed.
+      # The model stack (torch, gliner, redis) is not installed and stays untyped.
+      - name: mypy app/ (gate)
+        run: |
+          pip install --no-cache-dir mypy==2.4.0 -r guard-service/requirements-dev.txt
+          (cd guard-service && mypy --config-file ../mypy.ini app)
+          (cd python-shared && mypy --config-file ../mypy.ini beeflow_service)
+          pip install --no-cache-dir -r classify-service/requirements-dev.txt
+          (cd classify-service && mypy --config-file ../mypy.ini app)
       # NOT a gate yet: pyright on app/ still reports findings (guard-service:
       # ~50, mostly attributes the PiiService mixins read from the class they
       # are mixed into; classify-service: the model-only imports and the
@@ -1109,6 +1122,11 @@ jobs:
           cache-dependency-path: |
             classify-service/requirements.txt
             classify-service/requirements-dev.txt
+      # The code both sidecars share (python-shared/, copied into each app/shared).
+      - name: python-shared unit tests
+        run: |
+          pip install -r guard-service/requirements-dev.txt
+          python -m unittest discover -s python-shared/tests -t python-shared -v
       # FakeClassifier only: no torch, no gliclass, no model (tests/conftest.py).
       - name: classify-service unit tests
         run: |

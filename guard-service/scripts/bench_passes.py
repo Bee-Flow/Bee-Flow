@@ -150,7 +150,7 @@ def main() -> int:  # noqa: C901, PLR0915
         from app.cpu import available_cpus  # type: ignore
 
         quota = available_cpus()
-    except Exception:  # noqa: BLE001 — bench must work outside the app package
+    except Exception:
         quota = os.cpu_count() or 1
     threads = args.threads if args.threads > 0 else quota
 

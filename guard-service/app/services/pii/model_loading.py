@@ -14,6 +14,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
+from typing import Any
 
 from .chunking import (
     _CHUNK_CHAR_LIMIT,
@@ -29,6 +30,7 @@ from .chunking import (
 )
 from .inference import _MODEL_BATCH_SIZE
 from .label_groups import label_groups
+from .state import _PiiState
 
 logger = logging.getLogger("guard.pii")
 
@@ -42,7 +44,7 @@ logger = logging.getLogger("guard.pii")
 _DEFAULT_MAX_PREDICT_WORKERS = 4
 
 
-class _ModelLoading:
+class _ModelLoading(_PiiState):
     """``PiiService``'s load/reload and warm-up half. Mixed into the service."""
 
     def load(self, model_id: str) -> None:  # noqa: C901, PLR0912, PLR0915
@@ -202,7 +204,7 @@ class _ModelLoading:
                                 lambda: AutoTokenizer.from_pretrained(src)
                             )
                         )
-                    except Exception as exc:
+                    except Exception as exc:  # noqa: BLE001 - load/priming failures are recorded and must not stop the service
                         # A tokenizer we cannot clone per thread means we cannot
                         # drop the lock — fail back to the safe mode rather than
                         # run concurrent passes over a shared Rust tokenizer.
@@ -282,7 +284,7 @@ class _ModelLoading:
                             "conservative char chunking (limit=%d)",
                             _CHUNK_CHAR_LIMIT,
                         )
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 - load/priming failures are recorded and must not stop the service
                     self._tokenizer = None
                     self._text_token_budget = None
                     self._label_prompt_tokens_max = None
@@ -298,7 +300,7 @@ class _ModelLoading:
                 if getattr(settings, "pii_warm_inference", True):
                     try:
                         self._prime()
-                    except Exception as exc:
+                    except Exception as exc:  # noqa: BLE001 - load/priming failures are recorded and must not stop the service
                         logger.warning(
                             "[PiiService] warm-inference priming failed: %s", exc
                         )
@@ -316,11 +318,8 @@ class _ModelLoading:
             except Exception as exc:
                 # Do NOT swallow silently — record the error so /health and
                 # /ready can surface it and the warm-load thread can retry.
-                logger.error(
-                    "[PiiService] Failed to load model %s: %s",
-                    model_id,
-                    exc,
-                    exc_info=True,
+                logger.exception(
+                    "[PiiService] Failed to load model %s: %s", model_id, exc
                 )
                 self._model = None
                 self._ready = False
@@ -386,7 +385,7 @@ class _ModelLoading:
             return
         barrier = threading.Barrier(n, timeout=60)
 
-        def _warm(_):
+        def _warm(_: Any) -> None:
             try:
                 barrier.wait()
             except threading.BrokenBarrierError:
@@ -403,7 +402,7 @@ class _ModelLoading:
                 (time.perf_counter() - t0) * 1000,
                 getattr(self._tokenizer, "_instances", "n/a"),
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - load/priming failures are recorded and must not stop the service
             # Priming is an optimisation. A failure here costs latency on the
             # first scan; it must never keep the service from becoming ready.
             logger.warning("[PiiService] worker priming failed (%s) — continuing", exc)

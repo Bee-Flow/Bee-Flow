@@ -10,13 +10,15 @@ envelope fields the Node side reads.
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from .ranking import _SPECIFICITY_MIN_COVERAGE, _pick_label
+from .state import _PiiState
 
 logger = logging.getLogger("guard.pii")
 
 
-class _OverlapResolution:
+class _OverlapResolution(_PiiState):
     """``PiiService``'s overlap resolver. Mixed into the service."""
 
     @staticmethod
@@ -245,7 +247,7 @@ def _custom_clusters(entities: list[dict]) -> list[list[dict]]:
     return clusters
 
 
-def _finalise_custom(entities: list[dict], text: str, spec) -> list[dict]:
+def _finalise_custom(entities: list[dict], text: str, spec: Any) -> list[dict]:
     """Resolve a request's CUSTOM spans among themselves into a disjoint list.
 
     Never together with the built-in candidates, and that is the contract, not

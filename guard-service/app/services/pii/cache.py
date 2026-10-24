@@ -10,12 +10,17 @@ cached.
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import asyncio
 
 from .custom_labels import _CustomSpec
 from .detection import ScanRequest
 from .fingerprint import _engine_fingerprint
 from .noise import _is_skippable
 from .scan_policy import _effective_regions, _scan_budget_chars, resolve_tier_mode
+from .state import _PiiState
 
 logger = logging.getLogger("guard.pii")
 
@@ -37,7 +42,7 @@ _CACHE_SCHEMA_VERSION = 5
 _inference_semaphore = None
 
 
-def _get_inference_semaphore():
+def _get_inference_semaphore() -> asyncio.Semaphore:
     global _inference_semaphore
     if _inference_semaphore is None:
         import asyncio
@@ -122,7 +127,7 @@ def _unscanned(reason: str | None, custom: _CustomSpec | None) -> dict:
     return out
 
 
-class _CacheAware:
+class _CacheAware(_PiiState):
     """``PiiService``'s async, cached entry point. Mixed into the service."""
 
     async def detect_async(
@@ -209,7 +214,7 @@ class _CacheAware:
             from app.dependencies import get_redis
 
             redis = get_redis()
-        except Exception:
+        except Exception:  # noqa: BLE001 - the cache is optional; a failure only costs a miss
             redis = None
 
         if redis is not None:
@@ -223,7 +228,7 @@ class _CacheAware:
                     # back to Redis, so cached payloads stay disposition-free.
                     hit.setdefault("scan_stats", {})["cache"] = "hit"
                     return hit
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - the cache is optional; a failure only costs a miss
                 logger.debug("[PiiService] cache lookup failed: %s", exc)
                 cache_key = None
 
@@ -252,7 +257,7 @@ class _CacheAware:
                     json.dumps(result, ensure_ascii=False, separators=(",", ":")),
                     ex=600,
                 )
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - the cache is optional; a failure only costs a miss
                 logger.debug("[PiiService] cache write failed: %s", exc)
 
         # AFTER the cache write, so sem-wait and disposition never enter Redis

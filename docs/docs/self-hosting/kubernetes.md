@@ -49,7 +49,7 @@ The server is configured entirely through environment variables. Mirror the `ser
   the natural place.
 - **`SESSION_SECRET`**, **`MASTER_ENCRYPTION_KEY`** — required secrets (fresh random values).
 - **`RUSTFS_ENDPOINT`**, **`RUSTFS_ACCESS_KEY`**, **`RUSTFS_SECRET_KEY`** — object storage.
-- `SERVICES_API_KEY` — shared secret between the server and the sidecars.
+- `SERVICES_API_KEY` — shared secret between the server and the sidecars. Required: the guard and classify pods refuse to start without it.
 - `PII_SERVICE_URL` (+ `PII_SERVICE_API_KEY`) — points the server at the guard, if you deploy it.
 - `PORT` — the server's listen port (`3001` in the compose setup).
 

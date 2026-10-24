@@ -9,16 +9,20 @@ from __future__ import annotations
 
 import hmac
 
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.requests import Request
+from starlette.responses import JSONResponse, Response
+from starlette.types import ASGIApp
 
 
 class APIKeyMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app, api_key: str) -> None:
+    def __init__(self, app: ASGIApp, api_key: str) -> None:
         super().__init__(app)
         self._api_key = api_key.encode()
 
-    async def dispatch(self, request, call_next):
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         if request.url.path.startswith("/health"):
             return await call_next(request)
         # Constant-time compare on bytes: compare_digest raises TypeError on a

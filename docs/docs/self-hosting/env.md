@@ -105,7 +105,7 @@ Limits for automations that call a model. Each is an integer, has a generous def
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `SERVICES_API_KEY` | (none) | Shared secret for calls to the bundled sidecars (guard-service, classify-service). The guard-service enforces it on every request except `/health` once set there — note it has **no** `GUARD_` prefix on that side. |
+| `SERVICES_API_KEY` | (none) | Shared secret for calls to the bundled sidecars (guard-service, classify-service). The guard-service and classify-service require it: they enforce it on every request except `/health` and refuse to start without one (`./selfhost.sh` generates it). Set `SERVICES_ALLOW_OPEN=1` on them only to run open on a trusted network. Note it has **no** `GUARD_` prefix on that side. |
 | `PII_SERVICE_URL` | (none — opt-in) | Guard-service base URL, e.g. `http://guard-service:8100`. Unset means PII detection is disabled entirely. |
 | `PII_SERVICE_API_KEY` | falls back to `SERVICES_API_KEY` | Sent as `X-API-Key` to the guard; must match the guard's own `SERVICES_API_KEY`. |
 | `GUARD_SERVICE_URL` | (none — opt-in) | Sidecar health probe for `/api/guard/health`; returns `not-configured` when unset. |

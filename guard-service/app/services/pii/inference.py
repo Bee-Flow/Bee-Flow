@@ -12,8 +12,10 @@ from __future__ import annotations
 import contextlib
 import logging
 import time
+from typing import Any
 
 from .chunking import _chunk_text, _chunk_text_chars, _ChunkBudget, _label_prompt_width
+from .state import _PiiState
 
 logger = logging.getLogger("guard.pii")
 
@@ -62,10 +64,10 @@ logger = logging.getLogger("guard.pii")
 _MODEL_BATCH_SIZE = 1
 
 
-class _Inference:
+class _Inference(_PiiState):
     """``PiiService``'s model-call surface. Mixed into the service."""
 
-    def _predict(self, sub_texts, group_labels, threshold):
+    def _predict(self, sub_texts: Any, group_labels: Any, threshold: Any) -> Any:
         """The one forward-pass call, unlocked. Callers decide the locking.
 
         ``GLiNER.inference`` replaced ``batch_predict_entities`` (deprecated
@@ -105,12 +107,12 @@ class _Inference:
     # a 10.7s scan's window, not the big scan itself.
     def _locked_predict(
         self,
-        sub_texts,
-        group_labels,
-        threshold,
+        sub_texts: Any,
+        group_labels: Any,
+        threshold: Any,
         lock_wait_ms: list[float] | None = None,
         predict_ms: list[float] | None = None,
-    ):
+    ) -> Any:
         # Lock-wait is the signal that says "this pod is saturated" as opposed to
         # "this scan is slow" — the two look identical in a total duration, and
         # telling them apart from the outside was what made the original
@@ -180,14 +182,14 @@ class _Inference:
             # tokenizer, and that is now per-thread.
             try:
                 return _chunk_text(text, self._tokenizer, tokens, overlap, char_limit)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - tokenizer failure falls back to character chunking
                 logger.error("[PiiService] chunking failed (%s) — char fallback", exc)
                 return _chunk_text_chars(text, char_limit)
 
         with self._inference_lock:
             try:
                 return _chunk_text(text, self._tokenizer, tokens, overlap, char_limit)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - tokenizer failure falls back to character chunking
                 logger.error("[PiiService] chunking failed (%s) — char fallback", exc)
                 return _chunk_text_chars(text, char_limit)
 
@@ -206,7 +208,7 @@ class _Inference:
         with guard:
             try:
                 return _label_prompt_width(self._tokenizer, labels)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - tokenizer failure falls back to character chunking
                 logger.error(
                     "[PiiService] custom prompt width unavailable (%s) — char fallback",
                     type(exc).__name__,

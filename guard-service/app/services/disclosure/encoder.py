@@ -41,6 +41,7 @@ import logging
 import os
 import threading
 from contextlib import suppress
+from typing import Any
 
 logger = logging.getLogger("guard.disclosure")
 
@@ -54,9 +55,9 @@ class SentenceEncoder:
     """
 
     def __init__(self) -> None:
-        self._model = None
-        self._tokenizer = None
-        self._torch = None
+        self._model: Any = None
+        self._tokenizer: Any = None
+        self._torch: Any = None
         self._ready = False
         self._load_error: str | None = None
         self._model_dir: str | None = None
@@ -130,11 +131,8 @@ class SentenceEncoder:
                 self._model = self._tokenizer = None
                 self._ready = False
                 self._load_error = f"{type(exc).__name__}: {exc}"
-                logger.error(
-                    "[Disclosure] encoder at %s failed to load: %s",
-                    model_dir,
-                    exc,
-                    exc_info=True,
+                logger.exception(
+                    "[Disclosure] encoder at %s failed to load: %s", model_dir, exc
                 )
 
     # ── inference ────────────────────────────────────────────────────────

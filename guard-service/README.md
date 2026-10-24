@@ -54,8 +54,11 @@ Stack: Python 3.12 / FastAPI. No GPU required.
     (`server/core/privacy/disclosureClassifier.js`) leaves the Art. 50 keyword
     rule untouched on every one of them.
 
-When `SERVICES_API_KEY` is set, every request must send it as an `X-API-Key`
-header; `/health` stays open.
+`SERVICES_API_KEY` is required: every request must send it as an `X-API-Key`
+header (`/health` stays open), and the service refuses to start without one.
+To run open on a trusted network (a developer box) set `SERVICES_ALLOW_OPEN=1`
+(or `GUARD_ALLOW_OPEN=1`). There is no CORS: only the Bee Flow server calls the
+service, server to server, so no browser origin is allowed.
 
 ## Configuration
 
@@ -69,7 +72,7 @@ The most commonly set ones:
 | `GUARD_PII_MAX_CONCURRENCY` | `2` | Concurrent `/pii` requests admitted |
 | `GUARD_PII_REGIONS` | `*` | Active country patterns for the regex tier |
 | `GUARD_PII_REGEX_TIER` | `on` | Regex tier on/off |
-| `SERVICES_API_KEY` | empty | API key (empty = no auth) |
+| `SERVICES_API_KEY` | (required) | API key; with none the service refuses to start unless `SERVICES_ALLOW_OPEN=1` |
 | `GUARD_DISCLOSURE_MODEL_DIR` | `/opt/disclosure-encoder` | Where the optional disclosure encoder is baked |
 | `GUARD_DISCLOSURE_ENABLED` | `true` | Whether `/disclosure` may answer at all |
 | `GUARD_DISCLOSURE_FLOOR` / `_MARGIN` | `0.45` / `0.06` | Verdict thresholds (see `services/disclosure/similarity.py`) |
