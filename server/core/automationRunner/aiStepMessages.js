@@ -12,6 +12,7 @@ const terminationStore = require('../../stores/terminationStore');
 const { usageLogFields } = require('../providers/usageNormalizer');
 const { MAX_AI_STEP_TOOL_ITERATIONS } = require('./aiStepToolLoop');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * System prompt — tells the model that inputs are DATA, never instructions,
@@ -63,7 +64,7 @@ function logAiStepUsage(ctx, modelId, usageAcc, hitIterationCap) {
             agent_type: 'automation', model: modelId, source: 'automation',
             conversation_id: ctx.automationId,
             ...usageLogFields(usageAcc.total()),
-        }).catch(() => {});
+        }).catch((e) => bestEffort('core/automationRunner/aiStepMessages:logAiStepUsage', e));
     } catch (_) { log.warn('could not record AI step usage', _); }
     if (hitIterationCap) {
         try {
@@ -72,7 +73,7 @@ function logAiStepUsage(ctx, modelId, usageAcc, hitIterationCap) {
                 user_id: ctx.userId, organization_id: ctx.orgId || null,
                 agent_id: ctx.automationId, conversation_id: ctx.automationId,
                 iteration_count: MAX_AI_STEP_TOOL_ITERATIONS,
-            }).catch(() => {});
+            }).catch((e) => bestEffort('core/automationRunner/aiStepMessages:logAiStepUsage#2', e));
         } catch (_) { log.warn('could not record the AI step iteration cap event', _); }
     }
 }

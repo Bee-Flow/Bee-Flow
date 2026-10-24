@@ -27,6 +27,7 @@ const bgzf = require('./bgzf');
 const { parseHeader, parseDataLine, rsNumberOf } = require('./vcfParser');
 const { shardOf } = require('./rsidIndex');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // A data line larger than this is not a VCF row, it is a malfunction (even
 // dense multi-sample WGS rows sit far below 4 MB) — refuse instead of
@@ -84,7 +85,7 @@ async function ingestVcf({ input, gzip, sink, totalBytes = null, onProgress = nu
         if (!force && now - lastProgressAt < PROGRESS_INTERVAL_MS) return;
         lastProgressAt = now;
         const pct = totalBytes ? Math.min(99, Math.floor((bytesRead / totalBytes) * 100)) : null;
-        try { onProgress({ pct, variantCount, bytesRead }); } catch (err) { log.debug('progress must never kill an ingest', err); }
+        try { onProgress({ pct, variantCount, bytesRead }); } catch (err) { bestEffort('core/datasets/ingest:emitProgress', err); /* progress must never kill an ingest */ }
     };
 
     async function flushPending() {

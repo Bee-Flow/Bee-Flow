@@ -29,6 +29,7 @@
 'use strict';
 
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const HTTP_RESPONSE_CAP = 1024 * 1024;
 
@@ -55,7 +56,7 @@ const MAX_BYTES_PER_CHAR = 4;
  */
 async function readBodyBounded(resp, { charCap = HTTP_RESPONSE_CAP, stopOnOversizeHeader = false } = {}) {
     const byteBudget = charCap * MAX_BYTES_PER_CHAR;
-    const cancel = async () => { try { await resp.body?.cancel?.(); } catch (err) { log.debug('best effort', err); } };
+    const cancel = async () => { try { await resp.body?.cancel?.(); } catch (err) { bestEffort('core/http/httpResponseLimits:cancel', err); /* best effort */ } };
 
     // No body at all (HEAD, 204, 304): Content-Length describes the resource, not
     // anything we would read, so there is nothing to bound or to call oversize.
@@ -83,7 +84,7 @@ async function readBodyBounded(resp, { charCap = HTTP_RESPONSE_CAP, stopOnOversi
         received += value.length;
         if (received > byteBudget) {
             overBudget = true;
-            try { await reader.cancel(); } catch (err) { log.debug('best effort', err); }
+            try { await reader.cancel(); } catch (err) { bestEffort('core/http/httpResponseLimits:readBodyBounded', err); /* best effort */ }
             break;
         }
         chunks.push(value);

@@ -16,6 +16,7 @@ const log = require('../../telemetry/log');
 // The built-in step-type table is automation/'s, reached through ./featurePorts.js.
 const { runnerPort } = require('./featurePorts');
 const { permittedCatalog } = require('./toolIdentity');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Throws when `step.tool` is no longer in the user's CURRENT allowed tool set.
@@ -94,7 +95,7 @@ async function resolveLendingIdentity(step, ctx, deps) {
             });
             if (ov) { stepUserId = ov.integrationUserId; stepOrgId = ov.integrationOrgId; lentConnection = ov; }
         }
-    } catch (err) { log.debug('fail closed to bring-your-own', err); }
+    } catch (err) { fallback('core/automationRunner/integrationActionGates:resolveLendingIdentity', err); /* fail closed to bring-your-own */ }
     return { stepUserId, stepOrgId, stepSession: ctx.session, lentConnection };
 }
 

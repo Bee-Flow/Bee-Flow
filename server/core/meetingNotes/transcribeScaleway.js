@@ -11,6 +11,7 @@ const fs = require('fs');
 const { assignSpeakersByOverlap } = require('./transcriptArtifacts');
 const log = require('../../telemetry/log');
 const { buildAudioArgs, runFfmpeg } = require('../media/ffmpeg');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Scaleway's audio endpoint only accepts these container formats; anything else
 // (webm/opus, m4a/aac, mp4) is transcoded to mp3 first.
@@ -52,10 +53,10 @@ async function ensureScalewayFormat(filePath) {
     } catch (err) {
         // ffmpeg writes as it goes, so a failed transcode leaves a partial mp3
         // behind and the caller never gets a `cleanup` to call.
-        try { fs.unlinkSync(outPath); } catch (err) { log.debug('never created', err); }
+        try { fs.unlinkSync(outPath); } catch (err) { bestEffort('core/meetingNotes/transcribeScaleway:ensureScalewayFormat', err); /* never created */ }
         throw err;
     }
-    return { path: outPath, cleanup: () => { try { fs.unlinkSync(outPath); } catch (err) { log.debug('ignore', err); } } };
+    return { path: outPath, cleanup: () => { try { fs.unlinkSync(outPath); } catch (err) { bestEffort('core/meetingNotes/transcribeScaleway:cleanup', err); /* ignore */ } } };
 }
 
 /**
@@ -80,9 +81,9 @@ async function splitForScaleway(filePath, chunkSeconds) {
         const [fname, start] = line.split(',');
         return { path: path.join(dir, fname), start: parseFloat(start) || 0 };
     });
-    return { chunks, cleanup: () => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (err) { log.debug('ignore', err); } } };
+    return { chunks, cleanup: () => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (err) { bestEffort('core/meetingNotes/transcribeScaleway:cleanup#2', err); /* ignore */ } } };
     } catch (err) {
-        try { fs.rmSync(dir, { recursive: true, force: true }); } catch (err) { log.debug('ignore', err); }
+        try { fs.rmSync(dir, { recursive: true, force: true }); } catch (err) { bestEffort('core/meetingNotes/transcribeScaleway:splitForScaleway', err); /* ignore */ }
         throw err;
     }
 }

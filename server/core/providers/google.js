@@ -19,6 +19,7 @@ const crypto = require('crypto');
 const { inlineInternalImages } = require('../documents/imageInline');
 const log = require('../../telemetry/log');
 const { normalizeUsage } = require('./usageNormalizer');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // Models that support thinking/reasoning — Gemini 3.x uses thinkingLevel.
 // Match any 3.x minor version (3, 3.1, 3.5, …) so new releases like
@@ -204,7 +205,7 @@ class GoogleProvider extends BaseProvider {
                 if (msg.tool_calls && msg.tool_calls.length > 0) {
                     for (const tc of msg.tool_calls) {
                         let args = {};
-                        try { args = JSON.parse(tc.function?.arguments || '{}'); } catch (e) { log.debug('tool arguments are not valid JSON, send empty args', e); }
+                        try { args = JSON.parse(tc.function?.arguments || '{}'); } catch (e) { fallback('core/providers/google:GoogleProvider.normalizeMessages', e); /* tool arguments are not valid JSON, send empty args */ }
                         const fcPart = {
                             functionCall: {
                                 name: tc.function?.name || tc.name,
@@ -856,7 +857,7 @@ class GoogleProvider extends BaseProvider {
                 timeoutHandle = setTimeout(() => {
                     if (!sessionClosed) {
                         sessionClosed = true;
-                        try { session.close(); } catch (e) { log.debug('ignore', e); }
+                        try { session.close(); } catch (e) { bestEffort('core/providers/google:GoogleProvider.generateMusic', e); /* ignore */ }
                         finalize();
                     }
                 }, durationMs);

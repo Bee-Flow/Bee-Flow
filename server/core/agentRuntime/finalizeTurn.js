@@ -18,6 +18,7 @@ const { persistedMemoryUsed } = require('../memory/memoryUsed');
 const {
     stripToolCallMarkup, restoreToolHistoryTokens, persistedThinking, synthesiseTokenisationInfo,
 } = require('./assistantMessageExtras');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // The PII detector and the DLP runner, lazily, for ./assistantMessageExtras
 // (which stays out of the server's large import cycle).
@@ -182,7 +183,7 @@ async function scheduleMemoryExtraction(turn) {
                 log.error('[AgentRuntime] Memory extraction failed:', err.message);
                 // Surface to the client so operators can see persistent extraction
                 // failures rather than silently losing all memory writes.
-                try { onEvent('memory_extraction_failed', { error: err.message }); } catch (err) { log.debug('ignore', err); }
+                try { onEvent('memory_extraction_failed', { error: err.message }); } catch (err) { bestEffort('core/agentRuntime/finalizeTurn:scheduleMemoryExtraction', err); /* ignore */ }
             });
     } catch (memErr) {
         log.error('[AgentRuntime] Memory extractor load failed:', memErr.message);

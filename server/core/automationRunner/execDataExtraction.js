@@ -54,6 +54,7 @@ const usageStore = require('../../stores/usageStore');
 const { usageLogFields } = require('../providers/usageNormalizer');
 const { resolveDataExtractionModel, extractionRequestOptions, callExtractionModel } = require('./dataExtractionModel');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // The contract's system prompt, verbatim. The field list, the optional
 // instructions and the type rules follow it in the same message; the document
@@ -485,7 +486,7 @@ async function execDataExtraction(step, ctx, runState, mode) {
             conversation_id: ctx.automationId,
             // Normalised by the adapter (cache read/write included).
             ...usageLogFields(response && response.usage),
-        }).catch(() => {});
+        }).catch((e) => bestEffort('core/automationRunner/execDataExtraction:execDataExtraction', e));
     } catch (_) { log.warn('could not record AI usage of the extraction step', _); }
 
     const piiSummary = safety.buildPiiSummary(aiOut.categories || []);

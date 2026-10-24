@@ -14,6 +14,7 @@ const runEventBus = require('../../runEventBus');
 const { runnerPort } = require('../featurePorts');
 const { REAPER_FLOOR_MS, REAPER_BUFFER_MS, REAPER_MAX_ATTEMPTS } = require('../shared');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * Reaper — finds rows stuck in `running` longer than REAPER_STALE_AFTER_MS
@@ -40,7 +41,7 @@ async function reapStuckAutomations() {
                         title: `⚠️ Automation failed: ${a.title}`,
                         message: `The automation could not complete after ${REAPER_MAX_ATTEMPTS} attempts and was paused. Open it to inspect the last run.`,
                     });
-                } catch (err) { log.debug('non-fatal', err); }
+                } catch (err) { bestEffort('core/automationRunner/scheduler/reapers:reapStuckAutomations', err); /* non-fatal */ }
             }
         }
     } catch (e) {
@@ -61,7 +62,7 @@ async function reapStuckAutomations() {
                     status: 'error', errorClass: 'ApprovalExpired',
                     error: 'Approval expired — no decision was made before the deadline.',
                 });
-            } catch (err) { log.debug('telemetry must never break the reaper', err); }
+            } catch (err) { bestEffort('core/automationRunner/scheduler/reapers:reapStuckAutomations#2', err); /* telemetry must never break the reaper */ }
         }
         // Flip the durable approval rows and TELL people. Expiry used to be
         // silent: the run died, and neither the owner nor the assignee heard
@@ -95,7 +96,7 @@ async function reapStuckAutomations() {
                 await automationStore.appendApprovalAudit({
                     approvalId: ap.id, runId: ap.runId, stepId: ap.stepId,
                     decidedBy: null, decision: 'cancelled', source: 'reaper',
-                }).catch(() => {});
+                }).catch((e) => bestEffort('core/automationRunner/scheduler/reapers:reapStuckAutomations#3', e));
                 runnerPort('approvals').dispatchApprovalDecided(ap);
             }
         } catch (e) {
@@ -118,7 +119,7 @@ async function reapStuckAutomations() {
                     status: 'error', errorClass: 'FormExpired',
                     error: 'Form expired — the next page was never submitted.',
                 });
-            } catch (err) { log.debug('telemetry must never break the reaper', err); }
+            } catch (err) { bestEffort('core/automationRunner/scheduler/reapers:reapStuckAutomations#4', err); /* telemetry must never break the reaper */ }
         }
     } catch (e) {
         log.error('[AutomationRunner] reapExpiredFormWaits error:', e.message);
@@ -136,7 +137,7 @@ async function reapStuckAutomations() {
                     status: 'error', errorClass: 'RunnerDied',
                     error: 'Run stopped heartbeating — the worker crashed or was killed.',
                 });
-            } catch (err) { log.debug('telemetry must never break the reaper', err); }
+            } catch (err) { bestEffort('core/automationRunner/scheduler/reapers:reapStuckAutomations#5', err); /* telemetry must never break the reaper */ }
         }
     } catch (e) {
         log.error('[AutomationRunner] reapStuckRuns error:', e.message);

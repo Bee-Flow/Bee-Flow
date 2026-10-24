@@ -8,6 +8,7 @@
 'use strict';
 
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** How many members of an assigned group get a bell before we stop. */
 const GROUP_NOTIFY_CAP = 25;
@@ -142,7 +143,7 @@ async function panelRecipientIds(approvers, cap = GROUP_NOTIFY_CAP) {
                     if (out.size >= cap) break;
                     out.add(id);
                 }
-            } catch (err) { log.debug('the other seats still hear about it', err); }
+            } catch (err) { bestEffort('core/automationRunner/approvalSeats:panelRecipientIds', err); /* the other seats still hear about it */ }
         }
     }
     return [...out];

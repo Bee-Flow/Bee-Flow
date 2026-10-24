@@ -172,7 +172,7 @@ function enrichNextcloudError(toolName, err, rawText) {
         err.ncError = { code: c.code, category: c.category, remediation: c.remediation };
         err.errorClass = c.errorClass;
         err.message = `${c.message} — ${c.remediation}`;
-    } catch (err) { log.debug('never let classification break the run', err); }
+    } catch (err) { fallback('core/automationRunner/shared:enrichNextcloudError', err); /* never let classification break the run */ }
     return err;
 }
 
@@ -264,6 +264,7 @@ const BRANCHER_TYPES = new Set(['condition', 'guard', 'switch']);
  * places that have to agree.
  */
 const { TERMINAL_STEP_TYPES } = require('../automationModel/constants');
+const { fallback } = require('../../utils/bestEffort');
 
 // Synthetic root ids for the sub-DAGs a loop body / parallel branch is run as.
 // Named constants because the id has to agree in TWO places per caller (the

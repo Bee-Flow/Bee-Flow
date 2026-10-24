@@ -31,6 +31,7 @@
 
 const { SpreadsheetSourceError } = require('./errors');
 const log = require('../../../../telemetry/log');
+const { fallback } = require('../../../../utils/bestEffort');
 
 const MEMO_TTL_MS = 60_000;
 const _memo = new Map();   // `${userId}|${provider}` → { at, value, error }
@@ -125,7 +126,7 @@ function makeShim(d, { userId, provider, vaultOrgId, accessToken, refreshToken, 
 }
 
 async function vaultOrgIdOf(d, userId, session) {
-    const userRow = await d.userStore.getUser(userId).catch(() => null);
+    const userRow = await d.userStore.getUser(userId).catch((e) => fallback('core/dataEngine/sources/spreadsheetFile/credentials:vaultOrgIdOf', e, null));
     const organizationId = (userRow && userRow.organizationId) || (session && session.user && session.user.organizationId) || null;
     return d.automationAuth.vaultOrgIdFor({ id: userId, organizationId });
 }
@@ -145,7 +146,7 @@ async function resolveUncached(d, userId, provider, { session }) {
 
     // 2. A session-shaped source: the caller's live session (wizard) or the
     //    runner's rebuilt one. Provider-exact.
-    const s = session || await d.resolveUserSession(userId).catch(() => null);
+    const s = session || await d.resolveUserSession(userId).catch((e) => fallback('core/dataEngine/sources/spreadsheetFile/credentials:resolveUncached', e, null));
     const tokens = tokensFromSession(s, provider);
     if (tokens) {
         const vaultOrgId = await vaultOrgIdOf(d, userId, s);
@@ -161,7 +162,7 @@ async function resolveUncached(d, userId, provider, { session }) {
 
     // 3. Nothing. Say WHY when the vault knows (needs_reauth reads differently
     //    to a person than "never connected").
-    const row = await d.credentialStore.getCredential(userId, provider).catch(() => null);
+    const row = await d.credentialStore.getCredential(userId, provider).catch((e) => fallback('core/dataEngine/sources/spreadsheetFile/credentials:resolveUncached#2', e, null));
     throw notConnected(provider, row && row.status === 'needs_reauth' ? 'needs_reauth' : null);
 }
 
@@ -210,7 +211,7 @@ async function cheapStatus(userId, provider, { session = null } = {}) {
     if (!PROVIDERS.has(provider) || !userId) return { connected: false, reason: 'not_connected' };
     if (tokensFromSession(session, provider)) return { connected: true, reason: null };
     const d = deps();
-    const row = await d.credentialStore.getCredential(userId, provider).catch(() => null);
+    const row = await d.credentialStore.getCredential(userId, provider).catch((e) => fallback('core/dataEngine/sources/spreadsheetFile/credentials:cheapStatus', e, null));
     if (row && row.status === 'active' && (row.accessToken || row.refreshToken)) return { connected: true, reason: null };
     if (row && row.status === 'needs_reauth') return { connected: false, reason: 'needs_reauth' };
     return { connected: false, reason: 'not_connected' };

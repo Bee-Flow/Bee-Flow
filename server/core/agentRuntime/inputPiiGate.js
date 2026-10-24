@@ -14,6 +14,7 @@
  */
 const guardrailEventStore = require('../../stores/guardrailEventStore');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 const PRIVACY_MODE_RULES = `
 - Sensitive values in the user's message and retrieved memories have been replaced with placeholders like [email_1], [phone_2] or [iban_1].
@@ -45,7 +46,7 @@ async function runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, us
         let existingTokenMap = null;
         try {
             existingTokenMap = await d.dlpRunner().getConversationTokenMapAsync(conversationId);
-        } catch (err) { log.debug('non-fatal — worst case we start fresh, as before', err); }
+        } catch (err) { fallback('core/agentRuntime/inputPiiGate:runInputPiiGate', err); /* non-fatal — worst case we start fresh, as before */ }
 
         // Same status line the direct-chat path shows: a big paste is scanned
         // window by window and takes minutes, and the agent path reported
@@ -91,7 +92,7 @@ function applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, co
     // whenever DLP itself is disabled.
     try {
         d.dlpRunner().mergeTokenMap(conversationId, piiResult.tokenMap);
-    } catch (err) { log.debug('non-fatal — missing dlpRunner just means no restoration', err); }
+    } catch (err) { bestEffort('core/agentRuntime/inputPiiGate:applyPiiTokenisation', err); /* non-fatal — missing dlpRunner just means no restoration */ }
 
     // Let the LLM know that the placeholders in the user's message are
     // redaction tokens and it should echo them back unchanged. Match the
@@ -131,7 +132,7 @@ function applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, co
         violation_categories: [...new Set(piiResult.entities.map(e => e.label || e.category))].join(', '),
         direction: 'input',
         action_taken: 'redacted',
-    }).catch(() => {});
+    }).catch((e) => bestEffort('core/agentRuntime/inputPiiGate:applyPiiTokenisation#2', e));
 }
 
 function emitTokenisationEvents({ piiResult, orgShield, onEvent, model }) {
@@ -186,7 +187,7 @@ function piiBlockFromError(piiError, { onEvent, eventCtx }) {
             violation_categories: labelList,
             direction: 'input',
             action_taken: 'blocked',
-        }).catch(() => {});
+        }).catch((e) => bestEffort('core/agentRuntime/inputPiiGate:piiBlockFromError', e));
         return `PII Detected: ${labelList}`;
     }
     if (piiError.privacyUnavailable) {
@@ -210,7 +211,7 @@ function piiBlockFromError(piiError, { onEvent, eventCtx }) {
             violation_categories: 'privacy_protection_unavailable',
             direction: 'input',
             action_taken: 'blocked',
-        }).catch(() => {});
+        }).catch((e) => bestEffort('core/agentRuntime/inputPiiGate:piiBlockFromError#2', e));
         return violation;
     }
     // Other errors (service unavailable etc.) → fail-open, log and continue

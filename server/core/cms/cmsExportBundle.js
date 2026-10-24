@@ -31,6 +31,7 @@ const storageStore = require('../../stores/storageStore');
 const { sanitizeSvg } = require('../../utils/svgSanitizer');
 const { scheduleVariants } = require('./assetVariantStore');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const BUNDLE_ENTRY = 'site.json';
 const ASSET_PREFIX = 'assets/';
@@ -233,7 +234,7 @@ async function restoreAssets(assets, { overwrite = false } = {}) {
             try {
                 await storageStore.headFile(asset.key);
                 exists = true;
-            } catch (err) { log.debug('miss → write it', err); }
+            } catch (err) { fallback('core/cms/cmsExportBundle:restoreAssets', err); /* miss → write it */ }
             if (exists && !overwrite) { reused++; continue; }
 
             const contentType = asset.contentType || guessContentType(asset.key);

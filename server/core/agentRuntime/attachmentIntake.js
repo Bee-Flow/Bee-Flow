@@ -15,6 +15,7 @@
 const { withPhase } = require('./phaseEvents');
 const { processAttachments } = require('./attachmentProcessor');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 async function appendUserTurn({ messageMetadata, userMessage, userId, messages, durableMessages, persistedByLive }) {
     // The current user turn, as two objects: `userSave` is what gets persisted,
@@ -173,7 +174,7 @@ async function processTurnAttachments({ messageMetadata, lastMsg, userId, modelT
                             action_taken: audit.action_taken,
                             attachment_filename: attErr.filename,
                             attachment_page: null,
-                        }).catch(() => {});
+                        }).catch((e) => bestEffort('core/agentRuntime/attachmentIntake:processTurnAttachments', e));
                         const e = new Error(attErr.message);
                         e.code = 'ATTACHMENT_PII_BLOCKED';
                         throw e;
@@ -195,14 +196,14 @@ async function processTurnAttachments({ messageMetadata, lastMsg, userId, modelT
                     };
                     for (const s of _attachResult.attachmentScanSummaries) {
                         if (s.action === 'tokenize') {
-                            dlpStore.logAttachmentPiiFindings({ summary: s, auditBase, action_taken: 'redacted' }).catch(() => {});
+                            dlpStore.logAttachmentPiiFindings({ summary: s, auditBase, action_taken: 'redacted' }).catch((e) => bestEffort('core/agentRuntime/attachmentIntake:processTurnAttachments#2', e));
                         }
                         // Found something but sent it unredacted anyway (ask
                         // flow "send anyway", or a remembered "allow") — audit
                         // it explicitly, same as a redaction is audited. Never
                         // silent just because nothing was masked.
                         if (s.action === 'allowed') {
-                            dlpStore.logAttachmentPiiFindings({ summary: s, auditBase, action_taken: 'allowed' }).catch(() => {});
+                            dlpStore.logAttachmentPiiFindings({ summary: s, auditBase, action_taken: 'allowed' }).catch((e) => bestEffort('core/agentRuntime/attachmentIntake:processTurnAttachments#3', e));
                         }
                         // Incomplete scan passed through unredacted (fail_open) —
                         // audit it explicitly so large-input pass-throughs are
@@ -212,7 +213,7 @@ async function processTurnAttachments({ messageMetadata, lastMsg, userId, modelT
                                 auditBase, filename: s.filename, reason: s.reason,
                                 scannedPages: s.scannedPages, totalPages: s.totalPages,
                                 action_taken: s.action === 'tokenize' ? 'partial_redacted' : 'passed_unredacted',
-                            }).catch(() => {});
+                            }).catch((e) => bestEffort('core/agentRuntime/attachmentIntake:processTurnAttachments#4', e));
                         }
                     }
                     // Merge per-file detail into the assistant tokenisation info
@@ -272,7 +273,7 @@ async function processTurnAttachments({ messageMetadata, lastMsg, userId, modelT
                                 onEvent?.('privacy_token_map', { tokenMap: _convMap, source: 'privacy_shield' });
                                 _assistantTokenisationInfo.tokenMap = _convMap;
                             }
-                        } catch (err) { log.debug('transparency is best-effort', err); }
+                        } catch (err) { fallback('core/agentRuntime/attachmentIntake:processTurnAttachments#5', err); /* transparency is best-effort */ }
                     }
                 }
 

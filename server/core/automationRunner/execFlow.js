@@ -20,6 +20,7 @@ const { noteTruncation } = require('./truncations');
 const { buildLinearEdges } = require('./linearEdges');
 const { coerceLayerInputs } = require('./layerParams');
 const { forEachConcurrencyFor, runIndexedPool } = require('./forEachConcurrency');
+const { fallback } = require('../../utils/bestEffort');
 
 // ── Parallel branches ───────────────────────────────────
 //
@@ -505,7 +506,7 @@ async function loadBlockForRun(ctx, blockId) {
     if (!ctx._blockCache) ctx._blockCache = new Map();
     if (ctx._blockCache.has(blockId)) return ctx._blockCache.get(blockId);
     const automationStore = require('../../stores/automationStore');
-    const row = await automationStore.getAutomation(blockId).catch(() => null);
+    const row = await automationStore.getAutomation(blockId).catch((e) => fallback('core/automationRunner/execFlow:loadBlockForRun', e, null));
     if (!row || row.kind !== 'block') {
         /** @type {import('./runnerError.types').RunnerError} */
         const e = new Error(`Step "${blockId}" was deleted or is unavailable.`); e.errorClass = 'block_unavailable'; throw e;
@@ -518,7 +519,7 @@ async function loadBlockForRun(ctx, blockId) {
         /** @type {import('./runnerError.types').RunnerError} */
         const e = new Error(`Step "${row.title || blockId}" has not been published yet.`); e.errorClass = 'block_unpublished'; throw e;
     }
-    const def = await automationStore.getVersionDefinition(blockId, row.publishedVersion).catch(() => null)
+    const def = await automationStore.getVersionDefinition(blockId, row.publishedVersion).catch((e) => fallback('core/automationRunner/execFlow:loadBlockForRun#2', e, null))
         || row.definition; // fall back to the working def if the snapshot is missing
     if (!def || !def.trigger) {
         /** @type {import('./runnerError.types').RunnerError} */

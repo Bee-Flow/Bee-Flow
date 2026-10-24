@@ -23,6 +23,7 @@ const {
     isContextManagementRejection,
 } = require("./claude/errors");
 const { buildThinking, buildSdkParams, requestOptionsFor } = require("./claude/params");
+const { fallback } = require('../../utils/bestEffort');
 
 // Explicit SDK request timeout. Passing ANY constructor `timeout` disables the
 // SDK's pre-flight "Streaming is required for operations that may take longer
@@ -249,7 +250,7 @@ class ClaudeProvider extends BaseProvider {
                     for (const tc of m.tool_calls) {
                         const fn = tc.function || tc;
                         let input = {};
-                        try { input = typeof fn.arguments === "string" ? JSON.parse(fn.arguments) : (fn.arguments || fn.input || {}); } catch (e) { log.debug('tool arguments are not valid JSON, send an empty input', e); }
+                        try { input = typeof fn.arguments === "string" ? JSON.parse(fn.arguments) : (fn.arguments || fn.input || {}); } catch (e) { fallback('core/providers/claude:ClaudeProvider.normalizeMessages', e); /* tool arguments are not valid JSON, send an empty input */ }
                         contentBlocks.push({
                             type: "tool_use",
                             id: tc.id,
@@ -684,7 +685,7 @@ class ClaudeProvider extends BaseProvider {
                         log.info(`[Claude] 📦 Cache created: ${streamUsage.cache_creation_tokens} tokens (5m=${streamUsage.cache_creation_5m_tokens}, 1h=${streamUsage.cache_creation_1h_tokens})`);
                     }
                 }
-            } catch (e) { log.debug('already consumed', e); }
+            } catch (e) { fallback('core/providers/claude:ClaudeProvider.stream', e); /* already consumed */ }
         } catch (err) {
             // A rejection of the context-management beta would otherwise loop
             // forever in upstream retries (the 400 is permanent for identical

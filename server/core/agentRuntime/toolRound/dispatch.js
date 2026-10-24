@@ -18,6 +18,7 @@ const { runWithProbe, markLocal } = require('../../http/outboundProbe');
 const { checkRegexPatterns } = require('../../privacy/guardrails');
 const testChatMod = require('../testChat');
 const log = require('../../../telemetry/log');
+const { fallback, bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * Dispatch the call. Never throws: a failing tool becomes a blocked sentinel
@@ -124,7 +125,7 @@ async function resolveLending(rc, deps, { toolCall, toolName }) {
             });
             if (ov) { effUserId = ov.integrationUserId; lentConnection = ov; _lentByToolCall.set(toolCall.id, ov); }
         }
-    } catch (err) { log.debug('fail closed to bring-your-own', err); }
+    } catch (err) { fallback('core/agentRuntime/toolRound/dispatch:resolveLending', err); /* fail closed to bring-your-own */ }
     return { effUserId, lentConnection };
 }
 
@@ -223,7 +224,7 @@ function logFailedEgress(rc, deps, { toolCall, toolName, toolArgs, toolErr, outb
                 grant_id: _lentErr ? _lentErr.grantId : null,
             },
         });
-    } catch (err) { log.debug('never fail the turn on logging', err); }
+    } catch (err) { bestEffort('core/agentRuntime/toolRound/dispatch:logFailedEgress', err); /* never fail the turn on logging */ }
 }
 
 /** Regex Guardrails — Tool Output scope. */

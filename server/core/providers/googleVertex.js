@@ -13,6 +13,7 @@
 
 const GoogleProvider = require('./google');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 class GoogleVertexProvider extends GoogleProvider {
     constructor() {
@@ -160,7 +161,7 @@ class GoogleVertexProvider extends GoogleProvider {
                     ? JSON.parse(options.serviceAccountKey)
                     : options.serviceAccountKey;
                 clientConfig.googleAuthOptions = { credentials };
-            } catch (e) { log.debug('ignore', e); }
+            } catch (e) { fallback('core/providers/googleVertex:GoogleVertexProvider.generateMusic', e); /* ignore */ }
         }
 
         // We need a custom client for music (v1alpha), so we replicate parent logic
@@ -192,7 +193,7 @@ class GoogleVertexProvider extends GoogleProvider {
             await session.play();
 
             const timeout = setTimeout(() => {
-                try { session.close(); } catch (e) { log.debug('ignore', e); }
+                try { session.close(); } catch (e) { bestEffort('core/providers/googleVertex:GoogleVertexProvider.generateMusic#2', e); /* ignore */ }
             }, durationMs);
 
             for await (const message of session.receive()) {

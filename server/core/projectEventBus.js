@@ -35,6 +35,7 @@
 const { EventEmitter } = require('events');
 const db = require('../db');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const CHANNEL_PREFIX = 'bf:project:';
 
@@ -134,7 +135,7 @@ function subscribeProject(projectId, handler) {
         // is watching.
         if (bus.listenerCount(projectId) === 0 && _subscribedProjects.has(projectId)) {
             _subscribedProjects.delete(projectId);
-            try { _subscriber?.unsubscribe(_channel(projectId)); } catch (err) { log.debug('non-fatal', err); }
+            try { _subscriber?.unsubscribe(_channel(projectId)); } catch (err) { bestEffort('core/projectEventBus:subscribeProject', err); /* non-fatal */ }
         }
     };
 }

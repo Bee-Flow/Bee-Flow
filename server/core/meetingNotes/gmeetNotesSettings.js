@@ -31,6 +31,7 @@
  */
 
 const configStore = require('../../stores/configStore');
+const { fallback } = require('../../utils/bestEffort');
 
 const DEFAULTS = {
     autoImport: false,
@@ -91,8 +92,8 @@ function asStrArray(v) { return Array.isArray(v) ? v.filter(x => typeof x === 's
  * default. Exclusion arrays are the union of org + user.
  */
 async function resolveGmeetNotesSettings({ orgId = null, userId = null } = {}) {
-    const org = orgId ? await configStore.getConfig(orgKey(orgId)).catch(() => null) : null;
-    const user = userId ? await configStore.getConfig(userKey(userId)).catch(() => null) : null;
+    const org = orgId ? await configStore.getConfig(orgKey(orgId)).catch((e) => fallback('core/meetingNotes/gmeetNotesSettings:resolveGmeetNotesSettings', e, null)) : null;
+    const user = userId ? await configStore.getConfig(userKey(userId)).catch((e) => fallback('core/meetingNotes/gmeetNotesSettings:resolveGmeetNotesSettings#2', e, null)) : null;
     // `null` = "no opinion — inherit". Without it the documented user fallback
     // was dead code: sanitizePatch coerces every field, so an org doc always
     // carried every key and `k in org` was always true. An admin who merely

@@ -11,6 +11,7 @@
  */
 const testChatMod = require('../testChat');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 /** The provider as the DLP scanner sees it. */
 function dlpProviderConfig(config) {
@@ -97,7 +98,7 @@ async function buildPromptWithMemory({ agent, agentId, userId, userMessage, user
 async function hydrateTokenVault(conversation, d) {
     if (!conversation?.id) return;
     try { await d.dlpRunner().getConversationTokenMapAsync(conversation.id); }
-    catch (err) { log.debug('hydration is best-effort', err); }
+    catch (err) { bestEffort('core/agentRuntime/chatStream/preflightSteps:hydrateTokenVault', err); /* hydration is best-effort */ }
 }
 
 /** GUARDRAILS (before KB search — block early). */

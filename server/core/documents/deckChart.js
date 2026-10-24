@@ -24,6 +24,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const CHART_TYPES = Object.freeze(['column', 'bar', 'line', 'area', 'pie', 'donut']);
 const CHART_TYPE_ALIASES = Object.freeze({
@@ -199,7 +200,7 @@ function fromText(text, opts, warnings) {
     const raw = String(text ?? '').replace(/\r\n?/g, '\n').trim();
     if (!raw) return null;
     if (/^[[{]/.test(raw)) {
-        try { return fromAny(JSON.parse(raw), opts, warnings); } catch (err) { log.debug('not JSON: fall through to the line grammar', err); }
+        try { return fromAny(JSON.parse(raw), opts, warnings); } catch (err) { bestEffort('core/documents/deckChart:fromText', err); /* not JSON: fall through to the line grammar */ }
     }
     const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
     if (lines.length >= 2 && RE_TABLE_ROW.test(lines[0]) && RE_TABLE_SEP.test(lines[1])) {
@@ -322,7 +323,7 @@ function statsFromAny(input, warnings = []) {
     if (typeof input === 'string') {
         items = input.replace(/\r\n?/g, '\n').split('\n').map((l) => l.trim()).filter(Boolean);
         if (items.length === 1 && /^[[{]/.test(items[0])) {
-            try { return statsFromAny(JSON.parse(items[0]), warnings); } catch (err) { log.debug('keep the line', err); }
+            try { return statsFromAny(JSON.parse(items[0]), warnings); } catch (err) { bestEffort('core/documents/deckChart:statsFromAny', err); /* keep the line */ }
         }
     } else if (Array.isArray(input)) {
         items = input;

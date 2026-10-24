@@ -24,6 +24,7 @@
 
 const JSZip = require('jszip');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const MAX_TEMPLATE_BYTES = 25 * 1024 * 1024;
 const MAX_MEDIA_BYTES = 12 * 1024 * 1024;
@@ -225,7 +226,7 @@ async function composeSide(zip, layers, size, sharp) {
         try {
             const png = await sharp(bytes, { density: 200 }).resize({ width: OVERLAY_MAX_PX, height: OVERLAY_MAX_PX, fit: 'inside', withoutEnlargement: true }).png().toBuffer();
             overlays.push({ image: `data:image/png;base64,${png.toString('base64')}`, x: round(layer.x), y: round(layer.y), w: round(layer.w), h: round(layer.h) });
-        } catch (err) { log.debug('not an image sharp can read', err); }
+        } catch (err) { fallback('core/documents/pptxTemplate:composeSide', err); /* not an image sharp can read */ }
     }
     return { image: `data:image/jpeg;base64,${composed.toString('base64')}`, overlays, background: mean, accent };
 }

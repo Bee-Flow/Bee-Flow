@@ -14,6 +14,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const SWEEP_MIN_GAP_MS = 30 * 1000;
 const SWEEP_TIMER_MS = 5 * 60 * 1000;
@@ -40,8 +41,8 @@ function emitTokenMapEvent(conversationId, action_taken, extra = {}) {
             action_taken,
             source: 'pii',
             violation_categories: extra.reason ? String(extra.reason).slice(0, 200) : null,
-        }).catch(() => {});
-    } catch (err) { log.debug('never let telemetry break the chat path', err); }
+        }).catch((e) => bestEffort('core/dlp/tokenMapEviction:emitTokenMapEvent', e));
+    } catch (err) { bestEffort('core/dlp/tokenMapEviction:emitTokenMapEvent#2', err); /* never let telemetry break the chat path */ }
 }
 
 /**

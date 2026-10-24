@@ -18,6 +18,7 @@ const { MAX_TOOL_CONTENT_BYTES, buildLLMToolContent, truncateToolContent } = req
 const { emitSideChannels } = require('./sideChannels');
 const testChatMod = require('../testChat');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * Pre-scan, then process every result in call order. Pushes the tool
@@ -159,7 +160,7 @@ async function logToolUsageRow(rc, deps, toolName) {
             conversation_id: conversation?.id || null,
             parent_call_id: messageMetadata.parentCallId || null,
         });
-    } catch (e) { log.debug('ignore', e); }
+    } catch (e) { bestEffort('core/agentRuntime/toolRound/results:logToolUsageRow', e); /* ignore */ }
 }
 
 /**
@@ -224,7 +225,7 @@ function logSuccessEgress(rc, deps, result, _preScan) {
                 return detectPii(logText, scanCategoriesFor(dlpShield, _toolClassOf(toolName)), threshold);
             },
         });
-    } catch (e) { log.debug('ignore integration logging errors', e); }
+    } catch (e) { bestEffort('core/agentRuntime/toolRound/results:logSuccessEgress', e); /* ignore integration logging errors */ }
 }
 
 /**
@@ -269,7 +270,7 @@ function redactToolResultContent(rc, deps, result, _preScan, content) {
                 source: testChatMod.usageSourceFor(messageMetadata, 'agent_stream'),
                 is_dry_run: testChatMod.isDryRunTurn(messageMetadata),
                 model: modelToUse,
-            }).catch(() => {});
+            }).catch((e) => bestEffort('core/agentRuntime/toolRound/results:redactToolResultContent', e));
             log.info(`[ToolResultDlp] '${toolName}' result redacted (${(_r.redactedLogLabels || []).join(', ')})`);
         }
         // tokenize-then-truncate so a [token] span is never split.

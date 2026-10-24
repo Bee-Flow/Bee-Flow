@@ -25,6 +25,7 @@
 
 const { interpolateTemplate, interpolateJsonBody, resolveValue } = require('../automationModel/bind');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const ARRAY_FORMATS = Object.freeze(['indices', 'brackets', 'repeat', 'comma']);
 const QUERY_MODES = Object.freeze(['fields', 'json']);
@@ -148,7 +149,7 @@ function resolveQueryPairs(query, runState) {
 /** The part of an encoded query key before its first bracket, decoded: `builder%5B0%5D` → `builder`. */
 function rootKeyOf(rawKey) {
     let k = rawKey;
-    try { k = decodeURIComponent(rawKey.replace(/\+/g, ' ')); } catch (err) { log.debug('keep the raw text', err); }
+    try { k = decodeURIComponent(rawKey.replace(/\+/g, ' ')); } catch (err) { fallback('core/automationRunner/httpQuery:rootKeyOf', err); /* keep the raw text */ }
     const i = k.indexOf('[');
     return i > 0 ? k.slice(0, i) : k;
 }

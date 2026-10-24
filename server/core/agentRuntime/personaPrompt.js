@@ -53,6 +53,7 @@
 
 const { hasKnowledgeSource } = require('./agentGrounding');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── Enums the rest of the stack pins against ────────────────────────
 const PERSONA_MODES = Object.freeze(['fields', 'free']);
@@ -173,7 +174,7 @@ function languageNameOf(code) {
     try {
         const name = new Intl.DisplayNames(['en'], { type: 'language' }).of(base);
         if (typeof name === 'string' && name && name.toLowerCase() !== base) return name;
-    } catch (err) { log.debug('no ICU ⇒ no name ⇒ no line', err); }
+    } catch (err) { bestEffort('core/agentRuntime/personaPrompt:languageNameOf', err); /* no ICU ⇒ no name ⇒ no line */ }
     return null;
 }
 

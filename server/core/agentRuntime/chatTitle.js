@@ -6,6 +6,7 @@ const agentStore = require('../../stores/agentStore');
 const configStore = require('../../stores/configStore');
 const { resolveModelWithGlobalFallback } = require('../llm/modelResolver');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 async function generateChatTitle(userMessage, modelOverride = null, userOrgId = null, userId = null) {
     const titleAgent = await agentStore.getSystemAgent('system-title-generator');
@@ -13,7 +14,7 @@ async function generateChatTitle(userMessage, modelOverride = null, userOrgId = 
     // Resolve model — explicit override → dedicated admin title model →
     // title system-agent config → Fast tier. The dedicated config decouples
     // title cost from a heavy Fast tier.
-    const titleModelCfg = await configStore.getConfig('title_generation_model').catch(() => null);
+    const titleModelCfg = await configStore.getConfig('title_generation_model').catch((e) => fallback('core/agentRuntime/chatTitle:generateChatTitle', e, null));
     const rawModel = modelOverride
         || (typeof titleModelCfg === 'string' && titleModelCfg.trim() ? titleModelCfg.trim() : null)
         || titleAgent?.model;

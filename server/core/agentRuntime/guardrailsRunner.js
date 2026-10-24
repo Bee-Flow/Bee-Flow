@@ -15,6 +15,7 @@ const PII_GATE_DEPS = {
     dlpRunner: () => require('../dlp/dlpRunner'),
 };
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 // `isDryRun` marks every guardrail row of this turn as a dry run — the test
 // chat (A4) sets it, so a builder's experiment does not land among the
@@ -129,7 +130,7 @@ function stripUnicodeSmuggling({ messages, userMessage, onEvent, eventCtx }) {
         violation_categories: `${unicodeResult.totalStripped} hidden chars`,
         direction: 'input',
         action_taken: 'stripped',
-    }).catch(() => {});
+    }).catch((e) => bestEffort('core/agentRuntime/guardrailsRunner:stripUnicodeSmuggling', e));
     return processedUserMessage;
 }
 
@@ -200,18 +201,18 @@ function applyRegexGuardrails({ text, redactBase, regexConfig, scope, emit, audi
             try {
                 const regex = new RegExp(rule.pattern, 'gi');
                 processedText = processedText.replace(regex, `[REDACTED: ${rule.name}]`);
-            } catch (e) { log.debug('skip invalid patterns', e); }
+            } catch (e) { fallback('core/agentRuntime/guardrailsRunner:applyRegexGuardrails', e); /* skip invalid patterns */ }
         }
         emit?.('content_redact', { originalMessage: text, redactedMessage: processedText, rules: ruleNames, autoRedactSeconds: 5 });
         if (audit) {
-            guardrailEventStore.logGuardrailEvent({ ...audit, violation_type: 'regex', violation_categories: ruleNames, direction, action_taken: 'redacted' }).catch(() => {});
+            guardrailEventStore.logGuardrailEvent({ ...audit, violation_type: 'regex', violation_categories: ruleNames, direction, action_taken: 'redacted' }).catch((e) => bestEffort('core/agentRuntime/guardrailsRunner:applyRegexGuardrails#2', e));
         }
         return { action: 'redact', processedText, ruleNames };
     }
 
     emit?.('guardrail_violation', { rules: ruleNames, autoDeleteSeconds: 5 });
     if (audit) {
-        guardrailEventStore.logGuardrailEvent({ ...audit, violation_type: 'regex', violation_categories: ruleNames, direction, action_taken: 'blocked' }).catch(() => {});
+        guardrailEventStore.logGuardrailEvent({ ...audit, violation_type: 'regex', violation_categories: ruleNames, direction, action_taken: 'blocked' }).catch((e) => bestEffort('core/agentRuntime/guardrailsRunner:applyRegexGuardrails#3', e));
     }
     return { action: 'block', processedText: base, ruleNames };
 }

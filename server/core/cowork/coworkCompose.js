@@ -27,6 +27,7 @@
 const { parseJsonObject } = require('../meetingNotes/llmJson');
 const log = require('../../telemetry/log');
 const { usageLogFields } = require('../providers/usageNormalizer');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const VALID_REPEAT_INTERVALS = new Set([
     'hourly', 'daily', 'weekdays', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly',
@@ -261,8 +262,8 @@ async function composeCowork({ brief, agents = [], timezone = 'Europe/Amsterdam'
                 source: 'cowork_compose',
                 ...usageLogFields(usage),
                 duration_ms: Date.now() - callStart,
-            }).catch(() => { /* bookkeeping only */ });
-        } catch (err) { log.debug('bookkeeping only', err); }
+            }).catch((e) => bestEffort('core/cowork/coworkCompose:composeCowork', e));
+        } catch (err) { bestEffort('core/cowork/coworkCompose:composeCowork#2', err); /* bookkeeping only */ }
 
         const parsed = parseJsonObject(response?.content || '');
         if (!parsed?.value) throw new Error('model returned no JSON object');

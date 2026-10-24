@@ -44,6 +44,7 @@ const DOWNLOAD_TIMEOUT_MS = 60_000;
 const SEARCH_LIMIT = 50;
 
 const { integrationClient } = require('../../../../integrations/integrationClients');
+const { fallback } = require('../../../../../utils/bestEffort');
 
 function deps() {
     return {
@@ -280,7 +281,7 @@ function makeApi(auth, ctx = {}) {
                 if (!orgId) return null;
                 const org = await require('../../../../../stores/userStore').getOrganization(orgId);
                 return trim(org && (org.nc_base_url || org.ncBaseUrl));
-            })().catch(() => null);
+            })().catch((e) => fallback('core/dataEngine/sources/spreadsheetFile/providers/nextcloudFiles:linkBase', e, null));
         }
         return linkBasePromise;
     }

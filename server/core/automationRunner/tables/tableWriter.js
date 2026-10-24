@@ -23,6 +23,7 @@ const { tableLimits, exceeds } = require('./limits');
 const { buildHandle } = require('./handle');
 const { headerLine, rowLine } = require('./tableCodec');
 const { DOCUMENT_TTL_MIN_DAYS, DOCUMENT_TTL_MAX_DAYS, DOCUMENT_TTL_DEFAULT_DAYS } = require('../execDocument');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const DAY_MS = 86_400_000;
 const FLUSH_CHARS = 64 * 1024;
@@ -118,7 +119,7 @@ function makeTableWriter(deps = {}) {
             });
         } catch (e) {
             // A blob with no row is unreachable garbage: remove it now.
-            if (uploaded) await storage().deleteFile(key).catch(() => {});
+            if (uploaded) await storage().deleteFile(key).catch((e) => bestEffort('core/automationRunner/tables/tableWriter:writeTable', e));
             throw e;
         } finally {
             await fs.promises.rm(dir, { recursive: true, force: true }).catch(() => {});

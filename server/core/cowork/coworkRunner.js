@@ -16,6 +16,7 @@
 const coworkStore = require('../../stores/coworkStore');
 const { executeTask } = require('../aiTaskRunner');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const RUNNER_INTERVAL_MS = 60_000;
 const MAX_CONCURRENT = 5;
@@ -33,7 +34,7 @@ async function processDueCowork() {
         // an open history row behind, and getDueSchedules skips 'running' — so
         // without this sweep that schedule never runs again. Reaping before
         // the query means a wedged item recovers on the very next tick.
-        await coworkStore.reapStaleRuns().catch(() => {});
+        await coworkStore.reapStaleRuns().catch((e) => bestEffort('core/cowork/coworkRunner:processDueCowork', e));
 
         const due = await coworkStore.getDueSchedules();
         if (due.length === 0) return;

@@ -16,6 +16,7 @@ const { buildMcpChildEnv } = require('./mcpChildEnv');
 const mcpStore = require('../stores/mcpStore');
 const configStore = require('../stores/configStore');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /** Repo root of this service — `/app` in the Docker image. */
 const SERVER_ROOT = path.resolve(__dirname, '..');
@@ -167,7 +168,7 @@ async function getConnection(serverId, userId) {
                 await mcpStore.updateServer(serverId, { tools_cache: tools, status: 'ready', error: null });
             }
         }
-    } catch (err) { log.debug('best-effort — never block a runtime connection on discovery', err); }
+    } catch (err) { bestEffort('core/mcpManager:getConnection', err); /* best-effort — never block a runtime connection on discovery */ }
 
     return client;
 }
@@ -259,7 +260,7 @@ async function callTool(serverId, toolName, args = {}, userId) {
                 server: serverId, tool: toolName, status,
                 durationMs: Number(process.hrtime.bigint() - _t0) / 1e6,
             });
-        } catch (err) { log.debug('telemetry is best-effort', err); }
+        } catch (err) { bestEffort('core/mcpManager:_recMcp', err); /* telemetry is best-effort */ }
     };
 
     try {

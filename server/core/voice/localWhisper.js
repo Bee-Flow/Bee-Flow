@@ -36,6 +36,7 @@ const os = require('os');
 const path = require('path');
 const log = require('../../telemetry/log');
 const { buildAudioArgs, runFfmpeg } = require('../media/ffmpeg');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 const LOCAL_WHISPER_MODEL_ID = process.env.LOCAL_WHISPER_MODEL || 'Xenova/whisper-base';
 const LOCAL_WHISPER_DTYPE    = process.env.LOCAL_WHISPER_DTYPE   || 'q4';
@@ -81,7 +82,7 @@ async function getPipeline() {
                 if (env.backends?.onnx?.wasm) {
                     env.backends.onnx.wasm.numThreads = LOCAL_WHISPER_WASM_THREADS;
                 }
-            } catch (err) { log.debug('older versions: ignore', err); }
+            } catch (err) { fallback('core/voice/localWhisper:getPipeline', err); /* older versions: ignore */ }
 
             const transcriber = await pipeline(
                 'automatic-speech-recognition',
@@ -103,7 +104,7 @@ async function getPipeline() {
 let _inferenceChain = Promise.resolve();
 function runSerialized(fn) {
     const next = _inferenceChain.then(() => fn(), () => fn());
-    _inferenceChain = next.catch(() => {});
+    _inferenceChain = next.catch((e) => fallback('core/voice/localWhisper:runSerialized', e));
     return next;
 }
 
@@ -145,7 +146,7 @@ async function decodeAudioToFloat32(audioPath) {
         // unsupported codec) leaves a partial raw dump behind. At 16 kHz mono
         // float that is ~64 KB per audio-second — a long meeting failing on
         // every retry filled the pod's tmpfs.
-        try { await fs.promises.unlink(tmpRaw); } catch (err) { log.debug('never created', err); }
+        try { await fs.promises.unlink(tmpRaw); } catch (err) { bestEffort('core/voice/localWhisper:decodeAudioToFloat32', err); /* never created */ }
         throw err;
     }
 
@@ -271,7 +272,7 @@ async function transcribeLocally(audioPath, options = {}) {
  * doesn't pay the model-download latency. Safe to call unconditionally.
  */
 function warmLocalWhisper() {
-    getPipeline().catch(() => { /* already logged */ });
+    getPipeline().catch((e) => bestEffort('core/voice/localWhisper:warmLocalWhisper', e));
 }
 
 module.exports = {

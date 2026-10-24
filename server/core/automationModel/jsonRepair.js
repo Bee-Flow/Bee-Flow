@@ -31,6 +31,7 @@
 
 /** Strip a leading ```json / ``` fence and its closing fence, if both are there. */
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 function stripFence(text) {
     const t = String(text).trim();
@@ -103,7 +104,7 @@ function parseJsonish(text) {
     const direct = stripFence(text);
     try {
         return { ok: true, value: JSON.parse(direct), repaired: false };
-    } catch (err) { log.debug('fall through to the repair', err); }
+    } catch (err) { bestEffort('core/automationModel/jsonRepair:parseJsonish', err); /* fall through to the repair */ }
 
     try {
         return { ok: true, value: JSON.parse(escapeControlChars(direct)), repaired: true };

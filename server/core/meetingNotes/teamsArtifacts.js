@@ -27,6 +27,7 @@ const { parseTeamsVtt } = require('./teamsVtt');
 
 const { lazyDeps } = require('./lazyDeps');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** Collaborators; tests swap them through init(). */
 const { deps, init } = lazyDeps({
@@ -189,7 +190,7 @@ async function downloadRecordingToFile(session, { meetingId, recordingId, destPa
     if (!response.ok) throw await classifyGraphFailure(response, 'Downloading the Teams recording');
     const declared = Number(response.headers.get('content-length')) || 0;
     if (declared && declared > maxBytes) {
-        await response.body?.cancel?.().catch(() => {});
+        await response.body?.cancel?.().catch((e) => bestEffort('core/meetingNotes/teamsArtifacts:downloadRecordingToFile', e));
         throw codedError(`Recording is ${declared} bytes — exceeds the ${maxBytes} byte limit`, 'recording_too_large', 413);
     }
     if (!response.body) throw codedError('Microsoft Graph returned an empty recording', 'download_failed', 502);

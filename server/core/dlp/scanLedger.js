@@ -30,6 +30,7 @@ const { segmentText } = require('./segmentText');
 const { isCustomTypeId } = require('../privacy/customTypes/ids');
 const { displayNameFor } = require('../privacy/customTypes/registry');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Bump to invalidate every row: covers the marshalling AND the segmentation
 // rule, neither of which is otherwise visible in the key. The one-line rollback.
@@ -212,7 +213,7 @@ async function detectWithLedger(text, { categories, threshold, scope, detect } =
         }
     }
 
-    if (toWrite.length > 0) ledgerStore.putMany(toWrite).catch(() => { /* memoisation is best-effort */ });
+    if (toWrite.length > 0) ledgerStore.putMany(toWrite).catch((e) => bestEffort('core/dlp/scanLedger:detectWithLedger', e));
 
     return { entities, degraded, degradedReason, stats };
 }

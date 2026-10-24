@@ -28,6 +28,7 @@ const webpageStore = require('../../stores/webpageStore');
 // now with the runner and App Studio connectors — see core/enabledIntegrations.js.
 const { resolveEnabledIntegrations } = require('../integrations/enabledIntegrations');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 async function buildAuthorSession(authorUserId, authorUser) {
     const allEnabled = await resolveEnabledIntegrations(authorUserId, authorUser?.organizationId || null);
@@ -96,7 +97,7 @@ async function loadAuthorContext(webpageId) {
     const webpage = await webpageStore.getWebpageRaw(webpageId);
     if (!webpage) return null;
     const authorUserId = webpage.userId;
-    const authorUser = await userStore.getUser(authorUserId).catch(() => null);
+    const authorUser = await userStore.getUser(authorUserId).catch((e) => fallback('core/webpages/webpageBridgeAuth:loadAuthorContext', e, null));
     const authorSession = await buildAuthorSession(authorUserId, authorUser);
     const bridgeGrants = await webpageStore.getBridgeGrants(webpageId);
     return {

@@ -44,6 +44,7 @@ const tiers = require('../../license/tiers');
 const featureMap = require('../../license/featureMap');
 const { NC_INTEGRATIONS, NC_INTEGRATION_ID_SET } = require('../../utils/ncIntegrationCatalog');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const CapabilityKind = Object.freeze({
     CORE: 'core',
@@ -216,7 +217,7 @@ function setRemoteModuleCapabilityDescriptors(list) {
 async function refreshModuleCapabilityFilter() {
     try {
         await require('../../modules/index').refreshModuleActivations();
-    } catch (err) { log.debug('Modules runtime/store unavailable — keep whatever was last pushed.', err); }
+    } catch (err) { bestEffort('core/entitlements/capabilityRegistry:refreshModuleCapabilityFilter', err); /* Modules runtime/store unavailable — keep whatever was last pushed. */ }
 }
 
 /** Re-read mcpStore and project enabled servers as integration capabilities. */

@@ -10,6 +10,7 @@
  */
 const { sanitizeToolResult } = require('../../utils/sanitize');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Connection lending (GATED, default off): a shared agent run by another user
@@ -41,7 +42,7 @@ async function resolveLentIdentity({ toolName, agent, agentId, userId, userAuth,
             });
             if (ov) { effUserId = ov.integrationUserId; effOrgId = ov.integrationOrgId; lentConnection = ov; }
         }
-    } catch (err) { log.debug('fail closed to bring-your-own', err); }
+    } catch (err) { fallback('core/agentRuntime/chatWithAgentTools:resolveLentIdentity', err); /* fail closed to bring-your-own */ }
     return { effUserId, effOrgId, lentConnection };
 }
 

@@ -38,6 +38,7 @@ const safety = require('./safety');
 // Each outbound call runs in its own capture context (core/http/captureCall.js).
 const { captureCall: captured } = require('../http/captureCall');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // 1MB response cap — shared with codeSandbox's defaultFetchHttp bridge via
 // core/http/httpResponseLimits.js, so both outbound-HTTP surfaces (code step
@@ -173,7 +174,7 @@ async function dispatchHttp(step, ctx, runState, mode, call) {
             // so a retry refetches a fresh one. Deliberately NOT flagging the
             // connection needs_reauth — a target-API 401 is indistinguishable
             // from endpoint-side authorization rules.
-            try { evictToken(authConnectionId); } catch (err) { log.debug('best effort', err); }
+            try { evictToken(authConnectionId); } catch (err) { bestEffort('core/automationRunner/execHttpRequest:dispatchHttp', err); /* best effort */ }
         }
         // BFSF-436 — FAIL LOUDLY rather than silently returning a clipped,
         // invalid-JSON body under an ordinary `success`. This is why the

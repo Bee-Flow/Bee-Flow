@@ -17,6 +17,7 @@ const { authOfRow, libraryDefinition, sharedGrantFor, listOrgGrants, providerOf,
 
 const deps = require('./deps');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 const store = () => deps.store();
 const connStore = () => deps.connStore();
@@ -33,7 +34,7 @@ async function memberContext(req) {
     try {
         const snap = await entitlements().resolveEntitlements({ userId, orgId, session: req.session, req });
         effective = new Set((snap.effective && snap.effective.integration) || []);
-    } catch (err) { log.debug('nothing is usable when the resolver is down', err); }
+    } catch (err) { fallback('core/customIntegrations/mcpLibrary/members:memberContext', err); /* nothing is usable when the resolver is down */ }
     return { userId, orgId, effective };
 }
 
@@ -60,14 +61,14 @@ async function listForMember(req) {
         const d = libraryDefinition(row);
         const auth = authOfRow(row);
         const shared = sharedGrantFor(grants, row.id);
-        const own = await cs.getDefaultConnection(ctx.userId, providerOf(row.id)).catch(() => null);
+        const own = await cs.getDefaultConnection(ctx.userId, providerOf(row.id)).catch((e) => fallback('core/customIntegrations/mcpLibrary/members:listForMember', e, null));
         // The admin who lent the org its key holds that key as a connection
         // of their own; it is the organisation's key, not "theirs".
         const personal = own && own.status === 'active' && (!shared || own.id !== shared.connection_id);
         const entry = d.meta && d.meta.catalogId ? getCatalogEntry(d.meta.catalogId) : null;
         const cred = entry && entry.auth && entry.auth.credential;
         let host = null;
-        try { host = new URL(d.mcp.url).hostname; } catch (err) { log.debug('unknown', err); }
+        try { host = new URL(d.mcp.url).hostname; } catch (err) { fallback('core/customIntegrations/mcpLibrary/members:listForMember#2', err); /* unknown */ }
         servers.push({
             id: row.id,
             name: row.name,

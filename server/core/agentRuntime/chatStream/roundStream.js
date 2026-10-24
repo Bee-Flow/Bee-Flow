@@ -14,6 +14,7 @@
  */
 const terminationStore = require('../../../stores/terminationStore');
 const { isTruncatedStop } = require('../../llm/toolLoop');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * Stream one round. Writes the token counters and reasoning into `st` (see
@@ -68,7 +69,7 @@ async function streamRound({ st, req, terminationBaseRow, steps, ...turn }) {
     }
     thinking.text = _round._thinking;
     if (isTruncatedStop(_roundStopReason)) {
-        terminationStore.logTermination({ ...terminationBaseRow(), termination_type: 'max_tokens' }).catch(() => {});
+        terminationStore.logTermination({ ...terminationBaseRow(), termination_type: 'max_tokens' }).catch((e) => bestEffort('core/agentRuntime/chatStream/roundStream:streamRound', e));
     }
 
     return {

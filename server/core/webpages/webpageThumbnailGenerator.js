@@ -18,6 +18,7 @@ const { featureModule } = require('../featureModules');
 const crypto = require('crypto');
 const webpageStore = require('../../stores/webpageStore');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const DEBOUNCE_MS = 2000;
 const RENDER_TIMEOUT_MS = 15000;
@@ -65,7 +66,7 @@ ${scriptTag}
 }
 
 async function renderThumbnail({ userId, webpageId }) {
-    const wp = await webpageStore.getWebpage(webpageId, userId).catch(() => null);
+    const wp = await webpageStore.getWebpage(webpageId, userId).catch((e) => fallback('core/webpages/webpageThumbnailGenerator:renderThumbnail', e, null));
     if (!wp) return; // page was deleted before the render fired
     const slots = await webpageStore.readAllSlots(userId, webpageId);
     if (!slots.html && !slots.css && !slots.js) {

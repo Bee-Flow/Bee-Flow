@@ -19,6 +19,7 @@ const { pipeline } = require('stream/promises');
 // The Google client is injected by integrations/ (see ../integrations/integrationClients.js).
 const { integrationClient } = require('../integrations/integrationClients');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const NOT_CONNECTED_ERROR = 'Not connected to Google — user must log in with Google';
 
@@ -220,7 +221,7 @@ async function setAutoRecording(session, { meetingCode, enabled } = {}) {
         try {
             const space = await meet.spaces.get({ name });
             if (space.data?.name) name = space.data.name;
-        } catch (err) { log.debug('fall through — the patch below yields the classified error', err); }
+        } catch (err) { fallback('core/meetingNotes/gmeetArtifacts:setAutoRecording', err); /* fall through — the patch below yields the classified error */ }
         await meet.spaces.patch({
             name,
             updateMask: AUTO_RECORDING_MASK,

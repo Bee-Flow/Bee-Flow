@@ -18,6 +18,7 @@
 
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const FX_TTL_MS = 5 * 60_000;
 const FX_STALE_TTL_MS = 24 * 60 * 60_000; // last-good rate retained for 24h
@@ -106,7 +107,7 @@ async function getUsdToCurrencyRate(targetCurrency, opts = {}) {
  * keys that don't look like valid 3-letter currency codes.
  */
 async function getAllConfiguredRates() {
-    const keys = await configStore.listKeysWithPrefix('currency_fx_usd_').catch(() => null);
+    const keys = await configStore.listKeysWithPrefix('currency_fx_usd_').catch((e) => fallback('core/text/currency:getAllConfiguredRates', e, null));
     if (Array.isArray(keys)) {
         const out = {};
         for (const k of keys) {

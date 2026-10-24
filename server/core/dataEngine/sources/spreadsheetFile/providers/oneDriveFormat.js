@@ -12,6 +12,7 @@
 const { formulaShaped } = require('../cells');
 const { formatOf } = require('./index');
 const log = require('../../../../../telemetry/log');
+const { fallback } = require('../../../../../utils/bestEffort');
 
 const provider = 'onedrive';
 const oauthProvider = 'microsoft';
@@ -89,7 +90,7 @@ function pathOf(item) {
     const idx = raw.indexOf(':');
     const folder = idx >= 0 ? raw.slice(idx + 1) : '';
     let decoded = folder;
-    try { decoded = decodeURIComponent(folder); } catch (err) { log.debug('keep raw', err); }
+    try { decoded = decodeURIComponent(folder); } catch (err) { fallback('core/dataEngine/sources/spreadsheetFile/providers/oneDriveFormat:pathOf', err); /* keep raw */ }
     return `${decoded.replace(/\/$/, '')}/${item.name || ''}`;
 }
 

@@ -12,6 +12,7 @@ const { usageLogFields } = require('../providers/usageNormalizer');
 const { COLLECTION_OP_MAX_ITEMS } = require('./shared');
 const { resolveArrayRef, skippedArrayRef } = require('./execCollections');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── n8n-style utility steps ─────────────────────────────
 //
@@ -547,7 +548,7 @@ async function execParseJson(step, ctx, runState, mode) {
             conversation_id: ctx.automationId,
             // Normalised by the adapter (cache read/write included).
             ...usageLogFields(result.usage),
-        }).catch(() => {});
+        }).catch((e) => bestEffort('core/automationRunner/execData:execParseJson', e));
     } catch (_) { log.warn('could not record AI usage of the data step', _); }
 
     const piiSummary = safety.buildPiiSummary(aiOut.categories || []);

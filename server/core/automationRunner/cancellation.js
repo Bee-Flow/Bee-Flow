@@ -20,6 +20,7 @@
 
 const automationStore = require('../../stores/automationStore');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 const ACTIVE_RUNS = new Map();
 
@@ -44,10 +45,10 @@ function getActiveController(runId) {
  * run is local.
  */
 async function requestCancel(runId) {
-    const updated = await automationStore.requestCancelRun(runId).catch(() => null);
+    const updated = await automationStore.requestCancelRun(runId).catch((e) => fallback('core/automationRunner/cancellation:requestCancel', e, null));
     const ctrl = ACTIVE_RUNS.get(runId);
     if (ctrl) {
-        try { ctrl.abort(); } catch (err) { log.debug('abort is idempotent', err); }
+        try { ctrl.abort(); } catch (err) { bestEffort('core/automationRunner/cancellation:requestCancel#2', err); /* abort is idempotent */ }
     }
     return updated;
 }

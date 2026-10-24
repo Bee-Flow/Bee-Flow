@@ -21,6 +21,7 @@
  * @returns {Promise<{ ran: true, value: T } | { ran: false }>}
  */
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 async function withNamedLock(pool, name, fn) {
     const client = await pool.connect();
@@ -31,7 +32,7 @@ async function withNamedLock(pool, name, fn) {
         if (!acquired) return { ran: false };
         return { ran: true, value: await fn(client) };
     } finally {
-        try { if (acquired) await client.query('SELECT pg_advisory_unlock(hashtext($1))', [name]); } catch (err) { log.debug('best-effort', err); }
+        try { if (acquired) await client.query('SELECT pg_advisory_unlock(hashtext($1))', [name]); } catch (err) { bestEffort('core/scheduling/namedLock:withNamedLock', err); /* best-effort */ }
         client.release();
     }
 }

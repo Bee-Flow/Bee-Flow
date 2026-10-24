@@ -34,6 +34,7 @@ const BaseProvider = require('./base');
 const { LOCAL_RUNTIMES, describeLocalModel, rememberLocalContextWindow } = require('./localModels');
 const { projectToolsForTemplate } = require('../llm/toolSchemaProjection');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // Discovery is a handful of HTTP calls against a box that might not be up.
 // Keep the ceilings low so an unreachable endpoint degrades to "0 models"
@@ -616,7 +617,7 @@ class LocalProvider extends BaseProvider {
         try {
             const props = await this._getJson(`${root}/props`, this.getHeaders(apiKey), RUNTIME_PROBE_TIMEOUT_MS);
             if (props && (props.build_info !== undefined || props.chat_template !== undefined)) runtime = "llamacpp";
-        } catch (err) { log.debug('not llama-server, or not up — either way: send nothing extra', err); }
+        } catch (err) { fallback('core/providers/local:LocalProvider._runtimeFor', err); /* not llama-server, or not up — either way: send nothing extra */ }
         runtimeByRoot.set(root, runtime);
         return runtime;
     }
@@ -822,7 +823,7 @@ class LocalProvider extends BaseProvider {
                     if (!res.ok) continue;
                     const data = /** @type {{ capabilities?: string[] }} */ (await res.json());
                     if (Array.isArray(data?.capabilities)) out.set(entry.id, data.capabilities);
-                } catch (err) { log.debug('keep the pattern guess for this one', err); }
+                } catch (err) { bestEffort('core/providers/local:worker', err); /* keep the pattern guess for this one */ }
             }
         };
         await Promise.all(
@@ -868,7 +869,7 @@ class LocalProvider extends BaseProvider {
             try {
                 const v = await this._getJson(`${this._root(baseUrl)}/api/version`, headers, DETAIL_TIMEOUT_MS);
                 result.version = v?.version || null;
-            } catch (err) { log.debug('version is decoration, not the health signal', err); }
+            } catch (err) { fallback('core/providers/local:LocalProvider.probe', err); /* version is decoration, not the health signal */ }
         }
 
         try {

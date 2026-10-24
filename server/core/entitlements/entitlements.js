@@ -48,6 +48,7 @@ const { CapabilityKind: KIND } = registry;
 const { buildKey } = require('../../utils/buildInfo');
 const _metrics = require('../../telemetry/httpMetrics');
 const { recordFeatureGate } = require('../../telemetry/metrics');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 const UPGRADE_URL = process.env.LICENSE_UPGRADE_URL || 'https://beeflow.nl/pricing';
 const RESOLUTION_CACHE_TTL_MS = parseInt(process.env.ENTITLEMENT_CACHE_TTL_MS || '30000', 10);
@@ -303,7 +304,7 @@ async function consumerBetaAllow(_userId) {
         const cfg = await configStore().getConfig('default_consumer_beta_features');
         if (Array.isArray(cfg)) return cfg;
         if (typeof cfg === 'string') { try { return JSON.parse(cfg); } catch (_) { return []; } }
-    } catch (err) { log.debug('none', err); }
+    } catch (err) { bestEffort('core/entitlements/entitlements:consumerBetaAllow', err); /* none */ }
     return [];
 }
 
@@ -526,7 +527,7 @@ async function resolveEntitlements({ userId = null, orgId = null, session = null
             const u = (session?.user?.id === userId && session.user.organizationId)
                 ? session.user : await userStore().getUser(userId);
             orgId = u?.organizationId || null;
-        } catch (err) { log.debug('genuine consumer / lookup failure → stay null', err); }
+        } catch (err) { fallback('core/entitlements/entitlements:resolveEntitlements', err); /* genuine consumer / lookup failure → stay null */ }
     }
 
     const tc = await resolveTierContext({ userId, orgId, session, req, tierHint });

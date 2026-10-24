@@ -31,6 +31,7 @@ const { getSpaceByMeetingCode, findConferenceRecord, findGeneratedRecording } = 
 const { ingestGmeetRecording } = require('./ingestGmeetRecording');
 const log = require('../../telemetry/log');
 const kit = require('./importJobKit');
+const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 const { codedError, backoffMsFor, meetingEndMs } = kit;
 
@@ -229,7 +230,7 @@ async function resolveDuplicate(job, conferenceRecordName) {
     await gmeetImportStore.updateJob(job.id, { status: 'duplicate', errorCode: null });
     const sourceUri = `gmeet://${job.orgId || `user:${job.userId}`}/${conferenceRecordName}`;
     const existing = await require('../../stores/transcriptionStore')
-        .getTranscriptionBySourceUri(sourceUri).catch(() => null);
+        .getTranscriptionBySourceUri(sourceUri).catch((e) => fallbackSwallowed('core/meetingNotes/gmeetAutoImport:resolveDuplicate', e, null));
     if (existing) {
         await gmeetImportStore.updateJob(job.id, { transcriptionId: existing.id });
         return { transcription: existing };

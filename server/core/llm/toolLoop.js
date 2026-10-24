@@ -21,6 +21,7 @@
 // (llama.cpp, vLLM, Ollama) say 'length', Anthropic 'max_tokens', the OpenAI
 // Responses API 'max_output_tokens', Google 'MAX_TOKENS'.
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const TRUNCATION_STOP_REASONS = new Set(['length', 'max_tokens', 'max_output_tokens', 'MAX_TOKENS']);
 
@@ -124,7 +125,7 @@ function providerErrorExcerpt(message, max = 240) {
         const j = JSON.parse(body);
         const inner = j && (j.error?.message || j.message || j.error);
         if (typeof inner === 'string' && inner.trim()) text = inner;
-    } catch (err) { log.debug('not JSON — use the raw tail', err); }
+    } catch (err) { fallback('core/llm/toolLoop:providerErrorExcerpt', err); /* not JSON — use the raw tail */ }
     text = text.replace(/\s+/g, ' ').trim();
     return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }

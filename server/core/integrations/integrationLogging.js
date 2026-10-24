@@ -29,6 +29,7 @@
 
 const { encodeCategories } = require('../privacy/piiCategories');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // Stores, lazily required (each one opens the DB pool when loaded). Tests
 // swap them through __setDepsForTests instead of reaching into the module cache.
@@ -47,7 +48,7 @@ const GLINER_SCAN_CAP = 5000;        // default single-call GLiNER slice (caller
 const _pending = new Set();
 function _track(promise) {
     _pending.add(promise);
-    promise.catch(() => {}).finally(() => _pending.delete(promise));
+    promise.catch((e) => fallback('core/integrations/integrationLogging:_track', e)).finally(() => _pending.delete(promise));
     return promise;
 }
 
@@ -125,7 +126,7 @@ async function _resolveIntegrationCtx({ userId, orgId, session, toolName = null 
         if (userId && typeof configStore.getSecret === 'function') {
             ctx.youtrackUrl = (await configStore.getSecret(`youtrack_url_user_${userId}`)) || null;
         }
-    } catch (err) { log.debug('endpoint resolution is best-effort', err); }
+    } catch (err) { fallback('core/integrations/integrationLogging:_resolveIntegrationCtx', err); /* endpoint resolution is best-effort */ }
     _ctxCache.set(key, { ctx, at: Date.now() });
     if (_ctxCache.size > 500) _ctxCache.delete(_ctxCache.keys().next().value);
     return { ...ctx, ...custom };
@@ -247,7 +248,7 @@ function logToolEgress(o) {
                     const { scanOutputForPii } = require('./integrationToolMap');
                     const quick = scanOutputForPii(payloadText);
                     if (quick) categories.push(...quick.split(','));
-                } catch (err) { log.debug('sniff is best-effort', err); }
+                } catch (err) { fallback('core/integrations/integrationLogging:logToolEgress', err); /* sniff is best-effort */ }
                 try {
                     const threshold = typeof shield?.piiDetectionConfidenceThreshold === 'number'
                         ? shield.piiDetectionConfidenceThreshold : 0.7;
@@ -265,7 +266,7 @@ function logToolEgress(o) {
                             categories.push(e.category || e.label);
                         }
                     }
-                } catch (err) { log.debug('GLiNER unavailable → stay at \'basic\'', err); }
+                } catch (err) { fallback('core/integrations/integrationLogging:logToolEgress#2', err); /* GLiNER unavailable → stay at 'basic' */ }
             }
 
             const probe = _probeForRow(o.probe, o.toolName, meta, !!o.blocked);

@@ -20,6 +20,7 @@
 
 const crypto = require('node:crypto');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /** Texts per request. The service accepts 32; 16 keeps one request short. */
 const BATCH_SIZE = 16;
@@ -127,7 +128,7 @@ async function _request(url, { method = 'POST', body, apiKey, signal }) {
         signal,
     });
     let json = null;
-    try { json = await res.json(); } catch (err) { log.debug('a non-JSON body is read as no body', err); }
+    try { json = await res.json(); } catch (err) { fallback('core/classify/classifierClient:_request', err); /* a non-JSON body is read as no body */ }
     return { status: res.status, json };
 }
 

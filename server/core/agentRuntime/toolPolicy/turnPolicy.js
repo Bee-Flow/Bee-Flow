@@ -17,6 +17,7 @@ const { toolsConfigOf, CONFIRM_MODES } = require('./configShape');
 const { hasCuratedGrants } = require('./grantResolution');
 const { confirmForTool } = require('./confirmation');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 /**
  * Turn an assembled tool stack into the per-turn policy the round executor
@@ -198,7 +199,7 @@ function fallbackToolPolicy({ agentConfig, tools, unattended = false, automation
         try {
             effect = effectOf(name) || 'writes';
             confirm = confirmForTool(name, toolsConfig, confirmOpts);
-        } catch (err) { log.debug('keep the fail-closed pair above', err); }
+        } catch (err) { fallback('core/agentRuntime/toolPolicy/turnPolicy:fallbackToolPolicy', err); /* keep the fail-closed pair above */ }
         confirmByTool.set(name, confirm);
         effectByTool.set(name, effect);
         if (confirm === 'ask') gatedTools.add(name);

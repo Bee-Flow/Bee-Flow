@@ -13,6 +13,7 @@ const testChatMod = require('../testChat');
 const { sanitizeMessages } = require('../../../utils/messageUtils');
 const { retryStreamCall } = require('../streamRetry');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 /** The OpenAI-compatible request body for this round. */
 function buildRawRequestBody({ agentId, modelToUse, conversation, tools, _forceFinalAnswer, effectiveSystemPrompt, effectiveVolatilePrompt, finalMessages, tierSettings }, d) {
@@ -190,7 +191,7 @@ async function logRawUsage({ agent, agentId, userId, modelToUse, messageMetadata
             organization_id: agent.organization_id || null,
             conversation_id: conversation?.id || null,
         });
-    } catch (e) { log.debug('ignore usage errors', e); }
+    } catch (e) { bestEffort('core/agentRuntime/chatStream/rawSseParts:logRawUsage', e); /* ignore usage errors */ }
 }
 
 module.exports = { buildRawRequestBody, fetchRawStream, applySseFrame, logRawUsage };

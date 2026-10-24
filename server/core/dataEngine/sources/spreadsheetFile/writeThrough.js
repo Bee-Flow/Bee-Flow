@@ -112,6 +112,7 @@ const identity = require('./identity');
 const log = require('../../../../telemetry/log');
 const { ROW_MISSING, currentColumns, sameValue, writeFile, scratchOf } = require('./writeThroughFile');
 const { toWire, localValuesFor, keyMoveOf, moveCopy, renumber } = require('./writeThroughMove');
+const { bestEffort } = require('../../../../utils/bestEffort');
 
 function linkerAuth() { return require('./linkerAuth'); }
 
@@ -239,7 +240,7 @@ async function updateRows(ctx, list, opts = {}) {
             try {
                 const newId = it && keyMoveOf(c, it.id, it.values);
                 if (newId) moves.set(it.id, newId);
-            } catch (err) { log.debug('the shared half reports (or collects) the refusal itself', err); }
+            } catch (err) { bestEffort('core/dataEngine/sources/spreadsheetFile/writeThrough:updateRows', err); /* the shared half reports (or collects) the refusal itself */ }
         }
     }
     const out = await shared.updateRows(c, items, opts);

@@ -15,6 +15,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 function createBuildToolHint({ lazy }) {
     /**
@@ -142,7 +143,7 @@ function createBuildToolHint({ lazy }) {
                     if (!row || !row.name) continue;
                     integrations.push(`${row.name} (custom org integration: ${toolNames.join(', ')})`);
                 }
-            } catch (err) { log.debug('fail soft — hint only, the tools themselves still work', err); }
+            } catch (err) { fallback('core/integrations/toolHint:buildToolHint', err); /* fail soft — hint only, the tools themselves still work */ }
         }
 
         let hint = ' You have access to tools — use them when they would help answer the user\'s question. You can call multiple tools in parallel when appropriate.';

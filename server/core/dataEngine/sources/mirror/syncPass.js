@@ -25,6 +25,7 @@ const { isSourceError } = require('./errors');
 const staleness = require('./staleness');
 const C = require('./constants');
 const log = require('../../../../telemetry/log');
+const { fallback } = require('../../../../utils/bestEffort');
 
 /** The declared (match) relations, with what the adapter needs to name their column. */
 function declaredOf(source, siblings) {
@@ -253,7 +254,7 @@ async function recordFailure(adapter, table, e, { prev, schedule, reason, starte
         consecutiveErrors,
         lastReason: reason,
         durationMs: Date.now() - startedAt,
-    }).catch(() => null);
+    }).catch((e) => fallback('core/dataEngine/sources/mirror/syncPass:recordFailure', e, null));
     if (!isSourceError(e) && !(e && e.status)) {
         log.warn(`${TAG} refresh of ${table.id} failed (${reason}): ${e && e.message}`);
     }

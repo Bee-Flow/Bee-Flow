@@ -51,6 +51,7 @@
 const datatableStore = require('../../../../stores/datatableStore');
 const { KIND } = require('./index');
 const log = require('../../../../telemetry/log');
+const { fallback } = require('../../../../utils/bestEffort');
 
 const PROVIDER = 'nextcloud_files';
 const FILE_EVENTS = new Set(['file.changed', 'file.new', 'file.deleted', 'file.renamed', 'file.restored', 'file.copied']);
@@ -78,7 +79,7 @@ async function onFileEvent({ orgId, event, payload, actorUserId = null }) {
             }
             await stale(mirror, 'event');
             out.kicked += 1;
-        } catch (err) { log.debug('the ticker will', err); }
+        } catch (err) { fallback('core/dataEngine/sources/spreadsheetFile/events:onFileEvent', err); /* the ticker will */ }
     }
     return out;
 }
@@ -164,7 +165,7 @@ async function onProviderHint({ provider, userId }) {
         try {
             await stale(mirror, 'event');
             out.kicked += 1;
-        } catch (err) { log.debug('the ticker will', err); }
+        } catch (err) { fallback('core/dataEngine/sources/spreadsheetFile/events:onProviderHint', err); /* the ticker will */ }
     }
     return out;
 }

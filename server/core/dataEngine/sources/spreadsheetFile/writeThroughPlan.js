@@ -8,6 +8,7 @@ const { readCell, isBlank } = require('./cells');
 const identity = require('./identity');
 const { fieldsByIdOf } = require('./rows');
 const log = require('../../../../telemetry/log');
+const { bestEffort } = require('../../../../utils/bestEffort');
 
 /**
  * Internal: "this row is not in the sheet". The shared half turns it into
@@ -38,7 +39,7 @@ async function flagBehind(ctx, reason) {
         await datatableStore.markSourceStale(ctx.table.id, reason);
         const fresh = await datatableStore.getDatatable(ctx.table.id, ctx.scope);
         if (fresh) syncModule().kickStale(fresh, { reason, delayMs: 0 });
-    } catch (err) { log.debug('best effort: the next tick or pulse re-checks anyway', err); }
+    } catch (err) { bestEffort('core/dataEngine/sources/spreadsheetFile/writeThroughPlan:flagBehind', err); /* best effort: the next tick or pulse re-checks anyway */ }
 }
 
 function rowMissing(rowId) {

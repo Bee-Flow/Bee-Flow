@@ -1,5 +1,6 @@
 'use strict';
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * "Test as · group Sales" — the agent editor's preview of somebody else's view.
@@ -181,7 +182,7 @@ async function listSimulatableGroups({ userId, orgIds, deps = {} } = {}) {
     try {
         [all, ownGroups] = await Promise.all([
             getAllGroups(),
-            resolveUserGroups(userId).catch(() => []),
+            resolveUserGroups(userId).catch((e) => fallback('core/agentRuntime/testAs:listSimulatableGroups', e, [])),
         ]);
     } catch (e) {
         log.error('[TestAs] could not list groups:', e.message);

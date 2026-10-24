@@ -17,6 +17,7 @@
 
 const { runTimeoutMsFor } = require('./runPolicy');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /**
  * @returns {Promise<{ runResult, runErrorObj, runErrorMsg, runStatus, wasCancelled }>}
@@ -70,7 +71,7 @@ async function raceRunDag(deps, {
     let dagDone = false;
     const dagPromise = runDag(automation.definition || {}, ctx, runState, effectiveMode, dispatchStep, { recordSteps: true, skipUntilStepId, onlyStepId, fromStepId, untilStepId, rootStepId, replayGaps });
     dagPromise.then(() => { dagDone = true; }, () => { dagDone = true; });
-    const dagSettled = dagPromise.catch(() => {}); // swallow the late rejection once the race has already taken it
+    const dagSettled = dagPromise.catch((e) => fallback('core/automationRunner/runDeadline:raceRunDag', e)); // swallow the late rejection once the race has already taken it
     const guard = new Promise((_, reject) => {
         const arm = () => {
             const ms = deadlineAt - Date.now();
@@ -82,7 +83,7 @@ async function raceRunDag(deps, {
         };
         arm();
     });
-    guard.catch(() => {}); // never an unhandled rejection
+    guard.catch((e) => bestEffort('core/automationRunner/runDeadline:raceRunDag#2', e)); // never an unhandled rejection
     // Abort signal also rejects the race, so the cancel endpoint can stop
     // the run even when the runDag promise is awaiting a long upstream call.
     const cancelGuard = new Promise((_, reject) => {
@@ -90,7 +91,7 @@ async function raceRunDag(deps, {
         if (cancelSignal.aborted) onAbort();
         else cancelSignal.addEventListener('abort', onAbort, { once: true });
     });
-    cancelGuard.catch(() => {}); // finally may abort() and reject this with no live race handler
+    cancelGuard.catch((e) => bestEffort('core/automationRunner/runDeadline:raceRunDag#3', e)); // finally may abort() and reject this with no live race handler
 
     try {
         runResult = await Promise.race([dagPromise, guard, cancelGuard]);
@@ -117,7 +118,7 @@ async function raceRunDag(deps, {
         // (dagDone), so we must NOT abort — that would falsely trip the §WS2.3
         // cancel re-check below.
         if (!dagDone) {
-            try { cancelController.abort(); } catch (err) { log.debug('noop', err); }
+            try { cancelController.abort(); } catch (err) { bestEffort('core/automationRunner/runDeadline:raceRunDag#4', err); /* noop */ }
             await dagSettled;
         }
         if (timeoutTimer) clearTimeout(timeoutTimer);

@@ -24,6 +24,7 @@
 
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // ── Config keys ──────────────────────────────────────────────────────
 const KEY_URL       = 'cms_analytics_url';
@@ -217,7 +218,7 @@ async function listWebsites() {
 async function ensureWebsite({ name, domain }) {
     const cleanDomain = (domain || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
     if (cleanDomain) {
-        const existing = await listWebsites().catch(() => []);
+        const existing = await listWebsites().catch((e) => fallback('core/cms/umamiClient:ensureWebsite', e, []));
         const match = existing.find(w => (w.domain || '').trim().toLowerCase() === cleanDomain);
         if (match?.id) return match.id;
     }

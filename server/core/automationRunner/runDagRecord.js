@@ -17,6 +17,7 @@ const { isRunPause } = require('./execApproval');
 const { notePublicValues, publicValuesFor } = require('./publicValues');
 const { toolIdentity } = require('./toolIdentity');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 /** Whether this walk writes run-step rows (re-read at every use, as ctx may change). */
 function isRecording(recordSteps, ctx) {
@@ -52,7 +53,7 @@ async function recordStepStarted(step, ctx, branchIndex) {
         output: null,
         error: null,
         branchIndex,
-    }).catch(() => { /* progress is a nicety; never fail a run on it */ });
+    }).catch((e) => bestEffort('core/automationRunner/runDagRecord:recordStepStarted', e));
 }
 
 /**
@@ -132,7 +133,7 @@ async function recordHandledError(stepErr, errorClass, step, { ctx, runState, br
             branchIndex,
             secretValues: secretValuesFor(runState),
         });
-    } catch (err) { log.debug('best-effort log', err); }
+    } catch (err) { bestEffort('core/automationRunner/runDagRecord:recordHandledError', err); /* best-effort log */ }
     ctx.emitLifecycle?.('step.finished', {
         stepId: recordedStepId(ctx, step), status: 'handled_error',
     });
@@ -230,7 +231,7 @@ async function piiSummaryFor(step, dispatched, recordedStatus, ctx) {
     let piiSummary = dispatched.piiSummary || null;
     if (!piiSummary && ctx.builderRun && recordedStatus === 'success' && dispatched.output != null
         && !PII_RESCAN_EXEMPT_TYPES.has(step.type)) {
-        try { piiSummary = await safety.scanOutputForPiiSummary(dispatched.output, ctx); } catch (err) { log.debug('never fail a run on it', err); }
+        try { piiSummary = await safety.scanOutputForPiiSummary(dispatched.output, ctx); } catch (err) { fallback('core/automationRunner/runDagRecord:piiSummaryFor', err); /* never fail a run on it */ }
     }
     return piiSummary;
 }

@@ -36,6 +36,7 @@
  */
 
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const CATEGORIES = Object.freeze(['development', 'data', 'docs', 'payments', 'automation', 'observability']);
 
@@ -246,7 +247,7 @@ function officialHosts() {
     const hosts = new Set();
     for (const e of REMOTE_CATALOG) {
         if (e.selfHosted) continue;
-        try { hosts.add(new URL(e.url).hostname.toLowerCase()); } catch (err) { log.debug('a broken entry is simply not official', err); }
+        try { hosts.add(new URL(e.url).hostname.toLowerCase()); } catch (err) { bestEffort('core/customIntegrations/mcpLibrary/catalog:officialHosts', err); /* a broken entry is simply not official */ }
     }
     return hosts;
 }

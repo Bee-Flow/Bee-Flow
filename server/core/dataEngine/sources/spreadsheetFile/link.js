@@ -63,6 +63,7 @@ const { wireRef } = require('./linkRef');
 const { applySettings } = require('./linkSettings');
 const { storageLimiter, spendStorageBudget, relink } = require('./linkRelink');
 const { clampHeaderRow, cellText, openForCaller, sourceBlock, planTable } = require('./linkPlan');
+const { fallback, bestEffort } = require('../../../../utils/bestEffort');
 
 const TAG = '[SpreadsheetFile]';
 const MAX_TABLES_PER_LINK = 10;
@@ -202,7 +203,7 @@ async function linkSpreadsheets({ scope, principal, session, tables, relations =
     }
 
     const d = deps();
-    const org = principal.orgId ? await d.userStore.getOrganization(principal.orgId).catch(() => null) : null;
+    const org = principal.orgId ? await d.userStore.getOrganization(principal.orgId).catch((e) => fallback('core/dataEngine/sources/spreadsheetFile/link:linkSpreadsheets', e, null)) : null;
     const ncInstanceId = org ? (org.nc_instance_id || org.ncInstanceId || null) : null;
 
     // ── create every table, empty ───────────────────────────────────
@@ -249,7 +250,7 @@ function setRelations(datatable, relations) {
 /** DELETE /:id: the mirror is gone; forget what was held about the link. */
 async function unlinked(table) {
     const source = (table && table.source) || {};
-    try { require('./linkerAuth').forget(source.linkedByUserId); } catch (err) { log.debug('memo only', err); }
+    try { require('./linkerAuth').forget(source.linkedByUserId); } catch (err) { bestEffort('core/dataEngine/sources/spreadsheetFile/link:unlinked', err); /* memo only */ }
     const file = source.file || {};
     cache.forget(`${source.provider}|${source.provider === 'nextcloud_files' ? (file.path || '') : (file.id || '')}`);
 }

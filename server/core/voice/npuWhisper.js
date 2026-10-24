@@ -38,6 +38,7 @@ const path = require('path');
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
 const { buildAudioArgs, runFfmpeg } = require('../media/ffmpeg');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 // The server runs in Docker; the NPU service is a host systemd unit
 // (flm-npu.service), so the default reaches back out to the host.
@@ -119,7 +120,7 @@ async function decodeToWav(audioPath) {
     try {
         await runFfmpeg(decodeArgs(audioPath, tmp));
     } catch (err) {
-        try { fs.unlinkSync(tmp); } catch (err) { log.debug('never created', err); }
+        try { fs.unlinkSync(tmp); } catch (err) { bestEffort('core/voice/npuWhisper:decodeToWav', err); /* never created */ }
         throw err;
     }
     return tmp;
@@ -255,7 +256,7 @@ async function transcribeChunk(base, model, wavBuffer, language, index) {
 let _chain = Promise.resolve();
 function runSerialized(fn) {
     const next = _chain.then(() => fn(), () => fn());
-    _chain = next.catch(() => {});
+    _chain = next.catch((e) => fallback('core/voice/npuWhisper:runSerialized', e));
     return next;
 }
 

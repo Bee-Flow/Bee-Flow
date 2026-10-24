@@ -21,6 +21,7 @@
 
 const { ORG_EXEMPT_APPS, AUTO_ENABLED_APPS } = require('./integrationAppPolicy');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 function createRuntimeAppGate({ configStore, resolveOrgAllowList, resolveOrgActiveSet, lazy }) {
     /**
@@ -64,7 +65,7 @@ function createRuntimeAppGate({ configStore, resolveOrgAllowList, resolveOrgActi
         try {
             const cat = require('./ncIntegrationCatalog');
             ncIdSet = cat.NC_INTEGRATION_ID_SET || new Set(cat.NC_INTEGRATION_IDS || []);
-        } catch (_) { log.debug('integration catalog unavailable, no Nextcloud ids to gate', _); }
+        } catch (_) { fallback('core/integrations/runtimeAppGate:resolveRuntimeAppGate', _); /* integration catalog unavailable, no Nextcloud ids to gate */ }
         try {
             const userStore = lazy.userStore();
             const currentUser = await userStore.getUser(userId);

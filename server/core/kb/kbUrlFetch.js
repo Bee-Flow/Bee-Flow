@@ -3,6 +3,7 @@ const dns = require('dns').promises;
 const net = require('net');
 const { isForbiddenAddress } = require('../http/ssrfGuard');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 /**
  * SSRF guard — reject any URL that resolves to a private, loopback,
@@ -205,7 +206,7 @@ async function fetchWithPlaywright(url, opts = {}) {
                     try {
                         const buf = await page.screenshot({ type: 'jpeg', quality: 50, timeout: 2000 });
                         opts.onFrame(buf.toString('base64'));
-                    } catch (err) { log.debug('mid-navigation or page closed — skip this tick', err); }
+                    } catch (err) { bestEffort('core/kb/kbUrlFetch:fetchWithPlaywright', err); /* mid-navigation or page closed — skip this tick */ }
                     finally { capturing = false; }
                 }, 350);
             }
@@ -235,17 +236,17 @@ async function fetchWithPlaywright(url, opts = {}) {
 
                 // Best-effort settle for JS-rendered content; don't fail the
                 // whole fetch just because the page never goes fully idle.
-                await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
+                await page.waitForLoadState('networkidle', { timeout: 8000 }).catch((e) => bestEffort('core/kb/kbUrlFetch:fetchWithPlaywright#2', e));
 
                 const resolvedUrl = page.url();
                 let resolvedHost = '';
-                try { resolvedHost = new URL(resolvedUrl).hostname; } catch (err) { log.debug('keep empty', err); }
+                try { resolvedHost = new URL(resolvedUrl).hostname; } catch (err) { fallback('core/kb/kbUrlFetch:fetchWithPlaywright#3', err); /* keep empty */ }
                 if (isPrivateHostname(resolvedHost) || isPrivateIp(resolvedHost)) {
                     throw new Error(`Navigation resolved to a private/internal address (${resolvedHost})`);
                 }
 
                 if (opts.waitForSelector) {
-                    await page.waitForSelector(opts.waitForSelector, { timeout: 5000 }).catch(() => {});
+                    await page.waitForSelector(opts.waitForSelector, { timeout: 5000 }).catch((e) => bestEffort('core/kb/kbUrlFetch:fetchWithPlaywright#4', e));
                 }
 
                 // Additional wait for late-rendering SPAs

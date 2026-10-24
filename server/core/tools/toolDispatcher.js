@@ -17,6 +17,7 @@ const { dispatchToToolFamily, getToolFamily } = require('./toolFamilyRegistry');
 const { registerBuiltinToolFamilies } = require('./builtinToolFamilies');
 const log = require('../../telemetry/log');
 const { createEgressChokepoint } = require('./toolEgress');
+const { bestEffort } = require('../../utils/bestEffort');
 
 registerBuiltinToolFamilies();
 
@@ -155,7 +156,7 @@ function unloadedGroupHint(toolName) {
         if (grp) {
             return { error: `Tool "${toolName}" belongs to the "${grp}" group, which isn't loaded yet. Call load_tools({groups:["${grp}"]}) first, then call this tool.` };
         }
-    } catch (err) { log.debug('non-fatal — fall through to component lookup', err); }
+    } catch (err) { bestEffort('core/tools/toolDispatcher:unloadedGroupHint', err); /* non-fatal — fall through to component lookup */ }
     return null;
 }
 

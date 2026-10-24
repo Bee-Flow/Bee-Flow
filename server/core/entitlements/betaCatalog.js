@@ -7,6 +7,7 @@
  * it without closing an import loop. betaFeatures.js re-exports all of it.
  */
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ──────────────────────────────────────────────
 // Beta Feature Registry
@@ -129,7 +130,7 @@ function getFeatureLifecycle(featureOrId) {
                 log.warn(`[BetaFeatures] '${f.id}' sunsets in ${days} day(s) (${f.sunsetDate}). Schedule removal.`);
             }
         }
-    } catch (err) { log.debug('never block boot for a banner', err); }
+    } catch (err) { bestEffort('core/entitlements/betaCatalog:anon', err); /* never block boot for a banner */ }
 })();
 
 // ── Remote-module beta features ────────────────────────────────────────────

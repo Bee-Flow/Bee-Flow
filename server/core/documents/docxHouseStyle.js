@@ -17,6 +17,7 @@
  */
 
 const houseStyleStore = require('../../stores/houseStyleStore');
+const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 /** resolveHouseStyle's answer for an explicit id that names no style of this org. */
 const NO_SUCH_STYLE = Symbol('no such house style');
@@ -42,11 +43,11 @@ async function resolveHouseStyle(orgId, id) {
     if (id === 'none') return null;
     if (id) {
         if (!orgId) return NO_SUCH_STYLE;
-        const style = await houseStyleStore.getById(id, orgId).catch(() => null);
+        const style = await houseStyleStore.getById(id, orgId).catch((e) => fallbackSwallowed('core/documents/docxHouseStyle:resolveHouseStyle', e, null));
         return style || NO_SUCH_STYLE;
     }
     if (!orgId) return null;
-    return await houseStyleStore.getDefaultForOrg(orgId).catch(() => null);
+    return await houseStyleStore.getDefaultForOrg(orgId).catch((e) => fallbackSwallowed('core/documents/docxHouseStyle:resolveHouseStyle#2', e, null));
 }
 
 /**

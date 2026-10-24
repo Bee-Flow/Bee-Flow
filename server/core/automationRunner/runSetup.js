@@ -20,6 +20,7 @@ const { automationForRun, isTestRun } = require('./definitionForRun');
 // definition.vars, and whether an automation is managed by a stage.
 const { runVarsFor, isManagedAutomation } = require('./stageVars');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Which organisation a run belongs to: the automation's own, else its OWNER's.
@@ -85,7 +86,7 @@ async function selectRunCopy(deps, automation, { mode, triggerKind, isTest }) {
     // unmanaged) lost the row's live copy: read it, so the run gets the LIVE
     // settings and a pinned resume can be told apart from the working copy.
     const storeLive = managed && automation && !Object.prototype.hasOwnProperty.call(automation, 'liveDefinition')
-        ? await Promise.resolve().then(() => automationStore.getAutomation(automation.id)).catch(() => null)
+        ? await Promise.resolve().then(() => automationStore.getAutomation(automation.id)).catch((e) => fallback('core/automationRunner/runSetup:selectRunCopy', e, null))
         : null;
     automation = automationForRun(storeLive ? { ...automation, liveVersion: storeLive.liveVersion ?? null } : automation,
         { mode, triggerKind, isTest, managed, liveDefinition: storeLive?.liveDefinition ?? null });
@@ -154,7 +155,7 @@ async function createRunVault(deps, { parentRunId, run, runOrgId, automation, ef
     // that run may have minted placeholders in another process.
     let vaultSeed = null;
     if (parentRunId && typeof automationStore.getRunTokenMap === 'function') {
-        vaultSeed = await Promise.resolve(automationStore.getRunTokenMap(parentRunId)).catch(() => null);
+        vaultSeed = await Promise.resolve(automationStore.getRunTokenMap(parentRunId)).catch((e) => fallback('core/automationRunner/runSetup:createRunVault', e, null));
     }
     const tokenVault = createTokenVault({
         runId: run.id,
@@ -179,8 +180,8 @@ async function createRunVault(deps, { parentRunId, run, runOrgId, automation, ef
                     direction: 'output',
                     action_taken: 'redacted',
                     is_dry_run: effectiveMode === 'dry_run',
-                }).catch(() => {});
-            } catch (err) { log.debug('never fail a run on audit logging', err); }
+                }).catch((e) => bestEffort('core/automationRunner/runSetup:onEvict', e));
+            } catch (err) { bestEffort('core/automationRunner/runSetup:onEvict#2', err); /* never fail a run on audit logging */ }
         },
     });
     return tokenVault;

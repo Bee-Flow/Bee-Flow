@@ -37,6 +37,7 @@
 
 const configStore = require('../../stores/configStore');
 const userStore = require('../../stores/userStore');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Intersect a user-level list with an org-level one. A missing list on either
@@ -98,7 +99,7 @@ async function resolveOrgIntegrations(organizationId) {
  * @returns {Promise<string[]>}
  */
 async function resolveEnabledIntegrations(userId, organizationId, { include = [] } = {}) {
-    const userEnabledApps = parseList(await configStore.getConfig(`enabled_apps_user_${userId}`).catch(() => null));
+    const userEnabledApps = parseList(await configStore.getConfig(`enabled_apps_user_${userId}`).catch((e) => fallback('core/integrations/enabledIntegrations:resolveEnabledIntegrations', e, null)));
     const orgEnabledIntegrations = await resolveOrgIntegrations(organizationId);
     const merged = mergeEnabled(userEnabledApps, orgEnabledIntegrations);
     const forced = (Array.isArray(include) ? include : []).filter((id) => typeof id === 'string' && id);

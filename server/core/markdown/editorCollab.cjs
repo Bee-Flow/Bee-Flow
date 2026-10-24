@@ -178,8 +178,7 @@ function decodeFromAttr(str) {
   try {
     const decoded = decodeURIComponent(escape(atob(str)));
     if (decoded && !decoded.includes("\uFFFD")) return decoded;
-  } catch {
-  }
+  } catch (e) { bestEffort('core/markdown/editorCollab:decodeFromAttr', e); }
   return String(str).replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 }
 function escapeHtml(str) {
@@ -2824,6 +2823,7 @@ function applySplice(ytext, cur, yLength, des, s) {
 // ../agent-hub/src/editor/collab/relpos.ts
 var Y4 = __toESM(require("yjs"), 1);
 var import_buffer = require("lib0/buffer");
+const { bestEffort } = require('../../utils/bestEffort');
 var MAX_ENCODED_RELPOS = 512;
 function visibleToYIndex(ytext, inCode, offset) {
   let vis = 0;

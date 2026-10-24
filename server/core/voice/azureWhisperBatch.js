@@ -12,6 +12,7 @@ const os = require('os');
 const path = require('path');
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Build a diagnostic error message for a non-succeeded Azure batch job.
@@ -285,7 +286,7 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
         };
     } finally {
         try { fs.unlinkSync(tempInputPath); } catch (_) { log.debug('temp input file already gone', _); }
-        try { audioCleanup(); } catch (_) { log.debug('audio cleanup already done', _); }
+        try { audioCleanup(); } catch (_) { bestEffort('core/voice/azureWhisperBatch:runAzureWhisperBatch', _); /* audio cleanup already done */ }
         try {
             if (rustfsKey) { const ss = require('../../stores/storageStore'); await ss.deleteFile(rustfsKey); log.info('[Transcription:AzureWhisper] Temp audio deleted from RustFS'); }
         } catch (_) { log.warn('temp audio could not be deleted from object storage', _); }

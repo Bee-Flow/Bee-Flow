@@ -13,6 +13,7 @@
 const log = require('../../telemetry/log');
 const { urgencyToCategory } = require('../automationModel/notificationDefaults');
 const { talkText } = require('../automationModel/notificationMessages');
+const { fallback } = require('../../utils/bestEffort');
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -37,10 +38,10 @@ async function isThrottled(dep, { automationId, event, recipient, maxPerHour, no
  * `userId` addresses someone other than the owner.
  */
 async function sendRunEmail(dep, automation, { subject, message, userId = null }) {
-    const cfg = await Promise.resolve(dep('emailConfig')()).catch(() => null);
+    const cfg = await Promise.resolve(dep('emailConfig')()).catch((e) => fallback('core/automationRunner/runNotificationChannels:sendRunEmail', e, null));
     if (!cfg || !cfg.configured) return { sent: false, reason: 'no_service_email' };
     const to = userId || automation.userId;
-    const user = await Promise.resolve(dep('getUser')(to)).catch(() => null);
+    const user = await Promise.resolve(dep('getUser')(to)).catch((e) => fallback('core/automationRunner/runNotificationChannels:sendRunEmail#2', e, null));
     if (!user?.email) return { sent: false, reason: 'no_owner_email' };
     const whose = to === automation.userId ? 'your' : 'the';
     const text = `${message || ''}\n\nSent by ${whose} Bee Flow automation “${automation.title || ''}”.`;
@@ -54,7 +55,7 @@ async function sendRunEmail(dep, automation, { subject, message, userId = null }
  * message to people without a Nextcloud account never resolves it.
  */
 async function deliverBell(dep, { userId, event, urgency, title, message, link, short, url, nc }) {
-    const user = await Promise.resolve(dep('getUser')(userId)).catch(() => null);
+    const user = await Promise.resolve(dep('getUser')(userId)).catch((e) => fallback('core/automationRunner/runNotificationChannels:deliverBell', e, null));
     const ncUid = user?.nc_uid || user?.ncUid || null;
     if (ncUid) {
         const ctx = await nc.get();
@@ -126,7 +127,7 @@ async function deliverTalk(dep, { automation, event, ev, settings, payload, shor
         definition: { ...(automation.definition || {}), notificationSettings: settings },
     };
     const room = ev.talkRoom
-        || await Promise.resolve(dep('resolveTalkRoom')({ automation: withSettings, approval: payload.approval || null, orgId })).catch(() => null);
+        || await Promise.resolve(dep('resolveTalkRoom')({ automation: withSettings, approval: payload.approval || null, orgId })).catch((e) => fallback('core/automationRunner/runNotificationChannels:deliverTalk', e, null));
     const recipient = `talk:${room || 'unconfigured'}`;
     if (!room) {
         rows.push({ ...base, recipient, channel: 'talk', delivered: false });

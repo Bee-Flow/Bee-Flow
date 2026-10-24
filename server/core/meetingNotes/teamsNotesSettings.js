@@ -21,6 +21,7 @@
  */
 
 const { lazyDeps } = require('./lazyDeps');
+const { fallback } = require('../../utils/bestEffort');
 
 /** Collaborators; tests swap them through init(). */
 const { deps, init } = lazyDeps({
@@ -95,8 +96,8 @@ function asLookback(v) {
 
 /** Effective settings: org value per field, else user, else default. */
 async function resolveTeamsNotesSettings({ orgId = null, userId = null } = {}) {
-    const org = orgId ? await deps.configStore.getConfig(orgKey(orgId)).catch(() => null) : null;
-    const user = userId ? await deps.configStore.getConfig(userKey(userId)).catch(() => null) : null;
+    const org = orgId ? await deps.configStore.getConfig(orgKey(orgId)).catch((e) => fallback('core/meetingNotes/teamsNotesSettings:resolveTeamsNotesSettings', e, null)) : null;
+    const user = userId ? await deps.configStore.getConfig(userKey(userId)).catch((e) => fallback('core/meetingNotes/teamsNotesSettings:resolveTeamsNotesSettings#2', e, null)) : null;
     const has = (doc, k) => doc && k in doc && doc[k] !== null && doc[k] !== undefined;
     const pick = (k) => has(org, k) ? org[k] : has(user, k) ? user[k] : DEFAULTS[k];
     return {

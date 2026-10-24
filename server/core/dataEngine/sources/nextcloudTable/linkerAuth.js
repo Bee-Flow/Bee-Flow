@@ -35,6 +35,7 @@ const MEMO_TTL_MS = 60_000;
 const _memo = new Map();   // linkedByUserId → { at, value }
 
 const { integrationClient } = require('../../../integrations/integrationClients');
+const { fallback } = require('../../../../utils/bestEffort');
 
 function deps() {
     // Lazily required: the pure modules beside this one must stay loadable in
@@ -93,7 +94,7 @@ async function resolveUncached(d, source, userId, orgId) {
             throw new NextcloudSourceError(403, 'not_nc_org', 'This organisation is no longer connected to Nextcloud.');
         }
         if (source.ncInstanceId) {
-            const org = await d.userStore.getOrganization(orgId).catch(() => null);
+            const org = await d.userStore.getOrganization(orgId).catch((e) => fallback('core/dataEngine/sources/nextcloudTable/linkerAuth:resolveUncached', e, null));
             const current = org && (org.nc_instance_id || org.ncInstanceId);
             if (current && current !== source.ncInstanceId) {
                 throw new NextcloudSourceError(503, 'nc_instance_changed',
@@ -102,7 +103,7 @@ async function resolveUncached(d, source, userId, orgId) {
         }
     }
 
-    const session = await d.resolveUserSession(userId).catch(() => null);
+    const session = await d.resolveUserSession(userId).catch((e) => fallback('core/dataEngine/sources/nextcloudTable/linkerAuth:resolveUncached#2', e, null));
     if (!session) {
         throw new NextcloudSourceError(503, 'linker_unavailable',
             'The account that linked this table could not be signed in to Nextcloud — ask an owner to re-link it.');

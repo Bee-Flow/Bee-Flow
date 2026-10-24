@@ -41,6 +41,7 @@ const {
 } = pyannoteApi;
 
 const { DIARIZATION_MODEL, pickTranscriptionModel } = require('./pyannoteModels');
+const { bestEffort } = require('../../utils/bestEffort');
 // pyannote's own greedy-assignment floor. It DEFAULTS TO 0, which would label
 // every unenrolled participant with whichever colleague scored least badly —
 // so it is always sent explicitly.
@@ -247,7 +248,7 @@ async function transcribeWithPyannote(inputPath, {
                 log.info(`[Pyannote] Voiceprints: ${voiceprintInfo.matched} speaker(s) named from ${vpList.length} template(s)`);
                 if (result.matchedIds.length) {
                     // Feeds the "who is usually in this org's meetings" ranking.
-                    try { require('../../stores/voiceprintStore').recordMatches(result.matchedIds); } catch (_) { log.debug('voiceprint ranking update failed, the match result is unaffected', _); }
+                    try { require('../../stores/voiceprintStore').recordMatches(result.matchedIds); } catch (_) { bestEffort('core/voice/pyannoteClient:transcribeWithPyannote', _); /* voiceprint ranking update failed, the match result is unaffected */ }
                 }
             }
         }

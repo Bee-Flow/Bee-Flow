@@ -14,6 +14,7 @@ const { enrichWithDocumentFacts } = require('./kbDocumentFacts');
 const {
     MIN_VEC_SCORE, ftsQueriesFor, queryCandidates, makeOrphanFilter, fuseCandidates, expandContextWindow,
 } = require('./localSearchSteps');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Collaborators that sit in the server's large import cycle are handed in by
 // the barrel (localKBIngest.js) through wire(), so this module imports none of
@@ -85,7 +86,7 @@ async function searchLocally(tenantId, kbIds, query, options = {}) {
     try {
         // Issue #10: Set ef_search on THIS connection for better HNSW recall
         if (isPgvectorAvailable()) {
-            await client.query('SET hnsw.ef_search = 100').catch(() => {});
+            await client.query('SET hnsw.ef_search = 100').catch((e) => bestEffort('core/kb/localSearch:searchLocally', e));
         }
 
         let validDocIds;

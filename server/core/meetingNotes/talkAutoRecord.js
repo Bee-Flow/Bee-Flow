@@ -30,6 +30,7 @@ const log = require('../../telemetry/log');
 const { runnerPort } = require('../automationRunner/featurePorts');
 const { integrationClient } = require('../integrations/integrationClients');
 const kit = require('./importJobKit');
+const { fallback: fallbackSwallowed, bestEffort } = require('../../utils/bestEffort');
 
 const ARMED_KEY = (userId) => `talk_autorecord_armed_${userId}`;
 
@@ -65,7 +66,7 @@ const ARMED_TTL_MS = 24 * 60 * 60 * 1000;
 
 /** Read the stored list, tolerating the old bare-string format, and drop expired entries. */
 async function readArmed(userId) {
-    const cur = (await configStore.getConfig(ARMED_KEY(userId)).catch(() => null)) || [];
+    const cur = (await configStore.getConfig(ARMED_KEY(userId)).catch((e) => fallbackSwallowed('core/meetingNotes/talkAutoRecord:readArmed', e, null))) || [];
     if (!Array.isArray(cur)) return [];
     const now = Date.now();
     return cur
@@ -135,7 +136,7 @@ async function countParticipants({ room, meeting, userId, orgId, session, talk, 
     const args = { token: room.token };
     const res = await guardedNcCall('nextcloud_talk_list_participants', args, { userId, orgId, session },
         () => talk.executeNextcloudTalkTool('nextcloud_talk_list_participants', args, userId, session),
-    ).catch(() => null);
+    ).catch((e) => fallbackSwallowed('core/meetingNotes/talkAutoRecord:countParticipants', e, null));
     if (!res || res.error || res.nc_scope_denied || !Array.isArray(res.participants)) return null;
     // During a call, count who is IN the call (inCall bitmask, bit 1), not who has ever been added to the
     // conversation.
@@ -229,7 +230,7 @@ async function scanUser(userId) {
         if (res?.nc_scope_denied) { markSkip(userId, token); continue; }
         if (res && res.success) {
             markStarted(token);
-            await armToken(userId, token).catch(() => {});
+            await armToken(userId, token).catch((e) => bestEffort('core/meetingNotes/talkAutoRecord:scanUser', e));
             log.info(`[TalkAutoRecord] started ${status === 2 ? 'audio' : 'video'} recording for room ${token} (user ${userId})`);
         } else if (res && (res.error === 'not_moderator' || res.error === 'recording_backend_unavailable' || res.error === 'room_not_found')) {
             markSkip(userId, token);

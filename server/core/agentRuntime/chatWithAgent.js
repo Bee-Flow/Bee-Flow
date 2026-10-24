@@ -26,6 +26,7 @@ const { validateInputForPii } = require('../privacy/piiDetection');
 const { resolveShieldFor } = require('../privacy/orgShield');
 const dlpRunner = require('../dlp/dlpRunner');
 const { mayLendOwnerConnection } = require('./toolPolicy');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // What ./chatWithAgentPrep and ./chatWithAgentTools work with, handed in:
 // it sits in the server's large import cycle, which those modules stay out
@@ -183,7 +184,7 @@ async function prepareRun({ agent, agentId, userId, userMessage, userAuth }) {
             conversation_id: conversation?.id || null,
             ...fields,
             source: 'agent_chat', model: modelToUse,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('core/agentRuntime/chatWithAgent:logShieldEvent', e));
     };
 
     return {

@@ -26,6 +26,7 @@
 const crypto = require('crypto');
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // ─── Universal Heuristic Signals ──────────────────────────────────
 // These patterns are deliberately language-independent: they look at
@@ -405,7 +406,7 @@ async function classifyWithLLM(message, tiers, { userOrgId = null, userId = null
     }
 
     // Resolve classifier model: admin override → fast tier → bail.
-    const adminModel = await configStore.getConfig('auto_classifier_model').catch(() => null);
+    const adminModel = await configStore.getConfig('auto_classifier_model').catch((e) => fallback('core/llm/promptClassifier:classifyWithLLM', e, null));
     const classifyModel = (typeof adminModel === 'string' && adminModel.trim())
         ? adminModel.trim()
         : tiers.fast?.modelId;
@@ -421,7 +422,7 @@ async function classifyWithLLM(message, tiers, { userOrgId = null, userId = null
     // Stage 3: classify-service (CPU, a few hundred ms) when it is installed.
     const viaService = await require('./tierClassifierService')
         .classifyTierViaService(msgText, tiers, { heuristic })
-        .catch(() => null);
+        .catch((e) => fallback('core/llm/promptClassifier:classifyWithLLM#2', e, null));
     if (viaService && tiers[viaService.tier]?.modelId) {
         const out = { tier: viaService.tier, method: 'classifier', reason: `classifier (${viaService.score.toFixed(2)})` };
         cacheSet(cacheKey, { tier: out.tier, reason: out.reason });

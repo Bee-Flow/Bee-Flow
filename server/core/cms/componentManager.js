@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // The shipped components live in <repo>/components — in the container that is
 // /components, which every compose file mounts. componentManager.deps.test.js
@@ -88,7 +89,7 @@ async function installDependencies(componentPath, id) {
     try {
         const pkg = JSON.parse(fs.readFileSync(path.join(componentPath, 'package.json'), 'utf8'));
         hasDeps = Object.keys(pkg.dependencies || {}).length > 0;
-    } catch (err) { log.debug('no package.json → nothing to do', err); }
+    } catch (err) { fallback('core/cms/componentManager:installDependencies', err); /* no package.json → nothing to do */ }
     if (!hasDeps) return { installed: true, blocked: [] };
 
     await new Promise((/** @type {(value?: any) => void} */ resolve) => {

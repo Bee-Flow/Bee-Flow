@@ -14,6 +14,7 @@ const { sanitizeError } = require('../../privacy/errorSanitizer');
 const { findWireProblems } = require('../../../utils/messageUtils');
 const { classifyStreamError } = require('../streamRetry');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * What the wrap-up round says when the model produced no prose. The two
@@ -96,7 +97,7 @@ function rethrowRoundError(error, { messages, terminationBaseRow }) {
         ...terminationBaseRow(),
         termination_type: 'error',
         ...sanitizeError(error),
-    }).catch(() => {});
+    }).catch((e) => bestEffort('core/agentRuntime/chatStream/turnExits:rethrowRoundError', e));
     error._terminationLogged = true;
     // Attach classification so the route handler can send a descriptive error
     error._classified = classified;
@@ -128,7 +129,7 @@ function rethrowRoundError(error, { messages, terminationBaseRow }) {
 function throwLoopExit({ signal, abortLogged, terminationBaseRow }) {
     if (signal?.aborted) {
         if (!abortLogged) {
-            terminationStore.logTermination({ ...terminationBaseRow(), termination_type: 'aborted' }).catch(() => {});
+            terminationStore.logTermination({ ...terminationBaseRow(), termination_type: 'aborted' }).catch((e) => bestEffort('core/agentRuntime/chatStream/turnExits:throwLoopExit', e));
         }
         const _abortErr = /** @type {Error & {_terminationLogged?: boolean}} */ (new Error('Client disconnected before the turn finished'));
         _abortErr.name = 'AbortError';
@@ -136,7 +137,7 @@ function throwLoopExit({ signal, abortLogged, terminationBaseRow }) {
         throw _abortErr;
     }
 
-    terminationStore.logTermination({ ...terminationBaseRow(), termination_type: 'max_iterations' }).catch(() => {});
+    terminationStore.logTermination({ ...terminationBaseRow(), termination_type: 'max_iterations' }).catch((e) => bestEffort('core/agentRuntime/chatStream/turnExits:throwLoopExit#2', e));
     const _maxIterErr = /** @type {Error & {_terminationLogged?: boolean}} */ (new Error('Agent exceeded maximum tool call iterations'));
     _maxIterErr._terminationLogged = true;
     throw _maxIterErr;

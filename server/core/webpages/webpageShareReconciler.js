@@ -45,6 +45,7 @@
 
 const { featureModule } = require('../featureModules');
 const bridgeGrants = require('../../stores/webpage/bridgeGrants');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Rewrite every live public snapshot of ONE page.
@@ -82,7 +83,7 @@ async function reSnapshotWebpageShares(webpageId, ownerId, deps = {}) {
 function reSnapshotWebpageSharesDetached(webpageId, ownerId, deps = {}) {
     Promise.resolve()
         .then(() => reSnapshotWebpageShares(webpageId, ownerId, deps))
-        .catch(() => { /* reSnapshotWebpageShares logt zelf al */ });
+        .catch((e) => bestEffort('core/webpages/webpageShareReconciler:reSnapshotWebpageSharesDetached', e));
 }
 
 /**

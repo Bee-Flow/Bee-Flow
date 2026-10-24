@@ -17,6 +17,7 @@ const { dedupeSideEffectToolCalls } = require('../toolCallDedupe');
 const { executeToolRound, _stableStringify } = require('../toolRoundExecutor');
 const { buildToolPolicy, fallbackToolPolicy, automationConfirmsFor } = require('../toolPolicy');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 function buildRoundAssistantMessage({ currentToolCalls, contentBuffer, onEvent, _snapshotThinkingParts }) {
     // Clear intermediate planning text from the UI — only the final response
@@ -92,7 +93,7 @@ async function dispatchToolRound({
         // grant is keyed on the automation id, the tool on its
         // name), so it is rebuilt per round like the policy itself.
         _automationConfirms = automationConfirmsFor(tools, agent.config);
-    } catch (err) { log.debug('no overrides is the pre-grant behaviour', err); }
+    } catch (err) { fallback('core/agentRuntime/chatStream/toolRoundGate:dispatchToolRound', err); /* no overrides is the pre-grant behaviour */ }
     try {
         _roundPolicy = buildToolPolicy({
             agentConfig: agent.config, tools, unattended,

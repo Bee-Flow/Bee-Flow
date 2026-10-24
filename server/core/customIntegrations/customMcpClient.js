@@ -29,6 +29,7 @@ const ssrfGuard = require('./ssrfGuard');
 // (core/featureModules.js), which also keeps the cycle with the runner lazy.
 const { featureModule } = require('../featureModules');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes, same as mcpManager
 const MAX_TOOLS = 100;
@@ -382,7 +383,7 @@ async function discoverTools(integration, { secretObject = null } = {}) {
         throw new Error(scrubSecrets(err && err.message ? err.message : String(err), secretObject));
     } finally {
         if (client) {
-            try { await client.close(); } catch (err) { log.debug('best effort', err); }
+            try { await client.close(); } catch (err) { bestEffort('core/customIntegrations/customMcpClient:discoverTools', err); /* best effort */ }
         }
     }
 }

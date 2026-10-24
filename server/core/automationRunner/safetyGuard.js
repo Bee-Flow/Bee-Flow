@@ -1,6 +1,7 @@
 const log = require('../../telemetry/log');
 const { collectStringLeaves, collectStringLeafKeys, _isIdentifierKey, _isHandleValue, applyStringLeaves, _vaultOf } = require('./safetyLeaves');
 const { _scanText, _degradationIsRelevant, _regexHits, _scanFailedMessage } = require('./safetyScan');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 class GuardrailBlockError extends Error {
     constructor(message, { violationType = 'pii', categories = [], scope = 'input' } = {}) {
@@ -33,8 +34,8 @@ function _logGuardrail(auditBase, { violation_type, categories, direction, actio
             direction: direction || 'input',
             action_taken,
             is_dry_run: !!isDryRun,
-        }).catch(() => {});
-    } catch (err) { log.debug('never fail the run on logging', err); }
+        }).catch((e) => bestEffort('core/automationRunner/safetyGuard:_logGuardrail', e));
+    } catch (err) { fallback('core/automationRunner/safetyGuard:_logGuardrail#2', err); /* never fail the run on logging */ }
 }
 
 function _hash(s) {
@@ -200,7 +201,7 @@ async function _guardValue(value, policy, auditBase, { direction, scopeOn, mode,
             try {
                 const safe = h.pattern.replace(/^\(\?i\)/, '').replace(/^\(\?-[a-z]+\)/, '');
                 out = out.replace(new RegExp(safe, 'gi'), `[REDACTED:${h.ruleName}]`);
-            } catch (err) { log.debug('skip bad pattern', err); }
+            } catch (err) { fallback('core/automationRunner/safetyGuard:_guardValue', err); /* skip bad pattern */ }
         }
         if (entities.length) {
             // Regex redaction shifted the offsets, so re-derive the spans on the

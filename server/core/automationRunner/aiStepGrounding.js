@@ -11,6 +11,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // ── Knowledge Base grounding (BFSF-410) ─────────────────────────────────────
 //
@@ -104,7 +105,7 @@ async function groundAiStepWithMemory(step, ctx, promptText, deps) {
                 const result = await scrubMemoryContext(block, orgShield);
                 if (result?.replacedCategories?.length > 0) block = result.scrubbed;
             }
-        } catch (err) { log.debug('fail-open: the unscrubbed block is still the owner\'s own data', err); }
+        } catch (err) { fallback('core/automationRunner/aiStepGrounding:groundAiStepWithMemory', err); /* fail-open: the unscrubbed block is still the owner's own data */ }
         return block ? `\n\n${block}` : '';
     } catch (e) {
         log.warn(`[AutomationRunner] ai_step memory grounding skipped: ${e.message}`);

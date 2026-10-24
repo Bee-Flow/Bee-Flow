@@ -13,6 +13,7 @@ const { looksGarbled } = require('./partialJsonScan');
 const log = require('../../telemetry/log');
 const { createUsageAccumulator } = require('../providers/usageNormalizer');
 const { limitedChat } = require('./providerLimiter');
+const { fallback } = require('../../utils/bestEffort');
 
 // How much of an unparsable argument string one warning may carry: enough
 // for a whole compose answer to become a parser fixture, never a batch dump.
@@ -477,7 +478,7 @@ class LLMClient {
         if (/^[\[{]/.test(text)) {
             const TITLE_KEYS = ['title', 'name', 'subject', 'topic'];
             let parsed = null;
-            try { parsed = JSON.parse(text); } catch (err) { log.debug('fall through to the field scan', err); }
+            try { parsed = JSON.parse(text); } catch (err) { fallback('core/llm/llmClient:LLMClient._sanitiseTitle', err); /* fall through to the field scan */ }
             if (Array.isArray(parsed)) parsed = parsed[0];
             let picked = parsed && typeof parsed === 'object'
                 ? TITLE_KEYS.map(k => parsed[k]).find(v => typeof v === 'string' && v.trim())

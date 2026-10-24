@@ -13,6 +13,7 @@ const terminationStore = require('../../stores/terminationStore');
 const { sanitizeError } = require('../privacy/errorSanitizer');
 const log = require('../../telemetry/log');
 const { extractCoverageTopics } = require('./coverageTopics');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Execute a schedule as its agent: dispatch through the full agent runtime so
@@ -62,7 +63,7 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
         // the same chat thread.
         if (result?.conversationId && result.conversationId !== task.conversationId) {
             try { await store.updateTask(task.id, { conversationId: result.conversationId }); }
-            catch (err) { log.debug('non-fatal', err); }
+            catch (err) { bestEffort('core/cowork/agentScheduleRun:executeAgentRun', err); /* non-fatal */ }
         }
 
         await store.markCompleted(task.id, truncated);
@@ -81,7 +82,7 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
                 message: truncated,
                 link: shape.link,
             });
-        } catch (err) { log.debug('non-fatal', err); }
+        } catch (err) { bestEffort('core/cowork/agentScheduleRun:executeAgentRun#2', err); /* non-fatal */ }
 
         // Schedule advance — same rules as legacy tasks.
         if (isRepeating(task) && !manual) {
@@ -105,7 +106,7 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
                 duration_ms: Date.now() - startTime,
                 termination_type: 'error',
                 ...sanitizeError(err),
-            }).catch(() => {});
+            }).catch((e) => bestEffort('core/cowork/agentScheduleRun:executeAgentRun#3', e));
         }
         await failRun(task, err, { manual, store });
     }

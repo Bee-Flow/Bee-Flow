@@ -53,6 +53,7 @@ const { resolveRecipientIds } = require('../automationModel/notificationRecipien
 const { shortMessage } = require('../automationModel/notificationMessages');
 // The channels: throttle, bell, e-mail, Talk.
 const { sendRunEmail, deliverBell, deliverPersonal, deliverTalk } = require('./runNotificationChannels');
+const { fallback } = require('../../utils/bestEffort');
 
 function defaultDeps() {
     const approvals = () => runnerPort('approvals');
@@ -106,7 +107,7 @@ function emailSkipOf(result) {
 async function settingsFor(dep, automation) {
     let definition = automation?.definition || {};
     if (automation?.runsLiveVersion && automation.id) {
-        const stored = await Promise.resolve(dep('getAutomation')(automation.id)).catch(() => null);
+        const stored = await Promise.resolve(dep('getAutomation')(automation.id)).catch((e) => fallback('core/automationRunner/runNotifications:settingsFor', e, null));
         if (stored?.definition) definition = stored.definition;
     }
     return normalizeNotificationSettings(definition.notificationSettings);
@@ -125,7 +126,7 @@ function resolveNotificationPolicy(automation, event) {
 
 async function organisationOf(dep, automation) {
     if (automation?.organizationId) return automation.organizationId;
-    const owner = await Promise.resolve(dep('getUser')(automation?.userId)).catch(() => null);
+    const owner = await Promise.resolve(dep('getUser')(automation?.userId)).catch((e) => fallback('core/automationRunner/runNotifications:organisationOf', e, null));
     return owner?.organizationId || null;
 }
 
@@ -145,7 +146,7 @@ function lazyNcContext(dep, automation) {
     return {
         get: async () => {
             if (ncCtx === undefined) {
-                ncCtx = await Promise.resolve(dep('resolveNcContext')(automation.userId)).catch(() => null);
+                ncCtx = await Promise.resolve(dep('resolveNcContext')(automation.userId)).catch((e) => fallback('core/automationRunner/runNotifications:get', e, null));
             }
             return ncCtx;
         },

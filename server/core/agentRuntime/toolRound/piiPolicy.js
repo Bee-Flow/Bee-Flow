@@ -16,6 +16,7 @@ const { checkRegexPatterns } = require('../../privacy/guardrails');
 const { isCustomTypeId } = require('../../privacy/customTypes/ids');
 const testChatMod = require('../testChat');
 const log = require('../../../telemetry/log');
+const { fallback, bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * The org tool-PII policy for this tool's CLASS. Read before the DLP restore,
@@ -55,7 +56,7 @@ function restoreDlpArgs(rc, deps, toolArgs) {
     try {
         const _argMap = deps.dlpRunner().getConversationTokenMap(conversation?.id);
         if (_argMap && Object.keys(_argMap).length) toolArgs = untokeniseToolArgs(toolArgs, _argMap);
-    } catch (err) { log.debug('best-effort: leave args tokenized on error', err); }
+    } catch (err) { fallback('core/agentRuntime/toolRound/piiPolicy:restoreDlpArgs', err); /* best-effort: leave args tokenized on error */ }
     return toolArgs;
 }
 
@@ -161,7 +162,7 @@ async function checkArgumentPii(rc, deps, { toolCall, toolName, toolArgs, policy
                 source: testChatMod.usageSourceFor(messageMetadata, 'agent_stream'),
                 is_dry_run: testChatMod.isDryRunTurn(messageMetadata),
                 model: modelToUse,
-            }).catch(() => {});
+            }).catch((e) => bestEffort('core/agentRuntime/toolRound/piiPolicy:checkArgumentPii', e));
             log.info(`[ToolPiiGuard] '${toolName}' (${_toolClass}) BLOCKED — args contain ${[...new Set(_blockedHits.map(_logLabel))].join(', ')}`);
             onEvent('tool_end', { name: toolName, result: `[Tool blocked — arguments contain sensitive information (${_labels})]` });
             return {
@@ -184,7 +185,7 @@ async function checkArgumentPii(rc, deps, { toolCall, toolName, toolArgs, policy
                     source: testChatMod.usageSourceFor(messageMetadata, 'agent_stream'),
                     is_dry_run: testChatMod.isDryRunTurn(messageMetadata),
                     model: modelToUse,
-                }).catch(() => {});
+                }).catch((e) => bestEffort('core/agentRuntime/toolRound/piiPolicy:checkArgumentPii#2', e));
                 log.info(`[ToolPiiGuard] PII in ${toolName} args (${[...new Set(_monHits.map(_logLabel))].join(', ')}) — monitor-only, allowed`);
             }
         }

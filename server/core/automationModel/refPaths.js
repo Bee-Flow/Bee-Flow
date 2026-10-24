@@ -18,6 +18,7 @@ const log = require('../../telemetry/log');
 const {
     parsePath, readPath, formatPath, canonicalPath, scanTemplate, replaceTemplate, parseExpr,
 } = require('../../shared/expr/index.mjs');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** The roots a run-state reference can start from. */
 const REF_ROOTS = new Set(['trigger', 'steps', 'vars', 'secrets', 'loop']);
@@ -229,7 +230,7 @@ function suggestExprSpelling(src, opts) {
     if (asPath) candidates.push(asPath);
     for (const c of candidates) {
         if (c === src) continue;
-        try { parseExpr(c, opts); return c.trim(); } catch (err) { log.debug('next', err); }
+        try { parseExpr(c, opts); return c.trim(); } catch (err) { bestEffort('core/automationModel/refPaths:suggestExprSpelling', err); /* next */ }
     }
     return null;
 }

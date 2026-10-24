@@ -47,6 +47,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const FINGERPRINT_KEY = 'kb_embedding_fingerprint';
 // pg_advisory_lock key: any fixed number that nothing else uses.
@@ -111,7 +112,7 @@ async function fillNextColumn(deps, dim) {
         if (!rows || rows.length === 0) return done;
         const texts = rows.map((r) => r.content || '');
         const vectors = await embedExactly(deps, texts, dim);
-        try { deps.trackCost(texts); } catch (err) { log.debug('cost logging never blocks the migration', err); }
+        try { deps.trackCost(texts); } catch (err) { bestEffort('core/kb/embeddingMigration:fillNextColumn', err); /* cost logging never blocks the migration */ }
         await deps.run(
             `UPDATE kb_chunks SET embedding_next = v.e::vector
              FROM unnest($1::bigint[], $2::text[]) AS v(id, e)
@@ -134,7 +135,7 @@ async function swapColumns(deps) {
         await client.query('ALTER TABLE kb_chunks RENAME COLUMN embedding_next TO embedding');
         await client.query('COMMIT');
     } catch (err) {
-        await client.query('ROLLBACK').catch(() => {});
+        await client.query('ROLLBACK').catch((e) => bestEffort('core/kb/embeddingMigration:swapColumns', e));
         throw err;
     } finally {
         client.release();
@@ -182,7 +183,7 @@ async function migrate(deps, { reason }) {
             if (dim !== targetDim) {
                 await deps.exec('DROP INDEX IF EXISTS idx_kb_chunks_embedding');
                 await deps.exec(`ALTER TABLE kb_chunks ALTER COLUMN embedding TYPE VECTOR(${targetDim})`);
-                try { await deps.exec(INDEX_SQL); } catch (err) { log.debug('rebuilt by the next migration or ingest', err); }
+                try { await deps.exec(INDEX_SQL); } catch (err) { bestEffort('core/kb/embeddingMigration:migrate', err); /* rebuilt by the next migration or ingest */ }
             }
         } else {
             // A side column left by an interrupted run is reused when it has
@@ -198,7 +199,7 @@ async function migrate(deps, { reason }) {
         await deps.configStore.setConfig(FINGERPRINT_KEY, fingerprint);
         return { status: 'migrated', chunks: count, dim: targetDim };
     } finally {
-        await lock.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]).catch(() => {});
+        await lock.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]).catch((e) => bestEffort('core/kb/embeddingMigration:migrate#2', e));
         lock.release();
     }
 }

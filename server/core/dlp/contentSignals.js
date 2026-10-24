@@ -40,6 +40,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const COALESCE_MS = parseInt(process.env.CONTENT_SIGNAL_COALESCE_MS || '45000', 10);
 // Past this many characters only the first part is scanned, and the row says
@@ -169,7 +170,7 @@ function makeContentSignals(overrides = {}) {
             const existing = armed.get(key);
             if (existing) { existing.job = job; return true; }   // latest version wins, the clock does not restart
             if (running.has(key)) { again.set(key, job); return true; }
-            const timer = setTimeout(() => { _fire(key).catch(() => { /* scanNow never rejects */ }); }, d.coalesceMs);
+            const timer = setTimeout(() => { _fire(key).catch((e) => bestEffort('core/dlp/contentSignals:queueContentScan', e)); }, d.coalesceMs);
             if (timer.unref) timer.unref();
             armed.set(key, { timer, job });
             return true;

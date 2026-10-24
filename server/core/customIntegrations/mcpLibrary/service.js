@@ -36,6 +36,7 @@ const { isLibraryRow, runningDefinition } = require('./gate');
 const def = require('./definition');
 
 const deps = require('./deps');
+const { bestEffort, fallback } = require('../../../utils/bestEffort');
 
 const store = () => deps.store();
 const connStore = () => deps.connStore();
@@ -82,8 +83,8 @@ async function audit(verb, integrationId, actorUserId, orgId, oldValues, newValu
 }
 
 async function invalidate(orgId) {
-    try { entitlements().registry.invalidateCustomIntegrationCache(orgId); } catch (err) { log.debug('best effort', err); }
-    try { await entitlements().invalidateForOrg(orgId); } catch (err) { log.debug('best effort', err); }
+    try { entitlements().registry.invalidateCustomIntegrationCache(orgId); } catch (err) { bestEffort('core/customIntegrations/mcpLibrary/service:invalidate', err); /* best effort */ }
+    try { await entitlements().invalidateForOrg(orgId); } catch (err) { bestEffort('core/customIntegrations/mcpLibrary/service:invalidate#2', err); /* best effort */ }
 }
 
 async function orgGroups(orgId) {
@@ -214,7 +215,7 @@ function shapeInstalled(row, { orgList, groups, grants, policy }) {
     const discovered = Array.isArray(mcp.discoveredTools) ? mcp.discoveredTools : [];
     const tools = discovered.map(t => ({ ...t, enabled: allow ? allow.has(t.name) : true }));
     let host = null;
-    try { host = new URL(mcp.url).hostname; } catch (err) { log.debug('shown as unknown', err); }
+    try { host = new URL(mcp.url).hostname; } catch (err) { fallback('core/customIntegrations/mcpLibrary/service:shapeInstalled', err); /* shown as unknown */ }
     const auth = authOfRow(row);
     const verdict = checkUrl(policy, mcp.url);
     const capId = capIdOf(row.id);
@@ -253,7 +254,7 @@ async function listServerWide(orgId, orgList, groups) {
     try {
         const snap = await entitlements().resolveEntitlements({ userId: null, orgId });
         available = new Set((snap.orgAvailable && snap.orgAvailable.integration) || []);
-    } catch (err) { log.debug('nothing is available when the resolver is down', err); }
+    } catch (err) { fallback('core/customIntegrations/mcpLibrary/service:listServerWide', err); /* nothing is available when the resolver is down */ }
     return servers.map(s => {
         const capId = `mcp:${s.id}`;
         const tools = Array.isArray(s.tools_cache) ? s.tools_cache : [];
@@ -588,7 +589,7 @@ async function uninstall({ orgId, row, actorUserId }) {
     await removeEverything(orgId, row);
     const d = libraryDefinition(row);
     let host = null;
-    try { host = new URL(d.mcp.url).hostname; } catch (err) { log.debug('unknown', err); }
+    try { host = new URL(d.mcp.url).hostname; } catch (err) { fallback('core/customIntegrations/mcpLibrary/service:uninstall', err); /* unknown */ }
     await audit('uninstall', row.id, actorUserId, orgId, { name: row.name, host, status: row.status }, null);
     return { removed: true };
 }
@@ -601,7 +602,7 @@ async function uninstall({ orgId, row, actorUserId }) {
  * licence, and the server admin's access menu) can be switched on.
  */
 async function setServerWideAccess({ orgId, serverId, actorUserId, access }) {
-    const server = await mcpStore().getServer(serverId).catch(() => null);
+    const server = await mcpStore().getServer(serverId).catch((e) => fallback('core/customIntegrations/mcpLibrary/service:setServerWideAccess', e, null));
     if (!server || server.enabled === false) throw new HttpError(404, 'server_not_found', 'That server is not installed on this server.');
     const capId = `mcp:${serverId}`;
     const turningOn = access && access.mode !== 'nobody';
@@ -629,7 +630,7 @@ async function setServerWideAccess({ orgId, serverId, actorUserId, access }) {
 /** The library row `id` of `orgId`, or null (also for another org's or a builder row). */
 async function loadOrgRow(orgId, id) {
     const s = store();
-    const row = await s.getById(id).catch(() => null);
+    const row = await s.getById(id).catch((e) => fallback('core/customIntegrations/mcpLibrary/service:loadOrgRow', e, null));
     if (!row || row.orgId !== s.resolveOrgId(orgId) || !isLibraryRow(row)) return null;
     return row;
 }

@@ -14,6 +14,7 @@ const { executeTool: dispatchTool } = require('../tools/toolDispatcher');
 const usageStore = require('../../stores/usageStore');
 const { usageLogFields } = require('../providers/usageNormalizer');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 const WORKER_DEFAULT_MAX_TOKENS = 6000;
 
@@ -75,7 +76,7 @@ function makeRoundCallback(w, round) {
                     conversation_id: w.conversationId,
                     duration_ms: Date.now() - w.startedAt,
                 });
-            } catch (e) { log.debug('ignore logging errors', e); }
+            } catch (e) { bestEffort('core/swarms/swarmWorkerRound:makeRoundCallback', e); /* ignore logging errors */ }
             // Track totals for snapshot
             w.totals.usage = w.totals.usage || { prompt: 0, completion: 0, reasoning: 0 };
             w.totals.usage.prompt += data.prompt_tokens || 0;
@@ -130,7 +131,7 @@ async function runWorkerToolCalls(w, toolCalls, messages, toolHistory) {
     const results = await Promise.all(toolCalls.map(async (tc) => {
         const name = tc.function.name;
         let args = {};
-        try { args = JSON.parse(tc.function.arguments || '{}'); } catch (err) { log.debug('default to {}', err); }
+        try { args = JSON.parse(tc.function.arguments || '{}'); } catch (err) { fallback('core/swarms/swarmWorkerRound:runWorkerToolCalls', err); /* default to {} */ }
         const toolEntry = { name, status: 'running', at: Date.now() };
         if (runSnapshot?.workers?.[workerId]) runSnapshot.workers[workerId].tools.push(toolEntry);
         send('swarm_worker_tool', { workerId, role: worker.role, toolName: name, status: 'start' });

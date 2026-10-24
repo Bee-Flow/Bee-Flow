@@ -27,6 +27,7 @@ const { createUsageAccumulator, usageLogFields } = require('./providers/usageNor
 
 const { executeAgentRun } = require('./cowork/agentScheduleRun');
 const { runPromptToolLoop, MAX_TOOL_ITERATIONS } = require('./cowork/promptTaskLoop');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const REPEAT_WORDS = {
     hourly: 'every hour',
@@ -237,7 +238,7 @@ async function executeTask(task, { manual = false, store = require('../stores/co
         const loop = await runPromptToolLoop({
             ...prep, modelId: run.modelId, tierDefaults, usageAcc: run.usageAcc, run,
             dispatchTool: (toolName, toolArgs) => dispatchTaskTool(task, run, prep.session, toolName, toolArgs),
-            logTermination: (type) => terminationStore.logTermination({ ...terminationBase(), termination_type: type }).catch(() => {}),
+            logTermination: (type) => terminationStore.logTermination({ ...terminationBase(), termination_type: type }).catch((e) => fallback('core/aiTaskRunner:logTermination', e)),
         });
 
         // Account for the spend the moment the model loop is over — before any
@@ -251,7 +252,7 @@ async function executeTask(task, { manual = false, store = require('../stores/co
         // ("Ik zoek tegelijkertijd het laatste nieuws…") and surfacing it as
         // the result is more misleading than a clear failure message.
         if (loop.hitIterationCap) {
-            terminationStore.logTermination({ ...terminationBase(), termination_type: 'max_iterations', iteration_count: MAX_TOOL_ITERATIONS }).catch(() => {});
+            terminationStore.logTermination({ ...terminationBase(), termination_type: 'max_iterations', iteration_count: MAX_TOOL_ITERATIONS }).catch((e) => bestEffort('core/aiTaskRunner:executeTask', e));
         }
         const finalResponse = promptRunOutcome(task, loop, { messages: prep.messages, tools: prep.tools });
 
@@ -285,7 +286,7 @@ async function executeTask(task, { manual = false, store = require('../stores/co
             duration_ms: Date.now() - startTime,
             termination_type: 'error',
             ...sanitizeError(err),
-        }).catch(() => {});
+        }).catch((e) => bestEffort('core/aiTaskRunner:executeTask#2', e));
         await failRun(task, err, { manual, store });
     }
 }
@@ -341,7 +342,7 @@ async function prepareTaskRun(task, run) {
     // resolveUserOrgIds reads `req.session` off the object. A failed org
     // lookup degrades to the global tier map (the old behaviour), never
     // to a failed task.
-    run.userOrgForTier = await resolveEffectiveOrgId({}, { userId: task.userId }).catch(() => null);
+    run.userOrgForTier = await resolveEffectiveOrgId({}, { userId: task.userId }).catch((e) => fallback('core/aiTaskRunner:prepareTaskRun', e, null));
     run.modelId = await resolveModelForTier(`tier:${task.modelTier || 'fast'}`, {
         userOrgId: run.userOrgForTier,
         userId: task.userId,
@@ -426,7 +427,7 @@ async function loadTaskTools(task, session) {
         try {
             const { AGENT_SEARCH_TOOLS } = featureModule('integrations/agentSearchTools');
             tools = [...AGENT_SEARCH_TOOLS];
-        } catch (err) { log.debug('no search available', err); }
+        } catch (err) { fallback('core/aiTaskRunner:loadTaskTools', err); /* no search available */ }
     }
     return { tools, toolHint };
 }
@@ -536,7 +537,7 @@ async function failRun(task, err, { manual, store }) {
             // you need to reach, so this one does link back.
             link: require('../utils/appPaths').coworkTaskPath(task.id),
         });
-    } catch (err) { log.debug('don\'t fail on notification failure', err); }
+    } catch (err) { bestEffort('core/aiTaskRunner:failRun', err); /* don't fail on notification failure */ }
 }
 
 // ── Background timer ─────────────────────────────────────

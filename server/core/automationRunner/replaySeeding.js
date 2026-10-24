@@ -12,6 +12,7 @@ const automationStore = require('../../stores/automationStore');
 const { isTruncatedOutput, fullOutputRefOf } = require('../automationModel/payloadTruncation');
 const { canReadRunData } = require('../automationModel/callerRunVisibility');
 const { HttpError } = require('../http/errors');
+const { fallback } = require('../../utils/bestEffort');
 
 // ── Replay seeding for partial runs ─────────────────────
 //
@@ -91,7 +92,7 @@ async function withFullOutput(row) {
     if (!ref || typeof automationStore.getRunFullOutput !== 'function') return row;
     const attempts = row.attempts ?? 1;
     if (ref.runId !== row.runId || ref.stepId !== row.stepId || ref.attempts !== attempts) return row;
-    const full = await Promise.resolve(automationStore.getRunFullOutput(row.runId, row.stepId, attempts)).catch(() => null);
+    const full = await Promise.resolve(automationStore.getRunFullOutput(row.runId, row.stepId, attempts)).catch((e) => fallback('core/automationRunner/replaySeeding:withFullOutput', e, null));
     return full != null ? { ...row, output: full } : row;
 }
 
@@ -104,14 +105,14 @@ async function loadRunStepsForRuns(runIds) {
     // read six columns. The batched store call is preferred when present; the
     // loop stays as the fallback so this works on a store that predates it.
     if (typeof automationStore.getRunStepsForRuns === 'function') {
-        const rows = await automationStore.getRunStepsForRuns(runIds).catch(() => null);
+        const rows = await automationStore.getRunStepsForRuns(runIds).catch((e) => fallback('core/automationRunner/replaySeeding:loadRunStepsForRuns', e, null));
         if (Array.isArray(rows)) {
             for (const r of rows) byRun.get(r.runId)?.push(r);
             return byRun;
         }
     }
     for (const id of runIds) {
-        byRun.set(id, await automationStore.getRunSteps(id).catch(() => []));
+        byRun.set(id, await automationStore.getRunSteps(id).catch((e) => fallback('core/automationRunner/replaySeeding:loadRunStepsForRuns#2', e, [])));
     }
     return byRun;
 }
@@ -148,7 +149,7 @@ async function loadRunStepsForRuns(runIds) {
  */
 async function seedReplayState(automationId, currentVersion, stepIdFor, opts = {}) {
     if (opts.seedRunId) return seedReplayStateFromRun(automationId, currentVersion, stepIdFor, opts);
-    const all = await automationStore.getRunsForAutomation(automationId, { limit: REPLAY_RUN_WINDOW }).catch(() => []);
+    const all = await automationStore.getRunsForAutomation(automationId, { limit: REPLAY_RUN_WINDOW }).catch((e) => fallback('core/automationRunner/replaySeeding:seedReplayState', e, []));
     // A run on its starter's own connections holds the starter's data: it seeds
     // nobody else's partial run (automation/callerRunVisibility.js).
     const runsWindow = (all || []).filter(r => r?.id && r.mode !== 'dry_run' && canReadRunData(r, opts.viewerUserId));
@@ -206,7 +207,7 @@ async function seedReplayState(automationId, currentVersion, stepIdFor, opts = {
  * `runsWindow[0]` is too (the other legs follow, newest first).
  */
 async function seedReplayStateFromRun(automationId, currentVersion, stepIdFor, opts) {
-    const run = await automationStore.getRun(opts.seedRunId).catch(() => null);
+    const run = await automationStore.getRun(opts.seedRunId).catch((e) => fallback('core/automationRunner/replaySeeding:seedReplayStateFromRun', e, null));
     if (!run || run.automationId !== automationId || !canReadRunData(run, opts.viewerUserId)) {
         throw new HttpError(404, 'seed_run_not_found', 'The run to take the inputs from was not found.');
     }
@@ -214,13 +215,13 @@ async function seedReplayStateFromRun(automationId, currentVersion, stepIdFor, o
         throw new HttpError(409, 'seed_run_synthetic', 'A dry run holds sample data, not real inputs. Pick a live or test run.');
     }
     // Oldest leg first. The chosen run is always one of them.
-    const chain = (await automationStore.getRunsInChain(run.id).catch(() => [])) || [];
+    const chain = (await automationStore.getRunsInChain(run.id).catch((e) => fallback('core/automationRunner/replaySeeding:seedReplayStateFromRun#2', e, []))) || [];
     const usable = (l) => l?.id && l.automationId === automationId && l.mode !== 'dry_run' && canReadRunData(l, opts.viewerUserId);
     const orderedLegs = chain.filter(l => l?.id === run.id || usable(l));
     if (!orderedLegs.some(l => l.id === run.id)) orderedLegs.push(run);
     const legIndex = new Map(orderedLegs.map((l, i) => [l.id, i]));
     const legById = new Map(orderedLegs.map(l => [l.id, l]));
-    const allRows = await automationStore.getRunStepsForChain(run.id).catch(() => []);
+    const allRows = await automationStore.getRunStepsForChain(run.id).catch((e) => fallback('core/automationRunner/replaySeeding:seedReplayStateFromRun#3', e, []));
     // Stable sort by leg: a later leg's row for a step lands after (and so
     // overrides) an earlier leg's.
     const rows = (allRows || [])

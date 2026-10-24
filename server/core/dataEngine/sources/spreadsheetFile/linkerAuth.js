@@ -37,6 +37,7 @@ const _memo = new Map();   // memoKey → { at, value, error }
 
 const { integrationClient } = require('../../../integrations/integrationClients');
 const log = require('../../../../telemetry/log');
+const { fallback, bestEffort } = require('../../../../utils/bestEffort');
 
 function deps() {
     // Lazily required: the pure modules beside this one must stay loadable in
@@ -113,7 +114,7 @@ async function resolveUncached(d, source, userId, orgId, fresh) {
     // Off the request path the session is rebuilt the way the runner rebuilds
     // one for a scheduled automation: vault tokens plus, for a connector-bound
     // user, the instance binding resolveAuth routes on.
-    const session = await d.resolveUserSession(userId).catch(() => null);
+    const session = await d.resolveUserSession(userId).catch((e) => fallback('core/dataEngine/sources/spreadsheetFile/linkerAuth:resolveUncached', e, null));
 
     if (!await d.isIntegrationPermittedForUser({ userId, appId: mod.integrationAppIds[0], session, isAdmin: !!(session && session.isAdmin) })) {
         throw new SpreadsheetSourceError(403, 'provider_integration_off',
@@ -146,7 +147,7 @@ async function resolveUncached(d, source, userId, orgId, fresh) {
     // The SAME instance the table was linked from — an org re-bound to another
     // Nextcloud would otherwise read a stranger's file at the same path.
     if (orgId && source.ncInstanceId) {
-        const org = await d.userStore.getOrganization(orgId).catch(() => null);
+        const org = await d.userStore.getOrganization(orgId).catch((e) => fallback('core/dataEngine/sources/spreadsheetFile/linkerAuth:resolveUncached#2', e, null));
         const current = org && (org.nc_instance_id || org.ncInstanceId);
         if (current && current !== source.ncInstanceId) {
             throw new SpreadsheetSourceError(503, 'nc_instance_changed',
@@ -197,7 +198,7 @@ async function assertWritable(source, linker, orgId) {
 /** Test/relink hook: forget a linker's memo — and their credential memo. */
 function forget(userId) {
     for (const k of _memo.keys()) if (k.startsWith(`${userId}|`)) _memo.delete(k);
-    try { require('./credentials').forget(userId); } catch (err) { log.debug('pure module — cannot fail', err); }
+    try { require('./credentials').forget(userId); } catch (err) { bestEffort('core/dataEngine/sources/spreadsheetFile/linkerAuth:forget', err); /* pure module — cannot fail */ }
 }
 
 module.exports = { resolveLinker, assertWritable, forget, _memo, MEMO_TTL_MS };

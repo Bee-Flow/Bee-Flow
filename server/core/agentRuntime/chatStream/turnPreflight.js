@@ -29,6 +29,7 @@ const {
     resolveAndPrewarmShield, buildPromptWithMemory, hydrateTokenVault, runGuardrailsPhase,
     dropWebSearchOnUpload, runAgentDlpPreflight, dlpBlockError,
 } = require('./preflightSteps');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 // What ./preflightSteps works with, handed in: it all sits in the server's
 // large import cycle, which that module stays out of. The DLP modules stay
@@ -168,7 +169,7 @@ function recordChatSignal({ userId, messageMetadata, agent, config, dlpShield, d
             allowlistedHosts: Array.isArray(dlpShield?.dlpAllowlistedHosts) ? dlpShield.dlpAllowlistedHosts : [],
             dryRun: testChatMod.isDryRunTurn(messageMetadata) || !!messageMetadata?.testAs,
         });
-    } catch (err) { log.debug('counting never touches the turn', err); }
+    } catch (err) { bestEffort('core/agentRuntime/chatStream/turnPreflight:recordChatSignal', err); /* counting never touches the turn */ }
 }
 
 module.exports = { runTurnPreflight };

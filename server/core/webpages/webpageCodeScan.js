@@ -1,5 +1,6 @@
 // @typecheck
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** Hoeveel externe oproepen we hoogstens uitschrijven; de rest wordt geteld. */
 const MAX_REPORTED_CALLS = 20;
@@ -33,7 +34,7 @@ function ownHosts() {
     const hosts = new Set();
     for (const raw of [process.env.PUBLIC_SHARE_BASE_URL, process.env.PUBLIC_APP_URL]) {
         if (typeof raw !== 'string' || !raw.trim()) continue;
-        try { hosts.add(new URL(raw.trim()).host.toLowerCase()); } catch (err) { log.debug('onbruikbare env → geen host', err); }
+        try { hosts.add(new URL(raw.trim()).host.toLowerCase()); } catch (err) { bestEffort('core/webpages/webpageCodeScan:ownHosts', err); /* onbruikbare env → geen host */ }
     }
     return hosts;
 }

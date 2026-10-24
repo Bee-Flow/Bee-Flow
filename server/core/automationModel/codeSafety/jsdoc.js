@@ -26,6 +26,7 @@
 'use strict';
 
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const ACRONYMS = new Set([
     'vat', 'id', 'ids', 'url', 'urls', 'uri', 'api', 'iban', 'bic', 'pdf', 'csv', 'json', 'html', 'http', 'https',
@@ -137,7 +138,7 @@ function parseDefault(raw) {
     if (text === '') return undefined;
     const quoted = unquote(text);
     if (quoted !== null) return quoted;
-    try { return JSON.parse(text); } catch (err) { log.debug('try the single-quoted form below', err); }
+    try { return JSON.parse(text); } catch (err) { bestEffort('core/automationModel/codeSafety/jsdoc:parseDefault', err); /* try the single-quoted form below */ }
     try {
         return JSON.parse(text.replace(/'((?:[^'\\]|\\.)*)'/g, (_, s) => JSON.stringify(s.replace(/\\'/g, "'"))));
     } catch (_) {

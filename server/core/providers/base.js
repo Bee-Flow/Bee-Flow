@@ -18,6 +18,7 @@ const { stripInternalFields } = require('../../utils/messageUtils');
 const { parseGemmaArgs } = require('../llm/leakedToolCalls');
 const log = require('../../telemetry/log');
 const { normalizeUsage } = require('./usageNormalizer');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 // Parity with claude.js (`?? DEFAULT_MAX_TOKENS`). Without a default, a
 // caller that passed no cap let a self-hosted model generate until its
@@ -187,7 +188,7 @@ class BaseProvider {
                 provider: this.name, model,
                 errorType: `http_${Math.floor(status / 100)}xx`,
             });
-        } catch (err) { log.debug('telemetry is best-effort', err); }
+        } catch (err) { bestEffort('core/providers/base:BaseProvider._recordHttpError', err); /* telemetry is best-effort */ }
     }
 
     /**
@@ -609,7 +610,7 @@ class BaseProvider {
                     if (finishReason === 'tool_calls' || finishReason === 'stop') {
                         flushToolCalls();
                     }
-                } catch (e) { log.debug('Skip malformed JSON chunks', e); }
+                } catch (e) { fallback('core/providers/base:BaseProvider._parseSseStream', e); /* Skip malformed JSON chunks */ }
             }
         }
 

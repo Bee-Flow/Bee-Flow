@@ -39,6 +39,7 @@ const { chooseProvider, transcribe } = require('./ingestTranscription');
 const log = require('../../telemetry/log');
 // The trigger bus lives in automation/, a feature: injected (../automationRunner/featurePorts.js).
 const { runnerPort } = require('../automationRunner/featurePorts');
+const { fallback } = require('../../utils/bestEffort');
 
 const savedDir = path.resolve(__dirname, '../../data/uploads/saved-recordings');
 
@@ -402,7 +403,7 @@ async function resolveOwnerDefaultTemplate(userId, orgId) {
         let groupIds = [];
         if (u) {
             if (Array.isArray(u.groups)) groupIds = u.groups;
-            else { try { groupIds = JSON.parse(u.groups || '[]'); } catch (err) { log.debug('ignore', err); } }
+            else { try { groupIds = JSON.parse(u.groups || '[]'); } catch (err) { fallback('core/meetingNotes/ingestRecordingCore:resolveOwnerDefaultTemplate', err); /* ignore */ } }
         }
         return await summaryTemplateStore.resolveDefaultTemplate({ userId, orgIds: orgId ? [orgId] : [], groupIds });
     } catch (_) {

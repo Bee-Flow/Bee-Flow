@@ -21,6 +21,7 @@ const safety = require('./safety');
 const { captureCall: captured } = require('../http/captureCall');
 const log = require('../../telemetry/log');
 const { toolIdentity, permittedCatalog } = require('./toolIdentity');
+const { fallback } = require('../../utils/bestEffort');
 
 const sandbox = () => runnerPort('codeSandbox');
 
@@ -147,7 +148,7 @@ function makeExecuteToolBridge(step, ctx, mode, allowedTools) {
 function makeFetchHttpBridge(step, ctx, mode, guard) {
     return async (url, options) => {
         let host = '';
-        try { host = new URL(String(url)).hostname; } catch (err) { log.debug('let the sandbox reject it', err); }
+        try { host = new URL(String(url)).hostname; } catch (err) { fallback('core/automationRunner/execCode:makeFetchHttpBridge', err); /* let the sandbox reject it */ }
         const offList = host ? guard.refuseHost(host) : null;
         if (offList) return { error: offList };
         const meta = {

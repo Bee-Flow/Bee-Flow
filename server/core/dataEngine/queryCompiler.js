@@ -75,6 +75,7 @@ const log = require('../../telemetry/log');
 const { MAX_RESULT_ROWS, DEFAULT_LIMIT, MAX_KEY_INDEX_KEYS, MAX_GROUP_BY, MAX_AGGREGATES, ALIAS_RE, CompileError, RowsLockedError, assertRowsWritable, qi, assertTableMeta, fieldMap, resolveColumn, scalar, assertAccessFilter, MATCH_MODES, buildWhere, clampLimit } = require('./queryCompilerBase');
 const { compileInsert, compileUpdate, compileDelete, compileUpsertByKey, compileUpsertById } = require('./queryCompilerWrite');
 const { compileIdList, compileKeyValues, compileDeleteAll, compileDeleteOlderThan, compileSelectOlderThan, compileDeleteOrphans } = require('./queryCompilerMaintenance');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── Table + field resolution ────────────────────────────────────────
 
@@ -100,7 +101,7 @@ function decodeCursor(cursor) {
         if (o && o.v !== undefined && o.v !== null && o.i !== undefined && o.i !== null) {
             return { v: o.v, i: o.i };
         }
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('core/dataEngine/queryCompiler:decodeCursor', err); /* fall through */ }
     return null;
 }
 

@@ -17,6 +17,7 @@
  * @returns {{ sendEvent: Function, abortController: AbortController, markEnded: Function }}
  */
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 function setupSSE(res) {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -163,7 +164,7 @@ function openSse(res, opts = {}) {
     if (flush && typeof res.flushHeaders === 'function') res.flushHeaders();
     const sendRaw = (chunk) => {
         if (res.writableEnded || res.destroyed) return;
-        try { res.write(chunk); } catch (err) { log.debug('socket gone', err); }
+        try { res.write(chunk); } catch (err) { bestEffort('core/http/sseHelpers:sendRaw', err); /* socket gone */ }
     };
     const send = (event, data) => sendRaw(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     const abortController = new AbortController();
@@ -240,7 +241,7 @@ async function persistAndTitle({ conversation, messages, encryptionKey, userId, 
                 await agentStore.updateConversationTitle(conversation.id, title);
                 sendEvent('title_update', { title, conversationId: conversation.id });
             }
-        } catch (e) { log.debug('ignore title gen errors', e); }
+        } catch (e) { bestEffort('core/http/sseHelpers:persistAndTitle', e); /* ignore title gen errors */ }
     }
 }
 

@@ -18,6 +18,7 @@ const { pool } = require('../../../db');
 const { runnerPort } = require('../featurePorts');
 const { reapOrphanFormUploads, reapExpiredGeneratedFiles, reapExpiredRunTables } = require('./reapers');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * Run `run` only when this pod takes the advisory lock `key`; another pod
@@ -40,7 +41,7 @@ async function underAdvisoryLock(key, label, run) {
         log.error(`[AutomationRunner] ${label} error:`, e.message);
     } finally {
         if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [key]); } catch (err) { log.debug('lock release is best-effort', err); }
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [key]); } catch (err) { bestEffort('core/automationRunner/scheduler/passes:underAdvisoryLock', err); /* lock release is best-effort */ }
             client.release();
         }
     }

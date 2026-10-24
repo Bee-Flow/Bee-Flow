@@ -11,6 +11,7 @@
 
 // The calendar tool is injected by integrations/ (see ../integrations/integrationClients.js).
 const { integrationClient } = require('../integrations/integrationClients');
+const { fallback } = require('../../utils/bestEffort');
 const calendarTools = () => integrationClient('nextcloudCalendar');
 
 const TALK_CALL_URL_RE = /\/call\/([A-Za-z0-9]+)/;
@@ -59,7 +60,7 @@ async function listUpcomingTalkMeetings({ session, userId, orgId = null, windowH
             const evArgs = { calendar: slug, start: startISO, end: endISO };
             const evRes = await guardedNcCall('nextcloud_calendar_list_events', evArgs, { userId, orgId, session },
                 () => calendarTools().executeNextcloudCalendarTool('nextcloud_calendar_list_events', evArgs, userId, session),
-            ).catch(() => null);
+            ).catch((e) => fallback('core/meetingNotes/talkCalendar:listUpcomingTalkMeetings', e, null));
             const events = Array.isArray(evRes?.events) ? evRes.events : [];
             for (const ev of events) {
                 const talkToken = extractTalkToken(ev);

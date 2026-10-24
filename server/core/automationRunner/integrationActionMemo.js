@@ -18,6 +18,7 @@ const { isMemoisable } = require('../automationModel/sideEffectMap');
 const { memoKeyParts, memoKeyFromParts, MAX_ENTRY_BYTES } = require('./toolMemo');
 const { resolveDurableTier } = require('./integrationActionGates');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Whether, and under which key, this call may be answered from memory.
@@ -144,7 +145,7 @@ function rememberAnswer(plan, { step, stepUserId, result, softFailure, deps }) {
             ttlSeconds: Math.min(fresh.ttlSeconds, durable.stepTtlSeconds ?? fresh.ttlSeconds),
             maxBytes: MAX_ENTRY_BYTES,
         });
-    })().catch(() => { /* a cache write is never worth failing a step */ });
+    })().catch((e) => bestEffort('core/automationRunner/integrationActionMemo:rememberAnswer', e));
 }
 
 module.exports = { planReuse, readReuse, rememberAnswer };

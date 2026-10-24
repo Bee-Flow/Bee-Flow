@@ -12,6 +12,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const PREVIEW_CHARS = 120;
 
@@ -48,7 +49,7 @@ function persistedMemoryUsed(items) {
 /** Emit `memory_used` once, only for a non-empty list. Never throws. */
 function emitMemoryUsed(send, items) {
     if (typeof send !== 'function' || !Array.isArray(items) || items.length === 0) return;
-    try { send('memory_used', { items }); } catch (err) { log.debug('never block the chat on an event', err); }
+    try { send('memory_used', { items }); } catch (err) { bestEffort('core/memory/memoryUsed:emitMemoryUsed', err); /* never block the chat on an event */ }
 }
 
 module.exports = { memoryUsedItems, persistedMemoryUsed, emitMemoryUsed, PREVIEW_CHARS };

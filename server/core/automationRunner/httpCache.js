@@ -103,6 +103,7 @@ const { memoKeyParts, memoKeyFromParts } = require('./toolMemo');
 const { envFlagOn, resolveCachePolicy, resolveCachePolicyFresh } = require('./integrationCachePolicy');
 const log = require('../../telemetry/log');
 const { toolIdentity, stepKeyIdentity } = require('./toolIdentity');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /**
  * EVERY method may be cached. This is a deliberate product decision taken by the
@@ -381,7 +382,7 @@ async function readInto(into, key) {
     try {
         const parsed = JSON.parse(row.response_headers || '{}');
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) headers = parsed;
-    } catch (err) { log.debug('a hand-edited header cell is not worth failing a run over', err); }
+    } catch (err) { fallback('core/automationRunner/httpCache:readInto', err); /* a hand-edited header cell is not worth failing a run over */ }
     return {
         status,
         ok: status >= 200 && status < 300,
@@ -785,7 +786,7 @@ async function store(plan, out) {
             ttlSeconds,
             maxBytes: HTTP_MAX_ENTRY_BYTES,
         });
-    })().catch(() => { /* a cache write is never worth failing a step */ });
+    })().catch((e) => bestEffort('core/automationRunner/httpCache:store', e));
     return 'both';
 }
 

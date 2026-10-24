@@ -14,6 +14,7 @@ const { placeVolatileBlock } = require('../../llm/promptLayout');
 const { sanitizeMessages } = require('../../../utils/messageUtils');
 const { toolSetFingerprint, systemPrefixFingerprint } = require('../../llm/promptCacheStability');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * Build OpenAI-format messages for the adapter's normalizeMessages.
@@ -209,7 +210,7 @@ async function logAdapterUsage({ agent, agentId, userId, modelToUse, messageMeta
             organization_id: agent.organization_id || null,
             conversation_id: conversation?.id || null,
         });
-    } catch (e) { log.debug('ignore usage errors', e); }
+    } catch (e) { bestEffort('core/agentRuntime/chatStream/adapterRoundSetup:logAdapterUsage', e); /* ignore usage errors */ }
 }
 
 module.exports = {

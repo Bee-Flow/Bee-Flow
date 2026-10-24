@@ -47,6 +47,7 @@
  * `tooShort` (the last message is under 3 characters, so nothing could be
  * detected), and `override: true` when the person chose "send anyway".
  */
+const { bestEffort } = require('../../utils/bestEffort');
 async function runDlpPreflight({
     messages,
     resolvedShield,
@@ -154,7 +155,7 @@ async function runDlpPreflight({
                 assistantTokenisationInfo.tokenMap = tokenMap;
             }
         }
-        guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: auditCategoryList, action_taken: 'redacted' }).catch(() => {});
+        guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: auditCategoryList, action_taken: 'redacted' }).catch((e) => bestEffort('core/dlp/dlpPreflight:finalizeRedaction', e));
         return {
             outcome: /** @type {'redacted'} */ ('redacted'),
             blocked: false,
@@ -172,7 +173,7 @@ async function runDlpPreflight({
             provider: dlpResult.provider,
             reason: dlpResult.reason || 'policy_block',
         });
-        guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'blocked' }).catch(() => {});
+        guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'blocked' }).catch((e) => bestEffort('core/dlp/dlpPreflight:runDlpPreflight', e));
         return { outcome: 'blocked', blocked: true, reason: 'policy_block', ...seen };
     }
 
@@ -223,7 +224,7 @@ async function runDlpPreflight({
         } catch (err) {
             // Timeout or abort → treat as block under fail-closed semantics.
             emit?.('dlp_blocked', { reason: err.code === 'DLP_TIMEOUT' ? 'timeout' : 'rejected', findings: [], provider: dlpResult.provider });
-            guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'blocked' }).catch(() => {});
+            guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'blocked' }).catch((e) => bestEffort('core/dlp/dlpPreflight:runDlpPreflight#2', e));
             return { outcome: 'blocked', blocked: true, reason: 'ask_timeout', ...seen };
         }
 
@@ -233,7 +234,7 @@ async function runDlpPreflight({
 
         if (decision.choice === 'block') {
             emit?.('dlp_blocked', { reason: 'user_blocked', findings: [], provider: dlpResult.provider });
-            guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'blocked' }).catch(() => {});
+            guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'blocked' }).catch((e) => bestEffort('core/dlp/dlpPreflight:runDlpPreflight#3', e));
             return { outcome: 'blocked', blocked: true, reason: 'user_blocked', ...seen };
         }
 
@@ -280,13 +281,13 @@ async function runDlpPreflight({
             automatic: false,
             decisionMs: Date.now() - scanStart,
         });
-        guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'allowed' }).catch(() => {});
+        guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'allowed' }).catch((e) => bestEffort('core/dlp/dlpPreflight:runDlpPreflight#4', e));
         return { outcome: 'allow', blocked: false, ...seen, override: true };
     }
 
     if (dlpResult.scanStatus === 'failed') {
         // fail-open took this path — still record for audit.
-        guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: 'scan_failed', action_taken: 'scan_failed' }).catch(() => {});
+        guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: 'scan_failed', action_taken: 'scan_failed' }).catch((e) => bestEffort('core/dlp/dlpPreflight:runDlpPreflight#5', e));
         return { outcome: 'scan_failed', blocked: false, ...seen };
     }
 

@@ -19,6 +19,7 @@ const log = require('../../../telemetry/log');
 const { buildRawRequestBody, fetchRawStream, applySseFrame, logRawUsage } = require('./rawSseParts');
 const usageStore = require('../../../stores/usageStore');
 const { applyTokenMapToOutbound } = require('../../dlp/applyTokenMapToOutbound');
+const { fallback } = require('../../../utils/bestEffort');
 
 // What ./rawSseParts works with, handed in (it stays out of the server's large
 // import cycle).
@@ -102,7 +103,7 @@ async function streamRawSseRound({
             let verdict;
             try {
                 verdict = applySseFrame(JSON.parse(data), rs, { splitter: sseThinkSplitter, onEvent });
-            } catch (e) { log.debug('Skip parse errors', e); }
+            } catch (e) { fallback('core/agentRuntime/chatStream/rawSseStream:streamRawSseRound', e); /* Skip parse errors */ }
             if (verdict === 'break') break;
         }
     }

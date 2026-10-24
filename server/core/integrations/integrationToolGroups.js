@@ -19,6 +19,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 /**
  * BFSF-255: password-account users acquire Google tokens via the Settings →
@@ -37,13 +38,13 @@ async function hydrateSessionFromVault({ session, D }) {
         try {
             const { hydrateGoogleSessionFromVault } = D.googleSessionHydration();
             await hydrateGoogleSessionFromVault(session);
-        } catch (err) { log.debug('non-fatal — tools just stay unavailable', err); }
+        } catch (err) { bestEffort('core/integrations/integrationToolGroups:hydrateSessionFromVault', err); /* non-fatal — tools just stay unavailable */ }
     }
     if (!session?.oauthProvider && session?.user?.id) {
         try {
             const { hydrateMicrosoftSessionFromVault } = D.microsoftSessionHydration();
             await hydrateMicrosoftSessionFromVault(session);
-        } catch (err) { log.debug('non-fatal — tools just stay unavailable', err); }
+        } catch (err) { bestEffort('core/integrations/integrationToolGroups:hydrateSessionFromVault#2', err); /* non-fatal — tools just stay unavailable */ }
     }
 }
 
@@ -80,7 +81,7 @@ async function addOAuthProviderTools({ userId, session, isAppOn, addTools, T, D 
         try {
             const { resolveMicrosoftSession } = D.microsoftSessionHydration();
             msSession = await resolveMicrosoftSession(session, userId);
-        } catch (err) { log.debug('non-fatal — Outlook just stays unavailable', err); }
+        } catch (err) { fallback('core/integrations/integrationToolGroups:addOAuthProviderTools', err); /* non-fatal — Outlook just stays unavailable */ }
         if (msSession?.accessToken) {
             if (isAppOn('outlook')) addTools(T.OUTLOOK_TOOLS);
             if (isAppOn('outlook-readonly')) addTools(T.OUTLOOK_READONLY_TOOLS);
@@ -254,7 +255,7 @@ async function addPersonalServiceTools({ userId, isAppOn, addTools, isLentProvid
     // must never inherit their body measurements.
     if (isAppOn('withings')) {
         const automationCredentialStore = D.automationCredentialStore();
-        const withingsCred = await automationCredentialStore.getCredential(userId, 'withings').catch(() => null);
+        const withingsCred = await automationCredentialStore.getCredential(userId, 'withings').catch((e) => fallback('core/integrations/integrationToolGroups:addPersonalServiceTools', e, null));
         if (withingsCred?.status === 'active') addTools(T.WITHINGS_TOOLS);
     }
 

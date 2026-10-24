@@ -14,6 +14,7 @@
 
 const { VARIANT_WIDTHS, VARIANT_FORMATS, MAX_SOURCE_BYTES, isResizable, resize } = require('./assetVariants');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const PREFIX = 'cms-variants/';
 const MAX_QUEUED = 20;
@@ -64,7 +65,7 @@ async function storeVariants({ key, source, contentType, storage }) {
         }
     }
     // Marks the image as handled, so the backfill does not redo images that need no variants.
-    if (!failed) await storage.uploadFile(doneKey(key), Buffer.from('1'), 'text/plain').catch(() => undefined);
+    if (!failed) await storage.uploadFile(doneKey(key), Buffer.from('1'), 'text/plain').catch((e) => bestEffort('core/cms/assetVariantStore:storeVariants', e));
     return stored;
 }
 

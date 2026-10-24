@@ -50,7 +50,7 @@ async function resolveUserSession(userId) {
     let userRow = null;
     try {
         const userStore = require('../../stores/userStore');
-        userRow = await userStore.getUser(userId).catch(() => null);
+        userRow = await userStore.getUser(userId).catch((e) => fallback('core/automationRunner/sessionResolution:resolveUserSession', e, null));
         const user = userRow;
 
         // Which providers (google / microsoft / nextcloud) to fetch tokens for.
@@ -128,5 +128,6 @@ async function resolveUserSession(userId) {
 // core/enabledIntegrations.js so the runner, the webpage bridge and App Studio
 // connectors cannot drift apart again.
 const { mergeEnabled } = require('../integrations/enabledIntegrations');
+const { fallback } = require('../../utils/bestEffort');
 
 module.exports = { withConnectorIdentity, resolveUserSession, mergeEnabled };

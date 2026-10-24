@@ -15,19 +15,20 @@
  */
 
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 function emitPhase(send, stage, detail) {
     if (typeof send !== 'function' || !stage) return;
     try {
         send('phase', { stage, status: 'start', detail: detail || undefined });
-    } catch (err) { log.debug('never block the chat on telemetry failures', err); }
+    } catch (err) { bestEffort('core/agentRuntime/phaseEvents:emitPhase', err); /* never block the chat on telemetry failures */ }
 }
 
 function emitPhaseEnd(send, stage, durationMs) {
     if (typeof send !== 'function' || !stage) return;
     try {
         send('phase', { stage, status: 'end', durationMs: Number.isFinite(durationMs) ? durationMs : undefined });
-    } catch (err) { log.debug('swallow', err); }
+    } catch (err) { bestEffort('core/agentRuntime/phaseEvents:emitPhaseEnd', err); /* swallow */ }
 }
 
 async function withPhase(send, stage, detail, fn) {
@@ -62,7 +63,7 @@ function startPrivacyScanPhase(send, text) {
     let total = 1;
     try {
         total = require('../privacy/piiDetection').windowCountFor(text || '');
-    } catch (err) { log.debug('scanner unavailable → treat as a single part', err); }
+    } catch (err) { fallback('core/agentRuntime/phaseEvents:startPrivacyScanPhase', err); /* scanner unavailable → treat as a single part */ }
     const stage = total > 1 ? 'privacy_scan_large' : 'privacy_scan';
     const startedAt = Date.now();
     // The detail is the part being worked on, not the count finished — so the

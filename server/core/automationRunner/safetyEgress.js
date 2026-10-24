@@ -1,6 +1,7 @@
 const log = require('../../telemetry/log');
 const { collectStringLeaves, applyStringLeaves, _vaultOf } = require('./safetyLeaves');
 const { _detectPii, _scanText } = require('./safetyScan');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Replace the personal data in `text` with REVERSIBLE placeholders, minted into
@@ -199,7 +200,7 @@ async function logEgress({ toolName, toolArgs, result, error, blocked, probe, po
             // that run already logged the real transfer.
             servedFromCache: !!servedFromCache,
         });
-    } catch (err) { log.debug('never fail a run on egress logging', err); }
+    } catch (err) { bestEffort('core/automationRunner/safetyEgress:logEgress', err); /* never fail a run on egress logging */ }
 }
 
 module.exports = { mintTokensFor, tokenizeIntoVault, egressMode, maskTokens, prepareForEgress, restoreForRunState, logEgress };

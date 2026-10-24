@@ -4,6 +4,7 @@ const { _stringify } = require('./safetyLeaves');
 const { PII_SCAN_WINDOW, _detectPii, _scanText } = require('./safetyScan');
 const { mintTokensFor, tokenizeIntoVault, egressMode, maskTokens, prepareForEgress, restoreForRunState, logEgress } = require('./safetyEgress');
 const { GuardrailBlockError, guardToolInput, guardToolOutput, guardAiInput, guardAiOutput } = require('./safetyGuard');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Safety / monitoring backbone for the automation runner.
@@ -54,7 +55,7 @@ async function resolveAutomationPolicy(ctx, { honourAutomationOptOut = true } = 
     try {
         const { resolveOrgShield } = require('../privacy/orgShield');
         shield = await resolveOrgShield(ctx.orgId);
-    } catch (err) { log.debug('fail-open', err); }
+    } catch (err) { fallback('core/automationRunner/safety:resolveAutomationPolicy', err); /* fail-open */ }
 
     // Org-level opt-out: the org admin can exclude automations from the
     // Privacy Shield (Settings → Organisation → Privacy Shield → "Apply to
@@ -89,7 +90,7 @@ async function resolveAutomationPolicy(ctx, { honourAutomationOptOut = true } = 
     }
 
     let aiConfig = {};
-    try { aiConfig = (await require('../aiAgent').getAIConfig()) || {}; } catch (err) { log.debug('tolerate', err); }
+    try { aiConfig = (await require('../aiAgent').getAIConfig()) || {}; } catch (err) { fallback('core/automationRunner/safety:resolveAutomationPolicy#2', err); /* tolerate */ }
 
     const override = (ctx.definition && ctx.definition.safety) || {};
 

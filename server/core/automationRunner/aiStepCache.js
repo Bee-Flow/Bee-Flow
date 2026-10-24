@@ -44,6 +44,7 @@
 const { memoKeyParts, memoKeyFromParts, MAX_ENTRY_BYTES } = require('./toolMemo');
 const { resolveCachePolicy, resolveCachePolicyFresh, envFlagOn } = require('./integrationCachePolicy');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const MAX_STEP_TTL_SECONDS = 900;
 
@@ -191,7 +192,7 @@ function rememberAiAnswer(plan, { answer, userId }) {
             ttlSeconds: Math.min(fresh.ttlSeconds, durable.stepTtlSeconds ?? fresh.ttlSeconds),
             maxBytes: MAX_ENTRY_BYTES,
         });
-    })().catch(() => { /* a cache write is never worth failing a step */ });
+    })().catch((e) => bestEffort('core/automationRunner/aiStepCache:rememberAiAnswer', e));
 }
 
 module.exports = { planAiReuse, readAiReuse, rememberAiAnswer };

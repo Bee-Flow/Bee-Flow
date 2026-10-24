@@ -11,6 +11,7 @@
  * a concatenated source blob) to inject into a system prompt.
  */
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const CHARS_PER_TOKEN = 4;
 
@@ -48,7 +49,7 @@ function estimateTokens(text) {
     if (!text) return 0;
     const enc = maybeLoadTiktoken();
     if (enc) {
-        try { return enc.encode(text).length; } catch (err) { log.debug('fall through', err); }
+        try { return enc.encode(text).length; } catch (err) { bestEffort('core/llm/tokenBudget:estimateTokens', err); /* fall through */ }
     }
     return Math.ceil(text.length / CHARS_PER_TOKEN);
 }

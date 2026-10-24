@@ -14,6 +14,7 @@
 'use strict';
 
 const { safeFetch, isPrivateAddressError } = require('../../utils/ssrfGuard');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const MAX_URLS = 50;
 const CONCURRENCY = 4;
@@ -58,7 +59,7 @@ async function probeOne(raw, { fetchFn, timeoutMs }) {
                 signal: AbortSignal.timeout(timeoutMs),
             });
             // Only the status matters: never read a body of a third-party site.
-            await res.body?.cancel().catch(() => undefined);
+            await res.body?.cancel().catch((e) => bestEffort('core/cms/linkProbe:send', e));
             const location = res.status >= 300 && res.status < 400 ? res.headers?.get?.('location') : null;
             if (!location) return res.status;
             const next = requestable(new URL(location, current).href);

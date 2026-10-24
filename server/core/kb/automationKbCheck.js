@@ -39,6 +39,7 @@
 
 const { kbUsableIn } = require('./usageContexts');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 function isObject(v) { return v && typeof v === 'object' && !Array.isArray(v); }
 
@@ -127,7 +128,7 @@ async function kbStepFindings(definition, { orgId, userId, stage = 'draft', deps
             if (!writeCache.has(kbId)) {
                 const { canOwnerWriteToKb } = deps.writeAccess || require('./kbWriteAccess');
                 let verdict = { ok: false, reason: 'unknown' };
-                try { verdict = await canOwnerWriteToKb(kbId, userId, { deps }); } catch (err) { log.debug('refuse', err); }
+                try { verdict = await canOwnerWriteToKb(kbId, userId, { deps }); } catch (err) { fallback('core/kb/automationKbCheck:kbStepFindings', err); /* refuse */ }
                 writeCache.set(kbId, verdict);
             }
             const verdict = writeCache.get(kbId);

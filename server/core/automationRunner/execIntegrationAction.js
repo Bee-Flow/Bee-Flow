@@ -29,6 +29,7 @@ const { assertStepToolPermitted, resolveLendingIdentity } = require('./integrati
 const { toolIdentity } = require('./toolIdentity');
 const { recordSimulatedWrite, isUnderSimulatedPath, isNotFoundError } = require('./simulatedPaths');
 const { planReuse, readReuse, rememberAnswer } = require('./integrationActionMemo');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * ── Safety: scan resolved inputs (toolInput scope) before anything leaves ──
@@ -289,7 +290,7 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
     // A memo hit (run or durable) teaches nothing new: the shape was
     // recorded on the call that fetched it.
     if (mode !== 'dry_run' && !servedFromMemo) {
-        try { await runnerPort('shapeCache').recordShape({ userId: ctx.userId, toolName: step.tool, output: result }); } catch (_) { log.debug('output shape could not be cached, only the builder hints are affected', _); }
+        try { await runnerPort('shapeCache').recordShape({ userId: ctx.userId, toolName: step.tool, output: result }); } catch (_) { bestEffort('core/automationRunner/execIntegrationAction:execIntegrationAction', _); /* output shape could not be cached, only the builder hints are affected */ }
     }
     // Scan the tool output (toolOutput scope) before it enters runState and is
     // bound by downstream steps. block → throws; redact/tokenize → transforms.

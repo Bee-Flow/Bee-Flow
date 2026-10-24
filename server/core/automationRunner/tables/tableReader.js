@@ -21,6 +21,7 @@ const { parseRowLine } = require('./tableCodec');
 const { canReadRunData } = require('../../automationModel/callerRunVisibility');
 const { formulaShaped } = require('../../dataEngine/sources/spreadsheetFile/cells');
 const { quoteField } = require('../../dataEngine/sources/spreadsheetFile/formats/csv');
+const { bestEffort, fallback } = require('../../../utils/bestEffort');
 
 const CSV_BOM = '\uFEFF';
 const CSV_FLUSH_CHARS = 64 * 1024;
@@ -72,8 +73,8 @@ async function writeChunk(writable, chunk) {
     const closed = once(writable, 'close').then(() => false);
     const drained = once(writable, 'drain').then(() => true);
     // A listener left behind by the loser must not hold the promise chain open.
-    closed.catch(() => {});
-    drained.catch(() => {});
+    closed.catch((e) => bestEffort('core/automationRunner/tables/tableReader:writeChunk', e));
+    drained.catch((e) => bestEffort('core/automationRunner/tables/tableReader:writeChunk#2', e));
     return Promise.race([drained, closed]);
 }
 
@@ -114,8 +115,8 @@ function makeTableReader(deps = {}) {
         const ids = await journeyIds({ runId: scope.runId, rootRunId: scope.rootRunId });
         if (ids.includes(row.runId)) return true;
         const [producing, current] = await Promise.all([
-            store().getRun(row.runId).catch(() => null),
-            store().getRun(scope.runId).catch(() => null),
+            store().getRun(row.runId).catch((e) => fallback('core/automationRunner/tables/tableReader:mayRead', e, null)),
+            store().getRun(scope.runId).catch((e) => fallback('core/automationRunner/tables/tableReader:mayRead#2', e, null)),
         ]);
         if (!producing) return false;
         const viewer = (current && current.startedByUserId) || scope.userId;

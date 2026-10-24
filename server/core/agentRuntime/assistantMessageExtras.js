@@ -10,6 +10,7 @@
  * server's large import cycle, which this module stays out of.
  */
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 // Cap total thinking size — runaway models can emit hundreds of KB of
 // chain-of-thought, bloating conversation rows and slowing reads.
@@ -71,7 +72,7 @@ function restoreToolHistoryTokens(toolHistory, conversation, privacy) {
                 }
             }
         }
-    } catch (err) { log.debug('render-layer best-effort', err); }
+    } catch (err) { bestEffort('core/agentRuntime/assistantMessageExtras:restoreToolHistoryTokens', err); /* render-layer best-effort */ }
 }
 
 const _capText = (s) => (typeof s === 'string' && s.length > THINKING_BUDGET)
@@ -100,7 +101,7 @@ function persistedThinking(thinkingParts, thinking, conversation, privacy) {
         if (_convMapTHK && Object.keys(_convMapTHK).length > 0) {
             _restoreTH = (s) => (typeof s === 'string' ? restoreTokens(s, _convMapTHK) : s);
         }
-    } catch (err) { log.debug('render-layer best-effort', err); }
+    } catch (err) { fallback('core/agentRuntime/assistantMessageExtras:persistedThinking', err); /* render-layer best-effort */ }
     if (thinkingParts.length > 0) {
         let budget = THINKING_BUDGET;
         return thinkingParts.map(p => {

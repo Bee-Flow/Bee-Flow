@@ -18,6 +18,7 @@
 'use strict';
 
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 function isEmpty(v) {
     return v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
@@ -96,7 +97,7 @@ function coerce(value, param) {
             try {
                 const parsed = JSON.parse(value);
                 if (isPlainObject(parsed)) return { value: parsed };
-            } catch (err) { log.debug('refused below', err); }
+            } catch (err) { bestEffort('core/automationModel/codeSafety/paramValues:coerce', err); /* refused below */ }
         }
         return { error: refusal('type', param, { expected: EXPECTED.object, got: describe(value) }) };
     }
@@ -108,7 +109,7 @@ function coerce(value, param) {
                 try {
                     const parsed = JSON.parse(s);
                     if (Array.isArray(parsed)) return { value: parsed };
-                } catch (err) { log.debug('refused below', err); }
+                } catch (err) { bestEffort('core/automationModel/codeSafety/paramValues:coerce#2', err); /* refused below */ }
                 return { error: refusal('type', param, { expected: EXPECTED.array, got: describe(value) }) };
             }
             // "a, b, c" typed into a text field is a list of texts.

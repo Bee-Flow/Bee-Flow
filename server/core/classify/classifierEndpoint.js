@@ -14,6 +14,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const ENDPOINT_CACHE_TTL_MS = 10_000;
 
@@ -40,7 +41,7 @@ async function getClassifierEndpoint({ store, env = process.env } = {}) {
             url = (await s.getConfig('automation_classifier_url')) || null;
             if (url) apiKey = (await s.getSecret('automation_classifier_api_key')) || '';
         }
-    } catch (err) { log.debug('fall through to env', err); }
+    } catch (err) { fallback('core/classify/classifierEndpoint:getClassifierEndpoint', err); /* fall through to env */ }
     if (!url) {
         url = env.CLASSIFY_SERVICE_URL || null;
         apiKey = env.CLASSIFY_SERVICE_API_KEY || env.SERVICES_API_KEY || '';

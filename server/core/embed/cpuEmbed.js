@@ -16,6 +16,7 @@
 const os = require('os');
 const path = require('path');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // Pinned permissive-licensed embedding model (MIT). Multilingual-e5
 // requires the "query: " / "passage: " prefix for best quality —
@@ -57,7 +58,7 @@ async function getPipeline() {
                 if (env.backends?.onnx?.wasm) {
                     env.backends.onnx.wasm.numThreads = CPU_EMBED_WASM_THREADS;
                 }
-            } catch (err) { log.debug('older versions: ignore', err); }
+            } catch (err) { fallback('core/embed/cpuEmbed:getPipeline', err); /* older versions: ignore */ }
 
             const extractor = await withTimeout(
                 pipeline('feature-extraction', CPU_EMBED_MODEL_ID, { dtype: 'q8' }),
@@ -78,7 +79,7 @@ async function getPipeline() {
 let _inferenceChain = Promise.resolve();
 function runSerialized(fn) {
     const next = _inferenceChain.then(() => fn(), () => fn());
-    _inferenceChain = next.catch(() => {});
+    _inferenceChain = next.catch((e) => fallback('core/embed/cpuEmbed:runSerialized', e));
     return next;
 }
 
@@ -142,7 +143,7 @@ async function warmup() {
         if (out.length > 0) {
             log.info('[CpuEmbed] Warmup complete — first user query will be fast.');
         }
-    } catch (err) { log.debug('fail-open', err); }
+    } catch (err) { bestEffort('core/embed/cpuEmbed:warmup', err); /* fail-open */ }
 }
 
 module.exports = {

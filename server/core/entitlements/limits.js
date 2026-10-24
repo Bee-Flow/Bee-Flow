@@ -17,6 +17,7 @@ const license = require('../../license/index');
 // silent "org can't chat" state visible per org in the admin dashboard.
 const orgHealth = require('../../services/orgHealth');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 // One-shot 80 %-of-cap notification. Sends a single email to the org's
 // admin(s) per billing period. Idempotency is enforced via the
@@ -43,7 +44,7 @@ async function _notifyCostThreshold(orgId, cap, current, periodKey) {
         const pct = Math.round((current / cap) * 100);
         const subject = `Bee Flow: ${pct}% of your monthly cost limit reached`;
         const text = `Your organization has used €${current.toFixed(2)} of the €${cap.toFixed(2)} monthly limit (${pct}%). When usage reaches 100%, AI calls will be blocked until the next billing period.\n\nContact your administrator to raise the cap if needed.`;
-        await sendServiceEmail({ to: recipients.join(', '), subject, text }).catch(() => {});
+        await sendServiceEmail({ to: recipients.join(', '), subject, text }).catch((e) => bestEffort('core/entitlements/limits:_notifyCostThreshold', e));
     } catch (e) {
         log.warn('[Limits] cost threshold notify failed:', e.message);
     }
@@ -215,7 +216,7 @@ async function checkSubscriptionLimits(orgId, agentType, userId = null) {
     try {
         const org = await userStore.getOrganization(orgId);
         pooled = (org?.usage_pooled ?? '1') !== '0' && org?.usagePooled !== false;
-    } catch (err) { log.debug('keep pooled = true', err); }
+    } catch (err) { fallback('core/entitlements/limits:checkSubscriptionLimits', err); /* keep pooled = true */ }
 
     // Check total messages limit
     if (limits.max_messages_per_month !== null && limits.max_messages_per_month !== undefined) {
@@ -279,7 +280,7 @@ async function checkSubscriptionLimits(orgId, agentType, userId = null) {
             // hot loop of chat requests doesn't fan out to N emails.
             const periodKey = (period.startDate || '').slice(0, 10); // YYYY-MM-DD
             setImmediate(() => {
-                _notifyCostThreshold(orgId, cap, cost, periodKey).catch(() => {});
+                _notifyCostThreshold(orgId, cap, cost, periodKey).catch((e) => bestEffort('core/entitlements/limits:checkSubscriptionLimits#2', e));
             });
         }
     }

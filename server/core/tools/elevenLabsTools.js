@@ -12,6 +12,7 @@ const crypto = require('crypto');
 const configStore = require('../../stores/configStore');
 const elevenlabsProvider = require('../providers/elevenlabs');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ─── Tool Definitions ──────────────────────────────────────────
 const ELEVENLABS_TOOLS = [
@@ -166,7 +167,7 @@ function _logUsage(source, model, promptLen) {
             total_tokens: promptLen,
             source,
         });
-    } catch (e) { log.debug('ignore', e); }
+    } catch (e) { bestEffort('core/tools/elevenLabsTools:_logUsage', e); /* ignore */ }
 }
 
 // ─── Executor ───────────────────────────────────────────────────

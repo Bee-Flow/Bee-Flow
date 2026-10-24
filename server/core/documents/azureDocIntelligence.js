@@ -21,6 +21,7 @@ const configStore = require('../../stores/configStore');
 const { computeDocIntelligenceCost } = require('../llm/azureServiceCosts');
 const azureServiceUsageStore = require('../../stores/azureServiceUsageStore');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── Cached client ────────────────────────────────────────────────
 let _client = null;
@@ -151,7 +152,7 @@ async function extractWithAzureWithStats(buffer, filename = 'unknown') {
                 estimated_cost: cost,
                 source: 'unknown',
                 metadata: { filename, content_length: content.length },
-            }).catch(() => {});
+            }).catch((e) => bestEffort('core/documents/azureDocIntelligence:extractWithAzureWithStats', e));
             if (cost > 0) log.info(`[AzureDocIntelligence] 💰 Est. cost: $${cost.toFixed(4)} (${pageCount} pages)`);
 
             // `pages` rides along beside the flat text. Every existing caller

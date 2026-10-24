@@ -35,6 +35,7 @@ const BUILTINS = {
     'builtin:research_swarm': require('./builtins/researchSwarm'),
 };
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 function loadSwarmById(id) {
     if (!id || typeof id !== 'string') return null;
@@ -95,7 +96,7 @@ async function resolveWorkerModel({ worker, fallbackModelId, userOrgId, userId }
             userOrgId, userId, fallbackTier: 'fast',
         });
         if (resolved) modelId = resolved;
-    } catch (err) { log.debug('fall back to fallbackModelId', err); }
+    } catch (err) { fallback('core/swarms/swarmRuntime:resolveWorkerModel', err); /* fall back to fallbackModelId */ }
 
     const config = await getProviderForModel(modelId);
     const adapter = getAdapter(config.providerType, (config.url || '').replace(/\/+$/, ''));
@@ -260,7 +261,7 @@ async function runWorker({
             ...fields,
             source: 'swarm',
             model: model.modelId,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('core/swarms/swarmRuntime:logShieldEvent', e));
     };
     const w = {
         ...card, model, isSynthesiser, userId, swarmRunId, organizationId, conversationId,

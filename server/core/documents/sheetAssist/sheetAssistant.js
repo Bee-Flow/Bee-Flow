@@ -42,6 +42,7 @@ const { parseRange, cellsIn, fillRange, colName } = require('./sheetRefs');
 const { sheetDigest, rowsBlock, errorList, RANGE_CELL_CHARS } = require('./sheetDigest');
 const { sheetTabsOf } = require('../../../stores/lib/sheetDocument');
 const { chartProblem, chartFieldsOf, sizeInPx, CHART_STYLE_PROPERTIES, CHART_TYPES, CHART_TYPES_TEXT } = require('../sheetChartFields');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const MAX_ROUNDS = 8;
 /** The most cells one request may change. */
@@ -407,7 +408,7 @@ function makeSheetAssistant(deps = {}) {
         logUsage({
             user_id: userId, organization_id: orgId, agent_name: 'spreadsheet-ai', agent_type: 'system', model: modelId,
             source: 'document_ai', duration_ms: Date.now() - start, ...(result.usage || {}),
-        }).catch(() => undefined);
+        }).catch((e) => bestEffort('core/documents/sheetAssist/sheetAssistant:ask', e));
 
         /** @type {Record<string, { before: string, after: string }>} */
         const changes = {};

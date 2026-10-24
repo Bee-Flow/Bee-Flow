@@ -36,6 +36,7 @@ const ncApi = require('./ncApi');
 const { mirrorRowFromNc, fieldsByIdOf } = require('./rows');
 const { buildRelationIndexes } = require('./relations');
 const log = require('../../../../telemetry/log');
+const { bestEffort, fallback: fallbackSwallowed } = require('../../../../utils/bestEffort');
 
 const PG = { dialect: 'pg' };
 const EVENTS = new Set(['tables.row.added', 'tables.row.updated', 'tables.row.deleted']);
@@ -73,9 +74,9 @@ async function onTablesEvent({ orgId, event, payload }) {
                 await upsertRow(mirror, rowId);
             }
             out.patched += 1;
-            await datatableStore.markSourceStale(mirror.id, null).catch(() => {});
+            await datatableStore.markSourceStale(mirror.id, null).catch((e) => bestEffort('core/dataEngine/sources/nextcloudTable/events:onTablesEvent', e));
         } catch (e) {
-            try { await fallback(mirror, 'event'); out.kicked += 1; } catch (err) { log.debug('the schedule will', err); }
+            try { await fallback(mirror, 'event'); out.kicked += 1; } catch (err) { fallbackSwallowed('core/dataEngine/sources/nextcloudTable/events:onTablesEvent#2', err); /* the schedule will */ }
         }
     }
 
@@ -83,7 +84,7 @@ async function onTablesEvent({ orgId, event, payload }) {
     // that may be wrong.
     try {
         for (const mirror of mirrors) await staleDependents(mirror);
-    } catch (err) { log.debug('best-effort', err); }
+    } catch (err) { bestEffort('core/dataEngine/sources/nextcloudTable/events:onTablesEvent#3', err); /* best-effort */ }
     return out;
 }
 

@@ -52,6 +52,7 @@ const log = require('../../telemetry/log');
 const {
     gradeForPrincipal, gradeAtLeast, datatableScopesFor, synthesizeAccess,
 } = require('../../auth/datatableAccess');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const PG = { dialect: 'pg' };
 
@@ -238,7 +239,7 @@ async function readRows(resolved, { allowColumns, filters, match, sort, limit, c
     if (isMirror(resolved)) {
         try {
             require('./sources').kickStale(resolved.table, { reason: 'view' });
-        } catch (err) { log.debug('never a reason to fail a read', err); }
+        } catch (err) { bestEffort('core/dataEngine/datatableRuntime:readRows', err); /* never a reason to fail a read */ }
     }
     const columns = effectiveColumns(resolved, requireAllowColumns(allowColumns));
     if (!columns.length) {

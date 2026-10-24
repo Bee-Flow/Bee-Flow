@@ -23,6 +23,7 @@
 
 const { keyFromTitle } = require('./sources/mirror/keys');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 function defaultDeps() {
     return {
@@ -77,7 +78,7 @@ async function createStudioDatatable({ ownerUserId, principal, name, key = null,
             },
         }));
     } catch (err) {
-        try { datatableDbStore.invalidate(scopeKey); } catch (err) { log.debug('best effort', err); }
+        try { datatableDbStore.invalidate(scopeKey); } catch (err) { bestEffort('core/dataEngine/createStudioDatatable:createStudioDatatable', err); /* best effort */ }
         // The quota error carries its own code; collapsing it to create_failed
         // hid "the workspace is full" behind a generic failure.
         if (err && err.code === 'quota_exceeded') return { ok: false, code: 'quota', error: err.message };

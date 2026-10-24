@@ -22,6 +22,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const DEFAULT_DEADLINE_MS = Number(process.env.AUTO_TIER_CLASSIFIER_DEADLINE_MS) || 800;
 /** Below this top score the model is guessing. */
@@ -90,7 +91,7 @@ async function classifyTierViaService(text, tiers, { heuristic = null, deadlineM
     // One tier is no choice; the caller's own logic covers it.
     if (byTier.size < 2) return null;
 
-    const target = endpoint || await require('../classify/classifierEndpoint').getClassifierEndpoint().catch(() => null);
+    const target = endpoint || await require('../classify/classifierEndpoint').getClassifierEndpoint().catch((e) => fallback('core/llm/tierClassifierService:classifyTierViaService', e, null));
     if (!target || !target.url) return null;
 
     const labels = [...byTier.values()].flat().sort();

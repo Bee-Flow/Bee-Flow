@@ -23,6 +23,7 @@
 
 const log = require('../../telemetry/log');
 const { writeRunOutcome, withLastOutput } = require('./runFinalize');
+const { fallback } = require('../../utils/bestEffort');
 
 /** Providers whose connection is a per-user OAuth / vault entry. */
 const PERSONAL_PROVIDERS = Object.freeze(['google', 'microsoft', 'nextcloud', 'withings']);
@@ -125,7 +126,7 @@ async function collectRequirements(definition, lookups) {
         if (Array.isArray(node.allowedTools) && node.allowedTools.length) usesTools = true;
         // The apps an AI step is granted: the agent behind it and its skills.
         if (node.type === 'ai_step' && lookups.stepProviders && (node.agentId || (Array.isArray(node.skillIds) && node.skillIds.length))) {
-            for (const p of await lookups.stepProviders(node).catch(() => [])) {
+            for (const p of await lookups.stepProviders(node).catch((e) => fallback('core/automationRunner/callerConnections:collectRequirements', e, []))) {
                 if (PERSONAL_PROVIDERS.includes(p)) providers.add(p);
             }
         }
@@ -135,7 +136,7 @@ async function collectRequirements(definition, lookups) {
         if (node.type === 'call_block' && typeof node.blockId === 'string' && lookups.loadBlockDefinition
             && !blocks.has(node.blockId) && blocks.size < MAX_BLOCK_DEPTH) {
             blocks.add(node.blockId);
-            const def = await lookups.loadBlockDefinition(node.blockId).catch(() => null);
+            const def = await lookups.loadBlockDefinition(node.blockId).catch((e) => fallback('core/automationRunner/callerConnections:collectRequirements#2', e, null));
             if (def) queue.push(def);
         }
         queue.push(...Object.values(node));

@@ -21,6 +21,7 @@ const { AsyncLocalStorage } = require('node:async_hooks');
 const { evaluate, parseExpr, templateText, parsePath, walkTokens, getRelativePath, replaceTemplate, scanTemplate, parseJsonText, formatPath, jsonCacheFor } = require('../../shared/expr/index.mjs');
 const log = require('../../telemetry/log');
 const { missingResultTokens } = require('./codeOutput');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── The binding log ─────────────────────────────────────────────────────
 //
@@ -466,7 +467,7 @@ function jsonBareValue(v) {
         if (parsed !== undefined) return JSON.stringify(parsed);
         const t = v.trim();
         if (t) {
-            try { JSON.parse(t); return t; } catch (err) { log.debug('plain text', err); }
+            try { JSON.parse(t); return t; } catch (err) { bestEffort('core/automationModel/bind:jsonBareValue', err); /* plain text */ }
         }
         return JSON.stringify(v);
     }
