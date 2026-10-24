@@ -14,6 +14,7 @@ require('../../core/entitlements/limits');
 require('../../core/http/sseHelpers');
 const log = require('../../telemetry/log');
 const { requireAuth } = require('../../auth/permissions');
+const { fetchConfiguredEndpoint } = require('../../core/http/configuredEndpointFetch');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 
@@ -84,7 +85,8 @@ router.get('/meta/models', requireAuth, validate({ query: NoQuery }), async (req
                     ? `${baseUrl}/models`
                     : `${baseUrl}/v1/models`;
 
-                const response = await fetch(modelsUrl, { headers });
+                // Admin-configured URL: private networks are fine (self-hosted runtimes), metadata/link-local are not.
+                const response = await fetchConfiguredEndpoint(modelsUrl, { headers, signal: AbortSignal.timeout(15000) });
                 if (response.ok) {
                     const data = await response.json();
                     models = (data.data || []).map(m => ({

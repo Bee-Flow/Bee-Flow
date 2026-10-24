@@ -14,11 +14,11 @@
 'use strict';
 
 const crypto = require('crypto');
-const { getOne, getAll, run, getClient } = require('../db');
+const { getOne, getAll, run, withTransaction } = require('../db');
+const { rollback } = require('../txRollback');
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
 const { parseJSONObject: parseJSON } = require('./lib/json');
-const log = require('../telemetry/log');
 
 const initDB = makeStoreInit('PlaybookStore', async () => {
     const res = await runDdl('playbookStore', [
@@ -105,16 +105,13 @@ async function listPlaybooksForUser(userId, { limit = 50 } = {}) {
  */
 async function savePhases(id, userId, { phases, currentPhase, status, title } = {}, { expectedVersion = null } = {}) {
     await initDB();
-    const client = await getClient();
-    try {
-        await client.query('BEGIN');
+    const out = await withTransaction(async (client) => {
         const cur = await client.query(`SELECT * FROM playbooks WHERE id = $1 AND user_id = $2 FOR UPDATE`, [id, userId]);
-        if (cur.rows.length === 0) { await client.query('ROLLBACK'); return { ok: false, notFound: true }; }
+        if (cur.rows.length === 0) return rollback({ ok: false, notFound: true });
         const row = cur.rows[0];
         const currentVersion = parseInt(row.version, 10) || 1;
         if (expectedVersion != null && currentVersion !== expectedVersion) {
-            await client.query('ROLLBACK');
-            return { ok: false, conflict: true, currentVersion, playbook: mapRow(row) };
+            return rollback({ ok: false, conflict: true, currentVersion, playbook: mapRow(row) });
         }
         const nextVersion = currentVersion + 1;
         const nextPhases = Array.isArray(phases) ? phases : parseJSON(row.phases, []);
@@ -129,15 +126,10 @@ async function savePhases(id, userId, { phases, currentPhase, status, title } = 
                 nextVersion, id, userId,
             ],
         );
-        await client.query('COMMIT');
-        const saved = await getPlaybook(id, userId);
-        return { ok: true, version: nextVersion, playbook: saved };
-    } catch (e) {
-        try { await client.query('ROLLBACK'); } catch (err) { log.debug('already rolled back', err); }
-        throw e;
-    } finally {
-        client.release();
-    }
+        return { ok: true, version: nextVersion };
+    });
+    if (!out.ok) return out;
+    return { ...out, playbook: await getPlaybook(id, userId) };
 }
 
 async function deletePlaybook(id, userId) {

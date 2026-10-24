@@ -8,7 +8,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const { _runTransaction, _instrumentClient, makeStoreInit, isSqlStateError } = require('./db');
+const { rollback, _runTransaction, _instrumentClient, makeStoreInit, isSqlStateError } = require('./db');
 
 function fakeClient() {
     const calls = [];
@@ -186,4 +186,21 @@ test('isSqlStateError: false for non-errors and non-string codes', () => {
     assert.strictEqual(isSqlStateError(null), false);
     assert.strictEqual(isSqlStateError({}), false);
     assert.strictEqual(isSqlStateError(Object.assign(new Error('x'), { code: 42501, severity: 'ERROR' })), false);
+});
+
+test('_runTransaction: return rollback(v) rolls back, releases and resolves to v', async () => {
+    const c = fakeClient();
+    const result = await _runTransaction(c, async (client) => {
+        await client.query('SELECT 1 FOR UPDATE');
+        return rollback({ ok: false });
+    });
+    assert.deepStrictEqual(result, { ok: false });
+    assert.deepStrictEqual(c.calls, ['BEGIN', 'SELECT 1 FOR UPDATE', 'ROLLBACK']);
+    assert.strictEqual(c.released, 1);
+});
+
+test('_runTransaction: rollback() without a value resolves to undefined', async () => {
+    const c = fakeClient();
+    assert.strictEqual(await _runTransaction(c, async () => rollback()), undefined);
+    assert.deepStrictEqual(c.calls, ['BEGIN', 'ROLLBACK']);
 });

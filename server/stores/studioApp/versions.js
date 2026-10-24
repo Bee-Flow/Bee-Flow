@@ -11,7 +11,8 @@ const { initDB } = require('./schema');
 const { guardOf } = require('./shared');
 const { mapAppRow, mapVersionMetaRow, mapVersionRow } = require('./rowMappers');
 
-const { getOne, getAll, getClient } = dep('db');
+const { getOne, getAll, withTransaction } = dep('db');
+const { rollback } = require('../../txRollback');
 
 // Publish snapshots kept per app (oldest pruned beyond this).
 const MAX_VERSIONS_PER_APP = 20;
@@ -35,18 +36,7 @@ const MAX_VERSIONS_PER_APP = 20;
 async function createVersionSnapshot(appId, ownerId, definition, summary = 'Checkpoint', { client = null } = {}) {
     if (client) return writeVersionSnapshot(client, appId, ownerId, definition, summary);
     await initDB();
-    const own = await getClient();
-    try {
-        await own.query('BEGIN');
-        const versionId = await writeVersionSnapshot(own, appId, ownerId, definition, summary);
-        await own.query('COMMIT');
-        return versionId;
-    } catch (e) {
-        await own.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        own.release();
-    }
+    return withTransaction((own) => writeVersionSnapshot(own, appId, ownerId, definition, summary));
 }
 
 async function writeVersionSnapshot(client, appId, ownerId, definition, summary) {
@@ -101,16 +91,13 @@ async function getVersion(appId, versionId, ownerId) {
  */
 async function restoreVersion(io, appId, versionId, ownerId, { managedWrite = null } = {}) {
     await io.ready();
-    const client = await io.db.getClient();
-    try {
-        await client.query('BEGIN');
+    return io.db.withTransaction(async (client) => {
         const v = await client.query(
             `SELECT definition FROM studio_app_versions WHERE id = $1 AND app_id = $2 AND user_id = $3`,
             [versionId, appId, ownerId]
         );
         if (v.rows.length === 0) {
-            await client.query('ROLLBACK');
-            return null;
+            return rollback(null);
         }
         const app = await client.query(
             `SELECT project_id FROM studio_apps WHERE id = $1 AND user_id = $2 FOR UPDATE`,
@@ -130,17 +117,10 @@ async function restoreVersion(io, appId, versionId, ownerId, { managedWrite = nu
             [payload, appId, ownerId]
         );
         if (upd.rows.length === 0) {
-            await client.query('ROLLBACK');
-            return null;
+            return rollback(null);
         }
-        await client.query('COMMIT');
         return mapAppRow(upd.rows[0]);
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
+    });
 }
 
 module.exports = { MAX_VERSIONS_PER_APP, createVersionSnapshot, listVersions, getVersion, restoreVersion };

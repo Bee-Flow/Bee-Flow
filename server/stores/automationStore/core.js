@@ -4,7 +4,7 @@
  * Leaf module — aggregates require this; it requires nothing in automationStore/.
  */
 
-const { run, getOne, getAll, exec, getClient, pool } = require('../../db');
+const { run, getOne, getAll, exec, getClient, withTransaction, pool } = require('../../db');
 const { makeStoreInit } = require('../lib/storeInit');
 const log = require('../../telemetry/log');
 
@@ -160,4 +160,4 @@ async function _initDB() {
 }
 
 // MIGRATIONS is exported for the registration tests (read, never mutated).
-module.exports = { run, getOne, getAll, exec, getClient, pool, initDB, MIGRATIONS: Object.freeze([...MIGRATIONS]) };
+module.exports = { run, getOne, getAll, exec, getClient, withTransaction, pool, initDB, MIGRATIONS: Object.freeze([...MIGRATIONS]) };

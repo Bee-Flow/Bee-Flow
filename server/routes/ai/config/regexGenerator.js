@@ -12,6 +12,7 @@
  */
 
 const express = require('express');
+const { fetchConfiguredEndpoint } = require('../../../core/http/configuredEndpointFetch');
 const log = require('../../../telemetry/log');
 const router = express.Router();
 const { getAIConfig } = require('../../../core/aiAgent');
@@ -86,7 +87,7 @@ router.post('/generate-regex', requireAuth, requireAdmin, validate({ body: Gener
         const headers = { 'Content-Type': 'application/json' };
         if (config.apiKey) headers['Authorization'] = `Bearer ${config.apiKey}`;
 
-        const response = await fetch(`${apiUrl}/chat/completions`, {
+        const response = await fetchConfiguredEndpoint(`${apiUrl}/chat/completions`, {
             method: 'POST',
             headers,
             body: JSON.stringify(requestBody)

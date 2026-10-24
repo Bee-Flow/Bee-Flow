@@ -8,6 +8,7 @@ const { dep } = require('./deps');
 const { parseJSONObject: parseJSON } = require('../lib/json');
 const { initDB } = require('./schema');
 const { guardOf } = require('./shared');
+const { rollback } = require('../../txRollback');
 
 const { run, getOne } = dep('db');
 
@@ -91,20 +92,16 @@ async function getBuilderSession(appId, userId) {
 async function setBuilderSession(io, appId, userId, snapshot, { expectedVersion = null, trimBlock = 1, managedWrite = null } = {}) {
     await io.ready();
     const trimmed = trimSnapshot(snapshot, { block: trimBlock }) || {};
-    const client = await io.db.getClient();
-    try {
-        await client.query('BEGIN');
+    return io.db.withTransaction(async (client) => {
         const cur = await client.query(
             `SELECT user_id, builder_session, project_id FROM studio_apps WHERE id = $1 FOR UPDATE`,
             [appId]
         );
         if (cur.rows.length === 0) {
-            await client.query('ROLLBACK');
-            return { ok: false, notFound: true };
+            return rollback({ ok: false, notFound: true });
         }
         if (userId && cur.rows[0].user_id !== userId) {
-            await client.query('ROLLBACK');
-            return { ok: false, forbidden: true };
+            return rollback({ ok: false, forbidden: true });
         }
         // An app of a Solution stage has no AI builder session (changed in Dev, deployed).
         await guardOf(io).assertManagedWrite({
@@ -115,22 +112,15 @@ async function setBuilderSession(io, appId, userId, snapshot, { expectedVersion 
             : (cur.rows[0].builder_session ?? null)) || {};
         const currentVersion = Number.isFinite(currentSnap.version) ? currentSnap.version : 0;
         if (expectedVersion != null && currentVersion !== expectedVersion) {
-            await client.query('ROLLBACK');
-            return { ok: false, conflict: true, current: currentSnap };
+            return rollback({ ok: false, conflict: true, current: currentSnap });
         }
         const next = { ...trimmed, version: currentVersion + 1 };
         await client.query(
             `UPDATE studio_apps SET builder_session = $1::jsonb, updated_at = NOW() WHERE id = $2`,
             [JSON.stringify(next), appId]
         );
-        await client.query('COMMIT');
         return { ok: true, snapshot: next };
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
+    });
 }
 
 async function clearBuilderSession(appId, userId) {

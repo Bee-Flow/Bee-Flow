@@ -16,7 +16,7 @@
  * wiring and UI land in later phases.
  */
 
-const { run, getOne, getAll, getClient } = require('../db');
+const { run, getOne, getAll, withTransaction } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const orgVault = require('./orgVault');
 const log = require('../telemetry/log');
@@ -164,10 +164,7 @@ async function createConnection({
     );
     const shouldDefault = makeDefault || existing.length === 0;
 
-    const client = await getClient();
-    let created;
-    try {
-        await client.query('BEGIN');
+    const created = await withTransaction(async (client) => {
         if (shouldDefault) {
             await client.query(
                 'UPDATE integration_connections SET is_default = FALSE, updated_at = NOW() WHERE owner_user_id = $1 AND provider = $2',
@@ -181,14 +178,8 @@ async function createConnection({
             RETURNING *
         `, [ownerUserId, resolvedOrg, provider, label || 'Default', kind, secret,
             JSON.stringify(secretMeta || {}), shouldDefault]);
-        created = rows[0];
-        await client.query('COMMIT');
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
+        return rows[0];
+    });
 
     if (mirror && created.is_default && secretObject) {
         await _mirrorWriteLegacy(created, secretObject).catch(() => {});
@@ -287,21 +278,13 @@ async function setDefault(connectionId) {
     await initDB();
     const conn = await getOne('SELECT id, owner_user_id, provider FROM integration_connections WHERE id = $1', [connectionId]);
     if (!conn) return false;
-    const client = await getClient();
-    try {
-        await client.query('BEGIN');
+    await withTransaction(async (client) => {
         await client.query(
             'UPDATE integration_connections SET is_default = FALSE, updated_at = NOW() WHERE owner_user_id = $1 AND provider = $2',
             [conn.owner_user_id, conn.provider]
         );
         await client.query('UPDATE integration_connections SET is_default = TRUE, updated_at = NOW() WHERE id = $1', [connectionId]);
-        await client.query('COMMIT');
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
+    });
     // Re-mirror the new default's value to the legacy key.
     const full = await getConnectionWithSecret(connectionId);
     if (full?.secret) await _mirrorWriteLegacy({ owner_user_id: conn.owner_user_id, provider: conn.provider, is_default: true }, full.secret).catch(() => {});

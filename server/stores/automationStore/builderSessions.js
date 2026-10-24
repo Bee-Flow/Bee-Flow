@@ -3,7 +3,8 @@
  * builderSessions.js — automationStore aggregate (§WS5, extracted verbatim).
  */
 
-const { initDB, run, getOne, getClient } = require('./core');
+const { initDB, run, getOne, withTransaction } = require('./core');
+const { rollback } = require('../../txRollback');
 const { safeParse } = require('./rowMappers');
 
 // ── Builder session snapshot ───────────────────────────────────────────
@@ -111,18 +112,10 @@ async function getBuilderSession(automationId, userId) {
  */
 async function setBuilderSession(automationId, userId, snapshot, { expectedVersion = null, trimBlock = 1, managedWrite = null } = {}) {
     await initDB();
-    const client = await getClient();
-    try {
-        await client.query('BEGIN');
+    return withTransaction(async (client) => {
         const out = await setBuilderSessionWith(client, automationId, userId, snapshot, { expectedVersion, trimBlock, managedWrite });
-        await client.query(out.ok ? 'COMMIT' : 'ROLLBACK');
-        return out;
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
+        return out.ok ? out : rollback(out);
+    });
 }
 
 /**

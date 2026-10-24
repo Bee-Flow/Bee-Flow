@@ -5,7 +5,7 @@
  */
 
 const crypto = require('crypto');
-const { run, getOne, getAll, getClient } = require('../../db');
+const { run, getOne, getAll, withTransaction } = require('../../db');
 const { buildUpdate } = require('../lib/sqlBuilder');
 const { initDB } = require('./schema');
 const { mapDatasetRow, mapCacheRow } = require('./rowMappers');
@@ -115,9 +115,7 @@ async function putCache(datasetId, { viewerScopeKey, paramsHash, dataVersion, re
     const id = crypto.randomUUID();
     const ttl = Number.isFinite(ttlSeconds) ? ttlSeconds : 60;
     const expiresAt = new Date(Date.now() + ttl * 1000).toISOString();
-    const client = await getClient();
-    try {
-        await client.query('BEGIN');
+    return withTransaction(async (client) => {
         // Replace any existing entry for this (dataset, viewer, params) tuple.
         await client.query(
             `DELETE FROM studio_app_dataset_cache
@@ -131,14 +129,8 @@ async function putCache(datasetId, { viewerScopeKey, paramsHash, dataVersion, re
             [id, datasetId, viewerScopeKey, paramsHash, parseInt(dataVersion) || 0,
              JSON.stringify(result ?? {}), parseInt(rowCount) || 0, expiresAt]
         );
-        await client.query('COMMIT');
         return { ok: true, id, expiresAt };
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
+    });
 }
 
 /** Drop all cached results for a dataset (e.g. after its descriptor changes). */

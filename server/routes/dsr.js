@@ -417,6 +417,8 @@ function idFromUnverifiedToken(token) {
  * logged (BFSF-441) — `row` travels no further than `req.dsrVerified`.
  */
 async function requireVerifyToken(req, res, next) {
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('Cache-Control', 'no-store');
     const invalid = () => res.status(400).json({ error: 'invalid_token' });
     try {
         const token = req.body?.token;

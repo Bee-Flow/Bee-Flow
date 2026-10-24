@@ -18,20 +18,9 @@ function guardOf(io) {
     return io.managedParts || dep('managedPartsDefault')();
 }
 
-/** Run `fn` on one client of `io.db` inside BEGIN/COMMIT (ROLLBACK on a throw). */
+/** Run `fn` on one client of `io.db` in a transaction. */
 async function inTx(io, fn) {
-    const client = await io.db.getClient();
-    try {
-        await client.query('BEGIN');
-        const out = await fn(client);
-        await client.query('COMMIT');
-        return out;
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
+    return io.db.withTransaction(fn);
 }
 
 /**

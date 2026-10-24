@@ -6,6 +6,7 @@
  * Run: node --test --test-force-exit stores/playbookStore.test.js
  */
 
+const { TransactionRollback } = require('../txRollback');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
@@ -52,7 +53,10 @@ const mockDb = {
     getAll: async (sql, params) => dispatch(sql, params).rows,
     getOne: async (sql, params) => dispatch(sql, params).rows[0] || null,
     getClient: async () => ({ query: async (sql, params) => dispatch(sql, params), release: () => {} }),
-    withTransaction: async (fn) => fn({ query: async (sql, params) => dispatch(sql, params) }),
+    withTransaction: async (fn) => {
+        const out = await fn({ query: async (sql, params) => dispatch(sql, params) });
+        return out instanceof TransactionRollback ? out.value : out;
+    },
     isSqlStateError: (e) => typeof e?.code === 'string' && !!e?.severity,
     makeStoreInit: (tag, fn) => { let p = null; return () => { if (!p) p = Promise.resolve().then(fn).catch((e) => { p = null; throw e; }); return p; }; },
 };

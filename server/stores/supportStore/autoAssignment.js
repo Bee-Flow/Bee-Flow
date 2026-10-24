@@ -5,7 +5,7 @@
  * SELECT … FOR UPDATE so two concurrent escalations can't pick the same agent.
  */
 
-const { pool } = require('../../db');
+const { withTransaction } = require('../../db');
 const { initDB } = require('./schema');
 
 // ── Auto-assignment round-robin ──────────────────────────────────────────────
@@ -19,9 +19,7 @@ async function getAndAdvanceRoundRobin(organizationId, candidateUserIds = []) {
     await initDB();
     if (!candidateUserIds.length) return null;
     const key = organizationId || '__global__';
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
+    return withTransaction(async (client) => {
         const { rows } = await client.query(
             `SELECT last_assignee_user_id FROM support_assignment_state
               WHERE organization_id = $1 FOR UPDATE`,
@@ -37,14 +35,8 @@ async function getAndAdvanceRoundRobin(organizationId, candidateUserIds = []) {
              DO UPDATE SET last_assignee_user_id = EXCLUDED.last_assignee_user_id, updated_at = now()`,
             [key, next]
         );
-        await client.query('COMMIT');
         return next;
-    } catch (e) {
-        await client.query('ROLLBACK');
-        throw e;
-    } finally {
-        client.release();
-    }
+    });
 }
 
 module.exports = { getAndAdvanceRoundRobin };

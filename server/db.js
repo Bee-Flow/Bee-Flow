@@ -19,6 +19,7 @@
 // @typecheck
 const { Pool } = require('pg');
 const Redis = /** @type {typeof import('ioredis').default} */ (/** @type {unknown} */ (require('ioredis')));
+const { TransactionRollback, rollback } = require('./txRollback');
 const log = require('./telemetry/log');
 
 // The store schema-init memo. It lives in stores/lib/storeInit.js — it is
@@ -374,6 +375,10 @@ async function _runTransaction(client, fn) {
     try {
         await client.query('BEGIN');
         const result = await fn(client);
+        if (result instanceof TransactionRollback) {
+            await client.query('ROLLBACK');
+            return result.value;
+        }
         await client.query('COMMIT');
         return result;
     } catch (e) {
@@ -395,6 +400,7 @@ async function _runTransaction(client, fn) {
  *     await client.query('UPDATE ...', [id]);
  *     return rows[0].version;
  *   });
+ * `return rollback(value)` from the callback rolls back instead of committing.
  * @param {(client: import('pg').PoolClient) => Promise<any>} fn
  */
 async function withTransaction(fn) {
@@ -451,6 +457,7 @@ module.exports = {
     exec,
     getClient,
     withTransaction,
+    rollback,
     makeStoreInit,
     isSqlStateError,
     getPoolStats,
